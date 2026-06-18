@@ -113,7 +113,7 @@ fun StudentDetailScreen(
             if (state.subjects.isEmpty()) {
                 item { Text(stringResource(R.string.student_no_subjects), color = MaterialTheme.colorScheme.onSurfaceVariant) }
             } else {
-                items(state.subjects, key = { it.subject.id }) { sp ->
+                items(state.subjects, key = { StudentDetailKeys.subject(it.subject.id) }) { sp ->
                     ListItem(
                         headlineContent = { Text(sp.subject.name) },
                         supportingContent = {
@@ -141,7 +141,7 @@ fun StudentDetailScreen(
             if (state.payments.isEmpty()) {
                 item { Text(stringResource(R.string.payments_empty), color = MaterialTheme.colorScheme.onSurfaceVariant) }
             } else {
-                items(state.payments, key = { it.id }) { payment ->
+                items(state.payments, key = { StudentDetailKeys.payment(it.id) }) { payment ->
                     ListItem(
                         headlineContent = { Text(payment.amount.format()) },
                         supportingContent = { Text(payment.date.formatDate()) },
@@ -158,7 +158,7 @@ fun StudentDetailScreen(
             if (state.classes.isEmpty()) {
                 item { Text(stringResource(R.string.schedule_empty), color = MaterialTheme.colorScheme.onSurfaceVariant) }
             } else {
-                items(state.classes, key = { it.klass.id }) { row ->
+                items(state.classes, key = { StudentDetailKeys.klass(it.klass.id) }) { row ->
                     ListItem(
                         headlineContent = { Text("${row.subjectName} · ${row.klass.start.formatDateTime()}") },
                         supportingContent = {
