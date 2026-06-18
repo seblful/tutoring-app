@@ -92,7 +92,11 @@ class DeviceCalendarSync @Inject constructor(
         }.getOrNull()
     }
 
+    // Reading the calendar list needs READ_CALENDAR; writing events needs WRITE_CALENDAR. Both are
+    // required, and both must be requested — granting one does not imply the other.
     private fun hasPermission(): Boolean =
-        ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) ==
-            PackageManager.PERMISSION_GRANTED
+        isGranted(Manifest.permission.READ_CALENDAR) && isGranted(Manifest.permission.WRITE_CALENDAR)
+
+    private fun isGranted(permission: String): Boolean =
+        ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 }

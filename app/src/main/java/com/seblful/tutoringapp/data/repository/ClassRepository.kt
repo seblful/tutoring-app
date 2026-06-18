@@ -43,6 +43,14 @@ class ClassRepository @Inject constructor(
 
     suspend fun getAll(): List<TutoringClass> = dao.getAll().map { it.toDomain() }
 
+    /**
+     * Re-mirrors every class to the device calendar. Run after the user grants calendar access, to
+     * backfill events for classes created while sync was off. Best-effort, like all calendar work.
+     */
+    suspend fun resyncCalendar() {
+        dao.getAll().forEach { mirrorToCalendar(it.toDomain()) }
+    }
+
     suspend fun add(klass: TutoringClass): Long {
         val id = dao.upsert(klass.toEntity())
         mirrorToCalendar(klass.copy(id = id))

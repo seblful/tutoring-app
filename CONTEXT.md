@@ -56,9 +56,9 @@ flowchart TB
   that didn't happen is `cancelled`, which voids the charge — there is no separate "missed"
   status. `ClassRules.availableTransitions` is the single source of truth for the actions menu, so
   it never offers the status a class is already in.
-- **A class's subject must be one the student is assigned** (`Scheduling.assignableSubjects`): the
-  booking screen only offers subjects set for the chosen student, since a price (and therefore a
-  billable charge) exists only for an assigned subject.
+- **A class's subject must have a price for the student** (`Scheduling.assignableSubjects`): the
+  booking screen only offers subjects priced for the chosen student, since a completed class
+  snapshots its price — an unpriced subject could never be billed, so the price is added first.
 - **Class mode** (`ClassMode`: in person / remote — «Очно»/«Удалённо»): each student carries a
   `defaultMode`; a new class inherits it and can be overridden per occurrence. Mirrored into the
   calendar event's location. Students also carry a free-text `phone`.
@@ -69,7 +69,8 @@ flowchart TB
   user's Google account — so there is **no Google Cloud project, OAuth consent screen, or privacy
   policy** to set up, which fits the "no backend" goal. It sits behind the `CalendarSync` port, so
   a REST adapter can be added later without touching the rest of the app. Opt-in via the More tab
-  (grants `WRITE_CALENDAR`).
+  grants **both** `READ_CALENDAR` (the provider query that finds the writable calendar needs read)
+  and `WRITE_CALENDAR`; enabling it backfills events for the existing classes.
 - **WorkManager** for time-driven behavior: precise one-shot `ReminderWorker`s for upcoming
   classes, plus a periodic `MaintenanceWorker` that auto-completes due classes and re-derives
   reminders (the safety net for changes made while the app was closed). The *decisions*

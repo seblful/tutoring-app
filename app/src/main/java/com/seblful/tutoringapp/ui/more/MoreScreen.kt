@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.seblful.tutoringapp.R
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,13 +30,16 @@ import com.seblful.tutoringapp.R
 fun MoreScreen(
     onSubjects: () -> Unit,
     onBackup: () -> Unit,
+    viewModel: MoreViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val enabledMsg = stringResource(R.string.calendar_enabled)
     val deniedMsg = stringResource(R.string.calendar_denied)
     val calendarPermission = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted ->
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { result ->
+        val granted = result.values.isNotEmpty() && result.values.all { it }
+        if (granted) viewModel.onCalendarEnabled()
         Toast.makeText(context, if (granted) enabledMsg else deniedMsg, Toast.LENGTH_SHORT).show()
     }
 
@@ -52,7 +56,11 @@ fun MoreScreen(
                 leadingContent = { Icon(Icons.Filled.CalendarMonth, null) },
                 headlineContent = { Text(stringResource(R.string.more_calendar)) },
                 supportingContent = { Text(stringResource(R.string.more_calendar_desc)) },
-                modifier = Modifier.clickable { calendarPermission.launch(Manifest.permission.WRITE_CALENDAR) },
+                modifier = Modifier.clickable {
+                    calendarPermission.launch(
+                        arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR),
+                    )
+                },
             )
             ListItem(
                 leadingContent = { Icon(Icons.Filled.Save, null) },
