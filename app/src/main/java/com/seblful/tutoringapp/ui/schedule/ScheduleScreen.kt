@@ -48,6 +48,7 @@ import com.seblful.tutoringapp.ui.common.ConfirmDialog
 import com.seblful.tutoringapp.ui.common.DatePickerModal
 import com.seblful.tutoringapp.ui.common.EmptyState
 import com.seblful.tutoringapp.ui.common.TimePickerModal
+import com.seblful.tutoringapp.ui.common.classModeLabel
 import com.seblful.tutoringapp.ui.common.classStatusColor
 import com.seblful.tutoringapp.ui.common.classStatusLabel
 import com.seblful.tutoringapp.format.formatDay
@@ -94,7 +95,7 @@ fun ScheduleScreen(
                     items(rows, key = { it.klass.id }) { row ->
                         ListItem(
                             headlineContent = { Text("${row.klass.start.formatTime()} · ${row.studentName}") },
-                            supportingContent = { Text(row.subjectName) },
+                            supportingContent = { Text("${row.subjectName} · ${classModeLabel(row.klass.mode)}") },
                             trailingContent = {
                                 Text(classStatusLabel(row.klass.status), color = classStatusColor(row.klass.status))
                             },
@@ -174,19 +175,10 @@ private fun ClassActionsSheet(
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
             SheetAction(stringResource(R.string.action_edit), onClick = onEdit)
-            // Only offer status changes that are legal from the current status.
-            statusActionLabel(ClassStatus.COMPLETED)
-                .takeIf { ClassRules.canTransition(klass.status, ClassStatus.COMPLETED) }
-                ?.let { SheetAction(stringResource(it), onClick = { onStatus(ClassStatus.COMPLETED) }) }
-            statusActionLabel(ClassStatus.MISSED)
-                .takeIf { ClassRules.canTransition(klass.status, ClassStatus.MISSED) }
-                ?.let { SheetAction(stringResource(it), onClick = { onStatus(ClassStatus.MISSED) }) }
-            statusActionLabel(ClassStatus.CANCELLED)
-                .takeIf { ClassRules.canTransition(klass.status, ClassStatus.CANCELLED) }
-                ?.let { SheetAction(stringResource(it), onClick = { onStatus(ClassStatus.CANCELLED) }) }
-            statusActionLabel(ClassStatus.SCHEDULED)
-                .takeIf { klass.status != ClassStatus.SCHEDULED && ClassRules.canTransition(klass.status, ClassStatus.SCHEDULED) }
-                ?.let { SheetAction(stringResource(it), onClick = { onStatus(ClassStatus.SCHEDULED) }) }
+            // Offer only the statuses this class can move to — never the one it is already in.
+            ClassRules.availableTransitions(klass.status).forEach { target ->
+                SheetAction(stringResource(statusActionLabel(target)), onClick = { onStatus(target) })
+            }
             SheetAction(stringResource(R.string.class_move), onClick = onMove)
             SheetAction(stringResource(R.string.action_delete), onClick = onDelete, destructive = true)
         }
@@ -195,7 +187,6 @@ private fun ClassActionsSheet(
 
 private fun statusActionLabel(status: ClassStatus): Int = when (status) {
     ClassStatus.COMPLETED -> R.string.class_mark_completed
-    ClassStatus.MISSED -> R.string.class_mark_missed
     ClassStatus.CANCELLED -> R.string.class_mark_cancelled
     ClassStatus.SCHEDULED -> R.string.class_mark_scheduled
 }

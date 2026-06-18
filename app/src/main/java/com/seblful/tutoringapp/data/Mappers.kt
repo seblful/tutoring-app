@@ -5,6 +5,7 @@ import com.seblful.tutoringapp.data.local.PaymentEntity
 import com.seblful.tutoringapp.data.local.PriceEntity
 import com.seblful.tutoringapp.data.local.StudentEntity
 import com.seblful.tutoringapp.data.local.SubjectEntity
+import com.seblful.tutoringapp.domain.model.ClassMode
 import com.seblful.tutoringapp.domain.model.ClassStatus
 import com.seblful.tutoringapp.domain.model.Money
 import com.seblful.tutoringapp.domain.model.Payment
@@ -17,8 +18,10 @@ import java.time.Instant
 fun SubjectEntity.toDomain() = Subject(id = id, name = name)
 fun Subject.toEntity() = SubjectEntity(id = id, name = name)
 
-fun StudentEntity.toDomain() = Student(id = id, name = name, note = note, archived = archived)
-fun Student.toEntity() = StudentEntity(id = id, name = name, note = note, archived = archived)
+fun StudentEntity.toDomain() =
+    Student(id = id, name = name, phone = phone, note = note, defaultMode = ClassMode.valueOf(defaultMode), archived = archived)
+fun Student.toEntity() =
+    StudentEntity(id = id, name = name, phone = phone, note = note, defaultMode = defaultMode.name, archived = archived)
 
 fun PriceEntity.toDomain() = Price(studentId = studentId, subjectId = subjectId, amount = Money(amountMinor))
 fun Price.toEntity() = PriceEntity(studentId = studentId, subjectId = subjectId, amountMinor = amount.minor)
@@ -38,7 +41,7 @@ fun ClassEntity.toDomain() = TutoringClass(
     status = ClassStatus.valueOf(status),
     charge = Money(chargeMinor),
     recurringGroupId = recurringGroupId,
-    location = location,
+    mode = ClassMode.valueOf(mode),
     calendarEventId = calendarEventId,
 )
 
@@ -51,6 +54,6 @@ fun TutoringClass.toEntity() = ClassEntity(
     status = status.name,
     chargeMinor = charge.minor,
     recurringGroupId = recurringGroupId,
-    location = location,
+    mode = mode.name,
     calendarEventId = calendarEventId,
 )

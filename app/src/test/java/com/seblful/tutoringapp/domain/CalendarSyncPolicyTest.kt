@@ -11,9 +11,8 @@ class CalendarSyncPolicyTest {
         assertEquals(Action.UPSERT, CalendarSyncPolicy.actionFor(ClassStatus.SCHEDULED))
     }
 
-    @Test fun `cancelled and missed classes have their event removed`() {
+    @Test fun `cancelled classes have their event removed`() {
         assertEquals(Action.DELETE, CalendarSyncPolicy.actionFor(ClassStatus.CANCELLED))
-        assertEquals(Action.DELETE, CalendarSyncPolicy.actionFor(ClassStatus.MISSED))
     }
 
     @Test fun `completed classes are left as history`() {

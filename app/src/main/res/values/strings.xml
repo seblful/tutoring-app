@@ -24,16 +24,18 @@
     <string name="class_edit_title">Изменить занятие</string>
     <string name="class_student_label">Ученик</string>
     <string name="class_subject_label">Предмет</string>
+    <string name="class_no_subjects_for_student">У ученика нет предметов. Добавьте их в карточке ученика.</string>
     <string name="class_date_label">Дата</string>
     <string name="class_time_label">Время</string>
     <string name="class_duration_label">Длительность, мин</string>
     <string name="class_location_label">Место</string>
+    <string name="class_mode_in_person">Очно</string>
+    <string name="class_mode_remote">Удалённо</string>
     <string name="class_repeat_weekly">Повторять каждую неделю</string>
     <string name="class_repeat_weeks">Сколько недель</string>
     <string name="class_move">Перенести</string>
     <string name="class_delete_confirm">Удалить это занятие?</string>
     <string name="class_mark_completed">Отметить проведённым</string>
-    <string name="class_mark_missed">Отметить пропуском</string>
     <string name="class_mark_cancelled">Отменить занятие</string>
     <string name="class_mark_scheduled">Вернуть в расписание</string>
 
@@ -41,7 +43,6 @@
     <string name="class_status_scheduled">Запланировано</string>
     <string name="class_status_completed">Проведено</string>
     <string name="class_status_cancelled">Отменено</string>
-    <string name="class_status_missed">Пропущено</string>
 
     <!-- Students -->
     <string name="students_title">Ученики</string>
@@ -51,7 +52,9 @@
     <string name="student_add_title">Новый ученик</string>
     <string name="student_edit_title">Изменить ученика</string>
     <string name="student_name_label">Имя</string>
+    <string name="student_phone_label">Телефон</string>
     <string name="student_note_label">Заметка</string>
+    <string name="student_mode_label">Место занятий</string>
     <string name="student_subjects_title">Предметы</string>
     <string name="student_no_subjects">Предметы не выбраны</string>
     <string name="student_payments_title">Платежи</string>

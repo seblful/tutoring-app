@@ -45,8 +45,7 @@ class RemindersTest {
         val start = now.plus(Duration.ofHours(3))
         val classes = listOf(
             klass(1, start, ClassStatus.CANCELLED),
-            klass(2, start, ClassStatus.MISSED),
-            klass(3, start, ClassStatus.COMPLETED),
+            klass(2, start, ClassStatus.COMPLETED),
         )
         assertTrue(Reminders.plan(now, classes, lead, horizon).isEmpty())
     }

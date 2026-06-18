@@ -44,6 +44,7 @@ import com.seblful.tutoringapp.ui.common.StudentEditDialog
 import com.seblful.tutoringapp.ui.common.TextFieldDialog
 import com.seblful.tutoringapp.ui.common.balanceColor
 import com.seblful.tutoringapp.ui.common.balanceDescription
+import com.seblful.tutoringapp.ui.common.classModeLabel
 import com.seblful.tutoringapp.ui.common.classStatusColor
 import com.seblful.tutoringapp.ui.common.classStatusLabel
 import com.seblful.tutoringapp.format.formatDate
@@ -102,6 +103,23 @@ fun StudentDetailScreen(
 
             if (!student?.note.isNullOrBlank()) {
                 item { Text(student!!.note, style = MaterialTheme.typography.bodyMedium) }
+            }
+
+            student?.let { s ->
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        if (s.phone.isNotBlank()) {
+                            Text(
+                                "${stringResource(R.string.student_phone_label)}: ${s.phone}",
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                        Text(
+                            "${stringResource(R.string.student_mode_label)}: ${classModeLabel(s.defaultMode)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
             }
 
             item {
@@ -180,8 +198,10 @@ fun StudentDetailScreen(
         StudentEditDialog(
             title = stringResource(R.string.student_edit_title),
             initialName = student.name,
+            initialPhone = student.phone.ifBlank { "+375 " },
             initialNote = student.note,
-            onConfirm = { name, note -> viewModel.editStudent(name, note) },
+            initialMode = student.defaultMode,
+            onConfirm = { name, phone, note, mode -> viewModel.editStudent(name, phone, note, mode) },
             onDismiss = { editing = false },
         )
     }

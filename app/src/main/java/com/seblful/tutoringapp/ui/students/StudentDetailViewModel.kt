@@ -9,6 +9,7 @@ import com.seblful.tutoringapp.data.repository.PriceRepository
 import com.seblful.tutoringapp.data.repository.StudentRepository
 import com.seblful.tutoringapp.data.repository.SubjectRepository
 import com.seblful.tutoringapp.domain.Billing
+import com.seblful.tutoringapp.domain.model.ClassMode
 import com.seblful.tutoringapp.domain.model.Money
 import com.seblful.tutoringapp.domain.model.Payment
 import com.seblful.tutoringapp.domain.model.Student
@@ -85,11 +86,13 @@ class StudentDetailViewModel @Inject constructor(
         val classes: List<ClassRow>,
     )
 
-    fun editStudent(name: String, note: String) {
+    fun editStudent(name: String, phone: String, note: String, mode: ClassMode) {
         val current = state.value.student ?: return
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
-        viewModelScope.launch { students.upsert(current.copy(name = trimmed, note = note.trim())) }
+        viewModelScope.launch {
+            students.upsert(current.copy(name = trimmed, phone = phone.trim(), note = note.trim(), defaultMode = mode))
+        }
     }
 
     fun setArchived(archived: Boolean) {

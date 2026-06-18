@@ -2,11 +2,14 @@ package com.seblful.tutoringapp.ui.common
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -24,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.seblful.tutoringapp.R
+import com.seblful.tutoringapp.domain.model.ClassMode
 import com.seblful.tutoringapp.domain.model.ClassStatus
 import com.seblful.tutoringapp.domain.model.Money
 
@@ -61,7 +65,6 @@ fun classStatusLabel(status: ClassStatus): String = stringResource(
         ClassStatus.SCHEDULED -> R.string.class_status_scheduled
         ClassStatus.COMPLETED -> R.string.class_status_completed
         ClassStatus.CANCELLED -> R.string.class_status_cancelled
-        ClassStatus.MISSED -> R.string.class_status_missed
     }
 )
 
@@ -70,7 +73,33 @@ fun classStatusColor(status: ClassStatus): Color = when (status) {
     ClassStatus.SCHEDULED -> MaterialTheme.colorScheme.primary
     ClassStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary
     ClassStatus.CANCELLED -> MaterialTheme.colorScheme.onSurfaceVariant
-    ClassStatus.MISSED -> MaterialTheme.colorScheme.error
+}
+
+/** Localized label for a class mode: «Очно» / «Удалённо». */
+@Composable
+fun classModeLabel(mode: ClassMode): String = stringResource(
+    when (mode) {
+        ClassMode.IN_PERSON -> R.string.class_mode_in_person
+        ClassMode.REMOTE -> R.string.class_mode_remote
+    }
+)
+
+/** A two-option chooser for a class mode (in person / remote). */
+@Composable
+fun ModeSelector(
+    selected: ClassMode,
+    onSelect: (ClassMode) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ClassMode.entries.forEach { mode ->
+            FilterChip(
+                selected = selected == mode,
+                onClick = { onSelect(mode) },
+                label = { Text(classModeLabel(mode)) },
+            )
+        }
+    }
 }
 
 @Composable
@@ -88,22 +117,26 @@ fun ConfirmDialog(
     )
 }
 
-/** A dialog to add or edit a student's name and optional note. */
+/** A dialog to add or edit a student's name, phone, optional note and default class mode. */
 @Composable
 fun StudentEditDialog(
     title: String,
     initialName: String,
+    initialPhone: String,
     initialNote: String,
-    onConfirm: (name: String, note: String) -> Unit,
+    initialMode: ClassMode,
+    onConfirm: (name: String, phone: String, note: String, mode: ClassMode) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var name by remember { mutableStateOf(initialName) }
+    var phone by remember { mutableStateOf(initialPhone) }
     var note by remember { mutableStateOf(initialNote) }
+    var mode by remember { mutableStateOf(initialMode) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            androidx.compose.foundation.layout.Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -112,16 +145,26 @@ fun StudentEditDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text(stringResource(R.string.student_phone_label)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
                     label = { Text(stringResource(R.string.student_note_label)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
+                Text(stringResource(R.string.student_mode_label), style = MaterialTheme.typography.labelLarge)
+                ModeSelector(selected = mode, onSelect = { mode = it })
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(name, note); onDismiss() },
+                onClick = { onConfirm(name.trim(), phone.trim(), note.trim(), mode); onDismiss() },
                 enabled = name.isNotBlank(),
             ) { Text(stringResource(R.string.action_save)) }
         },

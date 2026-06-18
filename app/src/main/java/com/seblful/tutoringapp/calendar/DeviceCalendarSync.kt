@@ -7,6 +7,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.CalendarContract
 import androidx.core.content.ContextCompat
+import com.seblful.tutoringapp.R
+import com.seblful.tutoringapp.domain.model.ClassMode
 import com.seblful.tutoringapp.domain.model.TutoringClass
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -67,7 +69,12 @@ class DeviceCalendarSync @Inject constructor(
         put(CalendarContract.Events.DTSTART, klass.start.toEpochMilli())
         put(CalendarContract.Events.DTEND, klass.end.toEpochMilli())
         put(CalendarContract.Events.EVENT_TIMEZONE, ZoneId.systemDefault().id)
-        if (klass.location.isNotBlank()) put(CalendarContract.Events.EVENT_LOCATION, klass.location)
+        put(CalendarContract.Events.EVENT_LOCATION, context.getString(modeLabelRes(klass.mode)))
+    }
+
+    private fun modeLabelRes(mode: ClassMode): Int = when (mode) {
+        ClassMode.IN_PERSON -> R.string.class_mode_in_person
+        ClassMode.REMOTE -> R.string.class_mode_remote
     }
 
     /** The primary writable calendar's id (preferring the account's primary), or null if none. */

@@ -7,7 +7,7 @@ import com.seblful.tutoringapp.domain.model.ClassStatus
  * unit-testable independently of any calendar backend.
  *
  * - A class that will still happen ([ClassStatus.SCHEDULED]) should have an up-to-date event.
- * - A class that won't happen ([ClassStatus.CANCELLED]/[ClassStatus.MISSED]) should have none.
+ * - A class that won't happen ([ClassStatus.CANCELLED]) should have none.
  * - A [ClassStatus.COMPLETED] class is history; its (past) event is left untouched.
  */
 object CalendarSyncPolicy {
@@ -16,7 +16,7 @@ object CalendarSyncPolicy {
 
     fun actionFor(status: ClassStatus): Action = when (status) {
         ClassStatus.SCHEDULED -> Action.UPSERT
-        ClassStatus.CANCELLED, ClassStatus.MISSED -> Action.DELETE
+        ClassStatus.CANCELLED -> Action.DELETE
         ClassStatus.COMPLETED -> Action.NONE
     }
 }

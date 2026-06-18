@@ -18,7 +18,9 @@ data class SubjectEntity(
 data class StudentEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
+    val phone: String = "",
     val note: String = "",
+    val defaultMode: String = "IN_PERSON",
     val archived: Boolean = false,
 )
 
@@ -73,7 +75,7 @@ data class ClassEntity(
     val status: String,
     val chargeMinor: Long = 0,
     val recurringGroupId: Long? = null,
-    val location: String = "",
+    val mode: String = "IN_PERSON",
     val calendarEventId: String? = null,
 )
 

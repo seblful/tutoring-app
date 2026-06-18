@@ -20,7 +20,7 @@ class BackupSerializationTest {
     private val sample = BackupData(
         subjects = listOf(SubjectEntity(1, "Математика"), SubjectEntity(2, "Физика")),
         students = listOf(
-            StudentEntity(1, "Иван", note = "ОГЭ", archived = false),
+            StudentEntity(1, "Иван", phone = "+375291112233", note = "ОГЭ", defaultMode = "REMOTE", archived = false),
             StudentEntity(2, "Мария", note = "", archived = true),
         ),
         studentSubjects = listOf(
@@ -36,7 +36,7 @@ class BackupSerializationTest {
             ClassEntity(
                 id = 1, studentId = 1, subjectId = 1, startMillis = 1_900_000_000_000,
                 durationMinutes = 90, status = "COMPLETED", chargeMinor = 5000,
-                recurringGroupId = 42, location = "Zoom", calendarEventId = "evt-123",
+                recurringGroupId = 42, mode = "REMOTE", calendarEventId = "evt-123",
             ),
             ClassEntity(
                 id = 2, studentId = 2, subjectId = 1, startMillis = 1_900_100_000_000,

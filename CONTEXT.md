@@ -50,9 +50,18 @@ flowchart TB
 - **Money is an integer count of minor units (kopecks)** — no floating point. `Money` value class.
 - **Price versioning by snapshot.** A class captures its charge from the then-current price
   *at completion* (`ClassRules.applyStatus`). Editing a price never touches completed classes.
-- **Status state machine** (`ClassRules`): `scheduled → completed | cancelled | missed`, with
-  corrections back. A scheduled class **auto-completes once its end time passes** (the app knows
-  only the clock; Option A). The tutor marks no-shows `missed`, which voids the charge.
+- **Status state machine** (`ClassRules`): `scheduled → completed | cancelled`, reversible for
+  corrections (`completed → cancelled | scheduled`, `cancelled → scheduled`). A scheduled class
+  **auto-completes once its end time passes** (the app knows only the clock; Option A). A class
+  that didn't happen is `cancelled`, which voids the charge — there is no separate "missed"
+  status. `ClassRules.availableTransitions` is the single source of truth for the actions menu, so
+  it never offers the status a class is already in.
+- **A class's subject must be one the student is assigned** (`Scheduling.assignableSubjects`): the
+  booking screen only offers subjects set for the chosen student, since a price (and therefore a
+  billable charge) exists only for an assigned subject.
+- **Class mode** (`ClassMode`: in person / remote — «Очно»/«Удалённо»): each student carries a
+  `defaultMode`; a new class inherits it and can be overridden per occurrence. Mirrored into the
+  calendar event's location. Students also carry a free-text `phone`.
 - **Offline-first.** Room is authoritative. Calendar and notifications are best-effort: if the
   permission/calendar is absent they no-op, never blocking or corrupting local data.
 - **Calendar sync via `CalendarContract`, not the Google Calendar REST API** *(deviation from

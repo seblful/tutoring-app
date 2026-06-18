@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.seblful.tutoringapp.R
+import com.seblful.tutoringapp.domain.model.ClassMode
 import com.seblful.tutoringapp.ui.common.EmptyState
 import com.seblful.tutoringapp.ui.common.StudentEditDialog
 import com.seblful.tutoringapp.ui.common.balanceColor
@@ -97,8 +98,10 @@ fun StudentsScreen(
         StudentEditDialog(
             title = stringResource(R.string.student_add_title),
             initialName = "",
+            initialPhone = "+375 ",
             initialNote = "",
-            onConfirm = { name, note -> viewModel.addStudent(name, note) },
+            initialMode = ClassMode.IN_PERSON,
+            onConfirm = { name, phone, note, mode -> viewModel.addStudent(name, phone, note, mode) },
             onDismiss = { adding = false },
         )
     }

@@ -8,17 +8,25 @@ import java.time.Instant
 /** Rules governing a class's status: transitions, billing on completion, auto-completion. */
 object ClassRules {
 
-    /** Status changes the tutor (or the auto-complete job) may apply. */
+    /**
+     * Status changes the tutor (or the auto-complete job) may apply. A status is never listed as a
+     * transition to itself, so [availableTransitions] only ever offers a *different* status.
+     */
     private val allowed: Map<ClassStatus, Set<ClassStatus>> = mapOf(
-        ClassStatus.SCHEDULED to setOf(ClassStatus.COMPLETED, ClassStatus.CANCELLED, ClassStatus.MISSED),
-        // Corrections after the clock auto-completed a class the student didn't attend.
-        ClassStatus.COMPLETED to setOf(ClassStatus.MISSED, ClassStatus.CANCELLED),
-        ClassStatus.MISSED to setOf(ClassStatus.COMPLETED, ClassStatus.SCHEDULED),
+        ClassStatus.SCHEDULED to setOf(ClassStatus.COMPLETED, ClassStatus.CANCELLED),
+        // Corrections after the clock auto-completed a class that didn't actually happen.
+        ClassStatus.COMPLETED to setOf(ClassStatus.CANCELLED, ClassStatus.SCHEDULED),
         ClassStatus.CANCELLED to setOf(ClassStatus.SCHEDULED),
     )
 
     fun canTransition(from: ClassStatus, to: ClassStatus): Boolean =
         from == to || to in (allowed[from] ?: emptySet())
+
+    /**
+     * The statuses [from] may be changed to, excluding [from] itself. Drives the class actions
+     * menu, which must never offer the status the class is already in.
+     */
+    fun availableTransitions(from: ClassStatus): Set<ClassStatus> = allowed[from] ?: emptySet()
 
     /**
      * A scheduled class auto-completes once its end time is at or before [now].

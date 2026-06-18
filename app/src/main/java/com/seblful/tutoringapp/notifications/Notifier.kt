@@ -44,7 +44,6 @@ class Notifier @Inject constructor(
         val headline = listOf(time, subjectName, studentName)
             .filter { it.isNotBlank() }
             .joinToString(" · ")
-        val body = if (klass.location.isBlank()) headline else "$headline\n${klass.location}"
 
         val intent = Intent(context, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -59,7 +58,7 @@ class Notifier @Inject constructor(
             .setSmallIcon(R.drawable.ic_stat_reminder)
             .setContentTitle(title)
             .setContentText(headline)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(headline))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)

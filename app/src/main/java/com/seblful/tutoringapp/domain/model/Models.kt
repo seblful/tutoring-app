@@ -12,7 +12,9 @@ data class Subject(
 data class Student(
     val id: Long = 0,
     val name: String,
+    val phone: String = "",
     val note: String = "",
+    val defaultMode: ClassMode = ClassMode.IN_PERSON,
     val archived: Boolean = false,
 )
 
@@ -31,10 +33,10 @@ data class Price(
  * A single class occurrence.
  *
  * @param charge captured at completion from the then-current [Price]; [Money.ZERO]
- *   while scheduled or once cancelled/missed.
+ *   while scheduled or once cancelled.
  * @param recurringGroupId groups occurrences generated from one weekly rule; null for
  *   one-off classes.
- * @param location optional place, surfaced in the reminder notification.
+ * @param mode in person or remote; pre-filled from the student's default, editable per class.
  * @param calendarEventId id of the mirrored Google Calendar event, if synced.
  */
 data class TutoringClass(
@@ -46,7 +48,7 @@ data class TutoringClass(
     val status: ClassStatus = ClassStatus.SCHEDULED,
     val charge: Money = Money.ZERO,
     val recurringGroupId: Long? = null,
-    val location: String = "",
+    val mode: ClassMode = ClassMode.IN_PERSON,
     val calendarEventId: String? = null,
 ) {
     val end: Instant get() = start.plusSeconds(durationMinutes * 60L)

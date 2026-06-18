@@ -23,6 +23,9 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.NAME)
+            // Pre-release schema is still changing; recreate the local DB on upgrade rather than
+            // ship migrations for data that only lives on the dev device.
+            .fallbackToDestructiveMigration()
             .build()
 
     @Provides fun provideSubjectDao(db: AppDatabase): SubjectDao = db.subjectDao()

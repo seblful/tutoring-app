@@ -18,6 +18,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -39,7 +40,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.seblful.tutoringapp.R
 import com.seblful.tutoringapp.ui.common.DatePickerModal
+import com.seblful.tutoringapp.ui.common.ModeSelector
 import com.seblful.tutoringapp.ui.common.TimePickerModal
+import com.seblful.tutoringapp.ui.common.classModeLabel
 import com.seblful.tutoringapp.format.formatDate
 import java.time.ZoneId
 
@@ -55,6 +58,7 @@ fun ClassEditScreen(
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showModeSelector by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -87,14 +91,22 @@ fun ClassEditScreen(
                 label = stringResource(R.string.class_student_label),
                 selectedText = students.firstOrNull { it.id == form.studentId }?.name ?: "",
                 options = students.map { it.id to it.name },
-                onSelect = { id -> viewModel.update { it.copy(studentId = id) } },
+                onSelect = { id -> viewModel.selectStudent(id) },
             )
             DropdownField(
                 label = stringResource(R.string.class_subject_label),
                 selectedText = subjects.firstOrNull { it.id == form.subjectId }?.name ?: "",
                 options = subjects.map { it.id to it.name },
                 onSelect = { id -> viewModel.update { it.copy(subjectId = id) } },
+                enabled = form.studentId != null,
             )
+            if (form.studentId != null && subjects.isEmpty()) {
+                Text(
+                    stringResource(R.string.class_no_subjects_for_student),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 ReadOnlyPickerField(
@@ -122,13 +134,22 @@ fun ClassEditScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            OutlinedTextField(
-                value = form.location,
-                onValueChange = { text -> viewModel.update { it.copy(location = text) } },
-                label = { Text(stringResource(R.string.class_location_label)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            if (showModeSelector) {
+                Text(stringResource(R.string.class_location_label), style = MaterialTheme.typography.labelLarge)
+                ModeSelector(
+                    selected = form.mode,
+                    onSelect = { selected -> viewModel.update { it.copy(mode = selected) } },
+                )
+            } else {
+                // Hidden by default; tap the current value to reveal the selector.
+                Text(
+                    text = "${stringResource(R.string.class_location_label)}: ${classModeLabel(form.mode)}",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showModeSelector = true }
+                        .padding(vertical = 12.dp),
+                )
+            }
 
             if (viewModel.isNew) {
                 Row(
@@ -161,14 +182,20 @@ fun ClassEditScreen(
     if (showDatePicker) {
         DatePickerModal(
             initial = form.date,
-            onConfirm = { date -> viewModel.update { it.copy(date = date) } },
+            onConfirm = { date ->
+                viewModel.update { it.copy(date = date) }
+                showDatePicker = false
+            },
             onDismiss = { showDatePicker = false },
         )
     }
     if (showTimePicker) {
         TimePickerModal(
             initial = form.time,
-            onConfirm = { time -> viewModel.update { it.copy(time = time) } },
+            onConfirm = { time ->
+                viewModel.update { it.copy(time = time) }
+                showTimePicker = false
+            },
             onDismiss = { showTimePicker = false },
         )
     }
@@ -201,18 +228,23 @@ private fun DropdownField(
     selectedText: String,
     options: List<Pair<Long, String>>,
     onSelect: (Long) -> Unit,
+    enabled: Boolean = true,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+    ExposedDropdownMenuBox(
+        expanded = expanded && enabled,
+        onExpandedChange = { if (enabled) expanded = it },
+    ) {
         OutlinedTextField(
             value = selectedText,
             onValueChange = {},
             readOnly = true,
+            enabled = enabled,
             label = { Text(label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded && enabled) },
             modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        ExposedDropdownMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
             options.forEach { (id, name) ->
                 DropdownMenuItem(
                     text = { Text(name) },

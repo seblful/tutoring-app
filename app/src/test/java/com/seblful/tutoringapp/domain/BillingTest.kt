@@ -41,13 +41,11 @@ class BillingTest {
     }
 
     @Test
-    fun `cancelled and missed classes never add debt`() {
+    fun `only completed classes add debt`() {
         val classes = listOf(
             completed(5000),
             TutoringClass(studentId = 1, subjectId = 1, start = Instant.EPOCH, durationMinutes = 60,
                 status = ClassStatus.CANCELLED, charge = Money.ZERO),
-            TutoringClass(studentId = 1, subjectId = 1, start = Instant.EPOCH, durationMinutes = 60,
-                status = ClassStatus.MISSED, charge = Money.ZERO),
             TutoringClass(studentId = 1, subjectId = 1, start = Instant.EPOCH, durationMinutes = 60,
                 status = ClassStatus.SCHEDULED),
         )

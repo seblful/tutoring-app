@@ -28,7 +28,7 @@ class ReportsTest {
     fun `total income counts only completed charges`() {
         val classes = listOf(
             klass(1, 1, "2026-05-10T10:00:00Z", 5000),
-            klass(1, 1, "2026-05-11T10:00:00Z", 5000, ClassStatus.MISSED),
+            klass(1, 1, "2026-05-11T10:00:00Z", 5000, ClassStatus.CANCELLED),
             klass(1, 1, "2026-05-12T10:00:00Z", 5000, ClassStatus.SCHEDULED),
         )
         assertEquals(Money(5000), Reports.totalIncome(classes))

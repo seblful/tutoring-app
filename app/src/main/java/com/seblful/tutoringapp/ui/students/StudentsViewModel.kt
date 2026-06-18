@@ -6,6 +6,7 @@ import com.seblful.tutoringapp.data.repository.ClassRepository
 import com.seblful.tutoringapp.data.repository.PaymentRepository
 import com.seblful.tutoringapp.data.repository.StudentRepository
 import com.seblful.tutoringapp.domain.Billing
+import com.seblful.tutoringapp.domain.model.ClassMode
 import com.seblful.tutoringapp.domain.model.Money
 import com.seblful.tutoringapp.domain.model.Student
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -44,9 +45,11 @@ class StudentsViewModel @Inject constructor(
         showArchived.value = !showArchived.value
     }
 
-    fun addStudent(name: String, note: String) {
+    fun addStudent(name: String, phone: String, note: String, mode: ClassMode) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
-        viewModelScope.launch { students.upsert(Student(name = trimmed, note = note.trim())) }
+        viewModelScope.launch {
+            students.upsert(Student(name = trimmed, phone = phone.trim(), note = note.trim(), defaultMode = mode))
+        }
     }
 }

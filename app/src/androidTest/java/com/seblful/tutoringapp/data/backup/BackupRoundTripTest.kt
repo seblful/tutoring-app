@@ -48,7 +48,7 @@ class BackupRoundTripTest {
         db.subjectDao().insertAll(listOf(SubjectEntity(1, "Математика"), SubjectEntity(2, "Физика")))
         db.studentDao().insertAll(
             listOf(
-                StudentEntity(1, "Иван", note = "ОГЭ"),
+                StudentEntity(1, "Иван", phone = "+375291112233", note = "ОГЭ", defaultMode = "REMOTE"),
                 StudentEntity(2, "Мария", archived = true),
             ),
         )
@@ -58,7 +58,7 @@ class BackupRoundTripTest {
         db.priceDao().insertAll(listOf(PriceEntity(1, 1, 5000), PriceEntity(2, 1, 4550)))
         db.classDao().insertAll(
             listOf(
-                ClassEntity(1, 1, 1, 1_900_000_000_000, 90, "COMPLETED", 5000, 42, "Zoom", "evt-1"),
+                ClassEntity(1, 1, 1, 1_900_000_000_000, 90, "COMPLETED", 5000, 42, "REMOTE", "evt-1"),
                 ClassEntity(2, 2, 1, 1_900_100_000_000, 60, "SCHEDULED"),
             ),
         )
