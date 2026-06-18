@@ -83,9 +83,9 @@ class ClassRulesTest {
     }
 
     @Test
-    fun `a completed class can be corrected to cancelled or back to scheduled`() {
+    fun `a completed class can be cancelled but not sent back to scheduled`() {
         assertTrue(ClassRules.canTransition(ClassStatus.COMPLETED, ClassStatus.CANCELLED))
-        assertTrue(ClassRules.canTransition(ClassStatus.COMPLETED, ClassStatus.SCHEDULED))
+        assertFalse(ClassRules.canTransition(ClassStatus.COMPLETED, ClassStatus.SCHEDULED))
     }
 
     @Test
@@ -122,7 +122,7 @@ class ClassRulesTest {
             ClassRules.availableTransitions(ClassStatus.SCHEDULED),
         )
         assertEquals(
-            setOf(ClassStatus.CANCELLED, ClassStatus.SCHEDULED),
+            setOf(ClassStatus.CANCELLED),
             ClassRules.availableTransitions(ClassStatus.COMPLETED),
         )
         assertEquals(

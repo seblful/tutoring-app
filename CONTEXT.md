@@ -4,7 +4,7 @@
 
 A native Android app for a **single** private tutor to manage students, subjects,
 schedule, payments and debts. **Offline-first / local-only — no backend.** Russian UI,
-Material 3. Currency is **BYN**, displayed with the sign **Br** (e.g. `1500 Br`).
+Material 3. Currency is **BYN** (Belarusian ruble), shown as e.g. `1500 BYN`.
 
 See `PLANNING.md` for the product goal and the 7 success criteria.
 
@@ -50,8 +50,9 @@ flowchart TB
 - **Money is an integer count of minor units (kopecks)** — no floating point. `Money` value class.
 - **Price versioning by snapshot.** A class captures its charge from the then-current price
   *at completion* (`ClassRules.applyStatus`). Editing a price never touches completed classes.
-- **Status state machine** (`ClassRules`): `scheduled → completed | cancelled`, reversible for
-  corrections (`completed → cancelled | scheduled`, `cancelled → scheduled`). A scheduled class
+- **Status state machine** (`ClassRules`): `scheduled → completed | cancelled`, with corrections
+  (`completed → cancelled`, `cancelled → scheduled`). Only a cancelled class can return to the
+  schedule. A scheduled class
   **auto-completes once its end time passes** (the app knows only the clock; Option A). A class
   that didn't happen is `cancelled`, which voids the charge — there is no separate "missed"
   status. `ClassRules.availableTransitions` is the single source of truth for the actions menu, so

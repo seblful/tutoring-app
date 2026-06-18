@@ -14,8 +14,9 @@ object ClassRules {
      */
     private val allowed: Map<ClassStatus, Set<ClassStatus>> = mapOf(
         ClassStatus.SCHEDULED to setOf(ClassStatus.COMPLETED, ClassStatus.CANCELLED),
-        // Corrections after the clock auto-completed a class that didn't actually happen.
-        ClassStatus.COMPLETED to setOf(ClassStatus.CANCELLED, ClassStatus.SCHEDULED),
+        // A wrongly auto-completed class can be cancelled (which voids its charge); it is not sent
+        // back to "scheduled" — returning to the schedule is offered only for cancelled classes.
+        ClassStatus.COMPLETED to setOf(ClassStatus.CANCELLED),
         ClassStatus.CANCELLED to setOf(ClassStatus.SCHEDULED),
     )
 
