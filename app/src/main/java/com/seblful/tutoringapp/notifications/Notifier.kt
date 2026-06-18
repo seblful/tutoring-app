@@ -14,10 +14,8 @@ import androidx.core.content.ContextCompat
 import com.seblful.tutoringapp.MainActivity
 import com.seblful.tutoringapp.R
 import com.seblful.tutoringapp.domain.model.TutoringClass
+import com.seblful.tutoringapp.format.formatTime
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,8 +24,6 @@ import javax.inject.Singleton
 class Notifier @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    private val timeFmt = DateTimeFormatter.ofPattern("HH:mm", Locale("ru"))
-
     fun ensureChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val channel = NotificationChannel(
@@ -43,7 +39,7 @@ class Notifier @Inject constructor(
         if (!hasPermission()) return
         ensureChannel()
 
-        val time = klass.start.atZone(ZoneId.systemDefault()).format(timeFmt)
+        val time = klass.start.formatTime()
         val title = context.getString(R.string.reminder_title)
         val headline = listOf(time, subjectName, studentName)
             .filter { it.isNotBlank() }

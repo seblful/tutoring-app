@@ -1,5 +1,6 @@
 package com.seblful.tutoringapp.data.repository
 
+import com.seblful.tutoringapp.calendar.CalendarEvent
 import com.seblful.tutoringapp.calendar.CalendarSync
 import com.seblful.tutoringapp.data.local.ClassDao
 import com.seblful.tutoringapp.data.local.PriceDao
@@ -9,6 +10,7 @@ import com.seblful.tutoringapp.data.toDomain
 import com.seblful.tutoringapp.data.toEntity
 import com.seblful.tutoringapp.domain.CalendarSyncPolicy
 import com.seblful.tutoringapp.domain.ClassRules
+import com.seblful.tutoringapp.domain.ReminderScheduler
 import com.seblful.tutoringapp.domain.model.ClassStatus
 import com.seblful.tutoringapp.domain.model.Money
 import com.seblful.tutoringapp.domain.model.TutoringClass
@@ -25,6 +27,7 @@ class ClassRepository @Inject constructor(
     private val studentDao: StudentDao,
     private val subjectDao: SubjectDao,
     private val calendarSync: CalendarSync,
+    private val reminderScheduler: ReminderScheduler,
 ) {
     fun observeById(id: Long): Flow<TutoringClass?> = dao.observeById(id).map { it?.toDomain() }
 
@@ -43,12 +46,14 @@ class ClassRepository @Inject constructor(
     suspend fun add(klass: TutoringClass): Long {
         val id = dao.upsert(klass.toEntity())
         mirrorToCalendar(klass.copy(id = id))
+        reminderScheduler.refreshNow()
         return id
     }
 
     /** Inserts a generated recurring series and returns the number of occurrences. */
     suspend fun addAll(classes: List<TutoringClass>): Int {
         classes.forEach { c -> mirrorToCalendar(c.copy(id = dao.upsert(c.toEntity()))) }
+        reminderScheduler.refreshNow()
         return classes.size
     }
 
@@ -57,6 +62,7 @@ class ClassRepository @Inject constructor(
         val moved = ClassRules.move(current, newStart)
         dao.update(moved.toEntity())
         mirrorToCalendar(moved) // still scheduled -> updates the existing event's time
+        reminderScheduler.refreshNow()
         return moved
     }
 
@@ -67,12 +73,14 @@ class ClassRepository @Inject constructor(
         val updated = ClassRules.applyStatus(current, to, price)
         dao.update(updated.toEntity())
         mirrorToCalendar(updated)
+        reminderScheduler.refreshNow()
         return updated
     }
 
     suspend fun delete(klass: TutoringClass) {
         klass.calendarEventId?.let { calendarSync.delete(it) }
         dao.delete(klass.toEntity())
+        reminderScheduler.refreshNow()
     }
 
     suspend fun nextScheduledAfter(now: Instant): TutoringClass? =
@@ -121,6 +129,6 @@ class ClassRepository @Inject constructor(
     private suspend fun titleFor(klass: TutoringClass): String {
         val student = studentDao.getById(klass.studentId)?.name.orEmpty()
         val subject = subjectDao.getById(klass.subjectId)?.name.orEmpty()
-        return listOf(student, subject).filter { it.isNotBlank() }.joinToString(" — ")
+        return CalendarEvent.title(student, subject)
     }
 }

@@ -32,15 +32,16 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps. `Billing`, `ClassRules`, `Recurrence`, `Reminders`, `Reports`, `CalendarSyncPolicy`, and `model/` entities (`Money`, `TutoringClass`, …). All JVM-unit-tested. |
+| `domain/` | Pure Kotlin, no Android deps. `Billing` (incl. the multi-student `balancesFor` aggregate), `ClassRules`, `Recurrence`, `Reminders`, `Reports`, `CalendarSyncPolicy`, the `ReminderScheduler` **port**, and `model/Models.kt`. All JVM-unit-tested. |
 | `data/local/` | Room: `@Entity` rows, DAOs, `AppDatabase`. Entities are also `@Serializable` (used by backup). |
-| `data/repository/` | Repositories mapping entities ⇄ domain models and orchestrating side effects (calendar mirroring). |
+| `data/repository/` | Repositories mapping entities ⇄ domain models. `ClassRepository` owns *all* side effects of a class change (calendar mirroring + reminder refresh via the port). |
 | `data/backup/` | `BackupData` (whole-DB snapshot) + `BackupManager` (JSON export / transactional replace-all import). |
-| `calendar/` | `CalendarSync` **port** + `DeviceCalendarSync` adapter (CalendarContract). |
+| `calendar/` | `CalendarSync` **port** + `DeviceCalendarSync` adapter (CalendarContract); `CalendarEvent` owns event display shape. |
 | `notifications/` | `Notifier` — reminder channel + posting. |
-| `work/` | `MaintenanceWorker` (periodic), `ReminderWorker` (one-shot), `WorkScheduler`. |
-| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` widgets & formatting. |
-| `di/` | Hilt modules (`DatabaseModule`; `calendar/CalendarModule` binds the port). |
+| `work/` | `MaintenanceWorker` (periodic), `ReminderWorker` (one-shot), `WorkScheduler` (implements `ReminderScheduler`). |
+| `format/` | Shared `ru`-locale date/time/money formatting, used by UI **and** non-UI (notifications, view models). |
+| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` widgets. |
+| `di/` | Hilt modules (`DatabaseModule`; `CalendarModule` and `WorkModule` bind the ports). |
 
 ---
 
@@ -74,8 +75,9 @@ flowchart TB
 
 ViewModels observe repository `Flow`s (Room → domain models) and expose `StateFlow` UI state.
 Writes go ViewModel → repository → Room; the repository then mirrors the change to the calendar
-and asks `WorkScheduler` to refresh reminders. Balance/income are derived on the fly by `Billing`
-/ `Reports` from the observed data — never stored.
+and asks the `ReminderScheduler` port (implemented by `WorkScheduler`) to refresh reminders — so
+ViewModels express intent only and can't forget a side effect. Balance/income are derived on the
+fly by `Billing` / `Reports` from the observed data — never stored.
 
 ---
 
@@ -106,9 +108,9 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments.
 - Common commands: `./gradlew :app:testDebugUnitTest`, `:app:assembleDebug`, `:app:assembleDebugAndroidTest`.
 ```
 app/src/main/java/com/seblful/tutoringapp/
-├── domain/            # pure rules + model/
+├── domain/            # pure rules + ports + model/Models.kt
 ├── data/{local,repository,backup}/
-├── calendar/  notifications/  work/  di/
+├── calendar/  notifications/  work/  format/  di/
 ├── ui/{schedule,students,subjects,reports,backup,more,common,navigation,theme}/
 ├── MainActivity.kt    # @AndroidEntryPoint → AppRoot()
 └── TutoringApp.kt      # @HiltAndroidApp, WorkManager config, startup scheduling

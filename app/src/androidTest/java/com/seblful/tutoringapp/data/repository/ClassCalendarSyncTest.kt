@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.tutoringapp.calendar.CalendarSync
+import com.seblful.tutoringapp.domain.ReminderScheduler
 import com.seblful.tutoringapp.data.local.AppDatabase
 import com.seblful.tutoringapp.data.local.StudentEntity
 import com.seblful.tutoringapp.data.local.SubjectEntity
@@ -48,7 +49,10 @@ class ClassCalendarSyncTest {
         db.subjectDao().insertAll(listOf(SubjectEntity(1, "Математика")))
         db.studentDao().insertAll(listOf(StudentEntity(1, "Иван")))
         calendar = FakeCalendarSync()
-        repo = ClassRepository(db.classDao(), db.priceDao(), db.studentDao(), db.subjectDao(), calendar)
+        repo = ClassRepository(
+            db.classDao(), db.priceDao(), db.studentDao(), db.subjectDao(), calendar,
+            ReminderScheduler { /* no-op in tests */ },
+        )
     }
 
     @After fun tearDown() = db.close()

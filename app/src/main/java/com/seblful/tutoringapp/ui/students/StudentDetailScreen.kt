@@ -46,9 +46,10 @@ import com.seblful.tutoringapp.ui.common.balanceColor
 import com.seblful.tutoringapp.ui.common.balanceDescription
 import com.seblful.tutoringapp.ui.common.classStatusColor
 import com.seblful.tutoringapp.ui.common.classStatusLabel
-import com.seblful.tutoringapp.ui.common.formatDate
-import com.seblful.tutoringapp.ui.common.formatDateTime
-import com.seblful.tutoringapp.ui.common.parseMoneyOrNull
+import com.seblful.tutoringapp.format.formatDate
+import com.seblful.tutoringapp.format.formatDateTime
+import com.seblful.tutoringapp.format.parseMoneyOrNull
+import com.seblful.tutoringapp.format.toAmountInput
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -197,7 +198,7 @@ fun StudentDetailScreen(
         TextFieldDialog(
             title = stringResource(R.string.price_edit_title),
             label = stringResource(R.string.price_label),
-            initial = current?.let { (it.minor / 100.0).toString().removeSuffix(".0") } ?: "",
+            initial = current?.toAmountInput() ?: "",
             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
             onConfirm = { text -> parseMoneyOrNull(text)?.let { viewModel.setPrice(subjectId, it) } },
             onDismiss = { pricingSubjectId = null },

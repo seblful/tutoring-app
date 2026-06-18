@@ -35,16 +35,8 @@ class StudentsViewModel @Inject constructor(
         showArchived.flatMapLatest { archived ->
             val source = if (archived) students.observeAll() else students.observeActive()
             combine(source, classes.observeAll(), payments.observeAll()) { studentList, allClasses, allPayments ->
-                val classesByStudent = allClasses.groupBy { it.studentId }
-                val paymentsByStudent = allPayments.groupBy { it.studentId }
-                studentList.map { student ->
-                    val balance = Billing.balanceOf(
-                        student.id,
-                        classesByStudent[student.id].orEmpty(),
-                        paymentsByStudent[student.id].orEmpty(),
-                    ).balance
-                    StudentRow(student, balance)
-                }
+                val balances = Billing.balancesFor(studentList, allClasses, allPayments)
+                studentList.zip(balances) { student, balance -> StudentRow(student, balance.balance) }
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 

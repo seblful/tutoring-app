@@ -7,6 +7,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.seblful.tutoringapp.domain.ReminderScheduler
 import com.seblful.tutoringapp.domain.Reminders
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.TimeUnit
@@ -21,7 +22,7 @@ import javax.inject.Singleton
 @Singleton
 class WorkScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
-) {
+) : ReminderScheduler {
     private val workManager get() = WorkManager.getInstance(context)
 
     /** Enqueues the recurring maintenance job. Idempotent — safe to call on every app start. */
@@ -35,7 +36,7 @@ class WorkScheduler @Inject constructor(
     }
 
     /** Runs maintenance now — after a class changes or when the app opens. */
-    fun refreshNow() {
+    override fun refreshNow() {
         val request = OneTimeWorkRequestBuilder<MaintenanceWorker>().build()
         workManager.enqueueUniqueWork(MAINTENANCE_NOW, ExistingWorkPolicy.REPLACE, request)
     }

@@ -40,7 +40,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.seblful.tutoringapp.R
 import com.seblful.tutoringapp.ui.common.DatePickerModal
 import com.seblful.tutoringapp.ui.common.TimePickerModal
-import com.seblful.tutoringapp.ui.common.formatDate
+import com.seblful.tutoringapp.format.formatDate
 import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)

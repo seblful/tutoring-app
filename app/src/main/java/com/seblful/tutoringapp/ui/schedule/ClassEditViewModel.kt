@@ -7,7 +7,6 @@ import com.seblful.tutoringapp.data.repository.ClassRepository
 import com.seblful.tutoringapp.data.repository.StudentRepository
 import com.seblful.tutoringapp.data.repository.SubjectRepository
 import com.seblful.tutoringapp.domain.Recurrence
-import com.seblful.tutoringapp.work.WorkScheduler
 import com.seblful.tutoringapp.domain.model.Student
 import com.seblful.tutoringapp.domain.model.Subject
 import com.seblful.tutoringapp.domain.model.TutoringClass
@@ -39,7 +38,6 @@ data class ClassForm(
 class ClassEditViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val classes: ClassRepository,
-    private val workScheduler: WorkScheduler,
     students: StudentRepository,
     subjects: SubjectRepository,
 ) : ViewModel() {
@@ -117,7 +115,6 @@ class ClassEditViewModel @Inject constructor(
                     classes.add(base)
                 }
             }
-            workScheduler.refreshNow()
             onDone()
         }
     }

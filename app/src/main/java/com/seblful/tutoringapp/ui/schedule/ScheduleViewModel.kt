@@ -6,7 +6,6 @@ import com.seblful.tutoringapp.data.repository.ClassRepository
 import com.seblful.tutoringapp.data.repository.StudentRepository
 import com.seblful.tutoringapp.data.repository.SubjectRepository
 import com.seblful.tutoringapp.domain.model.ClassStatus
-import com.seblful.tutoringapp.work.WorkScheduler
 import com.seblful.tutoringapp.domain.model.TutoringClass
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,7 +27,6 @@ data class ScheduleRow(val klass: TutoringClass, val studentName: String, val su
 @HiltViewModel
 class ScheduleViewModel @Inject constructor(
     private val classes: ClassRepository,
-    private val workScheduler: WorkScheduler,
     students: StudentRepository,
     subjects: SubjectRepository,
 ) : ViewModel() {
@@ -72,23 +70,14 @@ class ScheduleViewModel @Inject constructor(
     }
 
     fun setStatus(classId: Long, status: ClassStatus) {
-        viewModelScope.launch {
-            classes.setStatus(classId, status)
-            workScheduler.refreshNow()
-        }
+        viewModelScope.launch { classes.setStatus(classId, status) }
     }
 
     fun move(classId: Long, newStart: Instant) {
-        viewModelScope.launch {
-            classes.move(classId, newStart)
-            workScheduler.refreshNow()
-        }
+        viewModelScope.launch { classes.move(classId, newStart) }
     }
 
     fun delete(klass: TutoringClass) {
-        viewModelScope.launch {
-            classes.delete(klass)
-            workScheduler.refreshNow()
-        }
+        viewModelScope.launch { classes.delete(klass) }
     }
 }

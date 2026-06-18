@@ -2,6 +2,7 @@ package com.seblful.tutoringapp.domain
 
 import com.seblful.tutoringapp.domain.model.Money
 import com.seblful.tutoringapp.domain.model.Payment
+import com.seblful.tutoringapp.domain.model.Student
 import com.seblful.tutoringapp.domain.model.StudentBalance
 import com.seblful.tutoringapp.domain.model.TutoringClass
 
@@ -24,4 +25,24 @@ object Billing {
             charged = charged(classes),
             paid = paid(payments),
         )
+
+    /**
+     * One [StudentBalance] per student in [students] (aligned with that order), built from the
+     * full class and payment lists. A student with no classes or payments gets a zero balance.
+     */
+    fun balancesFor(
+        students: List<Student>,
+        classes: List<TutoringClass>,
+        payments: List<Payment>,
+    ): List<StudentBalance> {
+        val classesByStudent = classes.groupBy { it.studentId }
+        val paymentsByStudent = payments.groupBy { it.studentId }
+        return students.map { student ->
+            balanceOf(
+                student.id,
+                classesByStudent[student.id].orEmpty(),
+                paymentsByStudent[student.id].orEmpty(),
+            )
+        }
+    }
 }

@@ -50,10 +50,10 @@ import com.seblful.tutoringapp.ui.common.EmptyState
 import com.seblful.tutoringapp.ui.common.TimePickerModal
 import com.seblful.tutoringapp.ui.common.classStatusColor
 import com.seblful.tutoringapp.ui.common.classStatusLabel
-import com.seblful.tutoringapp.ui.common.formatDay
-import com.seblful.tutoringapp.ui.common.formatTime
-import com.seblful.tutoringapp.ui.common.toLocalDate
-import com.seblful.tutoringapp.ui.common.toLocalTime
+import com.seblful.tutoringapp.format.formatDay
+import com.seblful.tutoringapp.format.formatTime
+import com.seblful.tutoringapp.format.toLocalDate
+import com.seblful.tutoringapp.format.toLocalTime
 import java.time.LocalDate
 import java.time.ZoneId
 

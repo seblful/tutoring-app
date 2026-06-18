@@ -9,7 +9,7 @@ import com.seblful.tutoringapp.data.repository.SubjectRepository
 import com.seblful.tutoringapp.domain.Billing
 import com.seblful.tutoringapp.domain.Reports
 import com.seblful.tutoringapp.domain.model.Money
-import com.seblful.tutoringapp.ui.common.formatMonthKey
+import com.seblful.tutoringapp.format.formatMonthKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -50,12 +50,7 @@ class ReportsViewModel @Inject constructor(
     ) { classList, studentList, subjectList, paymentList ->
         val studentNames = studentList.associate { it.id to it.name }
         val subjectNames = subjectList.associate { it.id to it.name }
-        val classesByStudent = classList.groupBy { it.studentId }
-        val paymentsByStudent = paymentList.groupBy { it.studentId }
-
-        val balances = studentList.map { s ->
-            Billing.balanceOf(s.id, classesByStudent[s.id].orEmpty(), paymentsByStudent[s.id].orEmpty())
-        }
+        val balances = Billing.balancesFor(studentList, classList, paymentList)
 
         ReportsState(
             totalIncome = Reports.totalIncome(classList),
