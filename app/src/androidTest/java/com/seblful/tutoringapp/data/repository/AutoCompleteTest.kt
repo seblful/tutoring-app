@@ -42,7 +42,7 @@ class AutoCompleteTest {
         ).build()
         db.subjectDao().insertAll(listOf(SubjectEntity(1, "Математика")))
         db.studentDao().insertAll(listOf(StudentEntity(1, "Иван")))
-        db.priceDao().insertAll(listOf(PriceEntity(1, 1, amountMinor = 5000))) // 50 Br
+        db.priceDao().insertAll(listOf(PriceEntity(1, 1, amountMinor = 5000))) // 50 BYN
         repo = ClassRepository(
             db.classDao(), db.priceDao(), db.studentDao(), db.subjectDao(), noCalendar,
             ReminderScheduler { /* no-op in tests */ },

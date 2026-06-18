@@ -9,18 +9,18 @@ class MoneyTest {
 
     @Test
     fun `formats whole rubles without decimals`() {
-        assertEquals("1500 Br", Money.ofMajor(1500).format())
+        assertEquals("1500 BYN", Money.ofMajor(1500).format())
     }
 
     @Test
     fun `formats kopecks with two decimal places`() {
-        assertEquals("1500,50 Br", Money(150050).format())
-        assertEquals("0,05 Br", Money(5).format())
+        assertEquals("1500,50 BYN", Money(150050).format())
+        assertEquals("0,05 BYN", Money(5).format())
     }
 
     @Test
     fun `formats negative amounts with a leading sign`() {
-        assertEquals("-300 Br", Money.ofMajor(-300).format())
+        assertEquals("-300 BYN", Money.ofMajor(-300).format())
     }
 
     @Test

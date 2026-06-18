@@ -13,7 +13,7 @@ schedule, payments, and debts, with Google Calendar sync. Russian UI, Material 3
 Kotlin · Jetpack Compose · Material 3 · Room · WorkManager (notifications) ·
 Google Calendar API (on-device OAuth) · MVVM with a unit-tested domain layer.
 
-Currency: **BYN** (Belarusian ruble), displayed with the sign **Br** (e.g. `1500 Br`).
+Currency: **BYN** (Belarusian ruble), displayed as e.g. `1500 BYN`.
 
 ## Domain model
 

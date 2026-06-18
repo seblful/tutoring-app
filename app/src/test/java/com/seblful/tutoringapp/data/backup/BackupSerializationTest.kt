@@ -30,7 +30,7 @@ class BackupSerializationTest {
         ),
         prices = listOf(
             PriceEntity(1, 1, amountMinor = 5000),
-            PriceEntity(2, 1, amountMinor = 4550), // 45,50 Br — kopecks survive
+            PriceEntity(2, 1, amountMinor = 4550), // 45,50 BYN — kopecks survive
         ),
         classes = listOf(
             ClassEntity(

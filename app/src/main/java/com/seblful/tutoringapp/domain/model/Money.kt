@@ -2,7 +2,7 @@ package com.seblful.tutoringapp.domain.model
 
 /**
  * An amount of money in BYN, stored as an integer number of minor units (kopecks)
- * to avoid floating-point rounding. Displayed with the "Br" sign, e.g. `1500 Br`.
+ * to avoid floating-point rounding. Displayed with the "BYN" sign, e.g. `1500 BYN`.
  */
 @JvmInline
 value class Money(val minor: Long) : Comparable<Money> {
@@ -15,16 +15,16 @@ value class Money(val minor: Long) : Comparable<Money> {
 
     override fun compareTo(other: Money): Int = minor.compareTo(other.minor)
 
-    /** Formats as a localized BYN amount, e.g. `1500 Br` or `1500,50 Br`. */
+    /** Formats as a localized BYN amount, e.g. `1500 BYN` or `1500,50 BYN`. */
     fun format(): String {
         val sign = if (minor < 0) "-" else ""
         val abs = kotlin.math.abs(minor)
         val major = abs / 100
         val kopecks = (abs % 100).toInt()
         return if (kopecks == 0) {
-            "$sign$major Br"
+            "$sign$major BYN"
         } else {
-            "$sign$major,${kopecks.toString().padStart(2, '0')} Br"
+            "$sign$major,${kopecks.toString().padStart(2, '0')} BYN"
         }
     }
 
