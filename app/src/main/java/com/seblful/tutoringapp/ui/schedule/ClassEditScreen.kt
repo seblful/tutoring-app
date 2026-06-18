@@ -167,7 +167,9 @@ fun ClassEditScreen(
                     OutlinedTextField(
                         value = if (form.weeks == 0) "" else form.weeks.toString(),
                         onValueChange = { text ->
-                            viewModel.update { it.copy(weeks = text.filter { c -> c.isDigit() }.toIntOrNull() ?: 0) }
+                            val n = (text.filter { c -> c.isDigit() }.toIntOrNull() ?: 0)
+                                .coerceAtMost(ClassForm.MAX_WEEKS)
+                            viewModel.update { it.copy(weeks = n) }
                         },
                         label = { Text(stringResource(R.string.class_repeat_weeks)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),

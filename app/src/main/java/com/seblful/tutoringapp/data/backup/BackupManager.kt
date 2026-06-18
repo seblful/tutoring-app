@@ -46,6 +46,9 @@ class BackupManager @Inject constructor(
     fun parse(text: String): BackupData = json.decodeFromString(text)
 
     suspend fun import(data: BackupData) {
+        require(BackupData.isSupported(data.version)) {
+            "Unsupported backup version ${data.version} (this build supports up to ${BackupData.CURRENT_VERSION})"
+        }
         db.withTransaction {
             // Children first, then parents, to respect foreign keys.
             payments.deleteAll()

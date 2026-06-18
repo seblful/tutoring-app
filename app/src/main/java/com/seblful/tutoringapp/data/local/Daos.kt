@@ -122,6 +122,10 @@ interface ClassDao {
     @Query("SELECT * FROM classes WHERE studentId = :studentId")
     suspend fun getForStudent(studentId: Long): List<ClassEntity>
 
+    /** How many classes reference [subjectId] — used to block deleting a subject with history. */
+    @Query("SELECT COUNT(*) FROM classes WHERE subjectId = :subjectId")
+    suspend fun countForSubject(subjectId: Long): Int
+
     /** Scheduled classes whose end time is at or before [nowMillis] — due for auto-completion. */
     @Query("SELECT * FROM classes WHERE status = 'SCHEDULED' AND (startMillis + durationMinutes * 60000) <= :nowMillis")
     suspend fun dueForCompletion(nowMillis: Long): List<ClassEntity>

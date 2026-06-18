@@ -78,6 +78,22 @@ class ClassCalendarSyncTest {
         assertEquals("100", calendar.upserts.last().calendarEventId)
     }
 
+    @Test fun movingACompletedClassIsRefusedAndLeavesItUnchanged() = runTest {
+        // BUG-9 guard: a completed class has already billed; moving it would relocate that income
+        // to another month, so ClassRepository.move must refuse it.
+        val start = Instant.parse("2026-07-01T13:00:00Z")
+        val id = repo.add(scheduled(start))
+        repo.setStatus(id, ClassStatus.COMPLETED)
+        calendar.upserts.clear()
+
+        val result = repo.move(id, Instant.parse("2026-07-10T10:00:00Z"))
+
+        assertNull(result) // refused
+        assertEquals(start, repo.getById(id)?.start) // start unchanged
+        assertEquals(ClassStatus.COMPLETED, repo.getById(id)?.status)
+        assertTrue(calendar.upserts.isEmpty()) // no calendar change
+    }
+
     @Test fun cancellingClassDeletesItsEvent() = runTest {
         val id = repo.add(scheduled(Instant.parse("2026-07-01T13:00:00Z")))
 

@@ -234,9 +234,11 @@ fun StudentEditDialog(
 }
 
 /**
- * A dialog with a single text field. Used for naming subjects, etc.
+ * A dialog with a single text field. Used for naming subjects, entering amounts, etc.
  *
  * @param keyboardType numeric for amounts, text otherwise.
+ * @param validate gates the confirm button (in addition to non-blank). For amounts this prevents
+ *   silently dismissing on an unparseable value — the action stays disabled until the input is valid.
  */
 @Composable
 fun TextFieldDialog(
@@ -244,6 +246,7 @@ fun TextFieldDialog(
     label: String,
     initial: String,
     keyboardType: KeyboardType = KeyboardType.Text,
+    validate: (String) -> Boolean = { true },
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -264,7 +267,7 @@ fun TextFieldDialog(
         confirmButton = {
             TextButton(
                 onClick = { onConfirm(value); onDismiss() },
-                enabled = value.isNotBlank(),
+                enabled = value.isNotBlank() && validate(value),
             ) { Text(stringResource(R.string.action_save)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },

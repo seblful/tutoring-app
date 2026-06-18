@@ -10,6 +10,8 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** Verifies the JSON backup format reproduces every field of every row exactly (criterion 6). */
@@ -58,5 +60,12 @@ class BackupSerializationTest {
     fun `default version is stamped`() {
         val restored = json.decodeFromString<BackupData>(json.encodeToString(sample))
         assertEquals(BackupData.CURRENT_VERSION, restored.version)
+    }
+
+    @Test
+    fun `only current-or-older backup versions are importable`() {
+        assertTrue(BackupData.isSupported(BackupData.CURRENT_VERSION))
+        assertFalse(BackupData.isSupported(BackupData.CURRENT_VERSION + 1)) // newer = reject, don't drop data
+        assertFalse(BackupData.isSupported(0)) // malformed
     }
 }

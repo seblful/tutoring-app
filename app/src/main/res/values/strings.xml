@@ -85,6 +85,7 @@
     <string name="subject_edit_title">Изменить предмет</string>
     <string name="subject_name_label">Название</string>
     <string name="subject_delete_confirm">Удалить этот предмет?</string>
+    <string name="subject_delete_blocked">Нельзя удалить предмет: по нему есть занятия. Сначала удалите эти занятия.</string>
 
     <!-- More menu -->
     <string name="more_subjects">Предметы</string>

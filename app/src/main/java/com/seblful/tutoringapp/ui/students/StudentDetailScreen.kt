@@ -49,6 +49,7 @@ import com.seblful.tutoringapp.ui.common.classStatusColor
 import com.seblful.tutoringapp.ui.common.classStatusLabel
 import com.seblful.tutoringapp.format.formatDate
 import com.seblful.tutoringapp.format.formatDateTime
+import com.seblful.tutoringapp.domain.ClassRules
 import com.seblful.tutoringapp.format.parseMoneyOrNull
 import com.seblful.tutoringapp.format.toAmountInput
 
@@ -177,6 +178,9 @@ fun StudentDetailScreen(
                 item { Text(stringResource(R.string.schedule_empty), color = MaterialTheme.colorScheme.onSurfaceVariant) }
             } else {
                 items(state.classes, key = { StudentDetailKeys.klass(it.klass.id) }) { row ->
+                    // Only a still-upcoming class opens the editor; completed/cancelled classes are
+                    // history and editing them would mis-attribute their snapshotted charge.
+                    val editable = ClassRules.isMutable(row.klass.status)
                     ListItem(
                         headlineContent = { Text("${row.subjectName} · ${row.klass.start.formatDateTime()}") },
                         supportingContent = {
@@ -187,7 +191,7 @@ fun StudentDetailScreen(
                                 Text(row.klass.charge.format())
                             }
                         },
-                        modifier = Modifier.clickable { onClassClick(row.klass.id) },
+                        modifier = if (editable) Modifier.clickable { onClassClick(row.klass.id) } else Modifier,
                     )
                 }
             }
@@ -220,6 +224,7 @@ fun StudentDetailScreen(
             label = stringResource(R.string.price_label),
             initial = current?.toAmountInput() ?: "",
             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+            validate = { parseMoneyOrNull(it) != null }, // a price of 0 (free) is allowed
             onConfirm = { text -> parseMoneyOrNull(text)?.let { viewModel.setPrice(subjectId, it) } },
             onDismiss = { pricingSubjectId = null },
         )
@@ -230,6 +235,8 @@ fun StudentDetailScreen(
             label = stringResource(R.string.payment_amount_label),
             initial = "",
             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+            // A payment must be a valid, non-zero amount, matching addPayment's own guard.
+            validate = { parseMoneyOrNull(it)?.let { m -> !m.isZero } == true },
             onConfirm = { text -> parseMoneyOrNull(text)?.let { viewModel.addPayment(it) } },
             onDismiss = { addingPayment = false },
         )

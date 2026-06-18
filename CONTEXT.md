@@ -57,9 +57,19 @@ flowchart TB
   that didn't happen is `cancelled`, which voids the charge — there is no separate "missed"
   status. `ClassRules.availableTransitions` is the single source of truth for the actions menu, so
   it never offers the status a class is already in.
+- **Only a SCHEDULED class is mutable** (`ClassRules.isMutable`): edit and move are offered/allowed
+  only while a class will still happen. A completed class has snapshotted its charge, so editing its
+  student/subject would mis-attribute that income and moving it would relocate it to another month;
+  a completed class also can't be *deleted* (that would erase recognized income). Corrections go
+  through the status transitions instead (cancel → voids the charge → return to schedule). Enforced
+  in the UI **and** in `ClassRepository.move` / `ClassEditViewModel.save`.
 - **A class's subject must have a price for the student** (`Scheduling.assignableSubjects`): the
   booking screen only offers subjects priced for the chosen student, since a completed class
   snapshots its price — an unpriced subject could never be billed, so the price is added first.
+- **Subjects are deletable only when no class references them** (`SubjectRepository.delete` returns
+  `false` otherwise). Subjects are FK-cascade parents of `classes`/`prices`, so hard-deleting one
+  with history would silently destroy completed lessons (earned income) and strand payments as false
+  credit — mirroring how students are archive-only rather than deleted.
 - **Class mode** (`ClassMode`: in person / remote — «Очно»/«Удалённо»): each student carries a
   `defaultMode`; a new class inherits it and can be overridden per occurrence. Mirrored into the
   calendar event's location. Students also carry a free-text `phone`.

@@ -18,13 +18,16 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.seblful.tutoringapp.R
@@ -43,6 +46,17 @@ fun SubjectsScreen(
     var editing by remember { mutableStateOf<Subject?>(null) } // non-null while dialog open
     var adding by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<Subject?>(null) }
+
+    val context = LocalContext.current
+    val deleteBlockedMsg = stringResource(R.string.subject_delete_blocked)
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                SubjectsViewModel.Event.DELETE_BLOCKED_HAS_CLASSES ->
+                    Toast.makeText(context, deleteBlockedMsg, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {

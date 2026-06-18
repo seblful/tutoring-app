@@ -25,5 +25,12 @@ data class BackupData(
 ) {
     companion object {
         const val CURRENT_VERSION = 1
+
+        /**
+         * Whether a backup of [version] can be safely imported by this build. A newer version may
+         * carry data this build doesn't understand, so it's rejected rather than imported with
+         * fields silently dropped (the parser ignores unknown keys).
+         */
+        fun isSupported(version: Int): Boolean = version in 1..CURRENT_VERSION
     }
 }

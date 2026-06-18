@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.tutoringapp.data.backup.BackupManager
+import com.seblful.tutoringapp.data.repository.ClassRepository
 import com.seblful.tutoringapp.work.WorkScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -22,6 +23,7 @@ class BackupViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val backup: BackupManager,
     private val workScheduler: WorkScheduler,
+    private val classes: ClassRepository,
 ) : ViewModel() {
 
     private val _events = Channel<BackupResult>(Channel.BUFFERED)
@@ -49,8 +51,12 @@ class BackupViewModel @Inject constructor(
                     backup.importJson(text)
                 }
             }.isSuccess
-            // Imported classes change what's upcoming/overdue — re-run auto-complete & reminders.
-            if (ok) workScheduler.refreshNow()
+            if (ok) {
+                // Imported classes change what's upcoming/overdue — re-run auto-complete & reminders,
+                // and re-mirror to this device's calendar (imported event ids came from another device).
+                workScheduler.refreshNow()
+                runCatching { classes.resyncCalendar() } // best-effort, like all calendar work
+            }
             _events.send(if (ok) BackupResult.IMPORT_OK else BackupResult.ERROR)
         }
     }

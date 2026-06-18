@@ -67,6 +67,9 @@ class ClassRepository @Inject constructor(
 
     suspend fun move(classId: Long, newStart: Instant): TutoringClass? {
         val current = dao.getById(classId)?.toDomain() ?: return null
+        // Only a still-upcoming class can be moved; moving a completed one would shift its
+        // already-recognized income to another month.
+        if (!ClassRules.isMutable(current.status)) return null
         val moved = ClassRules.move(current, newStart)
         dao.update(moved.toEntity())
         mirrorToCalendar(moved) // still scheduled -> updates the existing event's time

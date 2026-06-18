@@ -234,7 +234,11 @@ private fun ClassActionsSheet(
             }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
-            SheetAction(stringResource(R.string.action_edit), Icons.Filled.Edit, onClick = onEdit)
+            // Edit and move only make sense for a class that will still happen — a completed class
+            // has already billed, so changing it would rewrite recognized income.
+            if (ClassRules.isMutable(klass.status)) {
+                SheetAction(stringResource(R.string.action_edit), Icons.Filled.Edit, onClick = onEdit)
+            }
             // Offer only the statuses this class can move to — never the one it is already in.
             ClassRules.availableTransitions(klass.status).forEach { target ->
                 SheetAction(
@@ -243,14 +247,20 @@ private fun ClassActionsSheet(
                     onClick = { onStatus(target) },
                 )
             }
-            SheetAction(stringResource(R.string.class_move), Icons.Filled.EditCalendar, onClick = onMove)
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            SheetAction(
-                stringResource(R.string.action_delete),
-                Icons.Filled.DeleteOutline,
-                onClick = onDelete,
-                destructive = true,
-            )
+            if (ClassRules.isMutable(klass.status)) {
+                SheetAction(stringResource(R.string.class_move), Icons.Filled.EditCalendar, onClick = onMove)
+            }
+            // Don't offer to delete a completed class — that would silently erase recognized income.
+            // Cancel it first (which voids the charge), then the cancelled record can be deleted.
+            if (klass.status != ClassStatus.COMPLETED) {
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                SheetAction(
+                    stringResource(R.string.action_delete),
+                    Icons.Filled.DeleteOutline,
+                    onClick = onDelete,
+                    destructive = true,
+                )
+            }
         }
     }
 }

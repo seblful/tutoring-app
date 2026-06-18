@@ -149,4 +149,13 @@ class ClassRulesTest {
         assertEquals(newStart, moved.start)
         assertEquals(ClassStatus.SCHEDULED, moved.status)
     }
+
+    // --- isMutable: gates edit/move so historical income can't be rewritten ---
+
+    @Test
+    fun `only a scheduled class is mutable`() {
+        assertTrue(ClassRules.isMutable(ClassStatus.SCHEDULED))
+        assertFalse(ClassRules.isMutable(ClassStatus.COMPLETED))
+        assertFalse(ClassRules.isMutable(ClassStatus.CANCELLED))
+    }
 }

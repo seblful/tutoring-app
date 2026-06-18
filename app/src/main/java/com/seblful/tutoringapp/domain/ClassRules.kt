@@ -30,6 +30,15 @@ object ClassRules {
     fun availableTransitions(from: ClassStatus): Set<ClassStatus> = allowed[from] ?: emptySet()
 
     /**
+     * Whether a class may have its details edited or be moved to a new time. Only a class that
+     * will still happen ([ClassStatus.SCHEDULED]) is mutable: a completed class has already
+     * snapshotted its charge, so editing its student/subject would mis-attribute that income and
+     * moving it would relocate it to another month. Corrections go through the status transitions
+     * (cancel, which voids the charge, then return to schedule) instead.
+     */
+    fun isMutable(status: ClassStatus): Boolean = status == ClassStatus.SCHEDULED
+
+    /**
      * A scheduled class auto-completes once its end time is at or before [now].
      * The app cannot see attendance, so a finished class is assumed to have happened.
      */

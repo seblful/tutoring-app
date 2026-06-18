@@ -1,6 +1,7 @@
 package com.seblful.tutoringapp.format
 
 import com.seblful.tutoringapp.domain.model.Money
+import java.math.RoundingMode
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -31,19 +32,27 @@ fun Instant.formatDay(): String = atZone(zone).format(dayFmt).replaceFirstChar {
 fun Instant.formatTime(): String = atZone(zone).format(timeFmt)
 fun Instant.formatDateTime(): String = atZone(zone).format(dateTimeFmt)
 
-/** Parses a user-entered amount in rubles (comma or dot decimals) into [Money], or null. */
+/**
+ * Parses a user-entered amount in rubles (comma or dot decimals) into [Money], or null.
+ * Uses [BigDecimal] — not floating point — so it matches the integer-kopeck money model exactly,
+ * rejects non-finite input ("Infinity"/"NaN") and clamps nothing: an amount too large to fit in
+ * [Money]'s `Long` minor units is rejected (null) rather than silently overflowing.
+ */
 fun parseMoneyOrNull(text: String): Money? {
     val normalized = text.trim().replace(',', '.').replace(" ", "")
     if (normalized.isEmpty()) return null
-    val value = normalized.toDoubleOrNull()?.takeIf { it >= 0 } ?: return null
-    return Money(Math.round(value * 100))
+    val value = normalized.toBigDecimalOrNull()?.takeIf { it.signum() >= 0 } ?: return null
+    val minor = value.movePointRight(2).setScale(0, RoundingMode.HALF_UP)
+    return runCatching { Money(minor.longValueExact()) }.getOrNull()
 }
 
-/** Formats [Money] as a plain editable amount with no currency sign, e.g. "50" or "45,05". */
+/** Formats [Money] as a plain editable amount with no currency sign, e.g. "50", "45,05", "-0,50". */
 fun Money.toAmountInput(): String {
-    val major = minor / 100
-    val kopecks = (kotlin.math.abs(minor) % 100).toInt()
-    return if (kopecks == 0) major.toString() else "$major,${kopecks.toString().padStart(2, '0')}"
+    val sign = if (minor < 0) "-" else ""
+    val abs = kotlin.math.abs(minor)
+    val major = abs / 100
+    val kopecks = (abs % 100).toInt()
+    return if (kopecks == 0) "$sign$major" else "$sign$major,${kopecks.toString().padStart(2, '0')}"
 }
 
 /** Formats an epoch-month key (year * 12 + monthIndex) as e.g. "Июнь 2026". */

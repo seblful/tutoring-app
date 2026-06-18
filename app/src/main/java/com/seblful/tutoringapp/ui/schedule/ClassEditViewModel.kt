@@ -7,6 +7,7 @@ import com.seblful.tutoringapp.data.repository.ClassRepository
 import com.seblful.tutoringapp.data.repository.PriceRepository
 import com.seblful.tutoringapp.data.repository.StudentRepository
 import com.seblful.tutoringapp.data.repository.SubjectRepository
+import com.seblful.tutoringapp.domain.ClassRules
 import com.seblful.tutoringapp.domain.Recurrence
 import com.seblful.tutoringapp.domain.Scheduling
 import com.seblful.tutoringapp.domain.model.ClassMode
@@ -40,7 +41,13 @@ data class ClassForm(
     val repeatWeekly: Boolean = false,
     val weeks: Int = 4,
 ) {
-    val isValid: Boolean get() = studentId != null && subjectId != null && durationMinutes > 0 && weeks >= 1
+    val isValid: Boolean
+        get() = studentId != null && subjectId != null && durationMinutes > 0 && weeks in 1..MAX_WEEKS
+
+    companion object {
+        /** Cap on a weekly series so one booking can't generate an unbounded flood of classes. */
+        const val MAX_WEEKS = 52
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -129,6 +136,13 @@ class ClassEditViewModel @Inject constructor(
         viewModelScope.launch {
             val existing = original
             if (existing != null) {
+                // Editing is only allowed for a still-upcoming class. A completed class has
+                // snapshotted its charge, so changing its student/subject/time would mis-attribute
+                // already-recognized income; corrections go through cancel + reschedule instead.
+                if (!ClassRules.isMutable(existing.status)) {
+                    onDone()
+                    return@launch
+                }
                 classes.add(
                     existing.copy(
                         studentId = f.studentId!!,
