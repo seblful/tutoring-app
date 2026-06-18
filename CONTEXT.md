@@ -79,6 +79,12 @@ flowchart TB
 - **Backup = full DB snapshot → JSON via SAF.** Entities are `@Serializable`; ids are preserved so
   import into an empty DB reproduces identical data. Import is one transaction (no partial restore).
 - **`java.time` everywhere + core-library desugaring** so it works on `minSdk 24` (java.time is API 26+).
+- **Design system** (`ui/theme/`): a curated Material 3 palette (indigo primary + teal accent),
+  full light/dark schemes, a modern type scale and rounded `Shapes`. Dynamic color is **off by
+  default** so the app keeps a consistent brand (opt-in via `dynamicColor`). Convention: *content*
+  lists (schedule, students) use the shared `ContentCard` for a card-based look, while
+  *settings-style* lists (More, Subjects) stay as plain `ListItem` rows. Shared visual atoms live in
+  `ui/common/Components.kt` (`ContentCard`, `StatusBadge`, `Avatar`).
 
 ---
 

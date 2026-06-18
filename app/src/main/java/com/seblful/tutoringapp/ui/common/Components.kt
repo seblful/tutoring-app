@@ -1,14 +1,21 @@
 package com.seblful.tutoringapp.ui.common
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -21,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -30,6 +38,59 @@ import com.seblful.tutoringapp.R
 import com.seblful.tutoringapp.domain.model.ClassMode
 import com.seblful.tutoringapp.domain.model.ClassStatus
 import com.seblful.tutoringapp.domain.model.Money
+
+/**
+ * A tappable surface for one item in a content list (schedule classes, students). Gives the main
+ * lists a modern, card-based look; settings-style lists keep plain rows on purpose.
+ */
+@Composable
+fun ContentCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            content = content,
+        )
+    }
+}
+
+/** A small tonal pill — e.g. a class status. The tint is derived from [color]. */
+@Composable
+fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .clip(MaterialTheme.shapes.small)
+            .background(color.copy(alpha = 0.15f))
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+    ) {
+        Text(text, style = MaterialTheme.typography.labelMedium, color = color)
+    }
+}
+
+/** A round monogram from the first letter of [name] — a lightweight student avatar. */
+@Composable
+fun Avatar(name: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primaryContainer),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = name.trim().firstOrNull()?.uppercase() ?: "?",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+    }
+}
 
 @Composable
 fun EmptyState(text: String, modifier: Modifier = Modifier) {
