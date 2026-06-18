@@ -24,7 +24,7 @@
     <string name="class_edit_title">Изменить занятие</string>
     <string name="class_student_label">Ученик</string>
     <string name="class_subject_label">Предмет</string>
-    <string name="class_no_subjects_for_student">У ученика нет предметов. Добавьте их в карточке ученика.</string>
+    <string name="class_no_subjects_for_student">У ученика нет предметов с ценой. Укажите цену в карточке ученика.</string>
     <string name="class_date_label">Дата</string>
     <string name="class_time_label">Время</string>
     <string name="class_duration_label">Длительность, мин</string>

@@ -12,13 +12,13 @@ class SchedulingTest {
     private val all = listOf(algebra, physics, english)
 
     @Test
-    fun `only the student's assigned subjects can be booked`() {
+    fun `only subjects priced for the student can be booked`() {
         val assignable = Scheduling.assignableSubjects(all, setOf(1L, 3L))
         assertEquals(listOf(algebra, english), assignable)
     }
 
     @Test
-    fun `a student with no assigned subjects can book nothing`() {
+    fun `a student with no priced subjects can book nothing`() {
         assertEquals(emptyList<Subject>(), Scheduling.assignableSubjects(all, emptySet()))
     }
 

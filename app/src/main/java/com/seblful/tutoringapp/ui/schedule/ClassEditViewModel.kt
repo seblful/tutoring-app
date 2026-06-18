@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.tutoringapp.data.repository.ClassRepository
+import com.seblful.tutoringapp.data.repository.PriceRepository
 import com.seblful.tutoringapp.data.repository.StudentRepository
 import com.seblful.tutoringapp.data.repository.SubjectRepository
 import com.seblful.tutoringapp.domain.Recurrence
@@ -49,6 +50,7 @@ class ClassEditViewModel @Inject constructor(
     private val classes: ClassRepository,
     private val studentsRepo: StudentRepository,
     private val subjectsRepo: SubjectRepository,
+    private val pricesRepo: PriceRepository,
 ) : ViewModel() {
 
     private val zone: ZoneId = ZoneId.systemDefault()
@@ -68,8 +70,9 @@ class ClassEditViewModel @Inject constructor(
     )
 
     /**
-     * Subjects the chosen student may be booked for — only the ones assigned to them. Empty until a
-     * student is selected, and recomputed whenever the selected student or their subjects change.
+     * Subjects the chosen student may be booked for — only those that have a price set for them, so
+     * the class can be billed at completion. Empty until a student is selected, and recomputed
+     * whenever the selected student or their prices change.
      */
     val subjects: StateFlow<List<Subject>> =
         form.map { it.studentId }.distinctUntilChanged()
@@ -78,9 +81,9 @@ class ClassEditViewModel @Inject constructor(
                     flowOf(emptyList<Subject>())
                 } else {
                     combine(
-                        studentsRepo.observeSubjectIds(studentId),
+                        pricesRepo.observeForStudent(studentId),
                         subjectsRepo.observeAll(),
-                    ) { assignedIds, all -> Scheduling.assignableSubjects(all, assignedIds) }
+                    ) { prices, all -> Scheduling.assignableSubjects(all, prices.map { it.subjectId }) }
                 }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
