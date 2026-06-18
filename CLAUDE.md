@@ -11,24 +11,7 @@
 - Push back if a simpler approach exists
 - Name what's confusing before proceeding
 
-### 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features, abstractions, or configurability beyond what was asked
-- No error handling for impossible scenarios
-- If it could be 50 lines but is 200, rewrite it
-
-### 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-- Don't "improve" adjacent code, comments, or formatting
-- Match existing style even if you'd do it differently
-- Remove only the orphans your changes create
-- Mention unrelated dead code; don't delete it
-
-### 4. Honest Pushback
+### 2. Honest Pushback
 
 **Flag bad ideas. Don't silently comply.**
 
@@ -39,7 +22,7 @@ Before executing, raise a concern if the request:
 
 State the concern in one sentence, name the specific tension, then proceed or ask — don't lecture. If the user confirms anyway, comply and move on.
 
-### 5. Goal-Driven Execution
+### 3. Goal-Driven Execution
 
 **Define success criteria. Loop until verified.**
 
