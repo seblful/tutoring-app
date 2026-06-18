@@ -4,23 +4,31 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EditCalendar
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -36,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,8 +54,10 @@ import com.seblful.tutoringapp.domain.ClassRules
 import com.seblful.tutoringapp.domain.model.ClassStatus
 import com.seblful.tutoringapp.domain.model.TutoringClass
 import com.seblful.tutoringapp.ui.common.ConfirmDialog
+import com.seblful.tutoringapp.ui.common.ContentCard
 import com.seblful.tutoringapp.ui.common.DatePickerModal
 import com.seblful.tutoringapp.ui.common.EmptyState
+import com.seblful.tutoringapp.ui.common.StatusBadge
 import com.seblful.tutoringapp.ui.common.TimePickerModal
 import com.seblful.tutoringapp.ui.common.classModeLabel
 import com.seblful.tutoringapp.ui.common.classStatusColor
@@ -68,7 +79,7 @@ fun ScheduleScreen(
     val rows by viewModel.rows.collectAsState()
     val date by viewModel.selectedDate.collectAsState()
 
-    var sheetFor by remember { mutableStateOf<TutoringClass?>(null) }
+    var sheetFor by remember { mutableStateOf<ScheduleRow?>(null) }
     var movingClass by remember { mutableStateOf<TutoringClass?>(null) }
     var deletingClass by remember { mutableStateOf<TutoringClass?>(null) }
 
@@ -91,25 +102,23 @@ fun ScheduleScreen(
             if (rows.isEmpty()) {
                 EmptyState(stringResource(R.string.schedule_empty))
             } else {
-                LazyColumn(Modifier.fillMaxSize()) {
+                LazyColumn(
+                    Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
                     items(rows, key = { it.klass.id }) { row ->
-                        ListItem(
-                            headlineContent = { Text("${row.klass.start.formatTime()} · ${row.studentName}") },
-                            supportingContent = { Text("${row.subjectName} · ${classModeLabel(row.klass.mode)}") },
-                            trailingContent = {
-                                Text(classStatusLabel(row.klass.status), color = classStatusColor(row.klass.status))
-                            },
-                            modifier = Modifier.clickable { sheetFor = row.klass },
-                        )
+                        ScheduleCard(row = row, onClick = { sheetFor = row })
                     }
                 }
             }
         }
     }
 
-    sheetFor?.let { klass ->
+    sheetFor?.let { row ->
+        val klass = row.klass
         ClassActionsSheet(
-            klass = klass,
+            row = row,
             sheetState = rememberModalBottomSheetState(),
             onEdit = { onEditClass(klass.id); sheetFor = null },
             onStatus = { viewModel.setStatus(klass.id, it); sheetFor = null },
@@ -133,6 +142,33 @@ fun ScheduleScreen(
             onConfirm = { viewModel.delete(klass) },
             onDismiss = { deletingClass = null },
         )
+    }
+}
+
+@Composable
+private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit) {
+    ContentCard(onClick = onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                row.klass.start.formatTime(),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                Text(row.studentName, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "${row.subjectName} · ${classModeLabel(row.klass.mode)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            StatusBadge(
+                text = classStatusLabel(row.klass.status),
+                color = classStatusColor(row.klass.status),
+            )
+        }
     }
 }
 
@@ -164,7 +200,7 @@ private fun DayNavigator(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ClassActionsSheet(
-    klass: TutoringClass,
+    row: ScheduleRow,
     sheetState: androidx.compose.material3.SheetState,
     onEdit: () -> Unit,
     onStatus: (ClassStatus) -> Unit,
@@ -172,15 +208,49 @@ private fun ClassActionsSheet(
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val klass = row.klass
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
-            SheetAction(stringResource(R.string.action_edit), onClick = onEdit)
+            // Header: which class these actions apply to.
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "${klass.start.formatTime()} · ${row.studentName}",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        "${row.subjectName} · ${classModeLabel(klass.mode)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                StatusBadge(
+                    text = classStatusLabel(klass.status),
+                    color = classStatusColor(klass.status),
+                )
+            }
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
+            SheetAction(stringResource(R.string.action_edit), Icons.Filled.Edit, onClick = onEdit)
             // Offer only the statuses this class can move to — never the one it is already in.
             ClassRules.availableTransitions(klass.status).forEach { target ->
-                SheetAction(stringResource(statusActionLabel(target)), onClick = { onStatus(target) })
+                SheetAction(
+                    stringResource(statusActionLabel(target)),
+                    statusActionIcon(target),
+                    onClick = { onStatus(target) },
+                )
             }
-            SheetAction(stringResource(R.string.class_move), onClick = onMove)
-            SheetAction(stringResource(R.string.action_delete), onClick = onDelete, destructive = true)
+            SheetAction(stringResource(R.string.class_move), Icons.Filled.EditCalendar, onClick = onMove)
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            SheetAction(
+                stringResource(R.string.action_delete),
+                Icons.Filled.DeleteOutline,
+                onClick = onDelete,
+                destructive = true,
+            )
         }
     }
 }
@@ -191,14 +261,28 @@ private fun statusActionLabel(status: ClassStatus): Int = when (status) {
     ClassStatus.SCHEDULED -> R.string.class_mark_scheduled
 }
 
+private fun statusActionIcon(status: ClassStatus): ImageVector = when (status) {
+    ClassStatus.COMPLETED -> Icons.Filled.CheckCircle
+    ClassStatus.CANCELLED -> Icons.Filled.Cancel
+    ClassStatus.SCHEDULED -> Icons.Filled.Event
+}
+
 @Composable
-private fun SheetAction(label: String, onClick: () -> Unit, destructive: Boolean = false) {
-    Text(
-        text = label,
-        color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-        style = MaterialTheme.typography.bodyLarge,
-        modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 24.dp, vertical = 14.dp),
-    )
+private fun SheetAction(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    destructive: Boolean = false,
+) {
+    val color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+    Row(
+        Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 24.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = color)
+        Spacer(Modifier.width(20.dp))
+        Text(label, color = color, style = MaterialTheme.typography.bodyLarge)
+    }
 }
 
 /** Picks a new date then time, then reports the combined instant. */

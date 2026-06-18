@@ -1,10 +1,14 @@
 package com.seblful.tutoringapp.ui.students
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -14,7 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -24,12 +28,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.seblful.tutoringapp.R
 import com.seblful.tutoringapp.domain.model.ClassMode
+import com.seblful.tutoringapp.ui.common.Avatar
+import com.seblful.tutoringapp.ui.common.ContentCard
 import com.seblful.tutoringapp.ui.common.EmptyState
 import com.seblful.tutoringapp.ui.common.StudentEditDialog
 import com.seblful.tutoringapp.ui.common.balanceColor
@@ -71,23 +79,35 @@ fun StudentsScreen(
             if (rows.isEmpty()) {
                 EmptyState(stringResource(R.string.students_empty))
             } else {
-                LazyColumn(Modifier.fillMaxSize()) {
+                LazyColumn(
+                    Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
                     items(rows, key = { it.student.id }) { row ->
-                        ListItem(
-                            headlineContent = { Text(row.student.name) },
-                            supportingContent = {
-                                Text(
-                                    text = balanceDescription(row.balance),
-                                    color = balanceColor(row.balance),
-                                )
-                            },
-                            trailingContent = if (row.student.archived) {
-                                { Text(stringResource(R.string.student_archived_badge), fontStyle = FontStyle.Italic) }
-                            } else null,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onStudentClick(row.student.id) },
-                        )
+                        ContentCard(onClick = { onStudentClick(row.student.id) }) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Avatar(row.student.name)
+                                Spacer(Modifier.width(16.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(row.student.name, style = MaterialTheme.typography.titleMedium)
+                                    Text(
+                                        text = balanceDescription(row.balance),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = balanceColor(row.balance),
+                                    )
+                                }
+                                if (row.student.archived) {
+                                    Spacer(Modifier.width(12.dp))
+                                    Text(
+                                        stringResource(R.string.student_archived_badge),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontStyle = FontStyle.Italic,
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
