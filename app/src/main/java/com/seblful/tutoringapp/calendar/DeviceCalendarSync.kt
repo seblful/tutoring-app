@@ -21,7 +21,8 @@ import javax.inject.Singleton
  * Writes class events to the device calendar via [CalendarContract]. Events land in the user's
  * primary calendar (typically their Google account), and Android's own sync adapter pushes them
  * to Google Calendar — so there is no backend, OAuth, or API key to configure here, only the
- * WRITE_CALENDAR runtime permission. All operations are best-effort and never throw to callers.
+ * READ_CALENDAR + WRITE_CALENDAR runtime permissions (READ to locate a writable calendar, WRITE
+ * to add events). All operations are best-effort and never throw to callers.
  */
 @Singleton
 class DeviceCalendarSync @Inject constructor(
@@ -77,15 +78,24 @@ class DeviceCalendarSync @Inject constructor(
         ClassMode.REMOTE -> R.string.class_mode_remote
     }
 
-    /** The primary writable calendar's id (preferring the account's primary), or null if none. */
+    /**
+     * The id of a calendar we can add events to, or null if none exists. Requires only
+     * [CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR] — the lowest level that may insert
+     * events — because a synced Google account calendar is often reported as EDITOR/CONTRIBUTOR
+     * rather than OWNER; demanding OWNER matched nothing on those devices, so every event
+     * silently no-opped. Prefers the account's primary, then a visible, then a more-privileged
+     * calendar.
+     */
     private fun writableCalendarId(): Long? {
-        val projection = arrayOf(CalendarContract.Calendars._ID, CalendarContract.Calendars.IS_PRIMARY)
+        val projection = arrayOf(CalendarContract.Calendars._ID)
         val selection = "${CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL} >= ?"
-        val args = arrayOf(CalendarContract.Calendars.CAL_ACCESS_OWNER.toString())
+        val args = arrayOf(CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR.toString())
+        val order = "${CalendarContract.Calendars.IS_PRIMARY} DESC, " +
+            "${CalendarContract.Calendars.VISIBLE} DESC, " +
+            "${CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL} DESC"
         return runCatching {
             context.contentResolver.query(
-                CalendarContract.Calendars.CONTENT_URI, projection, selection, args,
-                "${CalendarContract.Calendars.IS_PRIMARY} DESC",
+                CalendarContract.Calendars.CONTENT_URI, projection, selection, args, order,
             )?.use { cursor ->
                 if (cursor.moveToFirst()) cursor.getLong(0) else null
             }
