@@ -2,75 +2,114 @@
 
 ## Overview
 
-An Android tutoring application built with Kotlin and Jetpack Compose. The app
-is currently a fresh single-module scaffold — the feature surface has not been
-built yet.
+A native Android app for a **single** private tutor to manage students, subjects,
+schedule, payments and debts. **Offline-first / local-only — no backend.** Russian UI,
+Material 3. Currency is **BYN**, displayed with the sign **Br** (e.g. `1500 Br`).
+
+See `PLANNING.md` for the product goal and the 7 success criteria.
 
 ---
 
 ## Architecture
 
-Single-module Android app following the standard Gradle + Compose layout. UI is
-declared with Jetpack Compose; `MainActivity` is the single entry point that
-hosts the composable tree under the app theme.
+MVVM with a **pure, unit-tested domain layer**. Room is the single source of truth;
+notifications and calendar are best-effort *mirrors* of it, never the other way round.
+Dependency injection is Hilt.
 
 ```mermaid
-flowchart LR
-    User([User]) --> Activity[MainActivity]
-    Activity --> Theme[TutoringAppTheme]
-    Theme --> UI[Composable UI]
+flowchart TB
+    UI[Compose screens + ViewModels] --> Repos[Repositories]
+    UI --> Domain
+    Repos --> Domain[Domain: pure rules]
+    Repos --> Room[(Room DB)]
+    Repos --> Cal[CalendarSync port]
+    Work[WorkManager workers] --> Repos
+    Work --> Notif[Notifier]
+    Cal -.-> Device[Device calendar → Google sync]
 ```
 
-### Modules
+### Layers / modules (single `app` module)
 
-| Module | Purpose |
-|--------|---------|
-| `app/` | The application module (only module) |
-| `app/.../MainActivity.kt` | Entry point — `ComponentActivity` that sets the Compose content |
-| `app/.../ui/theme/` | Material 3 theme: color scheme, typography, `TutoringAppTheme` wrapper |
-| `app/src/main/res/` | Android resources — strings, icons, themes, backup rules |
-| `gradle/libs.versions.toml` | Version catalog — single source of truth for dependency and plugin versions |
-
----
-
-## Key Design Decisions
-
-- **Jetpack Compose for all UI** — no XML layouts; views are declared in Kotlin.
-- **Material 3 with dynamic color** — `TutoringAppTheme` uses dynamic color on Android 12+, falling back to a static purple scheme.
-- **Gradle version catalog** (`libs.versions.toml`) — centralizes versions so modules stay consistent.
-- **Vector adaptive launcher icons** — no PNG density buckets; icons are vector drawables.
+| Package | Responsibility |
+|---|---|
+| `domain/` | Pure Kotlin, no Android deps. `Billing`, `ClassRules`, `Recurrence`, `Reminders`, `Reports`, `CalendarSyncPolicy`, and `model/` entities (`Money`, `TutoringClass`, …). All JVM-unit-tested. |
+| `data/local/` | Room: `@Entity` rows, DAOs, `AppDatabase`. Entities are also `@Serializable` (used by backup). |
+| `data/repository/` | Repositories mapping entities ⇄ domain models and orchestrating side effects (calendar mirroring). |
+| `data/backup/` | `BackupData` (whole-DB snapshot) + `BackupManager` (JSON export / transactional replace-all import). |
+| `calendar/` | `CalendarSync` **port** + `DeviceCalendarSync` adapter (CalendarContract). |
+| `notifications/` | `Notifier` — reminder channel + posting. |
+| `work/` | `MaintenanceWorker` (periodic), `ReminderWorker` (one-shot), `WorkScheduler`. |
+| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` widgets & formatting. |
+| `di/` | Hilt modules (`DatabaseModule`; `calendar/CalendarModule` binds the port). |
 
 ---
 
-## Non-Goals / Out of Scope
+## Key design decisions
 
-- Multi-module architecture (single `app` module for now).
-- Backend / networking layer (not yet defined).
+- **Money is an integer count of minor units (kopecks)** — no floating point. `Money` value class.
+- **Price versioning by snapshot.** A class captures its charge from the then-current price
+  *at completion* (`ClassRules.applyStatus`). Editing a price never touches completed classes.
+- **Status state machine** (`ClassRules`): `scheduled → completed | cancelled | missed`, with
+  corrections back. A scheduled class **auto-completes once its end time passes** (the app knows
+  only the clock; Option A). The tutor marks no-shows `missed`, which voids the charge.
+- **Offline-first.** Room is authoritative. Calendar and notifications are best-effort: if the
+  permission/calendar is absent they no-op, never blocking or corrupting local data.
+- **Calendar sync via `CalendarContract`, not the Google Calendar REST API** *(deviation from
+  PLANNING's Stack line)*. Writing events to the device's calendar makes the OS sync them to the
+  user's Google account — so there is **no Google Cloud project, OAuth consent screen, or privacy
+  policy** to set up, which fits the "no backend" goal. It sits behind the `CalendarSync` port, so
+  a REST adapter can be added later without touching the rest of the app. Opt-in via the More tab
+  (grants `WRITE_CALENDAR`).
+- **WorkManager** for time-driven behavior: precise one-shot `ReminderWorker`s for upcoming
+  classes, plus a periodic `MaintenanceWorker` that auto-completes due classes and re-derives
+  reminders (the safety net for changes made while the app was closed). The *decisions*
+  (`Reminders.plan`) are pure and tested; WorkManager is just the trigger.
+- **Backup = full DB snapshot → JSON via SAF.** Entities are `@Serializable`; ids are preserved so
+  import into an empty DB reproduces identical data. Import is one transaction (no partial restore).
+- **`java.time` everywhere + core-library desugaring** so it works on `minSdk 24` (java.time is API 26+).
 
 ---
 
-## Project Structure
+## Data flow
 
+ViewModels observe repository `Flow`s (Room → domain models) and expose `StateFlow` UI state.
+Writes go ViewModel → repository → Room; the repository then mirrors the change to the calendar
+and asks `WorkScheduler` to refresh reminders. Balance/income are derived on the fly by `Billing`
+/ `Reports` from the observed data — never stored.
+
+---
+
+## Non-goals (v1)
+
+Multi-user/login, cloud sync across devices, web/iOS, in-app payments.
+
+---
+
+## Testing & success criteria
+
+- **JVM unit tests** (`src/test`, run with `testDebugUnitTest`) cover the domain layer and the
+  backup serialization format: criteria 1–4 (domain), 5 (move), 6 (format), 7 (reminder planning).
+- **Instrumented tests** (`src/androidTest`, need a device/emulator) cover the Room integration:
+  `AutoCompleteTest` (criterion 1 end-to-end), `ClassCalendarSyncTest` (criterion 5: move updates
+  the synced event), `BackupRoundTripTest` (criterion 6: export→import on an empty DB).
+- Notification *display* and real calendar writes can only be observed on a device.
+
+---
+
+## Tooling & build
+
+- Kotlin 2.1.0, AGP 8.7.3, Gradle 8.9, JDK 21 (Android Studio JBR). compile/target SDK 35, minSdk 24.
+- Hilt 2.55 (older Hilt can't read Kotlin 2.1 metadata), Room 2.6.1, WorkManager, Navigation Compose,
+  kotlinx-serialization — all via `gradle/libs.versions.toml`.
+- Build needs `JAVA_HOME` set to a JDK 21 (e.g. `C:\Program Files\Android\Android Studio\jbr`) and
+  `local.properties` pointing at the Android SDK.
+- Common commands: `./gradlew :app:testDebugUnitTest`, `:app:assembleDebug`, `:app:assembleDebugAndroidTest`.
 ```
-├── app/
-│   ├── build.gradle.kts                 # App module build config
-│   └── src/main/
-│       ├── AndroidManifest.xml
-│       ├── java/com/seblful/tutoringapp/
-│       │   ├── MainActivity.kt          # Entry point
-│       │   └── ui/theme/                # Compose theme (Color, Type, Theme)
-│       └── res/                         # Resources (strings, icons, themes)
-├── gradle/
-│   ├── libs.versions.toml               # Dependency version catalog
-│   └── wrapper/                         # Gradle wrapper
-├── build.gradle.kts                     # Root build config
-└── settings.gradle.kts                  # Module declarations + repositories
+app/src/main/java/com/seblful/tutoringapp/
+├── domain/            # pure rules + model/
+├── data/{local,repository,backup}/
+├── calendar/  notifications/  work/  di/
+├── ui/{schedule,students,subjects,reports,backup,more,common,navigation,theme}/
+├── MainActivity.kt    # @AndroidEntryPoint → AppRoot()
+└── TutoringApp.kt      # @HiltAndroidApp, WorkManager config, startup scheduling
 ```
-
----
-
-## Tooling
-
-- **Kotlin** 2.1.0, **AGP** 8.7.3, **Gradle** 8.9
-- **compileSdk / targetSdk** 35, **minSdk** 24
-- **Compose BOM** 2024.12.01, **Material 3**

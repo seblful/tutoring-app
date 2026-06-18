@@ -1,0 +1,29 @@
+package com.seblful.tutoringapp.data.backup
+
+import com.seblful.tutoringapp.data.local.ClassEntity
+import com.seblful.tutoringapp.data.local.PaymentEntity
+import com.seblful.tutoringapp.data.local.PriceEntity
+import com.seblful.tutoringapp.data.local.StudentEntity
+import com.seblful.tutoringapp.data.local.StudentSubjectCrossRef
+import com.seblful.tutoringapp.data.local.SubjectEntity
+import kotlinx.serialization.Serializable
+
+/**
+ * A full snapshot of the database, serialized to JSON for backup/restore. Stores the raw
+ * persisted rows verbatim (ids included) so importing into an empty database reproduces the
+ * exact same data. [version] guards the format for future migrations.
+ */
+@Serializable
+data class BackupData(
+    val version: Int = CURRENT_VERSION,
+    val subjects: List<SubjectEntity> = emptyList(),
+    val students: List<StudentEntity> = emptyList(),
+    val studentSubjects: List<StudentSubjectCrossRef> = emptyList(),
+    val prices: List<PriceEntity> = emptyList(),
+    val classes: List<ClassEntity> = emptyList(),
+    val payments: List<PaymentEntity> = emptyList(),
+) {
+    companion object {
+        const val CURRENT_VERSION = 1
+    }
+}

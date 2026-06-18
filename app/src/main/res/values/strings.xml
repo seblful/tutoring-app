@@ -1,3 +1,121 @@
 <resources>
     <string name="app_name">Tutoring App</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_schedule">Расписание</string>
+    <string name="nav_students">Ученики</string>
+    <string name="nav_reports">Отчёты</string>
+    <string name="nav_more">Ещё</string>
+
+    <!-- Generic actions -->
+    <string name="action_add">Добавить</string>
+    <string name="action_edit">Изменить</string>
+    <string name="action_delete">Удалить</string>
+    <string name="action_save">Сохранить</string>
+    <string name="action_cancel">Отмена</string>
+    <string name="action_back">Назад</string>
+    <string name="action_archive">В архив</string>
+    <string name="action_unarchive">Из архива</string>
+
+    <!-- Schedule -->
+    <string name="schedule_title">Расписание</string>
+    <string name="schedule_empty">На этот день занятий нет</string>
+    <string name="class_add_title">Новое занятие</string>
+    <string name="class_edit_title">Изменить занятие</string>
+    <string name="class_student_label">Ученик</string>
+    <string name="class_subject_label">Предмет</string>
+    <string name="class_date_label">Дата</string>
+    <string name="class_time_label">Время</string>
+    <string name="class_duration_label">Длительность, мин</string>
+    <string name="class_location_label">Место</string>
+    <string name="class_repeat_weekly">Повторять каждую неделю</string>
+    <string name="class_repeat_weeks">Сколько недель</string>
+    <string name="class_move">Перенести</string>
+    <string name="class_delete_confirm">Удалить это занятие?</string>
+    <string name="class_mark_completed">Отметить проведённым</string>
+    <string name="class_mark_missed">Отметить пропуском</string>
+    <string name="class_mark_cancelled">Отменить занятие</string>
+    <string name="class_mark_scheduled">Вернуть в расписание</string>
+
+    <!-- Class status -->
+    <string name="class_status_scheduled">Запланировано</string>
+    <string name="class_status_completed">Проведено</string>
+    <string name="class_status_cancelled">Отменено</string>
+    <string name="class_status_missed">Пропущено</string>
+
+    <!-- Students -->
+    <string name="students_title">Ученики</string>
+    <string name="students_empty">Пока нет учеников</string>
+    <string name="students_show_archived">Показать архив</string>
+    <string name="student_archived_badge">в архиве</string>
+    <string name="student_add_title">Новый ученик</string>
+    <string name="student_edit_title">Изменить ученика</string>
+    <string name="student_name_label">Имя</string>
+    <string name="student_note_label">Заметка</string>
+    <string name="student_subjects_title">Предметы</string>
+    <string name="student_no_subjects">Предметы не выбраны</string>
+    <string name="student_payments_title">Платежи</string>
+    <string name="student_classes_title">Занятия</string>
+    <string name="student_balance_label">Баланс</string>
+    <string name="select_subjects_title">Выберите предметы</string>
+
+    <!-- Balance -->
+    <string name="balance_settled">Нет задолженности</string>
+    <string name="balance_credit">Переплата %1$s</string>
+    <string name="balance_owes">Долг %1$s</string>
+
+    <!-- Price -->
+    <string name="price_not_set">Цена не указана</string>
+    <string name="price_edit_title">Изменить цену</string>
+    <string name="price_label">Цена за занятие</string>
+
+    <!-- Payments -->
+    <string name="add_payment">Платёж</string>
+    <string name="payments_empty">Платежей пока нет</string>
+    <string name="payment_add_title">Новый платёж</string>
+    <string name="payment_amount_label">Сумма</string>
+
+    <!-- Subjects -->
+    <string name="subjects_title">Предметы</string>
+    <string name="subjects_empty">Пока нет предметов</string>
+    <string name="subject_add_title">Новый предмет</string>
+    <string name="subject_edit_title">Изменить предмет</string>
+    <string name="subject_name_label">Название</string>
+    <string name="subject_delete_confirm">Удалить этот предмет?</string>
+
+    <!-- More menu -->
+    <string name="more_subjects">Предметы</string>
+    <string name="more_backup">Резервная копия</string>
+    <string name="more_calendar">Синхронизация с календарём</string>
+    <string name="more_calendar_desc">Показывать занятия в календаре устройства</string>
+    <string name="calendar_enabled">Синхронизация с календарём включена</string>
+    <string name="calendar_denied">Нет доступа к календарю</string>
+
+    <!-- Reminders -->
+    <string name="reminder_channel_name">Напоминания о занятиях</string>
+    <string name="reminder_channel_desc">Уведомления перед началом занятия</string>
+    <string name="reminder_title">Скоро занятие</string>
+
+    <!-- Reports -->
+    <string name="reports_title">Отчёты</string>
+    <string name="reports_empty">Пока нет данных для отчётов</string>
+    <string name="reports_total_income">Доход всего</string>
+    <string name="reports_by_month">Доход по месяцам</string>
+    <string name="reports_by_subject">Доход по предметам</string>
+    <string name="reports_by_student">Доход по ученикам</string>
+    <string name="reports_debts">Задолженности</string>
+    <string name="reports_no_debts">Задолженностей нет</string>
+    <string name="reports_total_outstanding">Всего к оплате</string>
+
+    <!-- Backup -->
+    <string name="backup_title">Резервная копия</string>
+    <string name="backup_filename">tutoring-backup.json</string>
+    <string name="backup_export">Экспортировать данные</string>
+    <string name="backup_export_desc">Сохранить все данные в файл</string>
+    <string name="backup_import">Импортировать данные</string>
+    <string name="backup_import_desc">Восстановить данные из файла</string>
+    <string name="backup_import_confirm">Импорт заменит все текущие данные. Продолжить?</string>
+    <string name="backup_export_success">Данные сохранены</string>
+    <string name="backup_import_success">Данные восстановлены</string>
+    <string name="backup_error">Не удалось — проверьте файл</string>
 </resources>
