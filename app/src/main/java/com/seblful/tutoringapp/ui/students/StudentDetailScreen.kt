@@ -145,7 +145,8 @@ fun StudentDetailScreen(
                         headlineContent = { Text(sp.subject.name) },
                         supportingContent = {
                             Text(
-                                sp.price?.format() ?: stringResource(R.string.price_not_set),
+                                sp.price?.let { stringResource(R.string.price_per_hour, it.format()) }
+                                    ?: stringResource(R.string.price_not_set),
                                 color = if (sp.price == null) MaterialTheme.colorScheme.error
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
