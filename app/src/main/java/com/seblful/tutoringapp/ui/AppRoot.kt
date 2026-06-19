@@ -1,16 +1,21 @@
 package com.seblful.tutoringapp.ui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -19,17 +24,32 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.seblful.tutoringapp.ui.backup.BackupScreen
 import com.seblful.tutoringapp.ui.more.MoreScreen
+import com.seblful.tutoringapp.ui.more.SettingsScreen
 import com.seblful.tutoringapp.ui.navigation.Routes
 import com.seblful.tutoringapp.ui.navigation.TopDestination
+import com.seblful.tutoringapp.ui.onboarding.OnboardingScreen
 import com.seblful.tutoringapp.ui.reports.ReportsScreen
 import com.seblful.tutoringapp.ui.schedule.ClassEditScreen
 import com.seblful.tutoringapp.ui.schedule.ScheduleScreen
 import com.seblful.tutoringapp.ui.students.StudentDetailScreen
+import com.seblful.tutoringapp.ui.students.StudentFormScreen
 import com.seblful.tutoringapp.ui.students.StudentsScreen
 import com.seblful.tutoringapp.ui.subjects.SubjectsScreen
 
 @Composable
-fun AppRoot() {
+fun AppRoot(rootViewModel: RootViewModel = hiltViewModel()) {
+    val onboardingComplete by rootViewModel.onboardingComplete.collectAsState()
+    when (onboardingComplete) {
+        null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        false -> OnboardingScreen(onFinished = { /* settings flip re-renders into MainApp */ })
+        true -> MainApp()
+    }
+}
+
+@Composable
+private fun MainApp() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -73,11 +93,18 @@ fun AppRoot() {
                 MoreScreen(
                     onSubjects = { navController.navigate(Routes.SUBJECTS) },
                     onBackup = { navController.navigate(Routes.BACKUP) },
+                    onSettings = { navController.navigate(Routes.SETTINGS) },
                 )
             }
 
             composable(Routes.STUDENTS) {
-                StudentsScreen(onStudentClick = { navController.navigate(Routes.studentDetail(it)) })
+                StudentsScreen(
+                    onStudentClick = { navController.navigate(Routes.studentDetail(it)) },
+                    onAddStudent = { navController.navigate(Routes.STUDENT_ADD) },
+                )
+            }
+            composable(Routes.STUDENT_ADD) {
+                StudentFormScreen(onBack = { navController.popBackStack() })
             }
             composable(
                 Routes.STUDENT_DETAIL,
@@ -95,6 +122,9 @@ fun AppRoot() {
             composable(Routes.BACKUP) {
                 BackupScreen(onBack = { navController.popBackStack() })
             }
+            composable(Routes.SETTINGS) {
+                SettingsScreen(onBack = { navController.popBackStack() })
+            }
 
             composable(
                 Routes.CLASS_EDIT,
@@ -108,4 +138,3 @@ fun AppRoot() {
         }
     }
 }
-

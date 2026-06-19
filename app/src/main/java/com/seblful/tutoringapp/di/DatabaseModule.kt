@@ -6,6 +6,7 @@ import com.seblful.tutoringapp.data.local.AppDatabase
 import com.seblful.tutoringapp.data.local.ClassDao
 import com.seblful.tutoringapp.data.local.PaymentDao
 import com.seblful.tutoringapp.data.local.PriceDao
+import com.seblful.tutoringapp.data.local.SettingsDao
 import com.seblful.tutoringapp.data.local.StudentDao
 import com.seblful.tutoringapp.data.local.SubjectDao
 import dagger.Module
@@ -33,4 +34,5 @@ object DatabaseModule {
     @Provides fun providePriceDao(db: AppDatabase): PriceDao = db.priceDao()
     @Provides fun provideClassDao(db: AppDatabase): ClassDao = db.classDao()
     @Provides fun providePaymentDao(db: AppDatabase): PaymentDao = db.paymentDao()
+    @Provides fun provideSettingsDao(db: AppDatabase): SettingsDao = db.settingsDao()
 }

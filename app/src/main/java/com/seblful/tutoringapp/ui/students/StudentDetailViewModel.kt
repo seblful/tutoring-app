@@ -86,12 +86,20 @@ class StudentDetailViewModel @Inject constructor(
         val classes: List<ClassRow>,
     )
 
-    fun editStudent(name: String, phone: String, note: String, mode: ClassMode) {
+    fun editStudent(name: String, phone: String, email: String, note: String, mode: ClassMode) {
         val current = state.value.student ?: return
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
-            students.upsert(current.copy(name = trimmed, phone = phone.trim(), note = note.trim(), defaultMode = mode))
+            students.upsert(
+                current.copy(
+                    name = trimmed,
+                    phone = phone.trim(),
+                    email = email.trim(),
+                    note = note.trim(),
+                    defaultMode = mode,
+                )
+            )
         }
     }
 

@@ -154,6 +154,18 @@ interface ClassDao {
 }
 
 @Dao
+interface SettingsDao {
+    @Query("SELECT * FROM settings WHERE id = 0")
+    fun observe(): Flow<SettingsEntity?>
+
+    @Query("SELECT * FROM settings WHERE id = 0")
+    suspend fun get(): SettingsEntity?
+
+    @Upsert
+    suspend fun upsert(settings: SettingsEntity)
+}
+
+@Dao
 interface PaymentDao {
     @Query("SELECT * FROM payments ORDER BY dateMillis DESC")
     fun observeAll(): Flow<List<PaymentEntity>>

@@ -74,22 +74,53 @@ fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
     }
 }
 
-/** A round monogram from the first letter of [name] — a lightweight student avatar. */
+/**
+ * A round monogram from the first letter of [name] — a lightweight student avatar. Each student
+ * gets a stable colour derived from their name, so the list reads as a set of distinct people
+ * rather than a wall of identical chips.
+ */
 @Composable
 fun Avatar(name: String, modifier: Modifier = Modifier) {
+    val (container, content) = avatarColors(name)
     Box(
         modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer),
+            .background(container),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = name.trim().firstOrNull()?.uppercase() ?: "?",
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            color = content,
         )
     }
+}
+
+/**
+ * A stable (container, on-container) colour pair for [name], picked from a fixed palette by hashing
+ * the name. Same name → same colour every time; the palette tints adapt to light/dark via alpha.
+ */
+@Composable
+private fun avatarColors(name: String): Pair<Color, Color> {
+    val palette = listOf(
+        Color(0xFF5C6BC0), // indigo
+        Color(0xFF26A69A), // teal
+        Color(0xFFEF5350), // red
+        Color(0xFFAB47BC), // purple
+        Color(0xFF42A5F5), // blue
+        Color(0xFF66BB6A), // green
+        Color(0xFFFFA726), // orange
+        Color(0xFFEC407A), // pink
+        Color(0xFF8D6E63), // brown
+        Color(0xFF78909C), // blue grey
+    )
+    val key = name.trim().ifEmpty { "?" }
+    val base = palette[(key.hashCode() % palette.size + palette.size) % palette.size]
+    val dark = androidx.compose.foundation.isSystemInDarkTheme()
+    // Tinted container with a strong, legible monogram in the same hue.
+    return if (dark) base.copy(alpha = 0.35f) to base.copy(alpha = 0.95f)
+    else base.copy(alpha = 0.22f) to base
 }
 
 @Composable
@@ -178,19 +209,21 @@ fun ConfirmDialog(
     )
 }
 
-/** A dialog to add or edit a student's name, phone, optional note and default class mode. */
+/** A dialog to edit a student's name, phone, email, optional note and default class mode. */
 @Composable
 fun StudentEditDialog(
     title: String,
     initialName: String,
     initialPhone: String,
+    initialEmail: String,
     initialNote: String,
     initialMode: ClassMode,
-    onConfirm: (name: String, phone: String, note: String, mode: ClassMode) -> Unit,
+    onConfirm: (name: String, phone: String, email: String, note: String, mode: ClassMode) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var name by remember { mutableStateOf(initialName) }
     var phone by remember { mutableStateOf(initialPhone) }
+    var email by remember { mutableStateOf(initialEmail) }
     var note by remember { mutableStateOf(initialNote) }
     var mode by remember { mutableStateOf(initialMode) }
     AlertDialog(
@@ -214,6 +247,14 @@ fun StudentEditDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text(stringResource(R.string.student_email_label)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
                     label = { Text(stringResource(R.string.student_note_label)) },
@@ -225,7 +266,7 @@ fun StudentEditDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(name.trim(), phone.trim(), note.trim(), mode); onDismiss() },
+                onClick = { onConfirm(name.trim(), phone.trim(), email.trim(), note.trim(), mode); onDismiss() },
                 enabled = name.isNotBlank(),
             ) { Text(stringResource(R.string.action_save)) }
         },

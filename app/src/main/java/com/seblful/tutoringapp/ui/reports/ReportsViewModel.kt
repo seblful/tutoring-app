@@ -48,17 +48,24 @@ class ReportsViewModel @Inject constructor(
         subjects.observeAll(),
         payments.observeAll(),
     ) { classList, studentList, subjectList, paymentList ->
-        val studentNames = studentList.associate { it.id to it.name }
+        // Reports cover active students only: an archived student is retired, so their classes,
+        // income and debts should no longer appear in totals or breakdowns.
+        val activeStudents = studentList.filter { !it.archived }
+        val activeIds = activeStudents.map { it.id }.toSet()
+        val activeClasses = classList.filter { it.studentId in activeIds }
+        val activePayments = paymentList.filter { it.studentId in activeIds }
+
+        val studentNames = activeStudents.associate { it.id to it.name }
         val subjectNames = subjectList.associate { it.id to it.name }
-        val balances = Billing.balancesFor(studentList, classList, paymentList)
+        val balances = Billing.balancesFor(activeStudents, activeClasses, activePayments)
 
         ReportsState(
-            totalIncome = Reports.totalIncome(classList),
-            byMonth = Reports.incomeByMonth(classList, zone)
+            totalIncome = Reports.totalIncome(activeClasses),
+            byMonth = Reports.incomeByMonth(activeClasses, zone)
                 .map { LabeledAmount(formatMonthKey(it.monthKey), it.total) },
-            bySubject = Reports.incomeBySubject(classList)
+            bySubject = Reports.incomeBySubject(activeClasses)
                 .toSortedLines { subjectNames[it] },
-            byStudent = Reports.incomeByStudent(classList)
+            byStudent = Reports.incomeByStudent(activeClasses)
                 .toSortedLines { studentNames[it] },
             debts = Reports.debts(balances)
                 .map { LabeledAmount(studentNames[it.studentId].orEmpty(), it.amount) },

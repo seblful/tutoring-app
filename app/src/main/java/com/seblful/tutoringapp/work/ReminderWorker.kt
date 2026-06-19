@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.seblful.tutoringapp.data.repository.ClassRepository
+import com.seblful.tutoringapp.data.repository.SettingsRepository
 import com.seblful.tutoringapp.data.repository.StudentRepository
 import com.seblful.tutoringapp.data.repository.SubjectRepository
 import com.seblful.tutoringapp.domain.model.ClassStatus
@@ -22,11 +23,15 @@ class ReminderWorker @AssistedInject constructor(
     private val students: StudentRepository,
     private val subjects: SubjectRepository,
     private val notifier: Notifier,
+    private val settings: SettingsRepository,
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
         val classId = inputData.getLong(KEY_CLASS_ID, -1L)
         if (classId < 0) return Result.failure()
+
+        // Reminders are opt-out in settings (on by default).
+        if (!settings.get().notificationsEnabled) return Result.success()
 
         val klass = classes.getById(classId) ?: return Result.success()
         // The class may have been cancelled, moved away, or completed since we scheduled this.

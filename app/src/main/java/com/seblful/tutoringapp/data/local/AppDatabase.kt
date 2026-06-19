@@ -11,8 +11,9 @@ import androidx.room.RoomDatabase
         PriceEntity::class,
         ClassEntity::class,
         PaymentEntity::class,
+        SettingsEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -21,6 +22,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun priceDao(): PriceDao
     abstract fun classDao(): ClassDao
     abstract fun paymentDao(): PaymentDao
+    abstract fun settingsDao(): SettingsDao
 
     companion object {
         const val NAME = "tutoring.db"

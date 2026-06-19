@@ -2,6 +2,7 @@ package com.seblful.tutoringapp.ui.schedule
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -44,6 +46,8 @@ import com.seblful.tutoringapp.ui.common.ModeSelector
 import com.seblful.tutoringapp.ui.common.TimePickerModal
 import com.seblful.tutoringapp.ui.common.classModeLabel
 import com.seblful.tutoringapp.format.formatDate
+import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,7 +61,8 @@ fun ClassEditScreen(
     val subjects by viewModel.subjects.collectAsState()
 
     var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
+    var showFromPicker by remember { mutableStateOf(false) }
+    var showToPicker by remember { mutableStateOf(false) }
     var showModeSelector by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -97,7 +102,7 @@ fun ClassEditScreen(
                 label = stringResource(R.string.class_subject_label),
                 selectedText = subjects.firstOrNull { it.id == form.subjectId }?.name ?: "",
                 options = subjects.map { it.id to it.name },
-                onSelect = { id -> viewModel.update { it.copy(subjectId = id) } },
+                onSelect = { id -> viewModel.selectSubject(id) },
                 enabled = form.studentId != null,
             )
             if (form.studentId != null && subjects.isEmpty()) {
@@ -108,28 +113,34 @@ fun ClassEditScreen(
                 )
             }
 
+            PickerField(
+                value = form.date?.let { it.atStartOfDay(ZoneId.systemDefault()).toInstant().formatDate() } ?: "",
+                label = stringResource(R.string.class_date_label),
+                onClick = { showDatePicker = true },
+            )
+
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                ReadOnlyPickerField(
-                    value = form.date.atStartOfDay(ZoneId.systemDefault()).toInstant().formatDate(),
-                    label = stringResource(R.string.class_date_label),
-                    onClick = { showDatePicker = true },
+                PickerField(
+                    value = form.timeFrom?.formatHm() ?: "",
+                    label = stringResource(R.string.class_time_from_label),
+                    onClick = { showFromPicker = true },
                     modifier = Modifier.weight(1f),
                 )
-                ReadOnlyPickerField(
-                    value = "%02d:%02d".format(form.time.hour, form.time.minute),
-                    label = stringResource(R.string.class_time_label),
-                    onClick = { showTimePicker = true },
+                PickerField(
+                    value = form.timeTo?.formatHm() ?: "",
+                    label = stringResource(R.string.class_time_to_label),
+                    onClick = { showToPicker = true },
+                    enabled = form.timeFrom != null,
                     modifier = Modifier.weight(1f),
                 )
             }
 
             OutlinedTextField(
-                value = if (form.durationMinutes == 0) "" else form.durationMinutes.toString(),
-                onValueChange = { text ->
-                    viewModel.update { it.copy(durationMinutes = text.filter { c -> c.isDigit() }.toIntOrNull() ?: 0) }
-                },
-                label = { Text(stringResource(R.string.class_duration_label)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                value = form.priceText,
+                onValueChange = { text -> viewModel.update { it.copy(priceText = text) } },
+                label = { Text(stringResource(R.string.price_label)) },
+                isError = form.priceText.isNotBlank() && form.price == null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -183,7 +194,7 @@ fun ClassEditScreen(
 
     if (showDatePicker) {
         DatePickerModal(
-            initial = form.date,
+            initial = form.date ?: LocalDate.now(ZoneId.systemDefault()),
             onConfirm = { date ->
                 viewModel.update { it.copy(date = date) }
                 showDatePicker = false
@@ -191,34 +202,56 @@ fun ClassEditScreen(
             onDismiss = { showDatePicker = false },
         )
     }
-    if (showTimePicker) {
+    if (showFromPicker) {
         TimePickerModal(
-            initial = form.time,
+            initial = form.timeFrom ?: LocalTime.of(15, 0),
             onConfirm = { time ->
-                viewModel.update { it.copy(time = time) }
-                showTimePicker = false
+                viewModel.setTimeFrom(time)
+                showFromPicker = false
             },
-            onDismiss = { showTimePicker = false },
+            onDismiss = { showFromPicker = false },
+        )
+    }
+    if (showToPicker) {
+        TimePickerModal(
+            initial = form.timeTo ?: form.timeFrom?.plusHours(1) ?: LocalTime.of(16, 0),
+            onConfirm = { time ->
+                viewModel.setTimeTo(time)
+                showToPicker = false
+            },
+            onDismiss = { showToPicker = false },
         )
     }
 }
 
-/** A non-editable field that opens a picker when tapped (disabled field can't catch clicks itself). */
+private fun LocalTime.formatHm(): String = "%02d:%02d".format(hour, minute)
+
+/**
+ * A non-editable field that opens a picker when tapped. Unlike a plain disabled field, its text and
+ * border keep their normal (non-faded) colours, so a chosen value reads as a real selection.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ReadOnlyPickerField(
+private fun PickerField(
     value: String,
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
-    androidx.compose.foundation.layout.Box(modifier.clickable { onClick() }) {
+    Box(modifier.fillMaxWidth().let { if (enabled) it.clickable { onClick() } else it }) {
         OutlinedTextField(
             value = value,
             onValueChange = {},
             readOnly = true,
-            enabled = false,
+            enabled = false, // disabled so the Box catches the tap; colours below undo the fade
             label = { Text(label) },
             modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            ),
         )
     }
 }

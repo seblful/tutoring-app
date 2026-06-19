@@ -55,7 +55,7 @@ class SubjectDeletionCascadeTest {
             listOf(
                 ClassEntity(
                     1, 1, 1, Instant.parse("2026-05-10T10:00:00Z").toEpochMilli(), 60,
-                    ClassStatus.COMPLETED.name, chargeMinor = 5000,
+                    status = ClassStatus.COMPLETED.name, chargeMinor = 5000,
                 ),
             ),
         )

@@ -40,7 +40,7 @@ flowchart TB
 | `notifications/` | `Notifier` — reminder channel + posting. |
 | `work/` | `MaintenanceWorker` (periodic), `ReminderWorker` (one-shot), `WorkScheduler` (implements `ReminderScheduler`). |
 | `format/` | Shared `ru`-locale date/time/money formatting, used by UI **and** non-UI (notifications, view models). |
-| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` widgets. |
+| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` widgets. Includes `onboarding/` (first-run setup), `more/SettingsScreen`, and a `RootViewModel` that gates onboarding vs. the main tabs. |
 | `di/` | Hilt modules (`DatabaseModule`; `CalendarModule` and `WorkModule` bind the ports). |
 
 ---
@@ -48,21 +48,25 @@ flowchart TB
 ## Key design decisions
 
 - **Money is an integer count of minor units (kopecks)** — no floating point. `Money` value class.
-- **Price versioning by snapshot.** A class captures its charge from the then-current price
-  *at completion* (`ClassRules.applyStatus`). Editing a price never touches completed classes.
+- **Price is booked on the class.** Each class carries its own `price` (`TutoringClass.price`),
+  pre-filled from the student's price for the subject when booking and then editable per class. The
+  charge captured *at completion* (`ClassRules.applyStatus`) is exactly that booked price, so a later
+  edit to the student's price never touches existing classes. Reports/income still count only
+  completed-class charges.
 - **Status state machine** (`ClassRules`): `scheduled → completed | cancelled`, with corrections
   (`completed → cancelled`, `cancelled → scheduled`). Only a cancelled class can return to the
-  schedule. A scheduled class
+  schedule *via the status menu*. A scheduled class
   **auto-completes once its end time passes** (the app knows only the clock; Option A). A class
   that didn't happen is `cancelled`, which voids the charge — there is no separate "missed"
   status. `ClassRules.availableTransitions` is the single source of truth for the actions menu, so
   it never offers the status a class is already in.
-- **Only a SCHEDULED class is mutable** (`ClassRules.isMutable`): edit and move are offered/allowed
-  only while a class will still happen. A completed class has snapshotted its charge, so editing its
-  student/subject would mis-attribute that income and moving it would relocate it to another month;
-  a completed class also can't be *deleted* (that would erase recognized income). Corrections go
-  through the status transitions instead (cancel → voids the charge → return to schedule). Enforced
-  in the UI **and** in `ClassRepository.move` / `ClassEditViewModel.save`.
+- **Editing details is gated; moving is not** (`ClassRules.isMutable`). Editing a class's
+  student/subject/price is offered only while it's SCHEDULED, since a completed class has billed and
+  re-attributing it would rewrite recognized income. **Move (reschedule) is allowed for any status**
+  (`ClassRules.move(c, newStart, now)`): moving a class into the *future* re-plans it (status →
+  SCHEDULED, charge voided to zero, so income isn't double-counted or relocated); moving it into the
+  *past* leaves status and charge untouched (just corrects the recorded time). A completed class
+  still can't be *deleted* (that would erase recognized income) — cancel it first.
 - **A class's subject must have a price for the student** (`Scheduling.assignableSubjects`): the
   booking screen only offers subjects priced for the chosen student, since a completed class
   snapshots its price — an unpriced subject could never be billed, so the price is added first.
@@ -75,6 +79,20 @@ flowchart TB
   calendar event's location. Students also carry a free-text `phone`.
 - **Offline-first.** Room is authoritative. Calendar and notifications are best-effort: if the
   permission/calendar is absent they no-op, never blocking or corrupting local data.
+- **Settings live in Room** (`SettingsEntity`, single row; `SettingsRepository`): `notificationsEnabled`
+  (default true), `calendarSyncEnabled` (default false), `onboardingComplete`. Device-local, so
+  **not** part of the backup snapshot. Reminders (`ReminderWorker`) and all calendar mirroring
+  (`ClassRepository`) gate on these flags; the **More → Settings** screen toggles them.
+- **First-run onboarding** (`ui/onboarding`, gated by `onboardingComplete`): forces adding ≥1 subject,
+  then a first student (with subjects **and** prices — a class can only be booked for a priced
+  subject). The schedule's add-class button is additionally disabled until both a student and a
+  subject exist (`ScheduleViewModel.canAddClass`).
+- **Reports cover active students only** (`ReportsViewModel`): archived students' classes, income and
+  debts are excluded from every total and breakdown.
+- **Email reminders via the calendar, not a backend.** A student carries an `email`; when calendar
+  sync is on, the class event adds them as an attendee with an email reminder 60 min before
+  (`DeviceCalendarSync`), so the calendar account (e.g. Google) does the sending. There is no SMTP
+  or backend in the app — automated email an hour before is only possible through the calendar.
 - **Calendar sync via `CalendarContract`, not the Google Calendar REST API** *(deviation from
   PLANNING's Stack line)*. Writing events to the device's calendar makes the OS sync them to the
   user's Google account — so there is **no Google Cloud project, OAuth consent screen, or privacy
@@ -138,7 +156,7 @@ app/src/main/java/com/seblful/tutoringapp/
 ├── domain/            # pure rules + ports + model/Models.kt
 ├── data/{local,repository,backup}/
 ├── calendar/  notifications/  work/  format/  di/
-├── ui/{schedule,students,subjects,reports,backup,more,common,navigation,theme}/
+├── ui/{schedule,students,subjects,reports,backup,more,onboarding,common,navigation,theme}/
 ├── MainActivity.kt    # @AndroidEntryPoint → AppRoot()
 └── TutoringApp.kt      # @HiltAndroidApp, WorkManager config, startup scheduling
 ```

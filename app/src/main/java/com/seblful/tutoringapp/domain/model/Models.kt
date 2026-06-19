@@ -13,6 +13,7 @@ data class Student(
     val id: Long = 0,
     val name: String,
     val phone: String = "",
+    val email: String = "",
     val note: String = "",
     val defaultMode: ClassMode = ClassMode.IN_PERSON,
     val archived: Boolean = false,
@@ -32,8 +33,11 @@ data class Price(
 /**
  * A single class occurrence.
  *
- * @param charge captured at completion from the then-current [Price]; [Money.ZERO]
- *   while scheduled or once cancelled.
+ * @param price the per-class price chosen when the class was booked (defaulted from the student's
+ *   [Price] for the subject, then editable). This is the amount that becomes the [charge] when the
+ *   class is completed, so the booked price — not a later price edit — is what gets billed.
+ * @param charge recognized income: equals [price] once the class is completed, [Money.ZERO] while
+ *   scheduled or once cancelled.
  * @param recurringGroupId groups occurrences generated from one weekly rule; null for
  *   one-off classes.
  * @param mode in person or remote; pre-filled from the student's default, editable per class.
@@ -45,6 +49,7 @@ data class TutoringClass(
     val subjectId: Long,
     val start: Instant,
     val durationMinutes: Int,
+    val price: Money = Money.ZERO,
     val status: ClassStatus = ClassStatus.SCHEDULED,
     val charge: Money = Money.ZERO,
     val recurringGroupId: Long? = null,

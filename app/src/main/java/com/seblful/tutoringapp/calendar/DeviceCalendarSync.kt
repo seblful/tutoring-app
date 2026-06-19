@@ -33,19 +33,75 @@ class DeviceCalendarSync @Inject constructor(
         hasPermission() && writableCalendarId() != null
     }
 
-    override suspend fun upsert(klass: TutoringClass, title: String): String? = withContext(Dispatchers.IO) {
+    override suspend fun upsert(klass: TutoringClass, title: String, guestEmail: String?): String? = withContext(Dispatchers.IO) {
         if (!hasPermission()) return@withContext null
         val calendarId = writableCalendarId() ?: return@withContext null
         val values = eventValues(klass, title, calendarId)
 
         val existingId = klass.calendarEventId?.toLongOrNull()
-        if (existingId != null) {
+        val eventId = if (existingId != null) {
             val uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, existingId)
             val updated = runCatching { context.contentResolver.update(uri, values, null, null) }.getOrDefault(0)
             // The user may have deleted the event from their calendar — recreate it if so.
-            if (updated > 0) existingId.toString() else insert(values)
+            if (updated > 0) existingId else insert(values)?.toLongOrNull()
         } else {
-            insert(values)
+            insert(values)?.toLongOrNull()
+        } ?: return@withContext null
+
+        // Email reminder an hour before, sent by the calendar account. Idempotent: drop and re-add
+        // so an updated time doesn't accumulate stale reminders.
+        upsertEmailReminder(eventId)
+        // Invite the student so the account emails them about the class (and its reminder).
+        guestEmail?.takeIf { it.isNotBlank() }?.let { addGuest(eventId, it) }
+
+        eventId.toString()
+    }
+
+    /** Replaces the event's email reminders with a single one [REMINDER_LEAD_MINUTES] before start. */
+    private fun upsertEmailReminder(eventId: Long) {
+        runCatching {
+            context.contentResolver.delete(
+                CalendarContract.Reminders.CONTENT_URI,
+                "${CalendarContract.Reminders.EVENT_ID} = ? AND ${CalendarContract.Reminders.METHOD} = ?",
+                arrayOf(eventId.toString(), CalendarContract.Reminders.METHOD_EMAIL.toString()),
+            )
+            val values = ContentValues().apply {
+                put(CalendarContract.Reminders.EVENT_ID, eventId)
+                put(CalendarContract.Reminders.METHOD, CalendarContract.Reminders.METHOD_EMAIL)
+                put(CalendarContract.Reminders.MINUTES, REMINDER_LEAD_MINUTES)
+            }
+            context.contentResolver.insert(CalendarContract.Reminders.CONTENT_URI, values)
+        }
+    }
+
+    /** Adds [email] as an attendee if not already present (best-effort). */
+    private fun addGuest(eventId: Long, email: String) {
+        runCatching {
+            val existing = context.contentResolver.query(
+                CalendarContract.Attendees.CONTENT_URI,
+                arrayOf(CalendarContract.Attendees._ID),
+                "${CalendarContract.Attendees.EVENT_ID} = ? AND ${CalendarContract.Attendees.ATTENDEE_EMAIL} = ?",
+                arrayOf(eventId.toString(), email),
+                null,
+            )?.use { it.count > 0 } ?: false
+            if (existing) return@runCatching
+            val values = ContentValues().apply {
+                put(CalendarContract.Attendees.EVENT_ID, eventId)
+                put(CalendarContract.Attendees.ATTENDEE_EMAIL, email)
+                put(
+                    CalendarContract.Attendees.ATTENDEE_RELATIONSHIP,
+                    CalendarContract.Attendees.RELATIONSHIP_ATTENDEE,
+                )
+                put(
+                    CalendarContract.Attendees.ATTENDEE_TYPE,
+                    CalendarContract.Attendees.TYPE_REQUIRED,
+                )
+                put(
+                    CalendarContract.Attendees.ATTENDEE_STATUS,
+                    CalendarContract.Attendees.ATTENDEE_STATUS_INVITED,
+                )
+            }
+            context.contentResolver.insert(CalendarContract.Attendees.CONTENT_URI, values)
         }
     }
 
@@ -71,6 +127,9 @@ class DeviceCalendarSync @Inject constructor(
         put(CalendarContract.Events.DTEND, klass.end.toEpochMilli())
         put(CalendarContract.Events.EVENT_TIMEZONE, ZoneId.systemDefault().id)
         put(CalendarContract.Events.EVENT_LOCATION, context.getString(modeLabelRes(klass.mode)))
+        // Mark that this event carries reminders/guests, so the provider keeps the rows we add.
+        put(CalendarContract.Events.HAS_ALARM, 1)
+        put(CalendarContract.Events.HAS_ATTENDEE_DATA, 1)
     }
 
     private fun modeLabelRes(mode: ClassMode): Int = when (mode) {
@@ -109,4 +168,9 @@ class DeviceCalendarSync @Inject constructor(
 
     private fun isGranted(permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+
+    private companion object {
+        /** Email reminder lead time — an hour before the class, matching the in-app reminder. */
+        const val REMINDER_LEAD_MINUTES = 60
+    }
 }

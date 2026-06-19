@@ -41,35 +41,34 @@ class ClassRulesTest {
 
     // --- Billing on status change ---
 
+    private val priced = scheduled.copy(price = Money.ofMajor(50))
+
     @Test
-    fun `completing captures the current price as the charge`() {
-        val completed = ClassRules.applyStatus(scheduled, ClassStatus.COMPLETED, Money.ofMajor(50))
+    fun `completing bills the class's own booked price`() {
+        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
         assertEquals(ClassStatus.COMPLETED, completed.status)
         assertEquals(Money.ofMajor(50), completed.charge)
     }
 
     @Test
-    fun `editing the price never changes an already-completed class`() {
-        // Complete at price 50, then "edit" the price to 80 and complete a future class.
-        val firstAtOldPrice = ClassRules.applyStatus(scheduled, ClassStatus.COMPLETED, Money.ofMajor(50))
-        val secondAtNewPrice = ClassRules.applyStatus(
-            scheduled.copy(id = 2), ClassStatus.COMPLETED, Money.ofMajor(80),
-        )
-        assertEquals(Money.ofMajor(50), firstAtOldPrice.charge) // unchanged
-        assertEquals(Money.ofMajor(80), secondAtNewPrice.charge)
+    fun `each class bills its own booked price independently`() {
+        val first = ClassRules.applyStatus(scheduled.copy(price = Money.ofMajor(50)), ClassStatus.COMPLETED)
+        val second = ClassRules.applyStatus(scheduled.copy(id = 2, price = Money.ofMajor(80)), ClassStatus.COMPLETED)
+        assertEquals(Money.ofMajor(50), first.charge)
+        assertEquals(Money.ofMajor(80), second.charge)
     }
 
     @Test
     fun `cancelling a scheduled class keeps the charge at zero`() {
-        val cancelled = ClassRules.applyStatus(scheduled, ClassStatus.CANCELLED, Money.ofMajor(50))
+        val cancelled = ClassRules.applyStatus(priced, ClassStatus.CANCELLED)
         assertEquals(ClassStatus.CANCELLED, cancelled.status)
         assertTrue(cancelled.charge.isZero)
     }
 
     @Test
     fun `cancelling an auto-completed class voids the charge it had captured`() {
-        val completed = ClassRules.applyStatus(scheduled, ClassStatus.COMPLETED, Money.ofMajor(50))
-        val cancelled = ClassRules.applyStatus(completed, ClassStatus.CANCELLED, Money.ofMajor(50))
+        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
+        val cancelled = ClassRules.applyStatus(completed, ClassStatus.CANCELLED)
         assertEquals(ClassStatus.CANCELLED, cancelled.status)
         assertTrue(cancelled.charge.isZero)
     }
@@ -96,9 +95,9 @@ class ClassRulesTest {
 
     @Test
     fun `applying an illegal transition is rejected`() {
-        val cancelled = ClassRules.applyStatus(scheduled, ClassStatus.CANCELLED, Money.ZERO)
+        val cancelled = ClassRules.applyStatus(scheduled, ClassStatus.CANCELLED)
         assertThrows(IllegalArgumentException::class.java) {
-            ClassRules.applyStatus(cancelled, ClassStatus.COMPLETED, Money.ofMajor(50))
+            ClassRules.applyStatus(cancelled, ClassStatus.COMPLETED)
         }
     }
 
@@ -143,11 +142,30 @@ class ClassRulesTest {
     // --- Move ---
 
     @Test
-    fun `moving a class updates its start time and keeps it scheduled`() {
+    fun `moving a scheduled class to the future keeps it scheduled`() {
+        val now = Instant.parse("2026-06-19T00:00:00Z")
         val newStart = Instant.parse("2026-06-20T15:00:00Z")
-        val moved = ClassRules.move(scheduled, newStart)
+        val moved = ClassRules.move(scheduled, newStart, now)
         assertEquals(newStart, moved.start)
         assertEquals(ClassStatus.SCHEDULED, moved.status)
+    }
+
+    @Test
+    fun `moving a class to the future re-plans it and voids any captured charge`() {
+        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
+        val now = Instant.parse("2026-06-19T00:00:00Z")
+        val moved = ClassRules.move(completed, Instant.parse("2026-06-25T10:00:00Z"), now)
+        assertEquals(ClassStatus.SCHEDULED, moved.status)
+        assertTrue(moved.charge.isZero)
+    }
+
+    @Test
+    fun `moving a class to the past leaves its status and charge unchanged`() {
+        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
+        val now = Instant.parse("2026-06-30T00:00:00Z")
+        val moved = ClassRules.move(completed, Instant.parse("2026-06-25T10:00:00Z"), now)
+        assertEquals(ClassStatus.COMPLETED, moved.status)
+        assertEquals(Money.ofMajor(50), moved.charge)
     }
 
     // --- isMutable: gates edit/move so historical income can't be rewritten ---

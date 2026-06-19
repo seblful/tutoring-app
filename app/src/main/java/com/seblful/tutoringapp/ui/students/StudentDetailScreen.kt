@@ -68,6 +68,8 @@ fun StudentDetailScreen(
     var pricingSubjectId by remember { mutableStateOf<Long?>(null) }
     var addingPayment by remember { mutableStateOf(false) }
     var deletingPayment by remember { mutableStateOf<Payment?>(null) }
+    var showAllPayments by remember { mutableStateOf(false) }
+    var showAllClasses by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -112,6 +114,12 @@ fun StudentDetailScreen(
                         if (s.phone.isNotBlank()) {
                             Text(
                                 "${stringResource(R.string.student_phone_label)}: ${s.phone}",
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                        if (s.email.isNotBlank()) {
+                            Text(
+                                "${stringResource(R.string.student_email_label)}: ${s.email}",
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
@@ -160,7 +168,8 @@ fun StudentDetailScreen(
             if (state.payments.isEmpty()) {
                 item { Text(stringResource(R.string.payments_empty), color = MaterialTheme.colorScheme.onSurfaceVariant) }
             } else {
-                items(state.payments, key = { StudentDetailKeys.payment(it.id) }) { payment ->
+                val visiblePayments = if (showAllPayments) state.payments else state.payments.take(LIST_CAP)
+                items(visiblePayments, key = { StudentDetailKeys.payment(it.id) }) { payment ->
                     ListItem(
                         headlineContent = { Text(payment.amount.format()) },
                         supportingContent = { Text(payment.date.formatDate()) },
@@ -171,13 +180,21 @@ fun StudentDetailScreen(
                         },
                     )
                 }
+                if (state.payments.size > LIST_CAP) {
+                    item {
+                        ShowMoreRow(expanded = showAllPayments, total = state.payments.size) {
+                            showAllPayments = !showAllPayments
+                        }
+                    }
+                }
             }
 
             item { SectionHeader(title = stringResource(R.string.student_classes_title)) }
             if (state.classes.isEmpty()) {
                 item { Text(stringResource(R.string.schedule_empty), color = MaterialTheme.colorScheme.onSurfaceVariant) }
             } else {
-                items(state.classes, key = { StudentDetailKeys.klass(it.klass.id) }) { row ->
+                val visibleClasses = if (showAllClasses) state.classes else state.classes.take(LIST_CAP)
+                items(visibleClasses, key = { StudentDetailKeys.klass(it.klass.id) }) { row ->
                     // Only a still-upcoming class opens the editor; completed/cancelled classes are
                     // history and editing them would mis-attribute their snapshotted charge.
                     val editable = ClassRules.isMutable(row.klass.status)
@@ -194,6 +211,13 @@ fun StudentDetailScreen(
                         modifier = if (editable) Modifier.clickable { onClassClick(row.klass.id) } else Modifier,
                     )
                 }
+                if (state.classes.size > LIST_CAP) {
+                    item {
+                        ShowMoreRow(expanded = showAllClasses, total = state.classes.size) {
+                            showAllClasses = !showAllClasses
+                        }
+                    }
+                }
             }
         }
     }
@@ -203,9 +227,10 @@ fun StudentDetailScreen(
             title = stringResource(R.string.student_edit_title),
             initialName = student.name,
             initialPhone = student.phone.ifBlank { "+375 " },
+            initialEmail = student.email,
             initialNote = student.note,
             initialMode = student.defaultMode,
-            onConfirm = { name, phone, note, mode -> viewModel.editStudent(name, phone, note, mode) },
+            onConfirm = { name, phone, email, note, mode -> viewModel.editStudent(name, phone, email, note, mode) },
             onDismiss = { editing = false },
         )
     }
@@ -246,6 +271,20 @@ fun StudentDetailScreen(
             text = stringResource(R.string.action_delete) + "?",
             onConfirm = { viewModel.deletePayment(payment) },
             onDismiss = { deletingPayment = null },
+        )
+    }
+}
+
+/** Max rows shown before a list collapses behind a "show all" toggle. */
+private const val LIST_CAP = 10
+
+/** A tappable row that expands or collapses a capped list. */
+@Composable
+private fun ShowMoreRow(expanded: Boolean, total: Int, onToggle: () -> Unit) {
+    TextButton(onClick = onToggle, modifier = Modifier.fillMaxWidth()) {
+        Text(
+            if (expanded) stringResource(R.string.list_show_less)
+            else stringResource(R.string.list_show_all, total)
         )
     }
 }

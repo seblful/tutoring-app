@@ -25,9 +25,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -35,11 +32,9 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.seblful.tutoringapp.R
-import com.seblful.tutoringapp.domain.model.ClassMode
 import com.seblful.tutoringapp.ui.common.Avatar
 import com.seblful.tutoringapp.ui.common.ContentCard
 import com.seblful.tutoringapp.ui.common.EmptyState
-import com.seblful.tutoringapp.ui.common.StudentEditDialog
 import com.seblful.tutoringapp.ui.common.balanceColor
 import com.seblful.tutoringapp.ui.common.balanceDescription
 
@@ -47,11 +42,11 @@ import com.seblful.tutoringapp.ui.common.balanceDescription
 @Composable
 fun StudentsScreen(
     onStudentClick: (Long) -> Unit,
+    onAddStudent: () -> Unit,
     viewModel: StudentsViewModel = hiltViewModel(),
 ) {
     val rows by viewModel.rows.collectAsState()
     val showArchived by viewModel.showArchived.collectAsState()
-    var adding by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -70,7 +65,7 @@ fun StudentsScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { adding = true }) {
+            FloatingActionButton(onClick = onAddStudent) {
                 Icon(Icons.Filled.Add, stringResource(R.string.action_add))
             }
         },
@@ -112,17 +107,5 @@ fun StudentsScreen(
                 }
             }
         }
-    }
-
-    if (adding) {
-        StudentEditDialog(
-            title = stringResource(R.string.student_add_title),
-            initialName = "",
-            initialPhone = "+375 ",
-            initialNote = "",
-            initialMode = ClassMode.IN_PERSON,
-            onConfirm = { name, phone, note, mode -> viewModel.addStudent(name, phone, note, mode) },
-            onDismiss = { adding = false },
-        )
     }
 }

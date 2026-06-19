@@ -34,6 +34,15 @@ class ScheduleViewModel @Inject constructor(
     private val zone: ZoneId = ZoneId.systemDefault()
     val selectedDate = MutableStateFlow(LocalDate.now(zone))
 
+    /**
+     * A class can only be booked once there is at least one student and one priced subject — a
+     * class needs both, so the schedule's add button stays disabled until they exist.
+     */
+    val canAddClass: StateFlow<Boolean> =
+        combine(students.observeActive(), subjects.observeAll()) { studentList, subjectList ->
+            studentList.isNotEmpty() && subjectList.isNotEmpty()
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
     val rows: StateFlow<List<ScheduleRow>> =
         selectedDate.flatMapLatest { date ->
             val from = date.atStartOfDay(zone).toInstant()

@@ -19,9 +19,9 @@ fun SubjectEntity.toDomain() = Subject(id = id, name = name)
 fun Subject.toEntity() = SubjectEntity(id = id, name = name)
 
 fun StudentEntity.toDomain() =
-    Student(id = id, name = name, phone = phone, note = note, defaultMode = ClassMode.valueOf(defaultMode), archived = archived)
+    Student(id = id, name = name, phone = phone, email = email, note = note, defaultMode = ClassMode.valueOf(defaultMode), archived = archived)
 fun Student.toEntity() =
-    StudentEntity(id = id, name = name, phone = phone, note = note, defaultMode = defaultMode.name, archived = archived)
+    StudentEntity(id = id, name = name, phone = phone, email = email, note = note, defaultMode = defaultMode.name, archived = archived)
 
 fun PriceEntity.toDomain() = Price(studentId = studentId, subjectId = subjectId, amount = Money(amountMinor))
 fun Price.toEntity() = PriceEntity(studentId = studentId, subjectId = subjectId, amountMinor = amount.minor)
@@ -38,6 +38,7 @@ fun ClassEntity.toDomain() = TutoringClass(
     subjectId = subjectId,
     start = Instant.ofEpochMilli(startMillis),
     durationMinutes = durationMinutes,
+    price = Money(priceMinor),
     status = ClassStatus.valueOf(status),
     charge = Money(chargeMinor),
     recurringGroupId = recurringGroupId,
@@ -51,6 +52,7 @@ fun TutoringClass.toEntity() = ClassEntity(
     subjectId = subjectId,
     startMillis = start.toEpochMilli(),
     durationMinutes = durationMinutes,
+    priceMinor = price.minor,
     status = status.name,
     chargeMinor = charge.minor,
     recurringGroupId = recurringGroupId,

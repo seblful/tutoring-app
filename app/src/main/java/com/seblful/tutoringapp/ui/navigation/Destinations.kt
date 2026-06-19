@@ -18,6 +18,8 @@ object Routes {
 
     const val SUBJECTS = "subjects"
     const val BACKUP = "backup"
+    const val SETTINGS = "settings"
+    const val STUDENT_ADD = "student/new"
 
     const val STUDENT_DETAIL = "student/{id}"
     fun studentDetail(id: Long) = "student/$id"

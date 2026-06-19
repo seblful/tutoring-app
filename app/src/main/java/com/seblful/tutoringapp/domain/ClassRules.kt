@@ -30,11 +30,12 @@ object ClassRules {
     fun availableTransitions(from: ClassStatus): Set<ClassStatus> = allowed[from] ?: emptySet()
 
     /**
-     * Whether a class may have its details edited or be moved to a new time. Only a class that
-     * will still happen ([ClassStatus.SCHEDULED]) is mutable: a completed class has already
-     * snapshotted its charge, so editing its student/subject would mis-attribute that income and
-     * moving it would relocate it to another month. Corrections go through the status transitions
-     * (cancel, which voids the charge, then return to schedule) instead.
+     * Whether a class may have its details (student/subject/price) edited. Only a class that
+     * will still happen ([ClassStatus.SCHEDULED]) is editable: a completed class has already
+     * snapshotted its charge, so editing its student/subject would mis-attribute that income.
+     * Corrections go through the status transitions (cancel, which voids the charge, then return
+     * to schedule) instead. Note that *moving* (rescheduling) is allowed for any status — see
+     * [move] — because moving to the future re-plans the class.
      */
     fun isMutable(status: ClassStatus): Boolean = status == ClassStatus.SCHEDULED
 
@@ -48,19 +49,32 @@ object ClassRules {
     /**
      * Applies a status change, capturing or voiding the charge.
      *
-     * Completing captures [currentPrice] as the class's charge — this snapshot is what
-     * makes price edits never affect already-completed classes. Any non-billable status
-     * voids the charge back to zero.
+     * Completing bills the class's own [TutoringClass.price] — the price chosen when it was
+     * booked — so a later edit to the student's price never rewrites an already-completed class.
+     * Any non-billable status voids the charge back to zero.
      *
      * @throws IllegalArgumentException if the transition is not allowed.
      */
-    fun applyStatus(c: TutoringClass, to: ClassStatus, currentPrice: Money): TutoringClass {
+    fun applyStatus(c: TutoringClass, to: ClassStatus): TutoringClass {
         require(canTransition(c.status, to)) { "Illegal transition ${c.status} -> $to" }
-        val charge = if (to.isBillable) currentPrice else Money.ZERO
+        val charge = if (to.isBillable) c.price else Money.ZERO
         return c.copy(status = to, charge = charge)
     }
 
-    /** Moves a class to [newStart], keeping it scheduled. */
-    fun move(c: TutoringClass, newStart: Instant): TutoringClass =
-        c.copy(start = newStart)
+    /**
+     * Reschedules a class to [newStart].
+     *
+     * - Moving it into the **future** (relative to [now]) re-plans it: the status becomes
+     *   [ClassStatus.SCHEDULED] and any captured [TutoringClass.charge] is voided, since a class
+     *   that will still happen hasn't been billed yet. This lets a completed/cancelled class be
+     *   put back on the schedule by moving it forward.
+     * - Moving it into the **past** keeps the status (and charge) untouched — e.g. correcting the
+     *   recorded time of a class that already happened must not silently change whether it billed.
+     */
+    fun move(c: TutoringClass, newStart: Instant, now: Instant): TutoringClass =
+        if (newStart.isAfter(now)) {
+            c.copy(start = newStart, status = ClassStatus.SCHEDULED, charge = Money.ZERO)
+        } else {
+            c.copy(start = newStart)
+        }
 }

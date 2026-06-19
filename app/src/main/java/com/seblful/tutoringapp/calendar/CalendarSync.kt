@@ -16,8 +16,11 @@ interface CalendarSync {
     /**
      * Creates or updates the event mirroring [klass] (reusing [TutoringClass.calendarEventId] if
      * set) and returns the event id to persist, or null if the calendar is unavailable.
+     *
+     * @param guestEmail the student's email, added as an attendee with an email reminder an hour
+     *   before so the calendar account notifies them; null/blank to add no guest.
      */
-    suspend fun upsert(klass: TutoringClass, title: String): String?
+    suspend fun upsert(klass: TutoringClass, title: String, guestEmail: String? = null): String?
 
     /** Removes the mirrored event if it still exists. */
     suspend fun delete(eventId: String)

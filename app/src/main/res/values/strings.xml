@@ -27,6 +27,8 @@
     <string name="class_no_subjects_for_student">У ученика нет предметов с ценой. Укажите цену в карточке ученика.</string>
     <string name="class_date_label">Дата</string>
     <string name="class_time_label">Время</string>
+    <string name="class_time_from_label">Начало</string>
+    <string name="class_time_to_label">Окончание</string>
     <string name="class_duration_label">Длительность, мин</string>
     <string name="class_location_label">Место</string>
     <string name="class_mode_in_person">Очно</string>
@@ -53,7 +55,12 @@
     <string name="student_edit_title">Изменить ученика</string>
     <string name="student_name_label">Имя</string>
     <string name="student_phone_label">Телефон</string>
+    <string name="student_email_label">Email</string>
+    <string name="student_email_hint">Для напоминаний на почту за час до занятия</string>
     <string name="student_note_label">Заметка</string>
+    <string name="student_form_subjects_title">Предметы и цены</string>
+    <string name="student_form_subjects_required">Выберите хотя бы один предмет и укажите цену</string>
+    <string name="student_form_no_subjects">Сначала добавьте предметы</string>
     <string name="student_mode_label">Место занятий</string>
     <string name="student_subjects_title">Предметы</string>
     <string name="student_no_subjects">Предметы не выбраны</string>
@@ -90,10 +97,28 @@
     <!-- More menu -->
     <string name="more_subjects">Предметы</string>
     <string name="more_backup">Резервная копия</string>
-    <string name="more_calendar">Синхронизация с календарём</string>
-    <string name="more_calendar_desc">Показывать занятия в календаре устройства</string>
-    <string name="calendar_enabled">Синхронизация с календарём включена</string>
     <string name="calendar_denied">Нет доступа к календарю</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_notifications">Напоминания</string>
+    <string name="settings_notifications_desc">Уведомлять за час до занятия</string>
+    <string name="settings_calendar_sync">Синхронизация с календарём</string>
+    <string name="settings_calendar_sync_desc">Показывать занятия в календаре устройства и приглашать учеников по email</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_subjects_title">Шаг 1. Предметы</string>
+    <string name="onboarding_subjects_desc">Добавьте предметы, которые вы преподаёте. Их можно изменить позже.</string>
+    <string name="onboarding_student_title">Шаг 2. Первый ученик</string>
+    <string name="onboarding_continue">Далее</string>
+    <string name="onboarding_finish">Готово</string>
+
+    <!-- Long lists -->
+    <string name="list_show_all">Показать все (%1$d)</string>
+    <string name="list_show_less">Свернуть</string>
+
+    <!-- Schedule gating -->
+    <string name="schedule_need_setup">Сначала добавьте предмет и ученика</string>
 
     <!-- Reminders -->
     <string name="reminder_channel_name">Напоминания о занятиях</string>

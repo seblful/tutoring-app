@@ -19,6 +19,7 @@ data class StudentEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val phone: String = "",
+    val email: String = "",
     val note: String = "",
     val defaultMode: String = "IN_PERSON",
     val archived: Boolean = false,
@@ -72,12 +73,29 @@ data class ClassEntity(
     val subjectId: Long,
     val startMillis: Long,
     val durationMinutes: Int,
+    val priceMinor: Long = 0,
     val status: String,
     val chargeMinor: Long = 0,
     val recurringGroupId: Long? = null,
     val mode: String = "IN_PERSON",
     val calendarEventId: String? = null,
 )
+
+/**
+ * App-wide settings. A single row (always [SINGLETON_ID]); device-local, so it is intentionally
+ * not part of the backup snapshot.
+ */
+@Entity(tableName = "settings")
+data class SettingsEntity(
+    @PrimaryKey val id: Int = SINGLETON_ID,
+    val notificationsEnabled: Boolean = true,
+    val calendarSyncEnabled: Boolean = false,
+    val onboardingComplete: Boolean = false,
+) {
+    companion object {
+        const val SINGLETON_ID = 0
+    }
+}
 
 @Serializable
 @Entity(

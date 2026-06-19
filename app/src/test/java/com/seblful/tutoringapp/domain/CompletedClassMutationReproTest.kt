@@ -27,22 +27,34 @@ class CompletedClassMutationReproTest {
     )
 
     @Test
-    fun `BUG-9 moving a completed class relocates its recognized income to another month`() {
+    fun `moving a completed class to the future re-plans it and removes its income (no relocation)`() {
         val c = completedInMay()
         val mayKey = 2026 * 12 + 4 // May
-        val juneKey = 2026 * 12 + 5 // June
 
         val before = Reports.incomeByMonth(listOf(c), zone)
         assertEquals(listOf(mayKey), before.map { it.monthKey })
         assertEquals(Money(5000), before.single().total)
 
-        // ClassRules.move keeps status COMPLETED and the snapshot charge, only changing start —
-        // exactly what the UI's "Move" action does, with no re-billing.
-        val moved = ClassRules.move(c, Instant.parse("2026-06-10T10:00:00Z"))
+        // Moving it forward re-plans the class: it becomes scheduled and its charge is voided, so
+        // the income does NOT relocate to the new month — it simply stops being recognized until
+        // the rescheduled class completes again.
+        val now = Instant.parse("2026-05-20T10:00:00Z")
+        val moved = ClassRules.move(c, Instant.parse("2026-06-10T10:00:00Z"), now)
 
-        val after = Reports.incomeByMonth(listOf(moved), zone)
-        assertEquals(listOf(juneKey), after.map { it.monthKey }) // income jumped May -> June
-        assertEquals(Money(5000), after.single().total)
+        assertEquals(ClassStatus.SCHEDULED, moved.status)
+        assertEquals(Money.ZERO, moved.charge)
+        assertEquals(emptyList<Reports.MonthlyIncome>(), Reports.incomeByMonth(listOf(moved), zone))
+    }
+
+    @Test
+    fun `moving a completed class to the past keeps its recognized income`() {
+        val c = completedInMay()
+        // now is after both old and new start, so the move target stays in the past.
+        val now = Instant.parse("2026-06-20T10:00:00Z")
+        val moved = ClassRules.move(c, Instant.parse("2026-06-10T10:00:00Z"), now)
+
+        assertEquals(ClassStatus.COMPLETED, moved.status) // status untouched
+        assertEquals(Money(5000), moved.charge) // still billed
     }
 
     @Test

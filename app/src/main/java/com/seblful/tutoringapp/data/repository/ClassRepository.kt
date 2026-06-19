@@ -3,7 +3,6 @@ package com.seblful.tutoringapp.data.repository
 import com.seblful.tutoringapp.calendar.CalendarEvent
 import com.seblful.tutoringapp.calendar.CalendarSync
 import com.seblful.tutoringapp.data.local.ClassDao
-import com.seblful.tutoringapp.data.local.PriceDao
 import com.seblful.tutoringapp.data.local.StudentDao
 import com.seblful.tutoringapp.data.local.SubjectDao
 import com.seblful.tutoringapp.data.toDomain
@@ -12,7 +11,6 @@ import com.seblful.tutoringapp.domain.CalendarSyncPolicy
 import com.seblful.tutoringapp.domain.ClassRules
 import com.seblful.tutoringapp.domain.ReminderScheduler
 import com.seblful.tutoringapp.domain.model.ClassStatus
-import com.seblful.tutoringapp.domain.model.Money
 import com.seblful.tutoringapp.domain.model.TutoringClass
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -23,11 +21,11 @@ import javax.inject.Singleton
 @Singleton
 class ClassRepository @Inject constructor(
     private val dao: ClassDao,
-    private val priceDao: PriceDao,
     private val studentDao: StudentDao,
     private val subjectDao: SubjectDao,
     private val calendarSync: CalendarSync,
     private val reminderScheduler: ReminderScheduler,
+    private val settings: SettingsRepository,
 ) {
     fun observeById(id: Long): Flow<TutoringClass?> = dao.observeById(id).map { it?.toDomain() }
 
@@ -44,11 +42,22 @@ class ClassRepository @Inject constructor(
     suspend fun getAll(): List<TutoringClass> = dao.getAll().map { it.toDomain() }
 
     /**
-     * Re-mirrors every class to the device calendar. Run after the user grants calendar access, to
-     * backfill events for classes created while sync was off. Best-effort, like all calendar work.
+     * Re-mirrors every class to the device calendar. Run after the user turns calendar sync on, to
+     * backfill events for classes created while it was off. Best-effort, like all calendar work.
      */
     suspend fun resyncCalendar() {
+        if (!syncEnabled()) return
         dao.getAll().forEach { mirrorToCalendar(it.toDomain()) }
+    }
+
+    /** Removes every mirrored event. Run when the user turns calendar sync off. */
+    suspend fun clearCalendar() {
+        dao.getAll().forEach { entity ->
+            entity.calendarEventId?.let {
+                calendarSync.delete(it)
+                dao.update(entity.copy(calendarEventId = null))
+            }
+        }
     }
 
     suspend fun add(klass: TutoringClass): Long {
@@ -65,14 +74,15 @@ class ClassRepository @Inject constructor(
         return classes.size
     }
 
-    suspend fun move(classId: Long, newStart: Instant): TutoringClass? {
+    /**
+     * Reschedules a class. Moving it to the future re-plans it (scheduled, charge voided); moving
+     * it to the past keeps its status. The calendar event and reminders follow the new state.
+     */
+    suspend fun move(classId: Long, newStart: Instant, now: Instant = Instant.now()): TutoringClass? {
         val current = dao.getById(classId)?.toDomain() ?: return null
-        // Only a still-upcoming class can be moved; moving a completed one would shift its
-        // already-recognized income to another month.
-        if (!ClassRules.isMutable(current.status)) return null
-        val moved = ClassRules.move(current, newStart)
+        val moved = ClassRules.move(current, newStart, now)
         dao.update(moved.toEntity())
-        mirrorToCalendar(moved) // still scheduled -> updates the existing event's time
+        mirrorToCalendar(moved)
         reminderScheduler.refreshNow()
         return moved
     }
@@ -80,8 +90,7 @@ class ClassRepository @Inject constructor(
     /** Applies a status change, capturing/voiding the charge per [ClassRules]. */
     suspend fun setStatus(classId: Long, to: ClassStatus): TutoringClass? {
         val current = dao.getById(classId)?.toDomain() ?: return null
-        val price = currentPrice(current)
-        val updated = ClassRules.applyStatus(current, to, price)
+        val updated = ClassRules.applyStatus(current, to)
         dao.update(updated.toEntity())
         mirrorToCalendar(updated)
         reminderScheduler.refreshNow()
@@ -98,31 +107,31 @@ class ClassRepository @Inject constructor(
         dao.nextScheduledAfter(now.toEpochMilli())?.toDomain()
 
     /**
-     * Auto-completes every scheduled class whose end time has passed, snapshotting its
-     * then-current price. Returns the classes that were completed. (Completed classes need no
-     * calendar change — their event is already in the past.)
+     * Auto-completes every scheduled class whose end time has passed, billing its booked price.
+     * Returns the classes that were completed. (Completed classes need no calendar change — their
+     * event is already in the past.)
      */
     suspend fun autoCompleteDue(now: Instant): List<TutoringClass> =
         dao.dueForCompletion(now.toEpochMilli())
             .map { it.toDomain() }
             .filter { ClassRules.shouldAutoComplete(it, now) }
             .map { c ->
-                val completed = ClassRules.applyStatus(c, ClassStatus.COMPLETED, currentPrice(c))
+                val completed = ClassRules.applyStatus(c, ClassStatus.COMPLETED)
                 dao.update(completed.toEntity())
                 completed
             }
 
-    private suspend fun currentPrice(c: TutoringClass): Money =
-        priceDao.get(c.studentId, c.subjectId)?.let { Money(it.amountMinor) } ?: Money.ZERO
+    private suspend fun syncEnabled(): Boolean = settings.get().calendarSyncEnabled
 
     /**
-     * Reflects [klass]'s status into the device calendar. Best-effort: when the calendar is
-     * unavailable the calls no-op, so the local database is never blocked by sync.
+     * Reflects [klass]'s status into the device calendar. Best-effort: no-ops when calendar sync is
+     * off or the calendar is unavailable, so the local database is never blocked by sync.
      */
     private suspend fun mirrorToCalendar(klass: TutoringClass) {
+        if (!syncEnabled()) return
         when (CalendarSyncPolicy.actionFor(klass.status)) {
             CalendarSyncPolicy.Action.UPSERT -> {
-                val eventId = calendarSync.upsert(klass, titleFor(klass))
+                val eventId = calendarSync.upsert(klass, titleFor(klass), guestEmailFor(klass))
                 if (eventId != null && eventId != klass.calendarEventId) {
                     dao.update(klass.copy(calendarEventId = eventId).toEntity())
                 }
@@ -142,4 +151,11 @@ class ClassRepository @Inject constructor(
         val subject = subjectDao.getById(klass.subjectId)?.name.orEmpty()
         return CalendarEvent.title(student, subject)
     }
+
+    /**
+     * The student's email, if set — added to the event as a guest so the calendar account (e.g.
+     * Google) emails them, including an email reminder an hour before. Blank when unset.
+     */
+    private suspend fun guestEmailFor(klass: TutoringClass): String? =
+        studentDao.getById(klass.studentId)?.email?.takeIf { it.isNotBlank() }
 }

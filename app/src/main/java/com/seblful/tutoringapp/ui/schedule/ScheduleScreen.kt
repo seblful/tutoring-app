@@ -78,15 +78,22 @@ fun ScheduleScreen(
 ) {
     val rows by viewModel.rows.collectAsState()
     val date by viewModel.selectedDate.collectAsState()
+    val canAddClass by viewModel.canAddClass.collectAsState()
 
     var sheetFor by remember { mutableStateOf<ScheduleRow?>(null) }
     var movingClass by remember { mutableStateOf<TutoringClass?>(null) }
     var deletingClass by remember { mutableStateOf<TutoringClass?>(null) }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val needSetupMsg = stringResource(R.string.schedule_need_setup)
+
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.schedule_title)) }) },
         floatingActionButton = {
-            FloatingActionButton(onClick = { onAddClass(date) }) {
+            FloatingActionButton(onClick = {
+                if (canAddClass) onAddClass(date)
+                else android.widget.Toast.makeText(context, needSetupMsg, android.widget.Toast.LENGTH_LONG).show()
+            }) {
                 Icon(Icons.Filled.Add, stringResource(R.string.action_add))
             }
         },
@@ -234,8 +241,8 @@ private fun ClassActionsSheet(
             }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
-            // Edit and move only make sense for a class that will still happen — a completed class
-            // has already billed, so changing it would rewrite recognized income.
+            // Editing details (student/subject/price) only makes sense for a class that will still
+            // happen — a completed class has already billed, so changing it would rewrite income.
             if (ClassRules.isMutable(klass.status)) {
                 SheetAction(stringResource(R.string.action_edit), Icons.Filled.Edit, onClick = onEdit)
             }
@@ -247,9 +254,9 @@ private fun ClassActionsSheet(
                     onClick = { onStatus(target) },
                 )
             }
-            if (ClassRules.isMutable(klass.status)) {
-                SheetAction(stringResource(R.string.class_move), Icons.Filled.EditCalendar, onClick = onMove)
-            }
+            // Move (reschedule) is offered for any status: moving a class to the future re-plans it,
+            // moving it to the past just corrects its recorded time.
+            SheetAction(stringResource(R.string.class_move), Icons.Filled.EditCalendar, onClick = onMove)
             // Don't offer to delete a completed class — that would silently erase recognized income.
             // Cancel it first (which voids the charge), then the cancelled record can be deleted.
             if (klass.status != ClassStatus.COMPLETED) {

@@ -10,6 +10,7 @@ import com.seblful.tutoringapp.data.local.AppDatabase
 import com.seblful.tutoringapp.data.local.StudentEntity
 import com.seblful.tutoringapp.data.local.SubjectEntity
 import com.seblful.tutoringapp.domain.model.ClassStatus
+import com.seblful.tutoringapp.domain.model.Money
 import com.seblful.tutoringapp.domain.model.TutoringClass
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -31,7 +32,7 @@ class ClassCalendarSyncTest {
         val deletes = mutableListOf<String>()
         private var nextId = 100L
         override suspend fun isAvailable() = true
-        override suspend fun upsert(klass: TutoringClass, title: String): String {
+        override suspend fun upsert(klass: TutoringClass, title: String, guestEmail: String?): String {
             upserts += klass
             return klass.calendarEventId ?: (nextId++).toString()
         }
@@ -49,9 +50,11 @@ class ClassCalendarSyncTest {
         db.subjectDao().insertAll(listOf(SubjectEntity(1, "Математика")))
         db.studentDao().insertAll(listOf(StudentEntity(1, "Иван")))
         calendar = FakeCalendarSync()
+        val settings = SettingsRepository(db.settingsDao())
+        settings.setCalendarSyncEnabled(true) // calendar mirroring is off unless enabled
         repo = ClassRepository(
-            db.classDao(), db.priceDao(), db.studentDao(), db.subjectDao(), calendar,
-            ReminderScheduler { /* no-op in tests */ },
+            db.classDao(), db.studentDao(), db.subjectDao(), calendar,
+            ReminderScheduler { /* no-op in tests */ }, settings,
         )
     }
 
@@ -67,8 +70,9 @@ class ClassCalendarSyncTest {
         val id = repo.add(scheduled(Instant.parse("2026-07-01T13:00:00Z")))
         calendar.upserts.clear()
 
+        val now = Instant.parse("2026-07-02T09:00:00Z")
         val newStart = Instant.parse("2026-07-03T16:00:00Z")
-        repo.move(id, newStart)
+        repo.move(id, newStart, now)
 
         // Time updated locally...
         assertEquals(newStart, repo.getById(id)?.start)
@@ -78,20 +82,36 @@ class ClassCalendarSyncTest {
         assertEquals("100", calendar.upserts.last().calendarEventId)
     }
 
-    @Test fun movingACompletedClassIsRefusedAndLeavesItUnchanged() = runTest {
-        // BUG-9 guard: a completed class has already billed; moving it would relocate that income
-        // to another month, so ClassRepository.move must refuse it.
+    @Test fun movingACompletedClassToTheFutureReplansItAndVoidsTheCharge() = runTest {
+        // Moving a billed class forward re-plans it: it becomes scheduled again, its charge is
+        // voided, and its (future) event is re-created/updated.
         val start = Instant.parse("2026-07-01T13:00:00Z")
-        val id = repo.add(scheduled(start))
+        val id = repo.add(scheduled(start).copy(price = Money(5000)))
         repo.setStatus(id, ClassStatus.COMPLETED)
         calendar.upserts.clear()
 
-        val result = repo.move(id, Instant.parse("2026-07-10T10:00:00Z"))
+        val now = Instant.parse("2026-07-05T09:00:00Z")
+        val newStart = Instant.parse("2026-07-10T10:00:00Z")
+        val result = repo.move(id, newStart, now)
 
-        assertNull(result) // refused
-        assertEquals(start, repo.getById(id)?.start) // start unchanged
-        assertEquals(ClassStatus.COMPLETED, repo.getById(id)?.status)
-        assertTrue(calendar.upserts.isEmpty()) // no calendar change
+        assertEquals(newStart, result?.start)
+        assertEquals(ClassStatus.SCHEDULED, repo.getById(id)?.status)
+        assertTrue(repo.getById(id)?.charge?.isZero == true) // charge voided
+        assertEquals(1, calendar.upserts.size) // event re-synced
+    }
+
+    @Test fun movingAClassToThePastKeepsItsStatus() = runTest {
+        val start = Instant.parse("2026-07-10T13:00:00Z")
+        val id = repo.add(scheduled(start).copy(price = Money(5000)))
+        repo.setStatus(id, ClassStatus.COMPLETED)
+
+        val now = Instant.parse("2026-07-15T09:00:00Z")
+        val newStart = Instant.parse("2026-07-12T10:00:00Z") // still in the past relative to now
+        repo.move(id, newStart, now)
+
+        assertEquals(newStart, repo.getById(id)?.start)
+        assertEquals(ClassStatus.COMPLETED, repo.getById(id)?.status) // status unchanged
+        assertEquals(Money(5000), repo.getById(id)?.charge) // charge kept
     }
 
     @Test fun cancellingClassDeletesItsEvent() = runTest {

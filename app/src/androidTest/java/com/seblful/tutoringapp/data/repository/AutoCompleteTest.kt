@@ -29,7 +29,7 @@ class AutoCompleteTest {
 
     private val noCalendar = object : CalendarSync {
         override suspend fun isAvailable() = false
-        override suspend fun upsert(klass: TutoringClass, title: String): String? = null
+        override suspend fun upsert(klass: TutoringClass, title: String, guestEmail: String?): String? = null
         override suspend fun delete(eventId: String) = Unit
     }
 
@@ -44,18 +44,18 @@ class AutoCompleteTest {
         db.studentDao().insertAll(listOf(StudentEntity(1, "Иван")))
         db.priceDao().insertAll(listOf(PriceEntity(1, 1, amountMinor = 5000))) // 50 BYN
         repo = ClassRepository(
-            db.classDao(), db.priceDao(), db.studentDao(), db.subjectDao(), noCalendar,
-            ReminderScheduler { /* no-op in tests */ },
+            db.classDao(), db.studentDao(), db.subjectDao(), noCalendar,
+            ReminderScheduler { /* no-op in tests */ }, SettingsRepository(db.settingsDao()),
         )
     }
 
     @After fun tearDown() = db.close()
 
-    @Test fun pastClassAutoCompletesAtCurrentPriceAndBecomesDebt() = runTest {
-        // A scheduled class that ended an hour ago.
+    @Test fun pastClassAutoCompletesAtBookedPriceAndBecomesDebt() = runTest {
+        // A scheduled class that ended an hour ago, booked at 50 BYN.
         val start = Instant.parse("2026-06-18T10:00:00Z")
         db.classDao().insertAll(
-            listOf(ClassEntity(1, 1, 1, start.toEpochMilli(), 60, ClassStatus.SCHEDULED.name)),
+            listOf(ClassEntity(1, 1, 1, start.toEpochMilli(), 60, priceMinor = 5000, status = ClassStatus.SCHEDULED.name)),
         )
         val now = start.plusSeconds(2 * 3600)
 
@@ -64,7 +64,7 @@ class AutoCompleteTest {
         assertEquals(1, completed.size)
         val klass = repo.getById(1)!!
         assertEquals(ClassStatus.COMPLETED, klass.status)
-        assertEquals(Money(5000), klass.charge) // captured the then-current price
+        assertEquals(Money(5000), klass.charge) // billed its booked price
         // ...and it shows up as the student's debt.
         val balance = Billing.balanceOf(1, repo.getAll(), emptyList()).balance
         assertEquals(Money(5000), balance)

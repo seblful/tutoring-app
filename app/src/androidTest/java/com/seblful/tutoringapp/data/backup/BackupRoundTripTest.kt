@@ -58,8 +58,8 @@ class BackupRoundTripTest {
         db.priceDao().insertAll(listOf(PriceEntity(1, 1, 5000), PriceEntity(2, 1, 4550)))
         db.classDao().insertAll(
             listOf(
-                ClassEntity(1, 1, 1, 1_900_000_000_000, 90, "COMPLETED", 5000, 42, "REMOTE", "evt-1"),
-                ClassEntity(2, 2, 1, 1_900_100_000_000, 60, "SCHEDULED"),
+                ClassEntity(1, 1, 1, 1_900_000_000_000, 90, priceMinor = 5000, status = "COMPLETED", chargeMinor = 5000, recurringGroupId = 42, mode = "REMOTE", calendarEventId = "evt-1"),
+                ClassEntity(2, 2, 1, 1_900_100_000_000, 60, status = "SCHEDULED"),
             ),
         )
         db.paymentDao().insertAll(listOf(PaymentEntity(1, 1, 1_899_000_000_000, 3000)))
