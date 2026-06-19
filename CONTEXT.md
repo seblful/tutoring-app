@@ -82,9 +82,14 @@ flowchart TB
 - **Offline-first.** Room is authoritative. Calendar and notifications are best-effort: if the
   permission/calendar is absent they no-op, never blocking or corrupting local data.
 - **Settings live in Room** (`SettingsEntity`, single row; `SettingsRepository`): `notificationsEnabled`
-  (default true), `calendarSyncEnabled` (default false), `onboardingComplete`. Device-local, so
-  **not** part of the backup snapshot. Reminders (`ReminderWorker`) and all calendar mirroring
-  (`ClassRepository`) gate on these flags; the **More → Settings** screen toggles them.
+  (default true), `calendarSyncEnabled` (default false), `onboardingComplete`, `reminderLeadMinutes`
+  (default 60 — drives both the in-app and calendar email reminder), `autoCompleteEnabled` (default
+  true — when off, finished classes don't auto-bill), `themeMode` (SYSTEM/LIGHT/DARK), `defaultLessonMinutes`
+  (default 60 — pre-fills the booking end time), and `currency` (BYN/RUB). Device-local, so **not**
+  part of the backup snapshot. The **More → Settings** screen edits them; theme + currency are read
+  at `AppRoot` (currency via the `LocalCurrency` CompositionLocal, so `Money.text()` re-renders on
+  change). Schema changes here ship a real Room migration (see `DatabaseModule.MIGRATION_3_4`) so the
+  tutor's live data survives upgrades.
 - **First-run onboarding** (`ui/onboarding`, gated by `onboardingComplete`): forces adding ≥1 subject,
   then a first student (with subjects **and** prices — a class can only be booked for a priced
   subject). The schedule's add-class button is additionally disabled until both a student and a

@@ -32,7 +32,7 @@ class ClassCalendarSyncTest {
         val deletes = mutableListOf<String>()
         private var nextId = 100L
         override suspend fun isAvailable() = true
-        override suspend fun upsert(klass: TutoringClass, title: String, guestEmail: String?): String {
+        override suspend fun upsert(klass: TutoringClass, title: String, guestEmail: String?, reminderLeadMinutes: Int): String {
             upserts += klass
             return klass.calendarEventId ?: (nextId++).toString()
         }

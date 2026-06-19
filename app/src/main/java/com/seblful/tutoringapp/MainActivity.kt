@@ -10,7 +10,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.seblful.tutoringapp.ui.AppRoot
-import com.seblful.tutoringapp.ui.theme.TutoringAppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -24,9 +23,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         maybeRequestNotificationPermission()
         setContent {
-            TutoringAppTheme {
-                AppRoot()
-            }
+            // Theme is applied inside AppRoot, driven by the user's theme setting.
+            AppRoot()
         }
     }
 

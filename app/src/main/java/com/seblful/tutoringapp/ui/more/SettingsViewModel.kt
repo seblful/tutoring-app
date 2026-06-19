@@ -25,6 +25,26 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settings.setNotificationsEnabled(enabled) }
     }
 
+    fun setReminderLeadMinutes(minutes: Int) {
+        viewModelScope.launch { settings.setReminderLeadMinutes(minutes) }
+    }
+
+    fun setAutoCompleteEnabled(enabled: Boolean) {
+        viewModelScope.launch { settings.setAutoCompleteEnabled(enabled) }
+    }
+
+    fun setThemeMode(mode: String) {
+        viewModelScope.launch { settings.setThemeMode(mode) }
+    }
+
+    fun setDefaultLessonMinutes(minutes: Int) {
+        viewModelScope.launch { settings.setDefaultLessonMinutes(minutes) }
+    }
+
+    fun setCurrency(currency: String) {
+        viewModelScope.launch { settings.setCurrency(currency) }
+    }
+
     /**
      * Toggles calendar sync. Enabling backfills events for existing classes; disabling removes the
      * events we created. The caller is responsible for ensuring calendar permission before enabling.

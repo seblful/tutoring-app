@@ -33,7 +33,7 @@ class DeviceCalendarSync @Inject constructor(
         hasPermission() && writableCalendarId() != null
     }
 
-    override suspend fun upsert(klass: TutoringClass, title: String, guestEmail: String?): String? = withContext(Dispatchers.IO) {
+    override suspend fun upsert(klass: TutoringClass, title: String, guestEmail: String?, reminderLeadMinutes: Int): String? = withContext(Dispatchers.IO) {
         if (!hasPermission()) return@withContext null
         val calendarId = writableCalendarId() ?: return@withContext null
         val values = eventValues(klass, title, calendarId)
@@ -48,17 +48,17 @@ class DeviceCalendarSync @Inject constructor(
             insert(values)?.toLongOrNull()
         } ?: return@withContext null
 
-        // Email reminder an hour before, sent by the calendar account. Idempotent: drop and re-add
-        // so an updated time doesn't accumulate stale reminders.
-        upsertEmailReminder(eventId)
+        // Email reminder before the class, sent by the calendar account. Idempotent: drop and
+        // re-add so an updated time/lead doesn't accumulate stale reminders.
+        upsertEmailReminder(eventId, reminderLeadMinutes)
         // Invite the student so the account emails them about the class (and its reminder).
         guestEmail?.takeIf { it.isNotBlank() }?.let { addGuest(eventId, it) }
 
         eventId.toString()
     }
 
-    /** Replaces the event's email reminders with a single one [REMINDER_LEAD_MINUTES] before start. */
-    private fun upsertEmailReminder(eventId: Long) {
+    /** Replaces the event's email reminders with a single one [leadMinutes] before start. */
+    private fun upsertEmailReminder(eventId: Long, leadMinutes: Int) {
         runCatching {
             context.contentResolver.delete(
                 CalendarContract.Reminders.CONTENT_URI,
@@ -68,7 +68,7 @@ class DeviceCalendarSync @Inject constructor(
             val values = ContentValues().apply {
                 put(CalendarContract.Reminders.EVENT_ID, eventId)
                 put(CalendarContract.Reminders.METHOD, CalendarContract.Reminders.METHOD_EMAIL)
-                put(CalendarContract.Reminders.MINUTES, REMINDER_LEAD_MINUTES)
+                put(CalendarContract.Reminders.MINUTES, leadMinutes)
             }
             context.contentResolver.insert(CalendarContract.Reminders.CONTENT_URI, values)
         }
@@ -168,9 +168,4 @@ class DeviceCalendarSync @Inject constructor(
 
     private fun isGranted(permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
-
-    private companion object {
-        /** Email reminder lead time — an hour before the class, matching the in-app reminder. */
-        const val REMINDER_LEAD_MINUTES = 60
-    }
 }

@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.seblful.tutoringapp.R
 import com.seblful.tutoringapp.ui.common.EmptyState
+import com.seblful.tutoringapp.ui.common.text
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +60,7 @@ fun ReportsScreen(viewModel: ReportsViewModel = hiltViewModel()) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item { TotalIncomeCard(totalIncomeLabel, state.totalIncome.format()) }
+            item { TotalIncomeCard(totalIncomeLabel, state.totalIncome.text()) }
 
             section(byMonthTitle, state.byMonth)
             section(bySubjectTitle, state.bySubject)
@@ -69,8 +70,8 @@ fun ReportsScreen(viewModel: ReportsViewModel = hiltViewModel()) {
             if (state.debts.isEmpty()) {
                 item { Text(noDebts, color = mutedColor) }
             } else {
-                item { AmountRow(totalOutstandingLabel, state.totalOutstanding.format(), bold = true) }
-                items(state.debts) { line -> AmountRow(line.label, line.amount.format(), color = errorColor) }
+                item { AmountRow(totalOutstandingLabel, state.totalOutstanding.text(), bold = true) }
+                items(state.debts) { line -> AmountRow(line.label, line.amount.text(), color = errorColor) }
             }
         }
     }
@@ -79,7 +80,7 @@ fun ReportsScreen(viewModel: ReportsViewModel = hiltViewModel()) {
 private fun LazyListScope.section(title: String, lines: List<LabeledAmount>) {
     if (lines.isEmpty()) return
     item { SectionHeader(title) }
-    items(lines) { line -> AmountRow(line.label, line.amount.format()) }
+    items(lines) { line -> AmountRow(line.label, line.amount.text()) }
 }
 
 @Composable

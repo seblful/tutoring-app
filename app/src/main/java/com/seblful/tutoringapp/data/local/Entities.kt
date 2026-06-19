@@ -91,6 +91,16 @@ data class SettingsEntity(
     val notificationsEnabled: Boolean = true,
     val calendarSyncEnabled: Boolean = false,
     val onboardingComplete: Boolean = false,
+    /** Minutes before a class that reminders fire (in-app and email). */
+    val reminderLeadMinutes: Int = 60,
+    /** Whether finished classes auto-complete (and bill) without manual confirmation. */
+    val autoCompleteEnabled: Boolean = true,
+    /** "SYSTEM" | "LIGHT" | "DARK". */
+    val themeMode: String = "SYSTEM",
+    /** Pre-fills the end time when booking a class. */
+    val defaultLessonMinutes: Int = 60,
+    /** Currency code used to display all money, e.g. "BYN" or "RUB". */
+    val currency: String = "BYN",
 ) {
     companion object {
         const val SINGLETON_ID = 0

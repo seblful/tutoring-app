@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.tutoringapp.data.repository.ClassRepository
 import com.seblful.tutoringapp.data.repository.PriceRepository
+import com.seblful.tutoringapp.data.repository.SettingsRepository
 import com.seblful.tutoringapp.data.repository.StudentRepository
 import com.seblful.tutoringapp.data.repository.SubjectRepository
 import com.seblful.tutoringapp.domain.ClassRules
@@ -81,12 +82,16 @@ class ClassEditViewModel @Inject constructor(
     private val studentsRepo: StudentRepository,
     private val subjectsRepo: SubjectRepository,
     private val pricesRepo: PriceRepository,
+    private val settingsRepo: SettingsRepository,
 ) : ViewModel() {
 
     private val zone: ZoneId = ZoneId.systemDefault()
     private val classId: Long = savedStateHandle["id"] ?: 0L
 
     val isNew: Boolean = classId == 0L
+
+    /** Pre-fills the end time when a start is picked; loaded from settings. */
+    private var defaultLessonMinutes: Long = 60
 
     /** The class being edited, if any — preserves status/charge/recurring group on save. */
     private var original: TutoringClass? = null
@@ -134,6 +139,7 @@ class ClassEditViewModel @Inject constructor(
                 }
             }
         }
+        viewModelScope.launch { defaultLessonMinutes = settingsRepo.get().defaultLessonMinutes.toLong() }
         // Auto-select the only subject a student has (and pre-fill its price). With several
         // subjects, the user picks — we don't guess.
         viewModelScope.launch {
@@ -173,10 +179,10 @@ class ClassEditViewModel @Inject constructor(
         }
     }
 
-    /** Picking a start time defaults the end time to one hour later (only if not already set). */
+    /** Picking a start time defaults the end time to the default lesson length later (if unset). */
     fun setTimeFrom(time: LocalTime) {
         val f = form.value
-        form.value = f.copy(timeFrom = time, timeTo = f.timeTo ?: time.plusHours(1))
+        form.value = f.copy(timeFrom = time, timeTo = f.timeTo ?: time.plusMinutes(defaultLessonMinutes))
     }
 
     fun setTimeTo(time: LocalTime) {

@@ -47,6 +47,7 @@ import com.seblful.tutoringapp.ui.common.balanceDescription
 import com.seblful.tutoringapp.ui.common.classModeLabel
 import com.seblful.tutoringapp.ui.common.classStatusColor
 import com.seblful.tutoringapp.ui.common.classStatusLabel
+import com.seblful.tutoringapp.ui.common.text
 import com.seblful.tutoringapp.format.formatDate
 import com.seblful.tutoringapp.format.formatDateTime
 import com.seblful.tutoringapp.domain.ClassRules
@@ -145,7 +146,7 @@ fun StudentDetailScreen(
                         headlineContent = { Text(sp.subject.name) },
                         supportingContent = {
                             Text(
-                                sp.price?.let { stringResource(R.string.price_per_hour, it.format()) }
+                                sp.price?.let { stringResource(R.string.price_per_hour, it.text()) }
                                     ?: stringResource(R.string.price_not_set),
                                 color = if (sp.price == null) MaterialTheme.colorScheme.error
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -172,7 +173,7 @@ fun StudentDetailScreen(
                 val visiblePayments = if (showAllPayments) state.payments else state.payments.take(LIST_CAP)
                 items(visiblePayments, key = { StudentDetailKeys.payment(it.id) }) { payment ->
                     ListItem(
-                        headlineContent = { Text(payment.amount.format()) },
+                        headlineContent = { Text(payment.amount.text()) },
                         supportingContent = { Text(payment.date.formatDate()) },
                         trailingContent = {
                             IconButton(onClick = { deletingPayment = payment }) {
@@ -206,7 +207,7 @@ fun StudentDetailScreen(
                         },
                         trailingContent = {
                             if (row.klass.status == com.seblful.tutoringapp.domain.model.ClassStatus.COMPLETED) {
-                                Text(row.klass.charge.format())
+                                Text(row.klass.charge.text())
                             }
                         },
                         modifier = if (editable) Modifier.clickable { onClassClick(row.klass.id) } else Modifier,

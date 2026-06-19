@@ -45,6 +45,7 @@ import com.seblful.tutoringapp.ui.common.DatePickerModal
 import com.seblful.tutoringapp.ui.common.ModeSelector
 import com.seblful.tutoringapp.ui.common.TimePickerModal
 import com.seblful.tutoringapp.ui.common.classModeLabel
+import com.seblful.tutoringapp.ui.common.text
 import com.seblful.tutoringapp.format.formatDate
 import java.time.LocalDate
 import java.time.LocalTime
@@ -150,7 +151,7 @@ fun ClassEditScreen(
             } else {
                 Text(
                     text = "${stringResource(R.string.price_label)}: " +
-                        (form.price?.format() ?: stringResource(R.string.price_not_set)),
+                        (form.price?.text() ?: stringResource(R.string.price_not_set)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { showPriceField = true }

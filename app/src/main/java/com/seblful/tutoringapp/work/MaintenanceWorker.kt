@@ -5,9 +5,11 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.seblful.tutoringapp.data.repository.ClassRepository
+import com.seblful.tutoringapp.data.repository.SettingsRepository
 import com.seblful.tutoringapp.domain.Reminders
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import java.time.Duration
 import java.time.Instant
 
 /**
@@ -20,12 +22,18 @@ class MaintenanceWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val classes: ClassRepository,
     private val scheduler: WorkScheduler,
+    private val settings: SettingsRepository,
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
         val now = Instant.now()
-        classes.autoCompleteDue(now)
-        scheduler.scheduleReminders(Reminders.plan(now, classes.getAll()))
+        val s = settings.get()
+        // Auto-completion (and therefore auto-billing) is opt-out; when off, the tutor confirms
+        // each lesson by marking it completed.
+        if (s.autoCompleteEnabled) classes.autoCompleteDue(now)
+        scheduler.scheduleReminders(
+            Reminders.plan(now, classes.getAll(), lead = Duration.ofMinutes(s.reminderLeadMinutes.toLong())),
+        )
         return Result.success()
     }
 }

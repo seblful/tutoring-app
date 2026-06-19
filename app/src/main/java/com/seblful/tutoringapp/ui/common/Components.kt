@@ -139,8 +139,8 @@ fun EmptyState(text: String, modifier: Modifier = Modifier) {
 @Composable
 fun balanceDescription(balance: Money): String = when {
     balance.isZero -> stringResource(R.string.balance_settled)
-    balance.isNegative -> stringResource(R.string.balance_credit, (Money.ZERO - balance).format())
-    else -> stringResource(R.string.balance_owes, balance.format())
+    balance.isNegative -> stringResource(R.string.balance_credit, (Money.ZERO - balance).text())
+    else -> stringResource(R.string.balance_owes, balance.text())
 }
 
 /** Colour for a balance: red for debt, theme primary for credit, muted when settled. */

@@ -29,7 +29,7 @@ class AutoCompleteTest {
 
     private val noCalendar = object : CalendarSync {
         override suspend fun isAvailable() = false
-        override suspend fun upsert(klass: TutoringClass, title: String, guestEmail: String?): String? = null
+        override suspend fun upsert(klass: TutoringClass, title: String, guestEmail: String?, reminderLeadMinutes: Int): String? = null
         override suspend fun delete(eventId: String) = Unit
     }
 

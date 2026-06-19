@@ -15,16 +15,16 @@ value class Money(val minor: Long) : Comparable<Money> {
 
     override fun compareTo(other: Money): Int = minor.compareTo(other.minor)
 
-    /** Formats as a localized BYN amount, e.g. `1500 BYN` or `1500,50 BYN`. */
-    fun format(): String {
+    /** Formats as a localized amount in [currency], e.g. `1500 BYN` or `1500,50 RUB`. */
+    fun format(currency: String = "BYN"): String {
         val sign = if (minor < 0) "-" else ""
         val abs = kotlin.math.abs(minor)
         val major = abs / 100
         val kopecks = (abs % 100).toInt()
         return if (kopecks == 0) {
-            "$sign$major BYN"
+            "$sign$major $currency"
         } else {
-            "$sign$major,${kopecks.toString().padStart(2, '0')} BYN"
+            "$sign$major,${kopecks.toString().padStart(2, '0')} $currency"
         }
     }
 

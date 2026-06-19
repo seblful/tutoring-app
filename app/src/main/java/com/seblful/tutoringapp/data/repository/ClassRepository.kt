@@ -128,10 +128,11 @@ class ClassRepository @Inject constructor(
      * off or the calendar is unavailable, so the local database is never blocked by sync.
      */
     private suspend fun mirrorToCalendar(klass: TutoringClass) {
-        if (!syncEnabled()) return
+        val s = settings.get()
+        if (!s.calendarSyncEnabled) return
         when (CalendarSyncPolicy.actionFor(klass.status)) {
             CalendarSyncPolicy.Action.UPSERT -> {
-                val eventId = calendarSync.upsert(klass, titleFor(klass), guestEmailFor(klass))
+                val eventId = calendarSync.upsert(klass, titleFor(klass), guestEmailFor(klass), s.reminderLeadMinutes)
                 if (eventId != null && eventId != klass.calendarEventId) {
                     dao.update(klass.copy(calendarEventId = eventId).toEntity())
                 }

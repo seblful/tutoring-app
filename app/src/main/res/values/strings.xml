@@ -106,6 +106,21 @@
     <string name="settings_notifications_desc">Уведомлять за час до занятия</string>
     <string name="settings_calendar_sync">Синхронизация с календарём</string>
     <string name="settings_calendar_sync_desc">Показывать занятия в календаре устройства и приглашать учеников по email</string>
+    <string name="settings_reminder_lead">За сколько напоминать</string>
+    <string name="settings_autocomplete">Автозавершение занятий</string>
+    <string name="settings_autocomplete_desc">Отмечать прошедшие занятия проведёнными автоматически</string>
+    <string name="settings_default_lesson">Длительность по умолчанию</string>
+    <string name="settings_currency">Валюта</string>
+    <string name="settings_theme">Тема</string>
+    <string name="theme_system">Системная</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="currency_byn">BYN</string>
+    <string name="currency_rub">RUB</string>
+    <string name="minutes_short">%1$d мин</string>
+    <string name="hours_one">1 ч</string>
+    <string name="hours_one_and_half">1,5 ч</string>
+    <string name="hours_two">2 ч</string>
 
     <!-- Onboarding -->
     <string name="onboarding_subjects_title">Шаг 1. Предметы</string>

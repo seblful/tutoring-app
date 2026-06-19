@@ -1,5 +1,6 @@
 package com.seblful.tutoringapp.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -22,6 +23,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.runtime.CompositionLocalProvider
+import com.seblful.tutoringapp.ui.common.LocalCurrency
+import com.seblful.tutoringapp.ui.theme.TutoringAppTheme
 import com.seblful.tutoringapp.ui.backup.BackupScreen
 import com.seblful.tutoringapp.ui.more.MoreScreen
 import com.seblful.tutoringapp.ui.more.SettingsScreen
@@ -38,13 +42,25 @@ import com.seblful.tutoringapp.ui.subjects.SubjectsScreen
 
 @Composable
 fun AppRoot(rootViewModel: RootViewModel = hiltViewModel()) {
-    val onboardingComplete by rootViewModel.onboardingComplete.collectAsState()
-    when (onboardingComplete) {
-        null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+    val settings by rootViewModel.settings.collectAsState()
+
+    val darkTheme = when (settings?.themeMode) {
+        "LIGHT" -> false
+        "DARK" -> true
+        else -> isSystemInDarkTheme()
+    }
+
+    TutoringAppTheme(darkTheme = darkTheme) {
+        CompositionLocalProvider(LocalCurrency provides (settings?.currency ?: "BYN")) {
+            when {
+                settings == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+                !settings!!.onboardingComplete ->
+                    OnboardingScreen(onFinished = { /* settings flip re-renders into MainApp */ })
+                else -> MainApp()
+            }
         }
-        false -> OnboardingScreen(onFinished = { /* settings flip re-renders into MainApp */ })
-        true -> MainApp()
     }
 }
 
