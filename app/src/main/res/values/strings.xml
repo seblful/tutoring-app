@@ -77,7 +77,7 @@
     <!-- Price -->
     <string name="price_not_set">Цена не указана</string>
     <string name="price_edit_title">Изменить цену</string>
-    <string name="price_label">Цена за занятие</string>
+    <string name="price_label">Цена за час</string>
 
     <!-- Payments -->
     <string name="add_payment">Платёж</string>

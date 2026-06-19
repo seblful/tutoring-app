@@ -48,10 +48,12 @@ flowchart TB
 ## Key design decisions
 
 - **Money is an integer count of minor units (kopecks)** — no floating point. `Money` value class.
-- **Price is booked on the class.** Each class carries its own `price` (`TutoringClass.price`),
-  pre-filled from the student's price for the subject when booking and then editable per class. The
-  charge captured *at completion* (`ClassRules.applyStatus`) is exactly that booked price, so a later
-  edit to the student's price never touches existing classes. Reports/income still count only
+- **Price is an hourly rate booked on the class.** Each class carries its own `price`
+  (`TutoringClass.price`) = the **hourly rate**, pre-filled from the student's rate for the subject
+  when booking and then editable per class. The charge captured *at completion*
+  (`ClassRules.applyStatus` → `chargeFor`) is that rate **scaled by the lesson's duration** (a
+  90-min lesson at 30/h bills 45), rounded to the nearest kopeck. Using the *booked* rate means a
+  later edit to the student's rate never touches existing classes. Reports/income still count only
   completed-class charges.
 - **Status state machine** (`ClassRules`): `scheduled → completed | cancelled`, with corrections
   (`completed → cancelled`, `cancelled → scheduled`). Only a cancelled class can return to the

@@ -104,7 +104,6 @@ fun StudentFormContent(
             value = form.email,
             onValueChange = { v -> viewModel.update { it.copy(email = v) } },
             label = { Text(stringResource(R.string.student_email_label)) },
-            supportingText = { Text(stringResource(R.string.student_email_hint)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             modifier = Modifier.fillMaxWidth(),

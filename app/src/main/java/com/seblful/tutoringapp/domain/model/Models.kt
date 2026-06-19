@@ -33,11 +33,11 @@ data class Price(
 /**
  * A single class occurrence.
  *
- * @param price the per-class price chosen when the class was booked (defaulted from the student's
- *   [Price] for the subject, then editable). This is the amount that becomes the [charge] when the
- *   class is completed, so the booked price — not a later price edit — is what gets billed.
- * @param charge recognized income: equals [price] once the class is completed, [Money.ZERO] while
- *   scheduled or once cancelled.
+ * @param price the **hourly rate** chosen when the class was booked (defaulted from the student's
+ *   [Price] for the subject, then editable). The [charge] at completion is this rate scaled by the
+ *   lesson's duration, so the booked rate — not a later price edit — is what gets billed.
+ * @param charge recognized income: the hourly [price] scaled by [durationMinutes] once the class is
+ *   completed (see `ClassRules.chargeFor`), [Money.ZERO] while scheduled or once cancelled.
  * @param recurringGroupId groups occurrences generated from one weekly rule; null for
  *   one-off classes.
  * @param mode in person or remote; pre-filled from the student's default, editable per class.

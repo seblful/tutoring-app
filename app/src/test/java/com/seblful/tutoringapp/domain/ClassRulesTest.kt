@@ -51,6 +51,23 @@ class ClassRulesTest {
     }
 
     @Test
+    fun `completing scales the hourly rate by the lesson duration`() {
+        val rate = Money.ofMajor(30) // 30/hour
+        val ninetyMin = scheduled.copy(price = rate, durationMinutes = 90)
+        val thirtyMin = scheduled.copy(price = rate, durationMinutes = 30)
+        assertEquals(Money.ofMajor(45), ClassRules.applyStatus(ninetyMin, ClassStatus.COMPLETED).charge)
+        assertEquals(Money.ofMajor(15), ClassRules.applyStatus(thirtyMin, ClassStatus.COMPLETED).charge)
+    }
+
+    @Test
+    fun `chargeFor rounds to the nearest kopeck`() {
+        // 30/h for 50 min = 25 exactly.
+        assertEquals(Money.ofMajor(25), ClassRules.chargeFor(Money.ofMajor(30), 50))
+        // 20/h for 77 min = 25.6667 -> 25,67 (rounded half up).
+        assertEquals(Money(2567), ClassRules.chargeFor(Money(2000), 77))
+    }
+
+    @Test
     fun `each class bills its own booked price independently`() {
         val first = ClassRules.applyStatus(scheduled.copy(price = Money.ofMajor(50)), ClassStatus.COMPLETED)
         val second = ClassRules.applyStatus(scheduled.copy(id = 2, price = Money.ofMajor(80)), ClassStatus.COMPLETED)

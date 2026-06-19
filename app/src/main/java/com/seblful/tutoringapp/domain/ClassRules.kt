@@ -49,17 +49,25 @@ object ClassRules {
     /**
      * Applies a status change, capturing or voiding the charge.
      *
-     * Completing bills the class's own [TutoringClass.price] — the price chosen when it was
-     * booked — so a later edit to the student's price never rewrites an already-completed class.
+     * Completing bills the class's booked **hourly rate** ([TutoringClass.price]) scaled by its
+     * duration (see [chargeFor]) — so a 90-minute lesson at 30/h bills 45 — and the rate chosen
+     * when it was booked means a later edit to the student's price never rewrites a completed class.
      * Any non-billable status voids the charge back to zero.
      *
      * @throws IllegalArgumentException if the transition is not allowed.
      */
     fun applyStatus(c: TutoringClass, to: ClassStatus): TutoringClass {
         require(canTransition(c.status, to)) { "Illegal transition ${c.status} -> $to" }
-        val charge = if (to.isBillable) c.price else Money.ZERO
+        val charge = if (to.isBillable) chargeFor(c.price, c.durationMinutes) else Money.ZERO
         return c.copy(status = to, charge = charge)
     }
+
+    /**
+     * The amount billed for a lesson of [durationMinutes] at [hourlyRate], rounded to the nearest
+     * kopeck (half up). E.g. 30/h for 90 min → 45; for 30 min → 15.
+     */
+    fun chargeFor(hourlyRate: Money, durationMinutes: Int): Money =
+        Money((hourlyRate.minor * durationMinutes + 30) / 60)
 
     /**
      * Reschedules a class to [newStart].

@@ -64,6 +64,7 @@ fun ClassEditScreen(
     var showFromPicker by remember { mutableStateOf(false) }
     var showToPicker by remember { mutableStateOf(false) }
     var showModeSelector by remember { mutableStateOf(false) }
+    var showPriceField by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -135,15 +136,27 @@ fun ClassEditScreen(
                 )
             }
 
-            OutlinedTextField(
-                value = form.priceText,
-                onValueChange = { text -> viewModel.update { it.copy(priceText = text) } },
-                label = { Text(stringResource(R.string.price_label)) },
-                isError = form.priceText.isNotBlank() && form.price == null,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            // Price is hidden behind its current value (like the location row); tap to edit.
+            if (showPriceField) {
+                OutlinedTextField(
+                    value = form.priceText,
+                    onValueChange = { text -> viewModel.update { it.copy(priceText = text) } },
+                    label = { Text(stringResource(R.string.price_label)) },
+                    isError = form.priceText.isNotBlank() && form.price == null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else {
+                Text(
+                    text = "${stringResource(R.string.price_label)}: " +
+                        (form.price?.format() ?: stringResource(R.string.price_not_set)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showPriceField = true }
+                        .padding(vertical = 12.dp),
+                )
+            }
 
             if (showModeSelector) {
                 Text(stringResource(R.string.class_location_label), style = MaterialTheme.typography.labelLarge)
