@@ -13,7 +13,7 @@ import androidx.room.RoomDatabase
         PaymentEntity::class,
         SettingsEntity::class,
     ],
-    version = 5,
+    version = 1,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
