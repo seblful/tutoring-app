@@ -38,8 +38,9 @@ import javax.inject.Inject
 
 /**
  * The class-booking form. Date and times start **empty** — the user must choose them (the pickers
- * still open on a sensible default). Duration is expressed as a time range: [timeTo] defaults to one
- * hour after [timeFrom] the moment a start is chosen, and stays editable. [priceText] is the raw
+ * still open on a sensible default). Duration is expressed as a time range: [timeTo] follows
+ * [timeFrom] — keeping the lesson's length (the default lesson when none is set yet) whenever the
+ * start changes — and stays independently editable. [priceText] is the raw
  * price input; it is pre-filled from the student's price for the subject and must be a valid amount.
  */
 data class ClassForm(
@@ -183,10 +184,15 @@ class ClassEditViewModel @Inject constructor(
         }
     }
 
-    /** Picking a start time defaults the end time to the default lesson length later (if unset). */
+    /**
+     * Picking or changing the start time moves the end with it so the lesson keeps its length:
+     * the current duration if an end was already set, otherwise the default lesson length. This
+     * stops the end from going stale (and the duration from breaking) when the start is edited.
+     */
     fun setTimeFrom(time: LocalTime) {
         val f = form.value
-        form.value = f.copy(timeFrom = time, timeTo = f.timeTo ?: time.plusMinutes(defaultLessonMinutes))
+        val minutes = f.durationMinutes?.toLong() ?: defaultLessonMinutes
+        form.value = f.copy(timeFrom = time, timeTo = time.plusMinutes(minutes))
     }
 
     fun setTimeTo(time: LocalTime) {

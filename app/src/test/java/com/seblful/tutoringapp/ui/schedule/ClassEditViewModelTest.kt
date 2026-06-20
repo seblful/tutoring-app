@@ -187,6 +187,21 @@ class ClassEditViewModelTest {
         assertEquals(LocalTime.of(11, 30), vm.form.value.timeTo)
     }
 
+    @Test
+    fun `changing the start time shifts the end to keep the lesson length`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        advanceUntilIdle()
+
+        // A 90-minute lesson, 10:00–11:30.
+        vm.setTimeFrom(LocalTime.of(10, 0))
+        vm.setTimeTo(LocalTime.of(11, 30))
+
+        // Moving the start later moves the end with it, so it stays 90 minutes (not stale at 11:30).
+        vm.setTimeFrom(LocalTime.of(14, 0))
+        assertEquals(LocalTime.of(15, 30), vm.form.value.timeTo)
+        assertEquals(90, vm.form.value.durationMinutes)
+    }
+
     // --- Save: create ---
 
     @Test
