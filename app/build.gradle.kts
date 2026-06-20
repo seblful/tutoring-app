@@ -45,6 +45,17 @@ android {
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
+    // Room's exported schema JSONs (see `ksp { room.schemaLocation }`) are shipped as androidTest
+    // assets so MigrationTestHelper can create an old-version DB and validate migrations against the
+    // bundled schema for each version.
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    }
+}
+
+ksp {
+    // Export each DB version's schema to /schemas so migrations can be tested (and reviewed in git).
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {

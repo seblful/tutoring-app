@@ -21,4 +21,12 @@ class PriceRepository @Inject constructor(
 
     suspend fun setPrice(studentId: Long, subjectId: Long, amount: Money) =
         dao.upsert(Price(studentId, subjectId, amount).toEntity())
+
+    /**
+     * Removes the price for one (student, subject). Only safe when the student has no class for that
+     * subject — a completed class snapshots its own charge but still references the subject, and a
+     * priced subject is the single source of truth for what's bookable. The caller
+     * ([StudentDetailViewModel.removeSubject]) enforces the "no classes" precondition.
+     */
+    suspend fun deletePrice(studentId: Long, subjectId: Long) = dao.delete(studentId, subjectId)
 }

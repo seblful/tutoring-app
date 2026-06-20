@@ -92,6 +92,9 @@ interface PriceDao {
     @Upsert
     suspend fun upsert(price: PriceEntity)
 
+    @Query("DELETE FROM prices WHERE studentId = :studentId AND subjectId = :subjectId")
+    suspend fun delete(studentId: Long, subjectId: Long)
+
     @Query("SELECT * FROM prices")
     suspend fun getAll(): List<PriceEntity>
 

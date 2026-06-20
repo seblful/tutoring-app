@@ -24,7 +24,6 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -34,7 +33,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -174,34 +172,6 @@ fun ClassEditScreen(
                         .clickable { showModeSelector = true }
                         .padding(vertical = 12.dp),
                 )
-            }
-
-            if (viewModel.isNew) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(stringResource(R.string.class_repeat_weekly))
-                    Switch(
-                        checked = form.repeatWeekly,
-                        onCheckedChange = { on -> viewModel.update { it.copy(repeatWeekly = on) } },
-                    )
-                }
-                if (form.repeatWeekly) {
-                    OutlinedTextField(
-                        value = if (form.weeks == 0) "" else form.weeks.toString(),
-                        onValueChange = { text ->
-                            val n = (text.filter { c -> c.isDigit() }.toIntOrNull() ?: 0)
-                                .coerceAtMost(ClassForm.MAX_WEEKS)
-                            viewModel.update { it.copy(weeks = n) }
-                        },
-                        label = { Text(stringResource(R.string.class_repeat_weeks)) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
             }
         }
     }

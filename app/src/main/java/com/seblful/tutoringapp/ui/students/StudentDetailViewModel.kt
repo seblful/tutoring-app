@@ -16,16 +16,23 @@ import com.seblful.tutoringapp.domain.model.Student
 import com.seblful.tutoringapp.domain.model.Subject
 import com.seblful.tutoringapp.domain.model.TutoringClass
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
 import javax.inject.Inject
 
-/** A subject the student takes, with its current per-class price (null if unset). */
-data class SubjectPrice(val subject: Subject, val price: Money?)
+/**
+ * A subject the student takes, with its per-class price. The price is always set: a student's
+ * subjects are exactly the subjects they have a price for — the same set that's bookable — so a
+ * subject can never appear here without a price (see [StudentDetailViewModel]).
+ */
+data class SubjectPrice(val subject: Subject, val price: Money)
 
 /** A class plus its subject's display name. */
 data class ClassRow(val klass: TutoringClass, val subjectName: String)
@@ -51,20 +58,26 @@ class StudentDetailViewModel @Inject constructor(
 
     private val studentId: Long = checkNotNull(savedStateHandle["id"])
 
+    /** One-shot UI signals, e.g. removing a subject blocked because the student has classes for it. */
+    enum class Event { REMOVE_BLOCKED_HAS_CLASSES }
+
+    private val _events = Channel<Event>(Channel.BUFFERED)
+    val events: Flow<Event> = _events.receiveAsFlow()
+
     val state: StateFlow<StudentDetailState> = combine(
         students.observeById(studentId),
         subjects.observeAll(),
-        students.observeSubjectIds(studentId),
         prices.observeForStudent(studentId),
         classes.observeForStudent(studentId),
-    ) { student, allSubjects, subjectIds, priceList, classList ->
-        val priceBySubject = priceList.associateBy { it.subjectId }
+    ) { student, allSubjects, priceList, classList ->
         val subjectsById = allSubjects.associateBy { it.id }
         Partial(
             student = student,
             allSubjects = allSubjects,
-            subjects = subjectIds.mapNotNull { id ->
-                subjectsById[id]?.let { SubjectPrice(it, priceBySubject[id]?.amount) }
+            // A student's subjects ARE their priced subjects — one source of truth, so the list here
+            // is exactly what can be booked. No "price not set" rows, no bookable-but-hidden subjects.
+            subjects = priceList.mapNotNull { p ->
+                subjectsById[p.subjectId]?.let { SubjectPrice(it, p.amount) }
             }.sortedBy { it.subject.name.lowercase() },
             classes = classList.map { ClassRow(it, subjectsById[it.subjectId]?.name ?: "") },
         )
@@ -108,8 +121,29 @@ class StudentDetailViewModel @Inject constructor(
         viewModelScope.launch { students.setArchived(current, archived) }
     }
 
-    fun setSubjects(subjectIds: Set<Long>) {
-        viewModelScope.launch { students.setSubjects(studentId, subjectIds) }
+    /** Adds a subject to the student with a price — links and prices it together so the two stay in step. */
+    fun addSubject(subjectId: Long, amount: Money) {
+        viewModelScope.launch {
+            students.linkSubject(studentId, subjectId)
+            prices.setPrice(studentId, subjectId, amount)
+        }
+    }
+
+    /**
+     * Removes a subject from the student (its link and price together). Refused — with a
+     * [Event.REMOVE_BLOCKED_HAS_CLASSES] signal — when the student has any class for that subject,
+     * since those classes (completed ones especially) are billed history that must keep referencing
+     * a priced subject.
+     */
+    fun removeSubject(subjectId: Long) {
+        viewModelScope.launch {
+            if (state.value.classes.any { it.klass.subjectId == subjectId }) {
+                _events.send(Event.REMOVE_BLOCKED_HAS_CLASSES)
+                return@launch
+            }
+            students.unlinkSubject(studentId, subjectId)
+            prices.deletePrice(studentId, subjectId)
+        }
     }
 
     fun setPrice(subjectId: Long, amount: Money) {
@@ -125,5 +159,10 @@ class StudentDetailViewModel @Inject constructor(
 
     fun deletePayment(payment: Payment) {
         viewModelScope.launch { payments.delete(payment) }
+    }
+
+    /** Re-inserts a just-deleted payment (preserving its id, date and amount) for the undo action. */
+    fun restorePayment(payment: Payment) {
+        viewModelScope.launch { payments.add(payment) }
     }
 }

@@ -32,7 +32,7 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps. `Billing` (incl. the multi-student `balancesFor` aggregate), `ClassRules`, `Recurrence`, `Reminders`, `Reports`, `CalendarSyncPolicy`, the `ReminderScheduler` **port**, and `model/Models.kt`. All JVM-unit-tested. |
+| `domain/` | Pure Kotlin, no Android deps. `Billing` (incl. the multi-student `balancesFor` aggregate), `ClassRules`, `Reminders`, `Reports`, `CalendarSyncPolicy`, `Scheduling`, the `ReminderScheduler` **port**, and `model/Models.kt`. All JVM-unit-tested. |
 | `data/local/` | Room: `@Entity` rows, DAOs, `AppDatabase`. Entities are also `@Serializable` (used by backup). |
 | `data/repository/` | Repositories mapping entities ⇄ domain models. `ClassRepository` owns *all* side effects of a class change (calendar mirroring + reminder refresh via the port). |
 | `data/backup/` | `BackupData` (whole-DB snapshot) + `BackupManager` (JSON export / transactional replace-all import). |
@@ -70,20 +70,31 @@ flowchart TB
   kept), and `rebill` re-derives the charge from the edited price × duration. Because the charge is
   recomputed (not carried over), editing a completed class's price/duration updates its recognized
   income, and re-attributing it to a new student/subject credits the new owner correctly at the
-  current rate — this is what makes editing history safe (the old BUG-9/BUG-10 mis-attribution).
+  current rate — this is what makes editing history safe (the old BUG-9/BUG-10 mis-attribution). The
+  resolved class is persisted via `ClassRepository.update` (a dedicated in-place update, **not** `add`)
+  so an edit can never accidentally insert a duplicate row and double-count income.
   **Move (reschedule) is also allowed for any status** (`ClassRules.move(c, newStart, now)`). A
   completed class still can't be *deleted* (that would erase recognized income) — cancel it first.
-- **A class's subject must have a price for the student** (`Scheduling.assignableSubjects`): the
-  booking screen only offers subjects priced for the chosen student, since a completed class
-  snapshots its price — an unpriced subject could never be billed, so the price is added first.
-  A booked subject can't then *lose* its price: `PriceRepository` is upsert-only (no per-pair
-  delete), and the only cascade that would drop a price (deleting its subject) is already blocked
-  while any class references the subject. So "a class whose subject has no price" is unreachable
-  through the app — the edit screen relies on this rather than guarding the dropdown for it.
+  Classes are **one-off only** (no recurring/weekly series) — a removed v1 feature; the dormant
+  `recurringGroupId` column is always null.
+- **A student's subjects == their priced subjects (single source of truth).** The `prices` table is
+  the one source for "which subjects a student takes": the student-detail subject list is derived
+  from it (`StudentDetailViewModel`), and so is the booking dropdown (`Scheduling.assignableSubjects`),
+  so the displayed set is always exactly the bookable set — no "price not set" rows, no
+  bookable-but-hidden subjects. Adding a subject (`addSubject`) links it **and** sets a price in one
+  step; removing it (`removeSubject`) drops both, but is **refused when the student has any class for
+  that subject** (a completed class snapshots its charge yet still references a priced subject). The
+  `student_subjects` cross-ref table is kept in lock-step purely as a mirror for the backup snapshot.
+  `PriceRepository.deletePrice` exists only for this paired removal; the "no classes" guard preserves
+  the invariant that a class's subject always has a price.
 - **Subjects are deletable only when no class references them** (`SubjectRepository.delete` returns
-  `false` otherwise). Subjects are FK-cascade parents of `classes`/`prices`, so hard-deleting one
-  with history would silently destroy completed lessons (earned income) and strand payments as false
-  credit — mirroring how students are archive-only rather than deleted.
+  `false` otherwise), and **`classes`/`payments` use `ON DELETE RESTRICT`** (not CASCADE) on their
+  student/subject parents (DB v5, `MIGRATION_4_5`). So even if some future code path tried to delete a
+  student or subject with history, the database itself refuses rather than silently cascade-erasing
+  earned income — the protection is structural, not just a repository convention. (`prices`/
+  `student_subjects` stay CASCADE: dropping a subject with *no* classes cleanly removes its prices.)
+  Students remain archive-only (no delete path at all). Backup import deletes children-first, so
+  RESTRICT never blocks a restore.
 - **Class mode** (`ClassMode`: in person / remote — «Очно»/«Удалённо»): each student carries a
   `defaultMode`; a new class inherits it and can be overridden per occurrence. Mirrored into the
   calendar event's location. Students also carry a free-text `phone`.
@@ -92,9 +103,12 @@ flowchart TB
 - **Settings live in Room** (`SettingsEntity`, single row; `SettingsRepository`): `notificationsEnabled`
   (default true), `calendarSyncEnabled` (default false), `onboardingComplete`, `reminderLeadMinutes`
   (default 60 — drives both the in-app and calendar email reminder), `autoCompleteEnabled` (default
-  true — when off, finished classes don't auto-bill), `themeMode` (SYSTEM/LIGHT/DARK), `defaultLessonMinutes`
+  **false** — billing a lesson the tutor hasn't confirmed could over-state a student's debt, so
+  auto-billing is opt-in; when off, finished classes stay scheduled until marked completed),
+  `themeMode` (SYSTEM/LIGHT/DARK), `defaultLessonMinutes`
   (default 60 — pre-fills the booking end time), and `currency` (BYN/RUB). Device-local, so **not**
-  part of the backup snapshot. The **More → Settings** screen edits them; theme + currency are read
+  part of the backup snapshot. The **More → Settings** screen (grouped into Reminders / Classes /
+  Money / Appearance / Calendar sections) edits them; theme + currency are read
   at `AppRoot` (currency via the `LocalCurrency` CompositionLocal, so `Money.text()` re-renders on
   change). Schema changes here ship a real Room migration (see `DatabaseModule.MIGRATION_3_4`) so the
   tutor's live data survives upgrades.
@@ -103,7 +117,9 @@ flowchart TB
   subject). The schedule's add-class button is additionally disabled until both a student and a
   subject exist (`ScheduleViewModel.canAddClass`).
 - **Reports cover active students only** (`ReportsViewModel`): archived students' classes, income and
-  debts are excluded from every total and breakdown.
+  debts are excluded from every total and breakdown. Because archiving therefore drops a student's
+  outstanding debt from the totals, the student-detail screen **warns before archiving a student
+  whose balance isn't zero** (`StudentDetailScreen`), so the debt isn't hidden silently.
 - **Email reminders via the calendar, not a backend.** A student carries an `email`; when calendar
   sync is on, the class event adds them as an attendee with an email reminder 60 min before
   (`DeviceCalendarSync`), so the calendar account (e.g. Google) does the sending. There is no SMTP

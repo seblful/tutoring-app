@@ -30,10 +30,22 @@ class StudentRepository @Inject constructor(
 
     fun observeSubjectIds(studentId: Long): Flow<List<Long>> = dao.observeSubjectIds(studentId)
 
-    /** Replaces the student's set of subjects with [subjectIds]. */
+    /** Replaces the student's set of subjects with [subjectIds]. Used at creation (form/onboarding). */
     suspend fun setSubjects(studentId: Long, subjectIds: Set<Long>) {
         val current = dao.getSubjectIds(studentId).toSet()
         (subjectIds - current).forEach { dao.addSubjectLink(StudentSubjectCrossRef(studentId, it)) }
         (current - subjectIds).forEach { dao.removeSubjectLink(studentId, it) }
     }
+
+    /**
+     * Links one subject to a student. The student's subject set is kept in lock-step with their
+     * prices (see [StudentDetailViewModel]): linking is always paired with setting a price, so the
+     * displayed subject list and the bookable (priced) set can never diverge.
+     */
+    suspend fun linkSubject(studentId: Long, subjectId: Long) =
+        dao.addSubjectLink(StudentSubjectCrossRef(studentId, subjectId))
+
+    /** Unlinks one subject from a student (paired with deleting its price). */
+    suspend fun unlinkSubject(studentId: Long, subjectId: Long) =
+        dao.removeSubjectLink(studentId, subjectId)
 }

@@ -62,9 +62,13 @@ data class PriceEntity(
 @Entity(
     tableName = "classes",
     indices = [Index("studentId"), Index("subjectId"), Index("startMillis"), Index("status")],
+    // RESTRICT, not CASCADE: a class is recognized income and history. The schema itself must refuse
+    // to delete a student or subject that still has classes, so no future code path can silently
+    // erase earned income by removing a parent. Subjects are additionally guarded at the repository
+    // (`SubjectRepository.delete`); students have no delete path at all (archive only).
     foreignKeys = [
-        ForeignKey(StudentEntity::class, ["id"], ["studentId"], onDelete = ForeignKey.CASCADE),
-        ForeignKey(SubjectEntity::class, ["id"], ["subjectId"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(StudentEntity::class, ["id"], ["studentId"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(SubjectEntity::class, ["id"], ["subjectId"], onDelete = ForeignKey.RESTRICT),
     ],
 )
 data class ClassEntity(
@@ -93,8 +97,12 @@ data class SettingsEntity(
     val onboardingComplete: Boolean = false,
     /** Minutes before a class that reminders fire (in-app and email). */
     val reminderLeadMinutes: Int = 60,
-    /** Whether finished classes auto-complete (and bill) without manual confirmation. */
-    val autoCompleteEnabled: Boolean = true,
+    /**
+     * Whether finished classes auto-complete (and bill) without manual confirmation. **Off by
+     * default**: billing a class the tutor hasn't confirmed risks over-stating a student's debt, so
+     * the safe default is to have the tutor mark each lesson completed. Opt in via Settings.
+     */
+    val autoCompleteEnabled: Boolean = false,
     /** "SYSTEM" | "LIGHT" | "DARK". */
     val themeMode: String = "SYSTEM",
     /** Pre-fills the end time when booking a class. */
@@ -111,8 +119,10 @@ data class SettingsEntity(
 @Entity(
     tableName = "payments",
     indices = [Index("studentId")],
+    // RESTRICT: a payment is part of the financial record; the DB must refuse to delete a student who
+    // still has payments rather than cascade them away as silent loss. (Students are archive-only.)
     foreignKeys = [
-        ForeignKey(StudentEntity::class, ["id"], ["studentId"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(StudentEntity::class, ["id"], ["studentId"], onDelete = ForeignKey.RESTRICT),
     ],
 )
 data class PaymentEntity(

@@ -67,11 +67,16 @@ class ClassRepository @Inject constructor(
         return id
     }
 
-    /** Inserts a generated recurring series and returns the number of occurrences. */
-    suspend fun addAll(classes: List<TutoringClass>): Int {
-        classes.forEach { c -> mirrorToCalendar(c.copy(id = dao.upsert(c.toEntity()))) }
+    /**
+     * Persists edits to an existing class (its status/charge already resolved by the caller via
+     * [ClassRules]), then mirrors the change to the calendar and refreshes reminders. Distinct from
+     * [add] so an edit is unmistakably an in-place update of one row — never an accidental insert
+     * that would duplicate the class and double-count its income.
+     */
+    suspend fun update(klass: TutoringClass) {
+        dao.update(klass.toEntity())
+        mirrorToCalendar(klass)
         reminderScheduler.refreshNow()
-        return classes.size
     }
 
     /**

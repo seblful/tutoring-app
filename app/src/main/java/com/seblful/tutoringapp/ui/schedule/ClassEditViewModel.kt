@@ -9,7 +9,6 @@ import com.seblful.tutoringapp.data.repository.SettingsRepository
 import com.seblful.tutoringapp.data.repository.StudentRepository
 import com.seblful.tutoringapp.data.repository.SubjectRepository
 import com.seblful.tutoringapp.domain.ClassRules
-import com.seblful.tutoringapp.domain.Recurrence
 import com.seblful.tutoringapp.domain.Scheduling
 import com.seblful.tutoringapp.domain.model.ClassMode
 import com.seblful.tutoringapp.domain.model.Money
@@ -51,8 +50,6 @@ data class ClassForm(
     val timeTo: LocalTime? = null,
     val priceText: String = "",
     val mode: ClassMode = ClassMode.IN_PERSON,
-    val repeatWeekly: Boolean = false,
-    val weeks: Int = 4,
 ) {
     /** Minutes between [timeFrom] and [timeTo], or null when the range isn't a positive duration. */
     val durationMinutes: Int?
@@ -67,12 +64,7 @@ data class ClassForm(
     val isValid: Boolean
         get() = studentId != null && subjectId != null && date != null &&
             timeFrom != null && timeTo != null && (durationMinutes ?: 0) > 0 &&
-            price != null && weeks in 1..MAX_WEEKS
-
-    companion object {
-        /** Cap on a weekly series so one booking can't generate an unbounded flood of classes. */
-        const val MAX_WEEKS = 52
-    }
+            price != null
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -226,22 +218,18 @@ class ClassEditViewModel @Inject constructor(
                     mode = f.mode,
                 )
                 val resolved = ClassRules.rebill(ClassRules.move(edited, start, Instant.now()))
-                classes.add(resolved)
+                classes.update(resolved)
             } else {
-                val base = TutoringClass(
-                    studentId = f.studentId!!,
-                    subjectId = f.subjectId!!,
-                    start = start,
-                    durationMinutes = duration,
-                    price = price,
-                    mode = f.mode,
+                classes.add(
+                    TutoringClass(
+                        studentId = f.studentId!!,
+                        subjectId = f.subjectId!!,
+                        start = start,
+                        durationMinutes = duration,
+                        price = price,
+                        mode = f.mode,
+                    )
                 )
-                if (f.repeatWeekly && f.weeks > 1) {
-                    val groupId = System.currentTimeMillis()
-                    classes.addAll(Recurrence.weekly(base, zone, f.weeks, groupId))
-                } else {
-                    classes.add(base)
-                }
             }
             onDone()
         }

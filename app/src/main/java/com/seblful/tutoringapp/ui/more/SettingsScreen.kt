@@ -15,7 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -71,7 +70,9 @@ fun SettingsScreen(
         Column(
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()),
         ) {
-            // --- Reminders ---
+            // Grouped by what each setting governs, so a glance tells you where to look:
+            // reminders, then class behaviour, money, look, and calendar sync.
+            SectionHeader(stringResource(R.string.settings_section_reminders))
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_notifications)) },
                 supportingContent = { Text(stringResource(R.string.settings_notifications_desc)) },
@@ -93,9 +94,7 @@ fun SettingsScreen(
                 onSelect = { viewModel.setReminderLeadMinutes(it) },
             )
 
-            HorizontalDivider()
-
-            // --- Classes ---
+            SectionHeader(stringResource(R.string.settings_section_classes))
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_autocomplete)) },
                 supportingContent = { Text(stringResource(R.string.settings_autocomplete_desc)) },
@@ -117,6 +116,8 @@ fun SettingsScreen(
                 selected = settings.defaultLessonMinutes,
                 onSelect = { viewModel.setDefaultLessonMinutes(it) },
             )
+
+            SectionHeader(stringResource(R.string.settings_section_money))
             ChoiceRow(
                 title = stringResource(R.string.settings_currency),
                 options = listOf(
@@ -127,9 +128,7 @@ fun SettingsScreen(
                 onSelect = { viewModel.setCurrency(it) },
             )
 
-            HorizontalDivider()
-
-            // --- Appearance ---
+            SectionHeader(stringResource(R.string.settings_section_appearance))
             ChoiceRow(
                 title = stringResource(R.string.settings_theme),
                 options = listOf(
@@ -141,9 +140,7 @@ fun SettingsScreen(
                 onSelect = { viewModel.setThemeMode(it) },
             )
 
-            HorizontalDivider()
-
-            // --- Calendar ---
+            SectionHeader(stringResource(R.string.settings_section_calendar))
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_calendar_sync)) },
                 supportingContent = { Text(stringResource(R.string.settings_calendar_sync_desc)) },
@@ -162,6 +159,17 @@ fun SettingsScreen(
             )
         }
     }
+}
+
+/** A small, tinted section label that breaks the settings list into scannable groups. */
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 4.dp),
+    )
 }
 
 /** A labelled row with a single-choice segmented control. */

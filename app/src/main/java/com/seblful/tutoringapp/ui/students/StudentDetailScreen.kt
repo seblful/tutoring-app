@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -16,30 +15,44 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.seblful.tutoringapp.R
+import com.seblful.tutoringapp.domain.model.Money
 import com.seblful.tutoringapp.domain.model.Payment
+import com.seblful.tutoringapp.domain.model.Subject
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.seblful.tutoringapp.ui.common.StudentEditDialog
 import com.seblful.tutoringapp.ui.common.TextFieldDialog
 import com.seblful.tutoringapp.ui.common.balanceColor
@@ -64,14 +77,49 @@ fun StudentDetailScreen(
     val student = state.student
 
     var editing by remember { mutableStateOf(false) }
-    var pickingSubjects by remember { mutableStateOf(false) }
+    var addingSubject by remember { mutableStateOf(false) }
     var pricingSubjectId by remember { mutableStateOf<Long?>(null) }
     var addingPayment by remember { mutableStateOf(false) }
-    var deletingPayment by remember { mutableStateOf<Payment?>(null) }
+    var confirmingArchive by remember { mutableStateOf(false) }
     var showAllPayments by remember { mutableStateOf(false) }
     var showAllClasses by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val removeBlockedMsg = stringResource(R.string.student_subject_remove_blocked)
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                StudentDetailViewModel.Event.REMOVE_BLOCKED_HAS_CLASSES ->
+                    android.widget.Toast.makeText(context, removeBlockedMsg, android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    val paymentDeletedMsg = stringResource(R.string.payment_deleted)
+    val undoLabel = stringResource(R.string.action_undo)
+    fun deletePaymentWithUndo(payment: Payment) {
+        viewModel.deletePayment(payment)
+        scope.launch {
+            // Show for ~5s with an Undo action; dismiss it ourselves once the window passes.
+            val dismiss = launch {
+                delay(5000)
+                snackbarHostState.currentSnackbarData?.dismiss()
+            }
+            val result = snackbarHostState.showSnackbar(
+                message = paymentDeletedMsg,
+                actionLabel = undoLabel,
+                duration = SnackbarDuration.Indefinite,
+            )
+            dismiss.cancel()
+            if (result == SnackbarResult.ActionPerformed) viewModel.restorePayment(payment)
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             androidx.compose.material3.TopAppBar(
                 title = { Text(student?.name ?: "") },
@@ -85,7 +133,12 @@ fun StudentDetailScreen(
                         Icon(Icons.Filled.Edit, stringResource(R.string.action_edit))
                     }
                     if (student != null) {
-                        TextButton(onClick = { viewModel.setArchived(!student.archived) }) {
+                        TextButton(onClick = {
+                            // Archiving hides the student from Reports — including any debt they still
+                            // carry. Warn before silently dropping a non-zero balance from the totals.
+                            if (!student.archived && !state.balance.isZero) confirmingArchive = true
+                            else viewModel.setArchived(!student.archived)
+                        }) {
                             Text(
                                 stringResource(
                                     if (student.archived) R.string.action_unarchive else R.string.action_archive
@@ -134,7 +187,7 @@ fun StudentDetailScreen(
             item {
                 SectionHeader(
                     title = stringResource(R.string.student_subjects_title),
-                    action = { TextButton(onClick = { pickingSubjects = true }) { Text(stringResource(R.string.action_edit)) } },
+                    action = { TextButton(onClick = { addingSubject = true }) { Text(stringResource(R.string.action_add)) } },
                 )
             }
             if (state.subjects.isEmpty()) {
@@ -145,15 +198,18 @@ fun StudentDetailScreen(
                         headlineContent = { Text(sp.subject.name) },
                         supportingContent = {
                             Text(
-                                sp.price?.let { stringResource(R.string.price_per_hour, it.text()) }
-                                    ?: stringResource(R.string.price_not_set),
-                                color = if (sp.price == null) MaterialTheme.colorScheme.error
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                stringResource(R.string.price_per_hour, sp.price.text()),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         },
                         trailingContent = {
-                            IconButton(onClick = { pricingSubjectId = sp.subject.id }) {
-                                Icon(Icons.Filled.Edit, stringResource(R.string.price_edit_title))
+                            Row {
+                                IconButton(onClick = { pricingSubjectId = sp.subject.id }) {
+                                    Icon(Icons.Filled.Edit, stringResource(R.string.price_edit_title))
+                                }
+                                IconButton(onClick = { viewModel.removeSubject(sp.subject.id) }) {
+                                    Icon(Icons.Filled.Delete, stringResource(R.string.action_delete))
+                                }
                             }
                         },
                     )
@@ -175,7 +231,7 @@ fun StudentDetailScreen(
                         headlineContent = { Text(payment.amount.text()) },
                         supportingContent = { Text(payment.date.formatDate()) },
                         trailingContent = {
-                            IconButton(onClick = { deletingPayment = payment }) {
+                            IconButton(onClick = { deletePaymentWithUndo(payment) }) {
                                 Icon(Icons.Filled.Delete, stringResource(R.string.action_delete))
                             }
                         },
@@ -234,12 +290,13 @@ fun StudentDetailScreen(
             onDismiss = { editing = false },
         )
     }
-    if (pickingSubjects) {
-        SubjectPickerDialog(
-            allSubjects = state.allSubjects,
-            selected = state.subjects.map { it.subject.id }.toSet(),
-            onConfirm = { viewModel.setSubjects(it) },
-            onDismiss = { pickingSubjects = false },
+    if (addingSubject) {
+        // Only subjects not already priced for this student can be added.
+        val pricedIds = state.subjects.map { it.subject.id }.toSet()
+        AddSubjectPriceDialog(
+            addableSubjects = state.allSubjects.filter { it.id !in pricedIds },
+            onConfirm = { subjectId, amount -> viewModel.addSubject(subjectId, amount) },
+            onDismiss = { addingSubject = false },
         )
     }
     pricingSubjectId?.let { subjectId ->
@@ -266,11 +323,12 @@ fun StudentDetailScreen(
             onDismiss = { addingPayment = false },
         )
     }
-    deletingPayment?.let { payment ->
+    if (confirmingArchive && student != null) {
         com.seblful.tutoringapp.ui.common.ConfirmDialog(
-            text = stringResource(R.string.action_delete) + "?",
-            onConfirm = { viewModel.deletePayment(payment) },
-            onDismiss = { deletingPayment = null },
+            text = stringResource(R.string.student_archive_balance_warning, balanceDescription(state.balance)),
+            confirmLabel = stringResource(R.string.action_archive),
+            onConfirm = { viewModel.setArchived(true) },
+            onDismiss = { confirmingArchive = false },
         )
     }
 }
@@ -315,44 +373,61 @@ private fun SectionHeader(title: String, action: (@Composable () -> Unit)? = nul
     }
 }
 
+/**
+ * Adds one subject to the student together with its price — the two are set in lock-step, so a
+ * student's subjects are always exactly their priced (bookable) subjects. Offers only subjects the
+ * student isn't already priced for; the save button stays disabled until a subject and a valid price
+ * are both chosen.
+ */
 @Composable
-private fun SubjectPickerDialog(
-    allSubjects: List<com.seblful.tutoringapp.domain.model.Subject>,
-    selected: Set<Long>,
-    onConfirm: (Set<Long>) -> Unit,
+private fun AddSubjectPriceDialog(
+    addableSubjects: List<Subject>,
+    onConfirm: (subjectId: Long, amount: Money) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val checked = remember { mutableStateOf(selected) }
+    var selectedId by remember { mutableStateOf<Long?>(null) }
+    var priceText by remember { mutableStateOf("") }
+    val amount = parseMoneyOrNull(priceText)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.select_subjects_title)) },
+        title = { Text(stringResource(R.string.student_add_subject)) },
         text = {
             Column {
-                if (allSubjects.isEmpty()) {
-                    Text(stringResource(R.string.subjects_empty))
-                }
-                allSubjects.forEach { subject ->
-                    val isChecked = subject.id in checked.value
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .toggleable(
-                                value = isChecked,
-                                onValueChange = { on ->
-                                    checked.value = if (on) checked.value + subject.id else checked.value - subject.id
-                                },
-                            )
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Checkbox(checked = isChecked, onCheckedChange = null)
-                        Text(subject.name, Modifier.padding(start = 8.dp))
+                if (addableSubjects.isEmpty()) {
+                    Text(stringResource(R.string.student_all_subjects_added))
+                } else {
+                    addableSubjects.forEach { subject ->
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedId = subject.id }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = selectedId == subject.id, onClick = { selectedId = subject.id })
+                            Text(subject.name, Modifier.padding(start = 8.dp))
+                        }
                     }
+                    OutlinedTextField(
+                        value = priceText,
+                        onValueChange = { priceText = it },
+                        label = { Text(stringResource(R.string.price_label)) },
+                        isError = priceText.isNotBlank() && amount == null,
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    )
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(checked.value); onDismiss() }) { Text(stringResource(R.string.action_save)) }
+            TextButton(
+                onClick = {
+                    val id = selectedId
+                    if (id != null && amount != null) { onConfirm(id, amount); onDismiss() }
+                },
+                enabled = selectedId != null && amount != null,
+            ) { Text(stringResource(R.string.action_save)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )

@@ -13,8 +13,8 @@ import androidx.room.RoomDatabase
         PaymentEntity::class,
         SettingsEntity::class,
     ],
-    version = 4,
-    exportSchema = false,
+    version = 5,
+    exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun subjectDao(): SubjectDao

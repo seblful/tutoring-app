@@ -13,7 +13,7 @@ data class AppSettings(
     val calendarSyncEnabled: Boolean = false,
     val onboardingComplete: Boolean = false,
     val reminderLeadMinutes: Int = 60,
-    val autoCompleteEnabled: Boolean = true,
+    val autoCompleteEnabled: Boolean = false,
     val themeMode: String = "SYSTEM",
     val defaultLessonMinutes: Int = 60,
     val currency: String = "BYN",
