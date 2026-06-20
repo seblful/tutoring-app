@@ -4,15 +4,10 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <group android:scaleX="0.45"
-        android:scaleY="0.45"
-        android:translateX="29.7"
-        android:translateY="29.7">
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M54,12 L96,30 L54,48 L12,30 Z" />
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M30,42 L30,66 C30,78 78,78 78,66 L78,42 L54,52 Z" />
-    </group>
+    <!-- Open-book mark, traced from the supplied logo. Even-odd fill reproduces the page gaps and
+         spine as the indigo background showing through. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M49.85,36.62 L27.53,28.32 L27.04,24.47 L27.53,23.78 L51.53,35.93 L49.85,36.62 Z M58.94,36.42 L56.27,36.12 L81.16,24.07 L80.67,28.32 L58.94,36.42 Z M48.47,83.04 L21.90,73.06 L22.59,28.52 L48.57,38.30 L48.47,83.04 Z M59.53,83.04 L59.43,38.30 L85.60,28.52 L86.10,72.67 L59.53,83.04 Z M57.36,84.22 L50.74,84.12 L51.73,83.93 L50.74,83.53 L50.74,39.09 L51.73,38.89 L50.84,38.59 L57.46,38.69 L57.36,84.22 Z M56.67,38.89 L52.12,38.89 L56.67,38.89 Z" />
 </vector>

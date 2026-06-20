@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Tutoring App</string>
+    <string name="app_name">Репетит</string>
 
     <!-- Bottom navigation -->
     <string name="nav_schedule">Расписание</string>
@@ -16,6 +16,7 @@
     <string name="action_back">Назад</string>
     <string name="action_archive">В архив</string>
     <string name="action_unarchive">Из архива</string>
+    <string name="action_undo">Отменить</string>
 
     <!-- Schedule -->
     <string name="schedule_title">Расписание</string>
@@ -33,8 +34,6 @@
     <string name="class_location_label">Место</string>
     <string name="class_mode_in_person">Очно</string>
     <string name="class_mode_remote">Удалённо</string>
-    <string name="class_repeat_weekly">Повторять каждую неделю</string>
-    <string name="class_repeat_weeks">Сколько недель</string>
     <string name="class_move">Перенести</string>
     <string name="class_delete_confirm">Удалить это занятие?</string>
     <string name="class_mark_completed">Отметить проведённым</string>
@@ -64,10 +63,13 @@
     <string name="student_mode_label">Место занятий</string>
     <string name="student_subjects_title">Предметы</string>
     <string name="student_no_subjects">Предметы не выбраны</string>
+    <string name="student_add_subject">Добавить предмет</string>
+    <string name="student_all_subjects_added">Все предметы уже добавлены</string>
+    <string name="student_subject_remove_blocked">Нельзя убрать предмет: по нему есть занятия</string>
+    <string name="student_archive_balance_warning">У ученика есть незакрытый баланс (%1$s). В архиве он не попадёт в отчёты. Всё равно отправить в архив?</string>
     <string name="student_payments_title">Платежи</string>
     <string name="student_classes_title">Занятия</string>
     <string name="student_balance_label">Баланс</string>
-    <string name="select_subjects_title">Выберите предметы</string>
 
     <!-- Balance -->
     <string name="balance_settled">Нет задолженности</string>
@@ -85,6 +87,7 @@
     <string name="payments_empty">Платежей пока нет</string>
     <string name="payment_add_title">Новый платёж</string>
     <string name="payment_amount_label">Сумма</string>
+    <string name="payment_deleted">Платёж удалён</string>
 
     <!-- Subjects -->
     <string name="subjects_title">Предметы</string>
@@ -102,6 +105,11 @@
 
     <!-- Settings -->
     <string name="settings_title">Настройки</string>
+    <string name="settings_section_reminders">Напоминания</string>
+    <string name="settings_section_classes">Занятия</string>
+    <string name="settings_section_money">Деньги</string>
+    <string name="settings_section_appearance">Оформление</string>
+    <string name="settings_section_calendar">Календарь</string>
     <string name="settings_notifications">Напоминания</string>
     <string name="settings_notifications_desc">Уведомлять за час до занятия</string>
     <string name="settings_calendar_sync">Синхронизация с календарём</string>
