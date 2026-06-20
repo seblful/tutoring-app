@@ -50,7 +50,6 @@ import com.seblful.tutoringapp.ui.common.classStatusLabel
 import com.seblful.tutoringapp.ui.common.text
 import com.seblful.tutoringapp.format.formatDate
 import com.seblful.tutoringapp.format.formatDateTime
-import com.seblful.tutoringapp.domain.ClassRules
 import com.seblful.tutoringapp.format.parseMoneyOrNull
 import com.seblful.tutoringapp.format.toAmountInput
 
@@ -197,9 +196,8 @@ fun StudentDetailScreen(
             } else {
                 val visibleClasses = if (showAllClasses) state.classes else state.classes.take(LIST_CAP)
                 items(visibleClasses, key = { StudentDetailKeys.klass(it.klass.id) }) { row ->
-                    // Only a still-upcoming class opens the editor; completed/cancelled classes are
-                    // history and editing them would mis-attribute their snapshotted charge.
-                    val editable = ClassRules.isMutable(row.klass.status)
+                    // A class in any status opens the editor; saving a completed class re-bills it so
+                    // its snapshotted charge tracks the edit (see ClassRules.rebill).
                     ListItem(
                         headlineContent = { Text("${row.subjectName} · ${row.klass.start.formatDateTime()}") },
                         supportingContent = {
@@ -210,7 +208,7 @@ fun StudentDetailScreen(
                                 Text(row.klass.charge.text())
                             }
                         },
-                        modifier = if (editable) Modifier.clickable { onClassClick(row.klass.id) } else Modifier,
+                        modifier = Modifier.clickable { onClassClick(row.klass.id) },
                     )
                 }
                 if (state.classes.size > LIST_CAP) {

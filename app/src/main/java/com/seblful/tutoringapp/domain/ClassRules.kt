@@ -30,14 +30,17 @@ object ClassRules {
     fun availableTransitions(from: ClassStatus): Set<ClassStatus> = allowed[from] ?: emptySet()
 
     /**
-     * Whether a class may have its details (student/subject/price) edited. Only a class that
-     * will still happen ([ClassStatus.SCHEDULED]) is editable: a completed class has already
-     * snapshotted its charge, so editing its student/subject would mis-attribute that income.
-     * Corrections go through the status transitions (cancel, which voids the charge, then return
-     * to schedule) instead. Note that *moving* (rescheduling) is allowed for any status — see
-     * [move] — because moving to the future re-plans the class.
+     * Re-derives [TutoringClass.charge] so it stays consistent with the class's current price,
+     * duration and status: a billable (completed) class is re-billed at its hourly [TutoringClass.price]
+     * scaled by [TutoringClass.durationMinutes]; any non-billable status carries no charge.
+     *
+     * Call this after editing a class's details so a completed class's recognized income tracks the
+     * edit instead of keeping a stale snapshot — recomputing the charge from the (possibly new)
+     * price and duration also re-attributes it correctly when the student or subject changes,
+     * since the new charge is derived from the current values rather than carried over.
      */
-    fun isMutable(status: ClassStatus): Boolean = status == ClassStatus.SCHEDULED
+    fun rebill(c: TutoringClass): TutoringClass =
+        c.copy(charge = if (c.status.isBillable) chargeFor(c.price, c.durationMinutes) else Money.ZERO)
 
     /**
      * A scheduled class auto-completes once its end time is at or before [now].
@@ -58,8 +61,7 @@ object ClassRules {
      */
     fun applyStatus(c: TutoringClass, to: ClassStatus): TutoringClass {
         require(canTransition(c.status, to)) { "Illegal transition ${c.status} -> $to" }
-        val charge = if (to.isBillable) chargeFor(c.price, c.durationMinutes) else Money.ZERO
-        return c.copy(status = to, charge = charge)
+        return rebill(c.copy(status = to))
     }
 
     /**

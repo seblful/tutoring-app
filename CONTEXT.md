@@ -62,13 +62,17 @@ flowchart TB
   that didn't happen is `cancelled`, which voids the charge — there is no separate "missed"
   status. `ClassRules.availableTransitions` is the single source of truth for the actions menu, so
   it never offers the status a class is already in.
-- **Editing details is gated; moving is not** (`ClassRules.isMutable`). Editing a class's
-  student/subject/price is offered only while it's SCHEDULED, since a completed class has billed and
-  re-attributing it would rewrite recognized income. **Move (reschedule) is allowed for any status**
-  (`ClassRules.move(c, newStart, now)`): moving a class into the *future* re-plans it (status →
-  SCHEDULED, charge voided to zero, so income isn't double-counted or relocated); moving it into the
-  *past* leaves status and charge untouched (just corrects the recorded time). A completed class
-  still can't be *deleted* (that would erase recognized income) — cancel it first.
+- **Editing is allowed in any status; the charge is recomputed, not preserved.** Editing a class's
+  student/subject/price/duration/time is offered for SCHEDULED, COMPLETED and CANCELLED classes.
+  Saving routes the edit through `ClassRules.move(edited, newStart, now)` then `ClassRules.rebill(...)`
+  (see `ClassEditViewModel.save`): the new start gets the same re-planning as a move (future →
+  status SCHEDULED + charge voided, so a class can't be "completed in the future"; past → status
+  kept), and `rebill` re-derives the charge from the edited price × duration. Because the charge is
+  recomputed (not carried over), editing a completed class's price/duration updates its recognized
+  income, and re-attributing it to a new student/subject credits the new owner correctly at the
+  current rate — this is what makes editing history safe (the old BUG-9/BUG-10 mis-attribution).
+  **Move (reschedule) is also allowed for any status** (`ClassRules.move(c, newStart, now)`). A
+  completed class still can't be *deleted* (that would erase recognized income) — cancel it first.
 - **A class's subject must have a price for the student** (`Scheduling.assignableSubjects`): the
   booking screen only offers subjects priced for the chosen student, since a completed class
   snapshots its price — an unpriced subject could never be billed, so the price is added first.

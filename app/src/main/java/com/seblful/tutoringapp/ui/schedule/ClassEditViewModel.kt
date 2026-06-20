@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -140,6 +141,17 @@ class ClassEditViewModel @Inject constructor(
             }
         }
         viewModelScope.launch { defaultLessonMinutes = settingsRepo.get().defaultLessonMinutes.toLong() }
+        // Auto-select the only student there is (a new class, before any choice). With several
+        // students, the user picks — we don't guess.
+        if (isNew) {
+            viewModelScope.launch {
+                students.collect { list ->
+                    if (form.value.studentId == null && list.size == 1) {
+                        selectStudent(list.first().id)
+                    }
+                }
+            }
+        }
         // Auto-select the only subject a student has (and pre-fill its price). With several
         // subjects, the user picks — we don't guess.
         viewModelScope.launch {
@@ -198,21 +210,23 @@ class ClassEditViewModel @Inject constructor(
         viewModelScope.launch {
             val existing = original
             if (existing != null) {
-                // Editing is only allowed for a still-upcoming class; a completed class has billed.
-                if (!ClassRules.isMutable(existing.status)) {
-                    onDone()
-                    return@launch
-                }
-                classes.add(
-                    existing.copy(
-                        studentId = f.studentId!!,
-                        subjectId = f.subjectId!!,
-                        start = start,
-                        durationMinutes = duration,
-                        price = price,
-                        mode = f.mode,
-                    )
+                // A class in any status may be edited. Apply the field changes, then resolve status
+                // and charge consistently:
+                //  - the new start goes through the same re-planning as a move (ClassRules.move):
+                //    shifting it into the future re-plans the class (scheduled, charge voided),
+                //    keeping a completed class from ending up "completed in the future";
+                //  - rebill then keeps the charge in step with the (possibly new) price/duration —
+                //    re-billing a completed class that stays in the past and re-attributing its
+                //    income to the current student/subject, while scheduled/cancelled stay at zero.
+                val edited = existing.copy(
+                    studentId = f.studentId!!,
+                    subjectId = f.subjectId!!,
+                    durationMinutes = duration,
+                    price = price,
+                    mode = f.mode,
                 )
+                val resolved = ClassRules.rebill(ClassRules.move(edited, start, Instant.now()))
+                classes.add(resolved)
             } else {
                 val base = TutoringClass(
                     studentId = f.studentId!!,

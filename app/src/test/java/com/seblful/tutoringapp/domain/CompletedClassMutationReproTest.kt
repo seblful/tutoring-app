@@ -9,12 +9,16 @@ import java.time.Instant
 import java.time.ZoneId
 
 /**
- * BUG-9 / BUG-10 rationale. These tests show the raw-domain *consequence* of mutating a COMPLETED
- * class — moving it relocates recognized income to another month; re-attributing it files the old
- * snapshot charge under a different student/subject. This is exactly why the fix gates edit/move on
- * [ClassRules.isMutable] (see ClassRulesTest, ClassRepository.move and ClassEditViewModel.save):
- * the pure functions below still behave this way, but the app no longer lets a completed class
- * reach them. They remain as a guard against anyone re-enabling that path.
+ * BUG-9 / BUG-10 rationale. A completed class may now be edited and moved, so the danger is no
+ * longer avoided by forbidding the path — it is neutralized by recomputing the charge:
+ *
+ * - Moving a completed class to the future re-plans it ([ClassRules.move] voids the charge), so
+ *   income is not silently relocated to another month; moving it into the past keeps its charge.
+ * - Editing a completed class re-bills it ([ClassRules.rebill], called from ClassEditViewModel.save):
+ *   the charge is recomputed from the edited price and duration, so it is attributed to the current
+ *   student/subject at the current rate instead of carrying a stale snapshot from the old owner.
+ *
+ * These tests pin that behavior so the BUG-9/BUG-10 mis-attribution can't return.
  */
 class CompletedClassMutationReproTest {
 
@@ -58,15 +62,19 @@ class CompletedClassMutationReproTest {
     }
 
     @Test
-    fun `BUG-10 re-attributing a completed class keeps the old charge under a new student and subject`() {
-        // Editing a completed class (existing.copy(studentId=.., subjectId=..)) preserves the charge
-        // snapshotted from the ORIGINAL subject's price, then files it under the new owner.
+    fun `BUG-10 re-attributing a completed class re-bills it under the new student and subject`() {
+        // Editing a completed class to a new owner mirrors ClassEditViewModel.save: copy the new
+        // student/subject/price, then rebill. The charge is recomputed from the edited price (40/h
+        // for 60 min = 4000) rather than carried over, so income credits the new owner correctly.
         val original = completedInMay() // student 1, subject 1, charge 5000 (from subject 1's price)
-        val reassigned = original.copy(studentId = 2, subjectId = 99)
+        val reassigned = ClassRules.rebill(
+            original.copy(studentId = 2, subjectId = 99, price = Money(4000)),
+        )
 
-        // Income now credits the wrong student and a subject the charge never came from.
-        assertEquals(Money(5000), Reports.incomeByStudent(listOf(reassigned))[2])
+        assertEquals(Money(4000), reassigned.charge)
+        // Income credits the new owner at the new rate, and nothing is left under the old student.
+        assertEquals(Money(4000), Reports.incomeByStudent(listOf(reassigned))[2])
         assertEquals(null, Reports.incomeByStudent(listOf(reassigned))[1])
-        assertEquals(Money(5000), Reports.incomeBySubject(listOf(reassigned))[99])
+        assertEquals(Money(4000), Reports.incomeBySubject(listOf(reassigned))[99])
     }
 }

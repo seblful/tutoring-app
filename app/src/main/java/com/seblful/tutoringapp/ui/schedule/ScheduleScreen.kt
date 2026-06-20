@@ -241,11 +241,9 @@ private fun ClassActionsSheet(
             }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
-            // Editing details (student/subject/price) only makes sense for a class that will still
-            // happen — a completed class has already billed, so changing it would rewrite income.
-            if (ClassRules.isMutable(klass.status)) {
-                SheetAction(stringResource(R.string.action_edit), Icons.Filled.Edit, onClick = onEdit)
-            }
+            // Editing details (student/subject/price) is allowed in any status; saving a completed
+            // class re-bills it so its recognized income tracks the edit (see ClassRules.rebill).
+            SheetAction(stringResource(R.string.action_edit), Icons.Filled.Edit, onClick = onEdit)
             // Offer only the statuses this class can move to — never the one it is already in.
             ClassRules.availableTransitions(klass.status).forEach { target ->
                 SheetAction(

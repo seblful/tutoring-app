@@ -185,12 +185,32 @@ class ClassRulesTest {
         assertEquals(Money.ofMajor(50), moved.charge)
     }
 
-    // --- isMutable: gates edit/move so historical income can't be rewritten ---
+    // --- rebill: keeps a class's charge consistent with its details after an edit ---
 
     @Test
-    fun `only a scheduled class is mutable`() {
-        assertTrue(ClassRules.isMutable(ClassStatus.SCHEDULED))
-        assertFalse(ClassRules.isMutable(ClassStatus.COMPLETED))
-        assertFalse(ClassRules.isMutable(ClassStatus.CANCELLED))
+    fun `rebill recomputes a completed class's charge from its current price and duration`() {
+        // A completed class booked at 50/h for 60 min, then edited to 30/h for 90 min.
+        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
+        val edited = completed.copy(price = Money.ofMajor(30), durationMinutes = 90)
+        assertEquals(Money.ofMajor(45), ClassRules.rebill(edited).charge)
+    }
+
+    @Test
+    fun `rebill re-attributes a completed class's charge when its owner changes`() {
+        // Editing a completed class to a new student and subject derives the charge from the current
+        // price rather than carrying the old snapshot — so income credits the new owner correctly.
+        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
+        val reassigned = completed.copy(studentId = 2, subjectId = 99, price = Money.ofMajor(40))
+        val rebilled = ClassRules.rebill(reassigned)
+        assertEquals(Money.ofMajor(40), rebilled.charge)
+        assertEquals(2, rebilled.studentId)
+        assertEquals(99, rebilled.subjectId)
+    }
+
+    @Test
+    fun `rebill voids the charge for a non-billable class`() {
+        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
+        assertEquals(Money.ZERO, ClassRules.rebill(completed.copy(status = ClassStatus.SCHEDULED)).charge)
+        assertEquals(Money.ZERO, ClassRules.rebill(completed.copy(status = ClassStatus.CANCELLED)).charge)
     }
 }
