@@ -145,8 +145,13 @@ fun ScheduleScreen(
     }
 
     deletingClass?.let { klass ->
+        val confirmText = if (klass.status == ClassStatus.COMPLETED) {
+            stringResource(R.string.class_delete_completed_confirm)
+        } else {
+            stringResource(R.string.class_delete_confirm)
+        }
         ConfirmDialog(
-            text = stringResource(R.string.class_delete_confirm),
+            text = confirmText,
             onConfirm = { viewModel.delete(klass) },
             onDismiss = { deletingClass = null },
         )
@@ -256,17 +261,16 @@ private fun ClassActionsSheet(
             // Move (reschedule) is offered for any status: moving a class to the future re-plans it,
             // moving it to the past just corrects its recorded time.
             SheetAction(stringResource(R.string.class_move), Icons.Filled.EditCalendar, onClick = onMove)
-            // Don't offer to delete a completed class — that would silently erase recognized income.
-            // Cancel it first (which voids the charge), then the cancelled record can be deleted.
-            if (klass.status != ClassStatus.COMPLETED) {
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                SheetAction(
-                    stringResource(R.string.action_delete),
-                    Icons.Filled.DeleteOutline,
-                    onClick = onDelete,
-                    destructive = true,
-                )
-            }
+            // Delete is offered for any status. Deleting a completed class removes its recognized
+            // income (the confirm dialog warns about this); the repository deletes the calendar
+            // event and refreshes reminders regardless of status.
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            SheetAction(
+                stringResource(R.string.action_delete),
+                Icons.Filled.DeleteOutline,
+                onClick = onDelete,
+                destructive = true,
+            )
         }
     }
 }

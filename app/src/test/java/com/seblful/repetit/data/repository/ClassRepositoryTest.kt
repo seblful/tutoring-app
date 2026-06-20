@@ -72,6 +72,21 @@ class ClassRepositoryTest {
     }
 
     @Test
+    fun `deleting a completed class removes it and deletes its lingering calendar event`() = runTest {
+        env.settingsRepo.setCalendarSyncEnabled(true)
+        val id = repo.add(scheduled())
+        // Completing keeps the (past) event; its id stays on the class.
+        repo.setStatus(id, ClassStatus.COMPLETED)
+        val eventId = repo.getById(id)!!.calendarEventId!!
+        env.calendar.deletes.clear()
+
+        repo.delete(repo.getById(id)!!)
+
+        assertNull("the completed class is gone — its recognized income disappears with it", repo.getById(id))
+        assertEquals("its calendar event is cleaned up", listOf(eventId), env.calendar.deletes)
+    }
+
+    @Test
     fun `moving a class to the future re-plans it back to scheduled with no charge`() = runTest {
         val id = repo.add(scheduled(Instant.now().minusSeconds(3600)))
         repo.setStatus(id, ClassStatus.COMPLETED)

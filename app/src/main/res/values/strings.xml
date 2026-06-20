@@ -36,6 +36,7 @@
     <string name="class_mode_remote">Удалённо</string>
     <string name="class_move">Перенести</string>
     <string name="class_delete_confirm">Удалить это занятие?</string>
+    <string name="class_delete_completed_confirm">Занятие завершено. Удаление уберёт начисленный доход из баланса ученика. Удалить?</string>
     <string name="class_mark_completed">Отметить проведённым</string>
     <string name="class_mark_cancelled">Отменить занятие</string>
     <string name="class_mark_scheduled">Вернуть в расписание</string>

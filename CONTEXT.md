@@ -55,8 +55,11 @@ flowchart TB
 - **Editing is allowed in any status; the charge is recomputed, not preserved.** Re-attributing a
   class to a new student/subject credits the new owner at the current rate, so editing history is
   safe. Edits update the row in place (never insert), so income can't be double-counted. **Move
-  (reschedule) is allowed for any status.** A completed class can't be *deleted* (cancel it first).
-  Classes are **one-off only** — no recurring series.
+  (reschedule) is allowed for any status.** A class can be **deleted in any status**; deleting a
+  completed one removes its recognized income (derived, not stored, so it just disappears from
+  reports/balances) and the UI warns before doing so. The repository's `delete` removes the
+  calendar event and refreshes reminders regardless of status. Classes are **one-off only** — no
+  recurring series.
 - **A student's subjects == their priced subjects** (single source of truth). Adding a subject links
   it and sets a price in one step; removing drops both, but is **refused when the student has any
   class for that subject**, preserving the invariant that a booked subject always has a price.
