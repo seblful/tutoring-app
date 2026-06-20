@@ -2,7 +2,7 @@ package com.seblful.repetit.ui.students
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.seblful.repetit.data.repository.PriceRepository
+import com.seblful.repetit.data.repository.EnrollmentRepository
 import com.seblful.repetit.data.repository.StudentRepository
 import com.seblful.repetit.data.repository.SubjectRepository
 import com.seblful.repetit.domain.model.ClassMode
@@ -27,7 +27,7 @@ import javax.inject.Inject
 class StudentFormViewModel @Inject constructor(
     private val students: StudentRepository,
     subjectsRepo: SubjectRepository,
-    private val prices: PriceRepository,
+    private val enrollment: EnrollmentRepository,
 ) : ViewModel() {
 
     data class Form(
@@ -91,10 +91,11 @@ class StudentFormViewModel @Inject constructor(
                     defaultMode = f.mode,
                 )
             )
-            students.setSubjects(id, f.subjectPrices.keys)
-            f.subjectPrices.forEach { (subjectId, text) ->
-                parseMoneyOrNull(text)?.let { prices.setPrice(id, subjectId, it) }
-            }
+            // isValid guarantees every chosen subject has a parseable price.
+            val pricedSubjects = f.subjectPrices.mapNotNull { (subjectId, text) ->
+                parseMoneyOrNull(text)?.let { subjectId to it }
+            }.toMap()
+            enrollment.setEnrollments(id, pricedSubjects)
             onSaved()
         }
     }

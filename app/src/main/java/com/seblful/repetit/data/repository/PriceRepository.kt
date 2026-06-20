@@ -2,8 +2,6 @@ package com.seblful.repetit.data.repository
 
 import com.seblful.repetit.data.local.PriceDao
 import com.seblful.repetit.data.toDomain
-import com.seblful.repetit.data.toEntity
-import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.Price
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -19,14 +17,7 @@ class PriceRepository @Inject constructor(
 
     suspend fun get(studentId: Long, subjectId: Long): Price? = dao.get(studentId, subjectId)?.toDomain()
 
-    suspend fun setPrice(studentId: Long, subjectId: Long, amount: Money) =
-        dao.upsert(Price(studentId, subjectId, amount).toEntity())
-
-    /**
-     * Removes the price for one (student, subject). Only safe when the student has no class for that
-     * subject — a completed class snapshots its own charge but still references the subject, and a
-     * priced subject is the single source of truth for what's bookable. The caller
-     * ([StudentDetailViewModel.removeSubject]) enforces the "no classes" precondition.
-     */
-    suspend fun deletePrice(studentId: Long, subjectId: Long) = dao.delete(studentId, subjectId)
+    // Prices are written only via EnrollmentRepository, which sets a price exactly when it links the
+    // subject (and deletes it when it unlinks), so the priced set always equals the subject set.
+    // This repository stays read-only on purpose — no setPrice/deletePrice that could break that.
 }

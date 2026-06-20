@@ -172,6 +172,9 @@ class FakeClassDao : ClassDao {
     override suspend fun countForSubject(subjectId: Long): Int =
         items.value.count { it.subjectId == subjectId }
 
+    override suspend fun countForStudentSubject(studentId: Long, subjectId: Long): Int =
+        items.value.count { it.studentId == studentId && it.subjectId == subjectId }
+
     override suspend fun dueForCompletion(nowMillis: Long): List<ClassEntity> =
         items.value.filter { it.status == "SCHEDULED" && endMillis(it) <= nowMillis }
 

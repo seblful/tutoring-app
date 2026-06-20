@@ -2,6 +2,7 @@ package com.seblful.repetit.testutil
 
 import com.seblful.repetit.calendar.CalendarSync
 import com.seblful.repetit.data.repository.ClassRepository
+import com.seblful.repetit.data.repository.EnrollmentRepository
 import com.seblful.repetit.data.repository.PaymentRepository
 import com.seblful.repetit.data.repository.PriceRepository
 import com.seblful.repetit.data.repository.SettingsRepository
@@ -68,6 +69,7 @@ class TestEnv {
     val subjectRepo = SubjectRepository(subjectDao, classDao)
     val studentRepo = StudentRepository(studentDao)
     val priceRepo = PriceRepository(priceDao)
+    val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classDao)
     val paymentRepo = PaymentRepository(paymentDao)
     val classRepo = ClassRepository(
         dao = classDao,

@@ -22,7 +22,7 @@ class StudentFormViewModelTest {
 
     private val env = TestEnv()
 
-    private fun vm() = StudentFormViewModel(env.studentRepo, env.subjectRepo, env.priceRepo)
+    private fun vm() = StudentFormViewModel(env.studentRepo, env.subjectRepo, env.enrollmentRepo)
 
     @Test
     fun `form starts invalid and becomes valid with a name and a priced subject`() = runTest(mainRule.dispatcher) {

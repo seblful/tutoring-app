@@ -8,6 +8,7 @@ import com.seblful.repetit.data.repository.PriceRepository
 import com.seblful.repetit.data.repository.SettingsRepository
 import com.seblful.repetit.data.repository.StudentRepository
 import com.seblful.repetit.data.repository.SubjectRepository
+import com.seblful.repetit.domain.ClassEdit
 import com.seblful.repetit.domain.ClassRules
 import com.seblful.repetit.domain.Scheduling
 import com.seblful.repetit.domain.model.ClassMode
@@ -208,22 +209,21 @@ class ClassEditViewModel @Inject constructor(
         viewModelScope.launch {
             val existing = original
             if (existing != null) {
-                // A class in any status may be edited. Apply the field changes, then resolve status
-                // and charge consistently:
-                //  - the new start goes through the same re-planning as a move (ClassRules.move):
-                //    shifting it into the future re-plans the class (scheduled, charge voided),
-                //    keeping a completed class from ending up "completed in the future";
-                //  - rebill then keeps the charge in step with the (possibly new) price/duration —
-                //    re-billing a completed class that stays in the past and re-attributing its
-                //    income to the current student/subject, while scheduled/cancelled stay at zero.
-                val edited = existing.copy(
-                    studentId = f.studentId!!,
-                    subjectId = f.subjectId!!,
-                    durationMinutes = duration,
-                    price = price,
-                    mode = f.mode,
+                // A class in any status may be edited. ClassRules.edit applies the field changes and
+                // resolves status + charge in one step (re-plan via move, then rebill), so a stale
+                // charge can never be persisted — see ClassRules.edit.
+                val resolved = ClassRules.edit(
+                    existing,
+                    ClassEdit(
+                        studentId = f.studentId!!,
+                        subjectId = f.subjectId!!,
+                        durationMinutes = duration,
+                        price = price,
+                        mode = f.mode,
+                    ),
+                    start,
+                    Instant.now(),
                 )
-                val resolved = ClassRules.rebill(ClassRules.move(edited, start, Instant.now()))
                 classes.update(resolved)
             } else {
                 classes.add(

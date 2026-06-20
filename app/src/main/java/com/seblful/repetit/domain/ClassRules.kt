@@ -1,9 +1,23 @@
 package com.seblful.repetit.domain
 
+import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.ClassStatus
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.TutoringClass
 import java.time.Instant
+
+/**
+ * The user-editable fields of a class. Everything else — status and the recognized [charge] — is
+ * *derived* from these (and the new start) by [ClassRules.edit], never set by the caller, so an
+ * edit can't leave a class with a charge that no longer matches its price/duration/status.
+ */
+data class ClassEdit(
+    val studentId: Long,
+    val subjectId: Long,
+    val durationMinutes: Int,
+    val price: Money,
+    val mode: ClassMode,
+)
 
 /** Rules governing a class's status: transitions, billing on completion, auto-completion. */
 object ClassRules {
@@ -87,4 +101,23 @@ object ClassRules {
         } else {
             c.copy(start = newStart)
         }
+
+    /**
+     * Applies an edit to [original] and resolves it to a billing-consistent state in one step:
+     * the new fields ([changes]) are set, the new start goes through [move] (shifting it into the
+     * future re-plans the class), then [rebill] re-derives the charge from the (possibly new)
+     * price/duration/status. This is the only correct way to apply a field edit — it bundles the
+     * move-and-rebill obligation so no caller can persist a class with a stale charge (e.g. change
+     * a completed class's price but forget to re-bill it).
+     */
+    fun edit(original: TutoringClass, changes: ClassEdit, newStart: Instant, now: Instant): TutoringClass {
+        val edited = original.copy(
+            studentId = changes.studentId,
+            subjectId = changes.subjectId,
+            durationMinutes = changes.durationMinutes,
+            price = changes.price,
+            mode = changes.mode,
+        )
+        return rebill(move(edited, newStart, now))
+    }
 }

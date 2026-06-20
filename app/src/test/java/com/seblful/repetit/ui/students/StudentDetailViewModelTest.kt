@@ -37,6 +37,7 @@ class StudentDetailViewModelTest {
         prices = env.priceRepo,
         classes = env.classRepo,
         payments = env.paymentRepo,
+        enrollment = env.enrollmentRepo,
     )
 
     private suspend fun seedStudent(name: String = "Аня"): Long =

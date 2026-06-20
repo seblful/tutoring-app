@@ -213,4 +213,55 @@ class ClassRulesTest {
         assertEquals(Money.ZERO, ClassRules.rebill(completed.copy(status = ClassStatus.SCHEDULED)).charge)
         assertEquals(Money.ZERO, ClassRules.rebill(completed.copy(status = ClassStatus.CANCELLED)).charge)
     }
+
+    // --- edit: applies field changes and resolves status + charge in one step ---
+
+    @Test
+    fun `edit re-bills a completed class kept in the past from its new price and duration`() {
+        // Completed at 50/h for 60 min (charge 50), then re-attributed and re-priced to 30/h for 90 min.
+        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
+        val now = Instant.parse("2026-06-30T00:00:00Z")
+        val pastStart = Instant.parse("2026-06-25T10:00:00Z")
+        val resolved = ClassRules.edit(
+            completed,
+            ClassEdit(studentId = 2, subjectId = 99, durationMinutes = 90, price = Money.ofMajor(30), mode = completed.mode),
+            pastStart, now,
+        )
+        assertEquals(ClassStatus.COMPLETED, resolved.status)
+        assertEquals(Money.ofMajor(45), resolved.charge)
+        assertEquals(pastStart, resolved.start)
+        assertEquals(2, resolved.studentId)
+        assertEquals(99, resolved.subjectId)
+    }
+
+    @Test
+    fun `edit moving a completed class to the future re-plans it and voids the charge`() {
+        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
+        val now = Instant.parse("2026-06-19T00:00:00Z")
+        val futureStart = Instant.parse("2026-06-25T10:00:00Z")
+        val resolved = ClassRules.edit(
+            completed,
+            ClassEdit(studentId = 1, subjectId = 1, durationMinutes = 60, price = Money.ofMajor(30), mode = completed.mode),
+            futureStart, now,
+        )
+        assertEquals(ClassStatus.SCHEDULED, resolved.status)
+        assertTrue(resolved.charge.isZero)
+    }
+
+    @Test
+    fun `edit equals move then rebill`() {
+        // edit is exactly rebill(move(...)) with the field changes applied first — the obligation
+        // the two callers used to chain by hand, now bundled so it can't be forgotten.
+        val now = Instant.parse("2026-06-19T00:00:00Z")
+        val start = Instant.parse("2026-06-25T10:00:00Z")
+        val changes = ClassEdit(studentId = 3, subjectId = 7, durationMinutes = 45, price = Money.ofMajor(40), mode = priced.mode)
+        val viaEdit = ClassRules.edit(priced, changes, start, now)
+        val byHand = ClassRules.rebill(
+            ClassRules.move(
+                priced.copy(studentId = 3, subjectId = 7, durationMinutes = 45, price = Money.ofMajor(40)),
+                start, now,
+            )
+        )
+        assertEquals(byHand, viaEdit)
+    }
 }

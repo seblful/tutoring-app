@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.repetit.data.repository.ClassRepository
+import com.seblful.repetit.data.repository.EnrollmentRepository
 import com.seblful.repetit.data.repository.PaymentRepository
 import com.seblful.repetit.data.repository.PriceRepository
 import com.seblful.repetit.data.repository.StudentRepository
@@ -54,6 +55,7 @@ class StudentDetailViewModel @Inject constructor(
     private val prices: PriceRepository,
     private val classes: ClassRepository,
     private val payments: PaymentRepository,
+    private val enrollment: EnrollmentRepository,
 ) : ViewModel() {
 
     private val studentId: Long = checkNotNull(savedStateHandle["id"])
@@ -121,33 +123,27 @@ class StudentDetailViewModel @Inject constructor(
         viewModelScope.launch { students.setArchived(current, archived) }
     }
 
-    /** Adds a subject to the student with a price — links and prices it together so the two stay in step. */
+    /** Adds a subject to the student with a price — [EnrollmentRepository] keeps link and price in step. */
     fun addSubject(subjectId: Long, amount: Money) {
-        viewModelScope.launch {
-            students.linkSubject(studentId, subjectId)
-            prices.setPrice(studentId, subjectId, amount)
-        }
+        viewModelScope.launch { enrollment.enroll(studentId, subjectId, amount) }
     }
 
     /**
-     * Removes a subject from the student (its link and price together). Refused — with a
-     * [Event.REMOVE_BLOCKED_HAS_CLASSES] signal — when the student has any class for that subject,
-     * since those classes (completed ones especially) are billed history that must keep referencing
-     * a priced subject.
+     * Removes a subject from the student. [EnrollmentRepository] refuses (and we signal
+     * [Event.REMOVE_BLOCKED_HAS_CLASSES]) when the student has any class for it, since those classes
+     * (completed ones especially) are billed history that must keep referencing a priced subject.
      */
     fun removeSubject(subjectId: Long) {
         viewModelScope.launch {
-            if (state.value.classes.any { it.klass.subjectId == subjectId }) {
-                _events.send(Event.REMOVE_BLOCKED_HAS_CLASSES)
-                return@launch
+            when (enrollment.unenroll(studentId, subjectId)) {
+                EnrollmentRepository.Unenroll.HasClasses -> _events.send(Event.REMOVE_BLOCKED_HAS_CLASSES)
+                EnrollmentRepository.Unenroll.Ok -> Unit
             }
-            students.unlinkSubject(studentId, subjectId)
-            prices.deletePrice(studentId, subjectId)
         }
     }
 
     fun setPrice(subjectId: Long, amount: Money) {
-        viewModelScope.launch { prices.setPrice(studentId, subjectId, amount) }
+        viewModelScope.launch { enrollment.reprice(studentId, subjectId, amount) }
     }
 
     fun addPayment(amount: Money) {

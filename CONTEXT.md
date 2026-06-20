@@ -31,7 +31,7 @@ flowchart TB
 |---|---|
 | `domain/` | Pure Kotlin, no Android deps: billing, class rules, reminders, reports, scheduling, the `ReminderScheduler` port, and the models. All JVM-unit-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`. Entities are also `@Serializable` (for backup). |
-| `data/repository/` | Repositories mapping entities ⇄ domain models. `ClassRepository` owns *all* side effects of a class change (calendar mirroring + reminder refresh). |
+| `data/repository/` | Repositories mapping entities ⇄ domain models. `ClassRepository` owns *all* side effects of a class change (calendar mirroring + reminder refresh). `EnrollmentRepository` owns the subject⇄price invariant — the single seam that links/unlinks a subject and sets/deletes its price together. |
 | `data/backup/` | Whole-DB JSON snapshot: export + transactional replace-all import. |
 | `calendar/` | `CalendarSync` port + a `CalendarContract` adapter. |
 | `notifications/` | `Notifier` — reminder channel + posting. |
@@ -54,15 +54,19 @@ flowchart TB
   there is no separate "missed" status.
 - **Editing is allowed in any status; the charge is recomputed, not preserved.** Re-attributing a
   class to a new student/subject credits the new owner at the current rate, so editing history is
-  safe. Edits update the row in place (never insert), so income can't be double-counted. **Move
-  (reschedule) is allowed for any status.** A class can be **deleted in any status**; deleting a
+  safe. Edits update the row in place (never insert), so income can't be double-counted. The edit
+  path goes through `ClassRules.edit`, which folds the move (re-plan) and rebill into one step so a
+  caller can't persist a stale charge. **Move (reschedule) is allowed for any status.** A class can
+  be **deleted in any status**; deleting a
   completed one removes its recognized income (derived, not stored, so it just disappears from
   reports/balances) and the UI warns before doing so. The repository's `delete` removes the
   calendar event and refreshes reminders regardless of status. Classes are **one-off only** — no
   recurring series.
 - **A student's subjects == their priced subjects** (single source of truth). Adding a subject links
   it and sets a price in one step; removing drops both, but is **refused when the student has any
-  class for that subject**, preserving the invariant that a booked subject always has a price.
+  class for that subject**, preserving the invariant that a booked subject always has a price. This
+  is enforced in `EnrollmentRepository` (the only writer of subject links and prices), not by caller
+  discipline in the view models.
 - **History is structurally protected.** Subjects are deletable only when unreferenced; `classes`
   and `payments` use `ON DELETE RESTRICT` on their parents, so the DB itself refuses to cascade-erase
   earned income. Students are **archive-only** (no delete path).

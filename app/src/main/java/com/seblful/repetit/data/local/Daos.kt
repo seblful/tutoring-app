@@ -129,6 +129,13 @@ interface ClassDao {
     @Query("SELECT COUNT(*) FROM classes WHERE subjectId = :subjectId")
     suspend fun countForSubject(subjectId: Long): Int
 
+    /**
+     * How many classes a student has for one subject — used to refuse un-enrolling a subject whose
+     * classes (completed ones especially) are billed history that must keep referencing a price.
+     */
+    @Query("SELECT COUNT(*) FROM classes WHERE studentId = :studentId AND subjectId = :subjectId")
+    suspend fun countForStudentSubject(studentId: Long, subjectId: Long): Int
+
     /** Scheduled classes whose end time is at or before [nowMillis] — due for auto-completion. */
     @Query("SELECT * FROM classes WHERE status = 'SCHEDULED' AND (startMillis + durationMinutes * 60000) <= :nowMillis")
     suspend fun dueForCompletion(nowMillis: Long): List<ClassEntity>
