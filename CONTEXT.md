@@ -167,6 +167,12 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments.
 
 - **JVM unit tests** (`src/test`, run with `testDebugUnitTest`) cover the domain layer and the
   backup serialization format: criteria 1–4 (domain), 5 (move), 6 (format), 7 (reminder planning).
+  They also cover the **view models**, **`ClassRepository` side effects** (calendar mirroring +
+  reminder refresh), the entity⇄domain **mappers**, and the formatters. View models and repositories
+  are tested for real against **in-memory fake DAOs** (`src/test/.../testutil/`: `FakeDaos`, `Fakes`/
+  `TestEnv` wiring the real repos onto fakes + fake `CalendarSync`/`ReminderScheduler`), with a
+  `MainDispatcherRule` swapping `Dispatchers.Main`. So most logic outside the device-bound layers
+  (Room SQL, real calendar/notification I/O, WorkManager triggering) is verified without an emulator.
 - **Instrumented tests** (`src/androidTest`, need a device/emulator) cover the Room integration:
   `AutoCompleteTest` (criterion 1 end-to-end), `ClassCalendarSyncTest` (criterion 5: move updates
   the synced event), `BackupRoundTripTest` (criterion 6: export→import on an empty DB).
