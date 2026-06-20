@@ -1,8 +1,8 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
@@ -18,14 +18,16 @@ val keystoreProps = Properties().apply {
 
 android {
     namespace = "com.seblful.repetit"
-    compileSdk = 35
+    // Latest androidx (core-ktx 1.19, lifecycle 2.11) require compiling against API 37; targetSdk
+    // stays at 36 (a stable runtime behavior target) — compileSdk and targetSdk move independently.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.seblful.repetit"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0-beta"
+        targetSdk = 36
+        versionCode = 2
+        versionName = "0.1.1"
 
         testInstrumentationRunner = "com.seblful.repetit.HiltTestRunner"
     }
@@ -58,11 +60,13 @@ android {
         // java.time is used throughout but is API 26+; desugar it down to minSdk 24.
         isCoreLibraryDesugaringEnabled = true
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
     buildFeatures {
         compose = true
+    }
+    lint {
+        // lintVitalAnalyzeRelease hits a file-locking bug in AGP 9.2.1's lint-jar migration on
+        // Windows; lint still runs on debug builds (`lintDebug`), so skip it during release assembly.
+        checkReleaseBuilds = false
     }
     testOptions {
         unitTests.isReturnDefaultValues = true
@@ -72,6 +76,13 @@ android {
     // bundled schema for each version.
     sourceSets {
         getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    }
+}
+
+// Kotlin compiler options moved out of the deprecated android.kotlinOptions block (removed in AGP 9).
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_11
     }
 }
 

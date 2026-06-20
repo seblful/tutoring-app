@@ -4,7 +4,7 @@ A native Android app for a **single private tutor** to manage students, subjects
 payments and debts. **Offline-first and local-only — no backend, no account, no cloud.** Russian UI,
 Material 3, currency in **BYN** (Belarusian ruble).
 
-> Application ID: `com.seblful.repetit` · current version: `0.1.0-beta`
+> Application ID: `com.seblful.repetit` · current version: `0.1.1`
 
 ## Features
 
@@ -19,10 +19,10 @@ Material 3, currency in **BYN** (Belarusian ruble).
 
 ## Tech Stack
 
-- **Kotlin 2.1**, **Jetpack Compose** (Material 3), Navigation Compose
+- **Kotlin 2.3.20**, **Jetpack Compose** (Material 3), Navigation Compose
 - **Room** (single source of truth) · **Hilt** DI · **WorkManager**
 - **kotlinx-serialization** (backup) · `java.time` with core-library desugaring
-- AGP 8.7 · Gradle 8.9 · **JDK 21** · compile/target SDK 35 · **minSdk 24**
+- AGP 9.2.1 (built-in Kotlin) · Gradle 9.6.0 · **JDK 21** · compileSdk 37 / targetSdk 36 · **minSdk 24**
 
 Architecture is MVVM over a pure, unit-tested domain layer. See **[CONTEXT.md](CONTEXT.md)** for the
 full architecture, module map, and design decisions.

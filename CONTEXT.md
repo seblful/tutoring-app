@@ -132,9 +132,16 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments.
 
 ## Tooling & build
 
-- Kotlin 2.1, AGP 8.7, Gradle 8.9, JDK 21 (Android Studio JBR). compile/target SDK 35, minSdk 24.
-- Hilt 2.55 (older Hilt can't read Kotlin 2.1 metadata), Room, WorkManager, Navigation Compose,
-  kotlinx-serialization — versions in `gradle/libs.versions.toml`.
+- Kotlin 2.3.20, AGP 9.2.1, Gradle 9.6.0, JDK 21 (Android Studio JBR). compileSdk 37, targetSdk 36,
+  minSdk 24. **AGP 9 compiles Kotlin itself** (built-in Kotlin): there is no `kotlin.android` plugin;
+  the root `build.gradle.kts` pins the built-in KGP to 2.3.20 via a `buildscript` classpath so it
+  matches the Compose/serialization compiler plugins and KSP. **Kotlin tracks KSP** — KSP (which
+  drives Room + Hilt codegen) lags Kotlin, so Kotlin can't move past the version the latest KSP
+  embeds (KSP 2.3.9 → Kotlin 2.3.20).
+- Hilt 2.59.2, Room 2.8, WorkManager, Navigation Compose, kotlinx-serialization — versions in
+  `gradle/libs.versions.toml`.
+- `lint { checkReleaseBuilds = false }` works around an AGP 9.2.1 lint-jar file-lock bug on Windows;
+  lint still runs via `lintDebug`.
 - Build needs `JAVA_HOME` set to a JDK 21 and `local.properties` pointing at the Android SDK.
 - Common commands: `./gradlew :app:testDebugUnitTest`, `:app:assembleDebug`, `:app:assembleDebugAndroidTest`.
 - **Release**: `release` is minified + resource-shrunk (R8). Signing reads `keystore.properties` (repo
