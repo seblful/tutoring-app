@@ -76,6 +76,10 @@ flowchart TB
 - **A class's subject must have a price for the student** (`Scheduling.assignableSubjects`): the
   booking screen only offers subjects priced for the chosen student, since a completed class
   snapshots its price — an unpriced subject could never be billed, so the price is added first.
+  A booked subject can't then *lose* its price: `PriceRepository` is upsert-only (no per-pair
+  delete), and the only cascade that would drop a price (deleting its subject) is already blocked
+  while any class references the subject. So "a class whose subject has no price" is unreachable
+  through the app — the edit screen relies on this rather than guarding the dropdown for it.
 - **Subjects are deletable only when no class references them** (`SubjectRepository.delete` returns
   `false` otherwise). Subjects are FK-cascade parents of `classes`/`prices`, so hard-deleting one
   with history would silently destroy completed lessons (earned income) and strand payments as false
