@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,7 +34,7 @@ fun MoreScreen(
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).constrainedContent()) {
             ListItem(
-                leadingContent = { Icon(Icons.Filled.MenuBook, null) },
+                leadingContent = { Icon(Icons.AutoMirrored.Filled.MenuBook, null) },
                 headlineContent = { Text(stringResource(R.string.more_subjects)) },
                 modifier = Modifier.clickable { onSubjects() },
             )

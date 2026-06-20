@@ -27,7 +27,7 @@ object DatabaseModule {
             // No migrations: the schema is collapsed to a fresh v1 for the first release. Dev/beta
             // devices carrying an older schema get destructively recreated. Once published, schema
             // changes must ship a real migration (and bump the version) instead.
-            .fallbackToDestructiveMigration()
+            .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
 
     @Provides fun provideSubjectDao(db: AppDatabase): SubjectDao = db.subjectDao()

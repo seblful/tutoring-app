@@ -75,7 +75,7 @@ android {
     // assets so MigrationTestHelper can create an old-version DB and validate migrations against the
     // bundled schema for each version.
     sourceSets {
-        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+        getByName("androidTest").assets.directories.add("$projectDir/schemas")
     }
 }
 
@@ -114,6 +114,7 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
 

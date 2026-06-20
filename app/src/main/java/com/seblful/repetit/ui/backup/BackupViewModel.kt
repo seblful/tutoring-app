@@ -20,7 +20,7 @@ enum class BackupResult { EXPORT_OK, IMPORT_OK, ERROR }
 
 @HiltViewModel
 class BackupViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val backup: BackupManager,
     private val workScheduler: WorkScheduler,
     private val classes: ClassRepository,

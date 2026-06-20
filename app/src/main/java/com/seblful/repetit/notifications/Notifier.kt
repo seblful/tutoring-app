@@ -22,7 +22,7 @@ import javax.inject.Singleton
 /** Creates the reminder channel and posts class-reminder notifications. */
 @Singleton
 class Notifier @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
     fun ensureChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return

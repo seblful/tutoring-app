@@ -46,7 +46,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.Payment
@@ -158,7 +158,7 @@ fun StudentDetailScreen(
             item { BalanceCard(balance = state.balance) }
 
             if (!student?.note.isNullOrBlank()) {
-                item { Text(student!!.note, style = MaterialTheme.typography.bodyMedium) }
+                item { Text(student.note, style = MaterialTheme.typography.bodyMedium) }
             }
 
             student?.let { s ->

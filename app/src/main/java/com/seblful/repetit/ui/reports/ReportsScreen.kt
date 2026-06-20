@@ -26,7 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
 import com.seblful.repetit.ui.common.EmptyState
 import com.seblful.repetit.ui.common.constrainedContent

@@ -20,7 +20,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class CrashLogger @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) {
     private val file: File get() = File(context.filesDir, FILE_NAME)
 

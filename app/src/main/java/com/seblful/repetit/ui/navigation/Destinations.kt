@@ -33,7 +33,7 @@ object Routes {
 /** The four top-level tabs shown in the bottom bar. */
 enum class TopDestination(
     val route: String,
-    @StringRes val labelRes: Int,
+    @param:StringRes val labelRes: Int,
     val icon: ImageVector,
 ) {
     SCHEDULE(Routes.SCHEDULE, R.string.nav_schedule, Icons.Filled.CalendarMonth),

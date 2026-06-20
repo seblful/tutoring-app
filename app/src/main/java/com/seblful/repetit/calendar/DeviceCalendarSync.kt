@@ -26,7 +26,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class DeviceCalendarSync @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) : CalendarSync {
 
     override suspend fun isAvailable(): Boolean = withContext(Dispatchers.IO) {

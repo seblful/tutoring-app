@@ -21,7 +21,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class WorkScheduler @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) : ReminderScheduler {
     private val workManager get() = WorkManager.getInstance(context)
 

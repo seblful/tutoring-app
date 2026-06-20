@@ -25,7 +25,7 @@ data class DiagnosticsUiState(
 
 @HiltViewModel
 class DiagnosticsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val crashLogger: CrashLogger,
 ) : ViewModel() {
 

@@ -15,7 +15,7 @@ import java.util.Locale
  * same formats without depending on the UI layer.
  */
 
-private val RU = Locale("ru")
+private val RU = Locale.forLanguageTag("ru")
 private val dateFmt = DateTimeFormatter.ofPattern("d MMM yyyy", RU)
 private val dayFmt = DateTimeFormatter.ofPattern("EEEE, d MMMM", RU)
 private val timeFmt = DateTimeFormatter.ofPattern("HH:mm", RU)
