@@ -133,6 +133,11 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments.
   kotlinx-serialization — versions in `gradle/libs.versions.toml`.
 - Build needs `JAVA_HOME` set to a JDK 21 and `local.properties` pointing at the Android SDK.
 - Common commands: `./gradlew :app:testDebugUnitTest`, `:app:assembleDebug`, `:app:assembleDebugAndroidTest`.
+- **Release**: `release` is minified + resource-shrunk (R8). Signing reads `keystore.properties` (repo
+  root, gitignored — see `keystore.properties.example`); when absent the release build is left
+  unsigned so debug/CI/contributors are unaffected. Play artifact: `./gradlew :app:bundleRelease`
+  (→ `app/build/outputs/bundle/release/app-release.aab`). Bump `versionCode` per upload. R8 keep
+  rules for `@Serializable` types live in `proguard-rules.pro` (Room/Hilt ship their own).
 
 ```
 app/src/main/java/com/seblful/tutoringapp/
