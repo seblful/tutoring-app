@@ -1,0 +1,250 @@
+package com.seblful.repetit.testutil
+
+import com.seblful.repetit.data.local.ClassDao
+import com.seblful.repetit.data.local.ClassEntity
+import com.seblful.repetit.data.local.PaymentDao
+import com.seblful.repetit.data.local.PaymentEntity
+import com.seblful.repetit.data.local.PriceDao
+import com.seblful.repetit.data.local.PriceEntity
+import com.seblful.repetit.data.local.SettingsDao
+import com.seblful.repetit.data.local.SettingsEntity
+import com.seblful.repetit.data.local.StudentDao
+import com.seblful.repetit.data.local.StudentEntity
+import com.seblful.repetit.data.local.StudentSubjectCrossRef
+import com.seblful.repetit.data.local.SubjectDao
+import com.seblful.repetit.data.local.SubjectEntity
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
+
+/**
+ * In-memory fake DAOs backing the real repositories in JVM unit tests. Each `observe*` is derived
+ * from a [MutableStateFlow] so collectors re-emit on every write, mirroring Room's reactive queries.
+ * Auto-generated ids start at 1 (like SQLite). These are deliberately simple — they reproduce the
+ * query semantics the view models rely on (ordering, filtering), not Room's full behaviour.
+ */
+
+private fun nameKey(s: String) = s.lowercase()
+
+class FakeSubjectDao : SubjectDao {
+    val items = MutableStateFlow<List<SubjectEntity>>(emptyList())
+    private var nextId = 1L
+
+    private fun sorted(list: List<SubjectEntity>) = list.sortedBy { nameKey(it.name) }
+
+    override fun observeAll(): Flow<List<SubjectEntity>> = items.map { sorted(it) }
+    override suspend fun getAll(): List<SubjectEntity> = sorted(items.value)
+    override suspend fun getById(id: Long): SubjectEntity? = items.value.firstOrNull { it.id == id }
+
+    override suspend fun upsert(subject: SubjectEntity): Long {
+        val id = if (subject.id == 0L) nextId++ else subject.id
+        val row = subject.copy(id = id)
+        items.value = items.value.filterNot { it.id == id } + row
+        return id
+    }
+
+    override suspend fun delete(subject: SubjectEntity) {
+        items.value = items.value.filterNot { it.id == subject.id }
+    }
+
+    override suspend fun insertAll(subjects: List<SubjectEntity>) {
+        items.value = items.value + subjects
+    }
+
+    override suspend fun deleteAll() {
+        items.value = emptyList()
+    }
+}
+
+class FakeStudentDao : StudentDao {
+    val items = MutableStateFlow<List<StudentEntity>>(emptyList())
+    val links = MutableStateFlow<List<StudentSubjectCrossRef>>(emptyList())
+    private var nextId = 1L
+
+    override fun observeActive(): Flow<List<StudentEntity>> =
+        items.map { list -> list.filterNot { it.archived }.sortedBy { nameKey(it.name) } }
+
+    override fun observeAll(): Flow<List<StudentEntity>> =
+        items.map { list -> list.sortedWith(compareBy({ it.archived }, { nameKey(it.name) })) }
+
+    override suspend fun getAll(): List<StudentEntity> = items.value.sortedBy { nameKey(it.name) }
+
+    override fun observeById(id: Long): Flow<StudentEntity?> =
+        items.map { list -> list.firstOrNull { it.id == id } }
+
+    override suspend fun getById(id: Long): StudentEntity? = items.value.firstOrNull { it.id == id }
+
+    override suspend fun upsert(student: StudentEntity): Long {
+        val id = if (student.id == 0L) nextId++ else student.id
+        val row = student.copy(id = id)
+        items.value = items.value.filterNot { it.id == id } + row
+        return id
+    }
+
+    override suspend fun insertAll(students: List<StudentEntity>) {
+        items.value = items.value + students
+    }
+
+    override fun observeSubjectIds(studentId: Long): Flow<List<Long>> =
+        links.map { list -> list.filter { it.studentId == studentId }.map { it.subjectId } }
+
+    override suspend fun getSubjectIds(studentId: Long): List<Long> =
+        links.value.filter { it.studentId == studentId }.map { it.subjectId }
+
+    override suspend fun addSubjectLink(ref: StudentSubjectCrossRef) {
+        // OnConflictStrategy.IGNORE: a duplicate (studentId, subjectId) is a no-op.
+        if (links.value.none { it.studentId == ref.studentId && it.subjectId == ref.subjectId }) {
+            links.value = links.value + ref
+        }
+    }
+
+    override suspend fun removeSubjectLink(studentId: Long, subjectId: Long) {
+        links.value = links.value.filterNot { it.studentId == studentId && it.subjectId == subjectId }
+    }
+
+    override suspend fun getAllLinks(): List<StudentSubjectCrossRef> = links.value
+    override suspend fun insertLinks(links: List<StudentSubjectCrossRef>) {
+        this.links.value = this.links.value + links
+    }
+
+    override suspend fun deleteAll() {
+        items.value = emptyList()
+    }
+
+    override suspend fun deleteAllLinks() {
+        links.value = emptyList()
+    }
+}
+
+class FakePriceDao : PriceDao {
+    val items = MutableStateFlow<List<PriceEntity>>(emptyList())
+
+    override fun observeForStudent(studentId: Long): Flow<List<PriceEntity>> =
+        items.map { list -> list.filter { it.studentId == studentId } }
+
+    override suspend fun get(studentId: Long, subjectId: Long): PriceEntity? =
+        items.value.firstOrNull { it.studentId == studentId && it.subjectId == subjectId }
+
+    override suspend fun upsert(price: PriceEntity) {
+        items.value = items.value.filterNot {
+            it.studentId == price.studentId && it.subjectId == price.subjectId
+        } + price
+    }
+
+    override suspend fun delete(studentId: Long, subjectId: Long) {
+        items.value = items.value.filterNot { it.studentId == studentId && it.subjectId == subjectId }
+    }
+
+    override suspend fun getAll(): List<PriceEntity> = items.value
+    override suspend fun insertAll(prices: List<PriceEntity>) {
+        items.value = items.value + prices
+    }
+
+    override suspend fun deleteAll() {
+        items.value = emptyList()
+    }
+}
+
+class FakeClassDao : ClassDao {
+    val items = MutableStateFlow<List<ClassEntity>>(emptyList())
+    private var nextId = 1L
+
+    private fun endMillis(c: ClassEntity) = c.startMillis + c.durationMinutes * 60000L
+
+    override fun observeById(id: Long): Flow<ClassEntity?> =
+        items.map { list -> list.firstOrNull { it.id == id } }
+
+    override suspend fun getById(id: Long): ClassEntity? = items.value.firstOrNull { it.id == id }
+
+    override fun observeAll(): Flow<List<ClassEntity>> = items.map { it.sortedBy { c -> c.startMillis } }
+
+    override fun observeForStudent(studentId: Long): Flow<List<ClassEntity>> =
+        items.map { list -> list.filter { it.studentId == studentId }.sortedByDescending { it.startMillis } }
+
+    override fun observeBetween(fromMillis: Long, toMillis: Long): Flow<List<ClassEntity>> =
+        items.map { list ->
+            list.filter { it.startMillis in fromMillis until toMillis }.sortedBy { it.startMillis }
+        }
+
+    override suspend fun getForStudent(studentId: Long): List<ClassEntity> =
+        items.value.filter { it.studentId == studentId }
+
+    override suspend fun countForSubject(subjectId: Long): Int =
+        items.value.count { it.subjectId == subjectId }
+
+    override suspend fun dueForCompletion(nowMillis: Long): List<ClassEntity> =
+        items.value.filter { it.status == "SCHEDULED" && endMillis(it) <= nowMillis }
+
+    override suspend fun nextScheduledAfter(nowMillis: Long): ClassEntity? =
+        items.value.filter { it.status == "SCHEDULED" && it.startMillis > nowMillis }
+            .minByOrNull { it.startMillis }
+
+    override suspend fun getAll(): List<ClassEntity> = items.value
+
+    override suspend fun upsert(klass: ClassEntity): Long {
+        val id = if (klass.id == 0L) nextId++ else klass.id
+        val row = klass.copy(id = id)
+        items.value = items.value.filterNot { it.id == id } + row
+        return id
+    }
+
+    override suspend fun update(klass: ClassEntity) {
+        items.value = items.value.map { if (it.id == klass.id) klass else it }
+    }
+
+    override suspend fun delete(klass: ClassEntity) {
+        items.value = items.value.filterNot { it.id == klass.id }
+    }
+
+    override suspend fun insertAll(classes: List<ClassEntity>) {
+        items.value = items.value + classes
+    }
+
+    override suspend fun deleteAll() {
+        items.value = emptyList()
+    }
+}
+
+class FakeSettingsDao : SettingsDao {
+    val row = MutableStateFlow<SettingsEntity?>(null)
+
+    override fun observe(): Flow<SettingsEntity?> = row
+    override suspend fun get(): SettingsEntity? = row.value
+    override suspend fun upsert(settings: SettingsEntity) {
+        row.value = settings
+    }
+}
+
+class FakePaymentDao : PaymentDao {
+    val items = MutableStateFlow<List<PaymentEntity>>(emptyList())
+    private var nextId = 1L
+
+    override fun observeAll(): Flow<List<PaymentEntity>> =
+        items.map { it.sortedByDescending { p -> p.dateMillis } }
+
+    override fun observeForStudent(studentId: Long): Flow<List<PaymentEntity>> =
+        items.map { list -> list.filter { it.studentId == studentId }.sortedByDescending { it.dateMillis } }
+
+    override suspend fun getForStudent(studentId: Long): List<PaymentEntity> =
+        items.value.filter { it.studentId == studentId }
+
+    override suspend fun getAll(): List<PaymentEntity> = items.value
+
+    override suspend fun insert(payment: PaymentEntity): Long {
+        val id = if (payment.id == 0L) nextId++ else payment.id
+        items.value = items.value.filterNot { it.id == id } + payment.copy(id = id)
+        return id
+    }
+
+    override suspend fun delete(payment: PaymentEntity) {
+        items.value = items.value.filterNot { it.id == payment.id }
+    }
+
+    override suspend fun insertAll(payments: List<PaymentEntity>) {
+        items.value = items.value + payments
+    }
+
+    override suspend fun deleteAll() {
+        items.value = emptyList()
+    }
+}

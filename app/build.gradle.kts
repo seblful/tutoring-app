@@ -8,17 +8,17 @@ plugins {
 }
 
 android {
-    namespace = "com.seblful.tutoringapp"
+    namespace = "com.seblful.repetit"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.seblful.tutoringapp"
+        applicationId = "com.seblful.repetit"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = "0.1.0-beta"
 
-        testInstrumentationRunner = "com.seblful.tutoringapp.HiltTestRunner"
+        testInstrumentationRunner = "com.seblful.repetit.HiltTestRunner"
     }
 
     buildTypes {
