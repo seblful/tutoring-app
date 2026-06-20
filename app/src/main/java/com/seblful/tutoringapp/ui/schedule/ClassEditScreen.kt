@@ -43,6 +43,7 @@ import com.seblful.tutoringapp.ui.common.DatePickerModal
 import com.seblful.tutoringapp.ui.common.ModeSelector
 import com.seblful.tutoringapp.ui.common.TimePickerModal
 import com.seblful.tutoringapp.ui.common.classModeLabel
+import com.seblful.tutoringapp.ui.common.constrainedContent
 import com.seblful.tutoringapp.ui.common.text
 import com.seblful.tutoringapp.format.formatDate
 import java.time.LocalDate
@@ -88,6 +89,7 @@ fun ClassEditScreen(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .constrainedContent()
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),

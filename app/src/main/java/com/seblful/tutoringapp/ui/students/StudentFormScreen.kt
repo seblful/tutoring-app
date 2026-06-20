@@ -37,6 +37,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.seblful.tutoringapp.R
 import com.seblful.tutoringapp.format.parseMoneyOrNull
 import com.seblful.tutoringapp.ui.common.ModeSelector
+import com.seblful.tutoringapp.ui.common.constrainedContent
 
 /** Full-screen "add student" with required subjects + prices. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,6 +82,7 @@ fun StudentFormContent(
     val form = state.form
     Column(
         modifier
+            .constrainedContent()
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),

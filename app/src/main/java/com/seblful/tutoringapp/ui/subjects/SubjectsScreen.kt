@@ -35,6 +35,7 @@ import com.seblful.tutoringapp.domain.model.Subject
 import com.seblful.tutoringapp.ui.common.ConfirmDialog
 import com.seblful.tutoringapp.ui.common.EmptyState
 import com.seblful.tutoringapp.ui.common.TextFieldDialog
+import com.seblful.tutoringapp.ui.common.constrainedContent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,7 +80,7 @@ fun SubjectsScreen(
             if (subjects.isEmpty()) {
                 EmptyState(stringResource(R.string.subjects_empty))
             } else {
-                LazyColumn(Modifier.fillMaxSize()) {
+                LazyColumn(Modifier.fillMaxSize().constrainedContent()) {
                     items(subjects, key = { it.id }) { subject ->
                         ListItem(
                             headlineContent = { Text(subject.name) },

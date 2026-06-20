@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.seblful.tutoringapp.R
 import com.seblful.tutoringapp.ui.common.EmptyState
+import com.seblful.tutoringapp.ui.common.constrainedContent
 import com.seblful.tutoringapp.ui.common.text
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,7 +57,7 @@ fun ReportsScreen(viewModel: ReportsViewModel = hiltViewModel()) {
         val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
 
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize().padding(padding).constrainedContent(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {

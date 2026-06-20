@@ -62,6 +62,7 @@ import com.seblful.tutoringapp.ui.common.TimePickerModal
 import com.seblful.tutoringapp.ui.common.classModeLabel
 import com.seblful.tutoringapp.ui.common.classStatusColor
 import com.seblful.tutoringapp.ui.common.classStatusLabel
+import com.seblful.tutoringapp.ui.common.constrainedContent
 import com.seblful.tutoringapp.format.formatDay
 import com.seblful.tutoringapp.format.formatTime
 import com.seblful.tutoringapp.format.toLocalDate
@@ -110,7 +111,7 @@ fun ScheduleScreen(
                 EmptyState(stringResource(R.string.schedule_empty))
             } else {
                 LazyColumn(
-                    Modifier.fillMaxSize(),
+                    Modifier.fillMaxSize().constrainedContent(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {

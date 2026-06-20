@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -33,11 +35,28 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.seblful.tutoringapp.R
 import com.seblful.tutoringapp.domain.model.ClassMode
 import com.seblful.tutoringapp.domain.model.ClassStatus
 import com.seblful.tutoringapp.domain.model.Money
+
+/**
+ * The widest a single column of content should grow. On phones (always narrower than this) it's a
+ * no-op and content stays full-width; on tablets, unfolded foldables and landscape it caps the line
+ * length so text fields and list rows stay readable instead of stretching edge-to-edge.
+ */
+val MaxContentWidth = 600.dp
+
+/**
+ * Caps content at [MaxContentWidth] and centres it horizontally on wide screens, while leaving
+ * phones full-width. Apply to a screen's top-level scrollable content (a scrolling `Column`, a
+ * `LazyColumn`, or a settings list). Pairs with `fillMaxSize()`/`fillMaxWidth()` — put this after
+ * the size modifier and before content padding, e.g. `Modifier.fillMaxSize().constrainedContent()`.
+ */
+fun Modifier.constrainedContent(max: Dp = MaxContentWidth): Modifier =
+    this.wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = max)
 
 /**
  * A tappable surface for one item in a content list (schedule classes, students). Gives the main

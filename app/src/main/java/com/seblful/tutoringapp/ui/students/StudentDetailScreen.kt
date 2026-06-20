@@ -60,6 +60,7 @@ import com.seblful.tutoringapp.ui.common.balanceDescription
 import com.seblful.tutoringapp.ui.common.classModeLabel
 import com.seblful.tutoringapp.ui.common.classStatusColor
 import com.seblful.tutoringapp.ui.common.classStatusLabel
+import com.seblful.tutoringapp.ui.common.constrainedContent
 import com.seblful.tutoringapp.ui.common.text
 import com.seblful.tutoringapp.format.formatDate
 import com.seblful.tutoringapp.format.formatDateTime
@@ -150,7 +151,7 @@ fun StudentDetailScreen(
         },
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.fillMaxWidth().padding(padding),
+            modifier = Modifier.fillMaxWidth().padding(padding).constrainedContent(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {

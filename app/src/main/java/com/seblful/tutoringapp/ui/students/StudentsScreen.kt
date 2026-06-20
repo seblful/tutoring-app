@@ -37,6 +37,7 @@ import com.seblful.tutoringapp.ui.common.ContentCard
 import com.seblful.tutoringapp.ui.common.EmptyState
 import com.seblful.tutoringapp.ui.common.balanceColor
 import com.seblful.tutoringapp.ui.common.balanceDescription
+import com.seblful.tutoringapp.ui.common.constrainedContent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,7 +76,7 @@ fun StudentsScreen(
                 EmptyState(stringResource(R.string.students_empty))
             } else {
                 LazyColumn(
-                    Modifier.fillMaxSize(),
+                    Modifier.fillMaxSize().constrainedContent(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {

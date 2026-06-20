@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.seblful.tutoringapp.R
+import com.seblful.tutoringapp.ui.common.constrainedContent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +69,7 @@ fun SettingsScreen(
         },
     ) { padding ->
         Column(
-            Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()),
+            Modifier.fillMaxSize().padding(padding).constrainedContent().verticalScroll(rememberScrollState()),
         ) {
             // Grouped by what each setting governs, so a glance tells you where to look:
             // reminders, then calendar sync, class behaviour, money, and look.
