@@ -70,7 +70,6 @@ import com.seblful.tutoringapp.format.toAmountInput
 @Composable
 fun StudentDetailScreen(
     onBack: () -> Unit,
-    onClassClick: (Long) -> Unit,
     viewModel: StudentDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -252,8 +251,7 @@ fun StudentDetailScreen(
             } else {
                 val visibleClasses = if (showAllClasses) state.classes else state.classes.take(LIST_CAP)
                 items(visibleClasses, key = { StudentDetailKeys.klass(it.klass.id) }) { row ->
-                    // A class in any status opens the editor; saving a completed class re-bills it so
-                    // its snapshotted charge tracks the edit (see ClassRules.rebill).
+                    // Read-only here: classes are edited from the schedule, not the student page.
                     ListItem(
                         headlineContent = { Text("${row.subjectName} · ${row.klass.start.formatDateTime()}") },
                         supportingContent = {
@@ -264,7 +262,6 @@ fun StudentDetailScreen(
                                 Text(row.klass.charge.text())
                             }
                         },
-                        modifier = Modifier.clickable { onClassClick(row.klass.id) },
                     )
                 }
                 if (state.classes.size > LIST_CAP) {

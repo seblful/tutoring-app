@@ -128,7 +128,6 @@ private fun MainApp() {
             ) {
                 StudentDetailScreen(
                     onBack = { navController.popBackStack() },
-                    onClassClick = { navController.navigate(Routes.classEdit(it)) },
                 )
             }
 
