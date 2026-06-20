@@ -6,6 +6,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -113,6 +115,19 @@ fun DiagnosticsScreen(
                             .padding(12.dp),
                         style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                     )
+                }
+            }
+
+            if (viewModel.isDebugBuild) {
+                // Debug-only: verify the crash handler actually records and survives a real crash.
+                // The thrown exception is uncaught on purpose — it kills the app; relaunch to see the
+                // entry appear above. Never present in a release build (gated by the debuggable flag).
+                Spacer(Modifier.weight(1f))
+                OutlinedButton(
+                    onClick = { throw RuntimeException("Test crash from Diagnostics screen") },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) {
+                    Text(stringResource(R.string.diagnostics_test_crash))
                 }
             }
         }

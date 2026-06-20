@@ -35,6 +35,13 @@ class DiagnosticsViewModel @Inject constructor(
     private val _events = Channel<DiagnosticsEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
 
+    /**
+     * True only for a debuggable (non-release) build. Gates the "force test crash" action so it can
+     * never reach a published build — the flag is set by the build type, not by us.
+     */
+    val isDebugBuild: Boolean =
+        (context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+
     init {
         refresh()
     }

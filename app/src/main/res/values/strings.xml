@@ -182,4 +182,5 @@
     <string name="diagnostics_filename">tutoring-crash-log.txt</string>
     <string name="diagnostics_export_success">Отчёт сохранён</string>
     <string name="diagnostics_error">Не удалось сохранить файл</string>
+    <string name="diagnostics_test_crash">Вызвать тестовый сбой</string>
 </resources>
