@@ -99,7 +99,7 @@ fun ScheduleScreen(
             }
         },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxSize().padding(padding).constrainedContent()) {
             DayNavigator(
                 date = date,
                 onPrevious = viewModel::goToPreviousDay,
@@ -111,7 +111,7 @@ fun ScheduleScreen(
                 EmptyState(stringResource(R.string.schedule_empty))
             } else {
                 LazyColumn(
-                    Modifier.fillMaxSize().constrainedContent(),
+                    Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {

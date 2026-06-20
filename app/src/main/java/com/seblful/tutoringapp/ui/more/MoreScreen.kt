@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.seblful.tutoringapp.R
+import com.seblful.tutoringapp.ui.common.constrainedContent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,7 +30,7 @@ fun MoreScreen(
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.nav_more)) }) },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxSize().padding(padding).constrainedContent()) {
             ListItem(
                 leadingContent = { Icon(Icons.Filled.MenuBook, null) },
                 headlineContent = { Text(stringResource(R.string.more_subjects)) },

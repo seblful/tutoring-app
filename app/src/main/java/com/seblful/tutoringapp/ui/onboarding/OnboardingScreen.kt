@@ -34,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.seblful.tutoringapp.R
 import com.seblful.tutoringapp.ui.common.EmptyState
 import com.seblful.tutoringapp.ui.common.TextFieldDialog
+import com.seblful.tutoringapp.ui.common.constrainedContent
 import com.seblful.tutoringapp.ui.students.StudentFormContent
 import com.seblful.tutoringapp.ui.students.StudentFormViewModel
 
@@ -74,7 +75,7 @@ fun OnboardingScreen(
             )
         },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxSize().padding(padding).constrainedContent()) {
             when (step) {
                 Step.SUBJECTS -> {
                     Text(

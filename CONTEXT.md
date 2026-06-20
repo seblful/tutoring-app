@@ -144,6 +144,12 @@ flowchart TB
   lists (schedule, students) use the shared `ContentCard` for a card-based look, while
   *settings-style* lists (More, Subjects) stay as plain `ListItem` rows. Shared visual atoms live in
   `ui/common/Components.kt` (`ContentCard`, `StatusBadge`, `Avatar`).
+- **Responsive width.** The app is phone-first but must stay usable on tablets, unfolded foldables
+  and landscape. Every screen's top-level scrollable content (scrolling `Column`, `LazyColumn`, or
+  settings list) applies `Modifier.constrainedContent()` (`ui/common/Components.kt`), which caps
+  content at `MaxContentWidth` (600.dp) and centres it on wide screens while staying full-width on
+  phones (a no-op below 600.dp). Vertical fit is handled by every screen scrolling, so short/landscape
+  viewports never clip content.
 
 ---
 

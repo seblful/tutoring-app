@@ -30,6 +30,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.LaunchedEffect
 import com.seblful.tutoringapp.R
 import com.seblful.tutoringapp.ui.common.ConfirmDialog
+import com.seblful.tutoringapp.ui.common.constrainedContent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,7 +78,7 @@ fun BackupScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHost) },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxSize().padding(padding).constrainedContent()) {
             ListItem(
                 leadingContent = { Icon(Icons.Filled.Upload, null) },
                 headlineContent = { Text(stringResource(R.string.backup_export)) },
