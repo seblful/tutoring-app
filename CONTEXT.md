@@ -107,8 +107,8 @@ flowchart TB
   auto-billing is opt-in; when off, finished classes stay scheduled until marked completed),
   `themeMode` (SYSTEM/LIGHT/DARK), `defaultLessonMinutes`
   (default 60 — pre-fills the booking end time), and `currency` (BYN/RUB). Device-local, so **not**
-  part of the backup snapshot. The **More → Settings** screen (grouped into Reminders / Classes /
-  Money / Appearance / Calendar sections) edits them; theme + currency are read
+  part of the backup snapshot. The **More → Settings** screen (grouped into Reminders / Calendar /
+  Classes / Money / Appearance sections) edits them; theme + currency are read
   at `AppRoot` (currency via the `LocalCurrency` CompositionLocal, so `Money.text()` re-renders on
   change). Schema changes here ship a real Room migration (see `DatabaseModule.MIGRATION_3_4`) so the
   tutor's live data survives upgrades.

@@ -71,7 +71,7 @@ fun SettingsScreen(
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()),
         ) {
             // Grouped by what each setting governs, so a glance tells you where to look:
-            // reminders, then class behaviour, money, look, and calendar sync.
+            // reminders, then calendar sync, class behaviour, money, and look.
             SectionHeader(stringResource(R.string.settings_section_reminders))
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_notifications)) },
@@ -92,6 +92,24 @@ fun SettingsScreen(
                 ),
                 selected = settings.reminderLeadMinutes,
                 onSelect = { viewModel.setReminderLeadMinutes(it) },
+            )
+
+            SectionHeader(stringResource(R.string.settings_section_calendar))
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_calendar_sync)) },
+                supportingContent = { Text(stringResource(R.string.settings_calendar_sync_desc)) },
+                trailingContent = {
+                    Switch(
+                        checked = settings.calendarSyncEnabled,
+                        onCheckedChange = { on ->
+                            if (!on) viewModel.setCalendarSyncEnabled(false)
+                            else if (hasCalendarPermission(context)) viewModel.setCalendarSyncEnabled(true)
+                            else calendarPermission.launch(
+                                arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR),
+                            )
+                        },
+                    )
+                },
             )
 
             SectionHeader(stringResource(R.string.settings_section_classes))
@@ -138,24 +156,6 @@ fun SettingsScreen(
                 ),
                 selected = settings.themeMode,
                 onSelect = { viewModel.setThemeMode(it) },
-            )
-
-            SectionHeader(stringResource(R.string.settings_section_calendar))
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_calendar_sync)) },
-                supportingContent = { Text(stringResource(R.string.settings_calendar_sync_desc)) },
-                trailingContent = {
-                    Switch(
-                        checked = settings.calendarSyncEnabled,
-                        onCheckedChange = { on ->
-                            if (!on) viewModel.setCalendarSyncEnabled(false)
-                            else if (hasCalendarPermission(context)) viewModel.setCalendarSyncEnabled(true)
-                            else calendarPermission.launch(
-                                arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR),
-                            )
-                        },
-                    )
-                },
             )
         }
     }
