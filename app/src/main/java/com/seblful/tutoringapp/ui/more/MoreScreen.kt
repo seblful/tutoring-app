@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
@@ -26,6 +27,7 @@ fun MoreScreen(
     onSubjects: () -> Unit,
     onBackup: () -> Unit,
     onSettings: () -> Unit,
+    onDiagnostics: () -> Unit,
 ) {
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.nav_more)) }) },
@@ -45,6 +47,11 @@ fun MoreScreen(
                 leadingContent = { Icon(Icons.Filled.Save, null) },
                 headlineContent = { Text(stringResource(R.string.more_backup)) },
                 modifier = Modifier.clickable { onBackup() },
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Filled.BugReport, null) },
+                headlineContent = { Text(stringResource(R.string.diagnostics_title)) },
+                modifier = Modifier.clickable { onDiagnostics() },
             )
         }
     }

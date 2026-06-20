@@ -171,4 +171,15 @@
     <string name="backup_export_success">Данные сохранены</string>
     <string name="backup_import_success">Данные восстановлены</string>
     <string name="backup_error">Не удалось — проверьте файл</string>
+
+    <!-- Diagnostics -->
+    <string name="diagnostics_title">Диагностика</string>
+    <string name="diagnostics_desc">Если приложение завершилось с ошибкой, здесь сохраняется отчёт о сбое. Его можно выгрузить в файл и отправить разработчику.</string>
+    <string name="diagnostics_empty">Сбоев не зафиксировано</string>
+    <string name="diagnostics_export">Выгрузить в файл</string>
+    <string name="diagnostics_clear">Очистить</string>
+    <string name="diagnostics_clear_confirm">Удалить сохранённые отчёты о сбоях?</string>
+    <string name="diagnostics_filename">tutoring-crash-log.txt</string>
+    <string name="diagnostics_export_success">Отчёт сохранён</string>
+    <string name="diagnostics_error">Не удалось сохранить файл</string>
 </resources>

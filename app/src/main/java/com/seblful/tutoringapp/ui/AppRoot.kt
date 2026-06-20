@@ -27,6 +27,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.seblful.tutoringapp.ui.common.LocalCurrency
 import com.seblful.tutoringapp.ui.theme.TutoringAppTheme
 import com.seblful.tutoringapp.ui.backup.BackupScreen
+import com.seblful.tutoringapp.ui.diagnostics.DiagnosticsScreen
 import com.seblful.tutoringapp.ui.more.MoreScreen
 import com.seblful.tutoringapp.ui.more.SettingsScreen
 import com.seblful.tutoringapp.ui.navigation.Routes
@@ -110,6 +111,7 @@ private fun MainApp() {
                     onSubjects = { navController.navigate(Routes.SUBJECTS) },
                     onBackup = { navController.navigate(Routes.BACKUP) },
                     onSettings = { navController.navigate(Routes.SETTINGS) },
+                    onDiagnostics = { navController.navigate(Routes.DIAGNOSTICS) },
                 )
             }
 
@@ -139,6 +141,9 @@ private fun MainApp() {
             }
             composable(Routes.SETTINGS) {
                 SettingsScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Routes.DIAGNOSTICS) {
+                DiagnosticsScreen(onBack = { navController.popBackStack() })
             }
 
             composable(
