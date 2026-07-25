@@ -1,0 +1,17 @@
+<!--
+  Compose UI tests host their content in the bare ComponentActivity that `ui-test-manifest` declares
+  for debug builds. That activity cannot come to the foreground while the phone is locked — and a
+  locked phone is the normal state of the one device this project is tested on (there is no emulator),
+  where the tests then fail with "No compose hierarchies found in the app". Showing it over the
+  keyguard is enough to let them run. Debug-only, and only ever this test host activity.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application>
+        <activity
+            android:name="androidx.activity.ComponentActivity"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            tools:node="merge" />
+    </application>
+</manifest>

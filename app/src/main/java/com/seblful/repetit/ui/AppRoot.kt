@@ -5,17 +5,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -32,6 +27,7 @@ import com.seblful.repetit.ui.groups.GroupFormScreen
 import com.seblful.repetit.ui.groups.GroupsScreen
 import com.seblful.repetit.ui.more.MoreScreen
 import com.seblful.repetit.ui.more.SettingsScreen
+import com.seblful.repetit.ui.navigation.BottomBar
 import com.seblful.repetit.ui.navigation.Routes
 import com.seblful.repetit.ui.navigation.TopDestination
 import com.seblful.repetit.ui.onboarding.OnboardingScreen
@@ -85,20 +81,11 @@ private fun MainApp(showGroupsTab: Boolean) {
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                NavigationBar {
-                    tabs.forEach { dest ->
-                        NavigationBarItem(
-                            selected = currentRoute == dest.route,
-                            onClick = {
-                                navController.navigate(dest.route) {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = { Icon(dest.icon, stringResource(dest.labelRes)) },
-                            label = { Text(stringResource(dest.labelRes)) },
-                        )
+                BottomBar(tabs = tabs, currentRoute = currentRoute) { dest ->
+                    navController.navigate(dest.route) {
+                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
                     }
                 }
             }
