@@ -56,7 +56,7 @@
     <string name="student_name_label">Имя</string>
     <string name="student_phone_label">Телефон</string>
     <string name="student_email_label">Email</string>
-    <string name="student_email_hint">Для напоминаний на почту за час до занятия</string>
+    <string name="student_email_hint">Для напоминаний на почту перед занятием</string>
     <string name="student_note_label">Заметка</string>
     <string name="student_form_subjects_title">Предметы и цены</string>
     <string name="student_form_subjects_required">Выберите хотя бы один предмет и укажите цену</string>
@@ -112,7 +112,7 @@
     <string name="settings_section_appearance">Оформление</string>
     <string name="settings_section_calendar">Календарь</string>
     <string name="settings_notifications">Напоминания</string>
-    <string name="settings_notifications_desc">Уведомлять за час до занятия</string>
+    <string name="settings_notifications_desc">Уведомлять перед занятием</string>
     <string name="settings_calendar_sync">Синхронизация с календарём</string>
     <string name="settings_calendar_sync_desc">Показывать занятия в календаре устройства и приглашать учеников по email</string>
     <string name="settings_reminder_lead">За сколько напоминать</string>
