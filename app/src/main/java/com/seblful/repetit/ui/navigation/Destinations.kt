@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.People
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -41,18 +42,35 @@ object Routes {
         "class/$id?date=$epochDay&group=$groupId"
 }
 
-/** The four top-level tabs shown in the bottom bar. */
+/**
+ * The top-level tabs of the bottom bar, **in the order they appear**: who is taught first
+ * («Ученики», then «Группы» right beside it — the same people seen as rosters), then when
+ * («Расписание»), then the money («Отчёты») and the rest. The app still *opens* on the schedule;
+ * this order is only where each tab sits. «Группы» is the one tab that can be switched off
+ * (see [visible]).
+ */
 enum class TopDestination(
     val route: String,
     @param:StringRes val labelRes: Int,
     val icon: ImageVector,
 ) {
-    SCHEDULE(Routes.SCHEDULE, R.string.nav_schedule, Icons.Filled.CalendarMonth),
     STUDENTS(Routes.STUDENTS, R.string.nav_students, Icons.Filled.People),
+    GROUPS(Routes.GROUPS, R.string.nav_groups, Icons.Filled.Groups),
+    SCHEDULE(Routes.SCHEDULE, R.string.nav_schedule, Icons.Filled.CalendarMonth),
     REPORTS(Routes.REPORTS, R.string.nav_reports, Icons.Filled.BarChart),
     MORE(Routes.MORE, R.string.nav_more, Icons.Filled.MoreHoriz);
 
     companion object {
-        val routes = entries.map { it.route }.toSet()
+        /**
+         * The tabs to show, given the «Группы» setting. Hiding a tab must also stop the bottom bar
+         * from claiming its route as a tab (otherwise the bar would render with nothing selected
+         * when that route is opened from «Ещё» instead), so the bar and its routes are both derived
+         * from this one list rather than from [entries].
+         */
+        fun visible(showGroupsTab: Boolean): List<TopDestination> =
+            entries.filter { showGroupsTab || it != GROUPS }
+
+        fun routes(showGroupsTab: Boolean): Set<String> =
+            visible(showGroupsTab).map { it.route }.toSet()
     }
 }

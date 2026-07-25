@@ -151,6 +151,12 @@ data class SettingsEntity(
     val defaultLessonMinutes: Int = 60,
     /** Currency code used to display all money, e.g. "BYN" or "RUB". */
     val currency: String = "BYN",
+    /**
+     * Whether «Группы» gets its own tab in the bottom bar. **On by default**; a tutor who only
+     * teaches one-to-one turns it off and the section moves back into «Ещё» — it is never taken
+     * away, because the groups and their lessons still exist.
+     */
+    val showGroupsTab: Boolean = true,
 ) {
     companion object {
         const val SINGLETON_ID = 0

@@ -17,6 +17,7 @@ data class AppSettings(
     val themeMode: String = "SYSTEM",
     val defaultLessonMinutes: Int = 60,
     val currency: String = "BYN",
+    val showGroupsTab: Boolean = true,
 )
 
 @Singleton
@@ -51,6 +52,9 @@ class SettingsRepository @Inject constructor(
     suspend fun setCurrency(currency: String) =
         update { it.copy(currency = currency) }
 
+    suspend fun setShowGroupsTab(show: Boolean) =
+        update { it.copy(showGroupsTab = show) }
+
     private suspend fun update(transform: (SettingsEntity) -> SettingsEntity) {
         val current = dao.get() ?: SettingsEntity()
         dao.upsert(transform(current))
@@ -67,5 +71,6 @@ class SettingsRepository @Inject constructor(
             themeMode = themeMode,
             defaultLessonMinutes = defaultLessonMinutes,
             currency = currency,
+            showGroupsTab = showGroupsTab,
         )
 }

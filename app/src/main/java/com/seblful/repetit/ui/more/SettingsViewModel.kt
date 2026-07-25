@@ -48,6 +48,15 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
+     * Shows or hides the «Группы» tab. Hiding only moves the section back into «Ещё» — nothing about
+     * the groups themselves changes, so a tutor who turns it off can still reach them (and their
+     * lessons keep naming their group either way).
+     */
+    fun setShowGroupsTab(show: Boolean) {
+        viewModelScope.launch { settings.setShowGroupsTab(show) }
+    }
+
+    /**
      * Toggles calendar sync. Enabling backfills events for existing classes; disabling removes the
      * events we created.
      *

@@ -37,6 +37,7 @@ class SettingsViewModelTest {
         vm.setDefaultLessonMinutes(45)
         vm.setCurrency("RUB")
         vm.setNotificationsEnabled(false)
+        vm.setShowGroupsTab(false)
         advanceUntilIdle()
 
         val s = env.settingsRepo.get()
@@ -46,6 +47,25 @@ class SettingsViewModelTest {
         assertEquals(45, s.defaultLessonMinutes)
         assertEquals("RUB", s.currency)
         assertFalse(s.notificationsEnabled)
+        assertFalse(s.showGroupsTab)
+    }
+
+    @Test
+    fun `the groups tab is on by default and switching it back on sticks`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+
+        assertTrue("a fresh install shows the tab", vm.state.value.showGroupsTab)
+
+        vm.setShowGroupsTab(false)
+        advanceUntilIdle()
+        assertFalse(vm.state.value.showGroupsTab)
+
+        vm.setShowGroupsTab(true)
+        advanceUntilIdle()
+        assertTrue(vm.state.value.showGroupsTab)
+        assertTrue(env.settingsRepo.get().showGroupsTab)
     }
 
     @Test

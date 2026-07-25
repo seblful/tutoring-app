@@ -176,6 +176,59 @@ class GroupRulesTest {
         assertEquals(listOf(1L, 3L), bookable.map { it.id })
     }
 
+    // --- memberCandidates ---
+
+    private val pickable = listOf(Student(1, "Аня"), Student(2, "Борис"), Student(3, "Вера"))
+
+    /** Аня takes both subjects, Борис only Алгебра, Вера only Физика. */
+    private val rates = mapOf(
+        1L to mapOf(1L to Money.ofMajor(30), 2L to Money.ofMajor(40)),
+        2L to mapOf(1L to Money.ofMajor(25)),
+        3L to mapOf(2L to Money.ofMajor(35)),
+    )
+
+    @Test
+    fun `picking for a subject offers the students priced for it, with their own rates`() {
+        val candidates = GroupRules.memberCandidates(pickable, rates, subjectId = 1L, selectedIds = emptySet())
+
+        assertEquals(listOf(1L, 2L), candidates.map { it.student.id })
+        assertEquals(listOf(Money.ofMajor(30), Money.ofMajor(25)), candidates.map { it.rate })
+        assertTrue(candidates.none { it.missingPrice })
+    }
+
+    @Test
+    fun `with no subject chosen only the current members come back`() {
+        val candidates = GroupRules.memberCandidates(pickable, rates, subjectId = null, selectedIds = setOf(2L))
+
+        assertEquals(listOf(2L), candidates.map { it.student.id })
+        // Nothing to be priced for yet, so nothing is flagged.
+        assertEquals(listOf(null), candidates.map { it.rate })
+        assertTrue(candidates.none { it.missingPrice })
+    }
+
+    @Test
+    fun `a member with no price for the chosen subject is kept, flagged, never hidden`() {
+        val candidates = GroupRules.memberCandidates(pickable, rates, subjectId = 2L, selectedIds = setOf(2L))
+
+        // Борис has no Физика price but is in the roster: hiding him would leave a member the tutor
+        // can neither see nor remove.
+        assertEquals(listOf(1L, 2L, 3L), candidates.map { it.student.id })
+        val boris = candidates.single { it.student.id == 2L }
+        assertTrue(boris.missingPrice)
+        assertNull(boris.rate)
+    }
+
+    @Test
+    fun `the display order of the students is preserved`() {
+        val candidates = GroupRules.memberCandidates(
+            pickable.reversed(),
+            rates,
+            subjectId = 1L,
+            selectedIds = setOf(3L),
+        )
+        assertEquals(listOf(3L, 2L, 1L), candidates.map { it.student.id })
+    }
+
     // --- session status changes ---
 
     @Test

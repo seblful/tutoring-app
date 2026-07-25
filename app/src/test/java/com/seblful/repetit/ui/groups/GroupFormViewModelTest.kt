@@ -128,14 +128,88 @@ class GroupFormViewModelTest {
     @Test
     fun `archived students are not offered as members`() = runTest(mainRule.dispatcher) {
         val (ann, bob) = seedStudents()
+        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        env.priceDao.upsert(PriceEntity(ann, algebra, Money.ofMajor(30).minor))
+        env.priceDao.upsert(PriceEntity(bob, algebra, Money.ofMajor(25).minor))
         env.studentDao.upsert(env.studentDao.getById(bob)!!.copy(archived = true))
 
         val vm = vm()
         backgroundScope.launch { vm.state.collect {} }
         advanceUntilIdle()
 
-        assertEquals(listOf(ann), vm.state.value.candidates.map { it.id })
+        vm.setSubject(algebra)
+        advanceUntilIdle()
+
+        assertEquals(listOf(ann), vm.state.value.candidates.map { it.student.id })
     }
+
+    @Test
+    fun `members are picked subject first — only students priced for it are offered`() =
+        runTest(mainRule.dispatcher) {
+            val (ann, bob) = seedStudents()
+            val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+            val physics = env.subjectDao.upsert(SubjectEntity(name = "Физика"))
+            env.priceDao.upsert(PriceEntity(ann, algebra, Money.ofMajor(30).minor))
+            env.priceDao.upsert(PriceEntity(ann, physics, Money.ofMajor(40).minor))
+            env.priceDao.upsert(PriceEntity(bob, algebra, Money.ofMajor(25).minor))
+
+            val vm = vm()
+            backgroundScope.launch { vm.state.collect {} }
+            advanceUntilIdle()
+
+            // Nobody is offered until a subject narrows the list — that is what keeps the roster
+            // bookable, so the form asks for the subject first.
+            assertTrue(vm.state.value.candidates.isEmpty())
+            assertTrue(vm.state.value.hasStudents)
+
+            vm.setSubject(algebra)
+            advanceUntilIdle()
+            assertEquals(listOf(ann, bob), vm.state.value.candidates.map { it.student.id })
+            assertEquals(
+                "each candidate carries their own rate for the subject",
+                listOf(Money.ofMajor(30), Money.ofMajor(25)),
+                vm.state.value.candidates.map { it.rate },
+            )
+
+            // Physics: only Ann has a price for it.
+            vm.setSubject(physics)
+            advanceUntilIdle()
+            assertEquals(listOf(ann), vm.state.value.candidates.map { it.student.id })
+
+            // Tapping the chosen subject again clears the filter.
+            vm.setSubject(physics)
+            advanceUntilIdle()
+            assertEquals(null, vm.state.value.form.subjectId)
+        }
+
+    @Test
+    fun `a member kept from another subject stays listed, flagged as unpriced`() =
+        runTest(mainRule.dispatcher) {
+            val (ann, bob) = seedStudents()
+            val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+            val physics = env.subjectDao.upsert(SubjectEntity(name = "Физика"))
+            env.priceDao.upsert(PriceEntity(ann, algebra, Money.ofMajor(30).minor))
+            env.priceDao.upsert(PriceEntity(ann, physics, Money.ofMajor(40).minor))
+            env.priceDao.upsert(PriceEntity(bob, algebra, Money.ofMajor(25).minor))
+
+            val vm = vm()
+            backgroundScope.launch { vm.state.collect {} }
+            advanceUntilIdle()
+
+            vm.setSubject(algebra)
+            advanceUntilIdle()
+            vm.toggleMember(ann, true)
+            vm.toggleMember(bob, true)
+            vm.setSubject(physics)
+            advanceUntilIdle()
+
+            // Bob has no Physics price, but he is in the roster — hiding him would leave a member
+            // nobody can see or remove.
+            val bobRow = vm.state.value.candidates.single { it.student.id == bob }
+            assertTrue(bobRow.missingPrice)
+            assertEquals(null, bobRow.rate)
+            assertEquals(setOf(ann, bob), vm.state.value.form.memberIds)
+        }
 
     @Test
     fun `archiving a group keeps it and its roster`() = runTest(mainRule.dispatcher) {

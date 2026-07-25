@@ -10,7 +10,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The v1 → v2 migration must carry a published database forward without losing a single lesson —
+ * Each migration must carry a published database forward without losing a single lesson —
  * `runMigrationsAndValidate` additionally proves the resulting schema is exactly what Room expects
  * from the entities (columns, foreign keys and indices), which is the part a hand-written
  * `CREATE TABLE` most easily gets wrong.
@@ -88,6 +88,30 @@ class MigrationTest {
         db.query("SELECT studentId FROM group_members WHERE groupId = 7").use { c ->
             c.moveToFirst()
             assertEquals(1L, c.getLong(0))
+        }
+    }
+
+    @Test fun migrate2To3KeepsSettingsAndShowsTheGroupsTab() {
+        helper.createDatabase(testDb, 2).use { db ->
+            db.execSQL(
+                "INSERT INTO settings (id, notificationsEnabled, calendarSyncEnabled, onboardingComplete, " +
+                    "reminderLeadMinutes, autoCompleteEnabled, themeMode, defaultLessonMinutes, currency) " +
+                    "VALUES (0, 1, 1, 1, 30, 1, 'DARK', 45, 'RUB')",
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(testDb, 3, true, Migrations.MIGRATION_2_3)
+
+        db.query("SELECT * FROM settings").use { c ->
+            assertEquals(1, c.count)
+            c.moveToFirst()
+            // The tutor's existing choices are untouched…
+            assertEquals(30, c.getInt(c.getColumnIndexOrThrow("reminderLeadMinutes")))
+            assertEquals("DARK", c.getString(c.getColumnIndexOrThrow("themeMode")))
+            assertEquals("RUB", c.getString(c.getColumnIndexOrThrow("currency")))
+            assertEquals(1, c.getInt(c.getColumnIndexOrThrow("onboardingComplete")))
+            // …and they keep the tab they just gained.
+            assertEquals(1, c.getInt(c.getColumnIndexOrThrow("showGroupsTab")))
         }
     }
 }

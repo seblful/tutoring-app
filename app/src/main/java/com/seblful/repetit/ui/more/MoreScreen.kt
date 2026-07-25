@@ -22,11 +22,17 @@ import androidx.compose.ui.res.stringResource
 import com.seblful.repetit.R
 import com.seblful.repetit.ui.common.constrainedContent
 
+/**
+ * The overflow section: everything that doesn't earn a tab.
+ *
+ * @param onGroups null while «Группы» has a tab of its own — the entry point moves here only when
+ *   that tab is switched off in Settings, so the section is listed in exactly one place.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoreScreen(
     onSubjects: () -> Unit,
-    onGroups: () -> Unit,
+    onGroups: (() -> Unit)?,
     onBackup: () -> Unit,
     onSettings: () -> Unit,
     onDiagnostics: () -> Unit,
@@ -40,12 +46,14 @@ fun MoreScreen(
                 headlineContent = { Text(stringResource(R.string.more_subjects)) },
                 modifier = Modifier.clickable { onSubjects() },
             )
-            ListItem(
-                leadingContent = { Icon(Icons.Filled.Groups, null) },
-                headlineContent = { Text(stringResource(R.string.more_groups)) },
-                supportingContent = { Text(stringResource(R.string.more_groups_desc)) },
-                modifier = Modifier.clickable { onGroups() },
-            )
+            if (onGroups != null) {
+                ListItem(
+                    leadingContent = { Icon(Icons.Filled.Groups, null) },
+                    headlineContent = { Text(stringResource(R.string.more_groups)) },
+                    supportingContent = { Text(stringResource(R.string.more_groups_desc)) },
+                    modifier = Modifier.clickable(onClick = onGroups),
+                )
+            }
             ListItem(
                 leadingContent = { Icon(Icons.Filled.Settings, null) },
                 headlineContent = { Text(stringResource(R.string.settings_title)) },
