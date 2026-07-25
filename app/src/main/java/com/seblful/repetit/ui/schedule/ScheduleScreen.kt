@@ -9,12 +9,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
@@ -64,10 +68,12 @@ import com.seblful.repetit.ui.common.classStatusColor
 import com.seblful.repetit.ui.common.classStatusLabel
 import com.seblful.repetit.ui.common.constrainedContent
 import com.seblful.repetit.format.formatDay
+import com.seblful.repetit.format.formatMonth
 import com.seblful.repetit.format.formatTime
 import com.seblful.repetit.format.toLocalDate
 import com.seblful.repetit.format.toLocalTime
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,6 +86,11 @@ fun ScheduleScreen(
     val rows by viewModel.rows.collectAsState()
     val date by viewModel.selectedDate.collectAsState()
     val canAddClass by viewModel.canAddClass.collectAsState()
+    val today = LocalDate.now(ZoneId.systemDefault())
+    val viewMode by viewModel.viewMode.collectAsState()
+    val month by viewModel.visibleMonth.collectAsState()
+    val grid by viewModel.monthGrid.collectAsState()
+    val loads by viewModel.dayLoads.collectAsState()
 
     var sheetFor by remember { mutableStateOf<ScheduleRow?>(null) }
     var movingClass by remember { mutableStateOf<TutoringClass?>(null) }
@@ -89,7 +100,27 @@ fun ScheduleScreen(
     val needSetupMsg = stringResource(R.string.schedule_need_setup)
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.schedule_title)) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.schedule_title)) },
+                actions = {
+                    val calendarShown = viewMode == ScheduleViewMode.MONTH
+                    IconButton(onClick = viewModel::toggleViewMode) {
+                        Icon(
+                            imageVector = if (calendarShown) {
+                                Icons.AutoMirrored.Filled.ViewList
+                            } else {
+                                Icons.Filled.CalendarMonth
+                            },
+                            contentDescription = stringResource(
+                                if (calendarShown) R.string.schedule_show_list
+                                else R.string.schedule_show_calendar
+                            ),
+                        )
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = {
                 if (canAddClass) onAddClass(date)
@@ -100,23 +131,60 @@ fun ScheduleScreen(
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).constrainedContent()) {
-            DayNavigator(
-                date = date,
-                onPrevious = viewModel::goToPreviousDay,
-                onNext = viewModel::goToNextDay,
-                onToday = viewModel::goToToday,
-            )
-            HorizontalDivider()
-            if (rows.isEmpty()) {
-                EmptyState(stringResource(R.string.schedule_empty))
-            } else {
-                LazyColumn(
-                    Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
+            // The navigator stays pinned in both modes, so paging is always one tap away.
+            when (viewMode) {
+                ScheduleViewMode.DAY -> {
+                    DayNavigator(
+                        date = date,
+                        onPrevious = viewModel::goToPreviousDay,
+                        onNext = viewModel::goToNextDay,
+                        onToday = viewModel::goToToday,
+                    )
+                    HorizontalDivider()
+                }
+                ScheduleViewMode.MONTH -> MonthNavigator(
+                    month = month,
+                    onPrevious = viewModel::goToPreviousMonth,
+                    onNext = viewModel::goToNextMonth,
+                    onToday = viewModel::goToToday,
+                )
+            }
+            // The grid scrolls with the classes rather than sitting above them: six week rows plus
+            // a full day of classes doesn't fit a landscape phone.
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = 11.dp, bottom = 88.dp),
+            ) {
+                if (viewMode == ScheduleViewMode.MONTH) {
+                    // The calendar takes over from the day stepper: the grid is how you move
+                    // between days, and the header below it names the day the list is showing.
+                    item(key = "calendar", contentType = "calendar") {
+                        Column {
+                            MonthCalendar(
+                                grid = grid,
+                                loads = loads,
+                                selected = date,
+                                today = today,
+                                onSelect = viewModel::selectDate,
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            SelectedDayHeader(date)
+                            HorizontalDivider()
+                            Spacer(Modifier.height(11.dp))
+                        }
+                    }
+                }
+                if (rows.isEmpty()) {
+                    item(key = "empty") {
+                        EmptyState(stringResource(R.string.schedule_empty), Modifier.heightIn(min = 200.dp))
+                    }
+                } else {
                     items(rows, key = { it.klass.id }) { row ->
-                        ScheduleCard(row = row, onClick = { sheetFor = row })
+                        ScheduleCard(
+                            row = row,
+                            onClick = { sheetFor = row },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
+                        )
                     }
                 }
             }
@@ -159,8 +227,8 @@ fun ScheduleScreen(
 }
 
 @Composable
-private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit) {
-    ContentCard(onClick = onClick) {
+private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    ContentCard(onClick = onClick, modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 row.klass.start.formatTime(),
@@ -192,22 +260,73 @@ private fun DayNavigator(
     onNext: () -> Unit,
     onToday: () -> Unit,
 ) {
+    PageNavigator(
+        title = date.atStartOfDay(ZoneId.systemDefault()).toInstant().formatDay(),
+        previousDescription = stringResource(R.string.schedule_previous_day),
+        nextDescription = stringResource(R.string.schedule_next_day),
+        onPrevious = onPrevious,
+        onNext = onNext,
+        onToday = onToday,
+    )
+}
+
+@Composable
+private fun MonthNavigator(
+    month: YearMonth,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onToday: () -> Unit,
+) {
+    PageNavigator(
+        title = formatMonth(month),
+        previousDescription = stringResource(R.string.schedule_previous_month),
+        nextDescription = stringResource(R.string.schedule_next_month),
+        onPrevious = onPrevious,
+        onNext = onNext,
+        onToday = onToday,
+    )
+}
+
+/** ‹ title › with a "jump to today" button — shared by the day stepper and the month pager. */
+@Composable
+private fun PageNavigator(
+    title: String,
+    previousDescription: String,
+    nextDescription: String,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onToday: () -> Unit,
+) {
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        IconButton(onClick = onPrevious) { Icon(Icons.Filled.ChevronLeft, stringResource(R.string.action_back)) }
+        IconButton(onClick = onPrevious) { Icon(Icons.Filled.ChevronLeft, previousDescription) }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                date.atStartOfDay(ZoneId.systemDefault()).toInstant().formatDay(),
+                title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
-            IconButton(onClick = onToday) { Icon(Icons.Filled.Today, stringResource(R.string.nav_schedule)) }
+            IconButton(onClick = onToday) {
+                Icon(Icons.Filled.Today, stringResource(R.string.schedule_today))
+            }
         }
-        IconButton(onClick = onNext) { Icon(Icons.Filled.ChevronRight, stringResource(R.string.action_add)) }
+        IconButton(onClick = onNext) { Icon(Icons.Filled.ChevronRight, nextDescription) }
     }
+}
+
+/** Names the day the list below belongs to, since the calendar's title is the month. */
+@Composable
+private fun SelectedDayHeader(date: LocalDate) {
+    Text(
+        text = date.atStartOfDay(ZoneId.systemDefault()).toInstant().formatDay(),
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

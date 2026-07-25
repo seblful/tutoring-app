@@ -2,11 +2,14 @@ package com.seblful.repetit.format
 
 import com.seblful.repetit.domain.model.Money
 import java.math.RoundingMode
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.util.Locale
 
 /**
@@ -59,5 +62,12 @@ fun Money.toAmountInput(): String {
 fun formatMonthKey(key: Int): String {
     val year = key / 12
     val month = key % 12 + 1
-    return LocalDate.of(year, month, 1).format(monthFmt).replaceFirstChar { it.uppercase() }
+    return formatMonth(YearMonth.of(year, month))
 }
+
+/** Formats a month as e.g. "Июнь 2026" — the schedule calendar's page title. */
+fun formatMonth(month: YearMonth): String =
+    month.atDay(1).format(monthFmt).replaceFirstChar { it.uppercase() }
+
+/** Short weekday name for a calendar header, e.g. "пн". */
+fun DayOfWeek.shortName(): String = getDisplayName(TextStyle.SHORT_STANDALONE, RU)
