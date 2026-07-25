@@ -38,6 +38,7 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 /** Who a lesson is booked for: one student, or a whole group. */
@@ -45,7 +46,8 @@ enum class ClassTarget { STUDENT, GROUP }
 
 /**
  * The class-booking form. Date and times start **empty** — the user must choose them (the pickers
- * still open on a sensible default). Duration is expressed as a time range: [timeTo] follows
+ * open on today and on the current time, see [ClassEditViewModel.startPickerDefault]). Duration is
+ * expressed as a time range: [timeTo] follows
  * [timeFrom] — keeping the lesson's length (the default lesson when none is set yet) whenever the
  * start changes — and stays independently editable.
  *
@@ -383,6 +385,21 @@ class ClassEditViewModel @Inject constructor(
     fun setTimeTo(time: LocalTime) {
         form.value = form.value.copy(timeTo = time)
     }
+
+    /**
+     * What the start-time picker opens on: the start already chosen, or — for a lesson whose time is
+     * still empty — the current time, since a booking is normally written down as it is arranged.
+     * [now] is a parameter so the rule can be tested without depending on the wall clock.
+     */
+    fun startPickerDefault(now: LocalTime = LocalTime.now(zone)): LocalTime =
+        form.value.timeFrom ?: now.truncatedTo(ChronoUnit.MINUTES)
+
+    /**
+     * What the end-time picker opens on: the end already chosen, otherwise one default lesson after
+     * the start the form would offer — the same length [setTimeFrom] would have applied.
+     */
+    fun endPickerDefault(now: LocalTime = LocalTime.now(zone)): LocalTime =
+        form.value.timeTo ?: startPickerDefault(now).plusMinutes(defaultLessonMinutes)
 
     /**
      * Saves the form as one lesson. Booking a student and booking a group differ only in the rates

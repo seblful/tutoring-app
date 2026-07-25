@@ -266,7 +266,7 @@ fun ClassEditScreen(
     }
     if (showFromPicker) {
         TimePickerModal(
-            initial = form.timeFrom ?: LocalTime.of(15, 0),
+            initial = viewModel.startPickerDefault(),
             onConfirm = { time ->
                 viewModel.setTimeFrom(time)
                 showFromPicker = false
@@ -276,7 +276,7 @@ fun ClassEditScreen(
     }
     if (showToPicker) {
         TimePickerModal(
-            initial = form.timeTo ?: form.timeFrom?.plusHours(1) ?: LocalTime.of(16, 0),
+            initial = viewModel.endPickerDefault(),
             onConfirm = { time ->
                 viewModel.setTimeTo(time)
                 showToPicker = false
