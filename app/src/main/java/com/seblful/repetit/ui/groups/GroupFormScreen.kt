@@ -14,10 +14,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,22 +45,22 @@ import com.seblful.repetit.R
 import com.seblful.repetit.domain.model.Student
 import com.seblful.repetit.ui.common.Avatar
 import com.seblful.repetit.ui.common.ConfirmDialog
+import com.seblful.repetit.ui.common.DropdownField
 import com.seblful.repetit.ui.common.ModeSelector
 import com.seblful.repetit.ui.common.constrainedContent
 
 /**
- * Create or edit one group: name, note, **hourly rate**, default mode and roster — plus, for a saved
- * group, booking a lesson for it and retiring it (archive) or removing it (delete, refused once it has
- * lessons).
+ * Create or edit one group: **subject**, name, note, hourly rate, default mode and roster — plus, for
+ * a saved group, retiring it (archive) or removing it (delete, refused once it has lessons).
  *
- * The rate sits with the name because it is the group's own: every member of one of its lessons is
- * billed it, so the roster below is just people — any active student, with no price to arrange first.
+ * Subject comes before the roster because it decides it: pick one and the member list narrows to the
+ * students priced for it, since a group only ever teaches that subject. Leaving it unset is allowed
+ * only so that groups made before v6 keep working; those list every active student, as they used to.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupFormScreen(
     onBack: () -> Unit,
-    onBookLesson: (Long) -> Unit,
     viewModel: GroupFormViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -111,6 +109,25 @@ fun GroupFormScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
+            // Subject first: it decides who may be in the group. 0 is the "not chosen" row — a real
+            // option rather than a hidden state, because a pre-v6 group legitimately has none and the
+            // tutor needs to see that rather than guess.
+            DropdownField(
+                label = stringResource(R.string.group_subject_label),
+                selectedText = state.subjects.firstOrNull { it.id == form.subjectId }?.name
+                    ?: stringResource(R.string.group_subject_none),
+                options = listOf(0L to stringResource(R.string.group_subject_none)) +
+                    state.subjects.map { it.id to it.name },
+                onSelect = { id -> viewModel.setSubject(id.takeIf { it != 0L }) },
+            )
+            Text(
+                stringResource(
+                    if (form.subjectId == null) R.string.group_subject_none_hint
+                    else R.string.group_subject_hint
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             OutlinedTextField(
                 value = form.note,
                 onValueChange = { v -> viewModel.update { it.copy(note = v) } },
@@ -140,21 +157,28 @@ fun GroupFormScreen(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
-                if (form.memberIds.isNotEmpty()) {
+                // Counts what would actually be saved, not what is ticked: switching subject can
+                // strand a tick on someone the new subject excludes.
+                if (state.selectedMemberIds.isNotEmpty()) {
                     Text(
-                        stringResource(R.string.group_members_selected, form.memberIds.size),
+                        stringResource(R.string.group_members_selected, state.selectedMemberIds.size),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
             when {
+                // "Nobody is priced for this subject" is a different problem from "you have no
+                // students at all", and only the first is fixed by changing the subject.
                 !state.hasStudents -> Text(
-                    stringResource(R.string.group_no_students),
+                    stringResource(
+                        if (form.subjectId == null) R.string.group_no_students
+                        else R.string.group_no_students_for_subject
+                    ),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                form.memberIds.isEmpty() -> Text(
+                state.selectedMemberIds.isEmpty() -> Text(
                     stringResource(R.string.group_members_required),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
@@ -170,19 +194,6 @@ fun GroupFormScreen(
 
             if (!viewModel.isNew) {
                 HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                FilledTonalButton(
-                    // Save first, then book: the booking form reads the *stored* roster, so an edit
-                    // left unsaved here would otherwise book the wrong set of students.
-                    onClick = { viewModel.save { id -> onBookLesson(id) } },
-                    enabled = state.isValid,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(Icons.Filled.EventAvailable, contentDescription = null)
-                    Text(
-                        stringResource(R.string.group_book_lesson),
-                        Modifier.padding(start = 8.dp),
-                    )
-                }
                 OutlinedButton(
                     onClick = { viewModel.setArchived(!state.archived) },
                     modifier = Modifier.fillMaxWidth(),

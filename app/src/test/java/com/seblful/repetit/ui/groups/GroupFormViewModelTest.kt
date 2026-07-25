@@ -3,6 +3,7 @@ package com.seblful.repetit.ui.groups
 import androidx.lifecycle.SavedStateHandle
 import com.seblful.repetit.data.local.ClassEntity
 import com.seblful.repetit.data.local.StudentEntity
+import com.seblful.repetit.data.local.StudentSubjectCrossRef
 import com.seblful.repetit.data.local.SubjectEntity
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.Group
@@ -33,6 +34,7 @@ class GroupFormViewModelTest {
         groups = env.groupRepo,
         settings = env.settingsRepo,
         students = env.studentRepo,
+        subjects = env.subjectRepo,
     )
 
     private suspend fun seedStudents(): Pair<Long, Long> {
@@ -236,6 +238,74 @@ class GroupFormViewModelTest {
         assertEquals(false, result)
         assertNotNull("the group survives so its lessons still name it", env.groupRepo.getById(id))
     }
+
+    @Test
+    fun `picking a subject narrows the candidates to the students priced for it`() =
+        runTest(mainRule.dispatcher) {
+            val (ann, bob) = seedStudents()
+            val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+            env.studentDao.addSubjectLink(StudentSubjectCrossRef(ann, algebra))
+            val vm = vm()
+            backgroundScope.launch { vm.state.collect {} }
+            advanceUntilIdle()
+
+            // No subject yet: everyone is a candidate, as before v6.
+            assertEquals(setOf(ann, bob), vm.state.value.candidates.map { it.id }.toSet())
+
+            vm.setSubject(algebra)
+            advanceUntilIdle()
+
+            assertEquals(listOf(ann), vm.state.value.candidates.map { it.id })
+        }
+
+    @Test
+    fun `a tick on someone the new subject excludes is neither counted nor saved`() =
+        runTest(mainRule.dispatcher) {
+            val (ann, bob) = seedStudents()
+            val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+            env.studentDao.addSubjectLink(StudentSubjectCrossRef(ann, algebra))
+            val vm = vm()
+            backgroundScope.launch { vm.state.collect {} }
+            advanceUntilIdle()
+
+            vm.update { it.copy(name = "11 «А»", priceText = "300") }
+            vm.toggleMember(ann, true)
+            vm.toggleMember(bob, true)
+            advanceUntilIdle()
+            assertEquals(2, vm.state.value.selectedMemberIds.size)
+
+            // Bob isn't priced for algebra, so he stops counting the moment the subject is chosen.
+            vm.setSubject(algebra)
+            advanceUntilIdle()
+            assertEquals(setOf(ann), vm.state.value.selectedMemberIds)
+            assertTrue(vm.state.value.isValid)
+
+            var savedId = 0L
+            vm.save { savedId = it }
+            advanceUntilIdle()
+
+            assertEquals(setOf(ann), env.groupRepo.getMemberIds(savedId).toSet())
+            assertEquals(algebra, env.groupRepo.getById(savedId)?.subjectId)
+        }
+
+    @Test
+    fun `a subject with nobody priced for it leaves the group unsaveable`() =
+        runTest(mainRule.dispatcher) {
+            val (ann, _) = seedStudents()
+            val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+            val vm = vm()
+            backgroundScope.launch { vm.state.collect {} }
+            advanceUntilIdle()
+
+            vm.update { it.copy(name = "11 «А»", priceText = "300") }
+            vm.toggleMember(ann, true)
+            vm.setSubject(algebra)
+            advanceUntilIdle()
+
+            // Nobody is priced for algebra, so there is no roster to book and nothing to save.
+            assertFalse(vm.state.value.hasStudents)
+            assertFalse(vm.state.value.isValid)
+        }
 
     @Test
     fun `an unused group can be deleted`() = runTest(mainRule.dispatcher) {

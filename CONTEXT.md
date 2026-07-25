@@ -96,20 +96,35 @@ flowchart TB
   invalid until the tutor prices it, rather than inventing an amount); nothing else reads that
   setting, so changing it never re-prices an existing group. The form requires a rate but **allows 0**
   (a group taught for free still bills, at 0 — `MoneyInput.rate`).
-  Because the rate no longer comes from the members, two mechanisms that existed only to guarantee one
-  are **gone**: a group lesson can be booked for **any** subject (no `bookableSubjects` intersection),
-  and **any** active student can join a group (no subject-first roster picking, no
-  `memberCandidates`/`missingPrice`). The consequence to know: a group lesson can be booked for a
-  subject a member has no `prices` row for, so "a student's subjects == their priced subjects" now
-  describes **individual** lessons only — a member's group lessons can name a subject absent from their
-  own subject list. Nothing breaks (income is derived from classes; `EnrollmentRepository` still
-  refuses to unenroll a subject the student has classes for), but their student card won't list it.
   A **lesson has one rate**, so `SessionEdit` carries a single `price` and `ClassRepository.book`
   takes `studentIds` + one `price`; `ClassSession.sharedPrice` reports it, and comes back null only for
   a lesson booked *before* v5, whose members were billed individually — the booking form then offers
   the group's current rate instead of picking one member's arbitrarily. Lessons already booked are
   never restated: each class snapshotted the rate it was billed at, which is what makes the migration
   and re-pricing safe.
+- **A group is taught one subject, fixed on the group** (`student_groups.subjectId`, v6). The subject
+  is chosen when the group is made, not per lesson: its lessons are all that subject, and only students
+  enrolled in it can be members — `GroupRepository.save` (the only writer of membership) intersects the
+  requested roster with `student_subjects` and **drops the rest**, so an unbillable member cannot be
+  stored and then fail at booking. On the booking form the subject is then read-only, taken from the
+  group. This partly **reverses** the v5 decision recorded below: v5 removed subject-first rostering on
+  the grounds that a group pricing itself has nothing left to check, which was true about *money* but
+  left a group free to mix subjects its members were not taught.
+  The column is **nullable**, and that is the whole compatibility story: a group created before v6 has
+  no honest subject to backfill (its members may share none), so it stays null and keeps the v5
+  behaviour exactly — any active student may join, and the subject is picked per lesson. Setting a
+  subject is what opts a group in, and is effectively one-way, since saving then prunes the roster.
+  For a null-subject group the v5 note still holds: it can be booked for a subject a member has no
+  `prices` row for, so "a student's subjects == their priced subjects" describes **individual** lessons
+  only there. Nothing breaks (income is derived from classes; `EnrollmentRepository` still refuses to
+  unenroll a subject the student has classes for), but their student card won't list it. A
+  subject-bound group cannot get into that state at all.
+  **Who attends one lesson is separate from who is on the roster.** Booking a group lesson offers its
+  members as checkboxes and writes classes only for the ticked ones (`ClassForm.excludedMemberIds`,
+  forgotten after the save) — someone away this week is not removed from the group. Excluding is not
+  cancelling: no class is written, so nothing appears in that student's history. **Editing** a booked
+  lesson keeps the old all-members fan-out and a read-only member list, because those classes are
+  billed history; drop one by cancelling it from the schedule sheet, as before.
   Unchanged: the members' classes of one lesson share a `groupId` **and a start** — that pair *is* the
   "session" the schedule collapses into one card (`GroupRules.sessions`); sessions are derived, never
   stored, so a class moved on its own leaves its session by construction, with no membership flag to go

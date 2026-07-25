@@ -145,20 +145,15 @@ private fun MainApp(showGroupsTab: Boolean) {
                     onAddGroup = { navController.navigate(Routes.GROUP_ADD) },
                 )
             }
-            // Both routes are the same form; booking is offered only for a group that already
-            // exists (the new-group screen saves, then returns to the list), and the guard keeps a
-            // group with no id from reaching the booking form.
-            val bookForGroup: (Long) -> Unit = { groupId ->
-                if (groupId != 0L) navController.navigate(Routes.classEdit(0, groupId = groupId))
-            }
+            // Both routes are the same form.
             composable(Routes.GROUP_ADD) {
-                GroupFormScreen(onBack = { navController.popBackStack() }, onBookLesson = bookForGroup)
+                GroupFormScreen(onBack = { navController.popBackStack() })
             }
             composable(
                 Routes.GROUP_DETAIL,
                 arguments = listOf(navArgument("id") { type = NavType.LongType }),
             ) {
-                GroupFormScreen(onBack = { navController.popBackStack() }, onBookLesson = bookForGroup)
+                GroupFormScreen(onBack = { navController.popBackStack() })
             }
 
             composable(Routes.SUBJECTS) {

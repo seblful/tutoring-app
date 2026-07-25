@@ -3,6 +3,7 @@ package com.seblful.repetit.data.repository
 import com.seblful.repetit.data.local.ClassDao
 import com.seblful.repetit.data.local.GroupDao
 import com.seblful.repetit.data.local.GroupMemberCrossRef
+import com.seblful.repetit.data.local.StudentDao
 import com.seblful.repetit.data.toDomain
 import com.seblful.repetit.data.toEntity
 import com.seblful.repetit.domain.model.Group
@@ -26,6 +27,7 @@ import javax.inject.Singleton
 class GroupRepository @Inject constructor(
     private val dao: GroupDao,
     private val classDao: ClassDao,
+    private val studentDao: StudentDao,
 ) {
     fun observeActive(): Flow<List<Group>> =
         dao.observeActive().map { list -> NameOrder.sorted(list.map { it.toDomain() }) { it.name } }
@@ -64,10 +66,28 @@ class GroupRepository @Inject constructor(
         // and fail the group_members foreign key, so fall back to the id we were handed.
         val rowId = dao.upsert(group.toEntity())
         val id = if (rowId == -1L) group.id else rowId
+        val wanted = eligible(group, memberIds)
         val current = dao.getMemberIds(id).toSet()
-        (memberIds - current).forEach { dao.addMember(GroupMemberCrossRef(id, it)) }
-        (current - memberIds).forEach { dao.removeMember(id, it) }
+        (wanted - current).forEach { dao.addMember(GroupMemberCrossRef(id, it)) }
+        (current - wanted).forEach { dao.removeMember(id, it) }
         return id
+    }
+
+    /**
+     * Narrows [memberIds] to the students a subject-bound group may actually contain.
+     *
+     * A group with a subject only teaches that subject, so a member who is not priced for it could
+     * never be billed for one of its lessons — such a member is dropped here rather than kept as a
+     * roster entry that silently fails at booking time. A group with no subject (everything made
+     * before v6) is left exactly as asked.
+     *
+     * This is enforced in the repository, not just the form, because [save] is the only writer of
+     * membership: a caller that skipped the UI could otherwise seed an unbillable roster.
+     */
+    private suspend fun eligible(group: Group, memberIds: Set<Long>): Set<Long> {
+        val subjectId = group.subjectId ?: return memberIds
+        val priced = studentDao.getStudentIdsForSubject(subjectId).toSet()
+        return memberIds intersect priced
     }
 
     suspend fun setArchived(group: Group, archived: Boolean) {

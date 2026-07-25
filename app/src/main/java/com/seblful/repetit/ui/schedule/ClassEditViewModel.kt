@@ -66,6 +66,15 @@ data class ClassForm(
     val timeTo: LocalTime? = null,
     val priceText: String = "",
     val mode: ClassMode = ClassMode.IN_PERSON,
+    /**
+     * Members left out of **this one** group lesson, while booking it. Someone away this week is not
+     * off the roster, so the exclusion lives on the form and not on the group: it decides which
+     * classes get written now and is forgotten afterwards.
+     *
+     * Only meaningful for a new lesson. Editing a booked one cannot add or drop a member — those
+     * classes are billed history — so the list is read-only there and this stays empty.
+     */
+    val excludedMemberIds: Set<Long> = emptySet(),
 ) {
     /** Minutes between [timeFrom] and [timeTo], or null when the range isn't a positive duration. */
     val durationMinutes: Int?
@@ -188,8 +197,9 @@ class ClassEditViewModel @Inject constructor(
 
     /**
      * The subjects this lesson may be booked for. For a **student**: those with a price set for them,
-     * so the class can be billed at completion. For a **group**: all of them — the lesson is billed at
-     * the group's own rate, so no member needs a price for the subject first.
+     * so the class can be billed at completion. For a **group** that has a subject: only that one —
+     * the group is taught it, and every member is priced for it. For a group without one (made before
+     * v6): all of them, as before, because nothing on the group says otherwise.
      */
     val subjects: StateFlow<List<Subject>> =
         form.map { SubjectKey(it.target, it.studentId, it.groupId) }.distinctUntilChanged()
@@ -201,12 +211,32 @@ class ClassEditViewModel @Inject constructor(
                             subjectsRepo.observeAll(),
                         ) { prices, all -> Scheduling.assignableSubjects(all, prices.map { it.subjectId }) }
 
-                    key.target == ClassTarget.GROUP && key.groupId != null -> subjectsRepo.observeAll()
+                    key.target == ClassTarget.GROUP && key.groupId != null ->
+                        combine(
+                            groupsRepo.observeById(key.groupId),
+                            subjectsRepo.observeAll(),
+                        ) { group, all ->
+                            val bound = group?.subjectId
+                            if (bound == null) all else all.filter { it.id == bound }
+                        }
 
                     else -> flowOf(emptyList())
                 }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * Whether the subject is decided by the group rather than by this lesson — true once the chosen
+     * group has one. Drives the picker's enabled state: showing a dropdown that can only be set to
+     * what it already says would invite a choice that isn't there.
+     */
+    val subjectFixedByGroup: StateFlow<Boolean> =
+        form.map { it.groupId }.distinctUntilChanged()
+            .flatMapLatest { groupId ->
+                if (groupId == null) flowOf(false)
+                else groupsRepo.observeById(groupId).map { it?.subjectId != null }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     private data class SubjectKey(val target: ClassTarget, val studentId: Long?, val groupId: Long?)
 
@@ -358,7 +388,13 @@ class ClassEditViewModel @Inject constructor(
      */
     fun selectGroup(groupId: Long) {
         if (form.value.groupId == groupId) return
-        form.value = form.value.copy(groupId = groupId, subjectId = null, priceText = "")
+        // A different group is a different set of people, so last group's exclusions mean nothing.
+        form.value = form.value.copy(
+            groupId = groupId,
+            subjectId = null,
+            priceText = "",
+            excludedMemberIds = emptySet(),
+        )
         // Read the group from the repository, not from `groups`: the form can be opened already
         // pointed at a group (from that group's screen), before that flow has emitted.
         viewModelScope.launch {
@@ -368,8 +404,22 @@ class ClassEditViewModel @Inject constructor(
                 mode = group.defaultMode,
                 // Never clobber an amount the tutor has already typed for this lesson.
                 priceText = form.value.priceText.ifBlank { group.price.toAmountInput() },
+                // A group that has a subject decides it — there is nothing to pick per lesson.
+                subjectId = group.subjectId ?: form.value.subjectId,
             )
         }
+    }
+
+    /**
+     * Includes or excludes one member for the lesson being booked. Excluding writes no class for them
+     * at all, which is different from booking and then cancelling: there is no cancelled lesson in
+     * their history, because the lesson was never theirs.
+     */
+    fun setMemberIncluded(studentId: Long, included: Boolean) {
+        val excluded = form.value.excludedMemberIds
+        form.value = form.value.copy(
+            excludedMemberIds = if (included) excluded - studentId else excluded + studentId,
+        )
     }
 
     /**
@@ -463,7 +513,9 @@ class ClassEditViewModel @Inject constructor(
                     newStart = start,
                 )
             } else {
-                val studentIds = if (isGroup) bookableRoster(f.groupId!!) else listOf(f.studentId!!)
+                val studentIds =
+                    if (isGroup) bookableRoster(f.groupId!!) - f.excludedMemberIds
+                    else listOf(f.studentId!!)
                 // A group whose every member has been archived has nobody left to bill; the lesson
                 // would be a row belonging to no one, so there is nothing to book.
                 if (studentIds.isEmpty()) return@launch

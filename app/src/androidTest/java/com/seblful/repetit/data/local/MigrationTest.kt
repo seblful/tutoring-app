@@ -219,4 +219,45 @@ class MigrationTest {
             assertEquals(0, c.getInt(c.getColumnIndexOrThrow("defaultGroupPriceMinor")))
         }
     }
+
+    /**
+     * v6 fixes a group's subject on the group. Existing groups must come through with **no** subject
+     * and an intact roster: their members may share none, so inferring one from lesson history would
+     * silently narrow a roster the tutor never narrowed.
+     *
+     * `runMigrationsAndValidate` is the real assertion here — the column is added by `ALTER TABLE`
+     * carrying a `REFERENCES`, which SQLite only permits because it defaults to NULL, and Room checks
+     * the resulting foreign key and index against the entity. A hand-written index name that didn't
+     * match `index_student_groups_subjectId` would fail here rather than on a tutor's phone.
+     */
+    @Test fun migrate5To6LeavesExistingGroupsWithoutASubject() {
+        helper.createDatabase(testDb, 5).use { db ->
+            db.execSQL("INSERT INTO students (id, name, phone, email, note, defaultMode, archived) VALUES (1, 'Аня', '', '', '', 'IN_PERSON', 0)")
+            db.execSQL("INSERT INTO students (id, name, phone, email, note, defaultMode, archived) VALUES (2, 'Борис', '', '', '', 'IN_PERSON', 0)")
+            db.execSQL("INSERT INTO subjects (id, name) VALUES (1, 'Алгебра')")
+            db.execSQL("INSERT INTO student_groups (id, name, note, priceMinor, defaultMode, archived) VALUES (7, '11 «А»', 'вечер', 4000, 'REMOTE', 0)")
+            db.execSQL("INSERT INTO group_members (groupId, studentId) VALUES (7, 1)")
+            db.execSQL("INSERT INTO group_members (groupId, studentId) VALUES (7, 2)")
+        }
+
+        val db = helper.runMigrationsAndValidate(testDb, 6, true, Migrations.MIGRATION_5_6)
+
+        db.query("SELECT * FROM student_groups").use { c ->
+            assertEquals(1, c.count)
+            c.moveToFirst()
+            assertEquals("11 «А»", c.getString(c.getColumnIndexOrThrow("name")))
+            assertEquals("the group's rate is untouched", 4000, c.getInt(c.getColumnIndexOrThrow("priceMinor")))
+            assertTrue("no subject is invented", c.isNull(c.getColumnIndexOrThrow("subjectId")))
+        }
+        db.query("SELECT COUNT(*) FROM group_members WHERE groupId = 7").use { c ->
+            c.moveToFirst()
+            assertEquals("the roster survives untouched", 2, c.getInt(0))
+        }
+        // The new column really is usable as a foreign key, not just present.
+        db.execSQL("UPDATE student_groups SET subjectId = 1 WHERE id = 7")
+        db.query("SELECT subjectId FROM student_groups WHERE id = 7").use { c ->
+            c.moveToFirst()
+            assertEquals(1, c.getInt(0))
+        }
+    }
 }

@@ -34,6 +34,11 @@ class StudentRepository @Inject constructor(
 
     fun observeSubjectIds(studentId: Long): Flow<List<Long>> = dao.observeSubjectIds(studentId)
 
+    /** Who is priced for [subjectId] — the candidates for a group bound to that subject. */
+    fun observeIdsForSubject(subjectId: Long): Flow<List<Long>> = dao.observeStudentIdsForSubject(subjectId)
+
+    suspend fun getIdsForSubject(subjectId: Long): List<Long> = dao.getStudentIdsForSubject(subjectId)
+
     // A student's subjects and their prices are kept in lock-step by EnrollmentRepository — the one
     // seam that links/unlinks a subject and sets/deletes its price together. Don't add link-only or
     // price-only mutators here; they let the displayed subjects and the bookable (priced) set diverge.

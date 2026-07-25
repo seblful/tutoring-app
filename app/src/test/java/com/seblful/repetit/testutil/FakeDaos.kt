@@ -95,6 +95,12 @@ class FakeStudentDao : StudentDao {
     override suspend fun getSubjectIds(studentId: Long): List<Long> =
         links.value.filter { it.studentId == studentId }.map { it.subjectId }
 
+    override fun observeStudentIdsForSubject(subjectId: Long): Flow<List<Long>> =
+        links.map { list -> list.filter { it.subjectId == subjectId }.map { it.studentId } }
+
+    override suspend fun getStudentIdsForSubject(subjectId: Long): List<Long> =
+        links.value.filter { it.subjectId == subjectId }.map { it.studentId }
+
     override suspend fun addSubjectLink(ref: StudentSubjectCrossRef) {
         // OnConflictStrategy.IGNORE: a duplicate (studentId, subjectId) is a no-op.
         if (links.value.none { it.studentId == ref.studentId && it.subjectId == ref.subjectId }) {

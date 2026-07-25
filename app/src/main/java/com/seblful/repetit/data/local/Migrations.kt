@@ -140,6 +140,33 @@ object Migrations {
         }
     }
 
+    /**
+     * v5 → v6: a group is taught one subject, decided when it is created.
+     *
+     * Adds nullable `student_groups.subjectId`. Existing groups keep **null** deliberately: a group
+     * made before this column may have members who share no subject at all, and picking one from
+     * their lesson history would silently narrow a roster the tutor never agreed to narrow. A null
+     * group behaves exactly as it did in v5 — any student may join, the subject is chosen per
+     * lesson — so upgrading changes nothing until the tutor opens a group and sets one.
+     *
+     * `ADD COLUMN` is legal here even though the column carries a `REFERENCES`: SQLite allows it
+     * precisely when the new column defaults to NULL, which is the case that made nullability the
+     * cheap option. The index matches the `@Index("subjectId")` on [GroupEntity]; Room's validation
+     * compares indices as well as columns, so it is not optional.
+     */
+    val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "ALTER TABLE `student_groups` ADD COLUMN `subjectId` INTEGER DEFAULT NULL " +
+                    "REFERENCES `subjects`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT"
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_student_groups_subjectId` " +
+                    "ON `student_groups` (`subjectId`)"
+            )
+        }
+    }
+
     /** Every migration, in order — passed to the Room builder. */
-    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
 }

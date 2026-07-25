@@ -104,7 +104,7 @@ class MappersTest {
         val columns = mapOf(
             "SubjectEntity" to setOf("id", "name"),
             "StudentEntity" to setOf("id", "name", "phone", "email", "note", "defaultMode", "archived"),
-            "GroupEntity" to setOf("id", "name", "note", "priceMinor", "defaultMode", "archived"),
+            "GroupEntity" to setOf("id", "name", "note", "priceMinor", "subjectId", "defaultMode", "archived"),
             "PriceEntity" to setOf("studentId", "subjectId", "amountMinor"),
             "PaymentEntity" to setOf("id", "studentId", "dateMillis", "amountMinor"),
             "ClassEntity" to setOf(

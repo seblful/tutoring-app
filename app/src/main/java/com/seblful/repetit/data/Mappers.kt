@@ -26,9 +26,9 @@ fun Student.toEntity() =
     StudentEntity(id = id, name = name, phone = phone, email = email, note = note, defaultMode = defaultMode.name, archived = archived)
 
 fun GroupEntity.toDomain() =
-    Group(id = id, name = name, note = note, price = Money(priceMinor), defaultMode = ClassMode.valueOf(defaultMode), archived = archived)
+    Group(id = id, name = name, note = note, price = Money(priceMinor), subjectId = subjectId, defaultMode = ClassMode.valueOf(defaultMode), archived = archived)
 fun Group.toEntity() =
-    GroupEntity(id = id, name = name, note = note, priceMinor = price.minor, defaultMode = defaultMode.name, archived = archived)
+    GroupEntity(id = id, name = name, note = note, priceMinor = price.minor, subjectId = subjectId, defaultMode = defaultMode.name, archived = archived)
 
 fun PriceEntity.toDomain() = Price(studentId = studentId, subjectId = subjectId, amount = Money(amountMinor))
 fun Price.toEntity() = PriceEntity(studentId = studentId, subjectId = subjectId, amountMinor = amount.minor)

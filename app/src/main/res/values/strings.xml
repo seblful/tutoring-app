@@ -66,6 +66,8 @@
     <string name="class_no_groups">Групп пока нет. Создайте группу в разделе «Ещё».</string>
     <string name="class_no_subjects_for_group">Сначала добавьте предметы</string>
     <string name="class_group_members_title">Участники</string>
+    <string name="class_group_no_members_left">Выберите хотя бы одного участника</string>
+    <string name="class_subject_from_group">Предмет задан группой</string>
     <string name="class_group_price_label">Цена за час с ученика</string>
     <string name="class_status_mixed">Разные</string>
     <string name="class_mark_completed">Отметить проведённым</string>
@@ -137,14 +139,18 @@
     <string name="group_add_title">Новая группа</string>
     <string name="group_edit_title">Изменить группу</string>
     <string name="group_name_label">Название</string>
+    <string name="group_subject_label">Предмет</string>
+    <string name="group_subject_none">Не выбран</string>
+    <string name="group_subject_hint">В группу можно добавить только учеников с ценой на этот предмет</string>
+    <string name="group_subject_none_hint">Без предмета: любой ученик, предмет выбирается при записи занятия</string>
     <string name="group_price_label">Цена за час с ученика</string>
     <string name="group_price_hint">Одна цена для всех участников группы</string>
     <string name="group_members_title">Участники</string>
     <string name="group_members_required">Выберите хотя бы одного ученика</string>
     <string name="group_members_selected">Выбрано: %1$d</string>
     <string name="group_no_students">Сначала добавьте учеников</string>
+    <string name="group_no_students_for_subject">Нет учеников с ценой на этот предмет</string>
     <string name="group_no_members">Участников нет</string>
-    <string name="group_book_lesson">Записать занятие</string>
     <string name="group_delete_confirm">Удалить эту группу? Ученики и их занятия останутся.</string>
     <string name="group_delete_blocked">Нельзя удалить группу: по ней есть занятия. Отправьте её в архив.</string>
 

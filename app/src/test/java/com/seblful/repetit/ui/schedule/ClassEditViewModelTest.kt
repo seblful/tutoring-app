@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.seblful.repetit.data.local.ClassEntity
 import com.seblful.repetit.data.local.PriceEntity
 import com.seblful.repetit.data.local.StudentEntity
+import com.seblful.repetit.data.local.StudentSubjectCrossRef
 import com.seblful.repetit.data.local.SubjectEntity
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.ClassStatus
@@ -671,6 +672,98 @@ class ClassEditViewModelTest {
     }
 
     @Test
+    fun `a member excluded from this lesson gets no class at all`() = runTest(mainRule.dispatcher) {
+        val (groupId, ann, bob) = seedGroup()
+        val vm = vm(groupId = groupId)
+        backgroundScope.launch { vm.groups.collect {} }
+        backgroundScope.launch { vm.members.collect {} }
+        backgroundScope.launch { vm.subjects.collect {} }
+        advanceUntilIdle()
+
+        val date = LocalDate.now(zone).plusDays(2)
+        vm.update { it.copy(date = date, timeFrom = LocalTime.of(10, 0), timeTo = LocalTime.of(11, 0)) }
+        // Bob is away this week. He stays on the roster; he just isn't at this lesson.
+        vm.setMemberIncluded(bob, false)
+        advanceUntilIdle()
+
+        var done = false
+        vm.save { done = true }
+        advanceUntilIdle()
+
+        assertTrue(done)
+        val saved = env.classDao.items.value
+        assertEquals(1, saved.size)
+        assertEquals(ann, saved.single().studentId)
+        // Excluding is not cancelling: there is no class of Bob's in any state.
+        assertTrue("no cancelled leftover", saved.none { it.studentId == bob })
+        assertEquals("the group keeps him", setOf(ann, bob), env.groupRepo.getMemberIds(groupId).toSet())
+    }
+
+    @Test
+    fun `excluding everyone books nothing`() = runTest(mainRule.dispatcher) {
+        val (groupId, ann, bob) = seedGroup()
+        val vm = vm(groupId = groupId)
+        backgroundScope.launch { vm.groups.collect {} }
+        backgroundScope.launch { vm.members.collect {} }
+        backgroundScope.launch { vm.subjects.collect {} }
+        advanceUntilIdle()
+
+        val date = LocalDate.now(zone).plusDays(2)
+        vm.update { it.copy(date = date, timeFrom = LocalTime.of(10, 0), timeTo = LocalTime.of(11, 0)) }
+        vm.setMemberIncluded(ann, false)
+        vm.setMemberIncluded(bob, false)
+        advanceUntilIdle()
+
+        vm.save { }
+        advanceUntilIdle()
+
+        // A lesson nobody attends is not a lesson; nothing is written rather than an ownerless row.
+        assertTrue(env.classDao.items.value.isEmpty())
+    }
+
+    @Test
+    fun `a group that has a subject decides the lesson's subject`() = runTest(mainRule.dispatcher) {
+        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val physics = env.subjectDao.upsert(SubjectEntity(name = "Физика"))
+        env.studentDao.addSubjectLink(StudentSubjectCrossRef(ann, algebra))
+        env.priceDao.upsert(PriceEntity(ann, algebra, Money.ofMajor(30).minor))
+        val groupId = env.groupRepo.save(
+            Group(name = "11 «А»", price = groupRate, subjectId = algebra),
+            setOf(ann),
+        )
+
+        val vm = vm(groupId = groupId)
+        backgroundScope.launch { vm.groups.collect {} }
+        backgroundScope.launch { vm.members.collect {} }
+        backgroundScope.launch { vm.subjects.collect {} }
+        backgroundScope.launch { vm.subjectFixedByGroup.collect {} }
+        advanceUntilIdle()
+
+        // Only the group's subject is on offer, it is already chosen, and the picker is locked.
+        assertEquals(listOf(algebra), vm.subjects.value.map { it.id })
+        assertEquals(algebra, vm.form.value.subjectId)
+        assertTrue(vm.subjectFixedByGroup.value)
+        assertTrue("physics is not bookable for this group", vm.subjects.value.none { it.id == physics })
+    }
+
+    @Test
+    fun `a group with no subject still offers every subject`() = runTest(mainRule.dispatcher) {
+        val (groupId, _, _) = seedGroup()
+        env.subjectDao.upsert(SubjectEntity(name = "Физика"))
+
+        val vm = vm(groupId = groupId)
+        backgroundScope.launch { vm.groups.collect {} }
+        backgroundScope.launch { vm.subjects.collect {} }
+        backgroundScope.launch { vm.subjectFixedByGroup.collect {} }
+        advanceUntilIdle()
+
+        // Pre-v6 groups keep choosing per lesson.
+        assertEquals(2, vm.subjects.value.size)
+        assertFalse(vm.subjectFixedByGroup.value)
+    }
+
+    @Test
     fun `editing a group lesson loads every member and saves them all`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
         val start = Instant.parse("2026-09-01T09:00:00Z")
@@ -757,7 +850,11 @@ class ClassEditViewModelTest {
     @Test
     fun `editing a completed class in the past rebills it from the new price and duration`() = runTest(mainRule.dispatcher) {
         val (studentId, subjectId) = seedStudentWithPricedSubject()
-        val past = Instant.now().minusSeconds(7 * 86_400)
+        // A fixed 10:00 rather than `Instant.now()` minus a week: the test extends the lesson by 90
+        // minutes, and run late enough in the evening that pushed timeTo past midnight, which the
+        // form rejects as a negative range (see the cross-midnight test above). The save then did
+        // nothing and the charge assertion failed — for the time of day, not for the behaviour.
+        val past = LocalDate.now(zone).minusDays(7).atTime(10, 0).atZone(zone).toInstant()
         val id = env.classDao.upsert(
             ClassEntity(
                 studentId = studentId, subjectId = subjectId, startMillis = past.toEpochMilli(),
