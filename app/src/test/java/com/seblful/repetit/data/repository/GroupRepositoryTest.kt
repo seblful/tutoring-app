@@ -60,6 +60,19 @@ class GroupRepositoryTest {
     }
 
     @Test
+    fun `editing a group returns its real id, not the upsert sentinel`() = runTest {
+        val (ann, bob) = students("Аня", "Борис")
+        val id = repo.save(Group(name = "Группа"), setOf(ann))
+
+        // Room's @Upsert answers -1 when it updates instead of inserting. Passing that straight
+        // through made every new member row point at group -1 and blow up on the foreign key.
+        val again = repo.save(Group(id = id, name = "Группа"), setOf(ann, bob))
+
+        assertEquals(id, again)
+        assertEquals(setOf(ann, bob), repo.getMemberIds(id).toSet())
+    }
+
+    @Test
     fun `an unused group can be deleted, and its memberships go with it`() = runTest {
         val (ann) = students("Аня")
         val id = repo.save(Group(name = "Ошибка"), setOf(ann))
