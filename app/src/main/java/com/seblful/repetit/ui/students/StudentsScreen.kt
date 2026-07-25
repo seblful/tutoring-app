@@ -83,7 +83,7 @@ fun StudentsScreen(
                     items(rows, key = { it.student.id }) { row ->
                         ContentCard(onClick = { onStudentClick(row.student.id) }) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Avatar(row.student.name)
+                                Avatar(row.student.name, row.student.id)
                                 Spacer(Modifier.width(16.dp))
                                 Column(Modifier.weight(1f)) {
                                     Text(row.student.name, style = MaterialTheme.typography.titleMedium)

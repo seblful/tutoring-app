@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.seblful.repetit.R
+import com.seblful.repetit.domain.AvatarPalette
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.ClassStatus
 import com.seblful.repetit.domain.model.Money
@@ -94,13 +95,13 @@ fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
 }
 
 /**
- * A round monogram from the first letter of [name] — a lightweight student avatar. Each student
- * gets a stable colour derived from their name, so the list reads as a set of distinct people
- * rather than a wall of identical chips.
+ * A round monogram from the first letter of [name] — a lightweight student avatar. The colour comes
+ * from [studentId] rather than the name, so the list reads as a set of distinct people rather than
+ * a wall of identical chips, and a student keeps their colour when their name is corrected.
  */
 @Composable
-fun Avatar(name: String, modifier: Modifier = Modifier) {
-    val (container, content) = avatarColors(name)
+fun Avatar(name: String, studentId: Long, modifier: Modifier = Modifier) {
+    val (container, content) = avatarColors(studentId)
     Box(
         modifier
             .size(40.dp)
@@ -117,11 +118,12 @@ fun Avatar(name: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * A stable (container, on-container) colour pair for [name], picked from a fixed palette by hashing
- * the name. Same name → same colour every time; the palette tints adapt to light/dark via alpha.
+ * A stable (container, on-container) colour pair for the student with [studentId], picked from a
+ * fixed palette by [AvatarPalette]. Same student → same colour every time; the palette tints adapt
+ * to light/dark via alpha.
  */
 @Composable
-private fun avatarColors(name: String): Pair<Color, Color> {
+private fun avatarColors(studentId: Long): Pair<Color, Color> {
     val palette = listOf(
         Color(0xFF5C6BC0), // indigo
         Color(0xFF26A69A), // teal
@@ -134,8 +136,7 @@ private fun avatarColors(name: String): Pair<Color, Color> {
         Color(0xFF8D6E63), // brown
         Color(0xFF78909C), // blue grey
     )
-    val key = name.trim().ifEmpty { "?" }
-    val base = palette[(key.hashCode() % palette.size + palette.size) % palette.size]
+    val base = palette[AvatarPalette.indexFor(studentId, palette.size)]
     val dark = androidx.compose.foundation.isSystemInDarkTheme()
     // Tinted container with a strong, legible monogram in the same hue.
     return if (dark) base.copy(alpha = 0.35f) to base.copy(alpha = 0.95f)
