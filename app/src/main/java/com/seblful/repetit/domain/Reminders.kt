@@ -16,9 +16,16 @@ object Reminders {
 
     /**
      * Plans a reminder for every SCHEDULED lesson starting after [now] and within [horizon].
-     * Each fires [lead] before the lesson start; if that moment has already arrived (the lesson
-     * is nearer than [lead]) it fires immediately (delay 0). Past, cancelled and completed
-     * classes are skipped — only a class that will still happen earns a reminder.
+     * Each fires [lead] before the lesson start. Past, cancelled and completed classes are
+     * skipped — only a class that will still happen earns a reminder.
+     *
+     * A lesson whose lead moment has **already passed** earns no reminder: the whole plan is
+     * re-derived from scratch on every class change, every app start and every maintenance tick,
+     * so firing "late" reminders immediately would announce the same imminent lesson again on each
+     * of those — the tutor books a class for the next hour and is told about it right away, then
+     * told again the next time anything changes. A reminder is a warning *ahead* of a lesson; once
+     * that moment is behind us there is nothing left to warn about, and the tutor who just booked
+     * the lesson is looking at it anyway.
      *
      * A **group lesson gets one reminder, not one per member** ([GroupRules.sessions] collapses the
      * members' classes into a single session, and the plan points at its first class): the tutor is
@@ -34,10 +41,10 @@ object Reminders {
         val upcoming = classes
             .filter { it.status == ClassStatus.SCHEDULED }
             .filter { it.start.isAfter(now) && !it.start.isAfter(horizonEnd) }
-        return GroupRules.sessions(upcoming).map { session ->
+        return GroupRules.sessions(upcoming).mapNotNull { session ->
             val fireAt = session.start.minus(lead)
-            val delay = Duration.between(now, fireAt).toMillis().coerceAtLeast(0)
-            Plan(session.first.id, delay)
+            if (!fireAt.isAfter(now)) return@mapNotNull null
+            Plan(session.first.id, Duration.between(now, fireAt).toMillis())
         }
     }
 
