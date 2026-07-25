@@ -17,6 +17,8 @@ data class AppSettings(
     val autoCompleteEnabled: Boolean = false,
     val themeMode: String = "SYSTEM",
     val defaultLessonMinutes: Int = 60,
+    /** Pre-fills a new group's hourly rate, in minor units; 0 means "not set". */
+    val defaultGroupPriceMinor: Long = 0,
     val currency: String = "BYN",
     val showGroupsTab: Boolean = true,
 )
@@ -53,6 +55,9 @@ class SettingsRepository @Inject constructor(
     suspend fun setDefaultLessonMinutes(minutes: Int) =
         update { it.copy(defaultLessonMinutes = minutes) }
 
+    suspend fun setDefaultGroupPriceMinor(minor: Long) =
+        update { it.copy(defaultGroupPriceMinor = minor) }
+
     suspend fun setCurrency(currency: String) =
         update { it.copy(currency = currency) }
 
@@ -75,6 +80,7 @@ class SettingsRepository @Inject constructor(
             autoCompleteEnabled = autoCompleteEnabled,
             themeMode = themeMode,
             defaultLessonMinutes = defaultLessonMinutes,
+            defaultGroupPriceMinor = defaultGroupPriceMinor,
             currency = currency,
             showGroupsTab = showGroupsTab,
         )

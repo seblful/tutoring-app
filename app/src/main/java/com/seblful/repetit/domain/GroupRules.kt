@@ -4,7 +4,6 @@ import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.ClassStatus
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.Student
-import com.seblful.repetit.domain.model.Subject
 import com.seblful.repetit.domain.model.TutoringClass
 import java.time.Instant
 
@@ -39,6 +38,15 @@ data class ClassSession(
      */
     val commonStatus: ClassStatus? get() = classes.map { it.status }.distinct().singleOrNull()
 
+    /**
+     * The rate every class in the session was booked at, or null when they differ. One lesson now
+     * has one rate (a group's own, or the student's), so this is normally just "the lesson's rate" —
+     * it can only come back null for a lesson booked before groups had a rate of their own, whose
+     * members were billed individually. A form showing one price field then has nothing truthful to
+     * put in it and falls back to the group's current rate.
+     */
+    val sharedPrice: Money? get() = classes.map { it.price }.distinct().singleOrNull()
+
     companion object {
         /**
          * Just [klass], as a session of one — the operand for changing a single class, including a
@@ -50,18 +58,19 @@ data class ClassSession(
 }
 
 /**
- * The user-editable fields of a whole lesson — one student's or a group's. The subject, length and
- * mode are shared by every class in it, while [pricesByStudent] keeps each member on their own rate:
- * a group lesson is billed person by person, so one shared price would silently re-rate somebody.
+ * The user-editable fields of a whole lesson — one student's or a group's. Every field is shared by
+ * every class in it, [price] included: a group lesson is billed at the **group's** one hourly rate,
+ * and an individual lesson is a lesson of one, so there is a single rate either way.
  */
 data class SessionEdit(
     val subjectId: Long,
     val durationMinutes: Int,
     val mode: ClassMode,
-    val pricesByStudent: Map<Long, Money>,
+    /** The hourly rate every class of the lesson is (re)billed at. */
+    val price: Money,
     /**
      * Who the lesson belongs to after the edit. An **individual** class may be re-attributed to
-     * another student, which credits the new owner at their rate in [pricesByStudent].
+     * another student, which credits the new owner at [price].
      *
      * Null means "leave every class with the student it already has", which is the only thing a
      * group lesson can mean — its members come from the group's roster, so they are changed by
@@ -71,26 +80,21 @@ data class SessionEdit(
     val studentId: Long? = null,
 )
 
-/** Rules for groups: what a group can be booked for, and how its classes read as one lesson. */
+/** Rules for groups: who a group's lesson covers, and how its classes read as one lesson. */
 object GroupRules {
 
     /**
-     * The per-class edit that [changes] implies for [c]: shared fields as given, the class's student
-     * (or [SessionEdit.studentId] when an individual class is being re-attributed), and that
-     * student's own rate — falling back to the rate the class already carries when
-     * [SessionEdit.pricesByStudent] says nothing about them, so an incomplete map can never zero out
-     * a booked price.
+     * The per-class edit that [changes] implies for [c]: the lesson's shared fields as given — its
+     * one [SessionEdit.price] included — and the class's own student, or [SessionEdit.studentId] when
+     * an individual class is being re-attributed to somebody else.
      */
-    fun editFor(c: TutoringClass, changes: SessionEdit): ClassEdit {
-        val studentId = changes.studentId ?: c.studentId
-        return ClassEdit(
-            studentId = studentId,
-            subjectId = changes.subjectId,
-            durationMinutes = changes.durationMinutes,
-            price = changes.pricesByStudent[studentId] ?: c.price,
-            mode = changes.mode,
-        )
-    }
+    fun editFor(c: TutoringClass, changes: SessionEdit): ClassEdit = ClassEdit(
+        studentId = changes.studentId ?: c.studentId,
+        subjectId = changes.subjectId,
+        durationMinutes = changes.durationMinutes,
+        price = changes.price,
+        mode = changes.mode,
+    )
 
     /**
      * Every class of [session] paired with the edit [changes] implies for it — the whole fan-out of
@@ -130,68 +134,6 @@ object GroupRules {
      * but their past group lessons stay untouched.
      */
     fun bookableMembers(members: List<Student>): List<Student> = members.filterNot { it.archived }
-
-    /**
-     * The subjects a group lesson may be booked for: those **every** member has a price for
-     * ([pricedSubjectIdsPerMember], one entry per member). A group lesson is billed per member, so a
-     * subject one member has no price for could not be billed for them — the tutor sets that price
-     * on the student first. Empty when the group has no members. The order of [allSubjects] is kept,
-     * so the picker stays alphabetical.
-     */
-    fun bookableSubjects(
-        allSubjects: List<Subject>,
-        pricedSubjectIdsPerMember: List<Collection<Long>>,
-    ): List<Subject> {
-        if (pricedSubjectIdsPerMember.isEmpty()) return emptyList()
-        val shared = pricedSubjectIdsPerMember
-            .map { it.toSet() }
-            .reduce { acc, ids -> acc intersect ids }
-        return allSubjects.filter { it.id in shared }
-    }
-
-    /**
-     * One row of the group form's member picker: a student who may be put in the group, and what
-     * they cost for the subject being picked for.
-     *
-     * @param rate the student's hourly rate for that subject, or null when there is none (either no
-     *   subject is being picked for yet, or [missingPrice]).
-     * @param missingPrice true only when a subject *is* being picked for and this student has no
-     *   price for it — which can only happen to somebody already in the roster (see
-     *   [memberCandidates]). Self-contained, so the row can be flagged without re-checking prices.
-     */
-    data class MemberCandidate(
-        val student: Student,
-        val rate: Money?,
-        val missingPrice: Boolean,
-    )
-
-    /**
-     * Who the tutor may put in a group while picking for [subjectId]: the students who have a price
-     * for that subject — the only ones the group could then be *billed* for — plus anyone already in
-     * [selectedIds], so a member can never be hidden by the filter and left in the roster unnoticed
-     * (they are flagged with [MemberCandidate.missingPrice] instead).
-     *
-     * With no subject chosen ([subjectId] null) only the current members come back: picking the
-     * subject first is what makes the roster bookable by construction, so an unfiltered wall of
-     * students is not offered.
-     *
-     * [students] is expected to be the *active* students in display order (archived ones can't be
-     * booked — see [bookableMembers]); that order is preserved.
-     */
-    fun memberCandidates(
-        students: List<Student>,
-        ratesByStudent: Map<Long, Map<Long, Money>>,
-        subjectId: Long?,
-        selectedIds: Set<Long>,
-    ): List<MemberCandidate> = students.mapNotNull { student ->
-        val rate = subjectId?.let { ratesByStudent[student.id]?.get(it) }
-        when {
-            rate != null -> MemberCandidate(student, rate, missingPrice = false)
-            student.id in selectedIds ->
-                MemberCandidate(student, rate = null, missingPrice = subjectId != null)
-            else -> null
-        }
-    }
 
     /**
      * The statuses offered for a whole session: the union of what its classes can move to. A mixed

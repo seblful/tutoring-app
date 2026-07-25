@@ -153,4 +153,70 @@ class MigrationTest {
             assertEquals(1, c.getInt(c.getColumnIndexOrThrow("showGroupsTab")))
         }
     }
+
+    /**
+     * v5 gives a group its own hourly rate. The roster and, crucially, the **money already billed** on
+     * its lessons must come through untouched: each class snapshotted the rate it was billed at, so an
+     * upgrade never restates history. The group itself arrives unpriced (0) — its members were billed
+     * individually, and no single number is the truth about that — for the tutor to price.
+     */
+    @Test fun migrate4To5KeepsBilledLessonsAndLeavesGroupsUnpriced() {
+        helper.createDatabase(testDb, 4).use { db ->
+            db.execSQL("INSERT INTO students (id, name, phone, email, note, defaultMode, archived) VALUES (1, 'Аня', '', '', '', 'IN_PERSON', 0)")
+            db.execSQL("INSERT INTO students (id, name, phone, email, note, defaultMode, archived) VALUES (2, 'Борис', '', '', '', 'IN_PERSON', 0)")
+            db.execSQL("INSERT INTO subjects (id, name) VALUES (1, 'Алгебра')")
+            db.execSQL("INSERT INTO student_groups (id, name, note, defaultMode, archived) VALUES (7, '11 «А»', 'вечер', 'REMOTE', 0)")
+            db.execSQL("INSERT INTO group_members (groupId, studentId) VALUES (7, 1)")
+            db.execSQL("INSERT INTO group_members (groupId, studentId) VALUES (7, 2)")
+            // One group lesson whose two members were billed their own, different rates.
+            db.execSQL(
+                "INSERT INTO classes (id, studentId, subjectId, startMillis, durationMinutes, priceMinor, " +
+                    "status, chargeMinor, groupId, mode, calendarEventId) " +
+                    "VALUES (1, 1, 1, 1900000000000, 60, 3000, 'COMPLETED', 3000, 7, 'IN_PERSON', NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO classes (id, studentId, subjectId, startMillis, durationMinutes, priceMinor, " +
+                    "status, chargeMinor, groupId, mode, calendarEventId) " +
+                    "VALUES (2, 2, 1, 1900000000000, 60, 2500, 'COMPLETED', 2500, 7, 'IN_PERSON', NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO settings (id, notificationsEnabled, calendarSyncEnabled, emailInvitesEnabled, " +
+                    "onboardingComplete, reminderLeadMinutes, autoCompleteEnabled, themeMode, " +
+                    "defaultLessonMinutes, currency, showGroupsTab) " +
+                    "VALUES (0, 1, 1, 0, 1, 30, 1, 'DARK', 45, 'RUB', 0)",
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(testDb, 5, true, Migrations.MIGRATION_4_5)
+
+        db.query("SELECT * FROM student_groups").use { c ->
+            assertEquals(1, c.count)
+            c.moveToFirst()
+            assertEquals("11 «А»", c.getString(c.getColumnIndexOrThrow("name")))
+            assertEquals("вечер", c.getString(c.getColumnIndexOrThrow("note")))
+            assertEquals("REMOTE", c.getString(c.getColumnIndexOrThrow("defaultMode")))
+            assertEquals("left for the tutor to price, not guessed", 0, c.getInt(c.getColumnIndexOrThrow("priceMinor")))
+        }
+        db.query("SELECT COUNT(*) FROM group_members WHERE groupId = 7").use { c ->
+            c.moveToFirst()
+            assertEquals("the roster survives", 2, c.getInt(0))
+        }
+        db.query("SELECT priceMinor, chargeMinor FROM classes ORDER BY id").use { c ->
+            assertEquals(2, c.count)
+            c.moveToFirst()
+            assertEquals(3000, c.getInt(0))
+            assertEquals("earned income is never restated", 3000, c.getInt(1))
+            c.moveToNext()
+            assertEquals(2500, c.getInt(0))
+            assertEquals(2500, c.getInt(1))
+        }
+        db.query("SELECT * FROM settings").use { c ->
+            c.moveToFirst()
+            // The tutor's existing choices are untouched, and the new default arrives unset.
+            assertEquals("DARK", c.getString(c.getColumnIndexOrThrow("themeMode")))
+            assertEquals(45, c.getInt(c.getColumnIndexOrThrow("defaultLessonMinutes")))
+            assertEquals(0, c.getInt(c.getColumnIndexOrThrow("showGroupsTab")))
+            assertEquals(0, c.getInt(c.getColumnIndexOrThrow("defaultGroupPriceMinor")))
+        }
+    }
 }

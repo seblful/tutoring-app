@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -35,14 +34,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
-import com.seblful.repetit.format.MoneyInput
 import com.seblful.repetit.ui.common.DatePickerModal
 import com.seblful.repetit.ui.common.ModeSelector
 import com.seblful.repetit.ui.common.TimePickerModal
@@ -207,42 +204,31 @@ fun ClassEditScreen(
             }
 
             if (form.target == ClassTarget.GROUP) {
-                // One rate per member, always visible: a group lesson is billed person by person, so
-                // who is being charged what is the substance of the booking, not a detail to hide.
-                Text(
-                    stringResource(R.string.class_group_prices_title),
-                    style = MaterialTheme.typography.titleSmall,
-                )
-                if (form.subjectId == null) {
+                // Who the lesson covers — read-only. The roster is changed on the group, not here, and
+                // there is no longer a per-person amount to set, but *who gets billed* is still the
+                // substance of a group booking, so it is stated rather than left to be assumed.
+                if (members.isNotEmpty()) {
                     Text(
-                        stringResource(R.string.class_group_pick_subject_first),
-                        style = MaterialTheme.typography.bodySmall,
+                        stringResource(R.string.class_group_members_title),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        members.joinToString(", ") { it.name },
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                members.forEach { member ->
-                    val text = form.memberPrices[member.id] ?: ""
-                    // Rates only make sense once a subject is chosen (they are pre-filled from it),
-                    // and only a row that is actually editable can be flagged as needing a value —
-                    // a row still waiting for its pre-fill isn't the tutor's problem.
-                    val editable = form.subjectId != null && member.id in form.memberPrices
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(member.name, Modifier.weight(1f))
-                        OutlinedTextField(
-                            value = text,
-                            onValueChange = { viewModel.setMemberPrice(member.id, it) },
-                            label = { Text(stringResource(R.string.price_label)) },
-                            isError = editable && MoneyInput.rate(text) == null,
-                            enabled = editable,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            singleLine = true,
-                            modifier = Modifier.width(150.dp),
-                        )
-                    }
-                }
+                // The group's rate, pre-filled from the group and editable for this one lesson. Shown
+                // plainly rather than behind a tap: for a group lesson it is *n* students' money.
+                OutlinedTextField(
+                    value = form.priceText,
+                    onValueChange = { text -> viewModel.update { it.copy(priceText = text) } },
+                    label = { Text(stringResource(R.string.class_group_price_label)) },
+                    isError = form.priceText.isNotBlank() && form.price == null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             } else if (showPriceField) {
                 // Price is hidden behind its current value (like the location row); tap to edit.
                 OutlinedTextField(
