@@ -4,8 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.repetit.data.repository.ClassRepository
+import com.seblful.repetit.data.repository.EnrollmentRepository
 import com.seblful.repetit.data.repository.GroupRepository
-import com.seblful.repetit.data.repository.PriceRepository
 import com.seblful.repetit.data.repository.SettingsRepository
 import com.seblful.repetit.data.repository.StudentRepository
 import com.seblful.repetit.data.repository.SubjectRepository
@@ -18,8 +18,8 @@ import com.seblful.repetit.domain.model.Group
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.Student
 import com.seblful.repetit.domain.model.Subject
-import com.seblful.repetit.format.MoneyInput
-import com.seblful.repetit.format.toAmountInput
+import com.seblful.repetit.format.MoneyField
+import com.seblful.repetit.ui.common.UiEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -64,7 +64,7 @@ data class ClassForm(
     val date: LocalDate? = null,
     val timeFrom: LocalTime? = null,
     val timeTo: LocalTime? = null,
-    val priceText: String = "",
+    val price: MoneyField = MoneyField(kind = MoneyField.Kind.RATE),
     val mode: ClassMode = ClassMode.IN_PERSON,
     /**
      * Members left out of **this one** group lesson, while booking it. Someone away this week is not
@@ -84,13 +84,11 @@ data class ClassForm(
             return if (minutes > 0) minutes.toInt() else null
         }
 
-    val price: Money? get() = MoneyInput.rate(priceText)
-
     private val timingValid: Boolean
         get() = date != null && timeFrom != null && timeTo != null && (durationMinutes ?: 0) > 0
 
     val isValid: Boolean
-        get() = subjectId != null && timingValid && price != null && when (target) {
+        get() = subjectId != null && timingValid && price.isValid && when (target) {
             ClassTarget.STUDENT -> studentId != null
             ClassTarget.GROUP -> groupId != null
         }
@@ -125,6 +123,98 @@ data class TimeConflict(val slot: Scheduling.Slot, val who: String) {
     }
 }
 
+/**
+ * Why the chosen time won't do. Which problem wins is decided here, not by the order two `if`s
+ * happen to sit in a composable: an impossible range is the tutor's own typing and is worth saying
+ * first, while a clash is about somebody else's lesson.
+ */
+sealed interface TimeProblem {
+
+    /**
+     * The end is at or before the start. A lesson that would cross midnight lands here too — the
+     * times are wall-clock on one date, so 23:00 → 00:30 reads as a negative range.
+     */
+    data object RangeInvalid : TimeProblem
+
+    /** Another lesson already holds this slot; [conflict] names it. */
+    data class Taken(val conflict: TimeConflict) : TimeProblem
+}
+
+/** What, if anything, to say under the subject picker. */
+enum class SubjectNotice {
+    /** The group is taught one subject, so there is nothing to pick per lesson. */
+    FIXED_BY_GROUP,
+
+    /** The chosen group offers no bookable subject. */
+    NONE_FOR_GROUP,
+
+    /** The chosen student has no priced subject yet, so nothing can be billed. */
+    NONE_FOR_STUDENT,
+}
+
+/**
+ * Everything the booking screen draws, with every decision already made.
+ *
+ * The screen used to receive seven separate flows and work out the answers itself — which time
+ * error wins, whether the subject picker is live, whether everyone has been unticked, whether the
+ * save may proceed. Those are rules about booking a lesson, not about drawing one, and none of them
+ * could be tested where they were. Here they are ordinary properties over ordinary data.
+ */
+data class ClassFormState(
+    val form: ClassForm = ClassForm(),
+    val isNew: Boolean = true,
+    val students: List<Student> = emptyList(),
+    val groups: List<Group> = emptyList(),
+    val members: List<Student> = emptyList(),
+    val subjects: List<Subject> = emptyList(),
+    val subjectFixedByGroup: Boolean = false,
+    val conflict: TimeConflict? = null,
+) {
+    /** Whether the lesson yet has somebody to be for. Until then most of the form means nothing. */
+    val targetChosen: Boolean
+        get() = when (form.target) {
+            ClassTarget.STUDENT -> form.studentId != null
+            ClassTarget.GROUP -> form.groupId != null
+        }
+
+    /**
+     * Offering a dropdown that can only be set to what it already says would invite a choice that
+     * isn't there, so a group-bound subject reads as fixed rather than as pickable.
+     */
+    val subjectPickerEnabled: Boolean get() = targetChosen && !subjectFixedByGroup
+
+    val subjectNotice: SubjectNotice?
+        get() = when {
+            subjectFixedByGroup -> SubjectNotice.FIXED_BY_GROUP
+            !targetChosen || subjects.isNotEmpty() -> null
+            form.target == ClassTarget.GROUP -> SubjectNotice.NONE_FOR_GROUP
+            else -> SubjectNotice.NONE_FOR_STUDENT
+        }
+
+    val timeProblem: TimeProblem?
+        get() = when {
+            form.timeFrom != null && form.timeTo != null && form.durationMinutes == null ->
+                TimeProblem.RangeInvalid
+
+            conflict != null -> TimeProblem.Taken(conflict)
+            else -> null
+        }
+
+    /** Every member unticked: the lesson would be written for nobody and bill no one. */
+    val allMembersExcluded: Boolean
+        get() = members.isNotEmpty() && form.excludedMemberIds.containsAll(members.map { it.id })
+
+    /** A group was chosen but there are none to choose — worded differently from "none picked". */
+    val hasNoGroups: Boolean get() = form.target == ClassTarget.GROUP && groups.isEmpty()
+
+    /**
+     * Whether saving may be attempted. A taken slot is as disqualifying as a missing field: the
+     * lesson could not happen. The save re-checks against the database regardless, since the slot
+     * can be taken between here and there.
+     */
+    val canSave: Boolean get() = form.isValid && conflict == null && !allMembersExcluded
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ClassEditViewModel @Inject constructor(
@@ -133,7 +223,7 @@ class ClassEditViewModel @Inject constructor(
     private val studentsRepo: StudentRepository,
     private val groupsRepo: GroupRepository,
     private val subjectsRepo: SubjectRepository,
-    private val pricesRepo: PriceRepository,
+    private val enrollment: EnrollmentRepository,
     private val settingsRepo: SettingsRepository,
 ) : ViewModel() {
 
@@ -158,7 +248,7 @@ class ClassEditViewModel @Inject constructor(
      */
     private val session = MutableStateFlow<ClassSession?>(null)
 
-    val students: StateFlow<List<Student>> = studentsRepo.observeActive()
+    private val students: StateFlow<List<Student>> = studentsRepo.observeActive()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val form = MutableStateFlow(ClassForm())
@@ -167,7 +257,7 @@ class ClassEditViewModel @Inject constructor(
      * The groups offered in the picker: the active ones, plus the group of the lesson being edited so
      * an archived group's existing lesson can still name itself.
      */
-    val groups: StateFlow<List<Group>> =
+    private val groups: StateFlow<List<Group>> =
         combine(groupsRepo.observeAll(), form.map { it.groupId }.distinctUntilChanged()) { all, selected ->
             all.filter { !it.archived || it.id == selected }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -178,7 +268,7 @@ class ClassEditViewModel @Inject constructor(
      * was actually booked for — a roster change since then must not add or drop a billed class, so the
      * form shows the lesson as it is, not as the group is now.
      */
-    val members: StateFlow<List<Student>> =
+    private val members: StateFlow<List<Student>> =
         combine(form.map { it.groupId }.distinctUntilChanged(), session) { groupId, booked ->
             MembersKey(groupId, booked?.classes?.map { it.studentId }?.toSet())
         }.distinctUntilChanged()
@@ -201,13 +291,13 @@ class ClassEditViewModel @Inject constructor(
      * the group is taught it, and every member is priced for it. For a group without one (made before
      * v6): all of them, as before, because nothing on the group says otherwise.
      */
-    val subjects: StateFlow<List<Subject>> =
+    private val subjects: StateFlow<List<Subject>> =
         form.map { SubjectKey(it.target, it.studentId, it.groupId) }.distinctUntilChanged()
             .flatMapLatest { key ->
                 when {
                     key.target == ClassTarget.STUDENT && key.studentId != null ->
                         combine(
-                            pricesRepo.observeForStudent(key.studentId),
+                            enrollment.observePricesFor(key.studentId),
                             subjectsRepo.observeAll(),
                         ) { prices, all -> Scheduling.assignableSubjects(all, prices.map { it.subjectId }) }
 
@@ -230,7 +320,7 @@ class ClassEditViewModel @Inject constructor(
      * group has one. Drives the picker's enabled state: showing a dropdown that can only be set to
      * what it already says would invite a choice that isn't there.
      */
-    val subjectFixedByGroup: StateFlow<Boolean> =
+    private val subjectFixedByGroup: StateFlow<Boolean> =
         form.map { it.groupId }.distinctUntilChanged()
             .flatMapLatest { groupId ->
                 if (groupId == null) flowOf(false)
@@ -248,7 +338,7 @@ class ClassEditViewModel @Inject constructor(
      * The lesson being **edited** is excluded by every one of its class ids, not just the one that was
      * tapped: a group lesson would otherwise be found colliding with its own other members.
      */
-    val conflict: StateFlow<TimeConflict?> =
+    private val conflict: StateFlow<TimeConflict?> =
         combine(
             form.map { it.slot(zone) }.distinctUntilChanged(),
             session.map { s -> s?.classes?.map { it.id }?.toSet().orEmpty() }.distinctUntilChanged(),
@@ -267,6 +357,40 @@ class ClassEditViewModel @Inject constructor(
                 }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * The whole form, as one value. Assembled in two stages only because `combine` takes at most
+     * five typed sources — the split is arithmetic, not meaning.
+     */
+    private data class Pickers(
+        val students: List<Student>,
+        val groups: List<Group>,
+        val members: List<Student>,
+        val subjects: List<Subject>,
+        val subjectFixedByGroup: Boolean,
+    )
+
+    val state: StateFlow<ClassFormState> =
+        combine(
+            combine(students, groups, members, subjects, subjectFixedByGroup, ::Pickers),
+            form,
+            conflict,
+        ) { pickers, f, clash ->
+            ClassFormState(
+                form = f,
+                isNew = isNew,
+                students = pickers.students,
+                groups = pickers.groups,
+                members = pickers.members,
+                subjects = pickers.subjects,
+                subjectFixedByGroup = pickers.subjectFixedByGroup,
+                conflict = clash,
+            )
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            ClassFormState(isNew = isNew),
+        )
 
     /** Archived students and groups are looked up too — a past lesson still occupied that hour. */
     private fun describe(clash: ClassSession, students: List<Student>, groups: List<Group>): TimeConflict =
@@ -324,7 +448,7 @@ class ClassEditViewModel @Inject constructor(
             // The rate the lesson was booked at. A group lesson from before groups had a rate of their
             // own can have members on differing rates, and no single number is the truth about it —
             // the group's current rate is then offered instead of picking one member's arbitrarily.
-            priceText = (loaded.sharedPrice ?: groupRate(c.groupId) ?: c.price).toAmountInput(),
+            price = MoneyField.of(loaded.sharedPrice ?: groupRate(c.groupId) ?: c.price),
             mode = c.mode,
         )
     }
@@ -362,7 +486,7 @@ class ClassEditViewModel @Inject constructor(
             studentId = null,
             groupId = null,
             subjectId = null,
-            priceText = "",
+            price = MoneyField(kind = MoneyField.Kind.RATE),
         )
         // Auto-select the only group there is, mirroring the single-student case.
         if (target == ClassTarget.GROUP) {
@@ -378,7 +502,12 @@ class ClassEditViewModel @Inject constructor(
     fun selectStudent(studentId: Long) {
         if (form.value.studentId == studentId) return
         val mode = students.value.firstOrNull { it.id == studentId }?.defaultMode ?: ClassMode.IN_PERSON
-        form.value = form.value.copy(studentId = studentId, subjectId = null, priceText = "", mode = mode)
+        form.value = form.value.copy(
+            studentId = studentId,
+            subjectId = null,
+            price = MoneyField(kind = MoneyField.Kind.RATE),
+            mode = mode,
+        )
     }
 
     /**
@@ -392,7 +521,7 @@ class ClassEditViewModel @Inject constructor(
         form.value = form.value.copy(
             groupId = groupId,
             subjectId = null,
-            priceText = "",
+            price = MoneyField(kind = MoneyField.Kind.RATE),
             excludedMemberIds = emptySet(),
         )
         // Read the group from the repository, not from `groups`: the form can be opened already
@@ -403,7 +532,7 @@ class ClassEditViewModel @Inject constructor(
             form.value = form.value.copy(
                 mode = group.defaultMode,
                 // Never clobber an amount the tutor has already typed for this lesson.
-                priceText = form.value.priceText.ifBlank { group.price.toAmountInput() },
+                price = form.value.price.prefilledWith(group.price),
                 // A group that has a subject decides it — there is nothing to pick per lesson.
                 subjectId = group.subjectId ?: form.value.subjectId,
             )
@@ -434,10 +563,10 @@ class ClassEditViewModel @Inject constructor(
     private fun prefillStudentPrice(subjectId: Long) {
         val studentId = form.value.studentId ?: return
         viewModelScope.launch {
-            val price = pricesRepo.get(studentId, subjectId)?.amount
+            val price = enrollment.priceFor(studentId, subjectId)?.amount
             // Only auto-fill an empty field — never clobber a price the user already typed.
-            if (price != null && form.value.subjectId == subjectId && form.value.priceText.isBlank()) {
-                form.value = form.value.copy(priceText = price.toAmountInput())
+            if (form.value.subjectId == subjectId) {
+                form.value = form.value.copy(price = form.value.price.prefilledWith(price))
             }
         }
     }
@@ -482,6 +611,17 @@ class ClassEditViewModel @Inject constructor(
      * Does nothing — [onDone] is not called — when the form is incomplete or its time is already
      * taken; [conflict] is what tells the tutor which lesson is in the way.
      */
+    /** One-shot signals from a save that could not go through. */
+    enum class Event {
+        /** The slot was taken between this form opening and the save — [conflict] names by whom. */
+        SAVE_REFUSED_TIME_TAKEN,
+
+        /** Every member was unticked, so the lesson would bill nobody. */
+        SAVE_REFUSED_NO_MEMBERS,
+    }
+
+    val events = UiEvents<Event>()
+
     fun save(onDone: () -> Unit) {
         val f = form.value
         if (!f.isValid) return
@@ -489,7 +629,7 @@ class ClassEditViewModel @Inject constructor(
         val start = slot.start
         val duration = slot.durationMinutes
         val isGroup = f.target == ClassTarget.GROUP
-        val price = f.price!!
+        val price = f.price.amount!!
 
         viewModelScope.launch {
             val existing = session.value
@@ -497,7 +637,12 @@ class ClassEditViewModel @Inject constructor(
             // disabled on a clash, but the lesson in the way may have been booked — or moved here —
             // since this form was opened, and two lessons at one hour cannot both happen.
             val ignoring = existing?.classes?.map { it.id }?.toSet().orEmpty()
-            if (classes.conflictsWith(slot, ignoring).isNotEmpty()) return@launch
+            if (classes.conflictsWith(slot, ignoring).isNotEmpty()) {
+                // Say so rather than doing nothing: the button was enabled, so from the tutor's side
+                // a silent no-op looks like the app dropped their lesson.
+                events.send(Event.SAVE_REFUSED_TIME_TAKEN)
+                return@launch
+            }
             if (existing != null) {
                 classes.apply(
                     session = existing,
@@ -516,9 +661,12 @@ class ClassEditViewModel @Inject constructor(
                 val studentIds =
                     if (isGroup) bookableRoster(f.groupId!!) - f.excludedMemberIds
                     else listOf(f.studentId!!)
-                // A group whose every member has been archived has nobody left to bill; the lesson
-                // would be a row belonging to no one, so there is nothing to book.
-                if (studentIds.isEmpty()) return@launch
+                // A group whose every member has been archived (or been unticked) has nobody left
+                // to bill; the lesson would be a row belonging to no one, so there is nothing to book.
+                if (studentIds.isEmpty()) {
+                    events.send(Event.SAVE_REFUSED_NO_MEMBERS)
+                    return@launch
+                }
                 classes.book(
                     subjectId = f.subjectId!!,
                     start = start,

@@ -43,9 +43,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
-import com.seblful.repetit.calendar.AndroidCalendarPermission
 import com.seblful.repetit.domain.model.Money
-import com.seblful.repetit.format.MoneyInput
+import com.seblful.repetit.format.MoneyField
 import com.seblful.repetit.format.toAmountInput
 import com.seblful.repetit.ui.common.constrainedContent
 import com.seblful.repetit.ui.common.text
@@ -92,7 +91,7 @@ fun SettingsScreen(
                 title = stringResource(R.string.settings_notifications),
                 description = stringResource(R.string.settings_notifications_desc),
                 checked = settings.notificationsEnabled,
-                onCheckedChange = { viewModel.setNotificationsEnabled(it) },
+                onCheckedChange = { on -> viewModel.update { it.copy(notificationsEnabled = on) } },
             )
             ChoiceRow(
                 title = stringResource(R.string.settings_reminder_lead),
@@ -102,7 +101,7 @@ fun SettingsScreen(
                     120 to stringResource(R.string.hours_two),
                 ),
                 selected = settings.reminderLeadMinutes,
-                onSelect = { viewModel.setReminderLeadMinutes(it) },
+                onSelect = { minutes -> viewModel.update { it.copy(reminderLeadMinutes = minutes) } },
             )
 
             SectionHeader(stringResource(R.string.settings_section_calendar))
@@ -112,7 +111,7 @@ fun SettingsScreen(
                 checked = settings.calendarSyncEnabled,
                 onCheckedChange = { on ->
                     if (viewModel.setCalendarSyncEnabled(on) == CalendarSyncToggle.PERMISSION_NEEDED) {
-                        calendarPermission.launch(AndroidCalendarPermission.REQUIRED)
+                        calendarPermission.launch(viewModel.calendarPermissionsRequired)
                     }
                 },
             )
@@ -132,7 +131,7 @@ fun SettingsScreen(
                 title = stringResource(R.string.settings_autocomplete),
                 description = stringResource(R.string.settings_autocomplete_desc),
                 checked = settings.autoCompleteEnabled,
-                onCheckedChange = { viewModel.setAutoCompleteEnabled(it) },
+                onCheckedChange = { on -> viewModel.update { it.copy(autoCompleteEnabled = on) } },
             )
             ChoiceRow(
                 title = stringResource(R.string.settings_default_lesson),
@@ -143,7 +142,7 @@ fun SettingsScreen(
                     120 to stringResource(R.string.hours_two),
                 ),
                 selected = settings.defaultLessonMinutes,
-                onSelect = { viewModel.setDefaultLessonMinutes(it) },
+                onSelect = { minutes -> viewModel.update { it.copy(defaultLessonMinutes = minutes) } },
             )
 
             SectionHeader(stringResource(R.string.settings_section_money))
@@ -154,7 +153,7 @@ fun SettingsScreen(
                     "RUB" to stringResource(R.string.currency_rub),
                 ),
                 selected = settings.currency,
-                onSelect = { viewModel.setCurrency(it) },
+                onSelect = { code -> viewModel.update { it.copy(currency = code) } },
             )
             // Free text rather than a segmented control: unlike a lesson length or a currency, there
             // is no shortlist of plausible amounts to offer.
@@ -162,7 +161,7 @@ fun SettingsScreen(
                 title = stringResource(R.string.settings_default_group_price),
                 description = stringResource(R.string.settings_default_group_price_desc),
                 minor = settings.defaultGroupPriceMinor,
-                onSet = { viewModel.setDefaultGroupPrice(it) },
+                onSet = { minor -> viewModel.update { it.copy(defaultGroupPriceMinor = minor) } },
             )
 
             SectionHeader(stringResource(R.string.settings_section_menu))
@@ -172,7 +171,7 @@ fun SettingsScreen(
                 trailingContent = {
                     Switch(
                         checked = settings.showGroupsTab,
-                        onCheckedChange = { viewModel.setShowGroupsTab(it) },
+                        onCheckedChange = { on -> viewModel.update { it.copy(showGroupsTab = on) } },
                     )
                 },
             )
@@ -186,7 +185,7 @@ fun SettingsScreen(
                     "DARK" to stringResource(R.string.theme_dark),
                 ),
                 selected = settings.themeMode,
-                onSelect = { viewModel.setThemeMode(it) },
+                onSelect = { mode -> viewModel.update { it.copy(themeMode = mode) } },
             )
         }
     }
@@ -254,17 +253,24 @@ private fun MoneyRow(
     )
     if (editing) {
         // Opens on the amount currently set, so editing it is a correction rather than a re-entry.
-        var text by remember { mutableStateOf(if (minor == 0L) "" else Money(minor).toAmountInput()) }
-        val parsed = if (text.isBlank()) 0L else MoneyInput.rate(text)?.minor
+        // OPTIONAL_RATE is what makes clearing the box mean "not set" rather than being invalid.
+        var field by remember {
+            mutableStateOf(
+                MoneyField(
+                    text = if (minor == 0L) "" else Money(minor).toAmountInput(),
+                    kind = MoneyField.Kind.OPTIONAL_RATE,
+                ),
+            )
+        }
         AlertDialog(
             onDismissRequest = { editing = false },
             title = { Text(title) },
             text = {
                 OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it },
+                    value = field.text,
+                    onValueChange = { field = field.typed(it) },
                     label = { Text(stringResource(R.string.price_label)) },
-                    isError = parsed == null,
+                    isError = field.isError,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                 )
@@ -272,10 +278,10 @@ private fun MoneyRow(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        parsed?.let(onSet)
+                        field.amount?.let { onSet(it.minor) }
                         editing = false
                     },
-                    enabled = parsed != null,
+                    enabled = field.isValid,
                 ) {
                     Text(stringResource(R.string.action_save))
                 }

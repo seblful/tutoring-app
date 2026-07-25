@@ -50,14 +50,13 @@ fun parseMoneyOrNull(text: String): Money? {
     return runCatching { Money(minor.longValueExact()) }.getOrNull()
 }
 
-/** Formats [Money] as a plain editable amount with no currency sign, e.g. "50", "45,05", "-0,50". */
-fun Money.toAmountInput(): String {
-    val sign = if (minor < 0) "-" else ""
-    val abs = kotlin.math.abs(minor)
-    val major = abs / 100
-    val kopecks = (abs % 100).toInt()
-    return if (kopecks == 0) "$sign$major" else "$sign$major,${kopecks.toString().padStart(2, '0')}"
-}
+/**
+ * Formats [Money] as a plain editable amount with no currency sign, e.g. "50", "45,05", "-0,50".
+ *
+ * Kept as the name a text field seeds itself with, but the rendering itself is [Money.amountText] —
+ * the same string [Money.format] puts a currency after — so the two can't drift.
+ */
+fun Money.toAmountInput(): String = amountText
 
 /** Formats an epoch-month key (year * 12 + monthIndex) as e.g. "Июнь 2026". */
 fun formatMonthKey(key: Int): String {

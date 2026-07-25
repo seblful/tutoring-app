@@ -98,7 +98,7 @@ private fun MainApp(showGroupsTab: Boolean) {
         ) {
             composable(Routes.SCHEDULE) {
                 ScheduleScreen(
-                    onAddClass = { date -> navController.navigate(Routes.classEdit(0, date.toEpochDay())) },
+                    onAddClass = { navController.navigate(Routes.classEdit(0)) },
                     onEditClass = { navController.navigate(Routes.classEdit(it)) },
                 )
             }
@@ -173,7 +173,6 @@ private fun MainApp(showGroupsTab: Boolean) {
                 Routes.CLASS_EDIT,
                 arguments = listOf(
                     navArgument("id") { type = NavType.LongType },
-                    navArgument("date") { type = NavType.LongType; defaultValue = -1L },
                     navArgument("group") { type = NavType.LongType; defaultValue = 0L },
                 ),
             ) {

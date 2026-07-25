@@ -7,21 +7,33 @@ import com.seblful.repetit.data.repository.ClassRepository
 import com.seblful.repetit.data.repository.EnrollmentRepository
 import com.seblful.repetit.data.repository.GroupRepository
 import com.seblful.repetit.data.repository.PaymentRepository
-import com.seblful.repetit.data.repository.PriceRepository
 import com.seblful.repetit.data.repository.SettingsRepository
 import com.seblful.repetit.data.repository.StudentRepository
 import com.seblful.repetit.data.repository.SubjectRepository
 import com.seblful.repetit.domain.ReminderScheduler
+import com.seblful.repetit.domain.Reminders
 import com.seblful.repetit.domain.model.TutoringClass
 import com.seblful.repetit.notifications.Notifier
+import com.seblful.repetit.storage.DocumentRef
+import com.seblful.repetit.storage.DocumentStore
 
-/** Records reminder-refresh requests so tests can assert side effects fired. */
+/** Records reminder-refresh requests and armed plans so tests can assert side effects fired. */
 class RecordingReminderScheduler : ReminderScheduler {
     var refreshCount = 0
         private set
 
+    /** Every plan handed over, newest last. [armed] is the one currently in force. */
+    val schedules = mutableListOf<List<Reminders.Plan>>()
+
+    /** The reminders currently armed — the last plan scheduled, or empty if none ever was. */
+    val armed: List<Reminders.Plan> get() = schedules.lastOrNull().orEmpty()
+
     override fun refreshNow() {
         refreshCount++
+    }
+
+    override fun schedule(plans: List<Reminders.Plan>) {
+        schedules += plans
     }
 }
 
@@ -47,8 +59,6 @@ class FakeCalendarSync(var available: Boolean = true) : CalendarSync {
 
     /** The guest carried by the most recent mirror, if any. */
     val lastGuest: Guest? get() = calls.lastOrNull()?.guest
-
-    override suspend fun isAvailable(): Boolean = available
 
     override suspend fun upsert(
         klass: TutoringClass,
@@ -86,6 +96,26 @@ class RecordingNotifier : Notifier {
 /** Stands in for the device's calendar permission; flip [granted] to drive either branch. */
 class FakeCalendarPermission(var granted: Boolean = true) : CalendarPermission {
     override fun isGranted(): Boolean = granted
+    override val required: Array<String> get() = arrayOf("READ_CALENDAR", "WRITE_CALENDAR")
+}
+
+/**
+ * An in-memory [DocumentStore]. [docs] is the "file system": seed it to drive a read, inspect it
+ * after a write. Set [failing] to make both operations throw, which is how the error branch of an
+ * export or import is reached without a device.
+ */
+class FakeDocumentStore(var failing: Boolean = false) : DocumentStore {
+    val docs = mutableMapOf<String, String>()
+
+    override suspend fun read(ref: DocumentRef): String {
+        if (failing) error("Cannot open input stream")
+        return docs[ref.value] ?: error("No such document: ${ref.value}")
+    }
+
+    override suspend fun write(ref: DocumentRef, text: String) {
+        if (failing) error("Cannot open output stream")
+        docs[ref.value] = text
+    }
 }
 
 /**
@@ -111,7 +141,6 @@ class TestEnv {
     val subjectRepo = SubjectRepository(subjectDao, classDao)
     val studentRepo = StudentRepository(studentDao)
     val groupRepo = GroupRepository(groupDao, classDao, studentDao)
-    val priceRepo = PriceRepository(priceDao)
     val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classDao)
     val paymentRepo = PaymentRepository(paymentDao)
     val classRepo = ClassRepository(

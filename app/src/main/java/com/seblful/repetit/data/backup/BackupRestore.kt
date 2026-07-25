@@ -28,7 +28,7 @@ class BackupRestore @Inject constructor(
      */
     suspend fun restore(json: String) {
         backup.importJson(json)
-        settings.setOnboardingComplete(true)
+        settings.update { it.copy(onboardingComplete = true) }
         // Imported classes change what's upcoming/overdue — re-run auto-complete & reminders.
         reminders.refreshNow()
         runCatching { classes.resyncCalendar() } // best-effort, like all calendar work

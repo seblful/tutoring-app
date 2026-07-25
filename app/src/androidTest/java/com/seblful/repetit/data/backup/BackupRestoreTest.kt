@@ -13,7 +13,7 @@ import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.SubjectEntity
 import com.seblful.repetit.data.repository.ClassRepository
 import com.seblful.repetit.data.repository.SettingsRepository
-import com.seblful.repetit.domain.ReminderScheduler
+import com.seblful.repetit.testutil.RecordingReminderScheduler
 import com.seblful.repetit.domain.model.ClassStatus
 import com.seblful.repetit.domain.model.TutoringClass
 import kotlinx.coroutines.test.runTest
@@ -34,7 +34,6 @@ import java.time.Instant
 class BackupRestoreTest {
 
     private val noCalendar = object : CalendarSync {
-        override suspend fun isAvailable() = false
         override suspend fun upsert(
             klass: TutoringClass,
             title: String,
@@ -49,7 +48,7 @@ class BackupRestoreTest {
     private lateinit var target: AppDatabase
     private lateinit var settings: SettingsRepository
     private lateinit var restore: BackupRestore
-    private var reminderRefreshes = 0
+    private val reminders = RecordingReminderScheduler()
 
     private fun newDb(): AppDatabase = Room.inMemoryDatabaseBuilder(
         ApplicationProvider.getApplicationContext<Context>(), AppDatabase::class.java,
@@ -66,13 +65,13 @@ class BackupRestoreTest {
         settings = SettingsRepository(target.settingsDao())
         val classes = ClassRepository(
             target.classDao(), target.studentDao(), target.subjectDao(), target.groupDao(),
-            noCalendar, ReminderScheduler { /* not the port under test here */ }, settings,
+            noCalendar, RecordingReminderScheduler(), settings,
         )
         restore = BackupRestore(
             backup = managerFor(target),
             settings = settings,
             classes = classes,
-            reminders = ReminderScheduler { reminderRefreshes++ },
+            reminders = reminders,
         )
     }
 
@@ -107,7 +106,7 @@ class BackupRestoreTest {
         assertEquals(listOf("Иван"), target.studentDao().getAll().map { it.name })
         assertEquals(1, target.classDao().getAll().size)
         assertTrue(settings.get().onboardingComplete) // restored data *is* the setup
-        assertEquals(1, reminderRefreshes) // imported classes re-plan reminders
+        assertEquals(1, reminders.refreshCount) // imported classes re-plan reminders
     }
 
     @Test fun aFileThatIsNotABackupChangesNothing() = runTest {
@@ -118,6 +117,6 @@ class BackupRestoreTest {
         assertTrue(failure.isFailure)
         assertEquals(listOf("Физика"), target.subjectDao().getAll().map { it.name })
         assertFalse(settings.get().onboardingComplete) // still first run
-        assertEquals(0, reminderRefreshes)
+        assertEquals(0, reminders.refreshCount)
     }
 }

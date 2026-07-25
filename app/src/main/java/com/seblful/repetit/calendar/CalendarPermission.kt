@@ -12,4 +12,13 @@ interface CalendarPermission {
 
     /** True when both read and write calendar access have been granted. */
     fun isGranted(): Boolean
+
+    /**
+     * The permissions a caller must request when [isGranted] is false.
+     *
+     * On the port rather than on the adapter so the settings screen can ask for them without
+     * importing `AndroidCalendarPermission` — the one thing that used to make the UI layer depend
+     * on which adapter is installed.
+     */
+    val required: Array<String>
 }

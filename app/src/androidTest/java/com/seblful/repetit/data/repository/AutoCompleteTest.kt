@@ -6,7 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.repetit.calendar.CalendarSync
 import com.seblful.repetit.calendar.Guest
-import com.seblful.repetit.domain.ReminderScheduler
+import com.seblful.repetit.testutil.RecordingReminderScheduler
 import com.seblful.repetit.data.local.AppDatabase
 import com.seblful.repetit.data.local.ClassEntity
 import com.seblful.repetit.data.local.PriceEntity
@@ -29,7 +29,6 @@ import java.time.Instant
 class AutoCompleteTest {
 
     private val noCalendar = object : CalendarSync {
-        override suspend fun isAvailable() = false
         override suspend fun upsert(klass: TutoringClass, title: String, guest: Guest?, reminderLeadMinutes: Int): String? = null
         override suspend fun delete(eventId: String) = Unit
     }
@@ -46,7 +45,7 @@ class AutoCompleteTest {
         db.priceDao().insertAll(listOf(PriceEntity(1, 1, amountMinor = 5000))) // 50 BYN
         repo = ClassRepository(
             db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(), noCalendar,
-            ReminderScheduler { /* no-op in tests */ }, SettingsRepository(db.settingsDao()),
+            RecordingReminderScheduler(), SettingsRepository(db.settingsDao()),
         )
     }
 

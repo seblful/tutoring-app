@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.seblful.repetit.data.repository.ClassRepository
 import com.seblful.repetit.data.repository.EnrollmentRepository
 import com.seblful.repetit.data.repository.PaymentRepository
-import com.seblful.repetit.data.repository.PriceRepository
 import com.seblful.repetit.data.repository.StudentRepository
 import com.seblful.repetit.data.repository.SubjectRepository
 import com.seblful.repetit.domain.Billing
@@ -17,7 +16,7 @@ import com.seblful.repetit.domain.model.Student
 import com.seblful.repetit.domain.model.Subject
 import com.seblful.repetit.domain.model.TutoringClass
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.Channel
+import com.seblful.repetit.ui.common.UiEvents
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -52,7 +51,6 @@ class StudentDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val students: StudentRepository,
     private val subjects: SubjectRepository,
-    private val prices: PriceRepository,
     private val classes: ClassRepository,
     private val payments: PaymentRepository,
     private val enrollment: EnrollmentRepository,
@@ -63,13 +61,12 @@ class StudentDetailViewModel @Inject constructor(
     /** One-shot UI signals, e.g. removing a subject blocked because the student has classes for it. */
     enum class Event { REMOVE_BLOCKED_HAS_CLASSES }
 
-    private val _events = Channel<Event>(Channel.BUFFERED)
-    val events: Flow<Event> = _events.receiveAsFlow()
+    val events = UiEvents<Event>()
 
     val state: StateFlow<StudentDetailState> = combine(
         students.observeById(studentId),
         subjects.observeAll(),
-        prices.observeForStudent(studentId),
+        enrollment.observePricesFor(studentId),
         classes.observeForStudent(studentId),
     ) { student, allSubjects, priceList, classList ->
         val subjectsById = allSubjects.associateBy { it.id }
@@ -136,7 +133,7 @@ class StudentDetailViewModel @Inject constructor(
     fun removeSubject(subjectId: Long) {
         viewModelScope.launch {
             when (enrollment.unenroll(studentId, subjectId)) {
-                EnrollmentRepository.Unenroll.HasClasses -> _events.send(Event.REMOVE_BLOCKED_HAS_CLASSES)
+                EnrollmentRepository.Unenroll.HasClasses -> events.send(Event.REMOVE_BLOCKED_HAS_CLASSES)
                 EnrollmentRepository.Unenroll.Ok -> Unit
             }
         }

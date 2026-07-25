@@ -53,6 +53,8 @@
     <string name="class_time_range_invalid">Окончание должно быть позже начала</string>
     <!-- %1$s: ученик или группа, %2$s: время занятия, которое уже стоит в расписании -->
     <string name="class_time_conflict">Это время занято: %1$s, %2$s</string>
+    <!-- Shown when the slot was taken between the form opening and the save. -->
+    <string name="class_save_refused_time_taken">Это время уже занято — выберите другое</string>
     <string name="class_duration_label">Длительность, мин</string>
     <string name="class_location_label">Место</string>
     <string name="class_mode_in_person">Очно</string>

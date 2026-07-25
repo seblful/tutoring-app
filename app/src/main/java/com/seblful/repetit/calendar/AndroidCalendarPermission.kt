@@ -18,14 +18,19 @@ class AndroidCalendarPermission @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : CalendarPermission {
 
-    override fun isGranted(): Boolean =
-        granted(Manifest.permission.READ_CALENDAR) && granted(Manifest.permission.WRITE_CALENDAR)
+    override fun isGranted(): Boolean = REQUIRED.all { granted(it) }
+
+    override val required: Array<String> get() = REQUIRED
 
     private fun granted(permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
     companion object {
-        /** The pair a caller must request when [isGranted] is false. */
+        /**
+         * Read *and* write are both required: the mirror reads to find a writable calendar and to
+         * locate an existing event, and writes to keep it in step. Granting one does not imply the
+         * other, so both must be requested.
+         */
         val REQUIRED = arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR)
     }
 }

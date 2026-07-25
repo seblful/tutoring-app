@@ -42,7 +42,7 @@ class WorkScheduler @Inject constructor(
     }
 
     /** Replaces all reminder jobs with one per [plans] entry. */
-    fun scheduleReminders(plans: List<Reminders.Plan>) {
+    override fun schedule(plans: List<Reminders.Plan>) {
         workManager.cancelAllWorkByTag(TAG_REMINDER)
         for (plan in plans) {
             val request = OneTimeWorkRequestBuilder<ReminderWorker>()

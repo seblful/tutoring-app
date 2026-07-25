@@ -35,7 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
-import com.seblful.repetit.format.MoneyInput
+import com.seblful.repetit.format.MoneyField
 import com.seblful.repetit.ui.common.ModeSelector
 import com.seblful.repetit.ui.common.constrainedContent
 
@@ -138,7 +138,7 @@ fun StudentFormContent(
             )
             state.allSubjects.forEach { subject ->
                 val selected = subject.id in state.selectedSubjectIds
-                val priceText = form.subjectPrices[subject.id] ?: ""
+                val price = form.subjectPrices[subject.id] ?: MoneyField()
                 Row(
                     Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -158,10 +158,10 @@ fun StudentFormContent(
                     if (selected) {
                         Spacer(Modifier.width(8.dp))
                         OutlinedTextField(
-                            value = priceText,
+                            value = price.text,
                             onValueChange = { viewModel.setPriceText(subject.id, it) },
                             label = { Text(stringResource(R.string.price_label)) },
-                            isError = priceText.isNotBlank() && MoneyInput.rate(priceText) == null,
+                            isError = price.isError,
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.width(140.dp),

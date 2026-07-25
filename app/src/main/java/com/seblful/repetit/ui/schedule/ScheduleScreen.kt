@@ -87,7 +87,7 @@ import java.time.ZoneId
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleScreen(
-    onAddClass: (LocalDate) -> Unit,
+    onAddClass: () -> Unit,
     onEditClass: (Long) -> Unit,
     viewModel: ScheduleViewModel = hiltViewModel(),
 ) {
@@ -123,7 +123,7 @@ fun ScheduleScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = {
-                if (canAddClass) onAddClass(date)
+                if (canAddClass) onAddClass()
                 else android.widget.Toast.makeText(context, needSetupMsg, android.widget.Toast.LENGTH_LONG).show()
             }) {
                 Icon(Icons.Filled.Add, stringResource(R.string.action_add))

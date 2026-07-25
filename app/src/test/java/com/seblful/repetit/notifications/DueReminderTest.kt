@@ -86,7 +86,7 @@ class DueReminderTest {
     @Test
     fun `nothing is posted while reminders are switched off`() = runTest {
         val id = scheduledClass(student(), subject())
-        env.settingsRepo.setNotificationsEnabled(false)
+        env.settingsRepo.update { it.copy(notificationsEnabled = false) }
 
         assertFalse(due.post(id, now))
         assertTrue(notifier.posted.isEmpty())

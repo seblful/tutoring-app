@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
+import com.seblful.repetit.storage.DocumentRef
 import com.seblful.repetit.ui.common.ConfirmDialog
 import com.seblful.repetit.ui.common.constrainedContent
 
@@ -57,7 +58,7 @@ fun DiagnosticsScreen(
     val exportFilename = stringResource(R.string.diagnostics_filename)
 
     LaunchedEffect(Unit) {
-        viewModel.events.collect { event ->
+        viewModel.events.stream.collect { event ->
             snackbarHost.showSnackbar(
                 when (event) {
                     DiagnosticsEvent.EXPORT_OK -> exportOk
@@ -69,7 +70,7 @@ fun DiagnosticsScreen(
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/plain"),
-    ) { uri -> uri?.let(viewModel::export) }
+    ) { uri -> uri?.let { viewModel.export(DocumentRef(it.toString())) } }
 
     Scaffold(
         topBar = {

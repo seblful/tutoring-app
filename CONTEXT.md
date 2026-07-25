@@ -31,15 +31,16 @@ flowchart TB
 |---|---|
 | `domain/` | Pure Kotlin, no Android deps: billing, class rules, group rules (sessions, bookable subjects), calendar layout, reminders, reports, scheduling (bookable subjects, time conflicts), the `ReminderScheduler` port, and the models. All JVM-unit-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`. Entities are also `@Serializable` (for backup). |
-| `data/repository/` | Repositories mapping entities ⇄ domain models, and the place display **name ordering** is applied (`format/NameOrder`, not SQL). `ClassRepository` owns *all* side effects of a class change (calendar mirroring + reminder refresh); every write takes a whole **lesson** (see below). `EnrollmentRepository` owns the subject⇄price invariant — the single seam that links/unlinks a subject and sets/deletes its price together. `GroupRepository` is the only writer of group membership (a group is always saved together with its exact roster). |
+| `data/repository/` | Repositories mapping entities ⇄ domain models, and the place display **name ordering** is applied (`format/NameOrder`, not SQL). `ClassRepository` owns *all* side effects of a class change (calendar mirroring + reminder refresh); every write takes a whole **lesson** (see below). `EnrollmentRepository` owns the subject⇄price invariant — the single seam that links/unlinks a subject and sets/deletes its price together — and is also where prices are **read** (there is no separate price repository; every method on the one there used to be was a bare DAO forward). `GroupRepository` is the only writer of group membership (a group is always saved together with its exact roster). `SettingsRepository` takes one `update { it.copy(...) }` rather than a setter per field. |
 | `data/backup/` | Whole-DB JSON snapshot: export + transactional replace-all import, plus `BackupRestore` — everything a *restore* entails beyond the rows (reminders, calendar re-mirror, ending first run), so both entry points share one path. |
-| `calendar/` | `CalendarSync` port + a `CalendarContract` adapter, plus a `CalendarPermission` port so "enabling sync needs the permission" can be a view-model rule instead of a branch in a composable. |
+| `calendar/` | `CalendarSync` port + a `CalendarContract` adapter, plus a `CalendarPermission` port (carrying both `isGranted()` and the `required` permission array, so the settings screen never imports the adapter) so "enabling sync needs the permission" can be a view-model rule instead of a branch in a composable. |
 | `notifications/` | `Notifier` port + an Android adapter, and `DueReminder` — everything a fired reminder does (is it still owed, whose name goes on it), kept outside the worker so a JVM test can drive it. |
-| `diagnostics/` | `CrashLogger` — appends crashes to a capped local file, then chains to the platform default (so Play/Android Vitals still reports). Viewed/exported from `ui/diagnostics`. |
-| `work/` | WorkManager workers + `WorkScheduler` (implements `ReminderScheduler`). |
-| `format/` | Shared `ru`-locale date/time/money formatting, used by UI and non-UI. Also the two money-input rules (`MoneyInput.rate` allows zero, `.payment` doesn't) and `NameOrder`, the one definition of how names are listed. |
-| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` widgets, `onboarding/`, settings, and a `RootViewModel` gating onboarding vs. the main tabs. |
-| `di/` | Hilt modules (database; calendar/work port bindings). |
+| `diagnostics/` | `CrashLogger` — appends crashes to a capped log, then chains to the platform default (so Play/Android Vitals still reports). The file and the build/device facts sit behind `CrashLogStore` and `DeviceInfo`, so the format, the cap and the handler chaining are JVM-tested. Viewed/exported from `ui/diagnostics`. |
+| `work/` | WorkManager workers + `WorkScheduler` (implements `ReminderScheduler`), and `Maintenance` — what an upkeep pass *does*, kept outside the worker so a JVM test can drive it (the `DueReminder` pattern). |
+| `storage/` | `DocumentStore` port + a SAF adapter, over an opaque `DocumentRef` rather than a `Uri`. Shared by the backup export/import and the crash-log export, and what keeps both view models off `Context`. |
+| `format/` | Shared `ru`-locale date/time/money formatting, used by UI and non-UI. Also `MoneyField` — one module holding what a money input is: its raw text, parsed amount, error state and prefill rule, with the kind (`RATE` allows zero, `PAYMENT` doesn't, `OPTIONAL_RATE` reads blank as "not set") as the only thing the call sites differ on. And `NameOrder`, the one definition of how names are listed. |
+| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` widgets (including `UiEvents`, the one-shot message channel every view model uses), `onboarding/`, settings, and a `RootViewModel` gating onboarding vs. the main tabs. |
+| `di/` | The database module and the `@DebugBuild` flag. The other Hilt modules live beside their adapters (`calendar/`, `notifications/`, `work/`, `storage/`, `diagnostics/`). |
 
 ---
 
@@ -294,15 +295,39 @@ are derived on the fly, never stored.
 
 Multi-user/login, cloud sync across devices, web/iOS, in-app payments.
 
+- **A screen draws; it does not decide.** Rules that used to be settled inside composables now sit in
+  the module behind them, because a `@Composable` can only be exercised on a device. The booking form
+  exposes **one** `ClassFormState` that has already answered which time problem wins (an impossible
+  range beats a clash — the tutor can fix their own typing), whether the subject picker is live and
+  what to say under it, whether every member has been unticked, and whether the save may proceed; the
+  screen only maps those to strings and colours. Likewise `MoneyField` answers "is this an amount, is
+  it wrong, may I prefill it" for every money input, and `Maintenance`/`CrashLogger` hold what the
+  workers and the crash handler used to decide inline.
+- **A refusal is said out loud.** Every view model reports one-shot outcomes through `UiEvents`, so
+  there is one mechanism rather than four hand-rolled channels plus a boolean callback. The booking
+  form's save used to `return@launch` silently when the slot had been taken since the form opened —
+  the button was enabled, so from the tutor's side the lesson simply vanished; it now says so. The
+  deliberate exception is `ScheduleViewModel.moveConflict`, which stays a `StateFlow`: that message
+  names the lesson in the way and must survive a rotation, which makes it state, not an event.
+
 ---
 
 ## Testing
 
 - **JVM unit tests** (`src/test`, `testDebugUnitTest`) cover the domain layer and the backup format,
   plus the view models, repository side effects, mappers and formatters — run against **in-memory
-  fake DAOs** with a test main dispatcher, so most logic is verified without an emulator. The fakes
+  fake DAOs** with a test main dispatcher, so most logic is verified without an emulator. The
+  Android-bound halves are reachable too, each behind a port: `Maintenance` (was
+  `MaintenanceWorker.doWork`), `CrashLogger` (was a `Context`-bound `File`), and the export paths
+  (was `contentResolver`). The rule is the one `DueReminder` set — a worker or handler is an adapter,
+  never a decision. The fakes
   reproduce filtering and time ordering only: **name ordering is not restated there**, because that is
   the repositories' job (see `NameOrder`), so the fakes have no version of it to disagree with.
+- **Fixtures pin the clock, not `now()`.** Tests that built times from `Instant.now()` failed for the
+  time of day rather than the behaviour: a lesson seeded at "now + 3 days" runs past midnight when the
+  suite runs late (which the form rejects as a negative range — see the cross-midnight limitation), and
+  "start of week + 6 days" *is* today when today is the last day of the week. Seed a fixed hour and
+  pick days by excluding today.
 - Two tests exist purely as **tripwires against silent drift**, both deriving their expectations from
   something generated: `BackupSchemaCoverageTest` reads the exported schema JSON and fails when a table
   is neither carried by the snapshot nor deliberately named device-local, and `MappersTest` fails when
@@ -343,7 +368,7 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments.
 app/src/main/java/com/seblful/repetit/
 ├── domain/            # pure rules + ports + models
 ├── data/{local,repository,backup}/
-├── calendar/  notifications/  diagnostics/  work/  format/  di/
+├── calendar/  notifications/  diagnostics/  work/  format/  storage/  di/
 ├── ui/{schedule,students,groups,subjects,reports,backup,more,onboarding,diagnostics,common,navigation,theme}/
 ├── MainActivity.kt    # @AndroidEntryPoint → AppRoot()
 └── TutoringApp.kt     # @HiltAndroidApp, WorkManager config, startup scheduling

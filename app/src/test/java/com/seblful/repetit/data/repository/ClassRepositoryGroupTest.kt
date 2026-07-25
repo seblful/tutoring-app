@@ -114,7 +114,7 @@ class ClassRepositoryGroupTest {
     @Test
     fun `with sync on, each member's class gets its own calendar event`() = runTest {
         seed()
-        env.settingsRepo.setCalendarSyncEnabled(true)
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
 
         val ids = bookSession()
 
@@ -267,7 +267,7 @@ class ClassRepositoryGroupTest {
     @Test
     fun `deleting a group lesson removes every member's class and calendar event`() = runTest {
         seed()
-        env.settingsRepo.setCalendarSyncEnabled(true)
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         val ids = bookSession()
         val eventIds = ids.mapNotNull { repo.getById(it)?.calendarEventId }
 

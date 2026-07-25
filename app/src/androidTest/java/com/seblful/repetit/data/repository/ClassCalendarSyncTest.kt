@@ -6,7 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.repetit.calendar.CalendarSync
 import com.seblful.repetit.calendar.Guest
-import com.seblful.repetit.domain.ReminderScheduler
+import com.seblful.repetit.testutil.RecordingReminderScheduler
 import com.seblful.repetit.data.local.AppDatabase
 import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.SubjectEntity
@@ -33,7 +33,6 @@ class ClassCalendarSyncTest {
         val upserts = mutableListOf<TutoringClass>()
         val deletes = mutableListOf<String>()
         private var nextId = 100L
-        override suspend fun isAvailable() = true
         override suspend fun upsert(klass: TutoringClass, title: String, guest: Guest?, reminderLeadMinutes: Int): String {
             upserts += klass
             return klass.calendarEventId ?: (nextId++).toString()
@@ -53,10 +52,10 @@ class ClassCalendarSyncTest {
         db.studentDao().insertAll(listOf(StudentEntity(1, "Иван")))
         calendar = FakeCalendarSync()
         val settings = SettingsRepository(db.settingsDao())
-        settings.setCalendarSyncEnabled(true) // calendar mirroring is off unless enabled
+        settings.update { it.copy(calendarSyncEnabled = true) } // calendar mirroring is off unless enabled
         repo = ClassRepository(
             db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(), calendar,
-            ReminderScheduler { /* no-op in tests */ }, settings,
+            RecordingReminderScheduler(), settings,
         )
     }
 

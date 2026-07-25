@@ -31,15 +31,16 @@ object Routes {
     const val GROUP_DETAIL = "group/{id}"
     fun groupDetail(id: Long) = "group/$id"
 
-    const val CLASS_EDIT = "class/{id}?date={date}&group={group}"
+    const val CLASS_EDIT = "class/{id}?group={group}"
 
     /**
-     * id = 0 means "new class"; [epochDay] pre-fills the date for a new class (-1 = today).
-     * [groupId] (non-zero) opens the form already booking for that group — used by "book a lesson"
-     * on a group.
+     * id = 0 means "new class". [groupId] (non-zero) opens the form already booking for that group.
+     *
+     * There is deliberately no date argument: the booking form starts with an empty date on purpose
+     * (see [com.seblful.repetit.ui.schedule.ClassForm]), so the one that used to be declared here
+     * was passed by the schedule and read by nobody.
      */
-    fun classEdit(id: Long, epochDay: Long = -1, groupId: Long = 0) =
-        "class/$id?date=$epochDay&group=$groupId"
+    fun classEdit(id: Long, groupId: Long = 0) = "class/$id?group=$groupId"
 }
 
 /**

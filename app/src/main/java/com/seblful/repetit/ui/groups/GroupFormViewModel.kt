@@ -12,8 +12,8 @@ import com.seblful.repetit.domain.model.Group
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.Student
 import com.seblful.repetit.domain.model.Subject
-import com.seblful.repetit.format.MoneyInput
-import com.seblful.repetit.format.toAmountInput
+import com.seblful.repetit.format.MoneyField
+import com.seblful.repetit.ui.common.UiEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -63,8 +63,8 @@ class GroupFormViewModel @Inject constructor(
     data class Form(
         val name: String = "",
         val note: String = "",
-        /** Raw rate text; see [UiState.price]. */
-        val priceText: String = "",
+        /** The group's hourly rate as typed. Zero is allowed, blank is not — see [UiState.price]. */
+        val price: MoneyField = MoneyField(kind = MoneyField.Kind.RATE),
         /** What the group is taught. Null on a pre-v6 group, and until the tutor picks one. */
         val subjectId: Long? = null,
         val mode: ClassMode = ClassMode.IN_PERSON,
@@ -87,7 +87,7 @@ class GroupFormViewModel @Inject constructor(
          * a group taught for free still needs booking and billing (at 0) — but blank is not: a group
          * prices its own lessons, so it has to say what they cost.
          */
-        val price: Money? get() = MoneyInput.rate(form.priceText)
+        val price: Money? get() = form.price.amount
 
         /** Whether there is anybody to put in a group at all — worded differently from "nobody picked". */
         val hasStudents: Boolean get() = candidates.isNotEmpty()
@@ -105,6 +105,11 @@ class GroupFormViewModel @Inject constructor(
         val isValid: Boolean
             get() = form.name.isNotBlank() && price != null && selectedMemberIds.isNotEmpty()
     }
+
+    /** One-shot UI signals, e.g. a deletion blocked because the group already has lessons. */
+    enum class Event { DELETE_BLOCKED_HAS_LESSONS }
+
+    val events = UiEvents<Event>()
 
     private val form = MutableStateFlow(Form())
     private val archived = MutableStateFlow(false)
@@ -144,7 +149,7 @@ class GroupFormViewModel @Inject constructor(
                     form.value = Form(
                         name = group.name,
                         note = group.note,
-                        priceText = group.price.toAmountInput(),
+                        price = MoneyField.of(group.price),
                         subjectId = group.subjectId,
                         mode = group.defaultMode,
                         memberIds = groups.getMemberIds(groupId).toSet(),
@@ -157,9 +162,10 @@ class GroupFormViewModel @Inject constructor(
             // setting that arrives a moment later.
             viewModelScope.launch {
                 val default = settings.get().defaultGroupPriceMinor
-                if (default != 0L && form.value.priceText.isBlank()) {
-                    form.value = form.value.copy(priceText = Money(default).toAmountInput())
-                }
+                // 0 means "not set"; prefilledWith leaves an amount already typed alone.
+                form.value = form.value.copy(
+                    price = form.value.price.prefilledWith(Money(default).takeIf { default != 0L }),
+                )
             }
         }
     }
@@ -220,14 +226,18 @@ class GroupFormViewModel @Inject constructor(
     }
 
     /**
-     * Deletes the group, reporting whether it happened: a group with lessons is refused (its classes
-     * must keep naming it), and the screen then offers archiving instead.
+     * Deletes the group and leaves, or reports [Event.DELETE_BLOCKED_HAS_LESSONS] — a group with
+     * lessons is refused (its classes must keep naming it) and the screen offers archiving instead.
+     *
+     * Reported through [events] rather than a `(Boolean) -> Unit`, so a refusal here reaches the
+     * tutor the same way every other refusal in the app does.
      */
-    fun delete(onResult: (Boolean) -> Unit) {
+    fun delete(onDeleted: () -> Unit) {
         if (isNew) return
         viewModelScope.launch {
-            val group = groups.getById(groupId) ?: return@launch onResult(false)
-            onResult(groups.delete(group))
+            val group = groups.getById(groupId)
+            if (group != null && groups.delete(group)) onDeleted()
+            else events.send(Event.DELETE_BLOCKED_HAS_LESSONS)
         }
     }
 }

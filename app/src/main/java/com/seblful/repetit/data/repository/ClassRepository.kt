@@ -98,12 +98,20 @@ class ClassRepository @Inject constructor(
 
     /** Removes every mirrored event. Run when the user turns calendar sync off. */
     suspend fun clearCalendar() {
-        dao.getAll().forEach { entity ->
-            entity.calendarEventId?.let {
-                calendarSync.delete(it)
-                dao.update(entity.copy(calendarEventId = null))
-            }
-        }
+        dao.getAll().forEach { detachCalendarEvent(it.toDomain()) }
+    }
+
+    /**
+     * Deletes [klass]'s mirrored event and forgets its id, or does nothing when there isn't one.
+     *
+     * The two halves belong together: an event id left behind after the event is gone would make
+     * the next mirror try to update something that no longer exists. Turning sync off, deleting a
+     * lesson and cancelling one all owe exactly this, so they all say it here.
+     */
+    private suspend fun detachCalendarEvent(klass: TutoringClass) {
+        val eventId = klass.calendarEventId ?: return
+        calendarSync.delete(eventId)
+        dao.update(klass.copy(calendarEventId = null).toEntity())
     }
 
     // ---- Writes --------------------------------------------------------------------------------
@@ -197,6 +205,7 @@ class ClassRepository @Inject constructor(
     suspend fun delete(session: ClassSession) {
         session.classes.forEach { c ->
             c.calendarEventId?.let { calendarSync.delete(it) }
+            // No detachCalendarEvent here: the row is going away, so there is no column left to null.
             dao.delete(c.toEntity())
         }
         reminderScheduler.refreshNow()
@@ -250,12 +259,7 @@ class ClassRepository @Inject constructor(
                     dao.update(klass.copy(calendarEventId = eventId).toEntity())
                 }
             }
-            CalendarSyncPolicy.Action.DELETE -> {
-                klass.calendarEventId?.let {
-                    calendarSync.delete(it)
-                    dao.update(klass.copy(calendarEventId = null).toEntity())
-                }
-            }
+            CalendarSyncPolicy.Action.DELETE -> detachCalendarEvent(klass)
             CalendarSyncPolicy.Action.NONE -> Unit
         }
     }

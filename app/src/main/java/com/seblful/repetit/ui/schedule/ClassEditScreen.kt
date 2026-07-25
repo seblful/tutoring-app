@@ -1,5 +1,6 @@
 package com.seblful.repetit.ui.schedule
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -58,13 +61,23 @@ fun ClassEditScreen(
     onBack: () -> Unit,
     viewModel: ClassEditViewModel = hiltViewModel(),
 ) {
-    val form by viewModel.form.collectAsState()
-    val conflict by viewModel.conflict.collectAsState()
-    val students by viewModel.students.collectAsState()
-    val groups by viewModel.groups.collectAsState()
-    val members by viewModel.members.collectAsState()
-    val subjects by viewModel.subjects.collectAsState()
-    val subjectFixed by viewModel.subjectFixedByGroup.collectAsState()
+    val state by viewModel.state.collectAsState()
+    val form = state.form
+    val members = state.members
+
+    // A save can still be refused after the button was enabled — say so rather than doing nothing.
+    val context = LocalContext.current
+    val timeTakenMsg = stringResource(R.string.class_save_refused_time_taken)
+    val noMembersMsg = stringResource(R.string.class_group_no_members_left)
+    LaunchedEffect(Unit) {
+        viewModel.events.stream.collect { event ->
+            val message = when (event) {
+                ClassEditViewModel.Event.SAVE_REFUSED_TIME_TAKEN -> timeTakenMsg
+                ClassEditViewModel.Event.SAVE_REFUSED_NO_MEMBERS -> noMembersMsg
+            }
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        }
+    }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showFromPicker by remember { mutableStateOf(false) }
@@ -87,7 +100,7 @@ fun ClassEditScreen(
                     // A taken time is as disqualifying as a missing field: the lesson could not happen.
                     TextButton(
                         onClick = { viewModel.save(onBack) },
-                        enabled = form.isValid && conflict == null,
+                        enabled = state.canSave,
                     ) {
                         Text(stringResource(R.string.action_save))
                     }
@@ -114,22 +127,22 @@ fun ClassEditScreen(
             when (form.target) {
                 ClassTarget.STUDENT -> DropdownField(
                     label = stringResource(R.string.class_student_label),
-                    selectedText = students.firstOrNull { it.id == form.studentId }?.name ?: "",
-                    options = students.map { it.id to it.name },
+                    selectedText = state.students.firstOrNull { it.id == form.studentId }?.name ?: "",
+                    options = state.students.map { it.id to it.name },
                     onSelect = { id -> viewModel.selectStudent(id) },
                 )
 
                 ClassTarget.GROUP -> {
                     DropdownField(
                         label = stringResource(R.string.class_group_label),
-                        selectedText = groups.firstOrNull { it.id == form.groupId }?.name ?: "",
-                        options = groups.map { it.id to it.name },
+                        selectedText = state.groups.firstOrNull { it.id == form.groupId }?.name ?: "",
+                        options = state.groups.map { it.id to it.name },
                         onSelect = { id -> viewModel.selectGroup(id) },
                         // A booked lesson can't be handed to another group: its members' classes are
                         // billed history, and the other group is a different set of people.
                         enabled = viewModel.isNew,
                     )
-                    if (groups.isEmpty()) {
+                    if (state.hasNoGroups) {
                         Text(
                             stringResource(R.string.class_no_groups),
                             style = MaterialTheme.typography.bodySmall,
@@ -139,31 +152,28 @@ fun ClassEditScreen(
                 }
             }
 
-            val targetChosen = form.studentId != null || form.groupId != null
             DropdownField(
                 label = stringResource(R.string.class_subject_label),
-                selectedText = subjects.firstOrNull { it.id == form.subjectId }?.name ?: "",
-                options = subjects.map { it.id to it.name },
+                selectedText = state.subjects.firstOrNull { it.id == form.subjectId }?.name ?: "",
+                options = state.subjects.map { it.id to it.name },
                 onSelect = { id -> viewModel.selectSubject(id) },
-                // A group that has a subject decides it for every one of its lessons; offering a
-                // dropdown with one entry would imply a choice that doesn't exist.
-                enabled = targetChosen && !subjectFixed,
+                enabled = state.subjectPickerEnabled,
             )
-            if (subjectFixed) {
-                Text(
-                    stringResource(R.string.class_subject_from_group),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (targetChosen && subjects.isEmpty()) {
+            state.subjectNotice?.let { notice ->
                 Text(
                     stringResource(
-                        if (form.target == ClassTarget.GROUP) R.string.class_no_subjects_for_group
-                        else R.string.class_no_subjects_for_student
+                        when (notice) {
+                            SubjectNotice.FIXED_BY_GROUP -> R.string.class_subject_from_group
+                            SubjectNotice.NONE_FOR_GROUP -> R.string.class_no_subjects_for_group
+                            SubjectNotice.NONE_FOR_STUDENT -> R.string.class_no_subjects_for_student
+                        },
                     ),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    color = if (notice == SubjectNotice.FIXED_BY_GROUP) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    },
                 )
             }
 
@@ -190,24 +200,17 @@ fun ClassEditScreen(
             }
 
             // Why the time won't do — said here rather than left to a greyed-out save button.
-            val clash = conflict
-            val timeProblem = when {
-                // An end at or before the start is not a lesson (and 23:00 → 00:30 is the same case:
-                // the times are wall-clock on one date, so a lesson can't cross midnight).
-                form.timeFrom != null && form.timeTo != null && form.durationMinutes == null ->
-                    stringResource(R.string.class_time_range_invalid)
-
-                clash != null -> stringResource(
-                    R.string.class_time_conflict,
-                    clash.who,
-                    "${clash.slot.start.formatTime()} – ${clash.slot.end.formatTime()}",
-                )
-
-                else -> null
-            }
-            if (timeProblem != null) {
+            state.timeProblem?.let { problem ->
                 Text(
-                    timeProblem,
+                    when (problem) {
+                        TimeProblem.RangeInvalid -> stringResource(R.string.class_time_range_invalid)
+                        is TimeProblem.Taken -> stringResource(
+                            R.string.class_time_conflict,
+                            problem.conflict.who,
+                            "${problem.conflict.slot.start.formatTime()} – " +
+                                problem.conflict.slot.end.formatTime(),
+                        )
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -239,7 +242,7 @@ fun ClassEditScreen(
                                 Checkbox(checked = included, onCheckedChange = null)
                             }
                         }
-                        if (form.excludedMemberIds.containsAll(members.map { it.id })) {
+                        if (state.allMembersExcluded) {
                             Text(
                                 stringResource(R.string.class_group_no_members_left),
                                 style = MaterialTheme.typography.bodySmall,
@@ -257,10 +260,10 @@ fun ClassEditScreen(
                 // The group's rate, pre-filled from the group and editable for this one lesson. Shown
                 // plainly rather than behind a tap: for a group lesson it is *n* students' money.
                 OutlinedTextField(
-                    value = form.priceText,
-                    onValueChange = { text -> viewModel.update { it.copy(priceText = text) } },
+                    value = form.price.text,
+                    onValueChange = { text -> viewModel.update { it.copy(price = it.price.typed(text)) } },
                     label = { Text(stringResource(R.string.class_group_price_label)) },
-                    isError = form.priceText.isNotBlank() && form.price == null,
+                    isError = form.price.isError,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -268,10 +271,10 @@ fun ClassEditScreen(
             } else if (showPriceField) {
                 // Price is hidden behind its current value (like the location row); tap to edit.
                 OutlinedTextField(
-                    value = form.priceText,
-                    onValueChange = { text -> viewModel.update { it.copy(priceText = text) } },
+                    value = form.price.text,
+                    onValueChange = { text -> viewModel.update { it.copy(price = it.price.typed(text)) } },
                     label = { Text(stringResource(R.string.price_label)) },
-                    isError = form.priceText.isNotBlank() && form.price == null,
+                    isError = form.price.isError,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -279,7 +282,7 @@ fun ClassEditScreen(
             } else {
                 Text(
                     text = "${stringResource(R.string.price_label)}: " +
-                        (form.price?.text() ?: stringResource(R.string.price_not_set)),
+                        (form.price.amount?.text() ?: stringResource(R.string.price_not_set)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { showPriceField = true }

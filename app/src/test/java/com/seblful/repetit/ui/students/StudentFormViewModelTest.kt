@@ -100,7 +100,7 @@ class StudentFormViewModelTest {
         assertEquals("hi", student.note)
         // Subject is linked AND priced — the two must stay in lock-step.
         assertEquals(listOf(mathId), env.studentDao.getSubjectIds(student.id))
-        assertEquals(Money(3050), env.priceRepo.get(student.id, mathId)?.amount)
+        assertEquals(Money(3050), env.enrollmentRepo.priceFor(student.id, mathId)?.amount)
     }
 
     @Test

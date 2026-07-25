@@ -15,18 +15,22 @@ value class Money(val minor: Long) : Comparable<Money> {
 
     override fun compareTo(other: Money): Int = minor.compareTo(other.minor)
 
-    /** Formats as a localized amount in [currency], e.g. `1500 BYN` or `1500,50 RUB`. */
-    fun format(currency: String = "BYN"): String {
-        val sign = if (minor < 0) "-" else ""
-        val abs = kotlin.math.abs(minor)
-        val major = abs / 100
-        val kopecks = (abs % 100).toInt()
-        return if (kopecks == 0) {
-            "$sign$major $currency"
-        } else {
-            "$sign$major,${kopecks.toString().padStart(2, '0')} $currency"
+    /**
+     * The amount on its own, with no currency sign — e.g. `1500`, `1500,50`, `-0,50`. The one
+     * definition of how an amount reads: [format] adds a currency to it, and `Money.toAmountInput`
+     * in `format/` is what a text field is seeded with, so an amount can't render two ways.
+     */
+    val amountText: String
+        get() {
+            val sign = if (minor < 0) "-" else ""
+            val abs = kotlin.math.abs(minor)
+            val major = abs / 100
+            val kopecks = (abs % 100).toInt()
+            return if (kopecks == 0) "$sign$major" else "$sign$major,${kopecks.toString().padStart(2, '0')}"
         }
-    }
+
+    /** Formats as a localized amount in [currency], e.g. `1500 BYN` or `1500,50 RUB`. */
+    fun format(currency: String = "BYN"): String = "$amountText $currency"
 
     companion object {
         val ZERO = Money(0)

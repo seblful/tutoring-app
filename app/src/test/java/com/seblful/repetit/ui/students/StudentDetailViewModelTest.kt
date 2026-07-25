@@ -34,7 +34,6 @@ class StudentDetailViewModelTest {
         savedStateHandle = SavedStateHandle(mapOf("id" to id)),
         students = env.studentRepo,
         subjects = env.subjectRepo,
-        prices = env.priceRepo,
         classes = env.classRepo,
         payments = env.paymentRepo,
         enrollment = env.enrollmentRepo,
@@ -88,7 +87,7 @@ class StudentDetailViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(math), env.studentDao.getSubjectIds(sid))
-        assertEquals(Money.ofMajor(35), env.priceRepo.get(sid, math)?.amount)
+        assertEquals(Money.ofMajor(35), env.enrollmentRepo.priceFor(sid, math)?.amount)
     }
 
     @Test
@@ -105,7 +104,7 @@ class StudentDetailViewModelTest {
         advanceUntilIdle()
 
         assertTrue(env.studentDao.getSubjectIds(sid).isEmpty())
-        assertNull(env.priceRepo.get(sid, math))
+        assertNull(env.enrollmentRepo.priceFor(sid, math))
     }
 
     @Test
@@ -119,7 +118,7 @@ class StudentDetailViewModelTest {
         val vm = vm(sid)
         val events = mutableListOf<StudentDetailViewModel.Event>()
         backgroundScope.launch { vm.state.collect {} }
-        backgroundScope.launch { vm.events.collect { events += it } }
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
         advanceUntilIdle()
 
         vm.removeSubject(math)
@@ -128,7 +127,7 @@ class StudentDetailViewModelTest {
         assertEquals(listOf(StudentDetailViewModel.Event.REMOVE_BLOCKED_HAS_CLASSES), events)
         // Nothing removed: the priced subject must keep backing its billed class.
         assertEquals(listOf(math), env.studentDao.getSubjectIds(sid))
-        assertEquals(Money.ofMajor(30), env.priceRepo.get(sid, math)?.amount)
+        assertEquals(Money.ofMajor(30), env.enrollmentRepo.priceFor(sid, math)?.amount)
     }
 
     @Test

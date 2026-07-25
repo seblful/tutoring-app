@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,6 +70,14 @@ fun GroupFormScreen(
 
     val context = LocalContext.current
     val deleteBlockedMsg = stringResource(R.string.group_delete_blocked)
+    LaunchedEffect(Unit) {
+        viewModel.events.stream.collect { event ->
+            when (event) {
+                GroupFormViewModel.Event.DELETE_BLOCKED_HAS_LESSONS ->
+                    Toast.makeText(context, deleteBlockedMsg, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -138,10 +147,10 @@ fun GroupFormScreen(
             // Required — a group prices its own lessons, so it has to say what they cost — and shown
             // plainly rather than behind a tap, because it is the substance of the group, not a detail.
             OutlinedTextField(
-                value = form.priceText,
-                onValueChange = { v -> viewModel.update { it.copy(priceText = v) } },
+                value = form.price.text,
+                onValueChange = { v -> viewModel.update { it.copy(price = it.price.typed(v)) } },
                 label = { Text(stringResource(R.string.group_price_label)) },
-                isError = form.priceText.isNotBlank() && state.price == null,
+                isError = form.price.isError,
                 supportingText = { Text(stringResource(R.string.group_price_hint)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true,
@@ -221,10 +230,7 @@ fun GroupFormScreen(
         ConfirmDialog(
             text = stringResource(R.string.group_delete_confirm),
             onConfirm = {
-                viewModel.delete { deleted ->
-                    if (deleted) onBack()
-                    else Toast.makeText(context, deleteBlockedMsg, Toast.LENGTH_LONG).show()
-                }
+                viewModel.delete(onDeleted = onBack)
             },
             onDismiss = { confirmingDelete = false },
         )

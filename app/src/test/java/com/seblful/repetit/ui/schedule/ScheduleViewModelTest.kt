@@ -238,7 +238,10 @@ class ScheduleViewModelTest {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val today = LocalDate.now(zone)
-        // One class today, one later this week.
+        // One class today, one on another day of the same week. Picked by excluding today rather
+        // than as startOfWeek + 6: on the last day of the week that *is* today, and both lessons
+        // would land on the selected day — failing for the calendar, not for the behaviour.
+        val otherDay = CalendarLayout.week(CalendarLayout.startOfWeek(today)).first { it != today }
         env.classDao.upsert(
             ClassEntity(
                 studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)),
@@ -249,7 +252,7 @@ class ScheduleViewModelTest {
             ClassEntity(
                 studentId = sid,
                 subjectId = subj,
-                startMillis = startMillisOn(CalendarLayout.startOfWeek(today).plusDays(6), LocalTime.of(9, 0)),
+                startMillis = startMillisOn(otherDay, LocalTime.of(9, 0)),
                 durationMinutes = 60,
                 status = "SCHEDULED",
             ),

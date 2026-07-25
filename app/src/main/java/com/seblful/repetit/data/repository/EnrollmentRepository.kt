@@ -4,9 +4,12 @@ import com.seblful.repetit.data.local.ClassDao
 import com.seblful.repetit.data.local.PriceDao
 import com.seblful.repetit.data.local.StudentDao
 import com.seblful.repetit.data.local.StudentSubjectCrossRef
+import com.seblful.repetit.data.toDomain
 import com.seblful.repetit.data.toEntity
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.Price
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -27,6 +30,19 @@ class EnrollmentRepository @Inject constructor(
     private val priceDao: PriceDao,
     private val classDao: ClassDao,
 ) {
+    // ---- Reads ---------------------------------------------------------------------------------
+    // Prices are read here rather than from a repository of their own. There was one, and every
+    // method on it was `dao.x().map { it.toDomain() }` — so the fact a student's subjects *are*
+    // their priced subjects was written here while the way to look it up lived somewhere else.
+
+    /** The student's priced subjects — which is to say, the subjects they take. */
+    fun observePricesFor(studentId: Long): Flow<List<Price>> =
+        priceDao.observeForStudent(studentId).map { list -> list.map { it.toDomain() } }
+
+    /** The student's price for one subject, or null when they don't take it. */
+    suspend fun priceFor(studentId: Long, subjectId: Long): Price? =
+        priceDao.get(studentId, subjectId)?.toDomain()
+
     /** The outcome of [unenroll]. */
     sealed interface Unenroll {
         /** The subject was unlinked and its price removed. */

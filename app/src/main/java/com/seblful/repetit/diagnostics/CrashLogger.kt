@@ -1,10 +1,6 @@
 package com.seblful.repetit.diagnostics
 
-import android.content.Context
-import android.os.Build
 import com.seblful.repetit.domain.Diagnostics
-import dagger.hilt.android.qualifiers.ApplicationContext
-import java.io.File
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -12,55 +8,54 @@ import javax.inject.Singleton
 /**
  * On-device crash diagnostics — offline, no backend, in keeping with the app's local-only stance.
  *
- * [install] sets a last-resort uncaught-exception handler that appends each crash to a single capped
- * file in the app's private storage, then **delegates to the platform's previous handler** so the
- * process still dies normally and Google Play still receives the crash (Android Vitals). The saved
- * file is surfaced — and can be exported via SAF — from the Diagnostics screen, so the tutor can
- * send it on without any network or account.
+ * [install] sets a last-resort uncaught-exception handler that appends each crash to a capped log,
+ * then **delegates to the platform's previous handler** so the process still dies normally and
+ * Google Play still receives the crash (Android Vitals). The saved log is surfaced — and can be
+ * exported — from the Diagnostics screen, so the tutor can send it on without any network.
+ *
+ * Both Android-bound halves are injected ([CrashLogStore] for the bytes, [DeviceInfo] for the header
+ * facts), so the part that can actually be got wrong is ordinary code a JVM test can drive.
  */
 @Singleton
 class CrashLogger @Inject constructor(
-    @param:ApplicationContext private val context: Context,
+    private val store: CrashLogStore,
+    private val device: DeviceInfo,
 ) {
-    private val file: File get() = File(context.filesDir, FILE_NAME)
-
-    /** Wraps any existing handler. Call once, early, from `Application.onCreate`. */
-    fun install() {
+    /**
+     * Wraps any existing handler. Call once, early, from `Application.onCreate`.
+     *
+     * Returns the handler it installed, which is what lets a test fire a crash through it without
+     * touching the JVM's real default handler.
+     */
+    fun install(): Thread.UncaughtExceptionHandler {
         val previous = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+        val handler = Thread.UncaughtExceptionHandler { thread, throwable ->
             // Logging must never mask the crash, and must always hand off so Vitals still reports it.
             runCatching { record(throwable) }
             previous?.uncaughtException(thread, throwable)
         }
+        Thread.setDefaultUncaughtExceptionHandler(handler)
+        return handler
     }
 
+    /** Appends one crash to the log, trimming the oldest entries past the cap. */
     @Synchronized
-    private fun record(throwable: Throwable) {
+    fun record(throwable: Throwable, now: Instant = Instant.now()) {
         val entry = Diagnostics.formatEntry(
-            time = Instant.now(),
-            appVersion = appVersion(),
-            androidSdk = Build.VERSION.SDK_INT,
-            device = "${Build.MANUFACTURER} ${Build.MODEL}",
+            time = now,
+            appVersion = device.appVersion,
+            androidSdk = device.androidSdk,
+            device = device.device,
             stackTrace = throwable.stackTraceToString(),
         )
-        val existing = if (file.exists()) file.readText() else ""
-        file.writeText(Diagnostics.appendBounded(existing, entry))
+        store.write(Diagnostics.appendBounded(store.read(), entry))
     }
 
-    fun hasLog(): Boolean = file.exists() && file.length() > 0L
+    fun hasLog(): Boolean = !store.isEmpty()
 
-    fun read(): String = if (file.exists()) file.readText() else ""
+    fun read(): String = store.read()
 
     fun clear() {
-        file.delete()
-    }
-
-    private fun appVersion(): String = runCatching {
-        @Suppress("DEPRECATION")
-        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "?"
-    }.getOrDefault("?")
-
-    private companion object {
-        const val FILE_NAME = "crash_log.txt"
+        store.delete()
     }
 }

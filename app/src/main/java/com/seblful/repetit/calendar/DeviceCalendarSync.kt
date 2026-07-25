@@ -29,10 +29,6 @@ class DeviceCalendarSync @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) : CalendarSync {
 
-    override suspend fun isAvailable(): Boolean = withContext(Dispatchers.IO) {
-        hasPermission() && writableCalendarId() != null
-    }
-
     override suspend fun upsert(klass: TutoringClass, title: String, guest: Guest?, reminderLeadMinutes: Int): String? = withContext(Dispatchers.IO) {
         if (!hasPermission()) return@withContext null
         val calendarId = writableCalendarId() ?: return@withContext null

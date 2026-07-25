@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
 import com.seblful.repetit.ui.backup.BACKUP_MIME_TYPES
+import com.seblful.repetit.storage.DocumentRef
 import com.seblful.repetit.ui.backup.BackupResult
 import com.seblful.repetit.ui.backup.BackupViewModel
 import com.seblful.repetit.ui.common.ConfirmDialog
@@ -78,7 +79,7 @@ fun OnboardingScreen(
     val restoreError = stringResource(R.string.backup_error)
     LaunchedEffect(Unit) {
         // Only a failure needs saying — a successful restore leaves this screen behind.
-        backupViewModel.events.collect { result ->
+        backupViewModel.events.stream.collect { result ->
             if (result == BackupResult.ERROR) snackbarHost.showSnackbar(restoreError)
         }
     }
@@ -89,7 +90,7 @@ fun OnboardingScreen(
         // Nothing to replace on a fresh install, so no confirmation — unless the user already
         // added subjects in step 1 and came back here, which a restore would wipe.
         if (uri != null) {
-            if (subjects.isEmpty()) backupViewModel.import(uri) else confirmRestoreUri = uri
+            if (subjects.isEmpty()) backupViewModel.import(DocumentRef(uri.toString())) else confirmRestoreUri = uri
         }
     }
 
@@ -222,7 +223,7 @@ fun OnboardingScreen(
         ConfirmDialog(
             text = stringResource(R.string.backup_import_confirm),
             confirmLabel = stringResource(R.string.backup_import),
-            onConfirm = { backupViewModel.import(uri) },
+            onConfirm = { backupViewModel.import(DocumentRef(uri.toString())) },
             onDismiss = { confirmRestoreUri = null },
         )
     }

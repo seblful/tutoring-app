@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.seblful.repetit.data.repository.SubjectRepository
 import com.seblful.repetit.domain.model.Subject
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.Channel
+import com.seblful.repetit.ui.common.UiEvents
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,8 +23,7 @@ class SubjectsViewModel @Inject constructor(
     /** One-shot UI signals, e.g. a deletion that was blocked because the subject has classes. */
     enum class Event { DELETE_BLOCKED_HAS_CLASSES }
 
-    private val _events = Channel<Event>(Channel.BUFFERED)
-    val events: Flow<Event> = _events.receiveAsFlow()
+    val events = UiEvents<Event>()
 
     val subjects: StateFlow<List<Subject>> = repository.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -37,7 +36,7 @@ class SubjectsViewModel @Inject constructor(
 
     fun delete(subject: Subject) {
         viewModelScope.launch {
-            if (!repository.delete(subject)) _events.send(Event.DELETE_BLOCKED_HAS_CLASSES)
+            if (!repository.delete(subject)) events.send(Event.DELETE_BLOCKED_HAS_CLASSES)
         }
     }
 }

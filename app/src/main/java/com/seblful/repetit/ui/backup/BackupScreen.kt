@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.runtime.LaunchedEffect
 import com.seblful.repetit.R
+import com.seblful.repetit.storage.DocumentRef
 import com.seblful.repetit.ui.common.ConfirmDialog
 import com.seblful.repetit.ui.common.constrainedContent
 
@@ -54,7 +55,7 @@ fun BackupScreen(
     val backupFilename = stringResource(R.string.backup_filename)
 
     LaunchedEffect(Unit) {
-        viewModel.events.collect { result ->
+        viewModel.events.stream.collect { result ->
             val message = when (result) {
                 BackupResult.EXPORT_OK -> exportSuccess
                 BackupResult.IMPORT_OK -> importSuccess
@@ -66,7 +67,7 @@ fun BackupScreen(
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
-    ) { uri -> uri?.let(viewModel::export) }
+    ) { uri -> uri?.let { viewModel.export(DocumentRef(it.toString())) } }
 
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
@@ -105,7 +106,7 @@ fun BackupScreen(
         ConfirmDialog(
             text = stringResource(R.string.backup_import_confirm),
             confirmLabel = stringResource(R.string.backup_import),
-            onConfirm = { viewModel.import(uri) },
+            onConfirm = { viewModel.import(DocumentRef(uri.toString())) },
             onDismiss = { confirmImportUri = null },
         )
     }

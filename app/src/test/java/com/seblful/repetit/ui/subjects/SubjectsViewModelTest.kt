@@ -57,7 +57,7 @@ class SubjectsViewModelTest {
         val vm = vm()
         val events = mutableListOf<SubjectsViewModel.Event>()
         backgroundScope.launch { vm.subjects.collect {} }
-        backgroundScope.launch { vm.events.collect { events += it } }
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
         advanceUntilIdle()
 
         vm.delete(com.seblful.repetit.domain.model.Subject(id = id, name = "Математика"))

@@ -64,7 +64,7 @@ import com.seblful.repetit.ui.common.constrainedContent
 import com.seblful.repetit.ui.common.text
 import com.seblful.repetit.format.formatDate
 import com.seblful.repetit.format.formatDateTime
-import com.seblful.repetit.format.MoneyInput
+import com.seblful.repetit.format.MoneyField
 import com.seblful.repetit.format.toAmountInput
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,7 +90,7 @@ fun StudentDetailScreen(
 
     val removeBlockedMsg = stringResource(R.string.student_subject_remove_blocked)
     LaunchedEffect(Unit) {
-        viewModel.events.collect { event ->
+        viewModel.events.stream.collect { event ->
             when (event) {
                 StudentDetailViewModel.Event.REMOVE_BLOCKED_HAS_CLASSES ->
                     android.widget.Toast.makeText(context, removeBlockedMsg, android.widget.Toast.LENGTH_LONG).show()
@@ -304,8 +304,10 @@ fun StudentDetailScreen(
             label = stringResource(R.string.price_label),
             initial = current?.toAmountInput() ?: "",
             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
-            validate = { MoneyInput.rate(it) != null },
-            onConfirm = { text -> MoneyInput.rate(text)?.let { viewModel.setPrice(subjectId, it) } },
+            validate = { MoneyField(it, MoneyField.Kind.RATE).isValid },
+            onConfirm = { text ->
+                MoneyField(text, MoneyField.Kind.RATE).amount?.let { viewModel.setPrice(subjectId, it) }
+            },
             onDismiss = { pricingSubjectId = null },
         )
     }
@@ -315,8 +317,10 @@ fun StudentDetailScreen(
             label = stringResource(R.string.payment_amount_label),
             initial = "",
             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
-            validate = { MoneyInput.payment(it) != null },
-            onConfirm = { text -> MoneyInput.payment(text)?.let { viewModel.addPayment(it) } },
+            validate = { MoneyField(it, MoneyField.Kind.PAYMENT).isValid },
+            onConfirm = { text ->
+                MoneyField(text, MoneyField.Kind.PAYMENT).amount?.let { viewModel.addPayment(it) }
+            },
             onDismiss = { addingPayment = false },
         )
     }
@@ -383,8 +387,7 @@ private fun AddSubjectPriceDialog(
     onDismiss: () -> Unit,
 ) {
     var selectedId by remember { mutableStateOf<Long?>(null) }
-    var priceText by remember { mutableStateOf("") }
-    val amount = MoneyInput.rate(priceText)
+    var price by remember { mutableStateOf(MoneyField(kind = MoneyField.Kind.RATE)) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.student_add_subject)) },
@@ -406,10 +409,10 @@ private fun AddSubjectPriceDialog(
                         }
                     }
                     OutlinedTextField(
-                        value = priceText,
-                        onValueChange = { priceText = it },
+                        value = price.text,
+                        onValueChange = { price = price.typed(it) },
                         label = { Text(stringResource(R.string.price_label)) },
-                        isError = priceText.isNotBlank() && amount == null,
+                        isError = price.isError,
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -421,9 +424,10 @@ private fun AddSubjectPriceDialog(
             TextButton(
                 onClick = {
                     val id = selectedId
+                    val amount = price.amount
                     if (id != null && amount != null) { onConfirm(id, amount); onDismiss() }
                 },
-                enabled = selectedId != null && amount != null,
+                enabled = selectedId != null && price.isValid,
             ) { Text(stringResource(R.string.action_save)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },

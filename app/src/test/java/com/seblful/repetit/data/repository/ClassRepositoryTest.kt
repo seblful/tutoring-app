@@ -62,7 +62,7 @@ class ClassRepositoryTest {
 
     @Test
     fun `with sync on, booking a scheduled class mirrors it and stores the returned event id`() = runTest {
-        env.settingsRepo.setCalendarSyncEnabled(true)
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         val id = book()
 
         assertEquals(1, env.calendar.upserts.size)
@@ -71,8 +71,8 @@ class ClassRepositoryTest {
 
     @Test
     fun `a mirrored class invites the student when email invites are on`() = runTest {
-        env.settingsRepo.setCalendarSyncEnabled(true)
-        env.settingsRepo.setEmailInvitesEnabled(true)
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
+        env.settingsRepo.update { it.copy(emailInvitesEnabled = true) }
         env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня", email = "anya@example.com"))
 
         book()
@@ -84,7 +84,7 @@ class ClassRepositoryTest {
     fun `syncing alone mails nobody — invites are off until the tutor opts in`() = runTest {
         // Turning sync on is a statement about the tutor's own calendar, not about writing to their
         // students' inboxes, so the mirror must leave the guest uninvited on a fresh install.
-        env.settingsRepo.setCalendarSyncEnabled(true)
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня", email = "anya@example.com"))
 
         book()
@@ -96,8 +96,8 @@ class ClassRepositoryTest {
     fun `with email invites off the student's address still travels, marked uninvited`() = runTest {
         // The address is what lets the calendar adapter *withdraw* an invitation it sent earlier, so
         // switching invites off must not degrade to "no guest" — that would leave it standing.
-        env.settingsRepo.setCalendarSyncEnabled(true)
-        env.settingsRepo.setEmailInvitesEnabled(false)
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
+        env.settingsRepo.update { it.copy(emailInvitesEnabled = false) }
         env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня", email = "anya@example.com"))
 
         book()
@@ -107,7 +107,7 @@ class ClassRepositoryTest {
 
     @Test
     fun `a student with no email yields no guest at all`() = runTest {
-        env.settingsRepo.setCalendarSyncEnabled(true)
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня", email = ""))
 
         book()
@@ -117,7 +117,7 @@ class ClassRepositoryTest {
 
     @Test
     fun `cancelling a synced class deletes its calendar event`() = runTest {
-        env.settingsRepo.setCalendarSyncEnabled(true)
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         val id = book()
         val eventId = repo.getById(id)!!.calendarEventId!!
 
@@ -129,7 +129,7 @@ class ClassRepositoryTest {
 
     @Test
     fun `completing a class captures the charge and leaves the calendar event untouched`() = runTest {
-        env.settingsRepo.setCalendarSyncEnabled(true)
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         val id = book() // 1 upsert so far
         env.calendar.calls.clear()
 
@@ -142,7 +142,7 @@ class ClassRepositoryTest {
 
     @Test
     fun `deleting a completed class removes it and deletes its lingering calendar event`() = runTest {
-        env.settingsRepo.setCalendarSyncEnabled(true)
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         val id = book()
         // Completing keeps the (past) event; its id stays on the class.
         repo.setStatus(session(id), ClassStatus.COMPLETED)
@@ -229,7 +229,7 @@ class ClassRepositoryTest {
 
     @Test
     fun `clearCalendar removes every mirrored event and nulls the stored ids`() = runTest {
-        env.settingsRepo.setCalendarSyncEnabled(true)
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         book()
         book(Instant.parse("2026-06-21T10:00:00Z"))
         assertEquals(2, env.calendar.upserts.size)

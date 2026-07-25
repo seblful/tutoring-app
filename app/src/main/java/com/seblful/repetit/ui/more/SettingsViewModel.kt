@@ -13,6 +13,13 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * The settings screen.
+ *
+ * Most settings are just stored, so they go through one [update] instead of a wrapper each — the
+ * wrappers only ever wrapped a `launch`. The two below have their own methods because changing them
+ * does something *besides* storing a value, and that obligation must not be left to the screen.
+ */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settings: SettingsRepository,
@@ -23,36 +30,15 @@ class SettingsViewModel @Inject constructor(
     val state: StateFlow<AppSettings> = settings.observe()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppSettings())
 
-    fun setNotificationsEnabled(enabled: Boolean) {
-        viewModelScope.launch { settings.setNotificationsEnabled(enabled) }
-    }
-
-    fun setReminderLeadMinutes(minutes: Int) {
-        viewModelScope.launch { settings.setReminderLeadMinutes(minutes) }
-    }
-
-    fun setAutoCompleteEnabled(enabled: Boolean) {
-        viewModelScope.launch { settings.setAutoCompleteEnabled(enabled) }
-    }
-
-    fun setThemeMode(mode: String) {
-        viewModelScope.launch { settings.setThemeMode(mode) }
-    }
-
-    fun setDefaultLessonMinutes(minutes: Int) {
-        viewModelScope.launch { settings.setDefaultLessonMinutes(minutes) }
-    }
-
-    fun setCurrency(currency: String) {
-        viewModelScope.launch { settings.setCurrency(currency) }
-    }
-
     /**
-     * Sets the rate a **newly created** group starts out with. Nothing else reads it, so this never
-     * re-prices a group that already exists, let alone a lesson already booked.
+     * The permissions the screen must request after a [CalendarSyncToggle.PERMISSION_NEEDED].
+     * Surfaced here so the screen needs no import from `calendar/` at all.
      */
-    fun setDefaultGroupPrice(minor: Long) {
-        viewModelScope.launch { settings.setDefaultGroupPriceMinor(minor) }
+    val calendarPermissionsRequired: Array<String> get() = calendarPermission.required
+
+    /** Stores a changed setting, e.g. `update { it.copy(currency = "RUB") }`. */
+    fun update(transform: (AppSettings) -> AppSettings) {
+        viewModelScope.launch { settings.update(transform) }
     }
 
     /**
@@ -65,18 +51,9 @@ class SettingsViewModel @Inject constructor(
      */
     fun setEmailInvitesEnabled(enabled: Boolean) {
         viewModelScope.launch {
-            settings.setEmailInvitesEnabled(enabled)
+            settings.update { it.copy(emailInvitesEnabled = enabled) }
             classes.resyncCalendar()
         }
-    }
-
-    /**
-     * Shows or hides the «Группы» tab. Hiding only moves the section back into «Ещё» — nothing about
-     * the groups themselves changes, so a tutor who turns it off can still reach them (and their
-     * lessons keep naming their group either way).
-     */
-    fun setShowGroupsTab(show: Boolean) {
-        viewModelScope.launch { settings.setShowGroupsTab(show) }
     }
 
     /**
@@ -86,14 +63,13 @@ class SettingsViewModel @Inject constructor(
      * Enabling is **refused** unless the calendar permission is already held — checked here rather
      * than trusted to the caller, because this flag is what the whole mirror keys off and a screen
      * that forgot the check would leave sync switched on with nothing able to write. A caller that
-     * gets [CalendarSyncToggle.PERMISSION_NEEDED] should request the permission (see
-     * `AndroidCalendarPermission.REQUIRED`) and call again. Disabling never needs permission —
-     * clearing up after ourselves must always be possible.
+     * gets [CalendarSyncToggle.PERMISSION_NEEDED] should request the permission and call again.
+     * Disabling never needs permission — clearing up after ourselves must always be possible.
      */
     fun setCalendarSyncEnabled(enabled: Boolean): CalendarSyncToggle {
         if (enabled && !calendarPermission.isGranted()) return CalendarSyncToggle.PERMISSION_NEEDED
         viewModelScope.launch {
-            settings.setCalendarSyncEnabled(enabled)
+            settings.update { it.copy(calendarSyncEnabled = enabled) }
             if (enabled) classes.resyncCalendar() else classes.clearCalendar()
         }
         return CalendarSyncToggle.APPLIED

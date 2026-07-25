@@ -20,9 +20,6 @@ data class Guest(val email: String, val invited: Boolean)
  */
 interface CalendarSync {
 
-    /** Whether events can currently be written (permission granted and a writable calendar exists). */
-    suspend fun isAvailable(): Boolean
-
     /**
      * Creates or updates the event mirroring [klass] (reusing [TutoringClass.calendarEventId] if
      * set) and returns the event id to persist, or null if the calendar is unavailable.

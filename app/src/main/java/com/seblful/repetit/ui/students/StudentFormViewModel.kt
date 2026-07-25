@@ -8,7 +8,7 @@ import com.seblful.repetit.data.repository.SubjectRepository
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.Student
 import com.seblful.repetit.domain.model.Subject
-import com.seblful.repetit.format.MoneyInput
+import com.seblful.repetit.format.MoneyField
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -36,8 +36,8 @@ class StudentFormViewModel @Inject constructor(
         val email: String = "",
         val note: String = "",
         val mode: ClassMode = ClassMode.IN_PERSON,
-        /** subjectId -> raw price text, for the subjects the user has checked. */
-        val subjectPrices: Map<Long, String> = emptyMap(),
+        /** subjectId -> its price field, for the subjects the user has checked. */
+        val subjectPrices: Map<Long, MoneyField> = emptyMap(),
     )
 
     private val form = MutableStateFlow(Form())
@@ -52,7 +52,7 @@ class StudentFormViewModel @Inject constructor(
         val isValid: Boolean
             get() = form.name.isNotBlank() &&
                 form.subjectPrices.isNotEmpty() &&
-                form.subjectPrices.values.all { MoneyInput.rate(it) != null }
+                form.subjectPrices.values.all { it.isValid }
     }
 
     val state: StateFlow<UiState> = combine(
@@ -67,14 +67,16 @@ class StudentFormViewModel @Inject constructor(
 
     fun toggleSubject(subjectId: Long, on: Boolean) {
         form.value = form.value.copy(
-            subjectPrices = if (on) form.value.subjectPrices + (subjectId to "")
+            subjectPrices = if (on) form.value.subjectPrices + (subjectId to MoneyField())
             else form.value.subjectPrices - subjectId,
         )
     }
 
     fun setPriceText(subjectId: Long, text: String) {
-        if (subjectId !in form.value.subjectPrices) return
-        form.value = form.value.copy(subjectPrices = form.value.subjectPrices + (subjectId to text))
+        val field = form.value.subjectPrices[subjectId] ?: return
+        form.value = form.value.copy(
+            subjectPrices = form.value.subjectPrices + (subjectId to field.typed(text)),
+        )
     }
 
     fun save(onSaved: () -> Unit) {
@@ -92,8 +94,8 @@ class StudentFormViewModel @Inject constructor(
                 )
             )
             // isValid guarantees every chosen subject has a parseable price.
-            val pricedSubjects = f.subjectPrices.mapNotNull { (subjectId, text) ->
-                MoneyInput.rate(text)?.let { subjectId to it }
+            val pricedSubjects = f.subjectPrices.mapNotNull { (subjectId, price) ->
+                price.amount?.let { subjectId to it }
             }.toMap()
             enrollment.setEnrollments(id, pricedSubjects)
             onSaved()

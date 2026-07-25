@@ -23,6 +23,16 @@ data class AppSettings(
     val showGroupsTab: Boolean = true,
 )
 
+/**
+ * The single settings row.
+ *
+ * Writes go through one [update] rather than a setter per field. Eleven settings used to mean
+ * eleven one-line setters here and eleven more wrappers in the view model, so adding a setting
+ * touched six files to say the same thing six times. A transform says it once, and matches how the
+ * app's other forms are already edited (`ClassEditViewModel.update`, `GroupFormViewModel.update`).
+ *
+ * Settings are **device-local** — deliberately not part of the backup snapshot.
+ */
 @Singleton
 class SettingsRepository @Inject constructor(
     private val dao: SettingsDao,
@@ -31,42 +41,13 @@ class SettingsRepository @Inject constructor(
 
     suspend fun get(): AppSettings = dao.get().toSettings()
 
-    suspend fun setNotificationsEnabled(enabled: Boolean) =
-        update { it.copy(notificationsEnabled = enabled) }
-
-    suspend fun setCalendarSyncEnabled(enabled: Boolean) =
-        update { it.copy(calendarSyncEnabled = enabled) }
-
-    suspend fun setEmailInvitesEnabled(enabled: Boolean) =
-        update { it.copy(emailInvitesEnabled = enabled) }
-
-    suspend fun setOnboardingComplete(complete: Boolean) =
-        update { it.copy(onboardingComplete = complete) }
-
-    suspend fun setReminderLeadMinutes(minutes: Int) =
-        update { it.copy(reminderLeadMinutes = minutes) }
-
-    suspend fun setAutoCompleteEnabled(enabled: Boolean) =
-        update { it.copy(autoCompleteEnabled = enabled) }
-
-    suspend fun setThemeMode(mode: String) =
-        update { it.copy(themeMode = mode) }
-
-    suspend fun setDefaultLessonMinutes(minutes: Int) =
-        update { it.copy(defaultLessonMinutes = minutes) }
-
-    suspend fun setDefaultGroupPriceMinor(minor: Long) =
-        update { it.copy(defaultGroupPriceMinor = minor) }
-
-    suspend fun setCurrency(currency: String) =
-        update { it.copy(currency = currency) }
-
-    suspend fun setShowGroupsTab(show: Boolean) =
-        update { it.copy(showGroupsTab = show) }
-
-    private suspend fun update(transform: (SettingsEntity) -> SettingsEntity) {
-        val current = dao.get() ?: SettingsEntity()
-        dao.upsert(transform(current))
+    /**
+     * Applies [transform] to the current settings and stores the result. Read-modify-write against
+     * the single row, so a caller changes one field with `update { it.copy(currency = "RUB") }`
+     * and leaves the rest alone.
+     */
+    suspend fun update(transform: (AppSettings) -> AppSettings) {
+        dao.upsert(transform(get()).toEntity())
     }
 
     private fun SettingsEntity?.toSettings(): AppSettings =
@@ -84,4 +65,23 @@ class SettingsRepository @Inject constructor(
             currency = currency,
             showGroupsTab = showGroupsTab,
         )
+
+    /**
+     * The row is always written whole from Kotlin, so this — not the entity's `defaultValue`
+     * annotations — decides what a fresh install stores. Those annotations govern the migration
+     * backfill only (see `SettingsEntity.emailInvitesEnabled`, where the two deliberately differ).
+     */
+    private fun AppSettings.toEntity(): SettingsEntity = SettingsEntity(
+        notificationsEnabled = notificationsEnabled,
+        calendarSyncEnabled = calendarSyncEnabled,
+        emailInvitesEnabled = emailInvitesEnabled,
+        onboardingComplete = onboardingComplete,
+        reminderLeadMinutes = reminderLeadMinutes,
+        autoCompleteEnabled = autoCompleteEnabled,
+        themeMode = themeMode,
+        defaultLessonMinutes = defaultLessonMinutes,
+        defaultGroupPriceMinor = defaultGroupPriceMinor,
+        currency = currency,
+        showGroupsTab = showGroupsTab,
+    )
 }

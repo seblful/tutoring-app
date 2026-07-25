@@ -32,14 +32,14 @@ class SettingsViewModelTest {
         backgroundScope.launch { vm.state.collect {} }
         advanceUntilIdle()
 
-        vm.setReminderLeadMinutes(30)
-        vm.setAutoCompleteEnabled(true)
-        vm.setThemeMode("DARK")
-        vm.setDefaultLessonMinutes(45)
-        vm.setCurrency("RUB")
-        vm.setDefaultGroupPrice(2000)
-        vm.setNotificationsEnabled(false)
-        vm.setShowGroupsTab(false)
+        vm.update { it.copy(reminderLeadMinutes = 30) }
+        vm.update { it.copy(autoCompleteEnabled = true) }
+        vm.update { it.copy(themeMode = "DARK") }
+        vm.update { it.copy(defaultLessonMinutes = 45) }
+        vm.update { it.copy(currency = "RUB") }
+        vm.update { it.copy(defaultGroupPriceMinor = 2000) }
+        vm.update { it.copy(notificationsEnabled = false) }
+        vm.update { it.copy(showGroupsTab = false) }
         advanceUntilIdle()
 
         val s = env.settingsRepo.get()
@@ -63,9 +63,9 @@ class SettingsViewModelTest {
         assertEquals(0L, vm.state.value.defaultGroupPriceMinor)
 
         // And clearing it again is expressible — the settings row writes 0 for an empty field.
-        vm.setDefaultGroupPrice(2000)
+        vm.update { it.copy(defaultGroupPriceMinor = 2000) }
         advanceUntilIdle()
-        vm.setDefaultGroupPrice(0)
+        vm.update { it.copy(defaultGroupPriceMinor = 0) }
         advanceUntilIdle()
         assertEquals(0L, env.settingsRepo.get().defaultGroupPriceMinor)
     }
@@ -78,11 +78,11 @@ class SettingsViewModelTest {
 
         assertTrue("a fresh install shows the tab", vm.state.value.showGroupsTab)
 
-        vm.setShowGroupsTab(false)
+        vm.update { it.copy(showGroupsTab = false) }
         advanceUntilIdle()
         assertFalse(vm.state.value.showGroupsTab)
 
-        vm.setShowGroupsTab(true)
+        vm.update { it.copy(showGroupsTab = true) }
         advanceUntilIdle()
         assertTrue(vm.state.value.showGroupsTab)
         assertTrue(env.settingsRepo.get().showGroupsTab)
@@ -100,8 +100,8 @@ class SettingsViewModelTest {
             val sid = env.studentDao.upsert(StudentEntity(name = "Аня", email = "anya@example.com"))
             val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
             env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "SCHEDULED"))
-            env.settingsRepo.setCalendarSyncEnabled(true)
-            env.settingsRepo.setEmailInvitesEnabled(true)
+            env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
+            env.settingsRepo.update { it.copy(emailInvitesEnabled = true) }
 
             val vm = vm()
             vm.setEmailInvitesEnabled(false)
@@ -119,8 +119,8 @@ class SettingsViewModelTest {
             val sid = env.studentDao.upsert(StudentEntity(name = "Аня", email = "anya@example.com"))
             val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
             env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "SCHEDULED"))
-            env.settingsRepo.setCalendarSyncEnabled(true)
-            env.settingsRepo.setEmailInvitesEnabled(false)
+            env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
+            env.settingsRepo.update { it.copy(emailInvitesEnabled = false) }
 
             val vm = vm()
             vm.setEmailInvitesEnabled(true)
@@ -198,7 +198,7 @@ class SettingsViewModelTest {
             env.classDao.upsert(
                 ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "SCHEDULED", calendarEventId = "evt-9"),
             )
-            env.settingsRepo.setCalendarSyncEnabled(true)
+            env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
             env.calendarPermission.granted = false
 
             val vm = vm()
@@ -215,7 +215,7 @@ class SettingsViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         // A class already carrying a mirrored event id.
         env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "SCHEDULED", calendarEventId = "evt-1"))
-        env.settingsRepo.setCalendarSyncEnabled(true)
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
 
         val vm = vm()
         vm.setCalendarSyncEnabled(false)

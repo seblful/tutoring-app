@@ -14,7 +14,7 @@ import javax.inject.Inject
 
 /**
  * Drives first-run setup: the user adds at least one subject, then their first student (with
- * subjects and prices). Completing it flips [SettingsRepository.setOnboardingComplete], after which
+ * subjects and prices). Completing it flips `AppSettings.onboardingComplete`, after which
  * the app shows its normal tabs.
  *
  * Setup is offered, not imposed — [complete] is also what «Пропустить» calls, leaving an app with
@@ -39,6 +39,6 @@ class OnboardingViewModel @Inject constructor(
 
     /** Ends first run — from finishing the last step or from skipping it. */
     fun complete() {
-        viewModelScope.launch { settings.setOnboardingComplete(true) }
+        viewModelScope.launch { settings.update { it.copy(onboardingComplete = true) } }
     }
 }

@@ -8,6 +8,7 @@ import com.seblful.repetit.data.local.SubjectEntity
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.Group
 import com.seblful.repetit.domain.model.Money
+import com.seblful.repetit.format.MoneyField
 import com.seblful.repetit.testutil.MainDispatcherRule
 import com.seblful.repetit.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -60,7 +61,7 @@ class GroupFormViewModelTest {
         advanceUntilIdle()
         assertFalse("a group that doesn't say what it costs can't be billed", vm.state.value.isValid)
 
-        vm.update { it.copy(priceText = "20") }
+        vm.update { it.copy(price = MoneyField("20")) }
         advanceUntilIdle()
         assertTrue(vm.state.value.isValid)
     }
@@ -74,12 +75,12 @@ class GroupFormViewModelTest {
 
         vm.update { it.copy(name = "Бесплатно") }
         vm.toggleMember(ann, true)
-        vm.update { it.copy(priceText = "0") }
+        vm.update { it.copy(price = MoneyField("0")) }
         advanceUntilIdle()
         assertTrue("a group taught for free still bills — at 0", vm.state.value.isValid)
         assertEquals(Money.ZERO, vm.state.value.price)
 
-        vm.update { it.copy(priceText = "") }
+        vm.update { it.copy(price = MoneyField("")) }
         advanceUntilIdle()
         assertFalse(vm.state.value.isValid)
     }
@@ -93,7 +94,7 @@ class GroupFormViewModelTest {
             advanceUntilIdle()
 
             vm.update {
-                it.copy(name = "  11 «А»  ", note = " вечер ", priceText = "20", mode = ClassMode.REMOTE)
+                it.copy(name = "  11 «А»  ", note = " вечер ", price = MoneyField("20"), mode = ClassMode.REMOTE)
             }
             vm.toggleMember(ann, true)
             vm.toggleMember(bob, true)
@@ -125,7 +126,7 @@ class GroupFormViewModelTest {
 
             vm.toggleMember(ann, false)
             vm.toggleMember(bob, true)
-            vm.update { it.copy(priceText = "25") }
+            vm.update { it.copy(price = MoneyField("25")) }
             vm.save { }
             advanceUntilIdle()
 
@@ -136,7 +137,7 @@ class GroupFormViewModelTest {
     @Test
     fun `a new group starts on the tutor's default rate`() = runTest(mainRule.dispatcher) {
         seedStudents()
-        env.settingsRepo.setDefaultGroupPriceMinor(Money.ofMajor(15).minor)
+        env.settingsRepo.update { it.copy(defaultGroupPriceMinor = Money.ofMajor(15).minor) }
 
         val vm = vm()
         backgroundScope.launch { vm.state.collect {} }
@@ -156,14 +157,14 @@ class GroupFormViewModelTest {
 
             // 0 means "not set": pre-filling it would invent an amount, so the field stays empty and
             // the form stays invalid until the tutor says what the group costs.
-            assertEquals("", vm.state.value.form.priceText)
+            assertEquals("", vm.state.value.form.price.text)
             assertFalse(vm.state.value.isValid)
         }
 
     @Test
     fun `the default never overwrites the rate of a group being edited`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
-        env.settingsRepo.setDefaultGroupPriceMinor(Money.ofMajor(15).minor)
+        env.settingsRepo.update { it.copy(defaultGroupPriceMinor = Money.ofMajor(15).minor) }
         val id = env.groupRepo.save(Group(name = "Группа", price = Money.ofMajor(40)), setOf(ann))
 
         val vm = vm(id)
@@ -231,11 +232,14 @@ class GroupFormViewModelTest {
         backgroundScope.launch { vm.state.collect {} }
         advanceUntilIdle()
 
-        var result: Boolean? = null
-        vm.delete { result = it }
+        var deleted = false
+        val events = mutableListOf<GroupFormViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+        vm.delete { deleted = true }
         advanceUntilIdle()
 
-        assertEquals(false, result)
+        assertFalse(deleted)
+        assertEquals(listOf(GroupFormViewModel.Event.DELETE_BLOCKED_HAS_LESSONS), events)
         assertNotNull("the group survives so its lessons still name it", env.groupRepo.getById(id))
     }
 
@@ -268,7 +272,7 @@ class GroupFormViewModelTest {
             backgroundScope.launch { vm.state.collect {} }
             advanceUntilIdle()
 
-            vm.update { it.copy(name = "11 «А»", priceText = "300") }
+            vm.update { it.copy(name = "11 «А»", price = MoneyField("300")) }
             vm.toggleMember(ann, true)
             vm.toggleMember(bob, true)
             advanceUntilIdle()
@@ -297,7 +301,7 @@ class GroupFormViewModelTest {
             backgroundScope.launch { vm.state.collect {} }
             advanceUntilIdle()
 
-            vm.update { it.copy(name = "11 «А»", priceText = "300") }
+            vm.update { it.copy(name = "11 «А»", price = MoneyField("300")) }
             vm.toggleMember(ann, true)
             vm.setSubject(algebra)
             advanceUntilIdle()
@@ -315,11 +319,11 @@ class GroupFormViewModelTest {
         backgroundScope.launch { vm.state.collect {} }
         advanceUntilIdle()
 
-        var result: Boolean? = null
-        vm.delete { result = it }
+        var deleted = false
+        vm.delete { deleted = true }
         advanceUntilIdle()
 
-        assertEquals(true, result)
+        assertTrue(deleted)
         assertEquals(null, env.groupRepo.getById(id))
     }
 }

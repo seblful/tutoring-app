@@ -1,19 +1,16 @@
 package com.seblful.repetit.ui.diagnostics
 
-import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seblful.repetit.di.DebugBuild
 import com.seblful.repetit.diagnostics.CrashLogger
+import com.seblful.repetit.storage.DocumentRef
+import com.seblful.repetit.storage.DocumentStore
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.Channel
+import com.seblful.repetit.ui.common.UiEvents
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 enum class DiagnosticsEvent { EXPORT_OK, ERROR }
@@ -25,22 +22,19 @@ data class DiagnosticsUiState(
 
 @HiltViewModel
 class DiagnosticsViewModel @Inject constructor(
-    @param:ApplicationContext private val context: Context,
     private val crashLogger: CrashLogger,
+    private val documents: DocumentStore,
+    /**
+     * True only for a debuggable (non-release) build. Gates the "force test crash" action so it can
+     * never reach a published build.
+     */
+    @param:DebugBuild val isDebugBuild: Boolean,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DiagnosticsUiState())
     val state = _state.asStateFlow()
 
-    private val _events = Channel<DiagnosticsEvent>(Channel.BUFFERED)
-    val events = _events.receiveAsFlow()
-
-    /**
-     * True only for a debuggable (non-release) build. Gates the "force test crash" action so it can
-     * never reach a published build — the flag is set by the build type, not by us.
-     */
-    val isDebugBuild: Boolean =
-        (context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+    val events = UiEvents<DiagnosticsEvent>()
 
     init {
         refresh()
@@ -50,16 +44,10 @@ class DiagnosticsViewModel @Inject constructor(
         _state.value = DiagnosticsUiState(hasLog = crashLogger.hasLog(), log = crashLogger.read())
     }
 
-    fun export(uri: Uri) {
+    fun export(ref: DocumentRef) {
         viewModelScope.launch {
-            val ok = runCatching {
-                withContext(Dispatchers.IO) {
-                    val text = crashLogger.read()
-                    context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray()) }
-                        ?: error("Cannot open output stream")
-                }
-            }.isSuccess
-            _events.send(if (ok) DiagnosticsEvent.EXPORT_OK else DiagnosticsEvent.ERROR)
+            val ok = runCatching { documents.write(ref, crashLogger.read()) }.isSuccess
+            events.send(if (ok) DiagnosticsEvent.EXPORT_OK else DiagnosticsEvent.ERROR)
         }
     }
 
