@@ -204,6 +204,50 @@ class ClassEditViewModelTest {
         assertEquals(90, vm.form.value.durationMinutes)
     }
 
+    @Test
+    fun `the time pickers open on the current time while nothing is chosen`() = runTest(mainRule.dispatcher) {
+        env.settingsRepo.setDefaultLessonMinutes(90)
+        val vm = vm()
+        advanceUntilIdle()
+
+        // A lesson is normally written down as it is being arranged, so an empty form offers the
+        // current time — to the minute — and one default lesson after it.
+        val now = LocalTime.of(14, 37, 42)
+        assertEquals(LocalTime.of(14, 37), vm.startPickerDefault(now))
+        assertEquals(LocalTime.of(16, 7), vm.endPickerDefault(now))
+    }
+
+    @Test
+    fun `the time pickers reopen on the times already chosen`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.setTimeFrom(LocalTime.of(10, 0))
+        vm.setTimeTo(LocalTime.of(11, 30))
+
+        val now = LocalTime.of(14, 37)
+        assertEquals(LocalTime.of(10, 0), vm.startPickerDefault(now))
+        assertEquals(LocalTime.of(11, 30), vm.endPickerDefault(now))
+    }
+
+    @Test
+    fun `editing opens the pickers on the lesson's own time, not the current one`() = runTest(mainRule.dispatcher) {
+        val (studentId, subjectId) = seedStudentWithPricedSubject()
+        val start = Instant.parse("2026-06-15T07:00:00Z")
+        val id = env.classDao.upsert(
+            ClassEntity(
+                studentId = studentId, subjectId = subjectId, startMillis = start.toEpochMilli(),
+                durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = "SCHEDULED",
+            ),
+        )
+        val vm = vm(id)
+        advanceUntilIdle()
+
+        val from = start.atZone(zone).toLocalTime()
+        assertEquals(from, vm.startPickerDefault(LocalTime.of(14, 37)))
+        assertEquals(from.plusMinutes(60), vm.endPickerDefault(LocalTime.of(14, 37)))
+    }
+
     // --- Save: create ---
 
     @Test
