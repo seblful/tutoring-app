@@ -14,12 +14,13 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -28,6 +29,8 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Today
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -51,6 +54,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
@@ -70,6 +75,7 @@ import com.seblful.repetit.ui.common.constrainedContent
 import com.seblful.repetit.format.formatDay
 import com.seblful.repetit.format.formatMonth
 import com.seblful.repetit.format.formatTime
+import com.seblful.repetit.format.formatWeekRange
 import com.seblful.repetit.format.toLocalDate
 import com.seblful.repetit.format.toLocalTime
 import java.time.LocalDate
@@ -90,6 +96,8 @@ fun ScheduleScreen(
     val viewMode by viewModel.viewMode.collectAsState()
     val month by viewModel.visibleMonth.collectAsState()
     val grid by viewModel.monthGrid.collectAsState()
+    val week by viewModel.weekDays.collectAsState()
+    val sections by viewModel.weekSections.collectAsState()
     val loads by viewModel.dayLoads.collectAsState()
 
     var sheetFor by remember { mutableStateOf<ScheduleRow?>(null) }
@@ -104,20 +112,7 @@ fun ScheduleScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.schedule_title)) },
                 actions = {
-                    val calendarShown = viewMode == ScheduleViewMode.MONTH
-                    IconButton(onClick = viewModel::toggleViewMode) {
-                        Icon(
-                            imageVector = if (calendarShown) {
-                                Icons.AutoMirrored.Filled.ViewList
-                            } else {
-                                Icons.Filled.CalendarMonth
-                            },
-                            contentDescription = stringResource(
-                                if (calendarShown) R.string.schedule_show_list
-                                else R.string.schedule_show_calendar
-                            ),
-                        )
-                    }
+                    ViewModePicker(selected = viewMode, onSelect = viewModel::setViewMode)
                 },
             )
         },
@@ -131,7 +126,7 @@ fun ScheduleScreen(
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).constrainedContent()) {
-            // The navigator stays pinned in both modes, so paging is always one tap away.
+            // The navigator stays pinned in every mode, so paging is always one tap away.
             when (viewMode) {
                 ScheduleViewMode.DAY -> {
                     DayNavigator(
@@ -142,6 +137,12 @@ fun ScheduleScreen(
                     )
                     HorizontalDivider()
                 }
+                ScheduleViewMode.WEEK -> WeekNavigator(
+                    days = week,
+                    onPrevious = viewModel::goToPreviousWeek,
+                    onNext = viewModel::goToNextWeek,
+                    onToday = viewModel::goToToday,
+                )
                 ScheduleViewMode.MONTH -> MonthNavigator(
                     month = month,
                     onPrevious = viewModel::goToPreviousMonth,
@@ -155,36 +156,68 @@ fun ScheduleScreen(
                 Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(top = 11.dp, bottom = 88.dp),
             ) {
-                if (viewMode == ScheduleViewMode.MONTH) {
-                    // The calendar takes over from the day stepper: the grid is how you move
-                    // between days, and the header below it names the day the list is showing.
-                    item(key = "calendar", contentType = "calendar") {
-                        Column {
-                            MonthCalendar(
-                                grid = grid,
-                                loads = loads,
-                                selected = date,
-                                today = today,
-                                onSelect = viewModel::selectDate,
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            SelectedDayHeader(date)
-                            HorizontalDivider()
-                            Spacer(Modifier.height(11.dp))
+                when (viewMode) {
+                    // The day list stands alone under its stepper.
+                    ScheduleViewMode.DAY -> dayList(rows, onRowClick = { sheetFor = it })
+
+                    // A whole week at once: the strip is an overview and a day picker for the add
+                    // button, while the agenda below always shows every day that has classes.
+                    ScheduleViewMode.WEEK -> {
+                        item(key = "week-strip", contentType = "calendar") {
+                            Column {
+                                WeekStrip(
+                                    days = week,
+                                    loads = loads,
+                                    selected = date,
+                                    today = today,
+                                    onSelect = viewModel::selectDate,
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                HorizontalDivider()
+                            }
+                        }
+                        if (sections.isEmpty()) {
+                            item(key = "empty") {
+                                EmptyState(
+                                    stringResource(R.string.schedule_week_empty),
+                                    Modifier.heightIn(min = 200.dp),
+                                )
+                            }
+                        } else {
+                            sections.forEach { section ->
+                                item(key = "day-${section.date}", contentType = "day-header") {
+                                    DaySectionHeader(section.date, isSelected = section.date == date)
+                                }
+                                items(section.rows, key = { it.klass.id }) { row ->
+                                    ScheduleCard(
+                                        row = row,
+                                        onClick = { sheetFor = row },
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
+                                    )
+                                }
+                            }
                         }
                     }
-                }
-                if (rows.isEmpty()) {
-                    item(key = "empty") {
-                        EmptyState(stringResource(R.string.schedule_empty), Modifier.heightIn(min = 200.dp))
-                    }
-                } else {
-                    items(rows, key = { it.klass.id }) { row ->
-                        ScheduleCard(
-                            row = row,
-                            onClick = { sheetFor = row },
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
-                        )
+
+                    // The calendar takes over from the day stepper: the grid is how you move
+                    // between days, and the header below it names the day the list is showing.
+                    ScheduleViewMode.MONTH -> {
+                        item(key = "calendar", contentType = "calendar") {
+                            Column {
+                                MonthCalendar(
+                                    grid = grid,
+                                    loads = loads,
+                                    selected = date,
+                                    today = today,
+                                    onSelect = viewModel::selectDate,
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                SelectedDayHeader(date)
+                                HorizontalDivider()
+                                Spacer(Modifier.height(11.dp))
+                            }
+                        }
+                        dayList(rows, onRowClick = { sheetFor = it })
                     }
                 }
             }
@@ -224,6 +257,52 @@ fun ScheduleScreen(
             onDismiss = { deletingClass = null },
         )
     }
+}
+
+/** The selected day's classes, or an empty state. Shared by the day and month views. */
+private fun LazyListScope.dayList(rows: List<ScheduleRow>, onRowClick: (ScheduleRow) -> Unit) {
+    if (rows.isEmpty()) {
+        item(key = "empty") {
+            EmptyState(stringResource(R.string.schedule_empty), Modifier.heightIn(min = 200.dp))
+        }
+    } else {
+        items(rows, key = { it.klass.id }) { row ->
+            ScheduleCard(
+                row = row,
+                onClick = { onRowClick(row) },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
+            )
+        }
+    }
+}
+
+/** Chooses between the day, week and month views. */
+@Composable
+private fun ViewModePicker(selected: ScheduleViewMode, onSelect: (ScheduleViewMode) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(Icons.Filled.CalendarMonth, stringResource(R.string.schedule_view_mode))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            ScheduleViewMode.entries.forEach { mode ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(viewModeLabel(mode))) },
+                    onClick = { onSelect(mode); expanded = false },
+                    trailingIcon = {
+                        // Only the active mode is ticked; the others leave the column empty.
+                        if (mode == selected) Icon(Icons.Filled.Check, contentDescription = null)
+                    },
+                )
+            }
+        }
+    }
+}
+
+private fun viewModeLabel(mode: ScheduleViewMode): Int = when (mode) {
+    ScheduleViewMode.DAY -> R.string.schedule_view_day
+    ScheduleViewMode.WEEK -> R.string.schedule_view_week
+    ScheduleViewMode.MONTH -> R.string.schedule_view_month
 }
 
 @Composable
@@ -271,6 +350,23 @@ private fun DayNavigator(
 }
 
 @Composable
+private fun WeekNavigator(
+    days: List<LocalDate>,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onToday: () -> Unit,
+) {
+    PageNavigator(
+        title = formatWeekRange(days.first(), days.last()),
+        previousDescription = stringResource(R.string.schedule_previous_week),
+        nextDescription = stringResource(R.string.schedule_next_week),
+        onPrevious = onPrevious,
+        onNext = onNext,
+        onToday = onToday,
+    )
+}
+
+@Composable
 private fun MonthNavigator(
     month: YearMonth,
     onPrevious: () -> Unit,
@@ -303,11 +399,21 @@ private fun PageNavigator(
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         IconButton(onClick = onPrevious) { Icon(Icons.Filled.ChevronLeft, previousDescription) }
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // The title takes the space the arrows leave: a week range spanning two long month names
+        // is far wider than "Июль 2026", and must ellipsize rather than push the arrows off-screen.
+        Row(
+            Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
             Text(
                 title,
+                modifier = Modifier.weight(1f, fill = false),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
             )
             IconButton(onClick = onToday) {
                 Icon(Icons.Filled.Today, stringResource(R.string.schedule_today))
@@ -326,6 +432,25 @@ private fun SelectedDayHeader(date: LocalDate) {
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+    )
+}
+
+/**
+ * Divides one day's classes from the next in the week agenda. The selected day is tinted so the
+ * strip's selection stays traceable in the list below it.
+ */
+@Composable
+private fun DaySectionHeader(date: LocalDate, isSelected: Boolean) {
+    Text(
+        text = date.atStartOfDay(ZoneId.systemDefault()).toInstant().formatDay(),
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = if (isSelected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 2.dp),
     )
 }
 

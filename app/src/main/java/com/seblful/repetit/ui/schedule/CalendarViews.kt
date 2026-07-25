@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.seblful.repetit.R
-import com.seblful.repetit.domain.CalendarMonth
+import com.seblful.repetit.domain.CalendarLayout
 import com.seblful.repetit.format.shortName
 import com.seblful.repetit.ui.common.classStatusColor
 import java.time.DayOfWeek
@@ -44,25 +44,15 @@ private const val MaxDots = 3
  */
 @Composable
 fun MonthCalendar(
-    grid: CalendarMonth.Grid,
-    loads: Map<LocalDate, CalendarMonth.DayLoad>,
+    grid: CalendarLayout.MonthGrid,
+    loads: Map<LocalDate, CalendarLayout.DayLoad>,
     selected: LocalDate,
     today: LocalDate,
     onSelect: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
-        Row(Modifier.fillMaxWidth()) {
-            CalendarMonth.weekdays().forEach { day ->
-                Text(
-                    text = day.shortName(),
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = weekdayColor(day),
-                )
-            }
-        }
+        WeekdayHeader()
         grid.weeks.forEach { week ->
             Row(Modifier.fillMaxWidth()) {
                 week.forEach { date ->
@@ -81,10 +71,56 @@ fun MonthCalendar(
     }
 }
 
+/**
+ * A single week as one row of day cells, above the week's agenda. Selecting a day here doesn't
+ * filter the agenda — the whole week stays visible — it picks the day the add button books into.
+ */
+@Composable
+fun WeekStrip(
+    days: List<LocalDate>,
+    loads: Map<LocalDate, CalendarLayout.DayLoad>,
+    selected: LocalDate,
+    today: LocalDate,
+    onSelect: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+        WeekdayHeader()
+        Row(Modifier.fillMaxWidth()) {
+            days.forEach { date ->
+                DayCell(
+                    date = date,
+                    load = loads[date],
+                    inMonth = true,
+                    isSelected = date == selected,
+                    isToday = date == today,
+                    onClick = { onSelect(date) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeekdayHeader() {
+    Row(Modifier.fillMaxWidth()) {
+        CalendarLayout.weekdays().forEach { day ->
+            Text(
+                text = day.shortName(),
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelMedium,
+                color = weekdayColor(day),
+            )
+        }
+    }
+}
+
 @Composable
 private fun DayCell(
     date: LocalDate,
-    load: CalendarMonth.DayLoad?,
+    load: CalendarLayout.DayLoad?,
     inMonth: Boolean,
     isSelected: Boolean,
     isToday: Boolean,
@@ -147,7 +183,7 @@ private fun DayCell(
  * same baseline whether or not the day has classes.
  */
 @Composable
-private fun DayDots(load: CalendarMonth.DayLoad?, color: Color?) {
+private fun DayDots(load: CalendarLayout.DayLoad?, color: Color?) {
     Row(
         Modifier.height(6.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),

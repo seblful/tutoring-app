@@ -60,6 +60,41 @@ class FormattersTest {
     }
 
     @Test
+    fun `a week inside one month names the month once`() {
+        val label = formatWeekRange(LocalDate.of(2026, 7, 6), LocalDate.of(2026, 7, 12))
+
+        assertEquals("6 – 12 июля", label)
+    }
+
+    @Test
+    fun `a week crossing a month names both months but no year`() {
+        val label = formatWeekRange(LocalDate.of(2026, 6, 29), LocalDate.of(2026, 7, 5))
+
+        assertEquals("29 июня – 5 июля", label)
+    }
+
+    @Test
+    fun `a week crossing a year carries both years`() {
+        val label = formatWeekRange(LocalDate.of(2026, 12, 28), LocalDate.of(2027, 1, 3))
+
+        assertTrue("names the old year", label.contains("2026"))
+        assertTrue("names the new year", label.contains("2027"))
+    }
+
+    @Test
+    fun `every week range stays short enough for the navigator`() {
+        // Worst case is a week spanning the two longest month names, or a year boundary.
+        val worst = listOf(
+            LocalDate.of(2026, 9, 28) to LocalDate.of(2026, 10, 4),
+            LocalDate.of(2026, 12, 28) to LocalDate.of(2027, 1, 3),
+        )
+        worst.forEach { (start, end) ->
+            val label = formatWeekRange(start, end)
+            assertTrue("«$label» is too long for the navigator", label.length <= 26)
+        }
+    }
+
+    @Test
     fun `toAmountInput is the inverse of parseMoneyOrNull for representable amounts`() {
         listOf(Money(0), Money(5), Money(50), Money(3050), Money(150000)).forEach { money ->
             assertEquals(money, parseMoneyOrNull(money.toAmountInput()))

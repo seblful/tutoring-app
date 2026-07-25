@@ -23,6 +23,7 @@ private val dateFmt = DateTimeFormatter.ofPattern("d MMM yyyy", RU)
 private val dayFmt = DateTimeFormatter.ofPattern("EEEE, d MMMM", RU)
 private val timeFmt = DateTimeFormatter.ofPattern("HH:mm", RU)
 private val dateTimeFmt = DateTimeFormatter.ofPattern("d MMM, HH:mm", RU)
+private val dayMonthFmt = DateTimeFormatter.ofPattern("d MMMM", RU)
 private val monthFmt = DateTimeFormatter.ofPattern("LLLL yyyy", RU)
 
 private val zone: ZoneId get() = ZoneId.systemDefault()
@@ -71,3 +72,14 @@ fun formatMonth(month: YearMonth): String =
 
 /** Short weekday name for a calendar header, e.g. "пн". */
 fun DayOfWeek.shortName(): String = getDisplayName(TextStyle.SHORT_STANDALONE, RU)
+
+/**
+ * Formats a week as an inclusive range, dropping whatever the two ends share so the label stays
+ * short enough to sit between the navigator's arrows:
+ * "6 – 12 июля", "29 июня – 5 июля", "28 дек. 2026 – 3 янв. 2027".
+ */
+fun formatWeekRange(start: LocalDate, end: LocalDate): String = when {
+    start.year != end.year -> "${start.format(dateFmt)} – ${end.format(dateFmt)}"
+    start.month != end.month -> "${start.format(dayMonthFmt)} – ${end.format(dayMonthFmt)}"
+    else -> "${start.dayOfMonth} – ${end.format(dayMonthFmt)}"
+}

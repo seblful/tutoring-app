@@ -122,18 +122,133 @@ class ScheduleViewModelTest {
     }
 
     @Test
-    fun `opening the calendar snaps the page back to the selected day`() = runTest(mainRule.dispatcher) {
+    fun `opening a calendar view snaps its page back to the selected day`() = runTest(mainRule.dispatcher) {
         val vm = vm()
         vm.selectDate(LocalDate.of(2026, 11, 20))
-        vm.goToNextMonth() // browsed away, then closed the calendar
+        // Browse both pages away, then reopen each view.
+        vm.goToNextMonth()
+        vm.goToNextWeek()
 
-        vm.toggleViewMode()
-
+        vm.setViewMode(ScheduleViewMode.MONTH)
         assertEquals(ScheduleViewMode.MONTH, vm.viewMode.value)
         assertEquals(YearMonth.of(2026, 11), vm.visibleMonth.value)
 
-        vm.toggleViewMode()
-        assertEquals(ScheduleViewMode.DAY, vm.viewMode.value)
+        vm.goToNextWeek()
+        vm.setViewMode(ScheduleViewMode.WEEK)
+        assertEquals(ScheduleViewMode.WEEK, vm.viewMode.value)
+        assertEquals("the week containing 20 Nov 2026", LocalDate.of(2026, 11, 16), vm.visibleWeek.value)
+    }
+
+    @Test
+    fun `paging weeks browses without moving the selected day`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        vm.selectDate(LocalDate.of(2026, 7, 15)) // a Wednesday
+        assertEquals(LocalDate.of(2026, 7, 13), vm.visibleWeek.value)
+
+        vm.goToNextWeek()
+        assertEquals(LocalDate.of(2026, 7, 20), vm.visibleWeek.value)
+        vm.goToPreviousWeek()
+        vm.goToPreviousWeek()
+        assertEquals(LocalDate.of(2026, 7, 6), vm.visibleWeek.value)
+        assertEquals("browsing must not repoint the selection", LocalDate.of(2026, 7, 15), vm.selectedDate.value)
+    }
+
+    @Test
+    fun `the week strip shows seven contiguous days from the visible Monday`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        backgroundScope.launch { vm.weekDays.collect {} }
+        vm.selectDate(LocalDate.of(2026, 7, 15))
+        advanceUntilIdle()
+
+        val days = vm.weekDays.value
+        assertEquals(7, days.size)
+        assertEquals(LocalDate.of(2026, 7, 13), days.first())
+        assertEquals(LocalDate.of(2026, 7, 19), days.last())
+    }
+
+    @Test
+    fun `week sections group the whole week by day and skip empty days`() = runTest(mainRule.dispatcher) {
+        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val other = env.studentDao.upsert(StudentEntity(name = "Пётр"))
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val monday = LocalDate.of(2026, 7, 13)
+        val thursday = LocalDate.of(2026, 7, 16)
+        val nextWeek = LocalDate.of(2026, 7, 20)
+        // Monday out of time order, so section rows must come back sorted.
+        listOf(
+            Triple(monday, LocalTime.of(15, 0), sid),
+            Triple(monday, LocalTime.of(9, 0), other),
+            Triple(thursday, LocalTime.of(11, 0), sid),
+            Triple(nextWeek, LocalTime.of(9, 0), sid),
+        ).forEach { (day, time, student) ->
+            env.classDao.upsert(
+                ClassEntity(
+                    studentId = student, subjectId = subj, startMillis = startMillisOn(day, time),
+                    durationMinutes = 60, status = "SCHEDULED",
+                )
+            )
+        }
+
+        val vm = vm()
+        backgroundScope.launch { vm.weekSections.collect {} }
+        vm.selectDate(LocalDate.of(2026, 7, 15))
+        advanceUntilIdle()
+
+        val sections = vm.weekSections.value
+        assertEquals("only days with classes get a section", 2, sections.size)
+        assertEquals(monday, sections[0].date)
+        assertEquals(thursday, sections[1].date)
+        assertEquals(2, sections[0].rows.size)
+        assertTrue("rows within a day are time-sorted", sections[0].rows[0].klass.start < sections[0].rows[1].klass.start)
+        assertEquals("Пётр", sections[0].rows[0].studentName)
+        assertEquals("Математика", sections[0].rows[0].subjectName)
+    }
+
+    @Test
+    fun `week sections follow the visible week, not the selected day`() = runTest(mainRule.dispatcher) {
+        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val nextWeek = LocalDate.of(2026, 7, 20)
+        env.classDao.upsert(
+            ClassEntity(
+                studentId = sid, subjectId = subj, startMillis = startMillisOn(nextWeek, LocalTime.of(9, 0)),
+                durationMinutes = 60, status = "SCHEDULED",
+            )
+        )
+
+        val vm = vm()
+        backgroundScope.launch { vm.weekSections.collect {} }
+        vm.selectDate(LocalDate.of(2026, 7, 15))
+        advanceUntilIdle()
+        assertTrue(vm.weekSections.value.isEmpty())
+
+        vm.goToNextWeek()
+        advanceUntilIdle()
+
+        assertEquals(listOf(nextWeek), vm.weekSections.value.map { it.date })
+    }
+
+    @Test
+    fun `the day view loads no markers at all`() = runTest(mainRule.dispatcher) {
+        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val day = LocalDate.of(2026, 7, 15)
+        env.classDao.upsert(
+            ClassEntity(
+                studentId = sid, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(9, 0)),
+                durationMinutes = 60, status = "SCHEDULED",
+            )
+        )
+
+        val vm = vm()
+        backgroundScope.launch { vm.dayLoads.collect {} }
+        vm.selectDate(day)
+        advanceUntilIdle()
+        assertTrue("the day view draws no calendar, so it queries none", vm.dayLoads.value.isEmpty())
+
+        vm.setViewMode(ScheduleViewMode.WEEK)
+        advanceUntilIdle()
+        assertEquals(1, vm.dayLoads.value.getValue(day).total)
     }
 
     @Test
@@ -173,6 +288,7 @@ class ScheduleViewModelTest {
 
         val vm = vm()
         backgroundScope.launch { vm.dayLoads.collect {} }
+        vm.setViewMode(ScheduleViewMode.MONTH)
         vm.selectDate(LocalDate.of(2026, 7, 1))
         advanceUntilIdle()
 
@@ -196,6 +312,7 @@ class ScheduleViewModelTest {
 
         val vm = vm()
         backgroundScope.launch { vm.dayLoads.collect {} }
+        vm.setViewMode(ScheduleViewMode.MONTH)
         vm.selectDate(LocalDate.of(2026, 7, 1))
         advanceUntilIdle()
         assertFalse(august in vm.dayLoads.value)

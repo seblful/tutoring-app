@@ -12,7 +12,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 
-class CalendarMonthTest {
+class CalendarLayoutTest {
 
     private val zone = ZoneId.of("Europe/Minsk")
 
@@ -23,16 +23,16 @@ class CalendarMonthTest {
 
     @Test
     fun `every week row is a full week starting on Monday`() {
-        val grid = CalendarMonth.grid(YearMonth.of(2026, 7))
+        val grid = CalendarLayout.monthGrid(YearMonth.of(2026, 7))
 
-        assertTrue(grid.weeks.all { it.size == CalendarMonth.DAYS_IN_WEEK })
+        assertTrue(grid.weeks.all { it.size == CalendarLayout.DAYS_IN_WEEK })
         assertTrue(grid.weeks.all { it.first().dayOfWeek == DayOfWeek.MONDAY })
         assertTrue(grid.weeks.all { it.last().dayOfWeek == DayOfWeek.SUNDAY })
     }
 
     @Test
     fun `grid is contiguous and contains every day of the month`() {
-        val grid = CalendarMonth.grid(YearMonth.of(2026, 7))
+        val grid = CalendarLayout.monthGrid(YearMonth.of(2026, 7))
         val cells = grid.weeks.flatten()
 
         cells.zipWithNext { a, b -> assertEquals(a.plusDays(1), b) }
@@ -42,7 +42,7 @@ class CalendarMonthTest {
     @Test
     fun `padding cells come from the neighbouring months`() {
         // July 2026 starts on a Wednesday, so the first row leads with 29-30 June.
-        val grid = CalendarMonth.grid(YearMonth.of(2026, 7))
+        val grid = CalendarLayout.monthGrid(YearMonth.of(2026, 7))
 
         assertEquals(LocalDate.of(2026, 6, 29), grid.firstDate)
         assertFalse(grid.isInMonth(LocalDate.of(2026, 6, 30)))
@@ -52,7 +52,7 @@ class CalendarMonthTest {
 
     @Test
     fun `a month that starts on Monday needs no leading padding`() {
-        val grid = CalendarMonth.grid(YearMonth.of(2026, 6))
+        val grid = CalendarLayout.monthGrid(YearMonth.of(2026, 6))
 
         assertEquals(LocalDate.of(2026, 6, 1), grid.firstDate)
         assertEquals(5, grid.weeks.size)
@@ -60,7 +60,7 @@ class CalendarMonthTest {
 
     @Test
     fun `a non-leap February starting on Monday fits in exactly four rows`() {
-        val grid = CalendarMonth.grid(YearMonth.of(2027, 2))
+        val grid = CalendarLayout.monthGrid(YearMonth.of(2027, 2))
 
         assertEquals(4, grid.weeks.size)
         assertEquals(LocalDate.of(2027, 2, 1), grid.firstDate)
@@ -70,7 +70,7 @@ class CalendarMonthTest {
     @Test
     fun `a long month starting late in the week needs six rows`() {
         // 31 days starting on a Sunday is the worst case: 6 leading pad days + 31 = 37 cells.
-        val grid = CalendarMonth.grid(YearMonth.of(2026, 3))
+        val grid = CalendarLayout.monthGrid(YearMonth.of(2026, 3))
 
         assertEquals(DayOfWeek.SUNDAY, LocalDate.of(2026, 3, 1).dayOfWeek)
         assertEquals(6, grid.weeks.size)
@@ -78,21 +78,66 @@ class CalendarMonthTest {
 
     @Test
     fun `a leap day gets its own cell`() {
-        val grid = CalendarMonth.grid(YearMonth.of(2028, 2))
+        val grid = CalendarLayout.monthGrid(YearMonth.of(2028, 2))
 
         assertTrue(LocalDate.of(2028, 2, 29) in grid.weeks.flatten())
     }
 
     @Test
+    fun `a week is seven days anchored on its Monday`() {
+        // 15 July 2026 is a Wednesday.
+        val week = CalendarLayout.week(LocalDate.of(2026, 7, 15))
+
+        assertEquals(CalendarLayout.DAYS_IN_WEEK, week.size)
+        assertEquals(LocalDate.of(2026, 7, 13), week.first())
+        assertEquals(LocalDate.of(2026, 7, 19), week.last())
+        week.zipWithNext { a, b -> assertEquals(a.plusDays(1), b) }
+    }
+
+    @Test
+    fun `every day of a week resolves to the same start`() {
+        val monday = LocalDate.of(2026, 7, 13)
+
+        CalendarLayout.week(monday).forEach { day ->
+            assertEquals(monday, CalendarLayout.startOfWeek(day))
+        }
+    }
+
+    @Test
+    fun `a week spanning a month and a year boundary stays contiguous`() {
+        // 31 December 2026 is a Thursday, so its week runs 28 Dec 2026 – 3 Jan 2027.
+        val week = CalendarLayout.week(LocalDate.of(2026, 12, 31))
+
+        assertEquals(LocalDate.of(2026, 12, 28), week.first())
+        assertEquals(LocalDate.of(2027, 1, 3), week.last())
+        week.zipWithNext { a, b -> assertEquals(a.plusDays(1), b) }
+    }
+
+    @Test
+    fun `a Sunday-first week starts on the Sunday before`() {
+        val week = CalendarLayout.week(LocalDate.of(2026, 7, 15), DayOfWeek.SUNDAY)
+
+        assertEquals(LocalDate.of(2026, 7, 12), week.first())
+        assertEquals(DayOfWeek.SATURDAY, week.last().dayOfWeek)
+    }
+
+    @Test
+    fun `every month grid row is exactly one week`() {
+        val grid = CalendarLayout.monthGrid(YearMonth.of(2026, 7))
+
+        grid.weeks.forEach { row -> assertEquals(row, CalendarLayout.week(row.first())) }
+    }
+
+    @Test
     fun `weekday headers follow the first day of the week`() {
-        assertEquals(DayOfWeek.MONDAY, CalendarMonth.weekdays().first())
-        assertEquals(DayOfWeek.SUNDAY, CalendarMonth.weekdays().last())
-        assertEquals(DayOfWeek.SUNDAY, CalendarMonth.weekdays(DayOfWeek.SUNDAY).first())
+        assertEquals(DayOfWeek.MONDAY, CalendarLayout.weekdays().first())
+        assertEquals(DayOfWeek.SUNDAY, CalendarLayout.weekdays().last())
+        assertEquals(DayOfWeek.SUNDAY, CalendarLayout.weekdays(DayOfWeek.SUNDAY).first())
     }
 
     @Test
     fun `day loads count a day's classes and record their statuses`() {
-        val loads = CalendarMonth.dayLoads(
+        val loads = CalendarLayout.dayLoads(
             listOf(
                 klass("2026-07-15T07:00:00Z"),
                 klass("2026-07-15T12:00:00Z", ClassStatus.CANCELLED),
@@ -113,7 +158,7 @@ class CalendarMonthTest {
     @Test
     fun `day loads bucket a class by its local date, not UTC`() {
         // 22:30 UTC is already the next day in Minsk (UTC+3).
-        val loads = CalendarMonth.dayLoads(listOf(klass("2026-07-15T22:30:00Z")), zone)
+        val loads = CalendarLayout.dayLoads(listOf(klass("2026-07-15T22:30:00Z")), zone)
 
         assertEquals(setOf(LocalDate.of(2026, 7, 16)), loads.keys)
     }
@@ -121,7 +166,7 @@ class CalendarMonthTest {
     @Test
     fun `the dominant status prefers a scheduled class, then a completed one`() {
         fun load(vararg statuses: ClassStatus) =
-            CalendarMonth.DayLoad(statuses.size, statuses.toSet())
+            CalendarLayout.DayLoad(statuses.size, statuses.toSet())
 
         assertEquals(
             ClassStatus.SCHEDULED,
