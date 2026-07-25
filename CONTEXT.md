@@ -133,6 +133,10 @@ flowchart TB
   from `TopDestination.visible(showGroupsTab)`, so a route opened from «Ещё» can't render a bar with
   nothing selected; `GroupsScreen`/`MoreScreen` take a nullable callback each (no back arrow while
   it is a tab, no «Ещё» row while it has one), so the entry point moves instead of duplicating.
+  **Labels are held to one line** (`ui/navigation/BottomBar.kt`): with five tabs «Расписание» wants
+  all but a few pixels of its slot and used to wrap, stranding its last letter. It now shrinks — a
+  step at a time, to a floor — on the narrower screens and larger font scales where the word truly
+  does not fit, rather than breaking or cutting it.
 - **Schema changes ship a real Room migration** in `data/local/Migrations.kt` (registered on the Room
   builder; the destructive fallback now only covers dev devices predating v1). **v2** added the group
   tables and `classes.groupId`, recreating `classes` to do so — which also retired the unused
@@ -250,6 +254,10 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments.
 - **Instrumented tests** (`src/androidTest`) cover the Room integration (auto-complete, calendar
   sync on move, backup round-trip) and the **schema migrations** (`MigrationTest` runs each migration
   against the exported schema JSON, so a hand-written `CREATE TABLE` can't drift from the entities).
+  They are also where **layout** is asserted (`BottomBarLabelTest`): real text measurement needs a
+  device, and the questions are pixel ones — does this label wrap, is it cut short, at each phone
+  width. A debug-only manifest entry lets the Compose test host activity show over the keyguard,
+  so these can run against a locked phone (there is no emulator).
 - Notification display and real calendar writes can only be observed on a device.
 
 ---
