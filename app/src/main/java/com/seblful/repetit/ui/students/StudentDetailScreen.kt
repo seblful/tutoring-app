@@ -64,7 +64,7 @@ import com.seblful.repetit.ui.common.constrainedContent
 import com.seblful.repetit.ui.common.text
 import com.seblful.repetit.format.formatDate
 import com.seblful.repetit.format.formatDateTime
-import com.seblful.repetit.format.parseMoneyOrNull
+import com.seblful.repetit.format.MoneyInput
 import com.seblful.repetit.format.toAmountInput
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -304,8 +304,8 @@ fun StudentDetailScreen(
             label = stringResource(R.string.price_label),
             initial = current?.toAmountInput() ?: "",
             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
-            validate = { parseMoneyOrNull(it) != null }, // a price of 0 (free) is allowed
-            onConfirm = { text -> parseMoneyOrNull(text)?.let { viewModel.setPrice(subjectId, it) } },
+            validate = { MoneyInput.rate(it) != null },
+            onConfirm = { text -> MoneyInput.rate(text)?.let { viewModel.setPrice(subjectId, it) } },
             onDismiss = { pricingSubjectId = null },
         )
     }
@@ -315,9 +315,8 @@ fun StudentDetailScreen(
             label = stringResource(R.string.payment_amount_label),
             initial = "",
             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
-            // A payment must be a valid, non-zero amount, matching addPayment's own guard.
-            validate = { parseMoneyOrNull(it)?.let { m -> !m.isZero } == true },
-            onConfirm = { text -> parseMoneyOrNull(text)?.let { viewModel.addPayment(it) } },
+            validate = { MoneyInput.payment(it) != null },
+            onConfirm = { text -> MoneyInput.payment(text)?.let { viewModel.addPayment(it) } },
             onDismiss = { addingPayment = false },
         )
     }
@@ -385,7 +384,7 @@ private fun AddSubjectPriceDialog(
 ) {
     var selectedId by remember { mutableStateOf<Long?>(null) }
     var priceText by remember { mutableStateOf("") }
-    val amount = parseMoneyOrNull(priceText)
+    val amount = MoneyInput.rate(priceText)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.student_add_subject)) },

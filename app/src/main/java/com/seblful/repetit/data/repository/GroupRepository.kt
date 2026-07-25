@@ -6,6 +6,7 @@ import com.seblful.repetit.data.local.GroupMemberCrossRef
 import com.seblful.repetit.data.toDomain
 import com.seblful.repetit.data.toEntity
 import com.seblful.repetit.domain.model.Group
+import com.seblful.repetit.format.NameOrder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -26,9 +27,13 @@ class GroupRepository @Inject constructor(
     private val dao: GroupDao,
     private val classDao: ClassDao,
 ) {
-    fun observeActive(): Flow<List<Group>> = dao.observeActive().map { list -> list.map { it.toDomain() } }
+    fun observeActive(): Flow<List<Group>> =
+        dao.observeActive().map { list -> NameOrder.sorted(list.map { it.toDomain() }) { it.name } }
 
-    fun observeAll(): Flow<List<Group>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
+    /** Every group, archived ones last — mirroring students. */
+    fun observeAll(): Flow<List<Group>> = dao.observeAll().map { list ->
+        NameOrder.sortedArchivedLast(list.map { it.toDomain() }, archived = { it.archived }, name = { it.name })
+    }
 
     fun observeById(id: Long): Flow<Group?> = dao.observeById(id).map { it?.toDomain() }
 

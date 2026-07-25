@@ -9,12 +9,17 @@ import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
+// Rows are returned unordered wherever the order would depend on **name** collation: SQLite's
+// `COLLATE NOCASE` folds ASCII only, so it cannot order Russian names, and restating the real rule in
+// SQL is not possible. Name ordering is applied once in Kotlin — see `format/NameOrder` — by the
+// repositories. Ordering by time or id stays here, where no collation is involved.
+
 @Dao
 interface SubjectDao {
-    @Query("SELECT * FROM subjects ORDER BY name COLLATE NOCASE")
+    @Query("SELECT * FROM subjects")
     fun observeAll(): Flow<List<SubjectEntity>>
 
-    @Query("SELECT * FROM subjects ORDER BY name COLLATE NOCASE")
+    @Query("SELECT * FROM subjects")
     suspend fun getAll(): List<SubjectEntity>
 
     @Query("SELECT * FROM subjects WHERE id = :id")
@@ -35,13 +40,13 @@ interface SubjectDao {
 
 @Dao
 interface StudentDao {
-    @Query("SELECT * FROM students WHERE archived = 0 ORDER BY name COLLATE NOCASE")
+    @Query("SELECT * FROM students WHERE archived = 0")
     fun observeActive(): Flow<List<StudentEntity>>
 
-    @Query("SELECT * FROM students ORDER BY archived, name COLLATE NOCASE")
+    @Query("SELECT * FROM students")
     fun observeAll(): Flow<List<StudentEntity>>
 
-    @Query("SELECT * FROM students ORDER BY name COLLATE NOCASE")
+    @Query("SELECT * FROM students")
     suspend fun getAll(): List<StudentEntity>
 
     @Query("SELECT * FROM students WHERE id = :id")
@@ -83,13 +88,13 @@ interface StudentDao {
 
 @Dao
 interface GroupDao {
-    @Query("SELECT * FROM student_groups WHERE archived = 0 ORDER BY name COLLATE NOCASE")
+    @Query("SELECT * FROM student_groups WHERE archived = 0")
     fun observeActive(): Flow<List<GroupEntity>>
 
-    @Query("SELECT * FROM student_groups ORDER BY archived, name COLLATE NOCASE")
+    @Query("SELECT * FROM student_groups")
     fun observeAll(): Flow<List<GroupEntity>>
 
-    @Query("SELECT * FROM student_groups ORDER BY name COLLATE NOCASE")
+    @Query("SELECT * FROM student_groups")
     suspend fun getAll(): List<GroupEntity>
 
     @Query("SELECT * FROM student_groups WHERE id = :id")

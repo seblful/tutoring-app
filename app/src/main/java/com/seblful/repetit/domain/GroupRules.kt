@@ -38,35 +38,74 @@ data class ClassSession(
      * purpose: one absentee's class is cancelled while the rest stay completed.
      */
     val commonStatus: ClassStatus? get() = classes.map { it.status }.distinct().singleOrNull()
+
+    companion object {
+        /**
+         * Just [klass], as a session of one — the operand for changing a single class, including a
+         * **per-member correction** inside a group lesson (cancel the absentee, leave the lesson
+         * completed). Carries no group id: this is one person's class being changed, not the lesson.
+         */
+        fun of(klass: TutoringClass): ClassSession = ClassSession(null, listOf(klass))
+    }
 }
 
 /**
- * The user-editable fields of a whole group lesson. The subject, length and mode are shared by every
- * member, while [pricesByStudent] keeps each member on their own rate — a group lesson is billed
- * person by person, so one shared price would silently re-rate somebody.
+ * The user-editable fields of a whole lesson — one student's or a group's. The subject, length and
+ * mode are shared by every class in it, while [pricesByStudent] keeps each member on their own rate:
+ * a group lesson is billed person by person, so one shared price would silently re-rate somebody.
  */
 data class SessionEdit(
     val subjectId: Long,
     val durationMinutes: Int,
     val mode: ClassMode,
     val pricesByStudent: Map<Long, Money>,
+    /**
+     * Who the lesson belongs to after the edit. An **individual** class may be re-attributed to
+     * another student, which credits the new owner at their rate in [pricesByStudent].
+     *
+     * Null means "leave every class with the student it already has", which is the only thing a
+     * group lesson can mean — its members come from the group's roster, so they are changed by
+     * editing the roster, never by editing one of its lessons. [GroupRules.editsFor] refuses a
+     * non-null value for a lesson of more than one class rather than trusting callers to know that.
+     */
+    val studentId: Long? = null,
 )
 
 /** Rules for groups: what a group can be booked for, and how its classes read as one lesson. */
 object GroupRules {
 
     /**
-     * The per-class edit that [changes] implies for [c]: shared fields as given, and the member's
-     * own rate — falling back to the rate the class already carries when [SessionEdit.pricesByStudent]
-     * says nothing about that member, so an incomplete map can never zero out a booked price.
+     * The per-class edit that [changes] implies for [c]: shared fields as given, the class's student
+     * (or [SessionEdit.studentId] when an individual class is being re-attributed), and that
+     * student's own rate — falling back to the rate the class already carries when
+     * [SessionEdit.pricesByStudent] says nothing about them, so an incomplete map can never zero out
+     * a booked price.
      */
-    fun editFor(c: TutoringClass, changes: SessionEdit): ClassEdit = ClassEdit(
-        studentId = c.studentId,
-        subjectId = changes.subjectId,
-        durationMinutes = changes.durationMinutes,
-        price = changes.pricesByStudent[c.studentId] ?: c.price,
-        mode = changes.mode,
-    )
+    fun editFor(c: TutoringClass, changes: SessionEdit): ClassEdit {
+        val studentId = changes.studentId ?: c.studentId
+        return ClassEdit(
+            studentId = studentId,
+            subjectId = changes.subjectId,
+            durationMinutes = changes.durationMinutes,
+            price = changes.pricesByStudent[studentId] ?: c.price,
+            mode = changes.mode,
+        )
+    }
+
+    /**
+     * Every class of [session] paired with the edit [changes] implies for it — the whole fan-out of
+     * one lesson-wide edit, in one place, so a caller cannot apply it to some classes and not others.
+     *
+     * Refuses to re-attribute a lesson of more than one class: swapping a group lesson's student
+     * would silently move one member's history to somebody who was never in the room, and the roster
+     * is where membership is changed.
+     */
+    fun editsFor(session: ClassSession, changes: SessionEdit): List<Pair<TutoringClass, ClassEdit>> {
+        require(changes.studentId == null || session.size == 1) {
+            "Only an individual class can be re-attributed to another student (this lesson has ${session.size})"
+        }
+        return session.classes.map { it to editFor(it, changes) }
+    }
 
     /**
      * Collapses [classes] into sessions: classes sharing a (group, start) pair become one session,

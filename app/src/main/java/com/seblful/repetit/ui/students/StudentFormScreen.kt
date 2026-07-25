@@ -35,7 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
-import com.seblful.repetit.format.parseMoneyOrNull
+import com.seblful.repetit.format.MoneyInput
 import com.seblful.repetit.ui.common.ModeSelector
 import com.seblful.repetit.ui.common.constrainedContent
 
@@ -161,7 +161,7 @@ fun StudentFormContent(
                             value = priceText,
                             onValueChange = { viewModel.setPriceText(subject.id, it) },
                             label = { Text(stringResource(R.string.price_label)) },
-                            isError = priceText.isNotBlank() && parseMoneyOrNull(priceText) == null,
+                            isError = priceText.isNotBlank() && MoneyInput.rate(priceText) == null,
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.width(140.dp),

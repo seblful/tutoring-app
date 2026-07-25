@@ -31,13 +31,13 @@ flowchart TB
 |---|---|
 | `domain/` | Pure Kotlin, no Android deps: billing, class rules, group rules (sessions, bookable subjects), calendar layout, reminders, reports, scheduling, the `ReminderScheduler` port, and the models. All JVM-unit-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`. Entities are also `@Serializable` (for backup). |
-| `data/repository/` | Repositories mapping entities ⇄ domain models. `ClassRepository` owns *all* side effects of a class change (calendar mirroring + reminder refresh) and the batch (group-lesson) forms of each write. `EnrollmentRepository` owns the subject⇄price invariant — the single seam that links/unlinks a subject and sets/deletes its price together. `GroupRepository` is the only writer of group membership (a group is always saved together with its exact roster). |
+| `data/repository/` | Repositories mapping entities ⇄ domain models, and the place display **name ordering** is applied (`format/NameOrder`, not SQL). `ClassRepository` owns *all* side effects of a class change (calendar mirroring + reminder refresh); every write takes a whole **lesson** (see below). `EnrollmentRepository` owns the subject⇄price invariant — the single seam that links/unlinks a subject and sets/deletes its price together. `GroupRepository` is the only writer of group membership (a group is always saved together with its exact roster). |
 | `data/backup/` | Whole-DB JSON snapshot: export + transactional replace-all import. |
-| `calendar/` | `CalendarSync` port + a `CalendarContract` adapter. |
-| `notifications/` | `Notifier` — reminder channel + posting. |
+| `calendar/` | `CalendarSync` port + a `CalendarContract` adapter, plus a `CalendarPermission` port so "enabling sync needs the permission" can be a view-model rule instead of a branch in a composable. |
+| `notifications/` | `Notifier` port + an Android adapter, and `DueReminder` — everything a fired reminder does (is it still owed, whose name goes on it), kept outside the worker so a JVM test can drive it. |
 | `diagnostics/` | `CrashLogger` — appends crashes to a capped local file, then chains to the platform default (so Play/Android Vitals still reports). Viewed/exported from `ui/diagnostics`. |
 | `work/` | WorkManager workers + `WorkScheduler` (implements `ReminderScheduler`). |
-| `format/` | Shared `ru`-locale date/time/money formatting, used by UI and non-UI. |
+| `format/` | Shared `ru`-locale date/time/money formatting, used by UI and non-UI. Also the two money-input rules (`MoneyInput.rate` allows zero, `.payment` doesn't) and `NameOrder`, the one definition of how names are listed. |
 | `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` widgets, `onboarding/`, settings, and a `RootViewModel` gating onboarding vs. the main tabs. |
 | `di/` | Hilt modules (database; calendar/work port bindings). |
 
@@ -62,6 +62,14 @@ flowchart TB
   reports/balances) and the UI warns before doing so. The repository's `delete` removes the
   calendar event and refreshes reminders regardless of status. Classes are **one-off only** — no
   recurring series.
+- **A lesson is the unit of change.** Every `ClassRepository` write takes a `ClassSession` — a group
+  lesson's *n* classes, or one student's class as a session of one (`ClassSession.of`). There is no
+  separate single-class write path left to drift from a batch one: `book`, `apply`, `move`, `setStatus`
+  and `delete` each fan out over the session, running the rules per class, mirroring each to the
+  calendar, and refreshing reminders **once** for the lesson. The rules run *inside* `apply`, so no
+  caller can hand over an already-resolved class and persist a stale charge. Re-attributing a class to
+  another student is expressible only for a one-class session — `GroupRules.editsFor` refuses it for a
+  group lesson, because membership is changed on the roster, not by editing one of its lessons.
 - **A group is a roster, not a billing entity.** Booking a lesson for a group writes **one class per
   member**, each at that member's own rate, so prices, balances, debts and reports stay strictly
   per-student and nothing about groups touches the money model. The members' classes of one lesson
@@ -108,6 +116,15 @@ flowchart TB
   **warns before archiving a student with a non-zero balance**.
 - **Email reminders via the calendar, not a backend**: a synced class event adds the student as an
   attendee with an email reminder, so the calendar account (e.g. Google) does the sending.
+- **The calendar-permission rule sits behind the view model, not behind the switch.**
+  `SettingsViewModel` refuses to enable sync unless `CalendarPermission` says it is granted, returning
+  `PERMISSION_NEEDED` for the screen to act on by requesting it. That flag is what the whole mirror
+  keys off, so a screen that forgot the check would leave sync switched on with nothing able to write.
+- **Names are ordered in Kotlin, not in SQL** (`format/NameOrder`). SQLite's `COLLATE NOCASE` folds
+  ASCII only, so it cannot case-fold Russian names — it put «Ярослав» before «анна» — and keeping the
+  order in the query forced the in-memory test fakes to restate it, differently, so tests asserted an
+  order the app never produced. Those queries now return their rows unordered and the repositories
+  apply one comparator. Time and id ordering stays in SQL, where no collation applies.
 - **Calendar sync via `CalendarContract`, not the Google REST API** — writing to the device calendar
   lets the OS sync to Google, so there's no cloud project or OAuth to set up. Behind the
   `CalendarSync` port (a REST adapter could be added later). Opt-in; grants read + write calendar.
@@ -128,7 +145,9 @@ flowchart TB
   *browses* and never moves the selection; opening a calendar view snaps its page back to the
   selected day, so it can't open on a page where nothing looks selected. Day markers are queried
   for the **active view's range only**, so browsing far from the selection never widens the query
-  and the day view pays for no markers at all. The layout rules — how many week rows a month needs,
+  and the day view pays for no markers at all. The lessons follow the same rule: a single
+  `ScheduleContent` flow keyed on the active view, so an off-screen view keeps no live query and the
+  student/subject/group join and session collapse happen once rather than once per view. The layout rules — how many week rows a month needs,
   which neighbouring days pad them, where a week starts, how a day's classes collapse to one marker
   — are pure and JVM-tested in `domain/CalendarLayout`, leaving the composables to draw only. The
   chosen view is view-model state, deliberately **not** persisted: it isn't in the settings row, so
@@ -159,7 +178,14 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments.
 
 - **JVM unit tests** (`src/test`, `testDebugUnitTest`) cover the domain layer and the backup format,
   plus the view models, repository side effects, mappers and formatters — run against **in-memory
-  fake DAOs** with a test main dispatcher, so most logic is verified without an emulator.
+  fake DAOs** with a test main dispatcher, so most logic is verified without an emulator. The fakes
+  reproduce filtering and time ordering only: **name ordering is not restated there**, because that is
+  the repositories' job (see `NameOrder`), so the fakes have no version of it to disagree with.
+- Two tests exist purely as **tripwires against silent drift**, both deriving their expectations from
+  something generated: `BackupSchemaCoverageTest` reads the exported schema JSON and fails when a table
+  is neither carried by the snapshot nor deliberately named device-local, and `MappersTest` fails when
+  an entity gains a column that nobody has mapped. Both are acknowledgement lists — the fix is to
+  handle the new table/column and then say so there.
 - **Instrumented tests** (`src/androidTest`) cover the Room integration (auto-complete, calendar
   sync on move, backup round-trip) and the **schema migrations** (`MigrationTest` runs each migration
   against the exported schema JSON, so a hand-written `CREATE TABLE` can't drift from the entities).

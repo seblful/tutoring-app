@@ -59,6 +59,26 @@ data class WeekSection(val date: LocalDate, val rows: List<ScheduleRow>)
  */
 enum class ScheduleViewMode { DAY, WEEK, MONTH }
 
+/**
+ * The lessons the schedule body is currently showing — one shape per way of showing them.
+ *
+ * There is deliberately one of these rather than a flow per view: the schedule assembles only what
+ * the active view needs, so the other views hold no live query. The accessor a view doesn't use is
+ * empty by construction, not merely stale.
+ */
+sealed interface ScheduleContent {
+
+    /** The selected day's rows — what the day and month views both show. Empty for a week. */
+    val rows: List<ScheduleRow> get() = emptyList()
+
+    /** The visible week's sections, earliest day first. Empty for a single day. */
+    val sections: List<WeekSection> get() = emptyList()
+
+    data class Day(override val rows: List<ScheduleRow>) : ScheduleContent
+
+    data class Week(override val sections: List<WeekSection>) : ScheduleContent
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ScheduleViewModel @Inject constructor(
@@ -139,57 +159,55 @@ class ScheduleViewModel @Inject constructor(
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     /**
-     * The visible week's classes grouped by day, earliest first. Days without a class are left out
-     * — an agenda of the whole week reads better as a list of what's on than a wall of empty days.
+     * The lessons the **active view** needs, and no others.
+     *
+     * The day and month views both show the selected day; the week view shows the whole visible
+     * week. Keying one assembly on [viewMode] is what stops the views each keeping a live query
+     * running while off-screen: switching view swaps the query, and the student/subject/group join
+     * and the session collapse happen once rather than once per view. This is the same rule
+     * [dayLoads] already follows for calendar markers.
      */
-    val weekSections: StateFlow<List<WeekSection>> =
-        _visibleWeek.flatMapLatest { week ->
-            combine(
-                classes.observeBetween(
-                    week.atStartOfDay(zone).toInstant(),
-                    week.plusDays(DAYS_IN_WEEK).atStartOfDay(zone).toInstant(),
-                ),
-                students.observeAll(),
-                subjects.observeAll(),
-                groups.observeAll(),
-            ) { weekClasses, studentList, subjectList, groupList ->
-                // Sessions are collapsed per day, not across the week: grouping first would let a
-                // group lesson's members land in one row even if the days somehow differed.
-                weekClasses
-                    .groupBy { it.start.atZone(zone).toLocalDate() }
-                    .toSortedMap()
-                    .map { (date, dayClasses) ->
-                        WeekSection(
-                            date = date,
-                            rows = sessionRows(
-                                dayClasses,
-                                studentList.associateBy { it.id },
-                                subjectList.associateBy { it.id },
-                                groupList.associateBy { it.id },
-                            ),
+    val content: StateFlow<ScheduleContent> =
+        combine(_viewMode, _selectedDate, _visibleWeek, ::Triple)
+            .flatMapLatest { (mode, date, week) ->
+                val isWeek = mode == ScheduleViewMode.WEEK
+                val from = if (isWeek) week else date
+                val to = if (isWeek) week.plusDays(DAYS_IN_WEEK) else date.plusDays(1)
+                combine(
+                    classes.observeBetween(
+                        from.atStartOfDay(zone).toInstant(),
+                        to.atStartOfDay(zone).toInstant(),
+                    ),
+                    students.observeAll(),
+                    subjects.observeAll(),
+                    groups.observeAll(),
+                ) { visibleClasses, studentList, subjectList, groupList ->
+                    val studentsById = studentList.associateBy { it.id }
+                    val subjectsById = subjectList.associateBy { it.id }
+                    val groupsById = groupList.associateBy { it.id }
+                    if (isWeek) {
+                        // Sessions are collapsed per day, not across the week: grouping first would
+                        // let a group lesson's members land in one row even if the days differed.
+                        // Days without a class are left out — an agenda reads better as a list of
+                        // what's on than a wall of empty days.
+                        ScheduleContent.Week(
+                            visibleClasses
+                                .groupBy { it.start.atZone(zone).toLocalDate() }
+                                .toSortedMap()
+                                .map { (day, dayClasses) ->
+                                    WeekSection(
+                                        date = day,
+                                        rows = sessionRows(dayClasses, studentsById, subjectsById, groupsById),
+                                    )
+                                },
+                        )
+                    } else {
+                        ScheduleContent.Day(
+                            sessionRows(visibleClasses, studentsById, subjectsById, groupsById),
                         )
                     }
-            }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    val rows: StateFlow<List<ScheduleRow>> =
-        _selectedDate.flatMapLatest { date ->
-            val from = date.atStartOfDay(zone).toInstant()
-            val to = date.plusDays(1).atStartOfDay(zone).toInstant()
-            combine(
-                classes.observeBetween(from, to),
-                students.observeAll(),
-                subjects.observeAll(),
-                groups.observeAll(),
-            ) { dayClasses, studentList, subjectList, groupList ->
-                sessionRows(
-                    dayClasses,
-                    studentList.associateBy { it.id },
-                    subjectList.associateBy { it.id },
-                    groupList.associateBy { it.id },
-                )
-            }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+                }
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ScheduleContent.Day(emptyList()))
 
     /**
      * Switches view. Opening a calendar view on a page that doesn't contain the selected day would
@@ -232,15 +250,15 @@ class ScheduleViewModel @Inject constructor(
     // one student or a whole group; the repository applies it per class and refreshes reminders once.
 
     fun setStatus(session: ClassSession, status: ClassStatus) {
-        viewModelScope.launch { classes.setStatusForSession(session, status) }
+        viewModelScope.launch { classes.setStatus(session, status) }
     }
 
     fun move(session: ClassSession, newStart: Instant) {
-        viewModelScope.launch { classes.moveSession(session, newStart) }
+        viewModelScope.launch { classes.move(session, newStart) }
     }
 
     fun delete(session: ClassSession) {
-        viewModelScope.launch { classes.deleteSession(session) }
+        viewModelScope.launch { classes.delete(session) }
     }
 
     /** Points both calendar pages at [date], so whichever view opens next contains it. */
@@ -270,7 +288,8 @@ class ScheduleViewModel @Inject constructor(
                     subjectName = subjectName,
                     members = session.classes.map { c ->
                         ScheduleRow(
-                            session = ClassSession(null, listOf(c)),
+                            // One member's class on its own, so acting on this row corrects just them.
+                            session = ClassSession.of(c),
                             title = students[c.studentId]?.name ?: "",
                             subjectName = subjectName,
                         )

@@ -24,19 +24,21 @@ import kotlinx.coroutines.flow.map
  * In-memory fake DAOs backing the real repositories in JVM unit tests. Each `observe*` is derived
  * from a [MutableStateFlow] so collectors re-emit on every write, mirroring Room's reactive queries.
  * Auto-generated ids start at 1 (like SQLite). These are deliberately simple — they reproduce the
- * query semantics the view models rely on (ordering, filtering), not Room's full behaviour.
+ * query semantics the view models rely on (filtering, time ordering), not Room's full behaviour.
+ *
+ * They deliberately do **not** order by name. That order belongs to `format/NameOrder` and is applied
+ * by the repositories, so these fakes have no version of it to disagree with — which is exactly how
+ * they used to: sorting here with Kotlin's `lowercase()` while the real query used SQLite's
+ * ASCII-only `COLLATE NOCASE` meant Cyrillic names came out in a different order in tests than in
+ * the app.
  */
-
-private fun nameKey(s: String) = s.lowercase()
 
 class FakeSubjectDao : SubjectDao {
     val items = MutableStateFlow<List<SubjectEntity>>(emptyList())
     private var nextId = 1L
 
-    private fun sorted(list: List<SubjectEntity>) = list.sortedBy { nameKey(it.name) }
-
-    override fun observeAll(): Flow<List<SubjectEntity>> = items.map { sorted(it) }
-    override suspend fun getAll(): List<SubjectEntity> = sorted(items.value)
+    override fun observeAll(): Flow<List<SubjectEntity>> = items
+    override suspend fun getAll(): List<SubjectEntity> = items.value
     override suspend fun getById(id: Long): SubjectEntity? = items.value.firstOrNull { it.id == id }
 
     override suspend fun upsert(subject: SubjectEntity): Long {
@@ -65,12 +67,11 @@ class FakeStudentDao : StudentDao {
     private var nextId = 1L
 
     override fun observeActive(): Flow<List<StudentEntity>> =
-        items.map { list -> list.filterNot { it.archived }.sortedBy { nameKey(it.name) } }
+        items.map { list -> list.filterNot { it.archived } }
 
-    override fun observeAll(): Flow<List<StudentEntity>> =
-        items.map { list -> list.sortedWith(compareBy({ it.archived }, { nameKey(it.name) })) }
+    override fun observeAll(): Flow<List<StudentEntity>> = items
 
-    override suspend fun getAll(): List<StudentEntity> = items.value.sortedBy { nameKey(it.name) }
+    override suspend fun getAll(): List<StudentEntity> = items.value
 
     override fun observeById(id: Long): Flow<StudentEntity?> =
         items.map { list -> list.firstOrNull { it.id == id } }
@@ -125,12 +126,11 @@ class FakeGroupDao : GroupDao {
     private var nextId = 1L
 
     override fun observeActive(): Flow<List<GroupEntity>> =
-        items.map { list -> list.filterNot { it.archived }.sortedBy { nameKey(it.name) } }
+        items.map { list -> list.filterNot { it.archived } }
 
-    override fun observeAll(): Flow<List<GroupEntity>> =
-        items.map { list -> list.sortedWith(compareBy({ it.archived }, { nameKey(it.name) })) }
+    override fun observeAll(): Flow<List<GroupEntity>> = items
 
-    override suspend fun getAll(): List<GroupEntity> = items.value.sortedBy { nameKey(it.name) }
+    override suspend fun getAll(): List<GroupEntity> = items.value
 
     override fun observeById(id: Long): Flow<GroupEntity?> =
         items.map { list -> list.firstOrNull { it.id == id } }

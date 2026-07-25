@@ -239,4 +239,66 @@ class GroupRulesTest {
         )
         assertEquals(Money.ofMajor(30), GroupRules.editFor(ann, changes).price)
     }
+
+    // --- editsFor: one edit, fanned out over the lesson ---
+
+    @Test
+    fun `one edit fans out to every class of the lesson`() {
+        val session = ClassSession(
+            7,
+            listOf(klass(1, studentId = 1, groupId = 7), klass(2, studentId = 2, groupId = 7)),
+        )
+        val changes = SessionEdit(
+            subjectId = 9,
+            durationMinutes = 90,
+            mode = ClassMode.REMOTE,
+            pricesByStudent = mapOf(1L to Money.ofMajor(35), 2L to Money.ofMajor(28)),
+        )
+
+        val edits = GroupRules.editsFor(session, changes)
+
+        assertEquals(listOf(1L, 2L), edits.map { (c, _) -> c.id })
+        assertEquals(listOf(Money.ofMajor(35), Money.ofMajor(28)), edits.map { (_, e) -> e.price })
+        assertEquals(listOf(1L, 2L), edits.map { (_, e) -> e.studentId })
+    }
+
+    @Test
+    fun `an individual class can be re-attributed, and takes the new owner's rate`() {
+        val session = ClassSession.of(klass(1, studentId = 1, price = Money.ofMajor(30)))
+        val changes = SessionEdit(
+            subjectId = 1,
+            durationMinutes = 60,
+            mode = ClassMode.IN_PERSON,
+            pricesByStudent = mapOf(2L to Money.ofMajor(45)),
+            studentId = 2,
+        )
+
+        val (_, edit) = GroupRules.editsFor(session, changes).single()
+
+        assertEquals(2L, edit.studentId)
+        assertEquals(Money.ofMajor(45), edit.price)
+    }
+
+    @Test
+    fun `a group lesson cannot be handed to another student by editing it`() {
+        val session = ClassSession(
+            7,
+            listOf(klass(1, studentId = 1, groupId = 7), klass(2, studentId = 2, groupId = 7)),
+        )
+        val changes = SessionEdit(
+            subjectId = 1,
+            durationMinutes = 60,
+            mode = ClassMode.IN_PERSON,
+            pricesByStudent = mapOf(3L to Money.ofMajor(20)),
+            studentId = 3,
+        )
+
+        var threw = false
+        try {
+            GroupRules.editsFor(session, changes)
+        } catch (_: IllegalArgumentException) {
+            threw = true
+        }
+        assertTrue("membership is changed on the roster, not by editing one of its lessons", threw)
+    }
 }

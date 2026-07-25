@@ -1,5 +1,6 @@
 package com.seblful.repetit.testutil
 
+import com.seblful.repetit.calendar.CalendarPermission
 import com.seblful.repetit.calendar.CalendarSync
 import com.seblful.repetit.data.repository.ClassRepository
 import com.seblful.repetit.data.repository.EnrollmentRepository
@@ -11,6 +12,7 @@ import com.seblful.repetit.data.repository.StudentRepository
 import com.seblful.repetit.data.repository.SubjectRepository
 import com.seblful.repetit.domain.ReminderScheduler
 import com.seblful.repetit.domain.model.TutoringClass
+import com.seblful.repetit.notifications.Notifier
 
 /** Records reminder-refresh requests so tests can assert side effects fired. */
 class RecordingReminderScheduler : ReminderScheduler {
@@ -49,11 +51,33 @@ class FakeCalendarSync(var available: Boolean = true) : CalendarSync {
     }
 }
 
+/** Records posted reminders so tests can assert what a due reminder announced, and to whom. */
+class RecordingNotifier : Notifier {
+    data class Posted(val klass: TutoringClass, val whoName: String, val subjectName: String)
+
+    val posted = mutableListOf<Posted>()
+    var channelsEnsured = 0
+        private set
+
+    override fun ensureChannel() {
+        channelsEnsured++
+    }
+
+    override fun showClassReminder(klass: TutoringClass, whoName: String, subjectName: String) {
+        posted += Posted(klass, whoName, subjectName)
+    }
+}
+
+/** Stands in for the device's calendar permission; flip [granted] to drive either branch. */
+class FakeCalendarPermission(var granted: Boolean = true) : CalendarPermission {
+    override fun isGranted(): Boolean = granted
+}
+
 /**
  * A ready-made set of fake DAOs and the real repositories wired on top, for view-model and
- * repository tests. The repositories are the production classes — only the DAOs and the two ports
- * (calendar, reminder scheduler) are fakes — so mapping logic and repository side effects are
- * exercised for real.
+ * repository tests. The repositories are the production classes — only the DAOs and the ports
+ * (calendar, calendar permission, reminder scheduler) are fakes — so mapping logic and repository
+ * side effects are exercised for real.
  */
 class TestEnv {
     val subjectDao = FakeSubjectDao()
@@ -65,6 +89,7 @@ class TestEnv {
     val paymentDao = FakePaymentDao()
 
     val calendar = FakeCalendarSync()
+    val calendarPermission = FakeCalendarPermission()
     val reminders = RecordingReminderScheduler()
 
     val settingsRepo = SettingsRepository(settingsDao)

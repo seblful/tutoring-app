@@ -40,4 +40,29 @@ object Reminders {
             Plan(session.first.id, delay)
         }
     }
+
+    /**
+     * Whether a reminder planned for [klass] should still be posted now that it has come due.
+     *
+     * A reminder is scheduled ahead of time, so by the time it fires the lesson may have been
+     * cancelled, completed, or moved — into the past, or far enough forward that this firing is
+     * simply early. Only a lesson that is still going to happen earns the notification, and only
+     * while reminders are switched on ([notificationsEnabled] — opt-out, on by default).
+     */
+    fun shouldPost(klass: TutoringClass, notificationsEnabled: Boolean, now: Instant): Boolean =
+        notificationsEnabled &&
+            klass.status == ClassStatus.SCHEDULED &&
+            klass.end.isAfter(now)
+
+    /**
+     * The name a reminder is announced by: the **group's** when the lesson belongs to one, otherwise
+     * the student's. A group lesson earns one reminder for the several classes it is made of (see
+     * [plan]), so naming whichever member's class the plan happened to point at would tell the tutor
+     * about one student when several are coming.
+     *
+     * Blank when neither name is known — the notification then reads as time and subject only, which
+     * is still useful, rather than not being posted at all.
+     */
+    fun announcedBy(groupName: String?, studentName: String?): String =
+        groupName?.takeIf { it.isNotBlank() } ?: studentName.orEmpty()
 }

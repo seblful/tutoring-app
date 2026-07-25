@@ -89,7 +89,8 @@ fun ScheduleScreen(
     onEditClass: (Long) -> Unit,
     viewModel: ScheduleViewModel = hiltViewModel(),
 ) {
-    val rows by viewModel.rows.collectAsState()
+    // One state for the body: only the active view's lessons are assembled (see ScheduleContent).
+    val content by viewModel.content.collectAsState()
     val date by viewModel.selectedDate.collectAsState()
     val canAddClass by viewModel.canAddClass.collectAsState()
     val today = LocalDate.now(ZoneId.systemDefault())
@@ -97,7 +98,6 @@ fun ScheduleScreen(
     val month by viewModel.visibleMonth.collectAsState()
     val grid by viewModel.monthGrid.collectAsState()
     val week by viewModel.weekDays.collectAsState()
-    val sections by viewModel.weekSections.collectAsState()
     val loads by viewModel.dayLoads.collectAsState()
 
     // The sheet acts on whatever row is in it — a whole group lesson, or one member's class after
@@ -160,7 +160,7 @@ fun ScheduleScreen(
             ) {
                 when (viewMode) {
                     // The day list stands alone under its stepper.
-                    ScheduleViewMode.DAY -> dayList(rows, onRowClick = { sheetFor = it })
+                    ScheduleViewMode.DAY -> dayList(content.rows, onRowClick = { sheetFor = it })
 
                     // A whole week at once: the strip is an overview and a day picker for the add
                     // button, while the agenda below always shows every day that has classes.
@@ -178,7 +178,7 @@ fun ScheduleScreen(
                                 HorizontalDivider()
                             }
                         }
-                        if (sections.isEmpty()) {
+                        if (content.sections.isEmpty()) {
                             item(key = "empty") {
                                 EmptyState(
                                     stringResource(R.string.schedule_week_empty),
@@ -186,7 +186,7 @@ fun ScheduleScreen(
                                 )
                             }
                         } else {
-                            sections.forEach { section ->
+                            content.sections.forEach { section ->
                                 item(key = "day-${section.date}", contentType = "day-header") {
                                     DaySectionHeader(section.date, isSelected = section.date == date)
                                 }
@@ -219,7 +219,7 @@ fun ScheduleScreen(
                                 Spacer(Modifier.height(11.dp))
                             }
                         }
-                        dayList(rows, onRowClick = { sheetFor = it })
+                        dayList(content.rows, onRowClick = { sheetFor = it })
                     }
                 }
             }

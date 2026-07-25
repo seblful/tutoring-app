@@ -9,8 +9,6 @@ import com.seblful.repetit.data.repository.PriceRepository
 import com.seblful.repetit.data.repository.SettingsRepository
 import com.seblful.repetit.data.repository.StudentRepository
 import com.seblful.repetit.data.repository.SubjectRepository
-import com.seblful.repetit.domain.ClassEdit
-import com.seblful.repetit.domain.ClassRules
 import com.seblful.repetit.domain.ClassSession
 import com.seblful.repetit.domain.GroupRules
 import com.seblful.repetit.domain.Scheduling
@@ -20,8 +18,7 @@ import com.seblful.repetit.domain.model.Group
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.Student
 import com.seblful.repetit.domain.model.Subject
-import com.seblful.repetit.domain.model.TutoringClass
-import com.seblful.repetit.format.parseMoneyOrNull
+import com.seblful.repetit.format.MoneyInput
 import com.seblful.repetit.format.toAmountInput
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -38,7 +35,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
-import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -80,13 +76,13 @@ data class ClassForm(
             return if (minutes > 0) minutes.toInt() else null
         }
 
-    val price: Money? get() = parseMoneyOrNull(priceText)
+    val price: Money? get() = MoneyInput.rate(priceText)
 
     /** Every member's rate, or null when the roster is empty or any rate doesn't parse. */
     val memberMoney: Map<Long, Money>?
         get() {
             if (memberPrices.isEmpty()) return null
-            val parsed = memberPrices.mapValues { (_, text) -> parseMoneyOrNull(text) }
+            val parsed = memberPrices.mapValues { (_, text) -> MoneyInput.rate(text) }
             return if (parsed.values.any { it == null }) null
             else parsed.mapValues { (_, money) -> money!! }
         }
@@ -388,77 +384,49 @@ class ClassEditViewModel @Inject constructor(
         form.value = form.value.copy(timeTo = time)
     }
 
+    /**
+     * Saves the form as one lesson. Booking a student and booking a group differ only in the rates
+     * involved — one entry or one per member — and in whether the lesson names a group, so both go
+     * through the same two repository writes: [ClassRepository.book] for a new lesson,
+     * [ClassRepository.apply] for an edit. The rules (re-plan on a move, then rebill) run inside
+     * those, so this can't leave a class carrying a stale charge.
+     */
     fun save(onDone: () -> Unit) {
         val f = form.value
         if (!f.isValid) return
         val start = f.date!!.atTime(f.timeFrom!!).atZone(zone).toInstant()
         val duration = f.durationMinutes!!
-        viewModelScope.launch {
-            when (f.target) {
-                ClassTarget.STUDENT -> saveIndividual(f, start, duration)
-                ClassTarget.GROUP -> saveGroup(f, start, duration)
-            }
-            onDone()
-        }
-    }
+        val isGroup = f.target == ClassTarget.GROUP
+        // One rate per student either way: the whole roster's, or just this student's.
+        val prices = if (isGroup) f.memberMoney!! else mapOf(f.studentId!! to f.price!!)
 
-    private suspend fun saveIndividual(f: ClassForm, start: Instant, duration: Int) {
-        val existing = session?.first
-        if (existing != null) {
-            // A class in any status may be edited. ClassRules.edit applies the field changes and
-            // resolves status + charge in one step (re-plan via move, then rebill), so a stale
-            // charge can never be persisted — see ClassRules.edit.
-            val resolved = ClassRules.edit(
-                existing,
-                ClassEdit(
-                    studentId = f.studentId!!,
-                    subjectId = f.subjectId!!,
-                    durationMinutes = duration,
-                    price = f.price!!,
-                    mode = f.mode,
-                ),
-                start,
-                Instant.now(),
-            )
-            classes.update(resolved)
-        } else {
-            classes.add(
-                TutoringClass(
-                    studentId = f.studentId!!,
+        viewModelScope.launch {
+            val existing = session
+            if (existing != null) {
+                classes.apply(
+                    session = existing,
+                    changes = SessionEdit(
+                        subjectId = f.subjectId!!,
+                        durationMinutes = duration,
+                        mode = f.mode,
+                        pricesByStudent = prices,
+                        // An individual class may be re-attributed to another student, which credits
+                        // the new owner; a group lesson's members come from its roster instead.
+                        studentId = if (isGroup) null else f.studentId,
+                    ),
+                    newStart = start,
+                )
+            } else {
+                classes.book(
                     subjectId = f.subjectId!!,
                     start = start,
                     durationMinutes = duration,
-                    price = f.price!!,
                     mode = f.mode,
+                    pricesByStudent = prices,
+                    groupId = if (isGroup) f.groupId else null,
                 )
-            )
-        }
-    }
-
-    /**
-     * Books or re-saves a whole group lesson. Editing goes through the repository's session write, so
-     * every member's class is moved and re-billed together — see `ClassRepository.updateGroupSession`.
-     */
-    private suspend fun saveGroup(f: ClassForm, start: Instant, duration: Int) {
-        val prices = f.memberMoney!!
-        val existing = session
-        val changes = SessionEdit(
-            subjectId = f.subjectId!!,
-            durationMinutes = duration,
-            mode = f.mode,
-            pricesByStudent = prices,
-        )
-        if (existing != null) {
-            classes.updateGroupSession(existing, changes, start, Instant.now())
-        } else {
-            classes.addGroupSession(
-                groupId = f.groupId!!,
-                subjectId = f.subjectId,
-                start = start,
-                durationMinutes = duration,
-                mode = f.mode,
-                pricesByStudent = prices,
-            )
+            }
+            onDone()
         }
     }
 }

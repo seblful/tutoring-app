@@ -3,6 +3,7 @@ package com.seblful.repetit.data.repository
 import com.seblful.repetit.data.local.ClassEntity
 import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.SubjectEntity
+import com.seblful.repetit.domain.ClassSession
 import com.seblful.repetit.domain.SessionEdit
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.ClassStatus
@@ -44,7 +45,7 @@ class ClassRepositoryGroupTest {
     private suspend fun bookSession(
         at: Instant = start,
         prices: Map<Long, Money> = mapOf(ann to Money.ofMajor(30), bob to Money.ofMajor(25)),
-    ): List<Long> = repo.addGroupSession(
+    ): List<Long> = repo.book(
         groupId = groupId,
         subjectId = algebra,
         start = at,
@@ -87,7 +88,14 @@ class ClassRepositoryGroupTest {
         seed()
         var threw = false
         try {
-            repo.addGroupSession(groupId, algebra, start, 60, ClassMode.IN_PERSON, emptyMap())
+            repo.book(
+                subjectId = algebra,
+                start = start,
+                durationMinutes = 60,
+                mode = ClassMode.IN_PERSON,
+                pricesByStudent = emptyMap(),
+                groupId = groupId,
+            )
         } catch (_: IllegalArgumentException) {
             threw = true
         }
@@ -112,7 +120,7 @@ class ClassRepositoryGroupTest {
         seed()
         val ids = bookSession()
 
-        val updated = repo.setStatusForSession(repo.getSessionFor(ids.first())!!, ClassStatus.COMPLETED)
+        val updated = repo.setStatus(repo.getSessionFor(ids.first())!!, ClassStatus.COMPLETED)
 
         assertEquals(2, updated.size)
         val charged = repo.getSessionFor(ids.first())!!.classes.associate { it.studentId to it.charge }
@@ -124,11 +132,11 @@ class ClassRepositoryGroupTest {
         seed()
         val ids = bookSession()
         val session = repo.getSessionFor(ids.first())!!
-        repo.setStatusForSession(session, ClassStatus.COMPLETED)
+        repo.setStatus(session, ClassStatus.COMPLETED)
 
-        // Cancel just Bob's class — the individual write path, on one member of a group lesson.
+        // Cancel just Bob's class — one member of a group lesson, as a session of one.
         val bobsClass = repo.getSessionFor(ids.first())!!.classes.single { it.studentId == bob }
-        repo.setStatus(bobsClass.id, ClassStatus.CANCELLED)
+        repo.setStatus(ClassSession.of(bobsClass), ClassStatus.CANCELLED)
 
         val after = repo.getSessionFor(ids.first())!!
         assertNull("a corrected lesson has no single status", after.commonStatus)
@@ -141,9 +149,9 @@ class ClassRepositoryGroupTest {
         seed()
         val ids = bookSession()
         val bobsClass = repo.getSessionFor(ids.first())!!.classes.single { it.studentId == bob }
-        repo.setStatus(bobsClass.id, ClassStatus.CANCELLED)
+        repo.setStatus(ClassSession.of(bobsClass), ClassStatus.CANCELLED)
 
-        repo.setStatusForSession(repo.getSessionFor(ids.first())!!, ClassStatus.COMPLETED)
+        repo.setStatus(repo.getSessionFor(ids.first())!!, ClassStatus.COMPLETED)
 
         val after = repo.getSessionFor(ids.first())!!
         assertEquals(ClassStatus.COMPLETED, after.classes.single { it.studentId == ann }.status)
@@ -156,7 +164,7 @@ class ClassRepositoryGroupTest {
         val ids = bookSession()
         val newStart = Instant.parse("2026-09-02T11:00:00Z")
 
-        repo.moveSession(repo.getSessionFor(ids.first())!!, newStart, now = start)
+        repo.move(repo.getSessionFor(ids.first())!!, newStart, now = start)
 
         val session = repo.getSessionFor(ids.first())!!
         assertEquals(2, session.size)
@@ -168,10 +176,10 @@ class ClassRepositoryGroupTest {
         seed()
         val ids = bookSession()
         val session = repo.getSessionFor(ids.first())!!
-        repo.setStatusForSession(session, ClassStatus.COMPLETED)
+        repo.setStatus(session, ClassStatus.COMPLETED)
 
         // 90 minutes at new rates: Ann 40/h -> 60, Bob 20/h -> 30.
-        repo.updateGroupSession(
+        repo.apply(
             repo.getSessionFor(ids.first())!!,
             SessionEdit(
                 subjectId = algebra,
@@ -199,10 +207,10 @@ class ClassRepositoryGroupTest {
     fun `editing a completed group lesson into the future re-plans every member`() = runTest {
         seed()
         val ids = bookSession()
-        repo.setStatusForSession(repo.getSessionFor(ids.first())!!, ClassStatus.COMPLETED)
+        repo.setStatus(repo.getSessionFor(ids.first())!!, ClassStatus.COMPLETED)
 
         val now = Instant.parse("2026-09-01T12:00:00Z")
-        repo.updateGroupSession(
+        repo.apply(
             repo.getSessionFor(ids.first())!!,
             SessionEdit(algebra, 60, ClassMode.IN_PERSON, mapOf(ann to Money.ofMajor(30), bob to Money.ofMajor(25))),
             newStart = now.plusSeconds(86_400),
@@ -221,7 +229,7 @@ class ClassRepositoryGroupTest {
         val ids = bookSession()
         val eventIds = ids.mapNotNull { repo.getById(it)?.calendarEventId }
 
-        repo.deleteSession(repo.getSessionFor(ids.first())!!)
+        repo.delete(repo.getSessionFor(ids.first())!!)
 
         assertTrue(env.classDao.items.value.isEmpty())
         assertEquals(eventIds.toSet(), env.calendar.deletes.toSet())
