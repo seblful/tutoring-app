@@ -37,6 +37,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
 import com.seblful.repetit.ui.common.constrainedContent
+import com.seblful.repetit.ui.common.durationLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,7 +77,15 @@ fun SettingsScreen(
             SectionHeader(stringResource(R.string.settings_section_reminders))
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_notifications)) },
-                supportingContent = { Text(stringResource(R.string.settings_notifications_desc)) },
+                // Quotes the lead time chosen just below, so the two rows always agree.
+                supportingContent = {
+                    Text(
+                        stringResource(
+                            R.string.settings_notifications_desc,
+                            durationLabel(settings.reminderLeadMinutes),
+                        ),
+                    )
+                },
                 trailingContent = {
                     Switch(
                         checked = settings.notificationsEnabled,
@@ -86,11 +95,7 @@ fun SettingsScreen(
             )
             ChoiceRow(
                 title = stringResource(R.string.settings_reminder_lead),
-                options = listOf(
-                    30 to stringResource(R.string.minutes_short, 30),
-                    60 to stringResource(R.string.hours_one),
-                    120 to stringResource(R.string.hours_two),
-                ),
+                options = listOf(30, 60, 120).map { it to durationLabel(it) },
                 selected = settings.reminderLeadMinutes,
                 onSelect = { viewModel.setReminderLeadMinutes(it) },
             )
@@ -126,12 +131,7 @@ fun SettingsScreen(
             )
             ChoiceRow(
                 title = stringResource(R.string.settings_default_lesson),
-                options = listOf(
-                    45 to stringResource(R.string.minutes_short, 45),
-                    60 to stringResource(R.string.hours_one),
-                    90 to stringResource(R.string.hours_one_and_half),
-                    120 to stringResource(R.string.hours_two),
-                ),
+                options = listOf(45, 60, 90, 120).map { it to durationLabel(it) },
                 selected = settings.defaultLessonMinutes,
                 onSelect = { viewModel.setDefaultLessonMinutes(it) },
             )

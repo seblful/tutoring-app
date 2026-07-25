@@ -55,6 +55,21 @@ fun Money.toAmountInput(): String {
     return if (kopecks == 0) "$sign$major" else "$sign$major,${kopecks.toString().padStart(2, '0')}"
 }
 
+/**
+ * Formats [minutes] as a ru-style count of hours ("1", "1,5", "2"), or null when the value isn't a
+ * clean whole or half hour and is better shown in minutes. The unit word itself stays in
+ * `strings.xml`, so this only decides *which* unit a duration reads best in.
+ */
+fun hoursLabelOrNull(minutes: Int): String? {
+    if (minutes < 60) return null
+    val hours = minutes / 60
+    return when (minutes % 60) {
+        0 -> hours.toString()
+        30 -> "$hours,5"
+        else -> null
+    }
+}
+
 /** Formats an epoch-month key (year * 12 + monthIndex) as e.g. "Июнь 2026". */
 fun formatMonthKey(key: Int): String {
     val year = key / 12
