@@ -33,7 +33,7 @@ class DeviceCalendarSync @Inject constructor(
         hasPermission() && writableCalendarId() != null
     }
 
-    override suspend fun upsert(klass: TutoringClass, title: String, guestEmail: String?, reminderLeadMinutes: Int): String? = withContext(Dispatchers.IO) {
+    override suspend fun upsert(klass: TutoringClass, title: String, guest: Guest?, reminderLeadMinutes: Int): String? = withContext(Dispatchers.IO) {
         if (!hasPermission()) return@withContext null
         val calendarId = writableCalendarId() ?: return@withContext null
         val values = eventValues(klass, title, calendarId)
@@ -51,8 +51,9 @@ class DeviceCalendarSync @Inject constructor(
         // Email reminder before the class, sent by the calendar account. Idempotent: drop and
         // re-add so an updated time/lead doesn't accumulate stale reminders.
         upsertEmailReminder(eventId, reminderLeadMinutes)
-        // Invite the student so the account emails them about the class (and its reminder).
-        guestEmail?.takeIf { it.isNotBlank() }?.let { addGuest(eventId, it) }
+        // Invite the student so the account emails them about the class (and its reminder) — or
+        // withdraw that invitation if the tutor has since turned invites off.
+        guest?.takeIf { it.email.isNotBlank() }?.let { syncGuest(eventId, it) }
 
         eventId.toString()
     }
@@ -74,36 +75,57 @@ class DeviceCalendarSync @Inject constructor(
         }
     }
 
-    /** Adds [email] as an attendee if not already present (best-effort). */
-    private fun addGuest(eventId: Long, email: String) {
+    /**
+     * Brings the event's attendees in line with [guest] — invited means present, uninvited means
+     * gone — idempotently in both directions, so re-syncing after the tutor flips the setting
+     * either sends the invitation or withdraws it. Only ever touches that one address, leaving
+     * guests the tutor added themselves in their calendar alone. Best-effort.
+     */
+    private fun syncGuest(eventId: Long, guest: Guest) {
         runCatching {
-            val existing = context.contentResolver.query(
-                CalendarContract.Attendees.CONTENT_URI,
-                arrayOf(CalendarContract.Attendees._ID),
-                "${CalendarContract.Attendees.EVENT_ID} = ? AND ${CalendarContract.Attendees.ATTENDEE_EMAIL} = ?",
-                arrayOf(eventId.toString(), email),
-                null,
-            )?.use { it.count > 0 } ?: false
-            if (existing) return@runCatching
-            val values = ContentValues().apply {
-                put(CalendarContract.Attendees.EVENT_ID, eventId)
-                put(CalendarContract.Attendees.ATTENDEE_EMAIL, email)
-                put(
-                    CalendarContract.Attendees.ATTENDEE_RELATIONSHIP,
-                    CalendarContract.Attendees.RELATIONSHIP_ATTENDEE,
-                )
-                put(
-                    CalendarContract.Attendees.ATTENDEE_TYPE,
-                    CalendarContract.Attendees.TYPE_REQUIRED,
-                )
-                put(
-                    CalendarContract.Attendees.ATTENDEE_STATUS,
-                    CalendarContract.Attendees.ATTENDEE_STATUS_INVITED,
-                )
-            }
-            context.contentResolver.insert(CalendarContract.Attendees.CONTENT_URI, values)
+            if (guest.invited) addGuest(eventId, guest.email) else removeGuest(eventId, guest.email)
         }
     }
+
+    /** Adds [email] as an attendee if not already present. */
+    private fun addGuest(eventId: Long, email: String) {
+        if (isAttendee(eventId, email)) return
+        val values = ContentValues().apply {
+            put(CalendarContract.Attendees.EVENT_ID, eventId)
+            put(CalendarContract.Attendees.ATTENDEE_EMAIL, email)
+            put(
+                CalendarContract.Attendees.ATTENDEE_RELATIONSHIP,
+                CalendarContract.Attendees.RELATIONSHIP_ATTENDEE,
+            )
+            put(
+                CalendarContract.Attendees.ATTENDEE_TYPE,
+                CalendarContract.Attendees.TYPE_REQUIRED,
+            )
+            put(
+                CalendarContract.Attendees.ATTENDEE_STATUS,
+                CalendarContract.Attendees.ATTENDEE_STATUS_INVITED,
+            )
+        }
+        context.contentResolver.insert(CalendarContract.Attendees.CONTENT_URI, values)
+    }
+
+    /** Drops [email] from the event's attendees, withdrawing the invitation the app sent. */
+    private fun removeGuest(eventId: Long, email: String) {
+        context.contentResolver.delete(
+            CalendarContract.Attendees.CONTENT_URI,
+            ATTENDEE_SELECTION,
+            arrayOf(eventId.toString(), email),
+        )
+    }
+
+    private fun isAttendee(eventId: Long, email: String): Boolean =
+        context.contentResolver.query(
+            CalendarContract.Attendees.CONTENT_URI,
+            arrayOf(CalendarContract.Attendees._ID),
+            ATTENDEE_SELECTION,
+            arrayOf(eventId.toString(), email),
+            null,
+        )?.use { it.count > 0 } ?: false
 
     override suspend fun delete(eventId: String) {
         withContext(Dispatchers.IO) {
@@ -168,4 +190,10 @@ class DeviceCalendarSync @Inject constructor(
 
     private fun isGranted(permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+
+    private companion object {
+        /** One attendee of one event, by address — shared so add and remove can't target differently. */
+        const val ATTENDEE_SELECTION =
+            "${CalendarContract.Attendees.EVENT_ID} = ? AND ${CalendarContract.Attendees.ATTENDEE_EMAIL} = ?"
+    }
 }

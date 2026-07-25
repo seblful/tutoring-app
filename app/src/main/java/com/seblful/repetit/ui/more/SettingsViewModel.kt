@@ -48,6 +48,21 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
+     * Toggles inviting students to their class events by email, then re-mirrors so the change
+     * reaches the lessons already in the calendar — turning it off **withdraws** the invitations
+     * already sent, rather than only sparing future lessons.
+     *
+     * Needs no permission check of its own: the resync no-ops unless calendar sync is on, and
+     * enabling *that* is what the permission gates.
+     */
+    fun setEmailInvitesEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settings.setEmailInvitesEnabled(enabled)
+            classes.resyncCalendar()
+        }
+    }
+
+    /**
      * Toggles calendar sync. Enabling backfills events for existing classes; disabling removes the
      * events we created.
      *

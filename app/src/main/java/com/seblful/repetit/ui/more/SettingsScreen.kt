@@ -16,6 +16,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -74,15 +75,11 @@ fun SettingsScreen(
             // Grouped by what each setting governs, so a glance tells you where to look:
             // reminders, then calendar sync, class behaviour, money, and look.
             SectionHeader(stringResource(R.string.settings_section_reminders))
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_notifications)) },
-                supportingContent = { Text(stringResource(R.string.settings_notifications_desc)) },
-                trailingContent = {
-                    Switch(
-                        checked = settings.notificationsEnabled,
-                        onCheckedChange = { viewModel.setNotificationsEnabled(it) },
-                    )
-                },
+            SwitchRow(
+                title = stringResource(R.string.settings_notifications),
+                description = stringResource(R.string.settings_notifications_desc),
+                checked = settings.notificationsEnabled,
+                onCheckedChange = { viewModel.setNotificationsEnabled(it) },
             )
             ChoiceRow(
                 title = stringResource(R.string.settings_reminder_lead),
@@ -96,31 +93,33 @@ fun SettingsScreen(
             )
 
             SectionHeader(stringResource(R.string.settings_section_calendar))
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_calendar_sync)) },
-                supportingContent = { Text(stringResource(R.string.settings_calendar_sync_desc)) },
-                trailingContent = {
-                    Switch(
-                        checked = settings.calendarSyncEnabled,
-                        onCheckedChange = { on ->
-                            if (viewModel.setCalendarSyncEnabled(on) == CalendarSyncToggle.PERMISSION_NEEDED) {
-                                calendarPermission.launch(AndroidCalendarPermission.REQUIRED)
-                            }
-                        },
-                    )
+            SwitchRow(
+                title = stringResource(R.string.settings_calendar_sync),
+                description = stringResource(R.string.settings_calendar_sync_desc),
+                checked = settings.calendarSyncEnabled,
+                onCheckedChange = { on ->
+                    if (viewModel.setCalendarSyncEnabled(on) == CalendarSyncToggle.PERMISSION_NEEDED) {
+                        calendarPermission.launch(AndroidCalendarPermission.REQUIRED)
+                    }
                 },
+            )
+            SwitchRow(
+                title = stringResource(R.string.settings_email_invites),
+                description = stringResource(R.string.settings_email_invites_desc),
+                checked = settings.emailInvitesEnabled,
+                // The invitation rides on the class's calendar event, so this switch can only do
+                // anything while sync is on — shown dimmed rather than hidden, so the tutor can see
+                // what enabling sync would also turn on.
+                enabled = settings.calendarSyncEnabled,
+                onCheckedChange = { viewModel.setEmailInvitesEnabled(it) },
             )
 
             SectionHeader(stringResource(R.string.settings_section_classes))
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_autocomplete)) },
-                supportingContent = { Text(stringResource(R.string.settings_autocomplete_desc)) },
-                trailingContent = {
-                    Switch(
-                        checked = settings.autoCompleteEnabled,
-                        onCheckedChange = { viewModel.setAutoCompleteEnabled(it) },
-                    )
-                },
+            SwitchRow(
+                title = stringResource(R.string.settings_autocomplete),
+                description = stringResource(R.string.settings_autocomplete_desc),
+                checked = settings.autoCompleteEnabled,
+                onCheckedChange = { viewModel.setAutoCompleteEnabled(it) },
             )
             ChoiceRow(
                 title = stringResource(R.string.settings_default_lesson),
@@ -159,6 +158,38 @@ fun SettingsScreen(
         }
     }
 }
+
+/**
+ * A titled row with a trailing switch. When [enabled] is false the switch is inert and the labels
+ * are dimmed, so a setting that depends on another one reads as unavailable rather than as off.
+ */
+@Composable
+private fun SwitchRow(
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    enabled: Boolean = true,
+) {
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = { Text(description) },
+        trailingContent = {
+            Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+        },
+        colors = if (enabled) {
+            ListItemDefaults.colors()
+        } else {
+            ListItemDefaults.colors(
+                headlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA),
+                supportingColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DISABLED_ALPHA),
+            )
+        },
+    )
+}
+
+/** Material's standard opacity for disabled content. */
+private const val DISABLED_ALPHA = 0.38f
 
 /** A small, tinted section label that breaks the settings list into scannable groups. */
 @Composable

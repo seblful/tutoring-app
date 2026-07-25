@@ -1,5 +1,6 @@
 package com.seblful.repetit.ui.more
 
+import com.seblful.repetit.calendar.Guest
 import com.seblful.repetit.data.local.ClassEntity
 import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.SubjectEntity
@@ -47,6 +48,64 @@ class SettingsViewModelTest {
         assertEquals("RUB", s.currency)
         assertFalse(s.notificationsEnabled)
     }
+
+    @Test
+    fun `email invites are on by default, so upgrading keeps the behaviour sync already had`() =
+        runTest(mainRule.dispatcher) {
+            assertTrue(env.settingsRepo.get().emailInvitesEnabled)
+        }
+
+    @Test
+    fun `turning email invites off withdraws them from the classes already synced`() =
+        runTest(mainRule.dispatcher) {
+            val sid = env.studentDao.upsert(StudentEntity(name = "Аня", email = "anya@example.com"))
+            val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+            env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "SCHEDULED"))
+            env.settingsRepo.setCalendarSyncEnabled(true)
+
+            val vm = vm()
+            vm.setEmailInvitesEnabled(false)
+            advanceUntilIdle()
+
+            assertFalse(env.settingsRepo.get().emailInvitesEnabled)
+            // Re-mirrored, carrying the address marked uninvited — that is what withdraws the
+            // invitation the student already has, rather than only sparing future lessons.
+            assertEquals(Guest("anya@example.com", invited = false), env.calendar.lastGuest)
+        }
+
+    @Test
+    fun `turning email invites back on re-invites the classes already synced`() =
+        runTest(mainRule.dispatcher) {
+            val sid = env.studentDao.upsert(StudentEntity(name = "Аня", email = "anya@example.com"))
+            val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+            env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "SCHEDULED"))
+            env.settingsRepo.setCalendarSyncEnabled(true)
+            env.settingsRepo.setEmailInvitesEnabled(false)
+
+            val vm = vm()
+            vm.setEmailInvitesEnabled(true)
+            advanceUntilIdle()
+
+            assertTrue(env.settingsRepo.get().emailInvitesEnabled)
+            assertEquals(Guest("anya@example.com", invited = true), env.calendar.lastGuest)
+        }
+
+    @Test
+    fun `toggling email invites while calendar sync is off writes nothing to the calendar`() =
+        runTest(mainRule.dispatcher) {
+            val sid = env.studentDao.upsert(StudentEntity(name = "Аня", email = "anya@example.com"))
+            val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+            env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "SCHEDULED"))
+
+            val vm = vm()
+            vm.setEmailInvitesEnabled(false)
+            advanceUntilIdle()
+
+            // The preference is remembered for when sync is switched on, but there are no events to
+            // invite anyone to — so the resync stays a no-op and needs no calendar permission.
+            assertFalse(env.settingsRepo.get().emailInvitesEnabled)
+            assertTrue(env.calendar.calls.isEmpty())
+        }
 
     @Test
     fun `enabling calendar sync backfills events for existing classes`() = runTest(mainRule.dispatcher) {

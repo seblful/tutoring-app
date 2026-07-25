@@ -10,10 +10,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The v1 → v2 migration must carry a published database forward without losing a single lesson —
- * `runMigrationsAndValidate` additionally proves the resulting schema is exactly what Room expects
- * from the entities (columns, foreign keys and indices), which is the part a hand-written
- * `CREATE TABLE` most easily gets wrong.
+ * Every migration must carry a published database forward without losing a single lesson or
+ * preference — `runMigrationsAndValidate` additionally proves the resulting schema is exactly what
+ * Room expects from the entities (columns, defaults, foreign keys and indices), which is the part a
+ * hand-written `CREATE TABLE` or `ALTER TABLE` most easily gets wrong.
  */
 @RunWith(AndroidJUnit4::class)
 class MigrationTest {
@@ -88,6 +88,36 @@ class MigrationTest {
         db.query("SELECT studentId FROM group_members WHERE groupId = 7").use { c ->
             c.moveToFirst()
             assertEquals(1L, c.getLong(0))
+        }
+    }
+
+    /**
+     * v3 splits "invite students by email" out of calendar sync. The tutor's existing preferences
+     * must survive, and the new column must arrive **on** — an upgrade that silently stopped
+     * inviting students would withdraw invitations they are already relying on.
+     */
+    @Test fun migrate2To3KeepsSettingsAndDefaultsEmailInvitesOn() {
+        helper.createDatabase(testDb, 2).use { db ->
+            db.execSQL(
+                "INSERT INTO settings (id, notificationsEnabled, calendarSyncEnabled, onboardingComplete, " +
+                    "reminderLeadMinutes, autoCompleteEnabled, themeMode, defaultLessonMinutes, currency) " +
+                    "VALUES (0, 1, 1, 1, 30, 1, 'DARK', 90, 'RUB')",
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(testDb, 3, true, Migrations.MIGRATION_2_3)
+
+        db.query("SELECT * FROM settings").use { c ->
+            assertEquals(1, c.count)
+            c.moveToFirst()
+            assertEquals("invites default on", 1, c.getInt(c.getColumnIndexOrThrow("emailInvitesEnabled")))
+            // Everything the tutor had chosen is untouched.
+            assertEquals(1, c.getInt(c.getColumnIndexOrThrow("calendarSyncEnabled")))
+            assertEquals(30, c.getInt(c.getColumnIndexOrThrow("reminderLeadMinutes")))
+            assertEquals(1, c.getInt(c.getColumnIndexOrThrow("autoCompleteEnabled")))
+            assertEquals("DARK", c.getString(c.getColumnIndexOrThrow("themeMode")))
+            assertEquals(90, c.getInt(c.getColumnIndexOrThrow("defaultLessonMinutes")))
+            assertEquals("RUB", c.getString(c.getColumnIndexOrThrow("currency")))
         }
     }
 }

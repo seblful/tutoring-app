@@ -11,6 +11,7 @@ import javax.inject.Singleton
 data class AppSettings(
     val notificationsEnabled: Boolean = true,
     val calendarSyncEnabled: Boolean = false,
+    val emailInvitesEnabled: Boolean = true,
     val onboardingComplete: Boolean = false,
     val reminderLeadMinutes: Int = 60,
     val autoCompleteEnabled: Boolean = false,
@@ -32,6 +33,9 @@ class SettingsRepository @Inject constructor(
 
     suspend fun setCalendarSyncEnabled(enabled: Boolean) =
         update { it.copy(calendarSyncEnabled = enabled) }
+
+    suspend fun setEmailInvitesEnabled(enabled: Boolean) =
+        update { it.copy(emailInvitesEnabled = enabled) }
 
     suspend fun setOnboardingComplete(complete: Boolean) =
         update { it.copy(onboardingComplete = complete) }
@@ -61,6 +65,7 @@ class SettingsRepository @Inject constructor(
         else AppSettings(
             notificationsEnabled = notificationsEnabled,
             calendarSyncEnabled = calendarSyncEnabled,
+            emailInvitesEnabled = emailInvitesEnabled,
             onboardingComplete = onboardingComplete,
             reminderLeadMinutes = reminderLeadMinutes,
             autoCompleteEnabled = autoCompleteEnabled,

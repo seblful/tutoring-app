@@ -2,6 +2,7 @@ package com.seblful.repetit.data.repository
 
 import com.seblful.repetit.calendar.CalendarEvent
 import com.seblful.repetit.calendar.CalendarSync
+import com.seblful.repetit.calendar.Guest
 import com.seblful.repetit.data.local.ClassDao
 import com.seblful.repetit.data.local.GroupDao
 import com.seblful.repetit.data.local.StudentDao
@@ -215,7 +216,7 @@ class ClassRepository @Inject constructor(
         if (!s.calendarSyncEnabled) return
         when (CalendarSyncPolicy.actionFor(klass.status)) {
             CalendarSyncPolicy.Action.UPSERT -> {
-                val eventId = calendarSync.upsert(klass, titleFor(klass), guestEmailFor(klass), s.reminderLeadMinutes)
+                val eventId = calendarSync.upsert(klass, titleFor(klass), guestFor(klass, s), s.reminderLeadMinutes)
                 if (eventId != null && eventId != klass.calendarEventId) {
                     dao.update(klass.copy(calendarEventId = eventId).toEntity())
                 }
@@ -243,9 +244,16 @@ class ClassRepository @Inject constructor(
     }
 
     /**
-     * The student's email, if set — added to the event as a guest so the calendar account (e.g.
-     * Google) emails them, including an email reminder an hour before. Blank when unset.
+     * The student behind [klass] as a calendar guest: their email, if set, plus whether the tutor
+     * wants students invited. Null when the student has no address, since there is then nobody to
+     * invite *or* withdraw.
+     *
+     * The invited flag travels with every mirror rather than being read once at toggle time, so
+     * turning invites off and re-syncing withdraws the invitations already sent — the setting
+     * governs the tutor's whole calendar, not just the lessons booked after it.
      */
-    private suspend fun guestEmailFor(klass: TutoringClass): String? =
-        studentDao.getById(klass.studentId)?.email?.takeIf { it.isNotBlank() }
+    private suspend fun guestFor(klass: TutoringClass, settings: AppSettings): Guest? =
+        studentDao.getById(klass.studentId)?.email
+            ?.takeIf { it.isNotBlank() }
+            ?.let { Guest(email = it, invited = settings.emailInvitesEnabled) }
 }

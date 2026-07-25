@@ -1,5 +1,6 @@
 package com.seblful.repetit.data.local
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -136,6 +137,18 @@ data class SettingsEntity(
     @PrimaryKey val id: Int = SINGLETON_ID,
     val notificationsEnabled: Boolean = true,
     val calendarSyncEnabled: Boolean = false,
+    /**
+     * Whether a synced class event invites the student as an attendee, so their calendar account
+     * emails them about the lesson. Only has an effect while [calendarSyncEnabled] — the invitation
+     * rides on the event.
+     *
+     * **On by default**, and the v2 → v3 migration backfills it on, because inviting students is
+     * what calendar sync already did before this became its own switch: defaulting it off would
+     * silently withdraw invitations the tutor's students are already receiving. The declared
+     * `defaultValue` must stay in step with that migration's `DEFAULT 1`.
+     */
+    @ColumnInfo(defaultValue = "1")
+    val emailInvitesEnabled: Boolean = true,
     val onboardingComplete: Boolean = false,
     /** Minutes before a class that reminders fire (in-app and email). */
     val reminderLeadMinutes: Int = 60,
