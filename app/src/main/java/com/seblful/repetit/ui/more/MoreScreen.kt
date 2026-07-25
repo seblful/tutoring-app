@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,6 +26,7 @@ import com.seblful.repetit.ui.common.constrainedContent
 @Composable
 fun MoreScreen(
     onSubjects: () -> Unit,
+    onGroups: () -> Unit,
     onBackup: () -> Unit,
     onSettings: () -> Unit,
     onDiagnostics: () -> Unit,
@@ -37,6 +39,12 @@ fun MoreScreen(
                 leadingContent = { Icon(Icons.AutoMirrored.Filled.MenuBook, null) },
                 headlineContent = { Text(stringResource(R.string.more_subjects)) },
                 modifier = Modifier.clickable { onSubjects() },
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Filled.Groups, null) },
+                headlineContent = { Text(stringResource(R.string.more_groups)) },
+                supportingContent = { Text(stringResource(R.string.more_groups_desc)) },
+                modifier = Modifier.clickable { onGroups() },
             )
             ListItem(
                 leadingContent = { Icon(Icons.Filled.Settings, null) },

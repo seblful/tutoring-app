@@ -82,9 +82,67 @@ interface StudentDao {
 }
 
 @Dao
+interface GroupDao {
+    @Query("SELECT * FROM student_groups WHERE archived = 0 ORDER BY name COLLATE NOCASE")
+    fun observeActive(): Flow<List<GroupEntity>>
+
+    @Query("SELECT * FROM student_groups ORDER BY archived, name COLLATE NOCASE")
+    fun observeAll(): Flow<List<GroupEntity>>
+
+    @Query("SELECT * FROM student_groups ORDER BY name COLLATE NOCASE")
+    suspend fun getAll(): List<GroupEntity>
+
+    @Query("SELECT * FROM student_groups WHERE id = :id")
+    fun observeById(id: Long): Flow<GroupEntity?>
+
+    @Query("SELECT * FROM student_groups WHERE id = :id")
+    suspend fun getById(id: Long): GroupEntity?
+
+    @Upsert
+    suspend fun upsert(group: GroupEntity): Long
+
+    @Delete
+    suspend fun delete(group: GroupEntity)
+
+    @Query("SELECT studentId FROM group_members WHERE groupId = :groupId")
+    fun observeMemberIds(groupId: Long): Flow<List<Long>>
+
+    @Query("SELECT studentId FROM group_members WHERE groupId = :groupId")
+    suspend fun getMemberIds(groupId: Long): List<Long>
+
+    @Query("SELECT * FROM group_members")
+    fun observeAllMembers(): Flow<List<GroupMemberCrossRef>>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun addMember(ref: GroupMemberCrossRef)
+
+    @Query("DELETE FROM group_members WHERE groupId = :groupId AND studentId = :studentId")
+    suspend fun removeMember(groupId: Long, studentId: Long)
+
+    @Query("SELECT * FROM group_members")
+    suspend fun getAllMembers(): List<GroupMemberCrossRef>
+
+    @Insert
+    suspend fun insertAll(groups: List<GroupEntity>)
+
+    @Insert
+    suspend fun insertMembers(members: List<GroupMemberCrossRef>)
+
+    @Query("DELETE FROM student_groups")
+    suspend fun deleteAll()
+
+    @Query("DELETE FROM group_members")
+    suspend fun deleteAllMembers()
+}
+
+@Dao
 interface PriceDao {
     @Query("SELECT * FROM prices WHERE studentId = :studentId")
     fun observeForStudent(studentId: Long): Flow<List<PriceEntity>>
+
+    /** Every price — for screens that need several students at once, e.g. a group's roster. */
+    @Query("SELECT * FROM prices")
+    fun observeAll(): Flow<List<PriceEntity>>
 
     @Query("SELECT * FROM prices WHERE studentId = :studentId AND subjectId = :subjectId")
     suspend fun get(studentId: Long, subjectId: Long): PriceEntity?
@@ -135,6 +193,17 @@ interface ClassDao {
      */
     @Query("SELECT COUNT(*) FROM classes WHERE studentId = :studentId AND subjectId = :subjectId")
     suspend fun countForStudentSubject(studentId: Long, subjectId: Long): Int
+
+    /** How many classes reference [groupId] — used to block deleting a group with history. */
+    @Query("SELECT COUNT(*) FROM classes WHERE groupId = :groupId")
+    suspend fun countForGroup(groupId: Long): Int
+
+    /**
+     * The classes making up one group lesson: same group, same start. That pair is the session key —
+     * a member's class moved on its own leaves the session by definition (its start no longer matches).
+     */
+    @Query("SELECT * FROM classes WHERE groupId = :groupId AND startMillis = :startMillis ORDER BY id")
+    suspend fun getSession(groupId: Long, startMillis: Long): List<ClassEntity>
 
     /** Scheduled classes whose end time is at or before [nowMillis] — due for auto-completion. */
     @Query("SELECT * FROM classes WHERE status = 'SCHEDULED' AND (startMillis + durationMinutes * 60000) <= :nowMillis")

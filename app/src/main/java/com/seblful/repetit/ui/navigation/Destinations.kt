@@ -25,9 +25,20 @@ object Routes {
     const val STUDENT_DETAIL = "student/{id}"
     fun studentDetail(id: Long) = "student/$id"
 
-    const val CLASS_EDIT = "class/{id}?date={date}"
-    /** id = 0 means "new class"; [epochDay] pre-fills the date for a new class (-1 = today). */
-    fun classEdit(id: Long, epochDay: Long = -1) = "class/$id?date=$epochDay"
+    const val GROUPS = "groups"
+    const val GROUP_ADD = "group/new"
+    const val GROUP_DETAIL = "group/{id}"
+    fun groupDetail(id: Long) = "group/$id"
+
+    const val CLASS_EDIT = "class/{id}?date={date}&group={group}"
+
+    /**
+     * id = 0 means "new class"; [epochDay] pre-fills the date for a new class (-1 = today).
+     * [groupId] (non-zero) opens the form already booking for that group — used by "book a lesson"
+     * on a group.
+     */
+    fun classEdit(id: Long, epochDay: Long = -1, groupId: Long = 0) =
+        "class/$id?date=$epochDay&group=$groupId"
 }
 
 /** The four top-level tabs shown in the bottom bar. */

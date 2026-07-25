@@ -49,7 +49,7 @@ class MappersTest {
             start = Instant.ofEpochMilli(1_700_000_000_000),
             durationMinutes = 90, price = Money.ofMajor(30),
             status = ClassStatus.COMPLETED, charge = Money.ofMajor(45),
-            recurringGroupId = null, mode = ClassMode.REMOTE, calendarEventId = "evt-1",
+            groupId = null, mode = ClassMode.REMOTE, calendarEventId = "evt-1",
         )
         assertEquals(c, c.toEntity().toDomain())
     }

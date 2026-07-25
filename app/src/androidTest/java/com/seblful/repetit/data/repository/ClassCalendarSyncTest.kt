@@ -53,7 +53,7 @@ class ClassCalendarSyncTest {
         val settings = SettingsRepository(db.settingsDao())
         settings.setCalendarSyncEnabled(true) // calendar mirroring is off unless enabled
         repo = ClassRepository(
-            db.classDao(), db.studentDao(), db.subjectDao(), calendar,
+            db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(), calendar,
             ReminderScheduler { /* no-op in tests */ }, settings,
         )
     }

@@ -2,7 +2,7 @@
 
 ## Overview
 
-A native Android app for a **single** private tutor to manage students, subjects, schedule,
+A native Android app for a **single** private tutor to manage students, groups, subjects, schedule,
 payments and debts. **Offline-first / local-only — no backend.** Russian UI, Material 3.
 Currency is **BYN** (Belarusian ruble). See `PLANNING.md` for the product goal and success criteria.
 
@@ -29,9 +29,9 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps: billing, class rules, reminders, reports, scheduling, calendar-month layout, the `ReminderScheduler` port, and the models. All JVM-unit-tested. |
+| `domain/` | Pure Kotlin, no Android deps: billing, class rules, group rules (sessions, bookable subjects), calendar layout, reminders, reports, scheduling, the `ReminderScheduler` port, and the models. All JVM-unit-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`. Entities are also `@Serializable` (for backup). |
-| `data/repository/` | Repositories mapping entities ⇄ domain models. `ClassRepository` owns *all* side effects of a class change (calendar mirroring + reminder refresh). `EnrollmentRepository` owns the subject⇄price invariant — the single seam that links/unlinks a subject and sets/deletes its price together. |
+| `data/repository/` | Repositories mapping entities ⇄ domain models. `ClassRepository` owns *all* side effects of a class change (calendar mirroring + reminder refresh) and the batch (group-lesson) forms of each write. `EnrollmentRepository` owns the subject⇄price invariant — the single seam that links/unlinks a subject and sets/deletes its price together. `GroupRepository` is the only writer of group membership (a group is always saved together with its exact roster). |
 | `data/backup/` | Whole-DB JSON snapshot: export + transactional replace-all import. |
 | `calendar/` | `CalendarSync` port + a `CalendarContract` adapter. |
 | `notifications/` | `Notifier` — reminder channel + posting. |
@@ -62,14 +62,30 @@ flowchart TB
   reports/balances) and the UI warns before doing so. The repository's `delete` removes the
   calendar event and refreshes reminders regardless of status. Classes are **one-off only** — no
   recurring series.
+- **A group is a roster, not a billing entity.** Booking a lesson for a group writes **one class per
+  member**, each at that member's own rate, so prices, balances, debts and reports stay strictly
+  per-student and nothing about groups touches the money model. The members' classes of one lesson
+  share a `groupId` **and a start** — that pair *is* the "session" the schedule collapses into one
+  card (`GroupRules.sessions`); sessions are derived, never stored, so a class moved on its own leaves
+  its session by construction, with no membership flag to go stale. Consequences: a group lesson can
+  only be booked for a subject **every** member has a price for (`GroupRules.bookableSubjects`);
+  archived students are left out of new lessons but keep their past ones; per-member corrections stay
+  expressible (mark the lesson completed, then cancel the absentee's class — the session then reads
+  as "разные"), which is why status changes apply per class (`GroupRules.applicableTo` skips the ones
+  a change isn't legal for). Groups are **archive-only once they have lessons** (deleting is refused,
+  like subjects), and a group lesson **mirrors as one calendar event per member** — each student keeps
+  their own invite and email reminder — with the group's name in the title. In-app **reminders are
+  per lesson, not per member** (`Reminders.plan` dedupes a session and the notification names the
+  group).
 - **A student's subjects == their priced subjects** (single source of truth). Adding a subject links
   it and sets a price in one step; removing drops both, but is **refused when the student has any
   class for that subject**, preserving the invariant that a booked subject always has a price. This
   is enforced in `EnrollmentRepository` (the only writer of subject links and prices), not by caller
   discipline in the view models.
-- **History is structurally protected.** Subjects are deletable only when unreferenced; `classes`
-  and `payments` use `ON DELETE RESTRICT` on their parents, so the DB itself refuses to cascade-erase
-  earned income. Students are **archive-only** (no delete path).
+- **History is structurally protected.** Subjects and groups are deletable only when unreferenced;
+  `classes` and `payments` use `ON DELETE RESTRICT` on their parents (student, subject, group), so the
+  DB itself refuses to cascade-erase earned income. Students are **archive-only** (no delete path);
+  groups fall back to archiving once they have lessons.
 - **Class mode** (in person / remote): each student has a default; a class inherits and can override
   it. Mirrored into the calendar event's location. Students also carry a free-text phone.
 - **Offline-first.** Room is authoritative; calendar and notifications no-op if their
@@ -81,7 +97,12 @@ flowchart TB
   network calls and a privacy policy. The pure formatting/bounding lives in `domain/` (JVM-tested).
 - **Settings live in Room** (single row): notifications, calendar sync, onboarding flag, reminder
   lead time, auto-complete (opt-in), theme, default lesson length, currency. Device-local, so
-  **not** part of the backup snapshot. Schema changes ship a real Room migration.
+  **not** part of the backup snapshot.
+- **Schema changes ship a real Room migration** in `data/local/Migrations.kt` (registered on the Room
+  builder; the destructive fallback now only covers dev devices predating v1). **v2** added the group
+  tables and `classes.groupId`, recreating `classes` to do so — which also retired the unused
+  `recurringGroupId` column (recurring series are a non-goal, and the name clashed with the new group
+  id). Migrations are validated against the exported schema JSONs by an instrumented test.
 - **First-run onboarding** forces adding ≥1 subject, then a first student with subjects and prices.
 - **Reports cover active students only**; archiving therefore hides a student's debt, so the app
   **warns before archiving a student with a non-zero balance**.
@@ -92,7 +113,9 @@ flowchart TB
   `CalendarSync` port (a REST adapter could be added later). Opt-in; grants read + write calendar.
 - **WorkManager** drives time-based behavior (precise one-shot reminders + a periodic maintenance
   worker that auto-completes due classes and refreshes reminders). The *decisions* are pure and tested.
-- **Backup = full DB snapshot → JSON via SAF.** Ids are preserved; import is one transaction.
+- **Backup = full DB snapshot → JSON via SAF.** Ids are preserved; import is one transaction. The
+  format is versioned (**v2** carries groups); an older file still imports, since missing tables come
+  back empty and retired keys are ignored.
 - **`java.time` everywhere + core-library desugaring** so it works on `minSdk 24`.
 - **Design system** (`ui/theme/`): curated Material 3 palette (indigo + teal), light/dark schemes,
   dynamic color off by default for a consistent brand. Convention: content lists use the shared
@@ -138,7 +161,8 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments.
   plus the view models, repository side effects, mappers and formatters — run against **in-memory
   fake DAOs** with a test main dispatcher, so most logic is verified without an emulator.
 - **Instrumented tests** (`src/androidTest`) cover the Room integration (auto-complete, calendar
-  sync on move, backup round-trip).
+  sync on move, backup round-trip) and the **schema migrations** (`MigrationTest` runs each migration
+  against the exported schema JSON, so a hand-written `CREATE TABLE` can't drift from the entities).
 - Notification display and real calendar writes can only be observed on a device.
 
 ---
@@ -168,7 +192,7 @@ app/src/main/java/com/seblful/tutoringapp/
 ├── domain/            # pure rules + ports + models
 ├── data/{local,repository,backup}/
 ├── calendar/  notifications/  diagnostics/  work/  format/  di/
-├── ui/{schedule,students,subjects,reports,backup,more,onboarding,diagnostics,common,navigation,theme}/
+├── ui/{schedule,students,groups,subjects,reports,backup,more,onboarding,diagnostics,common,navigation,theme}/
 ├── MainActivity.kt    # @AndroidEntryPoint → AppRoot()
 └── TutoringApp.kt     # @HiltAndroidApp, WorkManager config, startup scheduling
 ```

@@ -34,14 +34,19 @@ class Notifier @Inject constructor(
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
-    /** Posts a reminder for [klass]; no-ops silently if notification permission is missing. */
-    fun showClassReminder(klass: TutoringClass, studentName: String, subjectName: String) {
+    /**
+     * Posts a reminder for [klass]; no-ops silently if notification permission is missing.
+     *
+     * @param whoName the student, or the group when the class is part of a group lesson — one lesson
+     *   earns one reminder, so it is announced by whoever will be in the room.
+     */
+    fun showClassReminder(klass: TutoringClass, whoName: String, subjectName: String) {
         if (!hasPermission()) return
         ensureChannel()
 
         val time = klass.start.formatTime()
         val title = context.getString(R.string.reminder_title)
-        val headline = listOf(time, subjectName, studentName)
+        val headline = listOf(time, subjectName, whoName)
             .filter { it.isNotBlank() }
             .joinToString(" · ")
 

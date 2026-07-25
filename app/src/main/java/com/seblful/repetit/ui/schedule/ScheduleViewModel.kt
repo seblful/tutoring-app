@@ -3,10 +3,14 @@ package com.seblful.repetit.ui.schedule
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.repetit.data.repository.ClassRepository
+import com.seblful.repetit.data.repository.GroupRepository
 import com.seblful.repetit.data.repository.StudentRepository
 import com.seblful.repetit.data.repository.SubjectRepository
 import com.seblful.repetit.domain.CalendarLayout
+import com.seblful.repetit.domain.ClassSession
+import com.seblful.repetit.domain.GroupRules
 import com.seblful.repetit.domain.model.ClassStatus
+import com.seblful.repetit.domain.model.Group
 import com.seblful.repetit.domain.model.Student
 import com.seblful.repetit.domain.model.Subject
 import com.seblful.repetit.domain.model.TutoringClass
@@ -28,7 +32,23 @@ import java.time.YearMonth
 import java.time.ZoneId
 import javax.inject.Inject
 
-data class ScheduleRow(val klass: TutoringClass, val studentName: String, val subjectName: String)
+/**
+ * One row of the day's schedule: a lesson, which is either one student's class or a whole group
+ * session. [members] is filled for a group row — each entry is the same row shape for one member's
+ * class, so tapping a member re-uses the very same actions on just their class (that is how "this
+ * one student didn't come" stays expressible without a second kind of screen).
+ */
+data class ScheduleRow(
+    val session: ClassSession,
+    /** Group name for a group lesson, student name otherwise. */
+    val title: String,
+    val subjectName: String,
+    val members: List<ScheduleRow> = emptyList(),
+) {
+    val klass: TutoringClass get() = session.first
+    val isGroup: Boolean get() = session.isGroup
+    val classes: List<TutoringClass> get() = session.classes
+}
 
 /** One day's section of the week agenda. Only days that actually have classes get one. */
 data class WeekSection(val date: LocalDate, val rows: List<ScheduleRow>)
@@ -45,6 +65,7 @@ class ScheduleViewModel @Inject constructor(
     private val classes: ClassRepository,
     students: StudentRepository,
     subjects: SubjectRepository,
+    groups: GroupRepository,
 ) : ViewModel() {
 
     private val zone: ZoneId = ZoneId.systemDefault()
@@ -130,15 +151,24 @@ class ScheduleViewModel @Inject constructor(
                 ),
                 students.observeAll(),
                 subjects.observeAll(),
-            ) { weekClasses, studentList, subjectList ->
-                val studentsById = studentList.associateBy { it.id }
-                val subjectsById = subjectList.associateBy { it.id }
+                groups.observeAll(),
+            ) { weekClasses, studentList, subjectList, groupList ->
+                // Sessions are collapsed per day, not across the week: grouping first would let a
+                // group lesson's members land in one row even if the days somehow differed.
                 weekClasses
-                    .sortedBy { it.start }
-                    .map { it.toRow(studentsById, subjectsById) }
-                    .groupBy { it.klass.start.atZone(zone).toLocalDate() }
-                    .map { (date, dayRows) -> WeekSection(date, dayRows) }
-                    .sortedBy { it.date }
+                    .groupBy { it.start.atZone(zone).toLocalDate() }
+                    .toSortedMap()
+                    .map { (date, dayClasses) ->
+                        WeekSection(
+                            date = date,
+                            rows = sessionRows(
+                                dayClasses,
+                                studentList.associateBy { it.id },
+                                subjectList.associateBy { it.id },
+                                groupList.associateBy { it.id },
+                            ),
+                        )
+                    }
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -150,10 +180,14 @@ class ScheduleViewModel @Inject constructor(
                 classes.observeBetween(from, to),
                 students.observeAll(),
                 subjects.observeAll(),
-            ) { dayClasses, studentList, subjectList ->
-                val studentsById = studentList.associateBy { it.id }
-                val subjectsById = subjectList.associateBy { it.id }
-                dayClasses.sortedBy { it.start }.map { it.toRow(studentsById, subjectsById) }
+                groups.observeAll(),
+            ) { dayClasses, studentList, subjectList, groupList ->
+                sessionRows(
+                    dayClasses,
+                    studentList.associateBy { it.id },
+                    subjectList.associateBy { it.id },
+                    groupList.associateBy { it.id },
+                )
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -194,16 +228,19 @@ class ScheduleViewModel @Inject constructor(
         _visibleWeek.value = _visibleWeek.value.plusDays(DAYS_IN_WEEK)
     }
 
-    fun setStatus(classId: Long, status: ClassStatus) {
-        viewModelScope.launch { classes.setStatus(classId, status) }
+    // Every action below takes a session, so it reads the same whether the tutor tapped a lesson for
+    // one student or a whole group; the repository applies it per class and refreshes reminders once.
+
+    fun setStatus(session: ClassSession, status: ClassStatus) {
+        viewModelScope.launch { classes.setStatusForSession(session, status) }
     }
 
-    fun move(classId: Long, newStart: Instant) {
-        viewModelScope.launch { classes.move(classId, newStart) }
+    fun move(session: ClassSession, newStart: Instant) {
+        viewModelScope.launch { classes.moveSession(session, newStart) }
     }
 
-    fun delete(klass: TutoringClass) {
-        viewModelScope.launch { classes.delete(klass) }
+    fun delete(session: ClassSession) {
+        viewModelScope.launch { classes.deleteSession(session) }
     }
 
     /** Points both calendar pages at [date], so whichever view opens next contains it. */
@@ -212,12 +249,41 @@ class ScheduleViewModel @Inject constructor(
         _visibleWeek.value = CalendarLayout.startOfWeek(date)
     }
 
-    private fun TutoringClass.toRow(students: Map<Long, Student>, subjects: Map<Long, Subject>) =
-        ScheduleRow(
-            klass = this,
-            studentName = students[studentId]?.name ?: "",
-            subjectName = subjects[subjectId]?.name ?: "",
-        )
+    /**
+     * Turns one day's classes into schedule rows: the members' classes of a group lesson collapse
+     * into a single row carrying them as [ScheduleRow.members]. Shared by the day list and the week
+     * agenda, so a group lesson reads as one lesson in both — not as one row per member in one view
+     * and a single row in the other.
+     */
+    private fun sessionRows(
+        dayClasses: List<TutoringClass>,
+        students: Map<Long, Student>,
+        subjects: Map<Long, Subject>,
+        groups: Map<Long, Group>,
+    ): List<ScheduleRow> =
+        GroupRules.sessions(dayClasses).map { session ->
+            val subjectName = subjects[session.first.subjectId]?.name ?: ""
+            if (session.isGroup) {
+                ScheduleRow(
+                    session = session,
+                    title = groups[session.groupId]?.name ?: "",
+                    subjectName = subjectName,
+                    members = session.classes.map { c ->
+                        ScheduleRow(
+                            session = ClassSession(null, listOf(c)),
+                            title = students[c.studentId]?.name ?: "",
+                            subjectName = subjectName,
+                        )
+                    },
+                )
+            } else {
+                ScheduleRow(
+                    session = session,
+                    title = students[session.first.studentId]?.name ?: "",
+                    subjectName = subjectName,
+                )
+            }
+        }
 
     private companion object {
         /** A week's span as a day count, for the date arithmetic that pages the agenda. */

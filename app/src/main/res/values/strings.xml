@@ -55,6 +55,15 @@
     <string name="class_move">Перенести</string>
     <string name="class_delete_confirm">Удалить это занятие?</string>
     <string name="class_delete_completed_confirm">Занятие завершено. Удаление уберёт начисленный доход из баланса ученика. Удалить?</string>
+    <string name="class_target_student">Ученик</string>
+    <string name="class_target_group">Группа</string>
+    <string name="class_group_label">Группа</string>
+    <string name="class_no_groups">Групп пока нет. Создайте группу в разделе «Ещё».</string>
+    <string name="class_no_subjects_for_group">Нет предмета с ценой у всех участников. Укажите цены в карточках учеников.</string>
+    <string name="class_group_prices_title">Цены участников</string>
+    <string name="class_group_pick_subject_first">Сначала выберите предмет</string>
+    <string name="class_group_members_title">Участники</string>
+    <string name="class_status_mixed">Разные</string>
     <string name="class_mark_completed">Отметить проведённым</string>
     <string name="class_mark_cancelled">Отменить занятие</string>
     <string name="class_mark_scheduled">Вернуть в расписание</string>
@@ -117,8 +126,27 @@
     <string name="subject_delete_confirm">Удалить этот предмет?</string>
     <string name="subject_delete_blocked">Нельзя удалить предмет: по нему есть занятия. Сначала удалите эти занятия.</string>
 
+    <!-- Groups -->
+    <string name="groups_title">Группы</string>
+    <string name="groups_empty">Пока нет групп</string>
+    <string name="groups_show_archived">Показать архив</string>
+    <string name="group_add_title">Новая группа</string>
+    <string name="group_edit_title">Изменить группу</string>
+    <string name="group_name_label">Название</string>
+    <string name="group_members_title">Участники</string>
+    <string name="group_members_required">Выберите хотя бы одного ученика</string>
+    <string name="group_no_students">Сначала добавьте учеников</string>
+    <string name="group_no_members">Участников нет</string>
+    <string name="group_bookable_subjects_title">Можно проводить</string>
+    <string name="group_no_shared_subjects">Нет предмета с ценой у всех участников. Укажите цены в карточках учеников.</string>
+    <string name="group_book_lesson">Записать занятие</string>
+    <string name="group_delete_confirm">Удалить эту группу? Ученики и их занятия останутся.</string>
+    <string name="group_delete_blocked">Нельзя удалить группу: по ней есть занятия. Отправьте её в архив.</string>
+
     <!-- More menu -->
     <string name="more_subjects">Предметы</string>
+    <string name="more_groups">Группы</string>
+    <string name="more_groups_desc">Занятия для нескольких учеников сразу</string>
     <string name="more_backup">Резервная копия</string>
     <string name="calendar_denied">Нет доступа к календарю</string>
 
@@ -155,6 +183,20 @@
     <string name="onboarding_student_title">Шаг 2. Первый ученик</string>
     <string name="onboarding_continue">Далее</string>
     <string name="onboarding_finish">Готово</string>
+
+    <!-- Group lesson counts (Russian needs real plural forms) -->
+    <plurals name="class_delete_group_confirm">
+        <item quantity="one">Удалить групповое занятие (%1$d ученик)?</item>
+        <item quantity="few">Удалить групповое занятие (%1$d ученика)?</item>
+        <item quantity="many">Удалить групповое занятие (%1$d учеников)?</item>
+        <item quantity="other">Удалить групповое занятие (%1$d ученика)?</item>
+    </plurals>
+    <plurals name="class_delete_group_completed_confirm">
+        <item quantity="one">Занятие завершено. Удаление уберёт начисленный доход у %1$d ученика. Удалить?</item>
+        <item quantity="few">Занятие завершено. Удаление уберёт начисленный доход у %1$d учеников. Удалить?</item>
+        <item quantity="many">Занятие завершено. Удаление уберёт начисленный доход у %1$d учеников. Удалить?</item>
+        <item quantity="other">Занятие завершено. Удаление уберёт начисленный доход у %1$d учеников. Удалить?</item>
+    </plurals>
 
     <!-- Long lists -->
     <string name="list_show_all">Показать все (%1$d)</string>

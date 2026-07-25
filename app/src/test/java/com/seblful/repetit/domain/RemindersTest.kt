@@ -14,8 +14,21 @@ class RemindersTest {
     private val lead = Duration.ofMinutes(60)
     private val horizon = Duration.ofDays(7)
 
-    private fun klass(id: Long, start: Instant, status: ClassStatus = ClassStatus.SCHEDULED) =
-        TutoringClass(id = id, studentId = 1, subjectId = 1, start = start, durationMinutes = 60, status = status)
+    private fun klass(
+        id: Long,
+        start: Instant,
+        status: ClassStatus = ClassStatus.SCHEDULED,
+        groupId: Long? = null,
+    ) = TutoringClass(
+        id = id,
+        // Each member of a group lesson is a different student; irrelevant for individual classes.
+        studentId = id,
+        subjectId = 1,
+        start = start,
+        durationMinutes = 60,
+        status = status,
+        groupId = groupId,
+    )
 
     @Test
     fun `reminder fires one lead before a scheduled class`() {
@@ -64,5 +77,42 @@ class RemindersTest {
             klass(3, now.plus(Duration.ofDays(2))),
         )
         assertEquals(setOf(1L, 2L, 3L), Reminders.plan(now, classes, lead, horizon).map { it.classId }.toSet())
+    }
+
+    @Test
+    fun `a group lesson earns one reminder, not one per member`() {
+        val start = now.plus(Duration.ofHours(3))
+        val classes = listOf(
+            klass(1, start, groupId = 7),
+            klass(2, start, groupId = 7),
+            klass(3, start, groupId = 7),
+        )
+
+        val plans = Reminders.plan(now, classes, lead, horizon)
+
+        assertEquals(1, plans.size)
+        assertEquals(1L, plans.single().classId)
+        assertEquals(Duration.ofHours(2).toMillis(), plans.single().delayMillis)
+    }
+
+    @Test
+    fun `two lessons of the same group each get their own reminder`() {
+        val classes = listOf(
+            klass(1, now.plus(Duration.ofHours(3)), groupId = 7),
+            klass(2, now.plus(Duration.ofHours(3)), groupId = 7),
+            klass(3, now.plus(Duration.ofDays(1)), groupId = 7),
+        )
+        assertEquals(setOf(1L, 3L), Reminders.plan(now, classes, lead, horizon).map { it.classId }.toSet())
+    }
+
+    @Test
+    fun `a group reminder points at a member who is still scheduled`() {
+        val start = now.plus(Duration.ofHours(3))
+        val classes = listOf(
+            // The lowest-id member has been cancelled (didn't come); the lesson still happens.
+            klass(1, start, ClassStatus.CANCELLED, groupId = 7),
+            klass(2, start, groupId = 7),
+        )
+        assertEquals(listOf(2L), Reminders.plan(now, classes, lead, horizon).map { it.classId })
     }
 }

@@ -15,6 +15,18 @@ class PriceRepository @Inject constructor(
     fun observeForStudent(studentId: Long): Flow<List<Price>> =
         dao.observeForStudent(studentId).map { list -> list.map { it.toDomain() } }
 
+    fun observeAll(): Flow<List<Price>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
+
+    /**
+     * studentId → the subjects that student has a price for. What a group can be booked for is the
+     * intersection of these across its members (see `GroupRules.bookableSubjects`), so the group
+     * screens need every member's set at once rather than one student's at a time.
+     */
+    fun observePricedSubjectsByStudent(): Flow<Map<Long, Set<Long>>> =
+        dao.observeAll().map { all ->
+            all.groupBy { it.studentId }.mapValues { (_, list) -> list.map { it.subjectId }.toSet() }
+        }
+
     suspend fun get(studentId: Long, subjectId: Long): Price? = dao.get(studentId, subjectId)?.toDomain()
 
     // Prices are written only via EnrollmentRepository, which sets a price exactly when it links the

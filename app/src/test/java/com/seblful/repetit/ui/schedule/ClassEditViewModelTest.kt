@@ -7,6 +7,7 @@ import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.SubjectEntity
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.ClassStatus
+import com.seblful.repetit.domain.model.Group
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.testutil.MainDispatcherRule
 import com.seblful.repetit.testutil.TestEnv
@@ -34,10 +35,11 @@ class ClassEditViewModelTest {
     private val env = TestEnv()
     private val zone: ZoneId = ZoneId.systemDefault()
 
-    private fun vm(id: Long = 0L) = ClassEditViewModel(
-        savedStateHandle = SavedStateHandle(mapOf("id" to id)),
+    private fun vm(id: Long = 0L, groupId: Long = 0L) = ClassEditViewModel(
+        savedStateHandle = SavedStateHandle(mapOf("id" to id, "group" to groupId)),
         classes = env.classRepo,
         studentsRepo = env.studentRepo,
+        groupsRepo = env.groupRepo,
         subjectsRepo = env.subjectRepo,
         pricesRepo = env.priceRepo,
         settingsRepo = env.settingsRepo,
@@ -291,6 +293,207 @@ class ClassEditViewModelTest {
         assertEquals(0L, saved.chargeMinor)
         // Still one row — an edit is an in-place update, never a duplicate insert.
         assertEquals(1, env.classDao.items.value.size)
+    }
+
+    // --- Group lessons ---
+
+    /** Two students in one group, both priced for the same subject (so it is bookable). */
+    private suspend fun seedGroup(
+        annPrice: Money = Money.ofMajor(30),
+        bobPrice: Money = Money.ofMajor(25),
+    ): Triple<Long, Long, Long> {
+        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
+        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        env.priceDao.upsert(PriceEntity(ann, algebra, annPrice.minor))
+        env.priceDao.upsert(PriceEntity(bob, algebra, bobPrice.minor))
+        val groupId = env.groupRepo.save(Group(name = "11 «А»", defaultMode = ClassMode.REMOTE), setOf(ann, bob))
+        return Triple(groupId, ann, bob)
+    }
+
+    @Test
+    fun `a form opened from a group starts out booking that group, in its default mode`() = runTest(mainRule.dispatcher) {
+        val (groupId, _, _) = seedGroup()
+        val vm = vm(groupId = groupId)
+        backgroundScope.launch { vm.groups.collect {} }
+        backgroundScope.launch { vm.members.collect {} }
+        backgroundScope.launch { vm.subjects.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(ClassTarget.GROUP, vm.form.value.target)
+        assertEquals(groupId, vm.form.value.groupId)
+        assertEquals(ClassMode.REMOTE, vm.form.value.mode)
+    }
+
+    @Test
+    fun `a group can only be booked for a subject every member is priced for`() = runTest(mainRule.dispatcher) {
+        val (groupId, ann, _) = seedGroup()
+        // Ann alone is priced for Physics, so it must not be offered for the group.
+        val physics = env.subjectDao.upsert(SubjectEntity(name = "Физика"))
+        env.priceDao.upsert(PriceEntity(ann, physics, Money.ofMajor(50).minor))
+
+        val vm = vm(groupId = groupId)
+        backgroundScope.launch { vm.groups.collect {} }
+        backgroundScope.launch { vm.subjects.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(listOf("Алгебра"), vm.subjects.value.map { it.name })
+    }
+
+    @Test
+    fun `choosing a subject prefills every member's own rate`() = runTest(mainRule.dispatcher) {
+        val (groupId, ann, bob) = seedGroup(annPrice = Money.ofMajor(30), bobPrice = Money.ofMajor(25))
+        val vm = vm(groupId = groupId)
+        backgroundScope.launch { vm.groups.collect {} }
+        backgroundScope.launch { vm.members.collect {} }
+        backgroundScope.launch { vm.subjects.collect {} }
+        advanceUntilIdle()
+
+        // The group's only bookable subject is auto-selected, which prefills the rates.
+        assertEquals(mapOf(ann to "30", bob to "25"), vm.form.value.memberPrices)
+        assertEquals(2, vm.members.value.size)
+    }
+
+    @Test
+    fun `an archived member is left out of a new group lesson`() = runTest(mainRule.dispatcher) {
+        val (groupId, ann, bob) = seedGroup()
+        env.studentDao.upsert(env.studentDao.getById(bob)!!.copy(archived = true))
+
+        val vm = vm(groupId = groupId)
+        backgroundScope.launch { vm.groups.collect {} }
+        backgroundScope.launch { vm.members.collect {} }
+        backgroundScope.launch { vm.subjects.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(listOf(ann), vm.members.value.map { it.id })
+        assertEquals(setOf(ann), vm.form.value.memberPrices.keys)
+    }
+
+    @Test
+    fun `the group form is invalid until every member has a valid rate`() {
+        val base = ClassForm(
+            target = ClassTarget.GROUP,
+            groupId = 7, subjectId = 1,
+            date = LocalDate.of(2026, 9, 1),
+            timeFrom = LocalTime.of(10, 0),
+            timeTo = LocalTime.of(11, 0),
+        )
+        assertFalse("no members, nothing to bill", base.isValid)
+        assertFalse(base.copy(memberPrices = mapOf(1L to "30", 2L to "")).isValid)
+        assertFalse(base.copy(memberPrices = mapOf(1L to "30", 2L to "abc")).isValid)
+        assertTrue(base.copy(memberPrices = mapOf(1L to "30", 2L to "25,50")).isValid)
+    }
+
+    @Test
+    fun `saving a new group lesson writes one class per member at their own rate`() = runTest(mainRule.dispatcher) {
+        val (groupId, ann, bob) = seedGroup()
+        val vm = vm(groupId = groupId)
+        backgroundScope.launch { vm.groups.collect {} }
+        backgroundScope.launch { vm.members.collect {} }
+        backgroundScope.launch { vm.subjects.collect {} }
+        advanceUntilIdle()
+
+        val date = LocalDate.now(zone).plusDays(2)
+        vm.update { it.copy(date = date, timeFrom = LocalTime.of(10, 0), timeTo = LocalTime.of(11, 30)) }
+        var done = false
+        vm.save { done = true }
+        advanceUntilIdle()
+
+        assertTrue(done)
+        val saved = env.classDao.items.value
+        assertEquals(2, saved.size)
+        assertTrue("every class belongs to the group", saved.all { it.groupId == groupId })
+        assertTrue("and to the same lesson", saved.map { it.startMillis }.distinct().size == 1)
+        assertEquals(90, saved.first().durationMinutes)
+        assertEquals(
+            mapOf(ann to Money.ofMajor(30).minor, bob to Money.ofMajor(25).minor),
+            saved.associate { it.studentId to it.priceMinor },
+        )
+    }
+
+    @Test
+    fun `editing a group lesson loads every member and saves them all`() = runTest(mainRule.dispatcher) {
+        val (groupId, ann, bob) = seedGroup()
+        val start = Instant.parse("2026-09-01T09:00:00Z")
+        val ids = env.classRepo.addGroupSession(
+            groupId = groupId, subjectId = env.subjectDao.getAll().first().id, start = start,
+            durationMinutes = 60, mode = ClassMode.IN_PERSON,
+            pricesByStudent = mapOf(ann to Money.ofMajor(30), bob to Money.ofMajor(25)),
+        )
+
+        // Opening it by *one* member's class must still edit the whole lesson.
+        val vm = vm(id = ids.first())
+        backgroundScope.launch { vm.groups.collect {} }
+        backgroundScope.launch { vm.members.collect {} }
+        backgroundScope.launch { vm.subjects.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(ClassTarget.GROUP, vm.form.value.target)
+        assertEquals(mapOf(ann to "30", bob to "25"), vm.form.value.memberPrices)
+        assertEquals(listOf(ann, bob), vm.members.value.map { it.id })
+
+        // Raise Bob's rate and lengthen the lesson; both members' classes must be updated in place.
+        vm.setMemberPrice(bob, "28")
+        vm.update { it.copy(timeTo = it.timeFrom!!.plusMinutes(90)) }
+        vm.save { }
+        advanceUntilIdle()
+
+        val saved = env.classDao.items.value
+        assertEquals(2, saved.size)
+        assertTrue(saved.all { it.durationMinutes == 90 })
+        assertEquals(Money.ofMajor(28).minor, saved.single { it.studentId == bob }.priceMinor)
+        assertEquals(Money.ofMajor(30).minor, saved.single { it.studentId == ann }.priceMinor)
+    }
+
+    @Test
+    fun `editing an old lesson keeps its own members after the roster changed`() = runTest(mainRule.dispatcher) {
+        val (groupId, ann, bob) = seedGroup()
+        val algebra = env.subjectDao.getAll().first().id
+        val ids = env.classRepo.addGroupSession(
+            groupId = groupId, subjectId = algebra, start = Instant.parse("2026-09-01T09:00:00Z"),
+            durationMinutes = 60, mode = ClassMode.IN_PERSON,
+            pricesByStudent = mapOf(ann to Money.ofMajor(30), bob to Money.ofMajor(25)),
+        )
+        // Bob leaves the group and a new student joins, *after* the lesson was booked.
+        val carl = env.studentDao.upsert(StudentEntity(name = "Вова"))
+        env.priceDao.upsert(PriceEntity(carl, algebra, Money.ofMajor(20).minor))
+        env.groupRepo.save(Group(id = groupId, name = "11 «А»"), setOf(ann, carl))
+
+        val vm = vm(id = ids.first())
+        backgroundScope.launch { vm.groups.collect {} }
+        backgroundScope.launch { vm.members.collect {} }
+        backgroundScope.launch { vm.subjects.collect {} }
+        advanceUntilIdle()
+
+        // The lesson still reads as the lesson it was: Ann and Bob, not Ann and Carl.
+        assertEquals(listOf(ann, bob), vm.members.value.map { it.id })
+        assertEquals(setOf(ann, bob), vm.form.value.memberPrices.keys)
+
+        // Re-saving must not create a class for the newcomer, nor drop the departed member's.
+        vm.save { }
+        advanceUntilIdle()
+        assertEquals(2, env.classDao.items.value.size)
+        assertEquals(setOf(ann, bob), env.classDao.items.value.map { it.studentId }.toSet())
+    }
+
+    @Test
+    fun `switching the target clears the other target's choices`() = runTest(mainRule.dispatcher) {
+        val (groupId, _, _) = seedGroup()
+        val vm = vm()
+        backgroundScope.launch { vm.students.collect {} }
+        backgroundScope.launch { vm.groups.collect {} }
+        backgroundScope.launch { vm.subjects.collect {} }
+        advanceUntilIdle()
+
+        vm.setTarget(ClassTarget.GROUP)
+        advanceUntilIdle()
+        assertEquals(groupId, vm.form.value.groupId) // the only group is auto-selected
+        assertNull(vm.form.value.studentId)
+
+        vm.setTarget(ClassTarget.STUDENT)
+        advanceUntilIdle()
+        assertNull(vm.form.value.groupId)
+        assertTrue(vm.form.value.memberPrices.isEmpty())
     }
 
     @Test

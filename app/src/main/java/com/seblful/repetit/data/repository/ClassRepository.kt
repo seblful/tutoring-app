@@ -3,14 +3,20 @@ package com.seblful.repetit.data.repository
 import com.seblful.repetit.calendar.CalendarEvent
 import com.seblful.repetit.calendar.CalendarSync
 import com.seblful.repetit.data.local.ClassDao
+import com.seblful.repetit.data.local.GroupDao
 import com.seblful.repetit.data.local.StudentDao
 import com.seblful.repetit.data.local.SubjectDao
 import com.seblful.repetit.data.toDomain
 import com.seblful.repetit.data.toEntity
 import com.seblful.repetit.domain.CalendarSyncPolicy
 import com.seblful.repetit.domain.ClassRules
+import com.seblful.repetit.domain.ClassSession
+import com.seblful.repetit.domain.GroupRules
 import com.seblful.repetit.domain.ReminderScheduler
+import com.seblful.repetit.domain.SessionEdit
+import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.ClassStatus
+import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.TutoringClass
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -23,6 +29,7 @@ class ClassRepository @Inject constructor(
     private val dao: ClassDao,
     private val studentDao: StudentDao,
     private val subjectDao: SubjectDao,
+    private val groupDao: GroupDao,
     private val calendarSync: CalendarSync,
     private val reminderScheduler: ReminderScheduler,
     private val settings: SettingsRepository,
@@ -40,6 +47,18 @@ class ClassRepository @Inject constructor(
     suspend fun getById(id: Long): TutoringClass? = dao.getById(id)?.toDomain()
 
     suspend fun getAll(): List<TutoringClass> = dao.getAll().map { it.toDomain() }
+
+    /**
+     * The whole lesson [classId] belongs to: its group's classes at that start time, or just the one
+     * class when it is individual. Editing a group lesson starts here, so the form always works from
+     * every member's class rather than from whichever one the tutor happened to tap.
+     */
+    suspend fun getSessionFor(classId: Long): ClassSession? {
+        val klass = dao.getById(classId)?.toDomain() ?: return null
+        val groupId = klass.groupId ?: return ClassSession(null, listOf(klass))
+        val siblings = dao.getSession(groupId, klass.start.toEpochMilli()).map { it.toDomain() }
+        return ClassSession(groupId, siblings.ifEmpty { listOf(klass) })
+    }
 
     /**
      * Re-mirrors every class to the device calendar. Run after the user turns calendar sync on, to
@@ -108,6 +127,105 @@ class ClassRepository @Inject constructor(
         reminderScheduler.refreshNow()
     }
 
+    // ---- Group lessons -------------------------------------------------------------------------
+    // A group lesson is n classes, one per member, sharing a group id and a start. Every write below
+    // is the batch form of a single-class write: the same rules run per class (so each member is
+    // billed at their own rate and no charge goes stale), while the calendar is mirrored per class
+    // and reminders are refreshed **once** at the end instead of n times.
+
+    /**
+     * Books one lesson for a group: a class per entry in [pricesByStudent], each at that member's own
+     * hourly rate. Returns the new class ids. Refuses an empty roster — a lesson with nobody in it
+     * would be an invisible row that bills no one.
+     */
+    suspend fun addGroupSession(
+        groupId: Long,
+        subjectId: Long,
+        start: Instant,
+        durationMinutes: Int,
+        mode: ClassMode,
+        pricesByStudent: Map<Long, Money>,
+    ): List<Long> {
+        require(pricesByStudent.isNotEmpty()) { "A group lesson needs at least one member" }
+        val ids = pricesByStudent.map { (studentId, price) ->
+            val klass = TutoringClass(
+                studentId = studentId,
+                subjectId = subjectId,
+                start = start,
+                durationMinutes = durationMinutes,
+                price = price,
+                mode = mode,
+                groupId = groupId,
+            )
+            val id = dao.upsert(klass.toEntity())
+            mirrorToCalendar(klass.copy(id = id))
+            id
+        }
+        reminderScheduler.refreshNow()
+        return ids
+    }
+
+    /**
+     * Applies one edit to every class of a group lesson. Each member's class goes through
+     * [ClassRules.edit] with that member's rate, so the move-and-rebill obligation is honoured per
+     * class — moving the lesson into the future re-plans all of them, and a completed lesson's
+     * recognized income follows the edit for every member at once.
+     */
+    suspend fun updateGroupSession(
+        session: ClassSession,
+        changes: SessionEdit,
+        newStart: Instant,
+        now: Instant = Instant.now(),
+    ) {
+        session.classes.forEach { c ->
+            val resolved = ClassRules.edit(c, GroupRules.editFor(c, changes), newStart, now)
+            dao.update(resolved.toEntity())
+            mirrorToCalendar(resolved)
+        }
+        reminderScheduler.refreshNow()
+    }
+
+    /**
+     * Applies a status change to a whole lesson, skipping the classes it isn't legal for — so
+     * "mark completed" on a group lesson whose absentee is already cancelled completes the rest and
+     * leaves that correction standing. Returns the classes actually changed.
+     */
+    suspend fun setStatusForSession(session: ClassSession, to: ClassStatus): List<TutoringClass> {
+        val updated = GroupRules.applicableTo(session, to).map { c ->
+            val next = ClassRules.applyStatus(c, to)
+            dao.update(next.toEntity())
+            mirrorToCalendar(next)
+            next
+        }
+        reminderScheduler.refreshNow()
+        return updated
+    }
+
+    /** Reschedules every class of a lesson together, keeping the members in one session. */
+    suspend fun moveSession(
+        session: ClassSession,
+        newStart: Instant,
+        now: Instant = Instant.now(),
+    ): List<TutoringClass> {
+        val moved = session.classes.map { c ->
+            val next = ClassRules.move(c, newStart, now)
+            dao.update(next.toEntity())
+            mirrorToCalendar(next)
+            next
+        }
+        reminderScheduler.refreshNow()
+        return moved
+    }
+
+    /** Deletes every class of a lesson, with its calendar events. */
+    suspend fun deleteSession(session: ClassSession) {
+        session.classes.forEach { c ->
+            c.calendarEventId?.let { calendarSync.delete(it) }
+            dao.delete(c.toEntity())
+        }
+        reminderScheduler.refreshNow()
+    }
+
     suspend fun nextScheduledAfter(now: Instant): TutoringClass? =
         dao.nextScheduledAfter(now.toEpochMilli())?.toDomain()
 
@@ -152,10 +270,16 @@ class ClassRepository @Inject constructor(
         }
     }
 
+    /**
+     * A group lesson mirrors as one event **per member** — each student keeps their own invite and
+     * email reminder, and per-member corrections (one absentee cancelled) stay expressible. The
+     * group's name goes in the title so those overlapping events read as one lesson.
+     */
     private suspend fun titleFor(klass: TutoringClass): String {
         val student = studentDao.getById(klass.studentId)?.name.orEmpty()
         val subject = subjectDao.getById(klass.subjectId)?.name.orEmpty()
-        return CalendarEvent.title(student, subject)
+        val group = klass.groupId?.let { groupDao.getById(it)?.name }
+        return CalendarEvent.title(student, subject, group)
     }
 
     /**

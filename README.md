@@ -1,6 +1,6 @@
 # Repetit — Tutoring App
 
-A native Android app for a **single private tutor** to manage students, subjects, schedule,
+A native Android app for a **single private tutor** to manage students, groups, subjects, schedule,
 payments and debts. **Offline-first and local-only — no backend, no account, no cloud.** Russian UI,
 Material 3, currency in **BYN** (Belarusian ruble).
 
@@ -9,6 +9,7 @@ Material 3, currency in **BYN** (Belarusian ruble).
 ## Features
 
 - **Students & subjects** — per-student subjects, each with an hourly price; archive-only (history is protected).
+- **Groups** — a named roster taught together; booking one lesson books it for every member at their own rate, so the schedule shows one card while billing stays per-student (including "this one didn't come").
 - **Schedule** — one-off classes with a `scheduled → completed | cancelled` lifecycle; optional auto-complete once a class ends.
 - **Billing** — hourly rate booked per class; balances and income derived on the fly, never stored.
 - **Reports** — income and outstanding debt for active students.
@@ -101,7 +102,7 @@ app/src/main/java/com/seblful/repetit/
 ├── domain/                       # pure rules + ports + models (JVM-tested)
 ├── data/{local,repository,backup}/
 ├── calendar/ notifications/ diagnostics/ work/ format/ di/
-├── ui/{schedule,students,subjects,reports,backup,more,
+├── ui/{schedule,students,groups,subjects,reports,backup,more,
 │       onboarding,diagnostics,common,navigation,theme}/
 ├── MainActivity.kt               # @AndroidEntryPoint → AppRoot()
 └── TutoringApp.kt                # @HiltAndroidApp, WorkManager config

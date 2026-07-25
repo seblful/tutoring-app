@@ -6,6 +6,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.repetit.data.local.AppDatabase
 import com.seblful.repetit.data.local.ClassEntity
+import com.seblful.repetit.data.local.GroupEntity
+import com.seblful.repetit.data.local.GroupMemberCrossRef
 import com.seblful.repetit.data.local.PaymentEntity
 import com.seblful.repetit.data.local.PriceEntity
 import com.seblful.repetit.data.local.StudentEntity
@@ -31,7 +33,8 @@ class BackupRoundTripTest {
         ).build()
 
     private fun managerFor(db: AppDatabase) = BackupManager(
-        db, db.subjectDao(), db.studentDao(), db.priceDao(), db.classDao(), db.paymentDao(),
+        db, db.subjectDao(), db.studentDao(), db.groupDao(), db.priceDao(), db.classDao(),
+        db.paymentDao(),
     )
 
     @Before fun setUp() {
@@ -55,10 +58,12 @@ class BackupRoundTripTest {
         db.studentDao().insertLinks(
             listOf(StudentSubjectCrossRef(1, 1), StudentSubjectCrossRef(1, 2), StudentSubjectCrossRef(2, 1)),
         )
+        db.groupDao().insertAll(listOf(GroupEntity(7, "11 «А»", note = "вечер", defaultMode = "REMOTE")))
+        db.groupDao().insertMembers(listOf(GroupMemberCrossRef(7, 1), GroupMemberCrossRef(7, 2)))
         db.priceDao().insertAll(listOf(PriceEntity(1, 1, 5000), PriceEntity(2, 1, 4550)))
         db.classDao().insertAll(
             listOf(
-                ClassEntity(1, 1, 1, 1_900_000_000_000, 90, priceMinor = 5000, status = "COMPLETED", chargeMinor = 5000, recurringGroupId = 42, mode = "REMOTE", calendarEventId = "evt-1"),
+                ClassEntity(1, 1, 1, 1_900_000_000_000, 90, priceMinor = 5000, status = "COMPLETED", chargeMinor = 5000, groupId = 7, mode = "REMOTE", calendarEventId = "evt-1"),
                 ClassEntity(2, 2, 1, 1_900_100_000_000, 60, status = "SCHEDULED"),
             ),
         )

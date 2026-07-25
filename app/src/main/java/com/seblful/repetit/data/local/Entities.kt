@@ -41,6 +41,40 @@ data class StudentSubjectCrossRef(
     val subjectId: Long,
 )
 
+/**
+ * A named set of students taught together, e.g. «11 «А», вечер».
+ *
+ * A group is a **roster convenience, not a billing entity**: booking a lesson for it writes one
+ * [ClassEntity] per member, so prices, balances and reports stay strictly per-student. Groups are
+ * archive-only once they have classes (see `GroupRepository.delete`), like students.
+ */
+@Serializable
+@Entity(tableName = "student_groups")
+data class GroupEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val note: String = "",
+    /** Pre-fills the mode of a lesson booked for this group. */
+    val defaultMode: String = "IN_PERSON",
+    val archived: Boolean = false,
+)
+
+/** Who belongs to a group. */
+@Serializable
+@Entity(
+    tableName = "group_members",
+    primaryKeys = ["groupId", "studentId"],
+    indices = [Index("studentId")],
+    foreignKeys = [
+        ForeignKey(GroupEntity::class, ["id"], ["groupId"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(StudentEntity::class, ["id"], ["studentId"], onDelete = ForeignKey.CASCADE),
+    ],
+)
+data class GroupMemberCrossRef(
+    val groupId: Long,
+    val studentId: Long,
+)
+
 /** Current price for one (student, subject). Completed classes snapshot their own charge. */
 @Serializable
 @Entity(
@@ -61,14 +95,17 @@ data class PriceEntity(
 @Serializable
 @Entity(
     tableName = "classes",
-    indices = [Index("studentId"), Index("subjectId"), Index("startMillis"), Index("status")],
+    indices = [
+        Index("studentId"), Index("subjectId"), Index("startMillis"), Index("status"), Index("groupId"),
+    ],
     // RESTRICT, not CASCADE: a class is recognized income and history. The schema itself must refuse
-    // to delete a student or subject that still has classes, so no future code path can silently
-    // erase earned income by removing a parent. Subjects are additionally guarded at the repository
-    // (`SubjectRepository.delete`); students have no delete path at all (archive only).
+    // to delete a student, subject or group that still has classes, so no future code path can
+    // silently erase earned income by removing a parent. Subjects and groups are additionally
+    // guarded at their repositories; students have no delete path at all (archive only).
     foreignKeys = [
         ForeignKey(StudentEntity::class, ["id"], ["studentId"], onDelete = ForeignKey.RESTRICT),
         ForeignKey(SubjectEntity::class, ["id"], ["subjectId"], onDelete = ForeignKey.RESTRICT),
+        ForeignKey(GroupEntity::class, ["id"], ["groupId"], onDelete = ForeignKey.RESTRICT),
     ],
 )
 data class ClassEntity(
@@ -80,7 +117,12 @@ data class ClassEntity(
     val priceMinor: Long = 0,
     val status: String,
     val chargeMinor: Long = 0,
-    val recurringGroupId: Long? = null,
+    /**
+     * The group this class was booked as part of, or null for an individual class. The members'
+     * classes of one group lesson share this id *and* [startMillis] — that pair is the "session"
+     * the schedule collapses into a single card.
+     */
+    val groupId: Long? = null,
     val mode: String = "IN_PERSON",
     val calendarEventId: String? = null,
 )

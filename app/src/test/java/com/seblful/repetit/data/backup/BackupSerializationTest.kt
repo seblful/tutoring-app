@@ -1,6 +1,8 @@
 package com.seblful.repetit.data.backup
 
 import com.seblful.repetit.data.local.ClassEntity
+import com.seblful.repetit.data.local.GroupEntity
+import com.seblful.repetit.data.local.GroupMemberCrossRef
 import com.seblful.repetit.data.local.PaymentEntity
 import com.seblful.repetit.data.local.PriceEntity
 import com.seblful.repetit.data.local.StudentEntity
@@ -30,6 +32,15 @@ class BackupSerializationTest {
             StudentSubjectCrossRef(1, 2),
             StudentSubjectCrossRef(2, 1),
         ),
+        groups = listOf(
+            GroupEntity(7, "11 «А»", note = "вечер", defaultMode = "REMOTE", archived = false),
+            GroupEntity(8, "Выпускники", archived = true),
+        ),
+        groupMembers = listOf(
+            GroupMemberCrossRef(7, 1),
+            GroupMemberCrossRef(7, 2),
+            GroupMemberCrossRef(8, 2),
+        ),
         prices = listOf(
             PriceEntity(1, 1, amountMinor = 5000),
             PriceEntity(2, 1, amountMinor = 4550), // 45,50 BYN — kopecks survive
@@ -38,7 +49,7 @@ class BackupSerializationTest {
             ClassEntity(
                 id = 1, studentId = 1, subjectId = 1, startMillis = 1_900_000_000_000,
                 durationMinutes = 90, status = "COMPLETED", chargeMinor = 5000,
-                recurringGroupId = 42, mode = "REMOTE", calendarEventId = "evt-123",
+                groupId = 7, mode = "REMOTE", calendarEventId = "evt-123",
             ),
             ClassEntity(
                 id = 2, studentId = 2, subjectId = 1, startMillis = 1_900_100_000_000,
@@ -60,6 +71,35 @@ class BackupSerializationTest {
     fun `default version is stamped`() {
         val restored = json.decodeFromString<BackupData>(json.encodeToString(sample))
         assertEquals(BackupData.CURRENT_VERSION, restored.version)
+    }
+
+    /**
+     * A backup written before groups existed must still import: no groups, no group id on its
+     * classes, and the retired `recurringGroupId` key simply ignored.
+     */
+    @Test
+    fun `a version 1 backup still parses, without groups`() {
+        val v1 = """
+            {
+              "version": 1,
+              "subjects": [{"id": 1, "name": "Математика"}],
+              "students": [{"id": 1, "name": "Иван"}],
+              "studentSubjects": [{"studentId": 1, "subjectId": 1}],
+              "prices": [{"studentId": 1, "subjectId": 1, "amountMinor": 5000}],
+              "classes": [{
+                "id": 1, "studentId": 1, "subjectId": 1, "startMillis": 1900000000000,
+                "durationMinutes": 60, "status": "SCHEDULED", "recurringGroupId": null
+              }],
+              "payments": []
+            }
+        """.trimIndent()
+
+        val parsed = json.decodeFromString<BackupData>(v1)
+
+        assertTrue(BackupData.isSupported(parsed.version))
+        assertTrue(parsed.groups.isEmpty())
+        assertTrue(parsed.groupMembers.isEmpty())
+        assertEquals(null, parsed.classes.single().groupId)
     }
 
     @Test

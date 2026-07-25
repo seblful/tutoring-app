@@ -28,6 +28,8 @@ import com.seblful.repetit.ui.common.LocalCurrency
 import com.seblful.repetit.ui.theme.TutoringAppTheme
 import com.seblful.repetit.ui.backup.BackupScreen
 import com.seblful.repetit.ui.diagnostics.DiagnosticsScreen
+import com.seblful.repetit.ui.groups.GroupFormScreen
+import com.seblful.repetit.ui.groups.GroupsScreen
 import com.seblful.repetit.ui.more.MoreScreen
 import com.seblful.repetit.ui.more.SettingsScreen
 import com.seblful.repetit.ui.navigation.Routes
@@ -109,6 +111,7 @@ private fun MainApp() {
             composable(Routes.MORE) {
                 MoreScreen(
                     onSubjects = { navController.navigate(Routes.SUBJECTS) },
+                    onGroups = { navController.navigate(Routes.GROUPS) },
                     onBackup = { navController.navigate(Routes.BACKUP) },
                     onSettings = { navController.navigate(Routes.SETTINGS) },
                     onDiagnostics = { navController.navigate(Routes.DIAGNOSTICS) },
@@ -133,6 +136,29 @@ private fun MainApp() {
                 )
             }
 
+            composable(Routes.GROUPS) {
+                GroupsScreen(
+                    onBack = { navController.popBackStack() },
+                    onGroupClick = { navController.navigate(Routes.groupDetail(it)) },
+                    onAddGroup = { navController.navigate(Routes.GROUP_ADD) },
+                )
+            }
+            // Both routes are the same form; booking is offered only for a group that already
+            // exists (the new-group screen saves, then returns to the list), and the guard keeps a
+            // group with no id from reaching the booking form.
+            val bookForGroup: (Long) -> Unit = { groupId ->
+                if (groupId != 0L) navController.navigate(Routes.classEdit(0, groupId = groupId))
+            }
+            composable(Routes.GROUP_ADD) {
+                GroupFormScreen(onBack = { navController.popBackStack() }, onBookLesson = bookForGroup)
+            }
+            composable(
+                Routes.GROUP_DETAIL,
+                arguments = listOf(navArgument("id") { type = NavType.LongType }),
+            ) {
+                GroupFormScreen(onBack = { navController.popBackStack() }, onBookLesson = bookForGroup)
+            }
+
             composable(Routes.SUBJECTS) {
                 SubjectsScreen(onBack = { navController.popBackStack() })
             }
@@ -151,6 +177,7 @@ private fun MainApp() {
                 arguments = listOf(
                     navArgument("id") { type = NavType.LongType },
                     navArgument("date") { type = NavType.LongType; defaultValue = -1L },
+                    navArgument("group") { type = NavType.LongType; defaultValue = 0L },
                 ),
             ) {
                 ClassEditScreen(onBack = { navController.popBackStack() })

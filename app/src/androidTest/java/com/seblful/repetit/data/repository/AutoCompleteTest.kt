@@ -44,7 +44,7 @@ class AutoCompleteTest {
         db.studentDao().insertAll(listOf(StudentEntity(1, "Иван")))
         db.priceDao().insertAll(listOf(PriceEntity(1, 1, amountMinor = 5000))) // 50 BYN
         repo = ClassRepository(
-            db.classDao(), db.studentDao(), db.subjectDao(), noCalendar,
+            db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(), noCalendar,
             ReminderScheduler { /* no-op in tests */ }, SettingsRepository(db.settingsDao()),
         )
     }

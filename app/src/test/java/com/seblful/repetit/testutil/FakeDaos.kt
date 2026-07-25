@@ -2,6 +2,9 @@ package com.seblful.repetit.testutil
 
 import com.seblful.repetit.data.local.ClassDao
 import com.seblful.repetit.data.local.ClassEntity
+import com.seblful.repetit.data.local.GroupDao
+import com.seblful.repetit.data.local.GroupEntity
+import com.seblful.repetit.data.local.GroupMemberCrossRef
 import com.seblful.repetit.data.local.PaymentDao
 import com.seblful.repetit.data.local.PaymentEntity
 import com.seblful.repetit.data.local.PriceDao
@@ -116,11 +119,81 @@ class FakeStudentDao : StudentDao {
     }
 }
 
+class FakeGroupDao : GroupDao {
+    val items = MutableStateFlow<List<GroupEntity>>(emptyList())
+    val members = MutableStateFlow<List<GroupMemberCrossRef>>(emptyList())
+    private var nextId = 1L
+
+    override fun observeActive(): Flow<List<GroupEntity>> =
+        items.map { list -> list.filterNot { it.archived }.sortedBy { nameKey(it.name) } }
+
+    override fun observeAll(): Flow<List<GroupEntity>> =
+        items.map { list -> list.sortedWith(compareBy({ it.archived }, { nameKey(it.name) })) }
+
+    override suspend fun getAll(): List<GroupEntity> = items.value.sortedBy { nameKey(it.name) }
+
+    override fun observeById(id: Long): Flow<GroupEntity?> =
+        items.map { list -> list.firstOrNull { it.id == id } }
+
+    override suspend fun getById(id: Long): GroupEntity? = items.value.firstOrNull { it.id == id }
+
+    override suspend fun upsert(group: GroupEntity): Long {
+        val id = if (group.id == 0L) nextId++ else group.id
+        items.value = items.value.filterNot { it.id == id } + group.copy(id = id)
+        return id
+    }
+
+    override suspend fun delete(group: GroupEntity) {
+        items.value = items.value.filterNot { it.id == group.id }
+        // Mirrors ON DELETE CASCADE on group_members.
+        members.value = members.value.filterNot { it.groupId == group.id }
+    }
+
+    override fun observeMemberIds(groupId: Long): Flow<List<Long>> =
+        members.map { list -> list.filter { it.groupId == groupId }.map { it.studentId } }
+
+    override suspend fun getMemberIds(groupId: Long): List<Long> =
+        members.value.filter { it.groupId == groupId }.map { it.studentId }
+
+    override fun observeAllMembers(): Flow<List<GroupMemberCrossRef>> = members
+
+    override suspend fun addMember(ref: GroupMemberCrossRef) {
+        // OnConflictStrategy.IGNORE: a duplicate (groupId, studentId) is a no-op.
+        if (members.value.none { it.groupId == ref.groupId && it.studentId == ref.studentId }) {
+            members.value = members.value + ref
+        }
+    }
+
+    override suspend fun removeMember(groupId: Long, studentId: Long) {
+        members.value = members.value.filterNot { it.groupId == groupId && it.studentId == studentId }
+    }
+
+    override suspend fun getAllMembers(): List<GroupMemberCrossRef> = members.value
+
+    override suspend fun insertAll(groups: List<GroupEntity>) {
+        items.value = items.value + groups
+    }
+
+    override suspend fun insertMembers(members: List<GroupMemberCrossRef>) {
+        this.members.value = this.members.value + members
+    }
+
+    override suspend fun deleteAll() {
+        items.value = emptyList()
+    }
+
+    override suspend fun deleteAllMembers() {
+        members.value = emptyList()
+    }
+}
+
 class FakePriceDao : PriceDao {
     val items = MutableStateFlow<List<PriceEntity>>(emptyList())
 
     override fun observeForStudent(studentId: Long): Flow<List<PriceEntity>> =
         items.map { list -> list.filter { it.studentId == studentId } }
+
+    override fun observeAll(): Flow<List<PriceEntity>> = items
 
     override suspend fun get(studentId: Long, subjectId: Long): PriceEntity? =
         items.value.firstOrNull { it.studentId == studentId && it.subjectId == subjectId }
@@ -174,6 +247,12 @@ class FakeClassDao : ClassDao {
 
     override suspend fun countForStudentSubject(studentId: Long, subjectId: Long): Int =
         items.value.count { it.studentId == studentId && it.subjectId == subjectId }
+
+    override suspend fun countForGroup(groupId: Long): Int =
+        items.value.count { it.groupId == groupId }
+
+    override suspend fun getSession(groupId: Long, startMillis: Long): List<ClassEntity> =
+        items.value.filter { it.groupId == groupId && it.startMillis == startMillis }.sortedBy { it.id }
 
     override suspend fun dueForCompletion(nowMillis: Long): List<ClassEntity> =
         items.value.filter { it.status == "SCHEDULED" && endMillis(it) <= nowMillis }

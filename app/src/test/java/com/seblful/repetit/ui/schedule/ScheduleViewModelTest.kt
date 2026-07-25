@@ -4,6 +4,7 @@ import com.seblful.repetit.data.local.ClassEntity
 import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.SubjectEntity
 import com.seblful.repetit.domain.model.ClassStatus
+import com.seblful.repetit.domain.model.Group
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.testutil.MainDispatcherRule
 import com.seblful.repetit.testutil.TestEnv
@@ -30,7 +31,7 @@ class ScheduleViewModelTest {
     private val env = TestEnv()
     private val zone: ZoneId = ZoneId.systemDefault()
 
-    private fun vm() = ScheduleViewModel(env.classRepo, env.studentRepo, env.subjectRepo)
+    private fun vm() = ScheduleViewModel(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo)
 
     private fun startMillisOn(date: LocalDate, time: LocalTime): Long =
         date.atTime(time).atZone(zone).toInstant().toEpochMilli()
@@ -68,7 +69,7 @@ class ScheduleViewModelTest {
         val rows = vm.rows.value
         assertEquals(2, rows.size)
         assertTrue("rows are sorted by start time", rows[0].klass.start < rows[1].klass.start)
-        assertEquals("Аня", rows[0].studentName)
+        assertEquals("Аня", rows[0].title)
         assertEquals("Математика", rows[0].subjectName)
     }
 
@@ -200,7 +201,7 @@ class ScheduleViewModelTest {
         assertEquals(thursday, sections[1].date)
         assertEquals(2, sections[0].rows.size)
         assertTrue("rows within a day are time-sorted", sections[0].rows[0].klass.start < sections[0].rows[1].klass.start)
-        assertEquals("Пётр", sections[0].rows[0].studentName)
+        assertEquals("Пётр", sections[0].rows[0].title)
         assertEquals("Математика", sections[0].rows[0].subjectName)
     }
 
@@ -331,12 +332,93 @@ class ScheduleViewModelTest {
         val id = env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 90, priceMinor = Money.ofMajor(30).minor, status = "SCHEDULED"))
 
         val vm = vm()
-        vm.setStatus(id, ClassStatus.COMPLETED)
+        vm.setStatus(env.classRepo.getSessionFor(id)!!, ClassStatus.COMPLETED)
         advanceUntilIdle()
 
         val saved = env.classDao.items.value.single { it.id == id }
         assertEquals("COMPLETED", saved.status)
         assertEquals(Money.ofMajor(45).minor, saved.chargeMinor) // 30/h * 90 min
+    }
+
+    @Test
+    fun `the week agenda collapses a group lesson exactly like the day list`() = runTest(mainRule.dispatcher) {
+        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
+        val wednesday = LocalDate.of(2026, 7, 15)
+        val at = startMillisOn(wednesday, LocalTime.of(12, 0))
+        env.classDao.upsert(ClassEntity(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
+        env.classDao.upsert(ClassEntity(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
+
+        val vm = vm()
+        backgroundScope.launch { vm.weekSections.collect {} }
+        vm.selectDate(wednesday)
+        advanceUntilIdle()
+
+        val section = vm.weekSections.value.single()
+        assertEquals(wednesday, section.date)
+        assertEquals("two member classes, one agenda row", 1, section.rows.size)
+        assertTrue(section.rows[0].isGroup)
+        assertEquals("11 «А»", section.rows[0].title)
+        assertEquals(listOf("Аня", "Борис"), section.rows[0].members.map { it.title })
+    }
+
+    @Test
+    fun `a group lesson is one row, with its members inside it`() = runTest(mainRule.dispatcher) {
+        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
+        val today = LocalDate.now(zone)
+        val at = startMillisOn(today, LocalTime.of(12, 0))
+        env.classDao.upsert(ClassEntity(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
+        env.classDao.upsert(ClassEntity(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
+        // Plus an unrelated individual class earlier the same day.
+        env.classDao.upsert(ClassEntity(studentId = ann, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED"))
+
+        val vm = vm()
+        backgroundScope.launch { vm.rows.collect {} }
+        advanceUntilIdle()
+
+        val rows = vm.rows.value
+        assertEquals("the group's two classes collapse into one row", 2, rows.size)
+        val individual = rows.first()
+        val group = rows.last()
+        assertFalse(individual.isGroup)
+        assertEquals("Аня", individual.title)
+        assertTrue(group.isGroup)
+        assertEquals("11 «А»", group.title)
+        assertEquals("Алгебра", group.subjectName)
+        assertEquals(listOf("Аня", "Борис"), group.members.map { it.title })
+        // Each member row acts on that member's class alone — that's how one absentee is corrected.
+        assertTrue(group.members.none { it.isGroup })
+        assertEquals(1, group.members.first().classes.size)
+    }
+
+    @Test
+    fun `completing a group row completes every member's class`() = runTest(mainRule.dispatcher) {
+        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
+        val at = startMillisOn(LocalDate.now(zone), LocalTime.of(12, 0))
+        env.classDao.upsert(ClassEntity(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = "SCHEDULED", groupId = groupId))
+        env.classDao.upsert(ClassEntity(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, priceMinor = Money.ofMajor(20).minor, status = "SCHEDULED", groupId = groupId))
+
+        val vm = vm()
+        backgroundScope.launch { vm.rows.collect {} }
+        advanceUntilIdle()
+        vm.setStatus(vm.rows.value.single().session, ClassStatus.COMPLETED)
+        advanceUntilIdle()
+
+        val saved = env.classDao.items.value
+        assertTrue(saved.all { it.status == "COMPLETED" })
+        // Each member billed at their own rate.
+        assertEquals(
+            mapOf(ann to Money.ofMajor(30).minor, bob to Money.ofMajor(20).minor),
+            saved.associate { it.studentId to it.chargeMinor },
+        )
     }
 
     @Test
@@ -346,7 +428,7 @@ class ScheduleViewModelTest {
         val id = env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "CANCELLED"))
 
         val vm = vm()
-        vm.delete(env.classRepo.getById(id)!!)
+        vm.delete(env.classRepo.getSessionFor(id)!!)
         advanceUntilIdle()
 
         assertTrue(env.classDao.items.value.isEmpty())

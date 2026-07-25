@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.seblful.repetit.data.repository.ClassRepository
+import com.seblful.repetit.data.repository.GroupRepository
 import com.seblful.repetit.data.repository.SettingsRepository
 import com.seblful.repetit.data.repository.StudentRepository
 import com.seblful.repetit.data.repository.SubjectRepository
@@ -22,6 +23,7 @@ class ReminderWorker @AssistedInject constructor(
     private val classes: ClassRepository,
     private val students: StudentRepository,
     private val subjects: SubjectRepository,
+    private val groups: GroupRepository,
     private val notifier: Notifier,
     private val settings: SettingsRepository,
 ) : CoroutineWorker(appContext, params) {
@@ -38,9 +40,12 @@ class ReminderWorker @AssistedInject constructor(
         if (klass.status != ClassStatus.SCHEDULED) return Result.success()
         if (!klass.end.isAfter(Instant.now())) return Result.success()
 
-        val studentName = students.getById(klass.studentId)?.name.orEmpty()
+        // A group lesson is announced by its group, not by whichever member's class the plan points
+        // at — the tutor is being reminded of one lesson with several students in the room.
+        val who = klass.groupId?.let { groups.getById(it)?.name }
+            ?: students.getById(klass.studentId)?.name.orEmpty()
         val subjectName = subjects.getById(klass.subjectId)?.name.orEmpty()
-        notifier.showClassReminder(klass, studentName, subjectName)
+        notifier.showClassReminder(klass, who, subjectName)
         return Result.success()
     }
 

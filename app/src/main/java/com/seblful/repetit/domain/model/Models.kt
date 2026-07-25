@@ -20,6 +20,22 @@ data class Student(
 )
 
 /**
+ * A named set of students taught together.
+ *
+ * A group only *organizes* people — it owns no money. Booking a lesson for it books one
+ * [TutoringClass] per member, each at that member's own rate, so balances, debts and reports stay
+ * per-student and a group can be renamed, re-staffed or archived without touching history.
+ * Archived groups are hidden from lists and pickers but keep their past lessons.
+ */
+data class Group(
+    val id: Long = 0,
+    val name: String,
+    val note: String = "",
+    val defaultMode: ClassMode = ClassMode.IN_PERSON,
+    val archived: Boolean = false,
+)
+
+/**
  * The current price for one (student, subject) pair. Editing it never alters classes
  * already completed: a completed class captures its charge at completion time (see
  * [TutoringClass.charge]).
@@ -38,8 +54,8 @@ data class Price(
  *   lesson's duration, so the booked rate — not a later price edit — is what gets billed.
  * @param charge recognized income: the hourly [price] scaled by [durationMinutes] once the class is
  *   completed (see `ClassRules.chargeFor`), [Money.ZERO] while scheduled or once cancelled.
- * @param recurringGroupId groups occurrences generated from one weekly rule; null for
- *   one-off classes.
+ * @param groupId the [Group] this class was booked as part of, or null when it is an individual
+ *   class. One group lesson is *n* classes sharing this id and [start] — see `GroupRules.sessions`.
  * @param mode in person or remote; pre-filled from the student's default, editable per class.
  * @param calendarEventId id of the mirrored Google Calendar event, if synced.
  */
@@ -52,7 +68,7 @@ data class TutoringClass(
     val price: Money = Money.ZERO,
     val status: ClassStatus = ClassStatus.SCHEDULED,
     val charge: Money = Money.ZERO,
-    val recurringGroupId: Long? = null,
+    val groupId: Long? = null,
     val mode: ClassMode = ClassMode.IN_PERSON,
     val calendarEventId: String? = null,
 ) {

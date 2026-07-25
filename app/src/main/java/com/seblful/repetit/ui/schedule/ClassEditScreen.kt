@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -17,6 +18,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,12 +35,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
+import com.seblful.repetit.format.parseMoneyOrNull
 import com.seblful.repetit.ui.common.DatePickerModal
 import com.seblful.repetit.ui.common.ModeSelector
 import com.seblful.repetit.ui.common.TimePickerModal
@@ -58,6 +62,8 @@ fun ClassEditScreen(
 ) {
     val form by viewModel.form.collectAsState()
     val students by viewModel.students.collectAsState()
+    val groups by viewModel.groups.collectAsState()
+    val members by viewModel.members.collectAsState()
     val subjects by viewModel.subjects.collectAsState()
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -94,22 +100,55 @@ fun ClassEditScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            DropdownField(
-                label = stringResource(R.string.class_student_label),
-                selectedText = students.firstOrNull { it.id == form.studentId }?.name ?: "",
-                options = students.map { it.id to it.name },
-                onSelect = { id -> viewModel.selectStudent(id) },
-            )
+            // Who the lesson is for. Only offered while booking: an existing lesson already is one
+            // kind or the other, and turning a student's class into a group lesson (or back) would
+            // silently create or destroy other students' billed classes.
+            if (viewModel.isNew) {
+                TargetSelector(selected = form.target, onSelect = { viewModel.setTarget(it) })
+            }
+
+            when (form.target) {
+                ClassTarget.STUDENT -> DropdownField(
+                    label = stringResource(R.string.class_student_label),
+                    selectedText = students.firstOrNull { it.id == form.studentId }?.name ?: "",
+                    options = students.map { it.id to it.name },
+                    onSelect = { id -> viewModel.selectStudent(id) },
+                )
+
+                ClassTarget.GROUP -> {
+                    DropdownField(
+                        label = stringResource(R.string.class_group_label),
+                        selectedText = groups.firstOrNull { it.id == form.groupId }?.name ?: "",
+                        options = groups.map { it.id to it.name },
+                        onSelect = { id -> viewModel.selectGroup(id) },
+                        // A booked lesson can't be handed to another group: its members' classes are
+                        // billed history, and the other group is a different set of people.
+                        enabled = viewModel.isNew,
+                    )
+                    if (groups.isEmpty()) {
+                        Text(
+                            stringResource(R.string.class_no_groups),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            }
+
+            val targetChosen = form.studentId != null || form.groupId != null
             DropdownField(
                 label = stringResource(R.string.class_subject_label),
                 selectedText = subjects.firstOrNull { it.id == form.subjectId }?.name ?: "",
                 options = subjects.map { it.id to it.name },
                 onSelect = { id -> viewModel.selectSubject(id) },
-                enabled = form.studentId != null,
+                enabled = targetChosen,
             )
-            if (form.studentId != null && subjects.isEmpty()) {
+            if (targetChosen && subjects.isEmpty()) {
                 Text(
-                    stringResource(R.string.class_no_subjects_for_student),
+                    stringResource(
+                        if (form.target == ClassTarget.GROUP) R.string.class_no_subjects_for_group
+                        else R.string.class_no_subjects_for_student
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -137,8 +176,45 @@ fun ClassEditScreen(
                 )
             }
 
-            // Price is hidden behind its current value (like the location row); tap to edit.
-            if (showPriceField) {
+            if (form.target == ClassTarget.GROUP) {
+                // One rate per member, always visible: a group lesson is billed person by person, so
+                // who is being charged what is the substance of the booking, not a detail to hide.
+                Text(
+                    stringResource(R.string.class_group_prices_title),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                if (form.subjectId == null) {
+                    Text(
+                        stringResource(R.string.class_group_pick_subject_first),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                members.forEach { member ->
+                    val text = form.memberPrices[member.id] ?: ""
+                    // Rates only make sense once a subject is chosen (they are pre-filled from it),
+                    // and only a row that is actually editable can be flagged as needing a value —
+                    // a row still waiting for its pre-fill isn't the tutor's problem.
+                    val editable = form.subjectId != null && member.id in form.memberPrices
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(member.name, Modifier.weight(1f))
+                        OutlinedTextField(
+                            value = text,
+                            onValueChange = { viewModel.setMemberPrice(member.id, it) },
+                            label = { Text(stringResource(R.string.price_label)) },
+                            isError = editable && parseMoneyOrNull(text) == null,
+                            enabled = editable,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            modifier = Modifier.width(150.dp),
+                        )
+                    }
+                }
+            } else if (showPriceField) {
+                // Price is hidden behind its current value (like the location row); tap to edit.
                 OutlinedTextField(
                     value = form.priceText,
                     onValueChange = { text -> viewModel.update { it.copy(priceText = text) } },
@@ -211,6 +287,29 @@ fun ClassEditScreen(
 }
 
 private fun LocalTime.formatHm(): String = "%02d:%02d".format(hour, minute)
+
+/** Student-or-group chooser for a new booking. */
+@Composable
+private fun TargetSelector(selected: ClassTarget, onSelect: (ClassTarget) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ClassTarget.entries.forEach { target ->
+            FilterChip(
+                selected = selected == target,
+                onClick = { onSelect(target) },
+                label = {
+                    Text(
+                        stringResource(
+                            when (target) {
+                                ClassTarget.STUDENT -> R.string.class_target_student
+                                ClassTarget.GROUP -> R.string.class_target_group
+                            }
+                        )
+                    )
+                },
+            )
+        }
+    }
+}
 
 /**
  * A non-editable field that opens a picker when tapped. Unlike a plain disabled field, its text and

@@ -1,6 +1,8 @@
 package com.seblful.repetit.data.backup
 
 import com.seblful.repetit.data.local.ClassEntity
+import com.seblful.repetit.data.local.GroupEntity
+import com.seblful.repetit.data.local.GroupMemberCrossRef
 import com.seblful.repetit.data.local.PaymentEntity
 import com.seblful.repetit.data.local.PriceEntity
 import com.seblful.repetit.data.local.StudentEntity
@@ -19,12 +21,18 @@ data class BackupData(
     val subjects: List<SubjectEntity> = emptyList(),
     val students: List<StudentEntity> = emptyList(),
     val studentSubjects: List<StudentSubjectCrossRef> = emptyList(),
+    val groups: List<GroupEntity> = emptyList(),
+    val groupMembers: List<GroupMemberCrossRef> = emptyList(),
     val prices: List<PriceEntity> = emptyList(),
     val classes: List<ClassEntity> = emptyList(),
     val payments: List<PaymentEntity> = emptyList(),
 ) {
     companion object {
-        const val CURRENT_VERSION = 1
+        /**
+         * 2 added groups. A v1 file still imports: it simply has no groups, and its classes carry
+         * no group id (the retired `recurringGroupId` key is ignored on parse).
+         */
+        const val CURRENT_VERSION = 2
 
         /**
          * Whether a backup of [version] can be safely imported by this build. A newer version may

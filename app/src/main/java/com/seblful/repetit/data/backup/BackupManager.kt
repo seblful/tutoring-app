@@ -3,6 +3,7 @@ package com.seblful.repetit.data.backup
 import androidx.room.withTransaction
 import com.seblful.repetit.data.local.AppDatabase
 import com.seblful.repetit.data.local.ClassDao
+import com.seblful.repetit.data.local.GroupDao
 import com.seblful.repetit.data.local.PaymentDao
 import com.seblful.repetit.data.local.PriceDao
 import com.seblful.repetit.data.local.StudentDao
@@ -22,6 +23,7 @@ class BackupManager @Inject constructor(
     private val db: AppDatabase,
     private val subjects: SubjectDao,
     private val students: StudentDao,
+    private val groups: GroupDao,
     private val prices: PriceDao,
     private val classes: ClassDao,
     private val payments: PaymentDao,
@@ -36,6 +38,8 @@ class BackupManager @Inject constructor(
         subjects = subjects.getAll(),
         students = students.getAll(),
         studentSubjects = students.getAllLinks(),
+        groups = groups.getAll(),
+        groupMembers = groups.getAllMembers(),
         prices = prices.getAll(),
         classes = classes.getAll(),
         payments = payments.getAll(),
@@ -54,6 +58,8 @@ class BackupManager @Inject constructor(
             payments.deleteAll()
             classes.deleteAll()
             prices.deleteAll()
+            groups.deleteAllMembers()
+            groups.deleteAll()
             students.deleteAllLinks()
             students.deleteAll()
             subjects.deleteAll()
@@ -62,6 +68,8 @@ class BackupManager @Inject constructor(
             subjects.insertAll(data.subjects)
             students.insertAll(data.students)
             students.insertLinks(data.studentSubjects)
+            groups.insertAll(data.groups)
+            groups.insertMembers(data.groupMembers)
             prices.insertAll(data.prices)
             classes.insertAll(data.classes)
             payments.insertAll(data.payments)

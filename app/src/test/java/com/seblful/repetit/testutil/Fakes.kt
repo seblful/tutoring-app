@@ -3,6 +3,7 @@ package com.seblful.repetit.testutil
 import com.seblful.repetit.calendar.CalendarSync
 import com.seblful.repetit.data.repository.ClassRepository
 import com.seblful.repetit.data.repository.EnrollmentRepository
+import com.seblful.repetit.data.repository.GroupRepository
 import com.seblful.repetit.data.repository.PaymentRepository
 import com.seblful.repetit.data.repository.PriceRepository
 import com.seblful.repetit.data.repository.SettingsRepository
@@ -57,6 +58,7 @@ class FakeCalendarSync(var available: Boolean = true) : CalendarSync {
 class TestEnv {
     val subjectDao = FakeSubjectDao()
     val studentDao = FakeStudentDao()
+    val groupDao = FakeGroupDao()
     val priceDao = FakePriceDao()
     val classDao = FakeClassDao()
     val settingsDao = FakeSettingsDao()
@@ -68,6 +70,7 @@ class TestEnv {
     val settingsRepo = SettingsRepository(settingsDao)
     val subjectRepo = SubjectRepository(subjectDao, classDao)
     val studentRepo = StudentRepository(studentDao)
+    val groupRepo = GroupRepository(groupDao, classDao)
     val priceRepo = PriceRepository(priceDao)
     val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classDao)
     val paymentRepo = PaymentRepository(paymentDao)
@@ -75,6 +78,7 @@ class TestEnv {
         dao = classDao,
         studentDao = studentDao,
         subjectDao = subjectDao,
+        groupDao = groupDao,
         calendarSync = calendar,
         reminderScheduler = reminders,
         settings = settingsRepo,
