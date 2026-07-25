@@ -115,12 +115,14 @@ class ClassRepository @Inject constructor(
     // lesson) are discharged here rather than remembered at each call site.
 
     /**
-     * Books one lesson: a class per entry in [pricesByStudent], each at that student's own hourly
-     * rate. [groupId] names the group for a group lesson and is null for an individual one — that is
-     * the only difference between the two. Returns the new class ids.
+     * Books one lesson: a class per entry in [studentIds], every one of them at [price] — the group's
+     * hourly rate for a group lesson, the student's own for an individual one. [groupId] names the
+     * group and is null for an individual lesson; that, and how many students there are, is the only
+     * difference between the two. Returns the new class ids.
      *
-     * Taking the shared fields once, rather than a list of classes, is what makes a lesson whose
-     * members disagree about their start or subject unrepresentable.
+     * Taking the shared fields once — the rate included, now that a lesson has exactly one — rather
+     * than a list of classes is what makes a lesson whose members disagree about their start, subject
+     * or price unrepresentable.
      *
      * Refuses an empty roster: a lesson with nobody in it would be an invisible row that bills no one.
      */
@@ -129,11 +131,12 @@ class ClassRepository @Inject constructor(
         start: Instant,
         durationMinutes: Int,
         mode: ClassMode,
-        pricesByStudent: Map<Long, Money>,
+        studentIds: Collection<Long>,
+        price: Money,
         groupId: Long? = null,
     ): List<Long> {
-        require(pricesByStudent.isNotEmpty()) { "A lesson needs at least one student" }
-        val ids = pricesByStudent.map { (studentId, price) ->
+        require(studentIds.isNotEmpty()) { "A lesson needs at least one student" }
+        val ids = studentIds.map { studentId ->
             val klass = TutoringClass(
                 studentId = studentId,
                 subjectId = subjectId,
@@ -154,7 +157,7 @@ class ClassRepository @Inject constructor(
     /**
      * Applies one edit to every class of [session], moving the lesson to [newStart].
      *
-     * Each class goes through [ClassRules.edit] with its own student's rate, so the move-and-rebill
+     * Each class goes through [ClassRules.edit] with the lesson's rate, so the move-and-rebill
      * obligation is honoured per class: shifting a lesson into the future re-plans all of it, and a
      * completed lesson's recognized income follows the edit for every member at once. The rules run
      * *here* — a caller has no way to hand over an already-resolved class, and so no way to persist a

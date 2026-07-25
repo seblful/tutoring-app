@@ -43,11 +43,11 @@ data class StudentSubjectCrossRef(
 )
 
 /**
- * A named set of students taught together, e.g. «11 «А», вечер».
+ * A named set of students taught together, e.g. «11 «А», вечер», at one rate for the whole group.
  *
- * A group is a **roster convenience, not a billing entity**: booking a lesson for it writes one
- * [ClassEntity] per member, so prices, balances and reports stay strictly per-student. Groups are
- * archive-only once they have classes (see `GroupRepository.delete`), like students.
+ * A group **prices** its lessons but does not owe for them: booking one writes one [ClassEntity] per
+ * member, each snapshotting [priceMinor], so balances and reports stay strictly per-student. Groups
+ * are archive-only once they have classes (see `GroupRepository.delete`), like students.
  */
 @Serializable
 @Entity(tableName = "student_groups")
@@ -55,6 +55,15 @@ data class GroupEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val note: String = "",
+    /**
+     * The group's **hourly rate** in minor units — what each member of one of its lessons is billed,
+     * regardless of their individual [PriceEntity] rows. Added in v5, backfilled to 0 (the migration's
+     * `DEFAULT 0` must stay in step with the declared `defaultValue`, or Room's validation fails):
+     * a group that predates its own rate is left explicitly free until the tutor prices it, rather
+     * than being given an invented number.
+     */
+    @ColumnInfo(defaultValue = "0")
+    val priceMinor: Long = 0,
     /** Pre-fills the mode of a lesson booked for this group. */
     val defaultMode: String = "IN_PERSON",
     val archived: Boolean = false,
@@ -168,6 +177,17 @@ data class SettingsEntity(
     val themeMode: String = "SYSTEM",
     /** Pre-fills the end time when booking a class. */
     val defaultLessonMinutes: Int = 60,
+    /**
+     * Pre-fills the hourly rate of a **newly created group**, in minor units. A tutor's group rate is
+     * usually the same for every group, so typing it once here saves repeating it — and nothing else
+     * reads this, so changing it never re-prices a group that already exists.
+     *
+     * **0 means "not set"**: the new-group form then starts with an empty price field the tutor has
+     * to fill, rather than being pre-filled with an invented amount. (A group priced at 0 on purpose
+     * is still expressible — the tutor types it.)
+     */
+    @ColumnInfo(defaultValue = "0")
+    val defaultGroupPriceMinor: Long = 0,
     /** Currency code used to display all money, e.g. "BYN" or "RUB". */
     val currency: String = "BYN",
     /**

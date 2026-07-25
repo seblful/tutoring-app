@@ -131,7 +131,8 @@ class ClassCalendarSyncTest {
         start = start,
         durationMinutes = 60,
         mode = ClassMode.IN_PERSON,
-        pricesByStudent = mapOf(1L to price),
+        studentIds = listOf(1L),
+        price = price,
     ).single()
 
     /** The lesson class [id] belongs to. */

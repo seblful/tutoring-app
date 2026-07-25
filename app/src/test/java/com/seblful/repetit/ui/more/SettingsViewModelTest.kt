@@ -37,6 +37,7 @@ class SettingsViewModelTest {
         vm.setThemeMode("DARK")
         vm.setDefaultLessonMinutes(45)
         vm.setCurrency("RUB")
+        vm.setDefaultGroupPrice(2000)
         vm.setNotificationsEnabled(false)
         vm.setShowGroupsTab(false)
         advanceUntilIdle()
@@ -47,8 +48,26 @@ class SettingsViewModelTest {
         assertEquals("DARK", s.themeMode)
         assertEquals(45, s.defaultLessonMinutes)
         assertEquals("RUB", s.currency)
+        assertEquals(2000L, s.defaultGroupPriceMinor)
         assertFalse(s.notificationsEnabled)
         assertFalse(s.showGroupsTab)
+    }
+
+    @Test
+    fun `no default group price is set until the tutor sets one`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+
+        // 0 is "not set", so a new group's rate is left blank rather than pre-filled with a guess.
+        assertEquals(0L, vm.state.value.defaultGroupPriceMinor)
+
+        // And clearing it again is expressible — the settings row writes 0 for an empty field.
+        vm.setDefaultGroupPrice(2000)
+        advanceUntilIdle()
+        vm.setDefaultGroupPrice(0)
+        advanceUntilIdle()
+        assertEquals(0L, env.settingsRepo.get().defaultGroupPriceMinor)
     }
 
     @Test

@@ -39,23 +39,28 @@ class ClassRepositoryGroupTest {
         ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
+        // The group's own rate — 20, below either student's individual rate — is what its lessons bill.
+        groupId = env.groupRepo.save(Group(name = "11 «А»", price = groupRate), setOf(ann, bob))
     }
+
+    private val groupRate = Money.ofMajor(20)
 
     private suspend fun bookSession(
         at: Instant = start,
-        prices: Map<Long, Money> = mapOf(ann to Money.ofMajor(30), bob to Money.ofMajor(25)),
+        price: Money = groupRate,
+        members: Collection<Long> = listOf(ann, bob),
     ): List<Long> = repo.book(
         groupId = groupId,
         subjectId = algebra,
         start = at,
         durationMinutes = 60,
         mode = ClassMode.IN_PERSON,
-        pricesByStudent = prices,
+        studentIds = members,
+        price = price,
     )
 
     @Test
-    fun `booking a group lesson writes one class per member, each at their own rate`() = runTest {
+    fun `booking a group lesson writes one class per member, all at the group's rate`() = runTest {
         seed()
 
         val ids = bookSession()
@@ -65,10 +70,12 @@ class ClassRepositoryGroupTest {
         assertTrue(session.isGroup)
         assertEquals(groupId, session.groupId)
         assertEquals(2, session.size)
+        // One rate for the whole lesson — not each member's individual price.
         assertEquals(
-            mapOf(ann to Money.ofMajor(30), bob to Money.ofMajor(25)),
+            mapOf(ann to groupRate, bob to groupRate),
             session.classes.associate { it.studentId to it.price },
         )
+        assertEquals(groupRate, session.sharedPrice)
         // Every member's class shares the lesson's time, subject and mode.
         assertTrue(session.classes.all { it.start == start && it.subjectId == algebra })
         assertTrue(session.classes.all { it.status == ClassStatus.SCHEDULED })
@@ -93,7 +100,8 @@ class ClassRepositoryGroupTest {
                 start = start,
                 durationMinutes = 60,
                 mode = ClassMode.IN_PERSON,
-                pricesByStudent = emptyMap(),
+                studentIds = emptyList(),
+                price = groupRate,
                 groupId = groupId,
             )
         } catch (_: IllegalArgumentException) {
@@ -116,15 +124,16 @@ class ClassRepositoryGroupTest {
     }
 
     @Test
-    fun `completing a group lesson bills every member at their own rate`() = runTest {
+    fun `completing a group lesson bills every member the group's rate`() = runTest {
         seed()
         val ids = bookSession()
 
         val updated = repo.setStatus(repo.getSessionFor(ids.first())!!, ClassStatus.COMPLETED)
 
         assertEquals(2, updated.size)
+        // One rate, but still a charge each: the group says how much, the students still owe it.
         val charged = repo.getSessionFor(ids.first())!!.classes.associate { it.studentId to it.charge }
-        assertEquals(mapOf(ann to Money.ofMajor(30), bob to Money.ofMajor(25)), charged)
+        assertEquals(mapOf(ann to groupRate, bob to groupRate), charged)
     }
 
     @Test
@@ -141,7 +150,7 @@ class ClassRepositoryGroupTest {
         val after = repo.getSessionFor(ids.first())!!
         assertNull("a corrected lesson has no single status", after.commonStatus)
         assertEquals(Money.ZERO, after.classes.single { it.studentId == bob }.charge)
-        assertEquals(Money.ofMajor(30), after.classes.single { it.studentId == ann }.charge)
+        assertEquals(groupRate, after.classes.single { it.studentId == ann }.charge)
     }
 
     @Test
@@ -172,20 +181,20 @@ class ClassRepositoryGroupTest {
     }
 
     @Test
-    fun `editing a group lesson re-bills every member from their own new rate`() = runTest {
+    fun `editing a group lesson re-bills every member from the lesson's new rate`() = runTest {
         seed()
         val ids = bookSession()
         val session = repo.getSessionFor(ids.first())!!
         repo.setStatus(session, ClassStatus.COMPLETED)
 
-        // 90 minutes at new rates: Ann 40/h -> 60, Bob 20/h -> 30.
+        // 90 minutes at a new rate of 40/h -> 60 each.
         repo.apply(
             repo.getSessionFor(ids.first())!!,
             SessionEdit(
                 subjectId = algebra,
                 durationMinutes = 90,
                 mode = ClassMode.REMOTE,
-                pricesByStudent = mapOf(ann to Money.ofMajor(40), bob to Money.ofMajor(20)),
+                price = Money.ofMajor(40),
             ),
             newStart = start,
             now = Instant.parse("2026-09-05T00:00:00Z"),
@@ -195,12 +204,45 @@ class ClassRepositoryGroupTest {
         assertEquals(2, after.size)
         assertTrue("the lesson stays completed when it stays in the past", after.classes.all { it.status == ClassStatus.COMPLETED })
         assertEquals(
-            mapOf(ann to Money.ofMajor(60), bob to Money.ofMajor(30)),
+            mapOf(ann to Money.ofMajor(60), bob to Money.ofMajor(60)),
             after.classes.associate { it.studentId to it.charge },
         )
         assertTrue(after.classes.all { it.durationMinutes == 90 && it.mode == ClassMode.REMOTE })
         // An edit updates rows in place — income can't be double-counted.
         assertEquals(2, env.classDao.items.value.size)
+    }
+
+    @Test
+    fun `re-pricing a legacy lesson brings its members onto one rate`() = runTest {
+        seed()
+        // A lesson from before groups had a rate: each member billed their own.
+        val ids = repo.book(
+            groupId = groupId,
+            subjectId = algebra,
+            start = start,
+            durationMinutes = 60,
+            mode = ClassMode.IN_PERSON,
+            studentIds = listOf(ann),
+            price = Money.ofMajor(30),
+        ) + repo.book(
+            groupId = groupId,
+            subjectId = algebra,
+            start = start,
+            durationMinutes = 60,
+            mode = ClassMode.IN_PERSON,
+            studentIds = listOf(bob),
+            price = Money.ofMajor(25),
+        )
+        assertNull("members on differing rates have no single lesson rate", repo.getSessionFor(ids.first())!!.sharedPrice)
+
+        repo.apply(
+            repo.getSessionFor(ids.first())!!,
+            SessionEdit(algebra, 60, ClassMode.IN_PERSON, price = groupRate),
+            newStart = start,
+            now = start,
+        )
+
+        assertEquals(groupRate, repo.getSessionFor(ids.first())!!.sharedPrice)
     }
 
     @Test
@@ -212,7 +254,7 @@ class ClassRepositoryGroupTest {
         val now = Instant.parse("2026-09-01T12:00:00Z")
         repo.apply(
             repo.getSessionFor(ids.first())!!,
-            SessionEdit(algebra, 60, ClassMode.IN_PERSON, mapOf(ann to Money.ofMajor(30), bob to Money.ofMajor(25))),
+            SessionEdit(algebra, 60, ClassMode.IN_PERSON, groupRate),
             newStart = now.plusSeconds(86_400),
             now = now,
         )

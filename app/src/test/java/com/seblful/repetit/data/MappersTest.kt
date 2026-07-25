@@ -8,6 +8,7 @@ import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.SubjectEntity
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.ClassStatus
+import com.seblful.repetit.domain.model.Group
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.Payment
 import com.seblful.repetit.domain.model.Price
@@ -35,6 +36,16 @@ class MappersTest {
             note = "n", defaultMode = ClassMode.REMOTE, archived = true,
         )
         assertEquals(s, s.toEntity().toDomain())
+    }
+
+    @Test
+    fun `group round-trips including its own rate`() {
+        val g = Group(
+            id = 5, name = "11 «А»", note = "вечер", price = Money(2050),
+            defaultMode = ClassMode.REMOTE, archived = true,
+        )
+        assertEquals(g, g.toEntity().toDomain())
+        assertEquals("the rate persists in minor units", 2050L, g.toEntity().priceMinor)
     }
 
     @Test
@@ -93,7 +104,7 @@ class MappersTest {
         val columns = mapOf(
             "SubjectEntity" to setOf("id", "name"),
             "StudentEntity" to setOf("id", "name", "phone", "email", "note", "defaultMode", "archived"),
-            "GroupEntity" to setOf("id", "name", "note", "defaultMode", "archived"),
+            "GroupEntity" to setOf("id", "name", "note", "priceMinor", "defaultMode", "archived"),
             "PriceEntity" to setOf("studentId", "subjectId", "amountMinor"),
             "PaymentEntity" to setOf("id", "studentId", "dateMillis", "amountMinor"),
             "ClassEntity" to setOf(

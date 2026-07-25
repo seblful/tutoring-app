@@ -37,7 +37,8 @@ class ClassRepositoryTest {
         start = start,
         durationMinutes = 60,
         mode = ClassMode.IN_PERSON,
-        pricesByStudent = mapOf(STUDENT to Money.ofMajor(30)),
+        studentIds = listOf(STUDENT),
+        price = Money.ofMajor(30),
     ).single()
 
     /** The lesson class [id] belongs to — a session of one, for an individual class. */
@@ -47,7 +48,7 @@ class ClassRepositoryTest {
         subjectId = 1,
         durationMinutes = 60,
         mode = ClassMode.IN_PERSON,
-        pricesByStudent = mapOf(STUDENT to price),
+        price = price,
         studentId = STUDENT,
     )
 
@@ -201,7 +202,7 @@ class ClassRepositoryTest {
                 subjectId = 1,
                 durationMinutes = 60,
                 mode = ClassMode.IN_PERSON,
-                pricesByStudent = mapOf(other to Money.ofMajor(45)),
+                price = Money.ofMajor(45),
                 studentId = other,
             ),
             newStart = defaultStart,

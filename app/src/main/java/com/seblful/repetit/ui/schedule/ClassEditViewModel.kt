@@ -51,11 +51,10 @@ enum class ClassTarget { STUDENT, GROUP }
  * [timeFrom] — keeping the lesson's length (the default lesson when none is set yet) whenever the
  * start changes — and stays independently editable.
  *
- * The form covers both kinds of booking. For [ClassTarget.STUDENT] it is one student and one
- * [priceText]. For [ClassTarget.GROUP] it is a group and [memberPrices] — one rate per member,
- * pre-filled from each member's own price for the subject, because a group lesson is billed person by
- * person (one shared price would silently re-rate somebody). Everything else — subject, date, time,
- * mode — is shared by the whole lesson.
+ * The form covers both kinds of booking, and differs between them only in *who* the lesson is for:
+ * one student, or a whole group. Everything else — subject, date, time, mode and the single
+ * [priceText] — belongs to the lesson. That one rate is pre-filled from the student's price for the
+ * subject, or from the **group's own rate**, and every class the lesson writes is booked at it.
  */
 data class ClassForm(
     val target: ClassTarget = ClassTarget.STUDENT,
@@ -66,8 +65,6 @@ data class ClassForm(
     val timeFrom: LocalTime? = null,
     val timeTo: LocalTime? = null,
     val priceText: String = "",
-    /** studentId → raw rate text, one entry per member of the chosen group. */
-    val memberPrices: Map<Long, String> = emptyMap(),
     val mode: ClassMode = ClassMode.IN_PERSON,
 ) {
     /** Minutes between [timeFrom] and [timeTo], or null when the range isn't a positive duration. */
@@ -80,22 +77,13 @@ data class ClassForm(
 
     val price: Money? get() = MoneyInput.rate(priceText)
 
-    /** Every member's rate, or null when the roster is empty or any rate doesn't parse. */
-    val memberMoney: Map<Long, Money>?
-        get() {
-            if (memberPrices.isEmpty()) return null
-            val parsed = memberPrices.mapValues { (_, text) -> MoneyInput.rate(text) }
-            return if (parsed.values.any { it == null }) null
-            else parsed.mapValues { (_, money) -> money!! }
-        }
-
     private val timingValid: Boolean
         get() = date != null && timeFrom != null && timeTo != null && (durationMinutes ?: 0) > 0
 
     val isValid: Boolean
-        get() = subjectId != null && timingValid && when (target) {
-            ClassTarget.STUDENT -> studentId != null && price != null
-            ClassTarget.GROUP -> groupId != null && memberMoney != null
+        get() = subjectId != null && timingValid && price != null && when (target) {
+            ClassTarget.STUDENT -> studentId != null
+            ClassTarget.GROUP -> groupId != null
         }
 
     /**
@@ -176,29 +164,32 @@ class ClassEditViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /**
-     * Who the lesson's rate rows are for. While **booking**, the group's bookable roster (archived
-     * students left out). While **editing**, the members the lesson was actually booked for — a
-     * roster change since then must not add or drop a billed class, so the form shows the lesson as
-     * it is, not as the group is now.
+     * Who the lesson covers, listed under the group so the tutor can see it. While **booking**, the
+     * group's bookable roster (archived students left out). While **editing**, the members the lesson
+     * was actually booked for — a roster change since then must not add or drop a billed class, so the
+     * form shows the lesson as it is, not as the group is now.
      */
     val members: StateFlow<List<Student>> =
-        form.map { MembersKey(it.groupId, it.memberPrices.keys) }.distinctUntilChanged()
+        combine(form.map { it.groupId }.distinctUntilChanged(), session) { groupId, booked ->
+            MembersKey(groupId, booked?.classes?.map { it.studentId }?.toSet())
+        }.distinctUntilChanged()
             .flatMapLatest { key ->
                 when {
                     key.groupId == null -> flowOf(emptyList())
-                    !isNew -> studentsRepo.observeAll().map { all -> all.filter { it.id in key.bookedIds } }
+                    key.bookedIds != null ->
+                        studentsRepo.observeAll().map { all -> all.filter { it.id in key.bookedIds } }
                     else -> membersOf(key.groupId)
                 }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    private data class MembersKey(val groupId: Long?, val bookedIds: Set<Long>)
+    /** [bookedIds] is null while booking something new, and the lesson's members while editing one. */
+    private data class MembersKey(val groupId: Long?, val bookedIds: Set<Long>?)
 
     /**
-     * The subjects this lesson may be booked for. For a student: those with a price set for them, so
-     * the class can be billed at completion. For a group: those **every** member has a price for —
-     * the group's lesson bills each member separately, so a subject one of them isn't priced for
-     * could not be billed for that member (see [GroupRules.bookableSubjects]).
+     * The subjects this lesson may be booked for. For a **student**: those with a price set for them,
+     * so the class can be billed at completion. For a **group**: all of them — the lesson is billed at
+     * the group's own rate, so no member needs a price for the subject first.
      */
     val subjects: StateFlow<List<Subject>> =
         form.map { SubjectKey(it.target, it.studentId, it.groupId) }.distinctUntilChanged()
@@ -210,14 +201,7 @@ class ClassEditViewModel @Inject constructor(
                             subjectsRepo.observeAll(),
                         ) { prices, all -> Scheduling.assignableSubjects(all, prices.map { it.subjectId }) }
 
-                    key.target == ClassTarget.GROUP && key.groupId != null ->
-                        combine(
-                            membersOf(key.groupId),
-                            pricesRepo.observePricedSubjectsByStudent(),
-                            subjectsRepo.observeAll(),
-                        ) { memberList, pricedByStudent, all ->
-                            GroupRules.bookableSubjects(all, memberList.map { pricedByStudent[it.id].orEmpty() })
-                        }
+                    key.target == ClassTarget.GROUP && key.groupId != null -> subjectsRepo.observeAll()
 
                     else -> flowOf(emptyList())
                 }
@@ -307,16 +291,16 @@ class ClassEditViewModel @Inject constructor(
             date = local.toLocalDate(),
             timeFrom = from,
             timeTo = from.plusMinutes(c.durationMinutes.toLong()),
-            priceText = if (loaded.isGroup) "" else c.price.toAmountInput(),
-            // Each member keeps the rate their own class was booked at.
-            memberPrices = if (loaded.isGroup) {
-                loaded.classes.associate { it.studentId to it.price.toAmountInput() }
-            } else {
-                emptyMap()
-            },
+            // The rate the lesson was booked at. A group lesson from before groups had a rate of their
+            // own can have members on differing rates, and no single number is the truth about it —
+            // the group's current rate is then offered instead of picking one member's arbitrarily.
+            priceText = (loaded.sharedPrice ?: groupRate(c.groupId) ?: c.price).toAmountInput(),
             mode = c.mode,
         )
     }
+
+    private suspend fun groupRate(groupId: Long?): Money? =
+        groupId?.let { groupsRepo.getById(it)?.price }
 
     /** The group's members that a new lesson may be booked for. */
     private fun membersOf(groupId: Long): Flow<List<Student>> =
@@ -337,9 +321,9 @@ class ClassEditViewModel @Inject constructor(
     }
 
     /**
-     * Switches between booking for a student and for a group. The subject and every price are cleared
-     * because they belonged to the other target — a group's shared subject and a student's price have
-     * nothing to do with each other.
+     * Switches between booking for a student and for a group. The subject and the price are cleared
+     * because they belonged to the other target — a group's rate and a student's price for a subject
+     * have nothing to do with each other.
      */
     fun setTarget(target: ClassTarget) {
         if (form.value.target == target) return
@@ -349,7 +333,6 @@ class ClassEditViewModel @Inject constructor(
             groupId = null,
             subjectId = null,
             priceText = "",
-            memberPrices = emptyMap(),
         )
         // Auto-select the only group there is, mirroring the single-student case.
         if (target == ClassTarget.GROUP) {
@@ -369,32 +352,33 @@ class ClassEditViewModel @Inject constructor(
     }
 
     /**
-     * Choosing a (different) group clears the subject and every member rate, and pre-fills the mode
-     * from the group's default.
+     * Choosing a (different) group clears the subject, then pre-fills the lesson's rate and mode from
+     * the group's own. The rate comes from the *group*, not from the subject, so unlike a student's it
+     * is known as soon as the group is — there is nothing left to wait for.
      */
     fun selectGroup(groupId: Long) {
         if (form.value.groupId == groupId) return
-        form.value = form.value.copy(groupId = groupId, subjectId = null, memberPrices = emptyMap())
-        // Read the group's mode from the repository, not from `groups`: the form can be opened
-        // already pointed at a group (from that group's screen), before that flow has emitted.
+        form.value = form.value.copy(groupId = groupId, subjectId = null, priceText = "")
+        // Read the group from the repository, not from `groups`: the form can be opened already
+        // pointed at a group (from that group's screen), before that flow has emitted.
         viewModelScope.launch {
-            val mode = groupsRepo.getById(groupId)?.defaultMode ?: return@launch
-            if (form.value.groupId == groupId) form.value = form.value.copy(mode = mode)
+            val group = groupsRepo.getById(groupId) ?: return@launch
+            if (form.value.groupId != groupId) return@launch
+            form.value = form.value.copy(
+                mode = group.defaultMode,
+                // Never clobber an amount the tutor has already typed for this lesson.
+                priceText = form.value.priceText.ifBlank { group.price.toAmountInput() },
+            )
         }
     }
 
     /**
-     * Selecting a subject pre-fills the rate(s) from the current price for it: the student's price,
-     * or one row per group member. A member with no price for the subject gets a blank row rather
-     * than being dropped, so the form stays invalid until the tutor fills it in — a missing rate can
-     * never silently exclude somebody from the lesson.
+     * Selecting a subject pre-fills the rate from the student's price for it. A group lesson's rate is
+     * the group's and does not depend on the subject, so there is nothing to pre-fill there.
      */
     fun selectSubject(subjectId: Long) {
         form.value = form.value.copy(subjectId = subjectId)
-        when (form.value.target) {
-            ClassTarget.STUDENT -> prefillStudentPrice(subjectId)
-            ClassTarget.GROUP -> prefillMemberPrices(subjectId)
-        }
+        if (form.value.target == ClassTarget.STUDENT) prefillStudentPrice(subjectId)
     }
 
     private fun prefillStudentPrice(subjectId: Long) {
@@ -406,37 +390,6 @@ class ClassEditViewModel @Inject constructor(
                 form.value = form.value.copy(priceText = price.toAmountInput())
             }
         }
-    }
-
-    private fun prefillMemberPrices(subjectId: Long) {
-        val groupId = form.value.groupId ?: return
-        viewModelScope.launch {
-            val booked = session.value
-            val memberIds = if (booked != null) {
-                // Editing: exactly the members this lesson was booked for. Re-pricing it must never
-                // add or drop somebody just because the group's roster has changed since.
-                booked.classes.map { it.studentId }
-            } else {
-                // Booking: read the roster directly instead of through `members`, so the rates cover
-                // every member even when nothing is collecting that flow yet.
-                val ids = groupsRepo.getMemberIds(groupId).toSet()
-                val active = studentsRepo.observeActive().first().filter { it.id in ids }
-                GroupRules.bookableMembers(active).map { it.id }
-            }
-            val prefilled = memberIds.associateWith { studentId ->
-                pricesRepo.get(studentId, subjectId)?.amount?.toAmountInput() ?: ""
-            }
-            if (form.value.subjectId != subjectId || form.value.groupId != groupId) return@launch
-            // Keep whatever the user has already typed for a member.
-            val typed = form.value.memberPrices.filterValues { it.isNotBlank() }
-            form.value = form.value.copy(memberPrices = prefilled + typed.filterKeys { it in prefilled })
-        }
-    }
-
-    fun setMemberPrice(studentId: Long, text: String) {
-        val current = form.value.memberPrices
-        if (studentId !in current) return
-        form.value = form.value.copy(memberPrices = current + (studentId to text))
     }
 
     /**
@@ -470,11 +423,11 @@ class ClassEditViewModel @Inject constructor(
         form.value.timeTo ?: startPickerDefault(now).plusMinutes(defaultLessonMinutes)
 
     /**
-     * Saves the form as one lesson. Booking a student and booking a group differ only in the rates
-     * involved — one entry or one per member — and in whether the lesson names a group, so both go
-     * through the same two repository writes: [ClassRepository.book] for a new lesson,
-     * [ClassRepository.apply] for an edit. The rules (re-plan on a move, then rebill) run inside
-     * those, so this can't leave a class carrying a stale charge.
+     * Saves the form as one lesson. Booking a student and booking a group differ only in **who** the
+     * classes are written for — one student, or the group's roster — so both go through the same two
+     * repository writes: [ClassRepository.book] for a new lesson, [ClassRepository.apply] for an edit.
+     * The rules (re-plan on a move, then rebill) run inside those, so this can't leave a class carrying
+     * a stale charge.
      *
      * Does nothing — [onDone] is not called — when the form is incomplete or its time is already
      * taken; [conflict] is what tells the tutor which lesson is in the way.
@@ -486,8 +439,7 @@ class ClassEditViewModel @Inject constructor(
         val start = slot.start
         val duration = slot.durationMinutes
         val isGroup = f.target == ClassTarget.GROUP
-        // One rate per student either way: the whole roster's, or just this student's.
-        val prices = if (isGroup) f.memberMoney!! else mapOf(f.studentId!! to f.price!!)
+        val price = f.price!!
 
         viewModelScope.launch {
             val existing = session.value
@@ -503,7 +455,7 @@ class ClassEditViewModel @Inject constructor(
                         subjectId = f.subjectId!!,
                         durationMinutes = duration,
                         mode = f.mode,
-                        pricesByStudent = prices,
+                        price = price,
                         // An individual class may be re-attributed to another student, which credits
                         // the new owner; a group lesson's members come from its roster instead.
                         studentId = if (isGroup) null else f.studentId,
@@ -511,16 +463,31 @@ class ClassEditViewModel @Inject constructor(
                     newStart = start,
                 )
             } else {
+                val studentIds = if (isGroup) bookableRoster(f.groupId!!) else listOf(f.studentId!!)
+                // A group whose every member has been archived has nobody left to bill; the lesson
+                // would be a row belonging to no one, so there is nothing to book.
+                if (studentIds.isEmpty()) return@launch
                 classes.book(
                     subjectId = f.subjectId!!,
                     start = start,
                     durationMinutes = duration,
                     mode = f.mode,
-                    pricesByStudent = prices,
+                    studentIds = studentIds,
+                    price = price,
                     groupId = if (isGroup) f.groupId else null,
                 )
             }
             onDone()
         }
+    }
+
+    /**
+     * The group's members a new lesson is written for. Read straight from the repository rather than
+     * from [members], so a save doesn't depend on whether anything is collecting that flow yet.
+     */
+    private suspend fun bookableRoster(groupId: Long): List<Long> {
+        val ids = groupsRepo.getMemberIds(groupId).toSet()
+        val active = studentsRepo.observeActive().first().filter { it.id in ids }
+        return GroupRules.bookableMembers(active).map { it.id }
     }
 }

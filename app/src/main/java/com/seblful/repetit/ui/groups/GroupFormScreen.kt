@@ -4,13 +4,13 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,22 +40,23 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
-import com.seblful.repetit.domain.GroupRules
+import com.seblful.repetit.domain.model.Student
 import com.seblful.repetit.ui.common.Avatar
 import com.seblful.repetit.ui.common.ConfirmDialog
 import com.seblful.repetit.ui.common.ModeSelector
 import com.seblful.repetit.ui.common.constrainedContent
-import com.seblful.repetit.ui.common.text
 
 /**
- * Create or edit one group: name, note, default mode and roster — plus, for a saved group, booking a
- * lesson for it and retiring it (archive) or removing it (delete, refused once it has lessons).
+ * Create or edit one group: name, note, **hourly rate**, default mode and roster — plus, for a saved
+ * group, booking a lesson for it and retiring it (archive) or removing it (delete, refused once it has
+ * lessons).
  *
- * The roster is picked subject first: choosing the subject lists only the students priced for it,
- * with that price on the row, since a group lesson bills each member at their own rate.
+ * The rate sits with the name because it is the group's own: every member of one of its lessons is
+ * billed it, so the roster below is just people — any active student, with no price to arrange first.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,34 +117,21 @@ fun GroupFormScreen(
                 label = { Text(stringResource(R.string.student_note_label)) },
                 modifier = Modifier.fillMaxWidth(),
             )
+            // The group's own rate: what each member of its lessons is billed, whatever the subject.
+            // Required — a group prices its own lessons, so it has to say what they cost — and shown
+            // plainly rather than behind a tap, because it is the substance of the group, not a detail.
+            OutlinedTextField(
+                value = form.priceText,
+                onValueChange = { v -> viewModel.update { it.copy(priceText = v) } },
+                label = { Text(stringResource(R.string.group_price_label)) },
+                isError = form.priceText.isNotBlank() && state.price == null,
+                supportingText = { Text(stringResource(R.string.group_price_hint)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
             Text(stringResource(R.string.student_mode_label), style = MaterialTheme.typography.labelLarge)
             ModeSelector(selected = form.mode, onSelect = { m -> viewModel.update { it.copy(mode = m) } })
-
-            // Subject first, then the people: only students priced for it can be billed for a group
-            // lesson, so picking the subject up front is what makes the roster bookable by
-            // construction. The subject itself isn't saved — a group stays a plain roster.
-            HorizontalDivider(Modifier.padding(vertical = 4.dp))
-            Text(stringResource(R.string.group_subject_title), style = MaterialTheme.typography.titleMedium)
-            if (state.subjects.isEmpty()) {
-                Text(
-                    stringResource(R.string.group_no_subjects),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            } else {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    state.subjects.forEach { subject ->
-                        FilterChip(
-                            selected = form.subjectId == subject.id,
-                            onClick = { viewModel.setSubject(subject.id) },
-                            label = { Text(subject.name) },
-                        )
-                    }
-                }
-            }
 
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -167,51 +154,18 @@ fun GroupFormScreen(
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                form.subjectId == null -> Text(
-                    stringResource(R.string.group_subject_hint),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                state.candidates.isEmpty() -> Text(
-                    stringResource(R.string.group_no_students_for_subject),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
                 form.memberIds.isEmpty() -> Text(
                     stringResource(R.string.group_members_required),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            state.candidates.forEach { candidate ->
+            state.candidates.forEach { student ->
                 MemberRow(
-                    candidate = candidate,
-                    selected = candidate.student.id in form.memberIds,
-                    onToggle = { on -> viewModel.toggleMember(candidate.student.id, on) },
+                    student = student,
+                    selected = student.id in form.memberIds,
+                    onToggle = { on -> viewModel.toggleMember(student.id, on) },
                 )
-            }
-
-            // What the roster can be booked for, shown while it is being built: a group lesson bills
-            // each member at their own rate, so only a subject *everyone* has a price for is bookable.
-            if (form.memberIds.isNotEmpty()) {
-                HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                Text(
-                    stringResource(R.string.group_bookable_subjects_title),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                if (state.bookableSubjects.isEmpty()) {
-                    Text(
-                        stringResource(R.string.group_no_shared_subjects),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                } else {
-                    Text(
-                        state.bookableSubjects.joinToString(", ") { it.name },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
 
             if (!viewModel.isNew) {
@@ -220,7 +174,7 @@ fun GroupFormScreen(
                     // Save first, then book: the booking form reads the *stored* roster, so an edit
                     // left unsaved here would otherwise book the wrong set of students.
                     onClick = { viewModel.save { id -> onBookLesson(id) } },
-                    enabled = state.isValid && state.bookableSubjects.isNotEmpty(),
+                    enabled = state.isValid,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Icon(Icons.Filled.EventAvailable, contentDescription = null)
@@ -267,13 +221,12 @@ fun GroupFormScreen(
 }
 
 /**
- * One tappable person in the member picker: who they are and what they cost for the chosen subject —
- * a group lesson bills each member at their own rate, so the rate belongs next to the checkbox
- * rather than two screens away. A member kept from another subject is flagged instead of hidden.
+ * One tappable person in the member picker. Just who they are: the group's lessons are billed at the
+ * group's rate, so there is no per-person amount to show here any more.
  */
 @Composable
 private fun MemberRow(
-    candidate: GroupRules.MemberCandidate,
+    student: Student,
     selected: Boolean,
     onToggle: (Boolean) -> Unit,
 ) {
@@ -289,22 +242,12 @@ private fun MemberRow(
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Avatar(candidate.student.name, candidate.student.id)
-        Column(Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(candidate.student.name, style = MaterialTheme.typography.bodyLarge)
-            when {
-                candidate.missingPrice -> Text(
-                    stringResource(R.string.group_member_no_price),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-                candidate.rate != null -> Text(
-                    stringResource(R.string.price_per_hour, candidate.rate.text()),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        Avatar(student.name, student.id)
+        Text(
+            student.name,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f).padding(start = 12.dp),
+        )
         Checkbox(checked = selected, onCheckedChange = null)
     }
 }

@@ -48,6 +48,14 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
+     * Sets the rate a **newly created** group starts out with. Nothing else reads it, so this never
+     * re-prices a group that already exists, let alone a lesson already booked.
+     */
+    fun setDefaultGroupPrice(minor: Long) {
+        viewModelScope.launch { settings.setDefaultGroupPriceMinor(minor) }
+    }
+
+    /**
      * Toggles inviting students to their class events by email, then re-mirrors so the change
      * reaches the lessons already in the calendar — turning it off **withdraws** the invitations
      * already sent, rather than only sparing future lessons.

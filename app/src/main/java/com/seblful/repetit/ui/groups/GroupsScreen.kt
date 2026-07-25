@@ -38,6 +38,7 @@ import com.seblful.repetit.R
 import com.seblful.repetit.ui.common.ContentCard
 import com.seblful.repetit.ui.common.EmptyState
 import com.seblful.repetit.ui.common.constrainedContent
+import com.seblful.repetit.ui.common.text
 
 /**
  * The group roster list: who is taught together, and a way in to edit or create a group.
@@ -110,6 +111,13 @@ fun GroupsScreen(
                                             .ifBlank { stringResource(R.string.group_no_members) },
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    // The rate belongs on the row now that the group carries it: it is
+                                    // what every one of its lessons bills each member.
+                                    Text(
+                                        stringResource(R.string.price_per_hour, row.group.price.text()),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary,
                                     )
                                 }
                                 if (row.group.archived) {

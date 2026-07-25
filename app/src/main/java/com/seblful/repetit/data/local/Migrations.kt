@@ -119,6 +119,27 @@ object Migrations {
         }
     }
 
+    /**
+     * v4 → v5: a group is priced as a group.
+     *
+     * Adds `student_groups.priceMinor` — the group's own hourly rate, which every member of one of its
+     * lessons is now billed at instead of their individual price — and
+     * `settings.defaultGroupPriceMinor`, which pre-fills it for a newly created group.
+     *
+     * Both default to **0**, and existing rows keep that: a group booked before this version billed
+     * each member their own rate, and there is no honest single number to fold those into, so an
+     * upgrading tutor is shown a free group to price rather than an invented amount. Lessons already
+     * booked are untouched — each class snapshotted the rate it was billed at, which is what makes
+     * history safe here. Plain `ADD COLUMN`s: no constraint is involved. The `DEFAULT 0`s must match
+     * the entities' `@ColumnInfo(defaultValue = "0")`, or Room's schema validation fails.
+     */
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `student_groups` ADD COLUMN `priceMinor` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `settings` ADD COLUMN `defaultGroupPriceMinor` INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
     /** Every migration, in order — passed to the Room builder. */
-    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 }

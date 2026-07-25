@@ -29,10 +29,15 @@ data class BackupData(
 ) {
     companion object {
         /**
-         * 2 added groups. A v1 file still imports: it simply has no groups, and its classes carry
-         * no group id (the retired `recurringGroupId` key is ignored on parse).
+         * 2 added groups; **3 gave a group its own hourly rate** (`student_groups.priceMinor`).
+         *
+         * Older files still import — a v1 has no groups at all, and a v2's groups come back priced at
+         * 0 for the tutor to re-price, exactly as the v4 → v5 database migration leaves them. The
+         * bump is for the other direction: a v3 file *would* parse in a build that predates the
+         * column, which would silently drop every group's rate on the floor, so that build refuses it
+         * instead (see [isSupported]).
          */
-        const val CURRENT_VERSION = 2
+        const val CURRENT_VERSION = 3
 
         /**
          * Whether a backup of [version] can be safely imported by this build. A newer version may

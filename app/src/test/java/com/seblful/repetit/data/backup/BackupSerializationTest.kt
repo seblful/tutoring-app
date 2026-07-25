@@ -33,7 +33,7 @@ class BackupSerializationTest {
             StudentSubjectCrossRef(2, 1),
         ),
         groups = listOf(
-            GroupEntity(7, "11 «А»", note = "вечер", defaultMode = "REMOTE", archived = false),
+            GroupEntity(7, "11 «А»", note = "вечер", priceMinor = 2050, defaultMode = "REMOTE", archived = false),
             GroupEntity(8, "Выпускники", archived = true),
         ),
         groupMembers = listOf(
@@ -100,6 +100,37 @@ class BackupSerializationTest {
         assertTrue(parsed.groups.isEmpty())
         assertTrue(parsed.groupMembers.isEmpty())
         assertEquals(null, parsed.classes.single().groupId)
+    }
+
+    /**
+     * A v2 backup — groups, but from before a group had a rate of its own — must still import, with
+     * its groups coming back at 0 for the tutor to re-price. That mirrors what the v4 → v5 database
+     * migration does, rather than inventing an amount for a group whose members were billed
+     * individually.
+     */
+    @Test
+    fun `a version 2 backup still parses, its groups left unpriced`() {
+        val v2 = """
+            {
+              "version": 2,
+              "subjects": [{"id": 1, "name": "Математика"}],
+              "students": [{"id": 1, "name": "Иван"}],
+              "groups": [{"id": 7, "name": "11 «А»", "note": "", "defaultMode": "IN_PERSON", "archived": false}],
+              "groupMembers": [{"groupId": 7, "studentId": 1}],
+              "classes": [{
+                "id": 1, "studentId": 1, "subjectId": 1, "startMillis": 1900000000000,
+                "durationMinutes": 60, "priceMinor": 3000, "status": "COMPLETED", "groupId": 7
+              }],
+              "payments": []
+            }
+        """.trimIndent()
+
+        val parsed = json.decodeFromString<BackupData>(v2)
+
+        assertTrue(BackupData.isSupported(parsed.version))
+        assertEquals(0L, parsed.groups.single().priceMinor)
+        // The lesson keeps the rate it was actually billed at — history is never rewritten.
+        assertEquals(3000L, parsed.classes.single().priceMinor)
     }
 
     @Test

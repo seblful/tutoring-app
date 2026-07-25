@@ -20,17 +20,24 @@ data class Student(
 )
 
 /**
- * A named set of students taught together.
+ * A named set of students taught together, at **one rate for the whole group**.
  *
- * A group only *organizes* people — it owns no money. Booking a lesson for it books one
- * [TutoringClass] per member, each at that member's own rate, so balances, debts and reports stay
- * per-student and a group can be renamed, re-staffed or archived without touching history.
- * Archived groups are hidden from lists and pickers but keep their past lessons.
+ * @param price the group's **hourly rate** — what every member of a group lesson is billed, whoever
+ *   they are and whatever the subject. Group teaching is priced as its own thing (usually below the
+ *   one-to-one rate), so the rate belongs to the group rather than being assembled from the members'
+ *   individual [Price]s. Booking a lesson still writes one [TutoringClass] per member, each carrying
+ *   this rate, so balances, debts and reports stay strictly **per student** — the group decides *how
+ *   much*, never *who owes it*. Editing the rate never touches lessons already booked (each class
+ *   snapshots the rate it was booked at).
+ *
+ * A group can be renamed, re-staffed, re-priced or archived without touching history. Archived
+ * groups are hidden from lists and pickers but keep their past lessons.
  */
 data class Group(
     val id: Long = 0,
     val name: String,
     val note: String = "",
+    val price: Money = Money.ZERO,
     val defaultMode: ClassMode = ClassMode.IN_PERSON,
     val archived: Boolean = false,
 )
@@ -49,9 +56,10 @@ data class Price(
 /**
  * A single class occurrence.
  *
- * @param price the **hourly rate** chosen when the class was booked (defaulted from the student's
- *   [Price] for the subject, then editable). The [charge] at completion is this rate scaled by the
- *   lesson's duration, so the booked rate — not a later price edit — is what gets billed.
+ * @param price the **hourly rate** chosen when the class was booked — defaulted from the student's
+ *   [Price] for the subject, or from the [Group]'s own rate when the lesson is a group one, then
+ *   editable. The [charge] at completion is this rate scaled by the lesson's duration, so the booked
+ *   rate — not a later price edit — is what gets billed.
  * @param charge recognized income: the hourly [price] scaled by [durationMinutes] once the class is
  *   completed (see `ClassRules.chargeFor`), [Money.ZERO] while scheduled or once cancelled.
  * @param groupId the [Group] this class was booked as part of, or null when it is an individual

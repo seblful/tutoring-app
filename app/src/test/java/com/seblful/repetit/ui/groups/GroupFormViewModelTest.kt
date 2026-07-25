@@ -2,7 +2,6 @@ package com.seblful.repetit.ui.groups
 
 import androidx.lifecycle.SavedStateHandle
 import com.seblful.repetit.data.local.ClassEntity
-import com.seblful.repetit.data.local.PriceEntity
 import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.SubjectEntity
 import com.seblful.repetit.domain.model.ClassMode
@@ -32,9 +31,8 @@ class GroupFormViewModelTest {
     private fun vm(groupId: Long = 0L) = GroupFormViewModel(
         savedStateHandle = SavedStateHandle(if (groupId == 0L) emptyMap() else mapOf("id" to groupId)),
         groups = env.groupRepo,
+        settings = env.settingsRepo,
         students = env.studentRepo,
-        subjects = env.subjectRepo,
-        prices = env.priceRepo,
     )
 
     private suspend fun seedStudents(): Pair<Long, Long> {
@@ -44,7 +42,7 @@ class GroupFormViewModelTest {
     }
 
     @Test
-    fun `a group needs a name and at least one member`() = runTest(mainRule.dispatcher) {
+    fun `a group needs a name, a rate and at least one member`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
         val vm = vm()
         backgroundScope.launch { vm.state.collect {} }
@@ -58,158 +56,147 @@ class GroupFormViewModelTest {
 
         vm.toggleMember(ann, true)
         advanceUntilIdle()
+        assertFalse("a group that doesn't say what it costs can't be billed", vm.state.value.isValid)
+
+        vm.update { it.copy(priceText = "20") }
+        advanceUntilIdle()
         assertTrue(vm.state.value.isValid)
     }
 
     @Test
-    fun `saving creates the group with its roster and reports the new id`() = runTest(mainRule.dispatcher) {
-        val (ann, bob) = seedStudents()
+    fun `a rate of zero is a rate, but a blank one is not`() = runTest(mainRule.dispatcher) {
+        val (ann, _) = seedStudents()
         val vm = vm()
         backgroundScope.launch { vm.state.collect {} }
         advanceUntilIdle()
 
-        vm.update { it.copy(name = "  11 «А»  ", note = " вечер ", mode = ClassMode.REMOTE) }
+        vm.update { it.copy(name = "Бесплатно") }
         vm.toggleMember(ann, true)
-        vm.toggleMember(bob, true)
-        var savedId = 0L
-        vm.save { savedId = it }
+        vm.update { it.copy(priceText = "0") }
         advanceUntilIdle()
+        assertTrue("a group taught for free still bills — at 0", vm.state.value.isValid)
+        assertEquals(Money.ZERO, vm.state.value.price)
 
-        val saved = env.groupRepo.getById(savedId)!!
-        assertEquals("11 «А»", saved.name)
-        assertEquals("вечер", saved.note)
-        assertEquals(ClassMode.REMOTE, saved.defaultMode)
-        assertEquals(setOf(ann, bob), env.groupRepo.getMemberIds(savedId).toSet())
+        vm.update { it.copy(priceText = "") }
+        advanceUntilIdle()
+        assertFalse(vm.state.value.isValid)
     }
 
     @Test
-    fun `editing loads the group and its roster, and re-saving replaces it`() = runTest(mainRule.dispatcher) {
-        val (ann, bob) = seedStudents()
-        val id = env.groupRepo.save(Group(name = "Группа"), setOf(ann))
+    fun `saving creates the group with its rate and roster, and reports the new id`() =
+        runTest(mainRule.dispatcher) {
+            val (ann, bob) = seedStudents()
+            val vm = vm()
+            backgroundScope.launch { vm.state.collect {} }
+            advanceUntilIdle()
+
+            vm.update {
+                it.copy(name = "  11 «А»  ", note = " вечер ", priceText = "20", mode = ClassMode.REMOTE)
+            }
+            vm.toggleMember(ann, true)
+            vm.toggleMember(bob, true)
+            var savedId = 0L
+            vm.save { savedId = it }
+            advanceUntilIdle()
+
+            val saved = env.groupRepo.getById(savedId)!!
+            assertEquals("11 «А»", saved.name)
+            assertEquals("вечер", saved.note)
+            assertEquals(Money.ofMajor(20), saved.price)
+            assertEquals(ClassMode.REMOTE, saved.defaultMode)
+            assertEquals(setOf(ann, bob), env.groupRepo.getMemberIds(savedId).toSet())
+        }
+
+    @Test
+    fun `editing loads the group's rate and roster, and re-saving replaces them`() =
+        runTest(mainRule.dispatcher) {
+            val (ann, bob) = seedStudents()
+            val id = env.groupRepo.save(Group(name = "Группа", price = Money.ofMajor(20)), setOf(ann))
+
+            val vm = vm(id)
+            backgroundScope.launch { vm.state.collect {} }
+            advanceUntilIdle()
+
+            assertEquals("Группа", vm.state.value.form.name)
+            assertEquals(Money.ofMajor(20), vm.state.value.price)
+            assertEquals(setOf(ann), vm.state.value.form.memberIds)
+
+            vm.toggleMember(ann, false)
+            vm.toggleMember(bob, true)
+            vm.update { it.copy(priceText = "25") }
+            vm.save { }
+            advanceUntilIdle()
+
+            assertEquals(setOf(bob), env.groupRepo.getMemberIds(id).toSet())
+            assertEquals(Money.ofMajor(25), env.groupRepo.getById(id)!!.price)
+        }
+
+    @Test
+    fun `a new group starts on the tutor's default rate`() = runTest(mainRule.dispatcher) {
+        seedStudents()
+        env.settingsRepo.setDefaultGroupPriceMinor(Money.ofMajor(15).minor)
+
+        val vm = vm()
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(Money.ofMajor(15), vm.state.value.price)
+    }
+
+    @Test
+    fun `with no default set the rate is left blank for the tutor to fill`() =
+        runTest(mainRule.dispatcher) {
+            seedStudents()
+
+            val vm = vm()
+            backgroundScope.launch { vm.state.collect {} }
+            advanceUntilIdle()
+
+            // 0 means "not set": pre-filling it would invent an amount, so the field stays empty and
+            // the form stays invalid until the tutor says what the group costs.
+            assertEquals("", vm.state.value.form.priceText)
+            assertFalse(vm.state.value.isValid)
+        }
+
+    @Test
+    fun `the default never overwrites the rate of a group being edited`() = runTest(mainRule.dispatcher) {
+        val (ann, _) = seedStudents()
+        env.settingsRepo.setDefaultGroupPriceMinor(Money.ofMajor(15).minor)
+        val id = env.groupRepo.save(Group(name = "Группа", price = Money.ofMajor(40)), setOf(ann))
 
         val vm = vm(id)
         backgroundScope.launch { vm.state.collect {} }
         advanceUntilIdle()
 
-        assertEquals("Группа", vm.state.value.form.name)
-        assertEquals(setOf(ann), vm.state.value.form.memberIds)
-
-        vm.toggleMember(ann, false)
-        vm.toggleMember(bob, true)
-        vm.save { }
-        advanceUntilIdle()
-
-        assertEquals(setOf(bob), env.groupRepo.getMemberIds(id).toSet())
+        assertEquals("the group's own rate, not the default for new ones", Money.ofMajor(40), vm.state.value.price)
     }
 
     @Test
-    fun `the form shows only subjects every member is priced for`() = runTest(mainRule.dispatcher) {
-        val (ann, bob) = seedStudents()
-        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val physics = env.subjectDao.upsert(SubjectEntity(name = "Физика"))
-        env.priceDao.upsert(PriceEntity(ann, algebra, Money.ofMajor(30).minor))
-        env.priceDao.upsert(PriceEntity(ann, physics, Money.ofMajor(40).minor))
-        env.priceDao.upsert(PriceEntity(bob, algebra, Money.ofMajor(25).minor))
+    fun `any active student may join a group, priced for something or not`() =
+        runTest(mainRule.dispatcher) {
+            // Neither student has a single price row: a group bills its own rate, so there is no
+            // per-student price to arrange before they can be put in one.
+            val (ann, bob) = seedStudents()
 
-        val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
-        advanceUntilIdle()
+            val vm = vm()
+            backgroundScope.launch { vm.state.collect {} }
+            advanceUntilIdle()
 
-        vm.toggleMember(ann, true)
-        advanceUntilIdle()
-        assertEquals(listOf("Алгебра", "Физика"), vm.state.value.bookableSubjects.map { it.name })
-
-        // Adding Bob, who has no Physics price, narrows the group to what they share.
-        vm.toggleMember(bob, true)
-        advanceUntilIdle()
-        assertEquals(listOf("Алгебра"), vm.state.value.bookableSubjects.map { it.name })
-    }
+            assertEquals(listOf(ann, bob), vm.state.value.candidates.map { it.id })
+            assertTrue(vm.state.value.hasStudents)
+        }
 
     @Test
     fun `archived students are not offered as members`() = runTest(mainRule.dispatcher) {
         val (ann, bob) = seedStudents()
-        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        env.priceDao.upsert(PriceEntity(ann, algebra, Money.ofMajor(30).minor))
-        env.priceDao.upsert(PriceEntity(bob, algebra, Money.ofMajor(25).minor))
         env.studentDao.upsert(env.studentDao.getById(bob)!!.copy(archived = true))
 
         val vm = vm()
         backgroundScope.launch { vm.state.collect {} }
         advanceUntilIdle()
 
-        vm.setSubject(algebra)
-        advanceUntilIdle()
-
-        assertEquals(listOf(ann), vm.state.value.candidates.map { it.student.id })
+        assertEquals(listOf(ann), vm.state.value.candidates.map { it.id })
     }
-
-    @Test
-    fun `members are picked subject first — only students priced for it are offered`() =
-        runTest(mainRule.dispatcher) {
-            val (ann, bob) = seedStudents()
-            val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-            val physics = env.subjectDao.upsert(SubjectEntity(name = "Физика"))
-            env.priceDao.upsert(PriceEntity(ann, algebra, Money.ofMajor(30).minor))
-            env.priceDao.upsert(PriceEntity(ann, physics, Money.ofMajor(40).minor))
-            env.priceDao.upsert(PriceEntity(bob, algebra, Money.ofMajor(25).minor))
-
-            val vm = vm()
-            backgroundScope.launch { vm.state.collect {} }
-            advanceUntilIdle()
-
-            // Nobody is offered until a subject narrows the list — that is what keeps the roster
-            // bookable, so the form asks for the subject first.
-            assertTrue(vm.state.value.candidates.isEmpty())
-            assertTrue(vm.state.value.hasStudents)
-
-            vm.setSubject(algebra)
-            advanceUntilIdle()
-            assertEquals(listOf(ann, bob), vm.state.value.candidates.map { it.student.id })
-            assertEquals(
-                "each candidate carries their own rate for the subject",
-                listOf(Money.ofMajor(30), Money.ofMajor(25)),
-                vm.state.value.candidates.map { it.rate },
-            )
-
-            // Physics: only Ann has a price for it.
-            vm.setSubject(physics)
-            advanceUntilIdle()
-            assertEquals(listOf(ann), vm.state.value.candidates.map { it.student.id })
-
-            // Tapping the chosen subject again clears the filter.
-            vm.setSubject(physics)
-            advanceUntilIdle()
-            assertEquals(null, vm.state.value.form.subjectId)
-        }
-
-    @Test
-    fun `a member kept from another subject stays listed, flagged as unpriced`() =
-        runTest(mainRule.dispatcher) {
-            val (ann, bob) = seedStudents()
-            val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-            val physics = env.subjectDao.upsert(SubjectEntity(name = "Физика"))
-            env.priceDao.upsert(PriceEntity(ann, algebra, Money.ofMajor(30).minor))
-            env.priceDao.upsert(PriceEntity(ann, physics, Money.ofMajor(40).minor))
-            env.priceDao.upsert(PriceEntity(bob, algebra, Money.ofMajor(25).minor))
-
-            val vm = vm()
-            backgroundScope.launch { vm.state.collect {} }
-            advanceUntilIdle()
-
-            vm.setSubject(algebra)
-            advanceUntilIdle()
-            vm.toggleMember(ann, true)
-            vm.toggleMember(bob, true)
-            vm.setSubject(physics)
-            advanceUntilIdle()
-
-            // Bob has no Physics price, but he is in the roster — hiding him would leave a member
-            // nobody can see or remove.
-            val bobRow = vm.state.value.candidates.single { it.student.id == bob }
-            assertTrue(bobRow.missingPrice)
-            assertEquals(null, bobRow.rate)
-            assertEquals(setOf(ann, bob), vm.state.value.form.memberIds)
-        }
 
     @Test
     fun `archiving a group keeps it and its roster`() = runTest(mainRule.dispatcher) {

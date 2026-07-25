@@ -4,7 +4,6 @@ import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.ClassStatus
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.Student
-import com.seblful.repetit.domain.model.Subject
 import com.seblful.repetit.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -146,87 +145,30 @@ class GroupRulesTest {
         assertEquals(listOf(1L), GroupRules.bookableMembers(members).map { it.id })
     }
 
-    // --- bookableSubjects ---
-
-    private val allSubjects = listOf(Subject(1, "Алгебра"), Subject(2, "Физика"), Subject(3, "Химия"))
+    // --- sharedPrice ---
 
     @Test
-    fun `a group can only be booked for a subject every member has a price for`() {
-        val bookable = GroupRules.bookableSubjects(
-            allSubjects,
-            listOf(setOf(1L, 2L), setOf(2L, 3L), setOf(2L)),
+    fun `a lesson booked at one rate reports it`() {
+        val session = ClassSession(
+            7,
+            listOf(
+                klass(1, 1, groupId = 7, price = Money.ofMajor(20)),
+                klass(2, 2, groupId = 7, price = Money.ofMajor(20)),
+            ),
         )
-        assertEquals(listOf(2L), bookable.map { it.id })
+        assertEquals(Money.ofMajor(20), session.sharedPrice)
     }
 
     @Test
-    fun `with no shared priced subject nothing is bookable`() {
-        val bookable = GroupRules.bookableSubjects(allSubjects, listOf(setOf(1L), setOf(2L)))
-        assertTrue(bookable.isEmpty())
-    }
-
-    @Test
-    fun `an empty roster can be booked for nothing`() {
-        assertTrue(GroupRules.bookableSubjects(allSubjects, emptyList()).isEmpty())
-    }
-
-    @Test
-    fun `the subject order of the picker is preserved`() {
-        val bookable = GroupRules.bookableSubjects(allSubjects, listOf(setOf(3L, 1L), setOf(1L, 3L)))
-        assertEquals(listOf(1L, 3L), bookable.map { it.id })
-    }
-
-    // --- memberCandidates ---
-
-    private val pickable = listOf(Student(1, "Аня"), Student(2, "Борис"), Student(3, "Вера"))
-
-    /** Аня takes both subjects, Борис only Алгебра, Вера only Физика. */
-    private val rates = mapOf(
-        1L to mapOf(1L to Money.ofMajor(30), 2L to Money.ofMajor(40)),
-        2L to mapOf(1L to Money.ofMajor(25)),
-        3L to mapOf(2L to Money.ofMajor(35)),
-    )
-
-    @Test
-    fun `picking for a subject offers the students priced for it, with their own rates`() {
-        val candidates = GroupRules.memberCandidates(pickable, rates, subjectId = 1L, selectedIds = emptySet())
-
-        assertEquals(listOf(1L, 2L), candidates.map { it.student.id })
-        assertEquals(listOf(Money.ofMajor(30), Money.ofMajor(25)), candidates.map { it.rate })
-        assertTrue(candidates.none { it.missingPrice })
-    }
-
-    @Test
-    fun `with no subject chosen only the current members come back`() {
-        val candidates = GroupRules.memberCandidates(pickable, rates, subjectId = null, selectedIds = setOf(2L))
-
-        assertEquals(listOf(2L), candidates.map { it.student.id })
-        // Nothing to be priced for yet, so nothing is flagged.
-        assertEquals(listOf(null), candidates.map { it.rate })
-        assertTrue(candidates.none { it.missingPrice })
-    }
-
-    @Test
-    fun `a member with no price for the chosen subject is kept, flagged, never hidden`() {
-        val candidates = GroupRules.memberCandidates(pickable, rates, subjectId = 2L, selectedIds = setOf(2L))
-
-        // Борис has no Физика price but is in the roster: hiding him would leave a member the tutor
-        // can neither see nor remove.
-        assertEquals(listOf(1L, 2L, 3L), candidates.map { it.student.id })
-        val boris = candidates.single { it.student.id == 2L }
-        assertTrue(boris.missingPrice)
-        assertNull(boris.rate)
-    }
-
-    @Test
-    fun `the display order of the students is preserved`() {
-        val candidates = GroupRules.memberCandidates(
-            pickable.reversed(),
-            rates,
-            subjectId = 1L,
-            selectedIds = setOf(3L),
+    fun `a legacy lesson whose members were billed differently has no single rate`() {
+        val session = ClassSession(
+            7,
+            listOf(
+                klass(1, 1, groupId = 7, price = Money.ofMajor(20)),
+                klass(2, 2, groupId = 7, price = Money.ofMajor(30)),
+            ),
         )
-        assertEquals(listOf(3L, 2L, 1L), candidates.map { it.student.id })
+        assertNull("differing rates cannot collapse into one", session.sharedPrice)
     }
 
     // --- session status changes ---
@@ -262,18 +204,20 @@ class GroupRulesTest {
     // --- editFor ---
 
     @Test
-    fun `a session edit keeps each member on their own rate`() {
+    fun `a session edit puts every member on the lesson's one rate`() {
+        // The members' classes were booked at different rates (a lesson from before a group priced
+        // itself); re-pricing the lesson brings them all onto the group's rate.
         val ann = klass(1, studentId = 1, groupId = 7, price = Money.ofMajor(30))
         val bob = klass(2, studentId = 2, groupId = 7, price = Money.ofMajor(25))
         val changes = SessionEdit(
             subjectId = 9,
             durationMinutes = 90,
             mode = ClassMode.REMOTE,
-            pricesByStudent = mapOf(1L to Money.ofMajor(35), 2L to Money.ofMajor(28)),
+            price = Money.ofMajor(20),
         )
 
-        assertEquals(Money.ofMajor(35), GroupRules.editFor(ann, changes).price)
-        assertEquals(Money.ofMajor(28), GroupRules.editFor(bob, changes).price)
+        assertEquals(Money.ofMajor(20), GroupRules.editFor(ann, changes).price)
+        assertEquals(Money.ofMajor(20), GroupRules.editFor(bob, changes).price)
         // Shared fields come from the edit; the student is never re-attributed by a session edit.
         assertEquals(9L, GroupRules.editFor(ann, changes).subjectId)
         assertEquals(90, GroupRules.editFor(ann, changes).durationMinutes)
@@ -282,15 +226,17 @@ class GroupRulesTest {
     }
 
     @Test
-    fun `a member missing from the price map keeps the rate their class was booked at`() {
+    fun `a lesson may be re-priced to zero`() {
+        // Zero is a real rate (a lesson given for free), not "no rate given", so it must survive the
+        // edit rather than being taken for a gap and replaced by what the class already carried.
         val ann = klass(1, studentId = 1, groupId = 7, price = Money.ofMajor(30))
         val changes = SessionEdit(
             subjectId = 1,
             durationMinutes = 60,
             mode = ClassMode.IN_PERSON,
-            pricesByStudent = emptyMap(),
+            price = Money.ZERO,
         )
-        assertEquals(Money.ofMajor(30), GroupRules.editFor(ann, changes).price)
+        assertEquals(Money.ZERO, GroupRules.editFor(ann, changes).price)
     }
 
     // --- editsFor: one edit, fanned out over the lesson ---
@@ -305,13 +251,13 @@ class GroupRulesTest {
             subjectId = 9,
             durationMinutes = 90,
             mode = ClassMode.REMOTE,
-            pricesByStudent = mapOf(1L to Money.ofMajor(35), 2L to Money.ofMajor(28)),
+            price = Money.ofMajor(20),
         )
 
         val edits = GroupRules.editsFor(session, changes)
 
         assertEquals(listOf(1L, 2L), edits.map { (c, _) -> c.id })
-        assertEquals(listOf(Money.ofMajor(35), Money.ofMajor(28)), edits.map { (_, e) -> e.price })
+        assertEquals(listOf(Money.ofMajor(20), Money.ofMajor(20)), edits.map { (_, e) -> e.price })
         assertEquals(listOf(1L, 2L), edits.map { (_, e) -> e.studentId })
     }
 
@@ -322,7 +268,7 @@ class GroupRulesTest {
             subjectId = 1,
             durationMinutes = 60,
             mode = ClassMode.IN_PERSON,
-            pricesByStudent = mapOf(2L to Money.ofMajor(45)),
+            price = Money.ofMajor(45),
             studentId = 2,
         )
 
@@ -342,7 +288,7 @@ class GroupRulesTest {
             subjectId = 1,
             durationMinutes = 60,
             mode = ClassMode.IN_PERSON,
-            pricesByStudent = mapOf(3L to Money.ofMajor(20)),
+            price = Money.ofMajor(20),
             studentId = 3,
         )
 

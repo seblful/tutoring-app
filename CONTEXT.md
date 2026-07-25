@@ -46,9 +46,10 @@ flowchart TB
 ## Key design decisions
 
 - **Money is integer minor units (kopecks)** — no floating point.
-- **Price is an hourly rate booked per class**, pre-filled from the student's rate for the subject
-  and editable per class. At completion the charge = booked rate × lesson duration. Using the
-  *booked* rate means later edits to a student's rate never touch existing classes.
+- **Price is an hourly rate booked per class**, pre-filled from the student's rate for the subject —
+  or, for a group lesson, from the **group's own rate** — and editable per lesson. At completion the
+  charge = booked rate × lesson duration. Using the *booked* rate means later edits to a student's or
+  group's rate never touch existing classes.
 - **Status state machine**: `scheduled → completed | cancelled`, with corrections. A scheduled
   class **auto-completes once its end time passes** (opt-in setting). Cancelling voids the charge —
   there is no separate "missed" status.
@@ -82,32 +83,51 @@ flowchart TB
   caller can hand over an already-resolved class and persist a stale charge. Re-attributing a class to
   another student is expressible only for a one-class session — `GroupRules.editsFor` refuses it for a
   group lesson, because membership is changed on the roster, not by editing one of its lessons.
-- **A group is a roster, not a billing entity.** Booking a lesson for a group writes **one class per
-  member**, each at that member's own rate, so prices, balances, debts and reports stay strictly
-  per-student and nothing about groups touches the money model. The members' classes of one lesson
-  share a `groupId` **and a start** — that pair *is* the "session" the schedule collapses into one
-  card (`GroupRules.sessions`); sessions are derived, never stored, so a class moved on its own leaves
-  its session by construction, with no membership flag to go stale. Consequences: a group lesson can
-  only be booked for a subject **every** member has a price for (`GroupRules.bookableSubjects`);
-  archived students are left out of new lessons but keep their past ones. The group form therefore
-  picks its roster **subject first**: choosing a subject lists only the students priced for it (with
-  that price on the row, since each member is billed at their own rate), so the roster comes out
-  bookable for that subject by construction instead of the gap surfacing later in the booking form.
-  The subject is a *picking aid only* — nothing about it is stored, keeping a group a plain roster
-  whose bookable subjects stay derived. A member kept from another subject is flagged, never hidden,
-  so no member can sit in the roster unseen (`GroupRules.memberCandidates`). Per-member corrections stay
-  expressible (mark the lesson completed, then cancel the absentee's class — the session then reads
-  as "разные"), which is why status changes apply per class (`GroupRules.applicableTo` skips the ones
-  a change isn't legal for). Groups are **archive-only once they have lessons** (deleting is refused,
-  like subjects), and a group lesson **mirrors as one calendar event per member** — each student keeps
-  their own invite and email reminder — with the group's name in the title. In-app **reminders are
-  per lesson, not per member** (`Reminders.plan` dedupes a session and the notification names the
-  group).
-- **A student's subjects == their priced subjects** (single source of truth). Adding a subject links
-  it and sets a price in one step; removing drops both, but is **refused when the student has any
-  class for that subject**, preserving the invariant that a booked subject always has a price. This
-  is enforced in `EnrollmentRepository` (the only writer of subject links and prices), not by caller
-  discipline in the view models.
+- **A group prices its lessons; the students still owe for them.** A group carries **its own hourly
+  rate** (`student_groups.priceMinor`), and booking a lesson for it writes **one class per member, all
+  at that one rate** — never at the members' individual prices. Group teaching is priced as its own
+  thing (usually below the one-to-one rate), so the rate belongs to the group rather than being
+  assembled from *n* per-student prices that all had to be kept in step. What did **not** change is
+  who owes: each member still gets their own class carrying that rate, so balances, debts and reports
+  stay strictly **per student**. The group decides *how much*, never *who owes it* — which is why the
+  labels say «Цена за час с ученика», not "price for the group": billing *n* members at one rate is
+  not the same as one total for the room. A new group's rate is pre-filled from
+  `settings.defaultGroupPriceMinor` (**0 means "not set"** → the field starts empty and the form is
+  invalid until the tutor prices it, rather than inventing an amount); nothing else reads that
+  setting, so changing it never re-prices an existing group. The form requires a rate but **allows 0**
+  (a group taught for free still bills, at 0 — `MoneyInput.rate`).
+  Because the rate no longer comes from the members, two mechanisms that existed only to guarantee one
+  are **gone**: a group lesson can be booked for **any** subject (no `bookableSubjects` intersection),
+  and **any** active student can join a group (no subject-first roster picking, no
+  `memberCandidates`/`missingPrice`). The consequence to know: a group lesson can be booked for a
+  subject a member has no `prices` row for, so "a student's subjects == their priced subjects" now
+  describes **individual** lessons only — a member's group lessons can name a subject absent from their
+  own subject list. Nothing breaks (income is derived from classes; `EnrollmentRepository` still
+  refuses to unenroll a subject the student has classes for), but their student card won't list it.
+  A **lesson has one rate**, so `SessionEdit` carries a single `price` and `ClassRepository.book`
+  takes `studentIds` + one `price`; `ClassSession.sharedPrice` reports it, and comes back null only for
+  a lesson booked *before* v5, whose members were billed individually — the booking form then offers
+  the group's current rate instead of picking one member's arbitrarily. Lessons already booked are
+  never restated: each class snapshotted the rate it was billed at, which is what makes the migration
+  and re-pricing safe.
+  Unchanged: the members' classes of one lesson share a `groupId` **and a start** — that pair *is* the
+  "session" the schedule collapses into one card (`GroupRules.sessions`); sessions are derived, never
+  stored, so a class moved on its own leaves its session by construction, with no membership flag to go
+  stale. Archived students are left out of new lessons but keep their past ones. Per-member corrections
+  stay expressible (mark the lesson completed, then cancel the absentee's class — the session then
+  reads as "разные"), which is why status changes apply per class (`GroupRules.applicableTo` skips the
+  ones a change isn't legal for). Groups are **archive-only once they have lessons** (deleting is
+  refused, like subjects), and a group lesson **mirrors as one calendar event per member** — each
+  student keeps their own invite and email reminder — with the group's name in the title. In-app
+  **reminders are per lesson, not per member** (`Reminders.plan` dedupes a session and the notification
+  names the group).
+- **A student's subjects == their priced subjects** (single source of truth) — for **individual**
+  lessons. Adding a subject links it and sets a price in one step; removing drops both, but is
+  **refused when the student has any class for that subject**, preserving the invariant that an
+  individually-booked subject always has a price. This is enforced in `EnrollmentRepository` (the only
+  writer of subject links and prices), not by caller discipline in the view models. **Group lessons sit
+  outside this**: they are billed at the group's rate, so they need no `prices` row (see the group
+  bullet below).
 - **History is structurally protected.** Subjects and groups are deletable only when unreferenced;
   `classes` and `payments` use `ON DELETE RESTRICT` on their parents (student, subject, group), so the
   DB itself refuses to cascade-erase earned income. Students are **archive-only** (no delete path);
@@ -145,6 +165,9 @@ flowchart TB
   starts off) — its `DEFAULT 1` and the entity's
   `@ColumnInfo(defaultValue = "1")` must stay in step or Room's schema validation fails. **v4** adds
   `settings.showGroupsTab` (defaulting to 1, so an existing install keeps the tab it just gained).
+  **v5** adds `student_groups.priceMinor` (a group's own rate) and `settings.defaultGroupPriceMinor`,
+  both `DEFAULT 0` — an upgraded group is left explicitly *unpriced* rather than given an invented
+  amount, since its members were billed individually and no single number is the truth about that.
   Migrations are validated against the exported schema JSONs by an instrumented test.
 - **First-run onboarding is offered, not imposed.** It opens on a welcome step with three ways out:
   walk the setup (≥1 subject, then a first student with subjects and prices — each step still
@@ -197,8 +220,11 @@ flowchart TB
   later change. The cost is that a lesson booked inside its own lead window gets no reminder at all —
   which is the point, since the tutor is looking at the lesson they just booked.
 - **Backup = full DB snapshot → JSON via SAF.** Ids are preserved; import is one transaction. The
-  format is versioned (**v2** carries groups); an older file still imports, since missing tables come
-  back empty and retired keys are ignored. **Restoring is more than importing**: `BackupRestore` owns
+  format is versioned (**v2** carries groups, **v3** their rate); an older file still imports, since
+  missing tables come back empty, missing columns take their default (a v2 file's groups arrive
+  unpriced, as the v4 → v5 migration also leaves them) and retired keys are ignored. The bump exists
+  for the *other* direction: a build predating the column would parse a v3 file and silently drop every
+  group's rate, so `isSupported` refuses a newer version instead. **Restoring is more than importing**: `BackupRestore` owns
   the whole act — replace the rows, end first run, re-plan reminders, re-mirror to *this* device's
   calendar (the imported event ids came from another one) — so the settings screen and the first-run
   screen can't drift, and a rejected file leaves data *and* the onboarding flag untouched. The view

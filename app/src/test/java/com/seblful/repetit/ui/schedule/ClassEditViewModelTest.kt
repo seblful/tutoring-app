@@ -294,7 +294,8 @@ class ClassEditViewModelTest {
             start = date.atTime(at).atZone(zone).toInstant(),
             durationMinutes = minutes,
             mode = ClassMode.IN_PERSON,
-            pricesByStudent = mapOf(studentId to Money.ofMajor(30)),
+            studentIds = listOf(studentId),
+            price = Money.ofMajor(30),
         ).single()
         return studentId to id
     }
@@ -413,7 +414,8 @@ class ClassEditViewModelTest {
         val ids = env.classRepo.book(
             groupId = groupId, subjectId = env.subjectDao.getAll().first().id, start = start,
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
-            pricesByStudent = mapOf(ann to Money.ofMajor(30), bob to Money.ofMajor(25)),
+            studentIds = listOf(ann, bob),
+            price = groupRate,
         )
 
         val vm = vm(id = ids.first())
@@ -441,7 +443,8 @@ class ClassEditViewModelTest {
             groupId = groupId, subjectId = env.subjectDao.getAll().first().id,
             start = date.atTime(10, 0).atZone(zone).toInstant(),
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
-            pricesByStudent = mapOf(ann to Money.ofMajor(30), bob to Money.ofMajor(25)),
+            studentIds = listOf(ann, bob),
+            price = groupRate,
         )
         val (carl, physics) = seedStudentWithPricedSubject(studentName = "Вова", subjectName = "Физика")
 
@@ -520,17 +523,27 @@ class ClassEditViewModelTest {
 
     // --- Group lessons ---
 
-    /** Two students in one group, both priced for the same subject (so it is bookable). */
+    /** The group's own hourly rate — deliberately unlike either member's individual price. */
+    private val groupRate = Money.ofMajor(20)
+
+    /**
+     * Two students in one group. Both also carry an individual price for the subject, set to something
+     * *other* than [groupRate], so any test that accidentally billed a member's own rate would fail.
+     */
     private suspend fun seedGroup(
         annPrice: Money = Money.ofMajor(30),
         bobPrice: Money = Money.ofMajor(25),
+        price: Money = groupRate,
     ): Triple<Long, Long, Long> {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
         env.priceDao.upsert(PriceEntity(ann, algebra, annPrice.minor))
         env.priceDao.upsert(PriceEntity(bob, algebra, bobPrice.minor))
-        val groupId = env.groupRepo.save(Group(name = "11 «А»", defaultMode = ClassMode.REMOTE), setOf(ann, bob))
+        val groupId = env.groupRepo.save(
+            Group(name = "11 «А»", price = price, defaultMode = ClassMode.REMOTE),
+            setOf(ann, bob),
+        )
         return Triple(groupId, ann, bob)
     }
 
@@ -549,32 +562,49 @@ class ClassEditViewModelTest {
     }
 
     @Test
-    fun `a group can only be booked for a subject every member is priced for`() = runTest(mainRule.dispatcher) {
-        val (groupId, ann, _) = seedGroup()
-        // Ann alone is priced for Physics, so it must not be offered for the group.
-        val physics = env.subjectDao.upsert(SubjectEntity(name = "Физика"))
-        env.priceDao.upsert(PriceEntity(ann, physics, Money.ofMajor(50).minor))
+    fun `a group can be booked for any subject, priced for its members or not`() = runTest(mainRule.dispatcher) {
+        val (groupId, _, _) = seedGroup()
+        // Nobody in the group has a Physics price. The lesson bills the group's rate, so that is no
+        // longer a reason to withhold the subject.
+        env.subjectDao.upsert(SubjectEntity(name = "Физика"))
 
         val vm = vm(groupId = groupId)
         backgroundScope.launch { vm.groups.collect {} }
         backgroundScope.launch { vm.subjects.collect {} }
         advanceUntilIdle()
 
-        assertEquals(listOf("Алгебра"), vm.subjects.value.map { it.name })
+        assertEquals(listOf("Алгебра", "Физика"), vm.subjects.value.map { it.name })
     }
 
     @Test
-    fun `choosing a subject prefills every member's own rate`() = runTest(mainRule.dispatcher) {
-        val (groupId, ann, bob) = seedGroup(annPrice = Money.ofMajor(30), bobPrice = Money.ofMajor(25))
+    fun `choosing a group prefills the lesson's rate from the group`() = runTest(mainRule.dispatcher) {
+        val (groupId, _, _) = seedGroup(annPrice = Money.ofMajor(30), bobPrice = Money.ofMajor(25))
         val vm = vm(groupId = groupId)
         backgroundScope.launch { vm.groups.collect {} }
         backgroundScope.launch { vm.members.collect {} }
         backgroundScope.launch { vm.subjects.collect {} }
         advanceUntilIdle()
 
-        // The group's only bookable subject is auto-selected, which prefills the rates.
-        assertEquals(mapOf(ann to "30", bob to "25"), vm.form.value.memberPrices)
+        // The group's rate, not either member's individual price — and known from the group alone,
+        // without waiting for a subject.
+        assertEquals(groupRate, vm.form.value.price)
         assertEquals(2, vm.members.value.size)
+    }
+
+    @Test
+    fun `a rate already typed survives the group's prefill`() = runTest(mainRule.dispatcher) {
+        val (groupId, _, _) = seedGroup()
+        val vm = vm()
+        backgroundScope.launch { vm.groups.collect {} }
+        backgroundScope.launch { vm.subjects.collect {} }
+        advanceUntilIdle()
+
+        vm.setTarget(ClassTarget.GROUP)
+        vm.update { it.copy(priceText = "35") }
+        vm.selectGroup(groupId)
+        advanceUntilIdle()
+
+        assertEquals("one lesson at an agreed rate isn't overruled by the group's", Money.ofMajor(35), vm.form.value.price)
     }
 
     @Test
@@ -589,11 +619,17 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(ann), vm.members.value.map { it.id })
-        assertEquals(setOf(ann), vm.form.value.memberPrices.keys)
+
+        val date = LocalDate.now(zone).plusDays(2)
+        vm.update { it.copy(date = date, timeFrom = LocalTime.of(10, 0), timeTo = LocalTime.of(11, 0)) }
+        vm.save { }
+        advanceUntilIdle()
+
+        assertEquals("only the active member is billed", listOf(ann), env.classDao.items.value.map { it.studentId })
     }
 
     @Test
-    fun `the group form is invalid until every member has a valid rate`() {
+    fun `a group lesson needs one valid rate`() {
         val base = ClassForm(
             target = ClassTarget.GROUP,
             groupId = 7, subjectId = 1,
@@ -601,14 +637,14 @@ class ClassEditViewModelTest {
             timeFrom = LocalTime.of(10, 0),
             timeTo = LocalTime.of(11, 0),
         )
-        assertFalse("no members, nothing to bill", base.isValid)
-        assertFalse(base.copy(memberPrices = mapOf(1L to "30", 2L to "")).isValid)
-        assertFalse(base.copy(memberPrices = mapOf(1L to "30", 2L to "abc")).isValid)
-        assertTrue(base.copy(memberPrices = mapOf(1L to "30", 2L to "25,50")).isValid)
+        assertFalse("nothing said about the money", base.isValid)
+        assertFalse(base.copy(priceText = "abc").isValid)
+        assertTrue(base.copy(priceText = "25,50").isValid)
+        assertTrue("a free lesson is billed at 0", base.copy(priceText = "0").isValid)
     }
 
     @Test
-    fun `saving a new group lesson writes one class per member at their own rate`() = runTest(mainRule.dispatcher) {
+    fun `saving a new group lesson writes one class per member at the group's rate`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
         val vm = vm(groupId = groupId)
         backgroundScope.launch { vm.groups.collect {} }
@@ -629,7 +665,7 @@ class ClassEditViewModelTest {
         assertTrue("and to the same lesson", saved.map { it.startMillis }.distinct().size == 1)
         assertEquals(90, saved.first().durationMinutes)
         assertEquals(
-            mapOf(ann to Money.ofMajor(30).minor, bob to Money.ofMajor(25).minor),
+            mapOf(ann to groupRate.minor, bob to groupRate.minor),
             saved.associate { it.studentId to it.priceMinor },
         )
     }
@@ -641,7 +677,8 @@ class ClassEditViewModelTest {
         val ids = env.classRepo.book(
             groupId = groupId, subjectId = env.subjectDao.getAll().first().id, start = start,
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
-            pricesByStudent = mapOf(ann to Money.ofMajor(30), bob to Money.ofMajor(25)),
+            studentIds = listOf(ann, bob),
+            price = groupRate,
         )
 
         // Opening it by *one* member's class must still edit the whole lesson.
@@ -652,20 +689,18 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         assertEquals(ClassTarget.GROUP, vm.form.value.target)
-        assertEquals(mapOf(ann to "30", bob to "25"), vm.form.value.memberPrices)
+        assertEquals("the rate the lesson was booked at", groupRate, vm.form.value.price)
         assertEquals(listOf(ann, bob), vm.members.value.map { it.id })
 
-        // Raise Bob's rate and lengthen the lesson; both members' classes must be updated in place.
-        vm.setMemberPrice(bob, "28")
-        vm.update { it.copy(timeTo = it.timeFrom!!.plusMinutes(90)) }
+        // Re-price the lesson and lengthen it; both members' classes must be updated in place.
+        vm.update { it.copy(priceText = "28", timeTo = it.timeFrom!!.plusMinutes(90)) }
         vm.save { }
         advanceUntilIdle()
 
         val saved = env.classDao.items.value
         assertEquals(2, saved.size)
         assertTrue(saved.all { it.durationMinutes == 90 })
-        assertEquals(Money.ofMajor(28).minor, saved.single { it.studentId == bob }.priceMinor)
-        assertEquals(Money.ofMajor(30).minor, saved.single { it.studentId == ann }.priceMinor)
+        assertTrue("one rate applies to the whole lesson", saved.all { it.priceMinor == Money.ofMajor(28).minor })
     }
 
     @Test
@@ -675,7 +710,8 @@ class ClassEditViewModelTest {
         val ids = env.classRepo.book(
             groupId = groupId, subjectId = algebra, start = Instant.parse("2026-09-01T09:00:00Z"),
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
-            pricesByStudent = mapOf(ann to Money.ofMajor(30), bob to Money.ofMajor(25)),
+            studentIds = listOf(ann, bob),
+            price = groupRate,
         )
         // Bob leaves the group and a new student joins, *after* the lesson was booked.
         val carl = env.studentDao.upsert(StudentEntity(name = "Вова"))
@@ -690,7 +726,6 @@ class ClassEditViewModelTest {
 
         // The lesson still reads as the lesson it was: Ann and Bob, not Ann and Carl.
         assertEquals(listOf(ann, bob), vm.members.value.map { it.id })
-        assertEquals(setOf(ann, bob), vm.form.value.memberPrices.keys)
 
         // Re-saving must not create a class for the newcomer, nor drop the departed member's.
         vm.save { }
@@ -716,7 +751,7 @@ class ClassEditViewModelTest {
         vm.setTarget(ClassTarget.STUDENT)
         advanceUntilIdle()
         assertNull(vm.form.value.groupId)
-        assertTrue(vm.form.value.memberPrices.isEmpty())
+        assertTrue("the group's rate goes with the group", vm.form.value.priceText.isEmpty())
     }
 
     @Test

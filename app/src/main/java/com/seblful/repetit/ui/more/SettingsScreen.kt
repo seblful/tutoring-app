@@ -3,39 +3,52 @@ package com.seblful.repetit.ui.more
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
 import com.seblful.repetit.calendar.AndroidCalendarPermission
+import com.seblful.repetit.domain.model.Money
+import com.seblful.repetit.format.MoneyInput
+import com.seblful.repetit.format.toAmountInput
 import com.seblful.repetit.ui.common.constrainedContent
+import com.seblful.repetit.ui.common.text
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -143,6 +156,14 @@ fun SettingsScreen(
                 selected = settings.currency,
                 onSelect = { viewModel.setCurrency(it) },
             )
+            // Free text rather than a segmented control: unlike a lesson length or a currency, there
+            // is no shortlist of plausible amounts to offer.
+            MoneyRow(
+                title = stringResource(R.string.settings_default_group_price),
+                description = stringResource(R.string.settings_default_group_price_desc),
+                minor = settings.defaultGroupPriceMinor,
+                onSet = { viewModel.setDefaultGroupPrice(it) },
+            )
 
             SectionHeader(stringResource(R.string.settings_section_menu))
             ListItem(
@@ -202,6 +223,71 @@ private fun SwitchRow(
 
 /** Material's standard opacity for disabled content. */
 private const val DISABLED_ALPHA = 0.38f
+
+/**
+ * A titled row holding one money amount, edited in a dialog. Shows the amount itself as the value, so
+ * the row reads as a statement of the setting rather than as a link to go and look.
+ *
+ * **Clearing the field unsets it** (0, «Не задана»), which is why the dialog's save stays enabled on
+ * an empty field: one control both sets and removes the default, instead of an amount the tutor can
+ * never take back once typed.
+ */
+@Composable
+private fun MoneyRow(
+    title: String,
+    description: String,
+    minor: Long,
+    onSet: (Long) -> Unit,
+) {
+    var editing by remember { mutableStateOf(false) }
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = { Text(description) },
+        trailingContent = {
+            Text(
+                if (minor == 0L) stringResource(R.string.settings_not_set) else Money(minor).text(),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        },
+        modifier = Modifier.clickable { editing = true },
+    )
+    if (editing) {
+        // Opens on the amount currently set, so editing it is a correction rather than a re-entry.
+        var text by remember { mutableStateOf(if (minor == 0L) "" else Money(minor).toAmountInput()) }
+        val parsed = if (text.isBlank()) 0L else MoneyInput.rate(text)?.minor
+        AlertDialog(
+            onDismissRequest = { editing = false },
+            title = { Text(title) },
+            text = {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    label = { Text(stringResource(R.string.price_label)) },
+                    isError = parsed == null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        parsed?.let(onSet)
+                        editing = false
+                    },
+                    enabled = parsed != null,
+                ) {
+                    Text(stringResource(R.string.action_save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editing = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+}
 
 /** A small, tinted section label that breaks the settings list into scannable groups. */
 @Composable
