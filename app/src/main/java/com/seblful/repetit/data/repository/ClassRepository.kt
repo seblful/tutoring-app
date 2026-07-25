@@ -13,14 +13,17 @@ import com.seblful.repetit.domain.ClassRules
 import com.seblful.repetit.domain.ClassSession
 import com.seblful.repetit.domain.GroupRules
 import com.seblful.repetit.domain.ReminderScheduler
+import com.seblful.repetit.domain.Scheduling
 import com.seblful.repetit.domain.SessionEdit
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.ClassStatus
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.TutoringClass
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -43,6 +46,29 @@ class ClassRepository @Inject constructor(
 
     fun observeBetween(from: Instant, to: Instant): Flow<List<TutoringClass>> =
         dao.observeBetween(from.toEpochMilli(), to.toEpochMilli()).map { list -> list.map { it.toDomain() } }
+
+    /**
+     * The lessons already occupying [slot] — [Scheduling.conflicts] over the classes around it — so a
+     * booking form can show the clash as the tutor picks a time. [ignoring] names the classes of the
+     * lesson being edited, which must not collide with itself.
+     *
+     * This is a **read**: refusing the write is the view model's job (like the calendar-permission
+     * rule), because a refusal has to name the lesson in the way rather than merely throw.
+     */
+    fun observeConflicts(slot: Scheduling.Slot, ignoring: Set<Long> = emptySet()): Flow<List<ClassSession>> =
+        observeBetween(windowStart(slot), slot.end).map { Scheduling.conflicts(slot, it, ignoring) }
+
+    /** [observeConflicts] as a one-shot read — the check a save makes against the database it writes. */
+    suspend fun conflictsWith(slot: Scheduling.Slot, ignoring: Set<Long> = emptySet()): List<ClassSession> =
+        observeConflicts(slot, ignoring).first()
+
+    /**
+     * How far back the conflict query has to look: the window filters on each class's **start**, so a
+     * class that began earlier and is still running when [slot] opens would otherwise be missed. A day
+     * of lead-in covers every one of them — a class's times are wall-clock on a single date, so none
+     * can span 24 hours (see the cross-midnight limitation in `ClassForm`).
+     */
+    private fun windowStart(slot: Scheduling.Slot): Instant = slot.start.minus(1, ChronoUnit.DAYS)
 
     suspend fun getById(id: Long): TutoringClass? = dao.getById(id)?.toDomain()
 

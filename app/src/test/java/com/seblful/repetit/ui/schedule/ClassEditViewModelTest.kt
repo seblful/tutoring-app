@@ -279,6 +279,185 @@ class ClassEditViewModelTest {
         assertEquals("REMOTE", saved.mode)
     }
 
+    // --- Save: a time that is already taken ---
+
+    /** A booked lesson for [studentName] at [at] on [date], and the ids of its classes. */
+    private suspend fun seedLesson(
+        date: LocalDate,
+        at: LocalTime,
+        minutes: Int = 60,
+        studentName: String = "Борис",
+    ): Pair<Long, Long> {
+        val (studentId, subjectId) = seedStudentWithPricedSubject(studentName = studentName)
+        val id = env.classRepo.book(
+            subjectId = subjectId,
+            start = date.atTime(at).atZone(zone).toInstant(),
+            durationMinutes = minutes,
+            mode = ClassMode.IN_PERSON,
+            pricesByStudent = mapOf(studentId to Money.ofMajor(30)),
+        ).single()
+        return studentId to id
+    }
+
+    /** Fills the form for a lesson for [studentId] on [date] from [from] to [to]. */
+    private fun ClassEditViewModel.fillFor(
+        studentId: Long,
+        subjectId: Long,
+        date: LocalDate,
+        from: LocalTime,
+        to: LocalTime,
+    ) = update {
+        it.copy(
+            studentId = studentId, subjectId = subjectId, date = date,
+            timeFrom = from, timeTo = to, priceText = "30",
+        )
+    }
+
+    @Test
+    fun `a lesson cannot be booked over one that is already there`() = runTest(mainRule.dispatcher) {
+        val date = LocalDate.now(zone).plusDays(3)
+        seedLesson(date, LocalTime.of(10, 0)) // Борис, 10:00–11:00
+        val (annId, subjectId) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
+
+        val vm = vm()
+        backgroundScope.launch { vm.conflict.collect {} }
+        advanceUntilIdle()
+
+        // Аня at 10:30 would overlap Борис's lesson — the tutor cannot teach both.
+        vm.fillFor(annId, subjectId, date, LocalTime.of(10, 30), LocalTime.of(11, 30))
+        advanceUntilIdle()
+
+        val clash = vm.conflict.value
+        assertEquals("Борис", clash?.who)
+        assertEquals(date.atTime(10, 0).atZone(zone).toInstant(), clash?.slot?.start)
+
+        var done = false
+        vm.save { done = true }
+        advanceUntilIdle()
+
+        assertFalse("the save must not go through", done)
+        assertEquals("still only the lesson that was there", 1, env.classDao.items.value.size)
+    }
+
+    @Test
+    fun `a lesson starting exactly when another ends is allowed`() = runTest(mainRule.dispatcher) {
+        val date = LocalDate.now(zone).plusDays(3)
+        seedLesson(date, LocalTime.of(10, 0)) // 10:00–11:00
+        val (annId, subjectId) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
+
+        val vm = vm()
+        backgroundScope.launch { vm.conflict.collect {} }
+        advanceUntilIdle()
+
+        vm.fillFor(annId, subjectId, date, LocalTime.of(11, 0), LocalTime.of(12, 0))
+        advanceUntilIdle()
+        assertNull(vm.conflict.value)
+
+        var done = false
+        vm.save { done = true }
+        advanceUntilIdle()
+
+        assertTrue(done)
+        assertEquals(2, env.classDao.items.value.size)
+    }
+
+    @Test
+    fun `a cancelled lesson frees its hour`() = runTest(mainRule.dispatcher) {
+        val date = LocalDate.now(zone).plusDays(3)
+        val (_, bookedId) = seedLesson(date, LocalTime.of(10, 0))
+        env.classRepo.setStatus(env.classRepo.getSessionFor(bookedId)!!, ClassStatus.CANCELLED)
+        val (annId, subjectId) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
+
+        val vm = vm()
+        backgroundScope.launch { vm.conflict.collect {} }
+        advanceUntilIdle()
+
+        vm.fillFor(annId, subjectId, date, LocalTime.of(10, 0), LocalTime.of(11, 0))
+        advanceUntilIdle()
+
+        assertNull("a cancelled lesson is not happening, so the slot is free", vm.conflict.value)
+        vm.save { }
+        advanceUntilIdle()
+        assertEquals(2, env.classDao.items.value.size)
+    }
+
+    @Test
+    fun `re-saving the lesson being edited does not clash with itself`() = runTest(mainRule.dispatcher) {
+        val date = LocalDate.now(zone).plusDays(3)
+        val (_, bookedId) = seedLesson(date, LocalTime.of(10, 0))
+
+        val vm = vm(bookedId)
+        backgroundScope.launch { vm.subjects.collect {} }
+        backgroundScope.launch { vm.conflict.collect {} }
+        advanceUntilIdle()
+
+        assertNull("its own hour is not a conflict", vm.conflict.value)
+
+        // Lengthen it in place — the overlap with its own old span must not block the save.
+        vm.update { it.copy(timeTo = LocalTime.of(11, 30)) }
+        advanceUntilIdle()
+        assertNull(vm.conflict.value)
+
+        var done = false
+        vm.save { done = true }
+        advanceUntilIdle()
+
+        assertTrue(done)
+        assertEquals(90, env.classDao.items.value.single().durationMinutes)
+    }
+
+    @Test
+    fun `a group lesson does not clash with its own members when re-saved`() = runTest(mainRule.dispatcher) {
+        val (groupId, ann, bob) = seedGroup()
+        val start = Instant.now().plusSeconds(3 * 86_400)
+        val ids = env.classRepo.book(
+            groupId = groupId, subjectId = env.subjectDao.getAll().first().id, start = start,
+            durationMinutes = 60, mode = ClassMode.IN_PERSON,
+            pricesByStudent = mapOf(ann to Money.ofMajor(30), bob to Money.ofMajor(25)),
+        )
+
+        val vm = vm(id = ids.first())
+        backgroundScope.launch { vm.groups.collect {} }
+        backgroundScope.launch { vm.members.collect {} }
+        backgroundScope.launch { vm.subjects.collect {} }
+        backgroundScope.launch { vm.conflict.collect {} }
+        advanceUntilIdle()
+
+        // Every member's class is excluded, not just the one that was opened.
+        assertNull(vm.conflict.value)
+        var done = false
+        vm.save { done = true }
+        advanceUntilIdle()
+
+        assertTrue(done)
+        assertEquals(2, env.classDao.items.value.size)
+    }
+
+    @Test
+    fun `a group lesson in the way is reported by its group name`() = runTest(mainRule.dispatcher) {
+        val (groupId, ann, bob) = seedGroup()
+        val date = LocalDate.now(zone).plusDays(4)
+        env.classRepo.book(
+            groupId = groupId, subjectId = env.subjectDao.getAll().first().id,
+            start = date.atTime(10, 0).atZone(zone).toInstant(),
+            durationMinutes = 60, mode = ClassMode.IN_PERSON,
+            pricesByStudent = mapOf(ann to Money.ofMajor(30), bob to Money.ofMajor(25)),
+        )
+        val (carl, physics) = seedStudentWithPricedSubject(studentName = "Вова", subjectName = "Физика")
+
+        val vm = vm()
+        backgroundScope.launch { vm.conflict.collect {} }
+        advanceUntilIdle()
+
+        vm.fillFor(carl, physics, date, LocalTime.of(10, 30), LocalTime.of(11, 30))
+        advanceUntilIdle()
+
+        assertEquals("11 «А»", vm.conflict.value?.who)
+        vm.save { }
+        advanceUntilIdle()
+        assertEquals("no third class was written", 2, env.classDao.items.value.size)
+    }
+
     @Test
     fun `save does nothing for an invalid form`() = runTest(mainRule.dispatcher) {
         val vm = vm()

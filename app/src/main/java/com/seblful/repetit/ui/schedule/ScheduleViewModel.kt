@@ -9,6 +9,7 @@ import com.seblful.repetit.data.repository.SubjectRepository
 import com.seblful.repetit.domain.CalendarLayout
 import com.seblful.repetit.domain.ClassSession
 import com.seblful.repetit.domain.GroupRules
+import com.seblful.repetit.domain.Scheduling
 import com.seblful.repetit.domain.model.ClassStatus
 import com.seblful.repetit.domain.model.Group
 import com.seblful.repetit.domain.model.Student
@@ -83,9 +84,9 @@ sealed interface ScheduleContent {
 @HiltViewModel
 class ScheduleViewModel @Inject constructor(
     private val classes: ClassRepository,
-    students: StudentRepository,
+    private val students: StudentRepository,
     subjects: SubjectRepository,
-    groups: GroupRepository,
+    private val groups: GroupRepository,
 ) : ViewModel() {
 
     private val zone: ZoneId = ZoneId.systemDefault()
@@ -106,6 +107,13 @@ class ScheduleViewModel @Inject constructor(
 
     private val _viewMode = MutableStateFlow(ScheduleViewMode.DAY)
     val viewMode: StateFlow<ScheduleViewMode> = _viewMode.asStateFlow()
+
+    /**
+     * The lesson a refused [move] would have collided with, until it is acknowledged. State rather
+     * than a fire-and-forget event, so the message survives a recomposition or a rotation.
+     */
+    private val _moveConflict = MutableStateFlow<TimeConflict?>(null)
+    val moveConflict: StateFlow<TimeConflict?> = _moveConflict.asStateFlow()
 
     /**
      * A class can only be booked once there is at least one student and one priced subject — a
@@ -253,8 +261,31 @@ class ScheduleViewModel @Inject constructor(
         viewModelScope.launch { classes.setStatus(session, status) }
     }
 
+    /**
+     * Reschedules a whole lesson, unless that hour is already taken — one tutor cannot teach two
+     * lessons at once, so a move onto an occupied slot is refused and reported through [moveConflict]
+     * rather than silently doing nothing. The lesson's **own** classes are ignored, so nudging it by
+     * ten minutes doesn't clash with where it currently is.
+     */
     fun move(session: ClassSession, newStart: Instant) {
-        viewModelScope.launch { classes.move(session, newStart) }
+        viewModelScope.launch {
+            val slot = Scheduling.Slot(newStart, session.first.durationMinutes)
+            val clash = classes.conflictsWith(slot, session.classes.map { it.id }.toSet()).firstOrNull()
+            if (clash != null) {
+                _moveConflict.value = TimeConflict.of(
+                    clash = clash,
+                    groupName = clash.groupId?.let { groups.getById(it)?.name },
+                    studentName = students.getById(clash.first.studentId)?.name,
+                )
+                return@launch
+            }
+            classes.move(session, newStart)
+        }
+    }
+
+    /** Acknowledges the refusal message, so the dialog closes. */
+    fun dismissMoveConflict() {
+        _moveConflict.value = null
     }
 
     fun delete(session: ClassSession) {

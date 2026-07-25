@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -383,6 +384,82 @@ class ScheduleViewModelTest {
         val saved = env.classDao.items.value.single { it.id == id }
         assertEquals("COMPLETED", saved.status)
         assertEquals(Money.ofMajor(45).minor, saved.chargeMinor) // 30/h * 90 min
+    }
+
+    // --- Move: the destination hour has to be free ---
+
+    @Test
+    fun `a lesson cannot be moved onto an hour another lesson already holds`() = runTest(mainRule.dispatcher) {
+        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val day = LocalDate.of(2026, 7, 15)
+        val moving = env.classDao.upsert(
+            ClassEntity(studentId = ann, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED"),
+        )
+        env.classDao.upsert(
+            ClassEntity(studentId = bob, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(15, 0)), durationMinutes = 60, status = "SCHEDULED"),
+        )
+
+        val vm = vm()
+        val target = day.atTime(15, 30).atZone(zone).toInstant()
+        vm.move(env.classRepo.getSessionFor(moving)!!, target)
+        advanceUntilIdle()
+
+        assertEquals("Борис", vm.moveConflict.value?.who)
+        assertEquals(
+            "the lesson stayed where it was",
+            startMillisOn(day, LocalTime.of(9, 0)),
+            env.classDao.items.value.single { it.id == moving }.startMillis,
+        )
+
+        vm.dismissMoveConflict()
+        assertNull(vm.moveConflict.value)
+    }
+
+    @Test
+    fun `a lesson can be nudged within its own hour`() = runTest(mainRule.dispatcher) {
+        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val day = LocalDate.of(2026, 7, 15)
+        val id = env.classDao.upsert(
+            ClassEntity(studentId = ann, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED"),
+        )
+
+        val vm = vm()
+        // Ten minutes later overlaps where it currently is — it must not block itself.
+        vm.move(env.classRepo.getSessionFor(id)!!, day.atTime(9, 10).atZone(zone).toInstant())
+        advanceUntilIdle()
+
+        assertNull(vm.moveConflict.value)
+        assertEquals(
+            startMillisOn(day, LocalTime.of(9, 10)),
+            env.classDao.items.value.single().startMillis,
+        )
+    }
+
+    @Test
+    fun `a group lesson moves as one, without clashing with its own members`() = runTest(mainRule.dispatcher) {
+        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
+        val day = LocalDate.of(2026, 7, 15)
+        val at = startMillisOn(day, LocalTime.of(12, 0))
+        val first = env.classDao.upsert(ClassEntity(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
+        env.classDao.upsert(ClassEntity(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
+
+        val vm = vm()
+        val target = day.atTime(12, 30).atZone(zone).toInstant()
+        vm.move(env.classRepo.getSessionFor(first)!!, target)
+        advanceUntilIdle()
+
+        assertNull(vm.moveConflict.value)
+        assertEquals(
+            "both members moved together",
+            listOf(target.toEpochMilli(), target.toEpochMilli()),
+            env.classDao.items.value.map { it.startMillis },
+        )
     }
 
     @Test

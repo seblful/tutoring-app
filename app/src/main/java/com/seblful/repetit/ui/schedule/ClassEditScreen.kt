@@ -50,6 +50,7 @@ import com.seblful.repetit.ui.common.classModeLabel
 import com.seblful.repetit.ui.common.constrainedContent
 import com.seblful.repetit.ui.common.text
 import com.seblful.repetit.format.formatDate
+import com.seblful.repetit.format.formatTime
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -61,6 +62,7 @@ fun ClassEditScreen(
     viewModel: ClassEditViewModel = hiltViewModel(),
 ) {
     val form by viewModel.form.collectAsState()
+    val conflict by viewModel.conflict.collectAsState()
     val students by viewModel.students.collectAsState()
     val groups by viewModel.groups.collectAsState()
     val members by viewModel.members.collectAsState()
@@ -84,7 +86,11 @@ fun ClassEditScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = { viewModel.save(onBack) }, enabled = form.isValid) {
+                    // A taken time is as disqualifying as a missing field: the lesson could not happen.
+                    TextButton(
+                        onClick = { viewModel.save(onBack) },
+                        enabled = form.isValid && conflict == null,
+                    ) {
                         Text(stringResource(R.string.action_save))
                     }
                 },
@@ -173,6 +179,30 @@ fun ClassEditScreen(
                     onClick = { showToPicker = true },
                     enabled = form.timeFrom != null,
                     modifier = Modifier.weight(1f),
+                )
+            }
+
+            // Why the time won't do — said here rather than left to a greyed-out save button.
+            val clash = conflict
+            val timeProblem = when {
+                // An end at or before the start is not a lesson (and 23:00 → 00:30 is the same case:
+                // the times are wall-clock on one date, so a lesson can't cross midnight).
+                form.timeFrom != null && form.timeTo != null && form.durationMinutes == null ->
+                    stringResource(R.string.class_time_range_invalid)
+
+                clash != null -> stringResource(
+                    R.string.class_time_conflict,
+                    clash.who,
+                    "${clash.slot.start.formatTime()} – ${clash.slot.end.formatTime()}",
+                )
+
+                else -> null
+            }
+            if (timeProblem != null) {
+                Text(
+                    timeProblem,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
                 )
             }
 

@@ -29,7 +29,7 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps: billing, class rules, group rules (sessions, bookable subjects), calendar layout, reminders, reports, scheduling, the `ReminderScheduler` port, and the models. All JVM-unit-tested. |
+| `domain/` | Pure Kotlin, no Android deps: billing, class rules, group rules (sessions, bookable subjects), calendar layout, reminders, reports, scheduling (bookable subjects, time conflicts), the `ReminderScheduler` port, and the models. All JVM-unit-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`. Entities are also `@Serializable` (for backup). |
 | `data/repository/` | Repositories mapping entities ⇄ domain models, and the place display **name ordering** is applied (`format/NameOrder`, not SQL). `ClassRepository` owns *all* side effects of a class change (calendar mirroring + reminder refresh); every write takes a whole **lesson** (see below). `EnrollmentRepository` owns the subject⇄price invariant — the single seam that links/unlinks a subject and sets/deletes its price together. `GroupRepository` is the only writer of group membership (a group is always saved together with its exact roster). |
 | `data/backup/` | Whole-DB JSON snapshot: export + transactional replace-all import. |
@@ -52,6 +52,18 @@ flowchart TB
 - **Status state machine**: `scheduled → completed | cancelled`, with corrections. A scheduled
   class **auto-completes once its end time passes** (opt-in setting). Cancelling voids the charge —
   there is no separate "missed" status.
+- **One tutor, one lesson at a time.** A lesson can be neither booked nor moved onto an hour another
+  lesson already holds (`Scheduling.conflicts`): there is one tutor, so an overlap describes a time
+  that cannot happen. Back-to-back lessons are fine (the span is half-open), a **cancelled** class
+  gives its slot back, and the lesson **being edited** is excluded by *every* one of its class ids —
+  a group lesson would otherwise be found clashing with its own members. "Impossible" here means
+  *double-booked*, not *unusual*: booking in the **past is still allowed** (recording a lesson that
+  already happened is deliberate), as is any hour of the day. The rule is pure and JVM-tested, but the
+  **refusal lives in the view models** — `ClassEditViewModel.conflict` disables save and names the
+  clash under the time row, `ScheduleViewModel.move` refuses with a dialog — following the
+  calendar-permission precedent below, because a refusal has to say *which* lesson is in the way
+  rather than throw. The repository only offers the read (`observeConflicts`/`conflictsWith`), so
+  restoring a backup still replaces the database verbatim.
 - **Editing is allowed in any status; the charge is recomputed, not preserved.** Re-attributing a
   class to a new student/subject credits the new owner at the current rate, so editing history is
   safe. Edits update the row in place (never insert), so income can't be double-counted. The edit
