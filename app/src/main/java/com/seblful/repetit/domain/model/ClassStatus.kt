@@ -17,4 +17,11 @@ enum class ClassStatus {
     CANCELLED;
 
     val isBillable: Boolean get() = this == COMPLETED
+
+    /**
+     * Whether the class takes up the tutor's time, and so stands in the way of another lesson at the
+     * same hour (see `Scheduling.conflicts`). A cancelled class did not happen, so it gives its slot
+     * back; a completed one did, so nothing else can be recorded as happening then.
+     */
+    val occupiesTime: Boolean get() = this != CANCELLED
 }

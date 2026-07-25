@@ -97,6 +97,35 @@ data class ClassForm(
             ClassTarget.STUDENT -> studentId != null && price != null
             ClassTarget.GROUP -> groupId != null && memberMoney != null
         }
+
+    /**
+     * The stretch of time this form describes, or null while the date and times are incomplete. The
+     * one place the form's wall-clock values become an instant, so the conflict check and the save
+     * can never disagree about when the lesson is.
+     */
+    fun slot(zone: ZoneId): Scheduling.Slot? {
+        val day = date ?: return null
+        val from = timeFrom ?: return null
+        val minutes = durationMinutes ?: return null
+        return Scheduling.Slot(day.atTime(from).atZone(zone).toInstant(), minutes)
+    }
+}
+
+/**
+ * A lesson already in the schedule at the time a form or a move is pointing at. There is one tutor,
+ * so this is a refusal rather than a warning: [who] (the group's name, or the student's) and [slot]
+ * say which lesson is in the way, so the tutor can pick another time or move that one.
+ */
+data class TimeConflict(val slot: Scheduling.Slot, val who: String) {
+    companion object {
+        /**
+         * Names the lesson standing in the way: its group when it is a group lesson, otherwise the
+         * student whose class it is. Blank when neither row can be found, which leaves the message
+         * saying *when* it clashes — better than not refusing at all.
+         */
+        fun of(clash: ClassSession, groupName: String?, studentName: String?): TimeConflict =
+            TimeConflict(Scheduling.slotOf(clash.first), groupName ?: studentName ?: "")
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -126,8 +155,11 @@ class ClassEditViewModel @Inject constructor(
      * The lesson being edited, if any. A group lesson is loaded as the whole session (every member's
      * class), never as the single class the user happened to tap, so saving can't update one member
      * and leave the rest behind. Null while booking something new.
+     *
+     * A flow rather than a plain field because [conflict] has to react to it: the lesson being edited
+     * is the one lesson allowed to occupy the time the form is pointing at.
      */
-    private var session: ClassSession? = null
+    private val session = MutableStateFlow<ClassSession?>(null)
 
     val students: StateFlow<List<Student>> = studentsRepo.observeActive()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -194,6 +226,42 @@ class ClassEditViewModel @Inject constructor(
 
     private data class SubjectKey(val target: ClassTarget, val studentId: Long?, val groupId: Long?)
 
+    /**
+     * The lesson already booked at the time the form points at, or null when that time is free. Live,
+     * so a clash shows up the moment a date or time is picked instead of on save — the tutor is one
+     * person and cannot teach two lessons at once.
+     *
+     * The lesson being **edited** is excluded by every one of its class ids, not just the one that was
+     * tapped: a group lesson would otherwise be found colliding with its own other members.
+     */
+    val conflict: StateFlow<TimeConflict?> =
+        combine(
+            form.map { it.slot(zone) }.distinctUntilChanged(),
+            session.map { s -> s?.classes?.map { it.id }?.toSet().orEmpty() }.distinctUntilChanged(),
+        ) { slot, editedIds -> slot to editedIds }
+            .flatMapLatest { (slot, editedIds) ->
+                if (slot == null) {
+                    flowOf(null)
+                } else {
+                    combine(
+                        classes.observeConflicts(slot, editedIds),
+                        studentsRepo.observeAll(),
+                        groupsRepo.observeAll(),
+                    ) { clashing, allStudents, allGroups ->
+                        clashing.firstOrNull()?.let { describe(it, allStudents, allGroups) }
+                    }
+                }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** Archived students and groups are looked up too — a past lesson still occupied that hour. */
+    private fun describe(clash: ClassSession, students: List<Student>, groups: List<Group>): TimeConflict =
+        TimeConflict.of(
+            clash = clash,
+            groupName = clash.groupId?.let { id -> groups.firstOrNull { it.id == id }?.name },
+            studentName = students.firstOrNull { it.id == clash.first.studentId }?.name,
+        )
+
     init {
         if (!isNew) {
             viewModelScope.launch { loadExisting() }
@@ -227,7 +295,7 @@ class ClassEditViewModel @Inject constructor(
 
     private suspend fun loadExisting() {
         val loaded = classes.getSessionFor(classId) ?: return
-        session = loaded
+        session.value = loaded
         val c = loaded.first
         val local = c.start.atZone(zone)
         val from = local.toLocalTime()
@@ -343,7 +411,7 @@ class ClassEditViewModel @Inject constructor(
     private fun prefillMemberPrices(subjectId: Long) {
         val groupId = form.value.groupId ?: return
         viewModelScope.launch {
-            val booked = session
+            val booked = session.value
             val memberIds = if (booked != null) {
                 // Editing: exactly the members this lesson was booked for. Re-pricing it must never
                 // add or drop somebody just because the group's roster has changed since.
@@ -407,18 +475,27 @@ class ClassEditViewModel @Inject constructor(
      * through the same two repository writes: [ClassRepository.book] for a new lesson,
      * [ClassRepository.apply] for an edit. The rules (re-plan on a move, then rebill) run inside
      * those, so this can't leave a class carrying a stale charge.
+     *
+     * Does nothing — [onDone] is not called — when the form is incomplete or its time is already
+     * taken; [conflict] is what tells the tutor which lesson is in the way.
      */
     fun save(onDone: () -> Unit) {
         val f = form.value
         if (!f.isValid) return
-        val start = f.date!!.atTime(f.timeFrom!!).atZone(zone).toInstant()
-        val duration = f.durationMinutes!!
+        val slot = f.slot(zone) ?: return
+        val start = slot.start
+        val duration = slot.durationMinutes
         val isGroup = f.target == ClassTarget.GROUP
         // One rate per student either way: the whole roster's, or just this student's.
         val prices = if (isGroup) f.memberMoney!! else mapOf(f.studentId!! to f.price!!)
 
         viewModelScope.launch {
-            val existing = session
+            val existing = session.value
+            // Re-checked here against the database, not against [conflict]: the save button is already
+            // disabled on a clash, but the lesson in the way may have been booked — or moved here —
+            // since this form was opened, and two lessons at one hour cannot both happen.
+            val ignoring = existing?.classes?.map { it.id }?.toSet().orEmpty()
+            if (classes.conflictsWith(slot, ignoring).isNotEmpty()) return@launch
             if (existing != null) {
                 classes.apply(
                     session = existing,

@@ -13,6 +13,7 @@
     <string name="action_delete">Удалить</string>
     <string name="action_save">Сохранить</string>
     <string name="action_cancel">Отмена</string>
+    <string name="action_ok">Понятно</string>
     <string name="action_back">Назад</string>
     <string name="action_archive">В архив</string>
     <string name="action_unarchive">Из архива</string>
@@ -48,6 +49,9 @@
     <string name="class_time_label">Время</string>
     <string name="class_time_from_label">Начало</string>
     <string name="class_time_to_label">Окончание</string>
+    <string name="class_time_range_invalid">Окончание должно быть позже начала</string>
+    <!-- %1$s: ученик или группа, %2$s: время занятия, которое уже стоит в расписании -->
+    <string name="class_time_conflict">Это время занято: %1$s, %2$s</string>
     <string name="class_duration_label">Длительность, мин</string>
     <string name="class_location_label">Место</string>
     <string name="class_mode_in_person">Очно</string>
