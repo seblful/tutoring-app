@@ -39,11 +39,16 @@ import com.seblful.repetit.ui.common.ContentCard
 import com.seblful.repetit.ui.common.EmptyState
 import com.seblful.repetit.ui.common.constrainedContent
 
-/** The group roster list: who is taught together, and a way in to edit or create a group. */
+/**
+ * The group roster list: who is taught together, and a way in to edit or create a group.
+ *
+ * @param onBack null when this is a bottom-bar tab (a tab has nothing to go back to); non-null when
+ *   the screen was opened from «Ещё», which is where it lives while the tab is switched off.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupsScreen(
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onGroupClick: (Long) -> Unit,
     onAddGroup: () -> Unit,
     viewModel: GroupsViewModel = hiltViewModel(),
@@ -56,8 +61,10 @@ fun GroupsScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.groups_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
+                        }
                     }
                 },
                 actions = {

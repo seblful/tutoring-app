@@ -105,6 +105,19 @@ object Migrations {
         }
     }
 
+    /**
+     * v3 → v4: the «Группы» tab can be hidden.
+     *
+     * Adds `settings.showGroupsTab`, defaulting to 1 so an existing install keeps the tab it just
+     * gained. A plain `ADD COLUMN` is enough — no constraint is involved, and the settings row is
+     * device-local anyway (it is not in the backup snapshot).
+     */
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `settings` ADD COLUMN `showGroupsTab` INTEGER NOT NULL DEFAULT 1")
+        }
+    }
+
     /** Every migration, in order — passed to the Room builder. */
-    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 }

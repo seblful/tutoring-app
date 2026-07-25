@@ -89,7 +89,13 @@ flowchart TB
   card (`GroupRules.sessions`); sessions are derived, never stored, so a class moved on its own leaves
   its session by construction, with no membership flag to go stale. Consequences: a group lesson can
   only be booked for a subject **every** member has a price for (`GroupRules.bookableSubjects`);
-  archived students are left out of new lessons but keep their past ones; per-member corrections stay
+  archived students are left out of new lessons but keep their past ones. The group form therefore
+  picks its roster **subject first**: choosing a subject lists only the students priced for it (with
+  that price on the row, since each member is billed at their own rate), so the roster comes out
+  bookable for that subject by construction instead of the gap surfacing later in the booking form.
+  The subject is a *picking aid only* — nothing about it is stored, keeping a group a plain roster
+  whose bookable subjects stay derived. A member kept from another subject is flagged, never hidden,
+  so no member can sit in the roster unseen (`GroupRules.memberCandidates`). Per-member corrections stay
   expressible (mark the lesson completed, then cancel the absentee's class — the session then reads
   as "разные"), which is why status changes apply per class (`GroupRules.applicableTo` skips the ones
   a change isn't legal for). Groups are **archive-only once they have lessons** (deleting is refused,
@@ -116,15 +122,25 @@ flowchart TB
   SAF-exportable from **More → Диагностика**. No Crashlytics/Sentry, to avoid a third-party SDK,
   network calls and a privacy policy. The pure formatting/bounding lives in `domain/` (JVM-tested).
 - **Settings live in Room** (single row): notifications, calendar sync, email invites, onboarding
-  flag, reminder lead time, auto-complete (opt-in), theme, default lesson length, currency.
-  Device-local, so **not** part of the backup snapshot.
+  flag, reminder lead time, auto-complete (opt-in), theme, default lesson length, currency, «Группы»
+  tab visibility. Device-local, so **not** part of the backup snapshot.
+- **The bottom bar reads who → when → money**: «Ученики», «Группы», «Расписание», «Отчёты», «Ещё».
+  Groups sits beside students because it is the same people seen as rosters. The app still *opens*
+  on the schedule (it stays the nav graph's start destination) — the order is only where each tab
+  sits. **«Группы» is the one tab that can be switched off** (Settings → Меню), for a tutor who
+  teaches one-to-one: hiding it moves the section back into «Ещё» rather than taking it away, since
+  the groups and their lessons still exist. Bar contents *and* "is this route a tab" both derive
+  from `TopDestination.visible(showGroupsTab)`, so a route opened from «Ещё» can't render a bar with
+  nothing selected; `GroupsScreen`/`MoreScreen` take a nullable callback each (no back arrow while
+  it is a tab, no «Ещё» row while it has one), so the entry point moves instead of duplicating.
 - **Schema changes ship a real Room migration** in `data/local/Migrations.kt` (registered on the Room
   builder; the destructive fallback now only covers dev devices predating v1). **v2** added the group
   tables and `classes.groupId`, recreating `classes` to do so — which also retired the unused
   `recurringGroupId` column (recurring series are a non-goal, and the name clashed with the new group
   id). **v3** adds `settings.emailInvitesEnabled`, defaulted on — its `DEFAULT 1` and the entity's
-  `@ColumnInfo(defaultValue = "1")` must stay in step or Room's schema validation fails. Migrations
-  are validated against the exported schema JSONs by an instrumented test.
+  `@ColumnInfo(defaultValue = "1")` must stay in step or Room's schema validation fails. **v4** adds
+  `settings.showGroupsTab` (defaulting to 1, so an existing install keeps the tab it just gained).
+  Migrations are validated against the exported schema JSONs by an instrumented test.
 - **First-run onboarding** forces adding ≥1 subject, then a first student with subjects and prices.
 - **Reports cover active students only**; archiving therefore hides a student's debt, so the app
   **warns before archiving a student with a non-zero balance**.
@@ -245,7 +261,7 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments.
   rules for `@Serializable` types live in `proguard-rules.pro` (Room/Hilt ship their own).
 
 ```
-app/src/main/java/com/seblful/tutoringapp/
+app/src/main/java/com/seblful/repetit/
 ├── domain/            # pure rules + ports + models
 ├── data/{local,repository,backup}/
 ├── calendar/  notifications/  diagnostics/  work/  format/  di/

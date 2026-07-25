@@ -120,4 +120,36 @@ class MigrationTest {
             assertEquals("RUB", c.getString(c.getColumnIndexOrThrow("currency")))
         }
     }
+
+    /**
+     * v4 gives «Группы» its own tab. The tutor's existing preferences — including the v3
+     * email-invites switch, which a tutor may deliberately have turned off — must survive, and the
+     * new column must arrive **on** so an upgrading install keeps the tab it just gained.
+     */
+    @Test fun migrate3To4KeepsSettingsAndShowsTheGroupsTab() {
+        helper.createDatabase(testDb, 3).use { db ->
+            db.execSQL(
+                "INSERT INTO settings (id, notificationsEnabled, calendarSyncEnabled, emailInvitesEnabled, " +
+                    "onboardingComplete, reminderLeadMinutes, autoCompleteEnabled, themeMode, " +
+                    "defaultLessonMinutes, currency) " +
+                    "VALUES (0, 1, 1, 0, 1, 30, 1, 'DARK', 45, 'RUB')",
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(testDb, 4, true, Migrations.MIGRATION_3_4)
+
+        db.query("SELECT * FROM settings").use { c ->
+            assertEquals(1, c.count)
+            c.moveToFirst()
+            // The tutor's existing choices are untouched…
+            assertEquals(30, c.getInt(c.getColumnIndexOrThrow("reminderLeadMinutes")))
+            assertEquals("DARK", c.getString(c.getColumnIndexOrThrow("themeMode")))
+            assertEquals("RUB", c.getString(c.getColumnIndexOrThrow("currency")))
+            assertEquals(1, c.getInt(c.getColumnIndexOrThrow("onboardingComplete")))
+            assertEquals(45, c.getInt(c.getColumnIndexOrThrow("defaultLessonMinutes")))
+            assertEquals("the v3 switch survives", 0, c.getInt(c.getColumnIndexOrThrow("emailInvitesEnabled")))
+            // …and they keep the tab they just gained.
+            assertEquals(1, c.getInt(c.getColumnIndexOrThrow("showGroupsTab")))
+        }
+    }
 }

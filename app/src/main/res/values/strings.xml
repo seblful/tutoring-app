@@ -4,6 +4,7 @@
     <!-- Bottom navigation -->
     <string name="nav_schedule">Расписание</string>
     <string name="nav_students">Ученики</string>
+    <string name="nav_groups">Группы</string>
     <string name="nav_reports">Отчёты</string>
     <string name="nav_more">Ещё</string>
 
@@ -137,8 +138,14 @@
     <string name="group_add_title">Новая группа</string>
     <string name="group_edit_title">Изменить группу</string>
     <string name="group_name_label">Название</string>
+    <string name="group_subject_title">Предмет</string>
+    <string name="group_subject_hint">Выберите предмет — покажем учеников, у которых есть на него цена</string>
+    <string name="group_no_subjects">Сначала добавьте предметы</string>
     <string name="group_members_title">Участники</string>
     <string name="group_members_required">Выберите хотя бы одного ученика</string>
+    <string name="group_members_selected">Выбрано: %1$d</string>
+    <string name="group_member_no_price">Нет цены на этот предмет</string>
+    <string name="group_no_students_for_subject">Ни у одного ученика нет цены на этот предмет. Укажите цены в карточках учеников.</string>
     <string name="group_no_students">Сначала добавьте учеников</string>
     <string name="group_no_members">Участников нет</string>
     <string name="group_bookable_subjects_title">Можно проводить</string>
@@ -159,6 +166,9 @@
     <string name="settings_section_reminders">Напоминания</string>
     <string name="settings_section_classes">Занятия</string>
     <string name="settings_section_money">Деньги</string>
+    <string name="settings_section_menu">Меню</string>
+    <string name="settings_groups_tab">Раздел «Группы»</string>
+    <string name="settings_groups_tab_desc">Показывать отдельным разделом внизу. Если выключить, группы останутся доступны в разделе «Ещё»</string>
     <string name="settings_section_appearance">Оформление</string>
     <string name="settings_section_calendar">Календарь</string>
     <string name="settings_notifications">Напоминания</string>

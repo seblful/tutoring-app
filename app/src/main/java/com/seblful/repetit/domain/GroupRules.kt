@@ -150,6 +150,50 @@ object GroupRules {
     }
 
     /**
+     * One row of the group form's member picker: a student who may be put in the group, and what
+     * they cost for the subject being picked for.
+     *
+     * @param rate the student's hourly rate for that subject, or null when there is none (either no
+     *   subject is being picked for yet, or [missingPrice]).
+     * @param missingPrice true only when a subject *is* being picked for and this student has no
+     *   price for it — which can only happen to somebody already in the roster (see
+     *   [memberCandidates]). Self-contained, so the row can be flagged without re-checking prices.
+     */
+    data class MemberCandidate(
+        val student: Student,
+        val rate: Money?,
+        val missingPrice: Boolean,
+    )
+
+    /**
+     * Who the tutor may put in a group while picking for [subjectId]: the students who have a price
+     * for that subject — the only ones the group could then be *billed* for — plus anyone already in
+     * [selectedIds], so a member can never be hidden by the filter and left in the roster unnoticed
+     * (they are flagged with [MemberCandidate.missingPrice] instead).
+     *
+     * With no subject chosen ([subjectId] null) only the current members come back: picking the
+     * subject first is what makes the roster bookable by construction, so an unfiltered wall of
+     * students is not offered.
+     *
+     * [students] is expected to be the *active* students in display order (archived ones can't be
+     * booked — see [bookableMembers]); that order is preserved.
+     */
+    fun memberCandidates(
+        students: List<Student>,
+        ratesByStudent: Map<Long, Map<Long, Money>>,
+        subjectId: Long?,
+        selectedIds: Set<Long>,
+    ): List<MemberCandidate> = students.mapNotNull { student ->
+        val rate = subjectId?.let { ratesByStudent[student.id]?.get(it) }
+        when {
+            rate != null -> MemberCandidate(student, rate, missingPrice = false)
+            student.id in selectedIds ->
+                MemberCandidate(student, rate = null, missingPrice = subjectId != null)
+            else -> null
+        }
+    }
+
+    /**
      * The statuses offered for a whole session: the union of what its classes can move to. A mixed
      * session (say two completed, one cancelled) can still be sent to either status — [applicableTo]
      * then picks out the classes the change is legal for, leaving the rest alone.

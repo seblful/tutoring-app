@@ -61,24 +61,32 @@ fun AppRoot(rootViewModel: RootViewModel = hiltViewModel()) {
                 }
                 !settings!!.onboardingComplete ->
                     OnboardingScreen(onFinished = { /* settings flip re-renders into MainApp */ })
-                else -> MainApp()
+                else -> MainApp(showGroupsTab = settings!!.showGroupsTab)
             }
         }
     }
 }
 
+/**
+ * The main tabs and the whole navigation graph.
+ *
+ * @param showGroupsTab whether «Группы» is one of the tabs. When it isn't, the section keeps its
+ *   route and is reached from «Ещё» instead — so it reads as an ordinary sub-screen there, with a
+ *   back arrow and no bottom bar.
+ */
 @Composable
-private fun MainApp() {
+private fun MainApp(showGroupsTab: Boolean) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val showBottomBar = currentRoute in TopDestination.routes
+    val tabs = TopDestination.visible(showGroupsTab)
+    val showBottomBar = currentRoute in TopDestination.routes(showGroupsTab)
 
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar {
-                    TopDestination.entries.forEach { dest ->
+                    tabs.forEach { dest ->
                         NavigationBarItem(
                             selected = currentRoute == dest.route,
                             onClick = {
@@ -111,7 +119,11 @@ private fun MainApp() {
             composable(Routes.MORE) {
                 MoreScreen(
                     onSubjects = { navController.navigate(Routes.SUBJECTS) },
-                    onGroups = { navController.navigate(Routes.GROUPS) },
+                    // Listed here only while it has no tab of its own, so the entry point moves
+                    // rather than being duplicated — and hiding the tab never hides the groups.
+                    onGroups = if (showGroupsTab) null else {
+                        { navController.navigate(Routes.GROUPS) }
+                    },
                     onBackup = { navController.navigate(Routes.BACKUP) },
                     onSettings = { navController.navigate(Routes.SETTINGS) },
                     onDiagnostics = { navController.navigate(Routes.DIAGNOSTICS) },
@@ -138,7 +150,10 @@ private fun MainApp() {
 
             composable(Routes.GROUPS) {
                 GroupsScreen(
-                    onBack = { navController.popBackStack() },
+                    // A tab has nowhere to go back to; opened from «Ещё» it does.
+                    onBack = if (showGroupsTab) null else {
+                        { navController.popBackStack() }
+                    },
                     onGroupClick = { navController.navigate(Routes.groupDetail(it)) },
                     onAddGroup = { navController.navigate(Routes.GROUP_ADD) },
                 )

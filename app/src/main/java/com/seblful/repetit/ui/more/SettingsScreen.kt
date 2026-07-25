@@ -73,7 +73,7 @@ fun SettingsScreen(
             Modifier.fillMaxSize().padding(padding).constrainedContent().verticalScroll(rememberScrollState()),
         ) {
             // Grouped by what each setting governs, so a glance tells you where to look:
-            // reminders, then calendar sync, class behaviour, money, and look.
+            // reminders, then calendar sync, class behaviour, money, the menu, and look.
             SectionHeader(stringResource(R.string.settings_section_reminders))
             SwitchRow(
                 title = stringResource(R.string.settings_notifications),
@@ -142,6 +142,18 @@ fun SettingsScreen(
                 ),
                 selected = settings.currency,
                 onSelect = { viewModel.setCurrency(it) },
+            )
+
+            SectionHeader(stringResource(R.string.settings_section_menu))
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_groups_tab)) },
+                supportingContent = { Text(stringResource(R.string.settings_groups_tab_desc)) },
+                trailingContent = {
+                    Switch(
+                        checked = settings.showGroupsTab,
+                        onCheckedChange = { viewModel.setShowGroupsTab(it) },
+                    )
+                },
             )
 
             SectionHeader(stringResource(R.string.settings_section_appearance))
