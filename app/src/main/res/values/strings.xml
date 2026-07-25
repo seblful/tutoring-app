@@ -112,7 +112,7 @@
     <string name="settings_section_appearance">Оформление</string>
     <string name="settings_section_calendar">Календарь</string>
     <string name="settings_notifications">Напоминания</string>
-    <string name="settings_notifications_desc">Уведомлять за %1$s до занятия</string>
+    <string name="settings_notifications_desc">Уведомлять перед занятием</string>
     <string name="settings_calendar_sync">Синхронизация с календарём</string>
     <string name="settings_calendar_sync_desc">Показывать занятия в календаре устройства и приглашать учеников по email</string>
     <string name="settings_reminder_lead">За сколько напоминать</string>
@@ -126,8 +126,10 @@
     <string name="theme_dark">Тёмная</string>
     <string name="currency_byn">BYN</string>
     <string name="currency_rub">RUB</string>
-    <string name="duration_minutes">%1$d мин</string>
-    <string name="duration_hours">%1$s ч</string>
+    <string name="minutes_short">%1$d мин</string>
+    <string name="hours_one">1 ч</string>
+    <string name="hours_one_and_half">1,5 ч</string>
+    <string name="hours_two">2 ч</string>
 
     <!-- Onboarding -->
     <string name="onboarding_subjects_title">Шаг 1. Предметы</string>
