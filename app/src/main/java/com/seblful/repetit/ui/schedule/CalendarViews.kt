@@ -3,6 +3,8 @@ package com.seblful.repetit.ui.schedule
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +16,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -148,11 +152,14 @@ private fun DayCell(
         (listOf(date.dayOfMonth.toString(), total) + breakdown).joinToString(", ")
     }
 
-    // The whole cell is the touch target, not just the disc drawn inside it.
+    // The whole cell is the touch target, not just the disc drawn inside it — but press feedback
+    // bounded to that rectangle reads as a grey square behind the day, so the cell hands its
+    // interactions to the round disc below and draws no indication of its own.
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier
             .height(CellHeight)
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .semantics { if (cellDescription != null) contentDescription = cellDescription },
         contentAlignment = Alignment.Center,
     ) {
@@ -171,7 +178,10 @@ private fun DayCell(
                         } else {
                             Modifier
                         }
-                    ),
+                    )
+                    // Last in the chain so the ripple lands *over* a selected day's fill, and
+                    // tinted like the number so it stays visible on every disc state.
+                    .indication(interactionSource, ripple(color = numberColor)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
