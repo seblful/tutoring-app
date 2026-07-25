@@ -32,6 +32,13 @@ import com.seblful.repetit.R
 import com.seblful.repetit.ui.common.ConfirmDialog
 import com.seblful.repetit.ui.common.constrainedContent
 
+/**
+ * The types a backup file can arrive as: plenty of file managers hand a `.json` over as
+ * octet-stream or plain text, so the picker has to accept those too. Shared with the first-run
+ * restore so both pickers offer the same files.
+ */
+internal val BACKUP_MIME_TYPES = arrayOf("application/json", "application/octet-stream", "text/plain")
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BackupScreen(
@@ -89,9 +96,7 @@ fun BackupScreen(
                 leadingContent = { Icon(Icons.Filled.Download, null) },
                 headlineContent = { Text(stringResource(R.string.backup_import)) },
                 supportingContent = { Text(stringResource(R.string.backup_import_desc)) },
-                modifier = Modifier.clickable {
-                    importLauncher.launch(arrayOf("application/json", "application/octet-stream", "text/plain"))
-                },
+                modifier = Modifier.clickable { importLauncher.launch(BACKUP_MIME_TYPES) },
             )
         }
     }

@@ -5,8 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.repetit.data.backup.BackupManager
-import com.seblful.repetit.data.repository.ClassRepository
-import com.seblful.repetit.work.WorkScheduler
+import com.seblful.repetit.data.backup.BackupRestore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -22,8 +21,7 @@ enum class BackupResult { EXPORT_OK, IMPORT_OK, ERROR }
 class BackupViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val backup: BackupManager,
-    private val workScheduler: WorkScheduler,
-    private val classes: ClassRepository,
+    private val restore: BackupRestore,
 ) : ViewModel() {
 
     private val _events = Channel<BackupResult>(Channel.BUFFERED)
@@ -42,21 +40,16 @@ class BackupViewModel @Inject constructor(
         }
     }
 
+    /** Reads the picked file here (the `Uri` is UI-side) and hands the rest to [BackupRestore]. */
     fun import(uri: Uri) {
         viewModelScope.launch {
             val ok = runCatching {
                 withContext(Dispatchers.IO) {
                     val text = context.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() }
                         ?: error("Cannot open input stream")
-                    backup.importJson(text)
+                    restore.restore(text) // parsing a whole snapshot stays off the main thread
                 }
             }.isSuccess
-            if (ok) {
-                // Imported classes change what's upcoming/overdue — re-run auto-complete & reminders,
-                // and re-mirror to this device's calendar (imported event ids came from another device).
-                workScheduler.refreshNow()
-                runCatching { classes.resyncCalendar() } // best-effort, like all calendar work
-            }
             _events.send(if (ok) BackupResult.IMPORT_OK else BackupResult.ERROR)
         }
     }

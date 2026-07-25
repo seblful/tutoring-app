@@ -194,6 +194,13 @@
     <string name="hours_two">2 ч</string>
 
     <!-- Onboarding -->
+    <string name="onboarding_welcome_title">Добро пожаловать</string>
+    <string name="onboarding_welcome_desc">Настройка займёт минуту: предметы, которые вы преподаёте, и первый ученик с ценами. Если вы уже пользовались приложением, загрузите резервную копию.</string>
+    <string name="onboarding_start">Настроить</string>
+    <string name="onboarding_restore">Загрузить резервную копию</string>
+    <string name="onboarding_restore_desc">Данные из файла заменят текущие</string>
+    <string name="onboarding_skip">Пропустить</string>
+    <string name="onboarding_skip_desc">Предметы и учеников можно добавить позже</string>
     <string name="onboarding_subjects_title">Шаг 1. Предметы</string>
     <string name="onboarding_subjects_desc">Добавьте предметы, которые вы преподаёте. Их можно изменить позже.</string>
     <string name="onboarding_student_title">Шаг 2. Первый ученик</string>

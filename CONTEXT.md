@@ -32,7 +32,7 @@ flowchart TB
 | `domain/` | Pure Kotlin, no Android deps: billing, class rules, group rules (sessions, bookable subjects), calendar layout, reminders, reports, scheduling (bookable subjects, time conflicts), the `ReminderScheduler` port, and the models. All JVM-unit-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`. Entities are also `@Serializable` (for backup). |
 | `data/repository/` | Repositories mapping entities ⇄ domain models, and the place display **name ordering** is applied (`format/NameOrder`, not SQL). `ClassRepository` owns *all* side effects of a class change (calendar mirroring + reminder refresh); every write takes a whole **lesson** (see below). `EnrollmentRepository` owns the subject⇄price invariant — the single seam that links/unlinks a subject and sets/deletes its price together. `GroupRepository` is the only writer of group membership (a group is always saved together with its exact roster). |
-| `data/backup/` | Whole-DB JSON snapshot: export + transactional replace-all import. |
+| `data/backup/` | Whole-DB JSON snapshot: export + transactional replace-all import, plus `BackupRestore` — everything a *restore* entails beyond the rows (reminders, calendar re-mirror, ending first run), so both entry points share one path. |
 | `calendar/` | `CalendarSync` port + a `CalendarContract` adapter, plus a `CalendarPermission` port so "enabling sync needs the permission" can be a view-model rule instead of a branch in a composable. |
 | `notifications/` | `Notifier` port + an Android adapter, and `DueReminder` — everything a fired reminder does (is it still owed, whose name goes on it), kept outside the worker so a JVM test can drive it. |
 | `diagnostics/` | `CrashLogger` — appends crashes to a capped local file, then chains to the platform default (so Play/Android Vitals still reports). Viewed/exported from `ui/diagnostics`. |
@@ -141,7 +141,17 @@ flowchart TB
   `@ColumnInfo(defaultValue = "1")` must stay in step or Room's schema validation fails. **v4** adds
   `settings.showGroupsTab` (defaulting to 1, so an existing install keeps the tab it just gained).
   Migrations are validated against the exported schema JSONs by an instrumented test.
-- **First-run onboarding** forces adding ≥1 subject, then a first student with subjects and prices.
+- **First-run onboarding is offered, not imposed.** It opens on a welcome step with three ways out:
+  walk the setup (≥1 subject, then a first student with subjects and prices — each step still
+  *requires* its input to move on), **restore a backup**, or **skip**. Skipping is the same flag flip
+  as finishing, so the app can legitimately open empty — every screen already has an empty state, and
+  the add-student form already refuses a student with no subject («Сначала добавьте предметы»), so an
+  empty app guides rather than dead-ends. Restoring is not a third flip: `BackupRestore` marks first
+  run done as part of what a restore *is*, so the rule holds for the settings screen's import too and
+  the onboarding screen has nothing to do on success — the flag it flips swaps it for the main tabs.
+  Every step but the welcome one keeps a back arrow, so restore and skip stay reachable after starting
+  the setup; the restore confirms before replacing only when subjects already exist (on a fresh
+  install there is nothing to lose, and «заменит все текущие данные» would be a lie).
 - **Reports cover active students only**; archiving therefore hides a student's debt, so the app
   **warns before archiving a student with a non-zero balance**.
 - **Email reminders via the calendar, not a backend**: a synced class event adds the student as an
@@ -173,7 +183,11 @@ flowchart TB
   worker that auto-completes due classes and refreshes reminders). The *decisions* are pure and tested.
 - **Backup = full DB snapshot → JSON via SAF.** Ids are preserved; import is one transaction. The
   format is versioned (**v2** carries groups); an older file still imports, since missing tables come
-  back empty and retired keys are ignored.
+  back empty and retired keys are ignored. **Restoring is more than importing**: `BackupRestore` owns
+  the whole act — replace the rows, end first run, re-plan reminders, re-mirror to *this* device's
+  calendar (the imported event ids came from another one) — so the settings screen and the first-run
+  screen can't drift, and a rejected file leaves data *and* the onboarding flag untouched. The view
+  models keep only the SAF read, where the `Uri` lives.
 - **`java.time` everywhere + core-library desugaring** so it works on `minSdk 24`.
 - **Design system** (`ui/theme/`): curated Material 3 palette (indigo + teal), light/dark schemes,
   dynamic color off by default for a consistent brand. Convention: content lists use the shared

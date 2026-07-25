@@ -16,6 +16,11 @@ import javax.inject.Inject
  * Drives first-run setup: the user adds at least one subject, then their first student (with
  * subjects and prices). Completing it flips [SettingsRepository.setOnboardingComplete], after which
  * the app shows its normal tabs.
+ *
+ * Setup is offered, not imposed — [complete] is also what «Пропустить» calls, leaving an app with
+ * no subjects and no students, which every screen already handles with its empty state. Restoring
+ * a backup ends first run too, but that path belongs to `BackupRestore` (it does far more than flip
+ * the flag), not here.
  */
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
@@ -32,6 +37,7 @@ class OnboardingViewModel @Inject constructor(
         viewModelScope.launch { subjectsRepo.upsert(Subject(name = trimmed)) }
     }
 
+    /** Ends first run — from finishing the last step or from skipping it. */
     fun complete() {
         viewModelScope.launch { settings.setOnboardingComplete(true) }
     }

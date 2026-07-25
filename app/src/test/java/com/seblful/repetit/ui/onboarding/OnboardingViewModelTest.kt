@@ -46,4 +46,17 @@ class OnboardingViewModelTest {
 
         assertTrue(env.settingsRepo.get().onboardingComplete)
     }
+
+    /** Skipping is the same flip: setup is offered, so first run can end with nothing added. */
+    @Test
+    fun `skipping ends first run with no subject and no student`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+
+        vm.complete()
+        advanceUntilIdle()
+
+        assertTrue(env.settingsRepo.get().onboardingComplete)
+        assertTrue(env.subjectDao.items.value.isEmpty())
+        assertTrue(env.studentDao.items.value.isEmpty())
+    }
 }
