@@ -109,7 +109,7 @@ fun SettingsScreen(
                 checked = settings.emailInvitesEnabled,
                 // The invitation rides on the class's calendar event, so this switch can only do
                 // anything while sync is on — shown dimmed rather than hidden, so the tutor can see
-                // what enabling sync would also turn on.
+                // that syncing alone mails nobody, and where to opt in if they want it to.
                 enabled = settings.calendarSyncEnabled,
                 onCheckedChange = { viewModel.setEmailInvitesEnabled(it) },
             )

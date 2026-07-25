@@ -137,7 +137,8 @@ flowchart TB
   builder; the destructive fallback now only covers dev devices predating v1). **v2** added the group
   tables and `classes.groupId`, recreating `classes` to do so — which also retired the unused
   `recurringGroupId` column (recurring series are a non-goal, and the name clashed with the new group
-  id). **v3** adds `settings.emailInvitesEnabled`, defaulted on — its `DEFAULT 1` and the entity's
+  id). **v3** adds `settings.emailInvitesEnabled`, backfilled **on** for upgrades (a fresh install
+  starts off) — its `DEFAULT 1` and the entity's
   `@ColumnInfo(defaultValue = "1")` must stay in step or Room's schema validation fails. **v4** adds
   `settings.showGroupsTab` (defaulting to 1, so an existing install keeps the tab it just gained).
   Migrations are validated against the exported schema JSONs by an instrumented test.
@@ -157,10 +158,14 @@ flowchart TB
 - **Email reminders via the calendar, not a backend**: a synced class event adds the student as an
   attendee with an email reminder, so the calendar account (e.g. Google) does the sending.
 - **Inviting students by email is its own setting**, separate from calendar sync — a tutor may want
-  their lessons in their calendar without mailing every student. It is **on by default** (and the
-  v2 → v3 migration backfills it on) because that is what sync already did before the split;
-  defaulting it off would silently withdraw invitations students already have. It only bites while
-  sync is on, since the invitation rides on the event, so the settings row is shown dimmed until
+  their lessons in their calendar without mailing every student. It is **off by default**: syncing is
+  a statement about the tutor's own calendar, and writing to someone else's inbox is a separate,
+  deliberate opt-in. Upgrades are the exception — the v2 → v3 migration backfills it **on**, since
+  that is what sync already did before the split and backfilling off would silently withdraw
+  invitations students already have. So the entity's Kotlin default (off — what a new install gets,
+  since rows are always written whole from Kotlin) and its `defaultValue`/the migration's `DEFAULT 1`
+  (the upgrade backfill only) deliberately disagree. The setting only bites while sync is on, since
+  the invitation rides on the event, so the settings row is shown dimmed until
   then and needs no permission check of its own. Crucially the flag is **not** just "skip the next
   invite": the student's address travels with every mirror alongside an `invited` flag
   (`calendar/Guest`), so turning the setting off and re-syncing **withdraws** the invitations
