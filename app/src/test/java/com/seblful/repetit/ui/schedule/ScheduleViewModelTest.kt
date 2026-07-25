@@ -367,7 +367,10 @@ class ScheduleViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, vm.dayLoads.value.getValue(august).total)
-        assertEquals(setOf(ClassStatus.COMPLETED), vm.dayLoads.value.getValue(august).statuses)
+        assertEquals(
+            mapOf(ClassStatus.COMPLETED to 1),
+            vm.dayLoads.value.getValue(august).counts,
+        )
     }
 
     @Test
