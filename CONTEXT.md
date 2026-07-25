@@ -29,7 +29,7 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps: billing, class rules, reminders, reports, scheduling, the `ReminderScheduler` port, and the models. All JVM-unit-tested. |
+| `domain/` | Pure Kotlin, no Android deps: billing, class rules, reminders, reports, scheduling, calendar-month layout, the `ReminderScheduler` port, and the models. All JVM-unit-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`. Entities are also `@Serializable` (for backup). |
 | `data/repository/` | Repositories mapping entities ⇄ domain models. `ClassRepository` owns *all* side effects of a class change (calendar mirroring + reminder refresh). `EnrollmentRepository` owns the subject⇄price invariant — the single seam that links/unlinks a subject and sets/deletes its price together. |
 | `data/backup/` | Whole-DB JSON snapshot: export + transactional replace-all import. |
@@ -97,6 +97,19 @@ flowchart TB
 - **Design system** (`ui/theme/`): curated Material 3 palette (indigo + teal), light/dark schemes,
   dynamic color off by default for a consistent brand. Convention: content lists use the shared
   `ContentCard`; settings-style lists stay as plain `ListItem` rows. Shared atoms in `ui/common/`.
+- **The schedule has three views**, picked from the top bar. **Day** and **month** both show one
+  selected day's classes (the month grid is a day picker with an overview); **week** is the odd one
+  out — its strip picks the day the add button books into, but the agenda below always lists the
+  *whole* week grouped by day, since seeing a week at once is the point. Calendar cells carry up to
+  three dots (one per class, tinted by the day's dominant status). Paging weeks or months only
+  *browses* and never moves the selection; opening a calendar view snaps its page back to the
+  selected day, so it can't open on a page where nothing looks selected. Day markers are queried
+  for the **active view's range only**, so browsing far from the selection never widens the query
+  and the day view pays for no markers at all. The layout rules — how many week rows a month needs,
+  which neighbouring days pad them, where a week starts, how a day's classes collapse to one marker
+  — are pure and JVM-tested in `domain/CalendarLayout`, leaving the composables to draw only. The
+  chosen view is view-model state, deliberately **not** persisted: it isn't in the settings row, so
+  no migration.
 - **Responsive width.** Phone-first, but every screen's top-level scrollable content applies
   `Modifier.constrainedContent()` (`ui/common/`), capping width at ~600.dp and centring it on wide
   screens (tablets/foldables/landscape) while staying full-width on phones. Vertical fit comes from

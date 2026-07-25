@@ -2,11 +2,14 @@ package com.seblful.repetit.format
 
 import com.seblful.repetit.domain.model.Money
 import java.math.RoundingMode
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.util.Locale
 
 /**
@@ -20,6 +23,7 @@ private val dateFmt = DateTimeFormatter.ofPattern("d MMM yyyy", RU)
 private val dayFmt = DateTimeFormatter.ofPattern("EEEE, d MMMM", RU)
 private val timeFmt = DateTimeFormatter.ofPattern("HH:mm", RU)
 private val dateTimeFmt = DateTimeFormatter.ofPattern("d MMM, HH:mm", RU)
+private val dayMonthFmt = DateTimeFormatter.ofPattern("d MMMM", RU)
 private val monthFmt = DateTimeFormatter.ofPattern("LLLL yyyy", RU)
 
 private val zone: ZoneId get() = ZoneId.systemDefault()
@@ -59,5 +63,23 @@ fun Money.toAmountInput(): String {
 fun formatMonthKey(key: Int): String {
     val year = key / 12
     val month = key % 12 + 1
-    return LocalDate.of(year, month, 1).format(monthFmt).replaceFirstChar { it.uppercase() }
+    return formatMonth(YearMonth.of(year, month))
+}
+
+/** Formats a month as e.g. "Июнь 2026" — the schedule calendar's page title. */
+fun formatMonth(month: YearMonth): String =
+    month.atDay(1).format(monthFmt).replaceFirstChar { it.uppercase() }
+
+/** Short weekday name for a calendar header, e.g. "пн". */
+fun DayOfWeek.shortName(): String = getDisplayName(TextStyle.SHORT_STANDALONE, RU)
+
+/**
+ * Formats a week as an inclusive range, dropping whatever the two ends share so the label stays
+ * short enough to sit between the navigator's arrows:
+ * "6 – 12 июля", "29 июня – 5 июля", "28 дек. 2026 – 3 янв. 2027".
+ */
+fun formatWeekRange(start: LocalDate, end: LocalDate): String = when {
+    start.year != end.year -> "${start.format(dateFmt)} – ${end.format(dateFmt)}"
+    start.month != end.month -> "${start.format(dayMonthFmt)} – ${end.format(dayMonthFmt)}"
+    else -> "${start.dayOfMonth} – ${end.format(dayMonthFmt)}"
 }
