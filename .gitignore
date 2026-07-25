@@ -41,3 +41,6 @@ output.json
 
 # KSP / annotation processing
 **/generated/
+
+# Kotlin build session cache (Kotlin 2.x)
+.kotlin/

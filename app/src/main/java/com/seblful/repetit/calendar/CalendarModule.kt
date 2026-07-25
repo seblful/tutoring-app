@@ -13,4 +13,8 @@ abstract class CalendarModule {
     @Binds
     @Singleton
     abstract fun bindCalendarSync(impl: DeviceCalendarSync): CalendarSync
+
+    @Binds
+    @Singleton
+    abstract fun bindCalendarPermission(impl: AndroidCalendarPermission): CalendarPermission
 }

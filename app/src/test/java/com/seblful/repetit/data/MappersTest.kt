@@ -1,5 +1,11 @@
 package com.seblful.repetit.data
 
+import com.seblful.repetit.data.local.ClassEntity
+import com.seblful.repetit.data.local.GroupEntity
+import com.seblful.repetit.data.local.PaymentEntity
+import com.seblful.repetit.data.local.PriceEntity
+import com.seblful.repetit.data.local.StudentEntity
+import com.seblful.repetit.data.local.SubjectEntity
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.ClassStatus
 import com.seblful.repetit.domain.model.Money
@@ -8,6 +14,7 @@ import com.seblful.repetit.domain.model.Price
 import com.seblful.repetit.domain.model.Student
 import com.seblful.repetit.domain.model.Subject
 import com.seblful.repetit.domain.model.TutoringClass
+import kotlinx.serialization.descriptors.elementNames
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.Instant
@@ -59,5 +66,54 @@ class MappersTest {
         val c = TutoringClass(studentId = 1, subjectId = 1, start = Instant.parse("2026-06-20T10:00:00Z"), durationMinutes = 60)
         assertEquals(Instant.parse("2026-06-20T10:00:00Z").toEpochMilli(), c.toEntity().startMillis)
         assertEquals(c.start, c.toEntity().toDomain().start)
+    }
+
+    @Test
+    fun `a group class keeps its group id`() {
+        val c = TutoringClass(
+            id = 11, studentId = 1, subjectId = 2,
+            start = Instant.ofEpochMilli(1_700_000_000_000),
+            durationMinutes = 60, price = Money.ofMajor(20), groupId = 5,
+        )
+        assertEquals(c, c.toEntity().toDomain())
+        assertEquals(5L, c.toEntity().groupId)
+    }
+
+    /**
+     * The columns each mapped entity has, listed so that adding one has to be a deliberate act.
+     *
+     * A mapper that forgets a field still compiles: the mappers construct with named arguments and
+     * every non-essential entity column has a default, so a forgotten value is dropped on the way out
+     * and silently reset on the way back. The round-trips above would not catch it either — a field
+     * nobody sets sits at its default on both sides and compares equal. This test fails instead, in
+     * front of whoever adds the column, while they still have the mapper open.
+     */
+    @Test
+    fun `every entity column is accounted for by a mapper`() {
+        val columns = mapOf(
+            "SubjectEntity" to setOf("id", "name"),
+            "StudentEntity" to setOf("id", "name", "phone", "email", "note", "defaultMode", "archived"),
+            "GroupEntity" to setOf("id", "name", "note", "defaultMode", "archived"),
+            "PriceEntity" to setOf("studentId", "subjectId", "amountMinor"),
+            "PaymentEntity" to setOf("id", "studentId", "dateMillis", "amountMinor"),
+            "ClassEntity" to setOf(
+                "id", "studentId", "subjectId", "startMillis", "durationMinutes",
+                "priceMinor", "status", "chargeMinor", "groupId", "mode", "calendarEventId",
+            ),
+        )
+        val actual = listOf(
+            SubjectEntity.serializer(),
+            StudentEntity.serializer(),
+            GroupEntity.serializer(),
+            PriceEntity.serializer(),
+            PaymentEntity.serializer(),
+            ClassEntity.serializer(),
+        ).associate { it.descriptor.serialName.substringAfterLast('.') to it.descriptor.elementNames.toSet() }
+
+        assertEquals(
+            "An entity gained or lost a column — map it in Mappers.kt, then list it here.",
+            columns,
+            actual,
+        )
     }
 }

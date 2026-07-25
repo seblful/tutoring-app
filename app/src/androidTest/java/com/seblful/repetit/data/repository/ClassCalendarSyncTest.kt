@@ -9,6 +9,7 @@ import com.seblful.repetit.domain.ReminderScheduler
 import com.seblful.repetit.data.local.AppDatabase
 import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.SubjectEntity
+import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.ClassStatus
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.TutoringClass
@@ -61,18 +62,18 @@ class ClassCalendarSyncTest {
     @After fun tearDown() = db.close()
 
     @Test fun addingScheduledClassCreatesEventAndPersistsItsId() = runTest {
-        val id = repo.add(scheduled(Instant.parse("2026-07-01T13:00:00Z")))
+        val id = book(Instant.parse("2026-07-01T13:00:00Z"))
         assertEquals(1, calendar.upserts.size)
         assertEquals("100", repo.getById(id)?.calendarEventId)
     }
 
     @Test fun movingClassUpdatesTimeAndTheSyncedEvent() = runTest {
-        val id = repo.add(scheduled(Instant.parse("2026-07-01T13:00:00Z")))
+        val id = book(Instant.parse("2026-07-01T13:00:00Z"))
         calendar.upserts.clear()
 
         val now = Instant.parse("2026-07-02T09:00:00Z")
         val newStart = Instant.parse("2026-07-03T16:00:00Z")
-        repo.move(id, newStart, now)
+        repo.move(session(id), newStart, now)
 
         // Time updated locally...
         assertEquals(newStart, repo.getById(id)?.start)
@@ -86,15 +87,15 @@ class ClassCalendarSyncTest {
         // Moving a billed class forward re-plans it: it becomes scheduled again, its charge is
         // voided, and its (future) event is re-created/updated.
         val start = Instant.parse("2026-07-01T13:00:00Z")
-        val id = repo.add(scheduled(start).copy(price = Money(5000)))
-        repo.setStatus(id, ClassStatus.COMPLETED)
+        val id = book(start, price = Money(5000))
+        repo.setStatus(session(id), ClassStatus.COMPLETED)
         calendar.upserts.clear()
 
         val now = Instant.parse("2026-07-05T09:00:00Z")
         val newStart = Instant.parse("2026-07-10T10:00:00Z")
-        val result = repo.move(id, newStart, now)
+        val result = repo.move(session(id), newStart, now).single()
 
-        assertEquals(newStart, result?.start)
+        assertEquals(newStart, result.start)
         assertEquals(ClassStatus.SCHEDULED, repo.getById(id)?.status)
         assertTrue(repo.getById(id)?.charge?.isZero == true) // charge voided
         assertEquals(1, calendar.upserts.size) // event re-synced
@@ -102,12 +103,12 @@ class ClassCalendarSyncTest {
 
     @Test fun movingAClassToThePastKeepsItsStatus() = runTest {
         val start = Instant.parse("2026-07-10T13:00:00Z")
-        val id = repo.add(scheduled(start).copy(price = Money(5000)))
-        repo.setStatus(id, ClassStatus.COMPLETED)
+        val id = book(start, price = Money(5000))
+        repo.setStatus(session(id), ClassStatus.COMPLETED)
 
         val now = Instant.parse("2026-07-15T09:00:00Z")
         val newStart = Instant.parse("2026-07-12T10:00:00Z") // still in the past relative to now
-        repo.move(id, newStart, now)
+        repo.move(session(id), newStart, now)
 
         assertEquals(newStart, repo.getById(id)?.start)
         assertEquals(ClassStatus.COMPLETED, repo.getById(id)?.status) // status unchanged
@@ -115,15 +116,23 @@ class ClassCalendarSyncTest {
     }
 
     @Test fun cancellingClassDeletesItsEvent() = runTest {
-        val id = repo.add(scheduled(Instant.parse("2026-07-01T13:00:00Z")))
+        val id = book(Instant.parse("2026-07-01T13:00:00Z"))
 
-        repo.setStatus(id, ClassStatus.CANCELLED)
+        repo.setStatus(session(id), ClassStatus.CANCELLED)
 
         assertTrue(calendar.deletes.contains("100"))
         assertNull(repo.getById(id)?.calendarEventId)
     }
 
-    private fun scheduled(start: Instant) = TutoringClass(
-        studentId = 1, subjectId = 1, start = start, durationMinutes = 60, status = ClassStatus.SCHEDULED,
-    )
+    /** Books one individual lesson (a session of one) and returns its class id. */
+    private suspend fun book(start: Instant, price: Money = Money.ZERO): Long = repo.book(
+        subjectId = 1,
+        start = start,
+        durationMinutes = 60,
+        mode = ClassMode.IN_PERSON,
+        pricesByStudent = mapOf(1L to price),
+    ).single()
+
+    /** The lesson class [id] belongs to. */
+    private suspend fun session(id: Long) = repo.getSessionFor(id)!!
 }

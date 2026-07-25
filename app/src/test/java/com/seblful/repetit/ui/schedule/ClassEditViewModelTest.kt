@@ -415,7 +415,7 @@ class ClassEditViewModelTest {
     fun `editing a group lesson loads every member and saves them all`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
         val start = Instant.parse("2026-09-01T09:00:00Z")
-        val ids = env.classRepo.addGroupSession(
+        val ids = env.classRepo.book(
             groupId = groupId, subjectId = env.subjectDao.getAll().first().id, start = start,
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             pricesByStudent = mapOf(ann to Money.ofMajor(30), bob to Money.ofMajor(25)),
@@ -449,7 +449,7 @@ class ClassEditViewModelTest {
     fun `editing an old lesson keeps its own members after the roster changed`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
         val algebra = env.subjectDao.getAll().first().id
-        val ids = env.classRepo.addGroupSession(
+        val ids = env.classRepo.book(
             groupId = groupId, subjectId = algebra, start = Instant.parse("2026-09-01T09:00:00Z"),
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             pricesByStudent = mapOf(ann to Money.ofMajor(30), bob to Money.ofMajor(25)),

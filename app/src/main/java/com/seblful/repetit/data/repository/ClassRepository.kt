@@ -79,74 +79,33 @@ class ClassRepository @Inject constructor(
         }
     }
 
-    suspend fun add(klass: TutoringClass): Long {
-        val id = dao.upsert(klass.toEntity())
-        mirrorToCalendar(klass.copy(id = id))
-        reminderScheduler.refreshNow()
-        return id
-    }
+    // ---- Writes --------------------------------------------------------------------------------
+    // Every write below takes a **lesson**, never a bare class. A group lesson is n classes sharing a
+    // group id and a start; an individual class is the same thing with one member ([ClassSession.of]).
+    // Treating them as one shape means there is a single implementation per operation instead of a
+    // single-class form and a batch form drifting apart — and the obligations of changing a lesson
+    // (run the rules per class, mirror each to the calendar, refresh reminders **once** for the
+    // lesson) are discharged here rather than remembered at each call site.
 
     /**
-     * Persists edits to an existing class (its status/charge already resolved by the caller via
-     * [ClassRules]), then mirrors the change to the calendar and refreshes reminders. Distinct from
-     * [add] so an edit is unmistakably an in-place update of one row — never an accidental insert
-     * that would duplicate the class and double-count its income.
+     * Books one lesson: a class per entry in [pricesByStudent], each at that student's own hourly
+     * rate. [groupId] names the group for a group lesson and is null for an individual one — that is
+     * the only difference between the two. Returns the new class ids.
+     *
+     * Taking the shared fields once, rather than a list of classes, is what makes a lesson whose
+     * members disagree about their start or subject unrepresentable.
+     *
+     * Refuses an empty roster: a lesson with nobody in it would be an invisible row that bills no one.
      */
-    suspend fun update(klass: TutoringClass) {
-        dao.update(klass.toEntity())
-        mirrorToCalendar(klass)
-        reminderScheduler.refreshNow()
-    }
-
-    /**
-     * Reschedules a class. Moving it to the future re-plans it (scheduled, charge voided); moving
-     * it to the past keeps its status. The calendar event and reminders follow the new state.
-     */
-    suspend fun move(classId: Long, newStart: Instant, now: Instant = Instant.now()): TutoringClass? {
-        val current = dao.getById(classId)?.toDomain() ?: return null
-        val moved = ClassRules.move(current, newStart, now)
-        dao.update(moved.toEntity())
-        mirrorToCalendar(moved)
-        reminderScheduler.refreshNow()
-        return moved
-    }
-
-    /** Applies a status change, capturing/voiding the charge per [ClassRules]. */
-    suspend fun setStatus(classId: Long, to: ClassStatus): TutoringClass? {
-        val current = dao.getById(classId)?.toDomain() ?: return null
-        val updated = ClassRules.applyStatus(current, to)
-        dao.update(updated.toEntity())
-        mirrorToCalendar(updated)
-        reminderScheduler.refreshNow()
-        return updated
-    }
-
-    suspend fun delete(klass: TutoringClass) {
-        klass.calendarEventId?.let { calendarSync.delete(it) }
-        dao.delete(klass.toEntity())
-        reminderScheduler.refreshNow()
-    }
-
-    // ---- Group lessons -------------------------------------------------------------------------
-    // A group lesson is n classes, one per member, sharing a group id and a start. Every write below
-    // is the batch form of a single-class write: the same rules run per class (so each member is
-    // billed at their own rate and no charge goes stale), while the calendar is mirrored per class
-    // and reminders are refreshed **once** at the end instead of n times.
-
-    /**
-     * Books one lesson for a group: a class per entry in [pricesByStudent], each at that member's own
-     * hourly rate. Returns the new class ids. Refuses an empty roster — a lesson with nobody in it
-     * would be an invisible row that bills no one.
-     */
-    suspend fun addGroupSession(
-        groupId: Long,
+    suspend fun book(
         subjectId: Long,
         start: Instant,
         durationMinutes: Int,
         mode: ClassMode,
         pricesByStudent: Map<Long, Money>,
+        groupId: Long? = null,
     ): List<Long> {
-        require(pricesByStudent.isNotEmpty()) { "A group lesson needs at least one member" }
+        require(pricesByStudent.isNotEmpty()) { "A lesson needs at least one student" }
         val ids = pricesByStudent.map { (studentId, price) ->
             val klass = TutoringClass(
                 studentId = studentId,
@@ -166,64 +125,65 @@ class ClassRepository @Inject constructor(
     }
 
     /**
-     * Applies one edit to every class of a group lesson. Each member's class goes through
-     * [ClassRules.edit] with that member's rate, so the move-and-rebill obligation is honoured per
-     * class — moving the lesson into the future re-plans all of them, and a completed lesson's
-     * recognized income follows the edit for every member at once.
+     * Applies one edit to every class of [session], moving the lesson to [newStart].
+     *
+     * Each class goes through [ClassRules.edit] with its own student's rate, so the move-and-rebill
+     * obligation is honoured per class: shifting a lesson into the future re-plans all of it, and a
+     * completed lesson's recognized income follows the edit for every member at once. The rules run
+     * *here* — a caller has no way to hand over an already-resolved class, and so no way to persist a
+     * charge that no longer matches the price and duration it was billed from.
      */
-    suspend fun updateGroupSession(
+    suspend fun apply(
         session: ClassSession,
         changes: SessionEdit,
         newStart: Instant,
         now: Instant = Instant.now(),
-    ) {
-        session.classes.forEach { c ->
-            val resolved = ClassRules.edit(c, GroupRules.editFor(c, changes), newStart, now)
-            dao.update(resolved.toEntity())
-            mirrorToCalendar(resolved)
-        }
-        reminderScheduler.refreshNow()
-    }
+    ): List<TutoringClass> = persist(
+        GroupRules.editsFor(session, changes).map { (c, edit) -> ClassRules.edit(c, edit, newStart, now) },
+    )
+
+    /**
+     * Reschedules a whole lesson, keeping its members together in one session. Moving it to the
+     * future re-plans each class (scheduled, charge voided); moving it to the past keeps each status.
+     */
+    suspend fun move(
+        session: ClassSession,
+        newStart: Instant,
+        now: Instant = Instant.now(),
+    ): List<TutoringClass> = persist(session.classes.map { ClassRules.move(it, newStart, now) })
 
     /**
      * Applies a status change to a whole lesson, skipping the classes it isn't legal for — so
      * "mark completed" on a group lesson whose absentee is already cancelled completes the rest and
      * leaves that correction standing. Returns the classes actually changed.
      */
-    suspend fun setStatusForSession(session: ClassSession, to: ClassStatus): List<TutoringClass> {
-        val updated = GroupRules.applicableTo(session, to).map { c ->
-            val next = ClassRules.applyStatus(c, to)
-            dao.update(next.toEntity())
-            mirrorToCalendar(next)
-            next
-        }
-        reminderScheduler.refreshNow()
-        return updated
-    }
+    suspend fun setStatus(session: ClassSession, to: ClassStatus): List<TutoringClass> =
+        persist(GroupRules.applicableTo(session, to).map { ClassRules.applyStatus(it, to) })
 
-    /** Reschedules every class of a lesson together, keeping the members in one session. */
-    suspend fun moveSession(
-        session: ClassSession,
-        newStart: Instant,
-        now: Instant = Instant.now(),
-    ): List<TutoringClass> {
-        val moved = session.classes.map { c ->
-            val next = ClassRules.move(c, newStart, now)
-            dao.update(next.toEntity())
-            mirrorToCalendar(next)
-            next
-        }
-        reminderScheduler.refreshNow()
-        return moved
-    }
-
-    /** Deletes every class of a lesson, with its calendar events. */
-    suspend fun deleteSession(session: ClassSession) {
+    /**
+     * Deletes every class of a lesson, with its calendar events. Deleting a completed lesson removes
+     * its recognized income, which is derived rather than stored, so it simply stops being counted.
+     */
+    suspend fun delete(session: ClassSession) {
         session.classes.forEach { c ->
             c.calendarEventId?.let { calendarSync.delete(it) }
             dao.delete(c.toEntity())
         }
         reminderScheduler.refreshNow()
+    }
+
+    /**
+     * The one place an existing lesson is written: each class is updated in place — never inserted,
+     * so income can't be double-counted — and mirrored, then reminders are refreshed **once**. One
+     * lesson earns one reminder, so refreshing per class would repeat the same work n times.
+     */
+    private suspend fun persist(resolved: List<TutoringClass>): List<TutoringClass> {
+        resolved.forEach {
+            dao.update(it.toEntity())
+            mirrorToCalendar(it)
+        }
+        reminderScheduler.refreshNow()
+        return resolved
     }
 
     suspend fun nextScheduledAfter(now: Instant): TutoringClass? =

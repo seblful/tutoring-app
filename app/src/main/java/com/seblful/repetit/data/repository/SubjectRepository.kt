@@ -5,6 +5,7 @@ import com.seblful.repetit.data.local.SubjectDao
 import com.seblful.repetit.data.toDomain
 import com.seblful.repetit.data.toEntity
 import com.seblful.repetit.domain.model.Subject
+import com.seblful.repetit.format.NameOrder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -15,7 +16,8 @@ class SubjectRepository @Inject constructor(
     private val dao: SubjectDao,
     private val classDao: ClassDao,
 ) {
-    fun observeAll(): Flow<List<Subject>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
+    fun observeAll(): Flow<List<Subject>> =
+        dao.observeAll().map { list -> NameOrder.sorted(list.map { it.toDomain() }) { it.name } }
 
     suspend fun getById(id: Long): Subject? = dao.getById(id)?.toDomain()
 

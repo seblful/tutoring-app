@@ -42,7 +42,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
-import com.seblful.repetit.format.parseMoneyOrNull
+import com.seblful.repetit.format.MoneyInput
 import com.seblful.repetit.ui.common.DatePickerModal
 import com.seblful.repetit.ui.common.ModeSelector
 import com.seblful.repetit.ui.common.TimePickerModal
@@ -205,7 +205,7 @@ fun ClassEditScreen(
                             value = text,
                             onValueChange = { viewModel.setMemberPrice(member.id, it) },
                             label = { Text(stringResource(R.string.price_label)) },
-                            isError = editable && parseMoneyOrNull(text) == null,
+                            isError = editable && MoneyInput.rate(text) == null,
                             enabled = editable,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true,

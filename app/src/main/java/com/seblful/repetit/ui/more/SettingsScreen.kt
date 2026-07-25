@@ -1,7 +1,5 @@
 package com.seblful.repetit.ui.more
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -33,9 +31,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
+import com.seblful.repetit.calendar.AndroidCalendarPermission
 import com.seblful.repetit.ui.common.constrainedContent
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,12 +46,14 @@ fun SettingsScreen(
     val context = LocalContext.current
     val deniedMsg = stringResource(R.string.calendar_denied)
 
+    // Requesting the permission is all this screen does about it — whether sync may be enabled is
+    // the view model's rule, so asking again after a grant simply goes back through it.
     val calendarPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { result ->
         val granted = result.values.isNotEmpty() && result.values.all { it }
-        if (granted) viewModel.setCalendarSyncEnabled(true)
-        else Toast.makeText(context, deniedMsg, Toast.LENGTH_SHORT).show()
+        val applied = granted && viewModel.setCalendarSyncEnabled(true) == CalendarSyncToggle.APPLIED
+        if (!applied) Toast.makeText(context, deniedMsg, Toast.LENGTH_SHORT).show()
     }
 
     Scaffold(
@@ -103,11 +103,9 @@ fun SettingsScreen(
                     Switch(
                         checked = settings.calendarSyncEnabled,
                         onCheckedChange = { on ->
-                            if (!on) viewModel.setCalendarSyncEnabled(false)
-                            else if (hasCalendarPermission(context)) viewModel.setCalendarSyncEnabled(true)
-                            else calendarPermission.launch(
-                                arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR),
-                            )
+                            if (viewModel.setCalendarSyncEnabled(on) == CalendarSyncToggle.PERMISSION_NEEDED) {
+                                calendarPermission.launch(AndroidCalendarPermission.REQUIRED)
+                            }
                         },
                     )
                 },
@@ -197,7 +195,3 @@ private fun <T> ChoiceRow(
         }
     }
 }
-
-private fun hasCalendarPermission(context: android.content.Context): Boolean =
-    ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED &&
-        ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED

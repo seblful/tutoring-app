@@ -17,6 +17,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import com.seblful.repetit.domain.CalendarLayout
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
@@ -63,10 +64,10 @@ class ScheduleViewModelTest {
         env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = startMillisOn(today.plusDays(1), LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED"))
 
         val vm = vm()
-        backgroundScope.launch { vm.rows.collect {} }
+        backgroundScope.launch { vm.content.collect {} }
         advanceUntilIdle()
 
-        val rows = vm.rows.value
+        val rows = vm.content.value.rows
         assertEquals(2, rows.size)
         assertTrue("rows are sorted by start time", rows[0].klass.start < rows[1].klass.start)
         assertEquals("Аня", rows[0].title)
@@ -191,11 +192,12 @@ class ScheduleViewModelTest {
         }
 
         val vm = vm()
-        backgroundScope.launch { vm.weekSections.collect {} }
+        backgroundScope.launch { vm.content.collect {} }
+        vm.setViewMode(ScheduleViewMode.WEEK)
         vm.selectDate(LocalDate.of(2026, 7, 15))
         advanceUntilIdle()
 
-        val sections = vm.weekSections.value
+        val sections = vm.content.value.sections
         assertEquals("only days with classes get a section", 2, sections.size)
         assertEquals(monday, sections[0].date)
         assertEquals(thursday, sections[1].date)
@@ -218,15 +220,58 @@ class ScheduleViewModelTest {
         )
 
         val vm = vm()
-        backgroundScope.launch { vm.weekSections.collect {} }
+        backgroundScope.launch { vm.content.collect {} }
+        vm.setViewMode(ScheduleViewMode.WEEK)
         vm.selectDate(LocalDate.of(2026, 7, 15))
         advanceUntilIdle()
-        assertTrue(vm.weekSections.value.isEmpty())
+        assertTrue(vm.content.value.sections.isEmpty())
 
         vm.goToNextWeek()
         advanceUntilIdle()
 
-        assertEquals(listOf(nextWeek), vm.weekSections.value.map { it.date })
+        assertEquals(listOf(nextWeek), vm.content.value.sections.map { it.date })
+    }
+
+    @Test
+    fun `only the active view's lessons are assembled`() = runTest(mainRule.dispatcher) {
+        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val today = LocalDate.now(zone)
+        // One class today, one later this week.
+        env.classDao.upsert(
+            ClassEntity(
+                studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)),
+                durationMinutes = 60, status = "SCHEDULED",
+            ),
+        )
+        env.classDao.upsert(
+            ClassEntity(
+                studentId = sid,
+                subjectId = subj,
+                startMillis = startMillisOn(CalendarLayout.startOfWeek(today).plusDays(6), LocalTime.of(9, 0)),
+                durationMinutes = 60,
+                status = "SCHEDULED",
+            ),
+        )
+
+        val vm = vm()
+        backgroundScope.launch { vm.content.collect {} }
+        advanceUntilIdle()
+
+        // The day view assembles the selected day — and no week agenda exists to go stale.
+        val day = vm.content.value
+        assertTrue("the day view shows a day", day is ScheduleContent.Day)
+        assertEquals(1, day.rows.size)
+        assertTrue("no week agenda is assembled for the day view", day.sections.isEmpty())
+
+        vm.setViewMode(ScheduleViewMode.WEEK)
+        advanceUntilIdle()
+
+        // Switching view swaps the query rather than adding a second live one.
+        val week = vm.content.value
+        assertTrue("the week view shows a week", week is ScheduleContent.Week)
+        assertTrue("no day list is assembled for the week view", week.rows.isEmpty())
+        assertEquals("both of the week's lessons", 2, week.sections.sumOf { it.rows.size })
     }
 
     @Test
@@ -352,11 +397,12 @@ class ScheduleViewModelTest {
         env.classDao.upsert(ClassEntity(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
 
         val vm = vm()
-        backgroundScope.launch { vm.weekSections.collect {} }
+        backgroundScope.launch { vm.content.collect {} }
+        vm.setViewMode(ScheduleViewMode.WEEK)
         vm.selectDate(wednesday)
         advanceUntilIdle()
 
-        val section = vm.weekSections.value.single()
+        val section = vm.content.value.sections.single()
         assertEquals(wednesday, section.date)
         assertEquals("two member classes, one agenda row", 1, section.rows.size)
         assertTrue(section.rows[0].isGroup)
@@ -378,10 +424,10 @@ class ScheduleViewModelTest {
         env.classDao.upsert(ClassEntity(studentId = ann, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED"))
 
         val vm = vm()
-        backgroundScope.launch { vm.rows.collect {} }
+        backgroundScope.launch { vm.content.collect {} }
         advanceUntilIdle()
 
-        val rows = vm.rows.value
+        val rows = vm.content.value.rows
         assertEquals("the group's two classes collapse into one row", 2, rows.size)
         val individual = rows.first()
         val group = rows.last()
@@ -407,9 +453,9 @@ class ScheduleViewModelTest {
         env.classDao.upsert(ClassEntity(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, priceMinor = Money.ofMajor(20).minor, status = "SCHEDULED", groupId = groupId))
 
         val vm = vm()
-        backgroundScope.launch { vm.rows.collect {} }
+        backgroundScope.launch { vm.content.collect {} }
         advanceUntilIdle()
-        vm.setStatus(vm.rows.value.single().session, ClassStatus.COMPLETED)
+        vm.setStatus(vm.content.value.rows.single().session, ClassStatus.COMPLETED)
         advanceUntilIdle()
 
         val saved = env.classDao.items.value

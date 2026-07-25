@@ -8,7 +8,7 @@ import com.seblful.repetit.data.repository.SubjectRepository
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.Student
 import com.seblful.repetit.domain.model.Subject
-import com.seblful.repetit.format.parseMoneyOrNull
+import com.seblful.repetit.format.MoneyInput
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -52,7 +52,7 @@ class StudentFormViewModel @Inject constructor(
         val isValid: Boolean
             get() = form.name.isNotBlank() &&
                 form.subjectPrices.isNotEmpty() &&
-                form.subjectPrices.values.all { parseMoneyOrNull(it) != null }
+                form.subjectPrices.values.all { MoneyInput.rate(it) != null }
     }
 
     val state: StateFlow<UiState> = combine(
@@ -93,7 +93,7 @@ class StudentFormViewModel @Inject constructor(
             )
             // isValid guarantees every chosen subject has a parseable price.
             val pricedSubjects = f.subjectPrices.mapNotNull { (subjectId, text) ->
-                parseMoneyOrNull(text)?.let { subjectId to it }
+                MoneyInput.rate(text)?.let { subjectId to it }
             }.toMap()
             enrollment.setEnrollments(id, pricedSubjects)
             onSaved()
