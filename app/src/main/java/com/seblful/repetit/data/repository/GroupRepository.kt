@@ -59,7 +59,11 @@ class GroupRepository @Inject constructor(
      * their group id, so a group lesson someone left still reads as the group lesson it was.
      */
     suspend fun save(group: Group, memberIds: Set<Long>): Long {
-        val id = dao.upsert(group.toEntity())
+        // Room's @Upsert returns the new rowid when it inserts, but -1 when it updated an existing
+        // row instead. Trusting it blindly on an edit made every member insert reference group -1
+        // and fail the group_members foreign key, so fall back to the id we were handed.
+        val rowId = dao.upsert(group.toEntity())
+        val id = if (rowId == -1L) group.id else rowId
         val current = dao.getMemberIds(id).toSet()
         (memberIds - current).forEach { dao.addMember(GroupMemberCrossRef(id, it)) }
         (current - memberIds).forEach { dao.removeMember(id, it) }

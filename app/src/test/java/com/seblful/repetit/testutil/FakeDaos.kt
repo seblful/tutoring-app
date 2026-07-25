@@ -138,9 +138,12 @@ class FakeGroupDao : GroupDao {
     override suspend fun getById(id: Long): GroupEntity? = items.value.firstOrNull { it.id == id }
 
     override suspend fun upsert(group: GroupEntity): Long {
-        val id = if (group.id == 0L) nextId++ else group.id
+        val inserting = group.id == 0L
+        val id = if (inserting) nextId++ else group.id
         items.value = items.value.filterNot { it.id == id } + group.copy(id = id)
-        return id
+        // Room's @Upsert only returns a rowid when it inserts; an update returns -1. Returning the
+        // real id here used to hide a crash that only the device saw.
+        return if (inserting) id else -1L
     }
 
     override suspend fun delete(group: GroupEntity) {
@@ -158,6 +161,12 @@ class FakeGroupDao : GroupDao {
     override fun observeAllMembers(): Flow<List<GroupMemberCrossRef>> = members
 
     override suspend fun addMember(ref: GroupMemberCrossRef) {
+        // Mirrors the group_members -> student_groups foreign key. Without this the fake happily
+        // stored members against a group that does not exist, which is precisely the bug the device
+        // hit as a SQLiteConstraintException.
+        check(items.value.any { it.id == ref.groupId }) {
+            "FOREIGN KEY constraint failed: no group with id ${ref.groupId}"
+        }
         // OnConflictStrategy.IGNORE: a duplicate (groupId, studentId) is a no-op.
         if (members.value.none { it.groupId == ref.groupId && it.studentId == ref.studentId }) {
             members.value = members.value + ref
