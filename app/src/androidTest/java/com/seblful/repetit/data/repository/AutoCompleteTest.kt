@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.repetit.calendar.CalendarSync
+import com.seblful.repetit.calendar.Guest
 import com.seblful.repetit.domain.ReminderScheduler
 import com.seblful.repetit.data.local.AppDatabase
 import com.seblful.repetit.data.local.ClassEntity
@@ -29,7 +30,7 @@ class AutoCompleteTest {
 
     private val noCalendar = object : CalendarSync {
         override suspend fun isAvailable() = false
-        override suspend fun upsert(klass: TutoringClass, title: String, guestEmail: String?, reminderLeadMinutes: Int): String? = null
+        override suspend fun upsert(klass: TutoringClass, title: String, guest: Guest?, reminderLeadMinutes: Int): String? = null
         override suspend fun delete(eventId: String) = Unit
     }
 

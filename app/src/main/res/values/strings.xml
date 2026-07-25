@@ -160,7 +160,9 @@
     <string name="settings_notifications">Напоминания</string>
     <string name="settings_notifications_desc">Уведомлять перед занятием</string>
     <string name="settings_calendar_sync">Синхронизация с календарём</string>
-    <string name="settings_calendar_sync_desc">Показывать занятия в календаре устройства и приглашать учеников по email</string>
+    <string name="settings_calendar_sync_desc">Показывать занятия в календаре устройства</string>
+    <string name="settings_email_invites">Приглашать учеников по email</string>
+    <string name="settings_email_invites_desc">Добавлять ученика с email в событие занятия — приглашение и напоминание придут ему на почту</string>
     <string name="settings_reminder_lead">За сколько напоминать</string>
     <string name="settings_autocomplete">Автозавершение занятий</string>
     <string name="settings_autocomplete_desc">Отмечать прошедшие занятия проведёнными автоматически</string>

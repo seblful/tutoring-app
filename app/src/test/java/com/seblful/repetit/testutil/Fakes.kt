@@ -2,6 +2,7 @@ package com.seblful.repetit.testutil
 
 import com.seblful.repetit.calendar.CalendarPermission
 import com.seblful.repetit.calendar.CalendarSync
+import com.seblful.repetit.calendar.Guest
 import com.seblful.repetit.data.repository.ClassRepository
 import com.seblful.repetit.data.repository.EnrollmentRepository
 import com.seblful.repetit.data.repository.GroupRepository
@@ -29,20 +30,34 @@ class RecordingReminderScheduler : ReminderScheduler {
  * writable calendar) or null (no calendar / permission), so tests can drive both branches.
  */
 class FakeCalendarSync(var available: Boolean = true) : CalendarSync {
-    val upserts = mutableListOf<TutoringClass>()
+    /** One recorded mirror, with every argument, so a test can assert the guest as well as the class. */
+    data class Upsert(
+        val klass: TutoringClass,
+        val title: String,
+        val guest: Guest?,
+        val reminderLeadMinutes: Int,
+    )
+
+    val calls = mutableListOf<Upsert>()
     val deletes = mutableListOf<String>()
     private var nextEventId = 1
+
+    /** The classes mirrored so far — the part most tests assert on. Clear [calls] to reset. */
+    val upserts: List<TutoringClass> get() = calls.map { it.klass }
+
+    /** The guest carried by the most recent mirror, if any. */
+    val lastGuest: Guest? get() = calls.lastOrNull()?.guest
 
     override suspend fun isAvailable(): Boolean = available
 
     override suspend fun upsert(
         klass: TutoringClass,
         title: String,
-        guestEmail: String?,
+        guest: Guest?,
         reminderLeadMinutes: Int,
     ): String? {
         if (!available) return null
-        upserts += klass
+        calls += Upsert(klass, title, guest, reminderLeadMinutes)
         return klass.calendarEventId ?: "evt-${nextEventId++}"
     }
 

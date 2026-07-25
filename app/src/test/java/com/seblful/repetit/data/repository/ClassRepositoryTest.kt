@@ -1,5 +1,7 @@
 package com.seblful.repetit.data.repository
 
+import com.seblful.repetit.calendar.Guest
+import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.domain.SessionEdit
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.ClassStatus
@@ -67,6 +69,39 @@ class ClassRepositoryTest {
     }
 
     @Test
+    fun `a mirrored class invites the student when email invites are on`() = runTest {
+        env.settingsRepo.setCalendarSyncEnabled(true)
+        env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня", email = "anya@example.com"))
+
+        book()
+
+        assertEquals(Guest("anya@example.com", invited = true), env.calendar.lastGuest)
+    }
+
+    @Test
+    fun `with email invites off the student's address still travels, marked uninvited`() = runTest {
+        // The address is what lets the calendar adapter *withdraw* an invitation it sent earlier, so
+        // switching invites off must not degrade to "no guest" — that would leave it standing.
+        env.settingsRepo.setCalendarSyncEnabled(true)
+        env.settingsRepo.setEmailInvitesEnabled(false)
+        env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня", email = "anya@example.com"))
+
+        book()
+
+        assertEquals(Guest("anya@example.com", invited = false), env.calendar.lastGuest)
+    }
+
+    @Test
+    fun `a student with no email yields no guest at all`() = runTest {
+        env.settingsRepo.setCalendarSyncEnabled(true)
+        env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня", email = ""))
+
+        book()
+
+        assertNull("nobody to invite and nobody to withdraw", env.calendar.lastGuest)
+    }
+
+    @Test
     fun `cancelling a synced class deletes its calendar event`() = runTest {
         env.settingsRepo.setCalendarSyncEnabled(true)
         val id = book()
@@ -82,7 +117,7 @@ class ClassRepositoryTest {
     fun `completing a class captures the charge and leaves the calendar event untouched`() = runTest {
         env.settingsRepo.setCalendarSyncEnabled(true)
         val id = book() // 1 upsert so far
-        env.calendar.upserts.clear()
+        env.calendar.calls.clear()
 
         val completed = repo.setStatus(session(id), ClassStatus.COMPLETED).single()
 

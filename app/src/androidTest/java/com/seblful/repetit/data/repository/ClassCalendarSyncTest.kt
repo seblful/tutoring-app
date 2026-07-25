@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.repetit.calendar.CalendarSync
+import com.seblful.repetit.calendar.Guest
 import com.seblful.repetit.domain.ReminderScheduler
 import com.seblful.repetit.data.local.AppDatabase
 import com.seblful.repetit.data.local.StudentEntity
@@ -33,7 +34,7 @@ class ClassCalendarSyncTest {
         val deletes = mutableListOf<String>()
         private var nextId = 100L
         override suspend fun isAvailable() = true
-        override suspend fun upsert(klass: TutoringClass, title: String, guestEmail: String?, reminderLeadMinutes: Int): String {
+        override suspend fun upsert(klass: TutoringClass, title: String, guest: Guest?, reminderLeadMinutes: Int): String {
             upserts += klass
             return klass.calendarEventId ?: (nextId++).toString()
         }
