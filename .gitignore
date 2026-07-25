@@ -45,5 +45,7 @@ output.json
 # Kotlin build session cache (Kotlin 2.x)
 .kotlin/
 
-# Claude Code local state (worktrees, session settings)
-.claude/
+# Claude Code local state only — worktree checkouts and per-user session settings.
+# The rest of .claude/ (shared settings.json, agents, skills, commands) stays tracked.
+.claude/worktrees/
+.claude/settings.local.json
