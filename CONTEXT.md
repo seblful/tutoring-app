@@ -181,6 +181,12 @@ flowchart TB
   `CalendarSync` port (a REST adapter could be added later). Opt-in; grants read + write calendar.
 - **WorkManager** drives time-based behavior (precise one-shot reminders + a periodic maintenance
   worker that auto-completes due classes and refreshes reminders). The *decisions* are pure and tested.
+- **A reminder only ever fires *ahead* of a lesson, never on booking.** The whole reminder plan is
+  re-derived from scratch on every class change, app start and maintenance tick, so `Reminders.plan`
+  drops any lesson whose lead moment has already passed instead of firing it at once: otherwise
+  booking a class for the next hour would announce it immediately, and announce it again on every
+  later change. The cost is that a lesson booked inside its own lead window gets no reminder at all —
+  which is the point, since the tutor is looking at the lesson they just booked.
 - **Backup = full DB snapshot → JSON via SAF.** Ids are preserved; import is one transaction. The
   format is versioned (**v2** carries groups); an older file still imports, since missing tables come
   back empty and retired keys are ignored. **Restoring is more than importing**: `BackupRestore` owns

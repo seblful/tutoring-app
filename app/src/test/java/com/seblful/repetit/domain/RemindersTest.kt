@@ -40,11 +40,32 @@ class RemindersTest {
     }
 
     @Test
-    fun `a class nearer than the lead fires immediately`() {
+    fun `a class nearer than the lead gets no reminder`() {
+        // Booking a lesson for the next hour must not announce it on the spot: the plan is
+        // re-derived on every change, so an immediate firing would repeat with each one.
         val start = now.plus(Duration.ofMinutes(20)) // within the 60-min lead
+        assertTrue(Reminders.plan(now, listOf(klass(1, start)), lead, horizon).isEmpty())
+    }
+
+    @Test
+    fun `re-planning after a reminder has come due does not plan it again`() {
+        val klass = klass(1, now.plus(Duration.ofMinutes(70)))
+
+        // Planned 10 minutes out...
+        assertEquals(
+            Duration.ofMinutes(10).toMillis(),
+            Reminders.plan(now, listOf(klass), lead, horizon).single().delayMillis,
+        )
+        // ...and once that moment has passed (a later class change re-plans everything), gone.
+        val later = now.plus(Duration.ofMinutes(15))
+        assertTrue(Reminders.plan(later, listOf(klass), lead, horizon).isEmpty())
+    }
+
+    @Test
+    fun `a reminder still due is planned for the remaining time, not immediately`() {
+        val start = now.plus(lead).plus(Duration.ofSeconds(30))
         val plans = Reminders.plan(now, listOf(klass(1, start)), lead, horizon)
-        assertEquals(1, plans.size)
-        assertEquals(0L, plans.first().delayMillis)
+        assertEquals(Duration.ofSeconds(30).toMillis(), plans.single().delayMillis)
     }
 
     @Test
