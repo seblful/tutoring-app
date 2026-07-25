@@ -192,6 +192,11 @@ flowchart TB
 - **Design system** (`ui/theme/`): curated Material 3 palette (indigo + teal), light/dark schemes,
   dynamic color off by default for a consistent brand. Convention: content lists use the shared
   `ContentCard`; settings-style lists stay as plain `ListItem` rows. Shared atoms in `ui/common/`.
+  **Avatar colours key off the student's id, not their name** (`domain/AvatarPalette`): hashing the
+  name collided far more often than "1 in 10" suggests — it is the birthday problem, so a tutor with
+  a handful of students already saw repeats — and it moved a student to a new colour when a typo in
+  their name was fixed. Sequential Room ids give the first ten students one distinct colour each,
+  stable across renames and backup restores (which preserve ids).
 - **The schedule has three views**, picked from the top bar. **Day** and **month** both show one
   selected day's classes (the month grid is a day picker with an overview); **week** is the odd one
   out — its strip picks the day the add button books into, but the agenda below always lists the

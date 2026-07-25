@@ -289,7 +289,7 @@ private fun MemberRow(
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Avatar(candidate.student.name)
+        Avatar(candidate.student.name, candidate.student.id)
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
             Text(candidate.student.name, style = MaterialTheme.typography.bodyLarge)
             when {
