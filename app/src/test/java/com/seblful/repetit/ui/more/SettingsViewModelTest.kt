@@ -70,9 +70,9 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `email invites are on by default, so upgrading keeps the behaviour sync already had`() =
+    fun `email invites are off by default, so a fresh install mails nobody unasked`() =
         runTest(mainRule.dispatcher) {
-            assertTrue(env.settingsRepo.get().emailInvitesEnabled)
+            assertFalse(env.settingsRepo.get().emailInvitesEnabled)
         }
 
     @Test
@@ -82,6 +82,7 @@ class SettingsViewModelTest {
             val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
             env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "SCHEDULED"))
             env.settingsRepo.setCalendarSyncEnabled(true)
+            env.settingsRepo.setEmailInvitesEnabled(true)
 
             val vm = vm()
             vm.setEmailInvitesEnabled(false)

@@ -142,13 +142,19 @@ data class SettingsEntity(
      * emails them about the lesson. Only has an effect while [calendarSyncEnabled] — the invitation
      * rides on the event.
      *
-     * **On by default**, and the v2 → v3 migration backfills it on, because inviting students is
-     * what calendar sync already did before this became its own switch: defaulting it off would
-     * silently withdraw invitations the tutor's students are already receiving. The declared
-     * `defaultValue` must stay in step with that migration's `DEFAULT 1`.
+     * **Off by default**: mailing someone else's inbox is not something the app should start doing
+     * on the tutor's behalf. Switching calendar sync on puts the lessons in *their* calendar and
+     * nothing more; reaching the students is a separate, deliberate opt-in via Settings.
+     *
+     * The declared `defaultValue` stays **1** on purpose, in step with the v2 → v3 migration's
+     * `DEFAULT 1` (they must match, or Room's schema validation fails). That pair governs only the
+     * upgrade backfill, where "on" is what calendar sync already did before this became its own
+     * switch — backfilling 0 would silently withdraw invitations those students already have. A
+     * fresh install never sees it: rows are always written whole from this class, so it is this
+     * Kotlin default that a new tutor starts on.
      */
     @ColumnInfo(defaultValue = "1")
-    val emailInvitesEnabled: Boolean = true,
+    val emailInvitesEnabled: Boolean = false,
     val onboardingComplete: Boolean = false,
     /** Minutes before a class that reminders fire (in-app and email). */
     val reminderLeadMinutes: Int = 60,

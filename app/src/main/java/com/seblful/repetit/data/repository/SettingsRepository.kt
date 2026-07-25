@@ -11,7 +11,7 @@ import javax.inject.Singleton
 data class AppSettings(
     val notificationsEnabled: Boolean = true,
     val calendarSyncEnabled: Boolean = false,
-    val emailInvitesEnabled: Boolean = true,
+    val emailInvitesEnabled: Boolean = false,
     val onboardingComplete: Boolean = false,
     val reminderLeadMinutes: Int = 60,
     val autoCompleteEnabled: Boolean = false,

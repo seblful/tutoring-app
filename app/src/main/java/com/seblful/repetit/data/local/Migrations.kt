@@ -97,7 +97,8 @@ object Migrations {
      * Adds `settings.emailInvitesEnabled`, defaulted **on** so an upgrading tutor keeps the
      * behaviour calendar sync already had — their students go on receiving invitations until the
      * tutor says otherwise. The default must match the entity's `@ColumnInfo(defaultValue = "1")`,
-     * or Room's schema validation fails.
+     * or Room's schema validation fails. A *fresh* install starts with invites off instead; that
+     * default lives in Kotlin (`SettingsEntity`) and is deliberately not the same answer.
      */
     val MIGRATION_2_3 = object : Migration(2, 3) {
         override fun migrate(db: SupportSQLiteDatabase) {

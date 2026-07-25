@@ -94,7 +94,8 @@ class MigrationTest {
     /**
      * v3 splits "invite students by email" out of calendar sync. The tutor's existing preferences
      * must survive, and the new column must arrive **on** — an upgrade that silently stopped
-     * inviting students would withdraw invitations they are already relying on.
+     * inviting students would withdraw invitations they are already relying on. (A fresh install
+     * starts off instead; that default is the entity's, not this migration's.)
      */
     @Test fun migrate2To3KeepsSettingsAndDefaultsEmailInvitesOn() {
         helper.createDatabase(testDb, 2).use { db ->

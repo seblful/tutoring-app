@@ -71,11 +71,24 @@ class ClassRepositoryTest {
     @Test
     fun `a mirrored class invites the student when email invites are on`() = runTest {
         env.settingsRepo.setCalendarSyncEnabled(true)
+        env.settingsRepo.setEmailInvitesEnabled(true)
         env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня", email = "anya@example.com"))
 
         book()
 
         assertEquals(Guest("anya@example.com", invited = true), env.calendar.lastGuest)
+    }
+
+    @Test
+    fun `syncing alone mails nobody — invites are off until the tutor opts in`() = runTest {
+        // Turning sync on is a statement about the tutor's own calendar, not about writing to their
+        // students' inboxes, so the mirror must leave the guest uninvited on a fresh install.
+        env.settingsRepo.setCalendarSyncEnabled(true)
+        env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня", email = "anya@example.com"))
+
+        book()
+
+        assertEquals(Guest("anya@example.com", invited = false), env.calendar.lastGuest)
     }
 
     @Test
