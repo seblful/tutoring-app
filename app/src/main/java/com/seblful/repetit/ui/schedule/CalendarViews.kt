@@ -29,18 +29,22 @@ import com.seblful.repetit.R
 import com.seblful.repetit.domain.CalendarLayout
 import com.seblful.repetit.format.shortName
 import com.seblful.repetit.ui.common.classStatusColor
+import com.seblful.repetit.ui.common.classStatusLabel
 import java.time.DayOfWeek
 import java.time.LocalDate
 
-/** The tallest a cell needs: a day number plus its marker dots, six rows still fitting a phone. */
-private val CellHeight = 44.dp
+/** The tallest a cell needs: the day-number disc plus its tally row, six rows still fitting a phone. */
+private val CellHeight = 46.dp
 
-/** Dots stop at three — past that the count stops being readable and "busy" is the message. */
-private const val MaxDots = 3
+/** The disc hugs the day number only, leaving the tally row the cell's full width to print in. */
+private val NumberDiscSize = 28.dp
+
+/** Reserved for the tally row whether or not the day has classes — `labelSmall`'s line height. */
+private val TallyRowHeight = 16.dp
 
 /**
- * A month page: weekday headers over rows of day cells, each marked with a dot per class (capped
- * at [MaxDots]). Tapping a cell selects that day; the class list below shows it.
+ * A month page: weekday headers over rows of day cells, each marked with a per-status count of its
+ * classes. Tapping a cell selects that day; the class list below shows it.
  */
 @Composable
 fun MonthCalendar(
@@ -128,7 +132,7 @@ private fun DayCell(
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
-    // Selection is a filled disc, so everything inside it switches to the on-primary colour.
+    // Selection fills the disc, so the number inside it switches to the on-primary colour.
     val numberColor = when {
         isSelected -> scheme.onPrimary
         isToday -> scheme.primary
@@ -136,9 +140,12 @@ private fun DayCell(
         // Padding days from the neighbouring months stay legible but clearly secondary.
         else -> scheme.onSurfaceVariant.copy(alpha = 0.5f)
     }
-    // Spoken as "15, 2 занятия" — the dots carry that count visually, so it must be spoken too.
-    val cellDescription = load?.let {
-        "${date.dayOfMonth}, ${pluralStringResource(R.plurals.schedule_day_classes, it.total, it.total)}"
+    // Spoken as "15, 2 занятия, 1 Запланировано, 1 Отменено" — the tallies carry that breakdown
+    // visually through colour alone, which a screen reader cannot convey, so it must be said.
+    val cellDescription = load?.let { dayLoad ->
+        val total = pluralStringResource(R.plurals.schedule_day_classes, dayLoad.total, dayLoad.total)
+        val breakdown = dayLoad.tallies.map { "${it.count} ${classStatusLabel(it.status)}" }
+        (listOf(date.dayOfMonth.toString(), total) + breakdown).joinToString(", ")
     }
 
     // The whole cell is the touch target, not just the disc drawn inside it.
@@ -150,49 +157,57 @@ private fun DayCell(
         contentAlignment = Alignment.Center,
     ) {
         Column(
-            Modifier
-                .size(CellHeight - 4.dp)
-                .clip(CircleShape)
-                .then(if (isSelected) Modifier.background(scheme.primary) else Modifier)
-                .then(
-                    if (isToday && !isSelected) {
-                        Modifier.border(1.dp, scheme.primary, CircleShape)
-                    } else {
-                        Modifier
-                    }
-                ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.spacedBy(1.dp),
         ) {
-            Text(
-                text = date.dayOfMonth.toString(),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
-                color = numberColor,
-            )
-            DayDots(
-                load = load,
-                color = if (isSelected) scheme.onPrimary else load?.let { classStatusColor(it.dominant) },
-            )
+            Box(
+                Modifier
+                    .size(NumberDiscSize)
+                    .clip(CircleShape)
+                    .then(if (isSelected) Modifier.background(scheme.primary) else Modifier)
+                    .then(
+                        if (isToday && !isSelected) {
+                            Modifier.border(1.dp, scheme.primary, CircleShape)
+                        } else {
+                            Modifier
+                        }
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = date.dayOfMonth.toString(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
+                    color = numberColor,
+                )
+            }
+            DayTallies(load)
         }
     }
 }
 
 /**
- * One dot per class, up to [MaxDots]. Always reserves its row's height so day numbers stay on the
- * same baseline whether or not the day has classes.
+ * How many classes the day holds, split into one number per status and tinted with that status's
+ * colour, so a mixed day states its makeup instead of collapsing to a single dominant hue. Sitting
+ * *below* the day-number disc rather than inside it is what keeps those colours readable on the
+ * selected day and leaves room for a two-digit count. Always reserves its row's height so day
+ * numbers stay on the same baseline whether or not the day has classes.
  */
 @Composable
-private fun DayDots(load: CalendarLayout.DayLoad?, color: Color?) {
+private fun DayTallies(load: CalendarLayout.DayLoad?) {
     Row(
-        Modifier.height(6.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        Modifier.height(TallyRowHeight),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (load != null && color != null) {
-            repeat(minOf(load.total, MaxDots)) {
-                Box(Modifier.size(4.dp).clip(CircleShape).background(color))
-            }
+        load?.tallies?.forEach { tally ->
+            Text(
+                text = tally.count.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = classStatusColor(tally.status),
+                maxLines = 1,
+            )
         }
     }
 }

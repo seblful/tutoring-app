@@ -136,20 +136,21 @@ class CalendarLayoutTest {
     }
 
     @Test
-    fun `day loads count a day's classes and record their statuses`() {
+    fun `day loads count a day's classes per status`() {
         val loads = CalendarLayout.dayLoads(
             listOf(
                 klass("2026-07-15T07:00:00Z"),
+                klass("2026-07-15T10:00:00Z"),
                 klass("2026-07-15T12:00:00Z", ClassStatus.CANCELLED),
                 klass("2026-07-16T07:00:00Z", ClassStatus.COMPLETED),
             ),
             zone,
         )
 
-        assertEquals(2, loads.getValue(LocalDate.of(2026, 7, 15)).total)
+        assertEquals(3, loads.getValue(LocalDate.of(2026, 7, 15)).total)
         assertEquals(
-            setOf(ClassStatus.SCHEDULED, ClassStatus.CANCELLED),
-            loads.getValue(LocalDate.of(2026, 7, 15)).statuses,
+            mapOf(ClassStatus.SCHEDULED to 2, ClassStatus.CANCELLED to 1),
+            loads.getValue(LocalDate.of(2026, 7, 15)).counts,
         )
         assertEquals(1, loads.getValue(LocalDate.of(2026, 7, 16)).total)
         assertFalse("days without classes are absent", LocalDate.of(2026, 7, 17) in loads)
@@ -164,18 +165,50 @@ class CalendarLayoutTest {
     }
 
     @Test
-    fun `the dominant status prefers a scheduled class, then a completed one`() {
-        fun load(vararg statuses: ClassStatus) =
-            CalendarLayout.DayLoad(statuses.size, statuses.toSet())
+    fun `tallies read scheduled first, whatever order the counts came in`() {
+        val load = CalendarLayout.DayLoad(
+            mapOf(
+                ClassStatus.CANCELLED to 1,
+                ClassStatus.COMPLETED to 4,
+                ClassStatus.SCHEDULED to 2,
+            )
+        )
 
         assertEquals(
-            ClassStatus.SCHEDULED,
-            load(ClassStatus.CANCELLED, ClassStatus.COMPLETED, ClassStatus.SCHEDULED).dominant,
+            listOf(
+                CalendarLayout.Tally(ClassStatus.SCHEDULED, 2),
+                CalendarLayout.Tally(ClassStatus.COMPLETED, 4),
+                CalendarLayout.Tally(ClassStatus.CANCELLED, 1),
+            ),
+            load.tallies,
         )
+    }
+
+    @Test
+    fun `a status the day has none of gets no tally, rather than a zero`() {
+        val load = CalendarLayout.DayLoad(mapOf(ClassStatus.COMPLETED to 3))
+
+        assertEquals(listOf(CalendarLayout.Tally(ClassStatus.COMPLETED, 3)), load.tallies)
+        assertEquals(3, load.total)
+    }
+
+    @Test
+    fun `a busy day never needs more than one tally per status`() {
+        val loads = CalendarLayout.dayLoads(
+            List(9) { klass("2026-07-15T07:00:00Z", ClassStatus.COMPLETED) } +
+                klass("2026-07-15T18:00:00Z"),
+            zone,
+        )
+        val load = loads.getValue(LocalDate.of(2026, 7, 15))
+
+        assertEquals(10, load.total)
         assertEquals(
-            ClassStatus.COMPLETED,
-            load(ClassStatus.CANCELLED, ClassStatus.COMPLETED).dominant,
+            "however many classes a day holds, its cell prints one number per status",
+            listOf(
+                CalendarLayout.Tally(ClassStatus.SCHEDULED, 1),
+                CalendarLayout.Tally(ClassStatus.COMPLETED, 9),
+            ),
+            load.tallies,
         )
-        assertEquals(ClassStatus.CANCELLED, load(ClassStatus.CANCELLED).dominant)
     }
 }

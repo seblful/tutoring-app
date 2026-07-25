@@ -11,23 +11,30 @@ import java.time.temporal.ChronoUnit
 /**
  * Layout and aggregation behind the schedule's calendar views. Pure, so the fiddly parts — how many
  * week rows a month needs, which neighbouring days pad them out, where a week starts, and how a
- * day's classes collapse into one cell marker — are unit-tested without a device.
+ * day's classes collapse into its cell's markers — are unit-tested without a device.
  */
 object CalendarLayout {
 
     const val DAYS_IN_WEEK = 7
 
-    /** What one calendar cell shows about its day: how many classes, and in which statuses. */
-    data class DayLoad(val total: Int, val statuses: Set<ClassStatus>) {
+    /** How many of a day's classes sit in one status — one tinted number in its calendar cell. */
+    data class Tally(val status: ClassStatus, val count: Int)
+
+    /** What one calendar cell shows about its day: its classes, counted per status. */
+    data class DayLoad(val counts: Map<ClassStatus, Int>) {
+
+        val total: Int get() = counts.values.sum()
+
         /**
-         * The status a single-dot cell should be tinted with. Scheduled wins because an upcoming
-         * class is the actionable one; a day whose classes are all cancelled reads as cancelled.
+         * The numbers the cell prints, left to right. Ordered by [ClassStatus]'s own declaration
+         * (scheduled → completed → cancelled) so the actionable count reads first, and statuses the
+         * day has none of are left out rather than printed as a zero. There are only three statuses,
+         * so a cell tops out at three numbers however busy the day is — no marker cap to apply, and
+         * nothing about the day left unsaid.
          */
-        val dominant: ClassStatus
-            get() = when {
-                ClassStatus.SCHEDULED in statuses -> ClassStatus.SCHEDULED
-                ClassStatus.COMPLETED in statuses -> ClassStatus.COMPLETED
-                else -> ClassStatus.CANCELLED
+        val tallies: List<Tally>
+            get() = ClassStatus.entries.mapNotNull { status ->
+                counts[status]?.let { Tally(status, it) }
             }
     }
 
@@ -85,6 +92,6 @@ object CalendarLayout {
     fun dayLoads(classes: List<TutoringClass>, zone: ZoneId): Map<LocalDate, DayLoad> =
         classes.groupBy { it.start.atZone(zone).toLocalDate() }
             .mapValues { (_, dayClasses) ->
-                DayLoad(total = dayClasses.size, statuses = dayClasses.mapTo(mutableSetOf()) { it.status })
+                DayLoad(dayClasses.groupingBy { it.status }.eachCount())
             }
 }

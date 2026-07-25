@@ -140,15 +140,21 @@ flowchart TB
 - **The schedule has three views**, picked from the top bar. **Day** and **month** both show one
   selected day's classes (the month grid is a day picker with an overview); **week** is the odd one
   out — its strip picks the day the add button books into, but the agenda below always lists the
-  *whole* week grouped by day, since seeing a week at once is the point. Calendar cells carry up to
-  three dots (one per class, tinted by the day's dominant status). Paging weeks or months only
+  *whole* week grouped by day, since seeing a week at once is the point. Paging weeks or months only
   *browses* and never moves the selection; opening a calendar view snaps its page back to the
-  selected day, so it can't open on a page where nothing looks selected. Day markers are queried
+  selected day, so it can't open on a page where nothing looks selected. A cell marks its day with
+  **one count per status** (`CalendarLayout.DayLoad.tallies`), tinted by that status and ordered
+  scheduled → completed → cancelled so the actionable count reads first — a mixed day states its
+  makeup instead of collapsing to a single dominant hue, and a status the day has none of is left out
+  rather than printed as a zero. Since there are only three statuses a cell tops out at three numbers
+  however busy the day is, so there's no marker cap and nothing is ever hidden. The counts sit
+  *below* the day-number disc rather than inside it, which is what leaves room for two digits and
+  keeps the colours readable on the selected day (whose disc is filled). Day markers are queried
   for the **active view's range only**, so browsing far from the selection never widens the query
   and the day view pays for no markers at all. The lessons follow the same rule: a single
   `ScheduleContent` flow keyed on the active view, so an off-screen view keeps no live query and the
   student/subject/group join and session collapse happen once rather than once per view. The layout rules — how many week rows a month needs,
-  which neighbouring days pad them, where a week starts, how a day's classes collapse to one marker
+  which neighbouring days pad them, where a week starts, how a day's classes tally up per status
   — are pure and JVM-tested in `domain/CalendarLayout`, leaving the composables to draw only. The
   chosen view is view-model state, deliberately **not** persisted: it isn't in the settings row, so
   no migration.
