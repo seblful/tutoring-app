@@ -20,7 +20,7 @@ class GroupsViewModelTest {
 
     private val env = TestEnv()
 
-    private fun vm() = GroupsViewModel(env.groupRepo, env.studentRepo)
+    private fun vm() = GroupsViewModel(env.groupRepo, env.studentRepo, env.subjectRepo)
 
     @Test
     fun `rows list each group with its members' names`() = runTest(mainRule.dispatcher) {

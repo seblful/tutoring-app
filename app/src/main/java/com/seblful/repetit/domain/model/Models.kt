@@ -38,6 +38,12 @@ data class Group(
     val name: String,
     val note: String = "",
     val price: Money = Money.ZERO,
+    /**
+     * What the group is taught. Null means a group from before subjects were fixed on the group —
+     * it keeps the old freedom (any member, subject chosen per lesson). Once set, the roster is
+     * limited to students priced for it and its lessons are all this subject.
+     */
+    val subjectId: Long? = null,
     val defaultMode: ClassMode = ClassMode.IN_PERSON,
     val archived: Boolean = false,
 )

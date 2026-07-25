@@ -29,15 +29,16 @@ data class BackupData(
 ) {
     companion object {
         /**
-         * 2 added groups; **3 gave a group its own hourly rate** (`student_groups.priceMinor`).
+         * 2 added groups; **3 gave a group its own hourly rate** (`student_groups.priceMinor`);
+         * **4 gave a group its subject** (`student_groups.subjectId`).
          *
-         * Older files still import — a v1 has no groups at all, and a v2's groups come back priced at
-         * 0 for the tutor to re-price, exactly as the v4 → v5 database migration leaves them. The
-         * bump is for the other direction: a v3 file *would* parse in a build that predates the
-         * column, which would silently drop every group's rate on the floor, so that build refuses it
-         * instead (see [isSupported]).
+         * Older files still import — a v1 has no groups at all, a v2's groups come back priced at 0
+         * for the tutor to re-price, and a v3's come back with no subject, exactly as the matching
+         * database migrations leave them. The bump is for the other direction: a v4 file *would*
+         * parse in a build that predates the column, which would silently drop every group's subject
+         * on the floor, so that build refuses it instead (see [isSupported]).
          */
-        const val CURRENT_VERSION = 3
+        const val CURRENT_VERSION = 4
 
         /**
          * Whether a backup of [version] can be safely imported by this build. A newer version may

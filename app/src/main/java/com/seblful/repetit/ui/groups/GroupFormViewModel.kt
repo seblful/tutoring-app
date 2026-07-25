@@ -6,38 +6,53 @@ import androidx.lifecycle.viewModelScope
 import com.seblful.repetit.data.repository.GroupRepository
 import com.seblful.repetit.data.repository.SettingsRepository
 import com.seblful.repetit.data.repository.StudentRepository
+import com.seblful.repetit.data.repository.SubjectRepository
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.Group
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.Student
+import com.seblful.repetit.domain.model.Subject
 import com.seblful.repetit.format.MoneyInput
 import com.seblful.repetit.format.toAmountInput
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Creating or editing a group: its name, note, **hourly rate**, default lesson mode and roster.
+ * Creating or editing a group: its **subject**, name, note, hourly rate, default lesson mode and roster.
  *
- * The rate is the group's own — every member of one of its lessons is billed it — so the roster is
- * just people: any active student may join, with no price prerequisite to satisfy first. (Picking the
- * subject up front used to be what made a roster bookable, back when a group lesson billed each member
- * their individual price; a group that prices itself has nothing left to check.)
+ * The subject is chosen here rather than per lesson, and it is what bounds the roster: only students
+ * priced for it can be members, because a group's lessons are all that subject and a member who isn't
+ * priced for it could never be billed for one. Picking a subject therefore narrows the candidate list
+ * on the spot, and `GroupRepository.save` drops anyone left over.
+ *
+ * The subject is **optional**, for one reason only: groups made before v6 have none, and there was no
+ * honest way to invent one for them (see `Migrations.MIGRATION_5_6`). Such a group keeps the old
+ * behaviour — any active student may join and the subject is chosen when booking — until the tutor
+ * sets one here.
  *
  * A new group's rate is pre-filled from `AppSettings.defaultGroupPriceMinor` when the tutor has set
  * one, so the common case is one less thing to type.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class GroupFormViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val groups: GroupRepository,
     private val settings: SettingsRepository,
     students: StudentRepository,
+    subjects: SubjectRepository,
 ) : ViewModel() {
 
     /** 0 for a new group. */
@@ -50,14 +65,21 @@ class GroupFormViewModel @Inject constructor(
         val note: String = "",
         /** Raw rate text; see [UiState.price]. */
         val priceText: String = "",
+        /** What the group is taught. Null on a pre-v6 group, and until the tutor picks one. */
+        val subjectId: Long? = null,
         val mode: ClassMode = ClassMode.IN_PERSON,
         val memberIds: Set<Long> = emptySet(),
     )
 
     data class UiState(
         val form: Form = Form(),
-        /** Who may be put in the group: every active student, in display order. */
+        /**
+         * Who may be put in the group: the active students priced for [Form.subjectId], or every
+         * active student while no subject is chosen.
+         */
         val candidates: List<Student> = emptyList(),
+        /** Everything the tutor could teach this group, for the subject picker. */
+        val subjects: List<Subject> = emptyList(),
         val archived: Boolean = false,
     ) {
         /**
@@ -70,20 +92,48 @@ class GroupFormViewModel @Inject constructor(
         /** Whether there is anybody to put in a group at all — worded differently from "nobody picked". */
         val hasStudents: Boolean get() = candidates.isNotEmpty()
 
+        /**
+         * The picked members that survive the subject filter. Switching a group's subject can strand
+         * a tick on someone no longer eligible; they are not silently counted as members here, and
+         * `GroupRepository.save` drops them for real. Everything downstream reads this, not
+         * [Form.memberIds], so what the form validates is what gets written.
+         */
+        val selectedMemberIds: Set<Long>
+            get() = form.memberIds intersect candidates.map { it.id }.toSet()
+
         /** A group needs a name, a rate and at least one member; without those there is nothing to book. */
         val isValid: Boolean
-            get() = form.name.isNotBlank() && price != null && form.memberIds.isNotEmpty()
+            get() = form.name.isNotBlank() && price != null && selectedMemberIds.isNotEmpty()
     }
 
     private val form = MutableStateFlow(Form())
     private val archived = MutableStateFlow(false)
 
+    /**
+     * Ids priced for the chosen subject, or null while there is no subject (meaning "no restriction").
+     * Re-queried whenever the subject changes, so enrolling a student elsewhere shows up here at once.
+     */
+    private val pricedForSubject: Flow<Set<Long>?> = form
+        .map { it.subjectId }
+        .distinctUntilChanged()
+        .flatMapLatest { subjectId ->
+            if (subjectId == null) flowOf(null)
+            else students.observeIdsForSubject(subjectId).map { it.toSet() }
+        }
+
     val state: StateFlow<UiState> = combine(
         form,
         students.observeActive(),
+        subjects.observeAll(),
+        pricedForSubject,
         archived,
-    ) { f, activeStudents, isArchived ->
-        UiState(form = f, candidates = activeStudents, archived = isArchived)
+    ) { f, activeStudents, allSubjects, priced, isArchived ->
+        UiState(
+            form = f,
+            candidates = if (priced == null) activeStudents else activeStudents.filter { it.id in priced },
+            subjects = allSubjects,
+            archived = isArchived,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
 
     init {
@@ -95,6 +145,7 @@ class GroupFormViewModel @Inject constructor(
                         name = group.name,
                         note = group.note,
                         priceText = group.price.toAmountInput(),
+                        subjectId = group.subjectId,
                         mode = group.defaultMode,
                         memberIds = groups.getMemberIds(groupId).toSet(),
                     )
@@ -124,6 +175,16 @@ class GroupFormViewModel @Inject constructor(
     }
 
     /**
+     * Changes what the group is taught. Ticks on students who aren't priced for the new subject are
+     * left in [Form.memberIds] rather than pruned here — recovering them is the point. Flipping back
+     * to the previous subject restores the roster you had, while [UiState.selectedMemberIds] keeps
+     * them out of anything that counts or saves in the meantime.
+     */
+    fun setSubject(subjectId: Long?) {
+        form.value = form.value.copy(subjectId = subjectId)
+    }
+
+    /**
      * Saves the group and its roster in one step (see `GroupRepository.save`) and reports the group's
      * id, so a freshly created group can go straight on to booking its first lesson.
      */
@@ -138,10 +199,11 @@ class GroupFormViewModel @Inject constructor(
                     name = f.name.trim(),
                     note = f.note.trim(),
                     price = s.price!!,
+                    subjectId = f.subjectId,
                     defaultMode = f.mode,
                     archived = archived.value,
                 ),
-                f.memberIds,
+                s.selectedMemberIds,
             )
             onSaved(id)
         }

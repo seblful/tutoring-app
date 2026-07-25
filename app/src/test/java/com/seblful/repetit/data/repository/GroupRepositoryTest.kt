@@ -2,6 +2,7 @@ package com.seblful.repetit.data.repository
 
 import com.seblful.repetit.data.local.ClassEntity
 import com.seblful.repetit.data.local.StudentEntity
+import com.seblful.repetit.data.local.StudentSubjectCrossRef
 import com.seblful.repetit.data.local.SubjectEntity
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.Group
@@ -70,6 +71,44 @@ class GroupRepositoryTest {
 
         assertEquals(id, again)
         assertEquals(setOf(ann, bob), repo.getMemberIds(id).toSet())
+    }
+
+    @Test
+    fun `a subject-bound group keeps only the students priced for that subject`() = runTest {
+        val (ann, bob) = students("Аня", "Борис")
+        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        env.studentDao.addSubjectLink(StudentSubjectCrossRef(ann, algebra))
+
+        // Bob is asked for but isn't priced for algebra, so he could never be billed for one of this
+        // group's lessons — the roster is narrowed rather than left to fail at booking time.
+        val id = repo.save(Group(name = "11 «А»", subjectId = algebra), setOf(ann, bob))
+
+        assertEquals(setOf(ann), repo.getMemberIds(id).toSet())
+        assertEquals(algebra, repo.getById(id)?.subjectId)
+    }
+
+    @Test
+    fun `a group with no subject still takes anyone`() = runTest {
+        val (ann, bob) = students("Аня", "Борис")
+
+        // Groups made before subjects existed keep the old freedom; nothing is silently dropped.
+        val id = repo.save(Group(name = "Старая группа"), setOf(ann, bob))
+
+        assertEquals(setOf(ann, bob), repo.getMemberIds(id).toSet())
+        assertEquals(null, repo.getById(id)?.subjectId)
+    }
+
+    @Test
+    fun `giving an existing group a subject drops the members who are not priced for it`() = runTest {
+        val (ann, bob) = students("Аня", "Борис")
+        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        env.studentDao.addSubjectLink(StudentSubjectCrossRef(ann, algebra))
+        val id = repo.save(Group(name = "Группа"), setOf(ann, bob))
+        assertEquals(setOf(ann, bob), repo.getMemberIds(id).toSet())
+
+        repo.save(Group(id = id, name = "Группа", subjectId = algebra), setOf(ann, bob))
+
+        assertEquals(setOf(ann), repo.getMemberIds(id).toSet())
     }
 
     @Test

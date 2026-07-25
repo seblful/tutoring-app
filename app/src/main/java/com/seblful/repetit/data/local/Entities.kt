@@ -50,11 +50,30 @@ data class StudentSubjectCrossRef(
  * are archive-only once they have classes (see `GroupRepository.delete`), like students.
  */
 @Serializable
-@Entity(tableName = "student_groups")
+@Entity(
+    tableName = "student_groups",
+    indices = [Index("subjectId")],
+    foreignKeys = [
+        ForeignKey(SubjectEntity::class, ["id"], ["subjectId"], onDelete = ForeignKey.RESTRICT),
+    ],
+)
 data class GroupEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val note: String = "",
+    /**
+     * What the group is taught, fixed when the group is made rather than chosen per lesson: its
+     * lessons are all this subject, and only students priced for it can be added to the roster.
+     *
+     * **Nullable, because v6 could not invent one.** A group created before this column has no
+     * honest subject to backfill — its members may not even share one — so it stays null and keeps
+     * behaving as it did: any student may be a member, and the subject is picked when booking.
+     * Setting a subject is what opts a group into the stricter rules, and is one-way in practice
+     * since [GroupRepository.save] then drops members who are not priced for it.
+     *
+     * `RESTRICT` on delete: a subject that a group is taught cannot be deleted out from under it.
+     */
+    val subjectId: Long? = null,
     /**
      * The group's **hourly rate** in minor units — what each member of one of its lessons is billed,
      * regardless of their individual [PriceEntity] rows. Added in v5, backfilled to 0 (the migration's

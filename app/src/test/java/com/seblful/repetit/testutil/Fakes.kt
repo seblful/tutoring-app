@@ -110,7 +110,7 @@ class TestEnv {
     val settingsRepo = SettingsRepository(settingsDao)
     val subjectRepo = SubjectRepository(subjectDao, classDao)
     val studentRepo = StudentRepository(studentDao)
-    val groupRepo = GroupRepository(groupDao, classDao)
+    val groupRepo = GroupRepository(groupDao, classDao, studentDao)
     val priceRepo = PriceRepository(priceDao)
     val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classDao)
     val paymentRepo = PaymentRepository(paymentDao)

@@ -67,6 +67,13 @@ interface StudentDao {
     @Query("SELECT subjectId FROM student_subjects WHERE studentId = :studentId")
     suspend fun getSubjectIds(studentId: Long): List<Long>
 
+    /** The other direction: who is priced for a subject. Drives a subject-bound group's roster. */
+    @Query("SELECT studentId FROM student_subjects WHERE subjectId = :subjectId")
+    fun observeStudentIdsForSubject(subjectId: Long): Flow<List<Long>>
+
+    @Query("SELECT studentId FROM student_subjects WHERE subjectId = :subjectId")
+    suspend fun getStudentIdsForSubject(subjectId: Long): List<Long>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun addSubjectLink(ref: StudentSubjectCrossRef)
 

@@ -106,6 +106,16 @@ fun GroupsScreen(
                                 Spacer(Modifier.width(16.dp))
                                 Column(Modifier.weight(1f)) {
                                     Text(row.group.name, style = MaterialTheme.typography.titleMedium)
+                                    // What the group is taught, when it says. A group from before the
+                                    // subject existed shows nothing here rather than a placeholder —
+                                    // it genuinely has no answer, and inventing one would be a lie.
+                                    row.subjectName?.let { subject ->
+                                        Text(
+                                            subject,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
                                     Text(
                                         text = row.memberNames.joinToString(", ")
                                             .ifBlank { stringResource(R.string.group_no_members) },
