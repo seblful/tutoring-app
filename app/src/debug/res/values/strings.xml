@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<resources>
+    <!--
+      Overrides the launcher label for debug builds only, so the test app is distinguishable from the
+      real one on a phone that has both (the debug build carries its own application id — see
+      `applicationIdSuffix` in build.gradle.kts).
+    -->
+    <string name="app_name">Репетит-debug</string>
+</resources>

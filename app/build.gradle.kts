@@ -44,6 +44,14 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Its own application id, so a debug build installs *alongside* the signed release the
+            // tutor actually uses instead of being refused for having a different signature — and,
+            // more to the point, so testing never touches their real students, classes or payments.
+            // The two apps keep separate databases, reminders and calendar events.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
