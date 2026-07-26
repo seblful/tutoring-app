@@ -381,12 +381,21 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
 
 ## Tooling & build
 
-- Kotlin 2.3.20, AGP 9.2.1, Gradle 9.6.0, JDK 21 (Android Studio JBR). compileSdk 37, targetSdk 36,
-  minSdk 24. Hilt 2.59.2, Room 2.8, WorkManager, Navigation Compose, kotlinx-serialization — versions
+- Kotlin 2.3.21, AGP 9.3.1, Gradle 9.6.1, JDK 21 (Android Studio JBR). compileSdk 37, targetSdk 36,
+  minSdk 24. Hilt 2.60.1, Room 2.8, WorkManager, Navigation Compose, kotlinx-serialization — versions
   in `gradle/libs.versions.toml`.
 - **AGP 9 compiles Kotlin itself**: there is no `kotlin.android` plugin, and the root `build.gradle.kts`
-  pins the built-in KGP so it matches the Compose/serialization plugins and KSP. **Kotlin tracks KSP** —
-  KSP drives Room + Hilt codegen and lags Kotlin, so Kotlin cannot move past what the latest KSP embeds.
+  pins the built-in KGP so it matches the Compose/serialization plugins and KSP. That pin repeats the
+  catalog's `kotlin` because `libs` accessors do not exist yet inside `buildscript {}` — so a
+  configuration-time `check` fails the build if the two drift, a mismatch otherwise surfacing as an
+  unrelated-looking codegen or Compose error.
+- **Kotlin tracks KSP** — KSP drives Room + Hilt codegen, and its `major.minor` is the Kotlin *line* it
+  supports, so Kotlin moves freely within that line and never past it. Kotlin 2.4.x is released and
+  lint offers it on every build; there is no KSP 2.4.x, and taking it would leave the app with no Room
+  DAOs and no Hilt graph. The catalog says so at the pin, with how to re-check.
+- **Lint's remaining warnings are all "a newer version is available"** and are left deliberately: the
+  Kotlin one is held by KSP as above, and `OldTargetApi` asks for a `targetSdk` bump, which changes
+  runtime behaviour and so wants a pass on the device rather than a green desktop build.
 - `lint { checkReleaseBuilds = false }` works around an AGP 9.2.1 lint-jar file-lock bug on Windows;
   lint still runs via `lintDebug`.
 - Needs `JAVA_HOME` on a JDK 21 and `local.properties` pointing at the Android SDK.
