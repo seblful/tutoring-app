@@ -104,8 +104,8 @@ fun ScheduleScreen(
     val loads by viewModel.dayLoads.collectAsState()
     val moveConflict by viewModel.moveConflict.collectAsState()
 
-    // The sheet acts on whatever row is in it — a whole group lesson, or one member's class after
-    // tapping them in the member list. Same actions either way.
+    // The sheet acts on the whole lesson in it, a group's included: its actions are the lesson's
+    // time and status, and who is in one is changed on the lesson's own form.
     var sheetFor by remember { mutableStateOf<ScheduleRow?>(null) }
     var movingRow by remember { mutableStateOf<ScheduleRow?>(null) }
     var deletingRow by remember { mutableStateOf<ScheduleRow?>(null) }
@@ -238,7 +238,6 @@ fun ScheduleScreen(
             onStatus = { viewModel.setStatus(row.session, it); sheetFor = null },
             onMove = { movingRow = row; sheetFor = null },
             onDelete = { deletingRow = row; sheetFor = null },
-            onMember = { member -> sheetFor = member },
             onDismiss = { sheetFor = null },
         )
     }
@@ -362,7 +361,7 @@ private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit, modifier: Modifi
                 )
                 if (row.isGroup) {
                     Text(
-                        row.members.joinToString(", ") { it.title },
+                        row.members.joinToString(", "),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -513,6 +512,13 @@ private fun DaySectionHeader(date: LocalDate, isSelected: Boolean) {
     )
 }
 
+/**
+ * What can be done to the lesson that was tapped: edit it, move it, change its status, delete it.
+ *
+ * Every action is the **whole lesson's**, a group's included. The sheet deliberately does not list
+ * the members: who a lesson covers is picked while booking it, on the form, and a menu that changes
+ * a lesson's status is not where a roster belongs.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ClassActionsSheet(
@@ -522,7 +528,6 @@ private fun ClassActionsSheet(
     onStatus: (ClassStatus) -> Unit,
     onMove: () -> Unit,
     onDelete: () -> Unit,
-    onMember: (ScheduleRow) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val klass = row.klass
@@ -576,33 +581,6 @@ private fun ClassActionsSheet(
                 onClick = onDelete,
                 destructive = true,
             )
-
-            // Per-member corrections: tapping a student re-opens this sheet on their class alone, so
-            // "this one didn't come" is a cancel on their class while the lesson stays completed.
-            if (row.isGroup) {
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                Text(
-                    stringResource(R.string.class_group_members_title),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
-                )
-                row.members.forEach { member ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable { onMember(member) }
-                            .padding(horizontal = 24.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(member.title, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                        StatusBadge(
-                            text = classStatusLabel(member.klass.status),
-                            color = classStatusColor(member.klass.status),
-                        )
-                    }
-                }
-            }
         }
     }
 }

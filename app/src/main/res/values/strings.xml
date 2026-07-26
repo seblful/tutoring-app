@@ -82,6 +82,15 @@
     <string name="class_no_subjects_for_group">Сначала добавьте предметы</string>
     <string name="class_group_members_title">Участники</string>
     <string name="class_group_no_members_left">Выберите хотя бы одного участника</string>
+    <!-- Hint under the member ticks of a lesson that is already booked, where they change history. -->
+    <string name="class_group_members_editable">Отметьте, кто был на занятии</string>
+    <!-- %1$d: how many unticked members had already been billed for this lesson -->
+    <plurals name="class_member_drop_billed_confirm">
+        <item quantity="one">%1$d ученик убран из проведённого занятия. Его занятие удалится, а начисленный доход исчезнет. Сохранить?</item>
+        <item quantity="few">%1$d ученика убраны из проведённого занятия. Их занятия удалятся, а начисленный доход исчезнет. Сохранить?</item>
+        <item quantity="many">%1$d учеников убраны из проведённого занятия. Их занятия удалятся, а начисленный доход исчезнет. Сохранить?</item>
+        <item quantity="other">%1$d ученика убраны из проведённого занятия. Их занятия удалятся, а начисленный доход исчезнет. Сохранить?</item>
+    </plurals>
     <string name="class_subject_from_group">Предмет задан группой</string>
     <string name="class_group_price_label">Цена за час с ученика</string>
     <string name="class_status_mixed">Разные</string>

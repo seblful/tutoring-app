@@ -18,6 +18,7 @@ import com.seblful.repetit.domain.model.Group
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.Student
 import com.seblful.repetit.domain.model.Subject
+import com.seblful.repetit.domain.model.TutoringClass
 import com.seblful.repetit.format.MoneyField
 import com.seblful.repetit.ui.common.UiEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -67,12 +68,14 @@ data class ClassForm(
     val price: MoneyField = MoneyField(kind = MoneyField.Kind.RATE),
     val mode: ClassMode = ClassMode.IN_PERSON,
     /**
-     * Members left out of **this one** group lesson, while booking it. Someone away this week is not
-     * off the roster, so the exclusion lives on the form and not on the group: it decides which
-     * classes get written now and is forgotten afterwards.
+     * Members left out of **this one** group lesson. Someone away this week is not off the roster, so
+     * the exclusion lives on the form and not on the group: it decides which classes the lesson has
+     * and is forgotten afterwards.
      *
-     * Only meaningful for a new lesson. Editing a booked one cannot add or drop a member — those
-     * classes are billed history — so the list is read-only there and this stays empty.
+     * It means the same thing whether the lesson is being booked or edited, and for a lesson in any
+     * status: who was in a lesson is a fact, and a fact can be corrected once the lesson is over.
+     * Unticking a member of a saved lesson therefore removes their class ([GroupRules.rosterChange]),
+     * which for a completed one takes what they were charged with it.
      */
     val excludedMemberIds: Set<Long> = emptySet(),
 ) {
@@ -168,6 +171,11 @@ data class ClassFormState(
     val members: List<Student> = emptyList(),
     val subjects: List<Subject> = emptyList(),
     val subjectFixedByGroup: Boolean = false,
+    /**
+     * The classes the lesson already has — empty while booking. Carried so the form can say what
+     * unticking somebody would cost (see [billedDrops]) rather than only what it would do.
+     */
+    val booked: List<TutoringClass> = emptyList(),
     val conflict: TimeConflict? = null,
     /**
      * Whether the tutor has changed anything — what leaving without saving would throw away.
@@ -213,6 +221,14 @@ data class ClassFormState(
     /** Every member unticked: the lesson would be written for nobody and bill no one. */
     val allMembersExcluded: Boolean
         get() = members.isNotEmpty() && form.excludedMemberIds.containsAll(members.map { it.id })
+
+    /**
+     * How many unticked members had a class that already **billed**. Saving deletes those classes and
+     * with them income the students were charged, so it is asked about first — the same courtesy
+     * deleting a completed lesson gets. Zero while booking, where nothing has billed yet.
+     */
+    val billedDrops: Int
+        get() = booked.count { it.studentId in form.excludedMemberIds && it.status.isBillable }
 
     /** A group was chosen but there are none to choose — worded differently from "none picked". */
     val hasNoGroups: Boolean get() = form.target == ClassTarget.GROUP && groups.isEmpty()
@@ -282,10 +298,13 @@ class ClassEditViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /**
-     * Who the lesson covers, listed under the group so the tutor can see it. While **booking**, the
-     * group's bookable roster (archived students left out). While **editing**, the members the lesson
-     * was actually booked for — a roster change since then must not add or drop a billed class, so the
-     * form shows the lesson as it is, not as the group is now.
+     * Who the lesson may cover, listed under the group with a tick each. While **booking**, the
+     * group's bookable roster (archived students left out). While **editing**, that roster *plus*
+     * whoever the lesson already covers — so a member archived, or dropped from the group, since it
+     * was booked is still listed, and can still be taken out of a lesson they are in.
+     *
+     * Offering the current roster on an old lesson is the point rather than a leak: the group is who
+     * is taught, and a lesson recorded without somebody who was there is a mistake worth fixing.
      */
     private val members: StateFlow<List<Student>> =
         combine(form.map { it.groupId }.distinctUntilChanged(), session) { groupId, booked ->
@@ -294,8 +313,15 @@ class ClassEditViewModel @Inject constructor(
             .flatMapLatest { key ->
                 when {
                     key.groupId == null -> flowOf(emptyList())
-                    key.bookedIds != null ->
-                        studentsRepo.observeAll().map { all -> all.filter { it.id in key.bookedIds } }
+                    key.bookedIds != null -> combine(
+                        membersOf(key.groupId),
+                        studentsRepo.observeAll(),
+                    ) { bookable, all ->
+                        // Filtered out of the full list rather than concatenated, so the union keeps
+                        // the repository's name ordering instead of listing the strays at the end.
+                        val ids = bookable.map { it.id }.toSet() + key.bookedIds
+                        all.filter { it.id in ids }
+                    }
                     else -> membersOf(key.groupId)
                 }
             }
@@ -395,7 +421,8 @@ class ClassEditViewModel @Inject constructor(
             form,
             conflict,
             touched,
-        ) { pickers, f, clash, isTouched ->
+            session,
+        ) { pickers, f, clash, isTouched, booked ->
             ClassFormState(
                 form = f,
                 isNew = isNew,
@@ -404,6 +431,7 @@ class ClassEditViewModel @Inject constructor(
                 members = pickers.members,
                 subjects = pickers.subjects,
                 subjectFixedByGroup = pickers.subjectFixedByGroup,
+                booked = booked?.classes.orEmpty(),
                 conflict = clash,
                 isDirty = isTouched,
             )
@@ -471,6 +499,14 @@ class ClassEditViewModel @Inject constructor(
             // the group's current rate is then offered instead of picking one member's arbitrarily.
             price = MoneyField.of(loaded.sharedPrice ?: groupRate(c.groupId) ?: c.price),
             mode = c.mode,
+            // Group members who are *not* in this lesson start unticked, so the ticks say what the
+            // lesson is rather than who the group is now: opening a booked lesson and saving it again
+            // has to change nothing, even after somebody joined the group since it was taught.
+            excludedMemberIds = if (loaded.isGroup) {
+                bookableRoster(c.groupId!!).toSet() - loaded.classes.map { it.studentId }.toSet()
+            } else {
+                emptySet()
+            },
         )
     }
 
@@ -689,6 +725,13 @@ class ClassEditViewModel @Inject constructor(
                 return@launch
             }
             if (existing != null) {
+                // Who the lesson covers afterwards, so one write settles both its fields and its
+                // roster. Null for an individual lesson, which has no roster to reconcile.
+                val roster = if (isGroup) rosterFor(existing, f) else null
+                if (roster != null && roster.isEmpty()) {
+                    events.send(Event.SAVE_REFUSED_NO_MEMBERS)
+                    return@launch
+                }
                 classes.apply(
                     session = existing,
                     changes = SessionEdit(
@@ -697,10 +740,11 @@ class ClassEditViewModel @Inject constructor(
                         mode = f.mode,
                         price = price,
                         // An individual class may be re-attributed to another student, which credits
-                        // the new owner; a group lesson's members come from its roster instead.
+                        // the new owner; a group lesson's members are reconciled by [roster] instead.
                         studentId = if (isGroup) null else f.studentId,
                     ),
                     newStart = start,
+                    roster = roster,
                 )
             } else {
                 val studentIds =
@@ -726,6 +770,18 @@ class ClassEditViewModel @Inject constructor(
             touched.value = false
             onDone()
         }
+    }
+
+    /**
+     * Who [session] is for after this save: everyone the form offers who is still ticked.
+     *
+     * The offer is the group's bookable roster **plus** whoever the lesson already covers — the same
+     * union [members] lists — so unticking a member who has since been archived still removes them.
+     * Read from the repository rather than from [members] for the reason [bookableRoster] gives.
+     */
+    private suspend fun rosterFor(session: ClassSession, form: ClassForm): Set<Long> {
+        val offered = bookableRoster(form.groupId!!).toSet() + session.classes.map { it.studentId }
+        return offered - form.excludedMemberIds
     }
 
     /**

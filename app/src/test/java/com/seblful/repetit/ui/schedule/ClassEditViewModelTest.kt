@@ -6,6 +6,7 @@ import com.seblful.repetit.data.local.PriceEntity
 import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.StudentSubjectCrossRef
 import com.seblful.repetit.data.local.SubjectEntity
+import com.seblful.repetit.domain.ClassSession
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.ClassStatus
 import com.seblful.repetit.domain.model.Group
@@ -1054,8 +1055,13 @@ class ClassEditViewModelTest {
         assertTrue("one rate applies to the whole lesson", saved.all { it.priceMinor == Money.ofMajor(28).minor })
     }
 
+    /**
+     * The list offered on an old lesson is the group as it is *now* plus whoever the lesson covers —
+     * that is what makes a correction possible either way — but only the lesson's own members start
+     * ticked, so opening it and saving it again is a no-op.
+     */
     @Test
-    fun `editing an old lesson keeps its own members after the roster changed`() = runTest(mainRule.dispatcher) {
+    fun `editing an old lesson offers the current roster but ticks only its own members`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
         val algebra = env.subjectDao.getAll().first().id
         val ids = env.classRepo.book(
@@ -1073,14 +1079,121 @@ class ClassEditViewModelTest {
         backgroundScope.launch { vm.state.collect {} }
         advanceUntilIdle()
 
-        // The lesson still reads as the lesson it was: Ann and Bob, not Ann and Carl.
-        assertEquals(listOf(ann, bob), vm.state.value.members.map { it.id })
+        // Bob is still listed though he left the group — he is in this lesson and can be taken out
+        // of it. Carl is listed because he could be added to it, but unticked because he wasn't there.
+        assertEquals(listOf(ann, bob, carl), vm.state.value.members.map { it.id })
+        assertEquals(setOf(carl), vm.form.value.excludedMemberIds)
+        assertFalse("loading a lesson is not the tutor's edit", vm.state.value.isDirty)
 
         // Re-saving must not create a class for the newcomer, nor drop the departed member's.
         vm.save { }
         advanceUntilIdle()
         assertEquals(2, env.classDao.items.value.size)
         assertEquals(setOf(ann, bob), env.classDao.items.value.map { it.studentId }.toSet())
+    }
+
+    @Test
+    fun `unticking a member of a booked lesson removes their class on save`() = runTest(mainRule.dispatcher) {
+        val (groupId, ann, bob) = seedGroup()
+        val ids = env.classRepo.book(
+            groupId = groupId, subjectId = env.subjectDao.getAll().first().id,
+            start = Instant.parse("2026-09-01T09:00:00Z"),
+            durationMinutes = 60, mode = ClassMode.IN_PERSON,
+            studentIds = listOf(ann, bob),
+            price = groupRate,
+        )
+
+        val vm = vm(id = ids.first())
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+
+        vm.setMemberIncluded(bob, false)
+        vm.save { }
+        advanceUntilIdle()
+
+        assertEquals(listOf(ann), env.classDao.items.value.map { it.studentId })
+    }
+
+    @Test
+    fun `ticking a group member who was not in a booked lesson adds their class`() = runTest(mainRule.dispatcher) {
+        val (groupId, ann, bob) = seedGroup()
+        val ids = env.classRepo.book(
+            groupId = groupId, subjectId = env.subjectDao.getAll().first().id,
+            start = Instant.parse("2026-09-01T09:00:00Z"),
+            durationMinutes = 60, mode = ClassMode.IN_PERSON,
+            studentIds = listOf(ann),
+            price = groupRate,
+        )
+
+        val vm = vm(id = ids.first())
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+        assertEquals("Bob is offered, unticked", setOf(bob), vm.form.value.excludedMemberIds)
+
+        vm.setMemberIncluded(bob, true)
+        vm.save { }
+        advanceUntilIdle()
+
+        val saved = env.classDao.items.value
+        assertEquals(setOf(ann, bob), saved.map { it.studentId }.toSet())
+        assertTrue("the joiner is in the same lesson", saved.all { it.groupId == groupId })
+        assertEquals(1, saved.map { it.startMillis }.distinct().size)
+    }
+
+    @Test
+    fun `emptying a booked lesson of every member is refused, not saved`() = runTest(mainRule.dispatcher) {
+        val (groupId, ann, bob) = seedGroup()
+        val ids = env.classRepo.book(
+            groupId = groupId, subjectId = env.subjectDao.getAll().first().id,
+            start = Instant.parse("2026-09-01T09:00:00Z"),
+            durationMinutes = 60, mode = ClassMode.IN_PERSON,
+            studentIds = listOf(ann, bob),
+            price = groupRate,
+        )
+
+        val vm = vm(id = ids.first())
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+
+        vm.setMemberIncluded(ann, false)
+        vm.setMemberIncluded(bob, false)
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.allMembersExcluded)
+        assertFalse("nothing left to bill", vm.state.value.canSave)
+        assertEquals("both classes are still there", 2, env.classDao.items.value.size)
+    }
+
+    /** Removing somebody who has already been billed is worth a question, so the form counts them. */
+    @Test
+    fun `unticking a billed member is counted, an unbilled one is not`() = runTest(mainRule.dispatcher) {
+        val (groupId, ann, bob) = seedGroup()
+        val ids = env.classRepo.book(
+            groupId = groupId, subjectId = env.subjectDao.getAll().first().id,
+            start = Instant.parse("2026-09-01T09:00:00Z"),
+            durationMinutes = 60, mode = ClassMode.IN_PERSON,
+            studentIds = listOf(ann, bob),
+            price = groupRate,
+        )
+        // Only Ann's class has billed; Bob's was corrected to cancelled.
+        val session = env.classRepo.getSessionFor(ids.first())!!
+        env.classRepo.setStatus(session, ClassStatus.COMPLETED)
+        val bobsClass = env.classRepo.getSessionFor(ids.first())!!.classes.single { it.studentId == bob }
+        env.classRepo.setStatus(ClassSession.of(bobsClass), ClassStatus.CANCELLED)
+
+        val vm = vm(id = ids.first())
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+
+        assertEquals("nothing unticked yet", 0, vm.state.value.billedDrops)
+
+        vm.setMemberIncluded(bob, false)
+        advanceUntilIdle()
+        assertEquals("a cancelled class earned nothing to lose", 0, vm.state.value.billedDrops)
+
+        vm.setMemberIncluded(ann, false)
+        advanceUntilIdle()
+        assertEquals(1, vm.state.value.billedDrops)
     }
 
     @Test

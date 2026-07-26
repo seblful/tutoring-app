@@ -490,7 +490,7 @@ class ScheduleViewModelTest {
         assertEquals("two member classes, one agenda row", 1, section.rows.size)
         assertTrue(section.rows[0].isGroup)
         assertEquals("11 «А»", section.rows[0].title)
-        assertEquals(listOf("Аня", "Борис"), section.rows[0].members.map { it.title })
+        assertEquals(listOf("Аня", "Борис"), section.rows[0].members)
     }
 
     @Test
@@ -519,10 +519,9 @@ class ScheduleViewModelTest {
         assertTrue(group.isGroup)
         assertEquals("11 «А»", group.title)
         assertEquals("Алгебра", group.subjectName)
-        assertEquals(listOf("Аня", "Борис"), group.members.map { it.title })
-        // Each member row acts on that member's class alone — that's how one absentee is corrected.
-        assertTrue(group.members.none { it.isGroup })
-        assertEquals(1, group.members.first().classes.size)
+        // The row names who is in the room; the lesson itself is what the schedule acts on.
+        assertEquals(listOf("Аня", "Борис"), group.members)
+        assertEquals("both members' classes are the one lesson", 2, group.classes.size)
     }
 
     @Test

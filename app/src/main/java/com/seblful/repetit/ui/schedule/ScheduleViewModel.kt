@@ -35,16 +35,19 @@ import javax.inject.Inject
 
 /**
  * One row of the day's schedule: a lesson, which is either one student's class or a whole group
- * session. [members] is filled for a group row — each entry is the same row shape for one member's
- * class, so tapping a member re-uses the very same actions on just their class (that is how "this
- * one student didn't come" stays expressible without a second kind of screen).
+ * session.
+ *
+ * [members] names a group lesson's students so the row can say who is in the room. Names only, and
+ * not a row per member: a lesson is acted on as a whole here, and **who** is in one is changed on
+ * the lesson's own form — the schedule's actions are about the lesson's time and status.
  */
 data class ScheduleRow(
     val session: ClassSession,
     /** Group name for a group lesson, student name otherwise. */
     val title: String,
     val subjectName: String,
-    val members: List<ScheduleRow> = emptyList(),
+    /** A group lesson's students, in class order. Empty for an individual lesson — [title] is them. */
+    val members: List<String> = emptyList(),
 ) {
     val klass: TutoringClass get() = session.first
     val isGroup: Boolean get() = session.isGroup
@@ -300,7 +303,7 @@ class ScheduleViewModel @Inject constructor(
 
     /**
      * Turns one day's classes into schedule rows: the members' classes of a group lesson collapse
-     * into a single row carrying them as [ScheduleRow.members]. Shared by the day list and the week
+     * into a single row naming them in [ScheduleRow.members]. Shared by the day list and the week
      * agenda, so a group lesson reads as one lesson in both — not as one row per member in one view
      * and a single row in the other.
      */
@@ -317,14 +320,7 @@ class ScheduleViewModel @Inject constructor(
                     session = session,
                     title = groups[session.groupId]?.name ?: "",
                     subjectName = subjectName,
-                    members = session.classes.map { c ->
-                        ScheduleRow(
-                            // One member's class on its own, so acting on this row corrects just them.
-                            session = ClassSession.of(c),
-                            title = students[c.studentId]?.name ?: "",
-                            subjectName = subjectName,
-                        )
-                    },
+                    members = session.classes.map { students[it.studentId]?.name ?: "" },
                 )
             } else {
                 ScheduleRow(

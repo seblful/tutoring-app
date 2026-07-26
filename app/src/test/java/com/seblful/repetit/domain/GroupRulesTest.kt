@@ -298,6 +298,135 @@ class GroupRulesTest {
         } catch (_: IllegalArgumentException) {
             threw = true
         }
-        assertTrue("membership is changed on the roster, not by editing one of its lessons", threw)
+        assertTrue("who was in a lesson is changed by adding and removing classes", threw)
+    }
+
+    // --- rosterChange: correcting who was in a lesson ---
+
+    private val lessonEdit = SessionEdit(
+        subjectId = 9,
+        durationMinutes = 90,
+        mode = ClassMode.REMOTE,
+        price = Money.ofMajor(20),
+    )
+
+    private fun groupSession(
+        vararg members: Pair<Long, Long>,
+        status: ClassStatus = ClassStatus.SCHEDULED,
+    ) = ClassSession(
+        7,
+        members.map { (id, studentId) -> klass(id, studentId = studentId, groupId = 7, status = status) },
+    )
+
+    @Test
+    fun `a member left out of the wanted roster loses their class`() {
+        val session = groupSession(1L to 1L, 2L to 2L, 3L to 3L)
+
+        val change = GroupRules.rosterChange(session, wanted = setOf(1, 3), lessonEdit, t0)
+
+        assertEquals(listOf(2L), change.dropped.map { it.id })
+        assertTrue("nobody joined", change.joining.isEmpty())
+        assertFalse(change.isEmpty)
+    }
+
+    @Test
+    fun `a member wanted without a class gets one at the lesson's own terms`() {
+        val session = groupSession(1L to 1L)
+
+        val change = GroupRules.rosterChange(session, wanted = setOf(1, 5), lessonEdit, t1)
+
+        assertTrue("nobody left", change.dropped.isEmpty())
+        val joined = change.joining.single()
+        assertEquals(5L, joined.studentId)
+        // The lesson's terms, not the group's current ones: it is this lesson they are joining.
+        assertEquals(9L, joined.subjectId)
+        assertEquals(t1, joined.start)
+        assertEquals(90, joined.durationMinutes)
+        assertEquals(Money.ofMajor(20), joined.price)
+        assertEquals(ClassMode.REMOTE, joined.mode)
+        assertEquals(7L, joined.groupId)
+        assertEquals("no id yet — it has never been written", 0L, joined.id)
+    }
+
+    /**
+     * The point of editing attendance after the fact: somebody who was there but never ticked owes
+     * for the lesson exactly as the others do, so their class joins in the status the lesson is in.
+     */
+    @Test
+    fun `joining a completed lesson joins it completed`() {
+        val session = groupSession(1L to 1L, status = ClassStatus.COMPLETED)
+
+        val change = GroupRules.rosterChange(session, wanted = setOf(1, 5), lessonEdit, t0)
+
+        assertEquals(ClassStatus.COMPLETED, change.joining.single().status)
+    }
+
+    @Test
+    fun `joining a lesson whose members disagree starts scheduled`() {
+        val session = ClassSession(
+            7,
+            listOf(
+                klass(1, studentId = 1, groupId = 7, status = ClassStatus.COMPLETED),
+                klass(2, studentId = 2, groupId = 7, status = ClassStatus.CANCELLED),
+            ),
+        )
+
+        val change = GroupRules.rosterChange(session, wanted = setOf(1, 2, 5), lessonEdit, t0)
+
+        assertNull("no one status to join", session.commonStatus)
+        assertEquals(ClassStatus.SCHEDULED, change.joining.single().status)
+    }
+
+    @Test
+    fun `an unchanged roster changes nothing`() {
+        val session = groupSession(1L to 1L, 2L to 2L)
+
+        val change = GroupRules.rosterChange(session, wanted = setOf(1, 2), lessonEdit, t0)
+
+        assertTrue(change.isEmpty)
+    }
+
+    /** Dropping a billed class takes income with it, so it is named separately for the warning. */
+    @Test
+    fun `only the billed leavers count as costing anything`() {
+        val session = ClassSession(
+            7,
+            listOf(
+                klass(1, studentId = 1, groupId = 7, status = ClassStatus.COMPLETED),
+                klass(2, studentId = 2, groupId = 7, status = ClassStatus.SCHEDULED),
+                klass(3, studentId = 3, groupId = 7, status = ClassStatus.COMPLETED),
+            ),
+        )
+
+        val change = GroupRules.rosterChange(session, wanted = setOf(3), lessonEdit, t0)
+
+        assertEquals(listOf(1L, 2L), change.dropped.map { it.id })
+        assertEquals("only the completed one had earned", listOf(1L), change.billedDropped.map { it.id })
+    }
+
+    @Test
+    fun `a lesson cannot be emptied of everybody`() {
+        val session = groupSession(1L to 1L)
+
+        var threw = false
+        try {
+            GroupRules.rosterChange(session, wanted = emptySet(), lessonEdit, t0)
+        } catch (_: IllegalArgumentException) {
+            threw = true
+        }
+        assertTrue("a lesson with nobody in it bills no one", threw)
+    }
+
+    @Test
+    fun `an individual lesson has no roster to reconcile`() {
+        val session = ClassSession.of(klass(1, studentId = 1))
+
+        var threw = false
+        try {
+            GroupRules.rosterChange(session, wanted = setOf(2), lessonEdit, t0)
+        } catch (_: IllegalArgumentException) {
+            threw = true
+        }
+        assertTrue("re-attributing an individual class is SessionEdit.studentId's job", threw)
     }
 }

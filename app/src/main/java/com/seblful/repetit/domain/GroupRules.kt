@@ -73,12 +73,32 @@ data class SessionEdit(
      * another student, which credits the new owner at [price].
      *
      * Null means "leave every class with the student it already has", which is the only thing a
-     * group lesson can mean — its members come from the group's roster, so they are changed by
-     * editing the roster, never by editing one of its lessons. [GroupRules.editsFor] refuses a
+     * group lesson can mean — who was in one is changed by adding and removing classes
+     * ([GroupRules.rosterChange]), never by relabelling one of them. [GroupRules.editsFor] refuses a
      * non-null value for a lesson of more than one class rather than trusting callers to know that.
      */
     val studentId: Long? = null,
 )
+
+/**
+ * What a lesson's roster change comes to: [dropped] are the classes of the members leaving it,
+ * [joining] whole new classes for the ones arriving. A joiner is built unbilled — writing it is what
+ * settles the charge (see [ClassRules.rebill]).
+ */
+data class RosterChange(
+    val dropped: List<TutoringClass> = emptyList(),
+    val joining: List<TutoringClass> = emptyList(),
+) {
+    /** The lesson keeps exactly the members it had. */
+    val isEmpty: Boolean get() = dropped.isEmpty() && joining.isEmpty()
+
+    /**
+     * The leavers whose class had already billed. Removing those takes income the student was
+     * charged with them, so it is worth asking about first — the same warning deleting a completed
+     * lesson owes.
+     */
+    val billedDropped: List<TutoringClass> get() = dropped.filter { it.status.isBillable }
+}
 
 /** Rules for groups: who a group's lesson covers, and how its classes read as one lesson. */
 object GroupRules {
@@ -109,6 +129,47 @@ object GroupRules {
             "Only an individual class can be re-attributed to another student (this lesson has ${session.size})"
         }
         return session.classes.map { it to editFor(it, changes) }
+    }
+
+    /**
+     * How [session]'s roster has to change for the lesson to cover exactly [wanted].
+     *
+     * Who was in a lesson is a fact the tutor may correct afterwards — somebody turned out not to
+     * have come, somebody came who was never ticked — so this is expressible for a lesson in any
+     * status, past or future. What it must not do is invent history: a joiner's class carries the
+     * lesson's own subject, time, length, mode and rate ([changes], [newStart]) and takes **the
+     * status the lesson is in**, so joining a completed lesson owes exactly what being in it owed,
+     * and joining a scheduled one merely puts them on the schedule. A lesson whose members already
+     * disagree about their status has no one status to join, so a joiner starts scheduled and is
+     * marked with the rest.
+     *
+     * A leaver's class is **deleted, not cancelled**: a cancelled class records a lesson somebody
+     * missed, which is a different fact from their never having been in it.
+     */
+    fun rosterChange(
+        session: ClassSession,
+        wanted: Set<Long>,
+        changes: SessionEdit,
+        newStart: Instant,
+    ): RosterChange {
+        require(session.isGroup) { "Only a group lesson has a roster to change" }
+        require(wanted.isNotEmpty()) { "A lesson needs at least one student" }
+        val booked = session.classes.map { it.studentId }.toSet()
+        return RosterChange(
+            dropped = session.classes.filterNot { it.studentId in wanted },
+            joining = (wanted - booked).map { studentId ->
+                TutoringClass(
+                    studentId = studentId,
+                    subjectId = changes.subjectId,
+                    start = newStart,
+                    durationMinutes = changes.durationMinutes,
+                    price = changes.price,
+                    status = session.commonStatus ?: ClassStatus.SCHEDULED,
+                    groupId = session.groupId,
+                    mode = changes.mode,
+                )
+            },
+        )
     }
 
     /**

@@ -14,6 +14,7 @@ import com.seblful.repetit.domain.ClassRules
 import com.seblful.repetit.domain.ClassSession
 import com.seblful.repetit.domain.GroupRules
 import com.seblful.repetit.domain.ReminderScheduler
+import com.seblful.repetit.domain.RosterChange
 import com.seblful.repetit.domain.Scheduling
 import com.seblful.repetit.domain.SessionEdit
 import com.seblful.repetit.domain.model.ClassMode
@@ -177,15 +178,33 @@ class ClassRepository @Inject constructor(
      * completed lesson's recognized income follows the edit for every member at once. The rules run
      * *here* — a caller has no way to hand over an already-resolved class, and so no way to persist a
      * charge that no longer matches the price and duration it was billed from.
+     *
+     * [roster] additionally says who the lesson is for afterwards: members outside it lose their
+     * class, members in it without one get one ([GroupRules.rosterChange]). Null leaves the roster
+     * exactly as it is, which is all an individual lesson can mean. Changing who was in a lesson and
+     * changing the lesson's own fields is **one** write, so a save can neither bill a member on their
+     * way out nor leave a joiner behind at the old time.
      */
     suspend fun apply(
         session: ClassSession,
         changes: SessionEdit,
         newStart: Instant,
         now: Instant = Instant.now(),
-    ): List<TutoringClass> = persist(
-        GroupRules.editsFor(session, changes).map { (c, edit) -> ClassRules.edit(c, edit, newStart, now) },
-    )
+        roster: Set<Long>? = null,
+    ): List<TutoringClass> {
+        val change = roster?.let { GroupRules.rosterChange(session, it, changes, newStart) } ?: RosterChange()
+        // Leavers go first, so the edit below has nobody left to re-bill on their way out.
+        change.dropped.forEach { remove(it) }
+        val leaving = change.dropped.map { it.id }.toSet()
+        return persist(
+            // editsFor runs over the whole session, so its refusal to re-attribute a group lesson is
+            // decided by what the lesson *is* rather than by whoever happens to be staying in it.
+            resolved = GroupRules.editsFor(session, changes)
+                .filterNot { (c, _) -> c.id in leaving }
+                .map { (c, edit) -> ClassRules.edit(c, edit, newStart, now) },
+            joining = change.joining,
+        )
+    }
 
     /**
      * Reschedules a whole lesson, keeping its members together in one session. Moving it to the
@@ -210,26 +229,42 @@ class ClassRepository @Inject constructor(
      * its recognized income, which is derived rather than stored, so it simply stops being counted.
      */
     suspend fun delete(session: ClassSession) {
-        session.classes.forEach { c ->
-            c.calendarEventId?.let { calendarSync.delete(it) }
-            // No detachCalendarEvent here: the row is going away, so there is no column left to null.
-            dao.delete(c.toEntity())
-        }
+        session.classes.forEach { remove(it) }
         reminderScheduler.refreshNow()
     }
 
+    /** Takes one class out of the database, with its mirrored event. */
+    private suspend fun remove(klass: TutoringClass) {
+        klass.calendarEventId?.let { calendarSync.delete(it) }
+        // No detachCalendarEvent here: the row is going away, so there is no column left to null.
+        dao.delete(klass.toEntity())
+    }
+
     /**
-     * The one place an existing lesson is written: each class is updated in place — never inserted,
-     * so income can't be double-counted — and mirrored, then reminders are refreshed **once**. One
+     * The one place an existing lesson is written: every class in [resolved] is updated **in place**,
+     * so an edit can't double-count income, and mirrored; then reminders are refreshed **once**. One
      * lesson earns one reminder, so refreshing per class would repeat the same work n times.
+     *
+     * [joining] are members arriving in the lesson, who have no row to update yet. They are inserted
+     * and billed by [ClassRules.rebill] — the same rule the others' charges come from — so joining a
+     * completed lesson costs what having been in it costs, and no caller can insert an unbilled class
+     * into a lesson that has already earned.
      */
-    private suspend fun persist(resolved: List<TutoringClass>): List<TutoringClass> {
+    private suspend fun persist(
+        resolved: List<TutoringClass>,
+        joining: List<TutoringClass> = emptyList(),
+    ): List<TutoringClass> {
         resolved.forEach {
             dao.update(it.toEntity())
             mirrorToCalendar(it)
         }
+        val joined = joining.map { ClassRules.rebill(it) }.map { klass ->
+            // Inserted before mirroring: the event id is written back against the class's row.
+            val id = dao.upsert(klass.toEntity())
+            klass.copy(id = id).also { mirrorToCalendar(it) }
+        }
         reminderScheduler.refreshNow()
-        return resolved
+        return resolved + joined
     }
 
     suspend fun nextScheduledAfter(now: Instant): TutoringClass? =

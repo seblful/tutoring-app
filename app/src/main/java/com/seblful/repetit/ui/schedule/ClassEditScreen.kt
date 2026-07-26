@@ -38,11 +38,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
+import com.seblful.repetit.ui.common.ConfirmDialog
 import com.seblful.repetit.ui.common.DropdownField
 import com.seblful.repetit.ui.common.DatePickerModal
 import com.seblful.repetit.ui.common.LeaveIntent
@@ -89,6 +91,14 @@ fun ClassEditScreen(
     var showModeSelector by remember { mutableStateOf(false) }
     var showPriceField by remember { mutableStateOf(false) }
 
+    // Unticking a member whose class already billed deletes that class and the income with it, so the
+    // save asks first — the same warning deleting a completed lesson owes. Held as a count because
+    // that is what the question says; zero means there is nothing to ask about.
+    var confirmingDrops by remember { mutableStateOf(0) }
+    fun requestSave() {
+        if (state.billedDrops > 0) confirmingDrops = state.billedDrops else viewModel.save(onBack)
+    }
+
     // Back — the arrow or the system gesture — asks before throwing away a half-booked lesson.
     var leaving by remember { mutableStateOf<LeaveIntent?>(null) }
     fun requestLeave() {
@@ -113,7 +123,7 @@ fun ClassEditScreen(
                 actions = {
                     // A taken time is as disqualifying as a missing field: the lesson could not happen.
                     TextButton(
-                        onClick = { viewModel.save(onBack) },
+                        onClick = ::requestSave,
                         enabled = state.canSave,
                     ) {
                         Text(stringResource(R.string.action_save))
@@ -231,43 +241,44 @@ fun ClassEditScreen(
             }
 
             if (form.target == ClassTarget.GROUP) {
-                // Who the lesson covers. While **booking**, each member can be dropped from this one
-                // lesson — someone away this week is not off the roster, so the tick lives on the
-                // lesson and the group is untouched. While **editing**, read-only: those classes are
-                // billed history, and adding or dropping one here would invent or erase a lesson.
+                // Who the lesson covers — ticked one by one, and the same list whether it is being
+                // booked or corrected afterwards. Someone away this week is not off the roster, so
+                // the tick lives on the lesson and the group is untouched. This is the one place a
+                // lesson's attendance is set: the schedule's action menu changes the whole lesson.
                 if (members.isNotEmpty()) {
                     Text(
                         stringResource(R.string.class_group_members_title),
                         style = MaterialTheme.typography.titleSmall,
                     )
-                    if (viewModel.isNew) {
-                        members.forEach { student ->
-                            val included = student.id !in form.excludedMemberIds
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .toggleable(
-                                        value = included,
-                                        onValueChange = { on -> viewModel.setMemberIncluded(student.id, on) },
-                                    ),
-                            ) {
-                                Text(student.name, Modifier.weight(1f))
-                                Checkbox(checked = included, onCheckedChange = null)
-                            }
-                        }
-                        if (state.allMembersExcluded) {
-                            Text(
-                                stringResource(R.string.class_group_no_members_left),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    } else {
+                    // On a booked lesson the ticks read as a record rather than a plan, so they say
+                    // which question they are answering.
+                    if (!viewModel.isNew) {
                         Text(
-                            members.joinToString(", ") { it.name },
-                            style = MaterialTheme.typography.bodyMedium,
+                            stringResource(R.string.class_group_members_editable),
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    members.forEach { student ->
+                        val included = student.id !in form.excludedMemberIds
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .toggleable(
+                                    value = included,
+                                    onValueChange = { on -> viewModel.setMemberIncluded(student.id, on) },
+                                ),
+                        ) {
+                            Text(student.name, Modifier.weight(1f))
+                            Checkbox(checked = included, onCheckedChange = null)
+                        }
+                    }
+                    if (state.allMembersExcluded) {
+                        Text(
+                            stringResource(R.string.class_group_no_members_left),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
                         )
                     }
                 }
@@ -357,9 +368,24 @@ fun ClassEditScreen(
     leaving?.let { intent ->
         UnsavedChangesDialog(
             intent = intent,
-            onSave = { viewModel.save(onBack) },
+            // Saving on the way out owes the same warning as saving from the button, so it goes
+            // through the same request — the leave question closes to make room for it.
+            onSave = { leaving = null; requestSave() },
             onDiscard = { leaving = null; onBack() },
             onKeepEditing = { leaving = null },
+        )
+    }
+
+    if (confirmingDrops > 0) {
+        ConfirmDialog(
+            text = pluralStringResource(
+                R.plurals.class_member_drop_billed_confirm,
+                confirmingDrops,
+                confirmingDrops,
+            ),
+            confirmLabel = stringResource(R.string.action_save),
+            onConfirm = { viewModel.save(onBack) },
+            onDismiss = { confirmingDrops = 0 },
         )
     }
 }

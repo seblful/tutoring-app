@@ -91,12 +91,17 @@ flowchart TB
 - **A group is taught one subject, fixed on the group.** Only students priced for it can be members —
   the roster is intersected on save — and the booking form takes the subject from the group. The column
   is **nullable** purely for groups made before v6, which keep the old per-lesson behaviour.
-- **Who attends one lesson is separate from who is on the roster.** Booking offers the members as
-  checkboxes; an excluded member gets no class at all (which is not the same as a cancelled one).
-  Editing a booked lesson cannot add or drop members — those classes are billed history.
+- **Who attends one lesson is separate from who is on the roster**, and is a fact the tutor may
+  correct afterwards. The lesson's form ticks its members — in any status, past or future. An unticked
+  member has no class at all (not the same as a cancelled one); ticking one who has none writes a
+  class at the lesson's own terms, taking **the status the lesson is in**, so adding somebody to a
+  completed lesson owes exactly what being in it owed. Dropping a class that already billed removes
+  that income, so the form asks first. An old lesson offers the group as it is *now* but ticks only
+  its own members, so opening and re-saving it changes nothing.
 - **A session is derived, never stored**: the classes sharing a `(groupId, start)` pair. Moving one
-  class therefore leaves its session by construction. Per-member corrections stay expressible, so
-  status changes apply per class and a mixed session reads «Разные».
+  class therefore leaves its session by construction. Statuses still apply per class, so a lesson
+  whose members were corrected one at a time reads «Разные» — reachable now only through old data or
+  the repository, since the schedule changes a lesson's status as a whole.
 - Groups are **archive-only once they have lessons**. A group lesson mirrors as **one calendar event
   per member** (each keeps their own invite), while in-app **reminders are per lesson**.
 
@@ -174,6 +179,9 @@ flowchart TB
   whole week. Paging only *browses* — it never moves the selection, and opening a view snaps back to it.
   A calendar cell shows **one count per status**, so a mixed day states its makeup. Both the markers and
   the lessons are queried for the **active view's range only**, so no off-screen view holds a live query.
+- **One place answers "who was in this lesson"** — the lesson's own form, where the answer can be
+  changed. The schedule's action sheet acts on the whole lesson (edit, move, status, delete) and
+  deliberately lists no members: a menu for changing a lesson's status is not where a roster belongs.
 - **A student's and a group's card are tabbed, with the numbers on top** — a `StatRow` whose values
   shrink to fit, then a sticky `TabRow` over one full-length list. A student's tabs are «Предметы |
   Занятия | Платежи»; a group's are «Ученики | Занятия» **only**, because a balance belongs to a student

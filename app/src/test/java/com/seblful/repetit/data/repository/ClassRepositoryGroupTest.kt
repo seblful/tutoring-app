@@ -264,6 +264,147 @@ class ClassRepositoryGroupTest {
         assertTrue(after.classes.all { it.charge == Money.ZERO })
     }
 
+    // --- correcting who was in a lesson (roster on apply) ---
+
+    @Test
+    fun `dropping a member from a booked lesson deletes their class and its event`() = runTest {
+        seed()
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
+        val ids = bookSession()
+        val bobsEvent = repo.getSessionFor(ids.first())!!
+            .classes.single { it.studentId == bob }.calendarEventId
+
+        repo.apply(
+            repo.getSessionFor(ids.first())!!,
+            SessionEdit(algebra, 60, ClassMode.IN_PERSON, groupRate),
+            newStart = start,
+            now = start,
+            roster = setOf(ann),
+        )
+
+        val after = repo.getSessionFor(ids.first())!!
+        assertEquals("only Ann is left in the lesson", listOf(ann), after.classes.map { it.studentId })
+        // The row is gone, not cancelled: they were never in the lesson, rather than having missed it.
+        assertEquals(1, env.classDao.items.value.size)
+        assertTrue(env.calendar.deletes.contains(bobsEvent))
+    }
+
+    @Test
+    fun `dropping a completed member takes their charge out of the lesson`() = runTest {
+        seed()
+        val ids = bookSession()
+        repo.setStatus(repo.getSessionFor(ids.first())!!, ClassStatus.COMPLETED)
+
+        repo.apply(
+            repo.getSessionFor(ids.first())!!,
+            SessionEdit(algebra, 60, ClassMode.IN_PERSON, groupRate),
+            newStart = start,
+            now = start,
+            roster = setOf(ann),
+        )
+
+        val after = repo.getSessionFor(ids.first())!!
+        assertEquals(listOf(ann), after.classes.map { it.studentId })
+        // Ann's own charge is untouched — the correction was about who was there, not about the rate.
+        assertEquals(groupRate, after.classes.single().charge)
+        assertTrue("Bob has no class left to bill", env.classDao.items.value.none { it.studentId == bob })
+    }
+
+    @Test
+    fun `adding a member to a scheduled lesson books them at the lesson's terms`() = runTest {
+        seed()
+        val ids = bookSession(members = listOf(ann))
+        val cate = env.studentDao.upsert(StudentEntity(name = "Вера"))
+
+        repo.apply(
+            repo.getSessionFor(ids.first())!!,
+            SessionEdit(algebra, 90, ClassMode.REMOTE, Money.ofMajor(40)),
+            newStart = start,
+            now = start,
+            roster = setOf(ann, cate),
+        )
+
+        val after = repo.getSessionFor(ids.first())!!
+        assertEquals(2, after.size)
+        val joined = after.classes.single { it.studentId == cate }
+        assertEquals("joins the lesson, not a lesson of their own", groupId, joined.groupId)
+        assertEquals(start, joined.start)
+        assertEquals(90, joined.durationMinutes)
+        assertEquals(Money.ofMajor(40), joined.price)
+        assertEquals(ClassMode.REMOTE, joined.mode)
+        assertEquals(ClassStatus.SCHEDULED, joined.status)
+        assertEquals("nothing owed on a lesson that hasn't happened", Money.ZERO, joined.charge)
+    }
+
+    /** The reason attendance is editable after the fact: somebody who came but was never ticked. */
+    @Test
+    fun `adding a member to a completed lesson bills them like everyone else`() = runTest {
+        seed()
+        val ids = bookSession(members = listOf(ann))
+        repo.setStatus(repo.getSessionFor(ids.first())!!, ClassStatus.COMPLETED)
+
+        repo.apply(
+            repo.getSessionFor(ids.first())!!,
+            SessionEdit(algebra, 60, ClassMode.IN_PERSON, groupRate),
+            newStart = start,
+            now = Instant.parse("2026-09-05T00:00:00Z"),
+            roster = setOf(ann, bob),
+        )
+
+        val after = repo.getSessionFor(ids.first())!!
+        assertEquals(ClassStatus.COMPLETED, after.commonStatus)
+        assertEquals(
+            "the joiner owes what being in the lesson owed",
+            mapOf(ann to groupRate, bob to groupRate),
+            after.classes.associate { it.studentId to it.charge },
+        )
+    }
+
+    /**
+     * The whole roster replaced at once — the case that would break a session rebuilt from the class
+     * that was tapped, since that very class is the one leaving.
+     */
+    @Test
+    fun `swapping one member for another is a single write, with one reminder refresh`() = runTest {
+        seed()
+        val ids = bookSession(members = listOf(ann))
+        // The booking itself refreshed once; the swap below must add exactly one more.
+        assertEquals(1, env.reminders.refreshCount)
+
+        val written = repo.apply(
+            repo.getSessionFor(ids.first())!!,
+            SessionEdit(algebra, 60, ClassMode.IN_PERSON, groupRate),
+            newStart = start,
+            now = start,
+            roster = setOf(bob),
+        )
+
+        assertEquals(listOf(bob), written.map { it.studentId })
+        assertEquals("Ann's class went, Bob's arrived", 1, env.classDao.items.value.size)
+        // Still one lesson of the group's, reachable from the class that now stands for it.
+        val after = repo.getSessionFor(written.single().id)!!
+        assertEquals(groupId, after.groupId)
+        assertEquals(listOf(bob), after.classes.map { it.studentId })
+        assertEquals("one lesson, one reminder refresh", 2, env.reminders.refreshCount)
+    }
+
+    @Test
+    fun `a null roster leaves the lesson's members exactly as they were`() = runTest {
+        seed()
+        val ids = bookSession()
+
+        repo.apply(
+            repo.getSessionFor(ids.first())!!,
+            SessionEdit(algebra, 90, ClassMode.IN_PERSON, groupRate),
+            newStart = start,
+            now = start,
+        )
+
+        val after = repo.getSessionFor(ids.first())!!
+        assertEquals(setOf(ann, bob), after.classes.map { it.studentId }.toSet())
+        assertEquals(2, env.classDao.items.value.size)
+    }
+
     @Test
     fun `deleting a group lesson removes every member's class and calendar event`() = runTest {
         seed()
