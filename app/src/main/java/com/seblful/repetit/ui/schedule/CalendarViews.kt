@@ -147,7 +147,7 @@ private fun DayCell(
     // Spoken as "15, 2 занятия, 1 Запланировано, 1 Отменено" — the tallies carry that breakdown
     // visually through colour alone, which a screen reader cannot convey, so it must be said.
     val cellDescription = load?.let { dayLoad ->
-        val total = pluralStringResource(R.plurals.schedule_day_classes, dayLoad.total, dayLoad.total)
+        val total = pluralStringResource(R.plurals.lessons_count, dayLoad.total, dayLoad.total)
         val breakdown = dayLoad.tallies.map { "${it.count} ${classStatusLabel(it.status)}" }
         (listOf(date.dayOfMonth.toString(), total) + breakdown).joinToString(", ")
     }

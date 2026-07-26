@@ -6,33 +6,44 @@ import androidx.lifecycle.viewModelScope
 import com.seblful.repetit.data.repository.ClassRepository
 import com.seblful.repetit.data.repository.EnrollmentRepository
 import com.seblful.repetit.data.repository.PaymentRepository
+import com.seblful.repetit.data.repository.RateHistoryRepository
 import com.seblful.repetit.data.repository.StudentRepository
 import com.seblful.repetit.data.repository.SubjectRepository
 import com.seblful.repetit.domain.Billing
+import com.seblful.repetit.domain.Taught
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.Payment
+import com.seblful.repetit.domain.model.RateChange
+import com.seblful.repetit.domain.model.RateOwner
 import com.seblful.repetit.domain.model.Student
 import com.seblful.repetit.domain.model.Subject
 import com.seblful.repetit.domain.model.TutoringClass
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.seblful.repetit.ui.common.UiEvents
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
 import javax.inject.Inject
 
 /**
- * A subject the student takes, with its per-class price. The price is always set: a student's
- * subjects are exactly the subjects they have a price for — the same set that's bookable — so a
- * subject can never appear here without a price (see [StudentDetailViewModel]).
+ * A subject the student takes, with its per-class price and how that price got there.
+ *
+ * The price is always set: a student's subjects are exactly the subjects they have a price for — the
+ * same set that's bookable — so a subject can never appear here without one (see
+ * [StudentDetailViewModel]).
+ *
+ * @param history every recorded change to [price], newest first. Empty means the rate has never
+ *   moved, which the card says out loud rather than leaving blank.
  */
-data class SubjectPrice(val subject: Subject, val price: Money)
+data class SubjectPrice(
+    val subject: Subject,
+    val price: Money,
+    val history: List<RateChange> = emptyList(),
+)
 
 /** A class plus its subject's display name. */
 data class ClassRow(val klass: TutoringClass, val subjectName: String)
@@ -40,6 +51,8 @@ data class ClassRow(val klass: TutoringClass, val subjectName: String)
 data class StudentDetailState(
     val student: Student? = null,
     val balance: Money = Money.ZERO,
+    /** How much has been taught and earned — the card's stat row. */
+    val totals: Taught.Totals = Taught.Totals.NONE,
     val subjects: List<SubjectPrice> = emptyList(),
     val allSubjects: List<Subject> = emptyList(),
     val classes: List<ClassRow> = emptyList(),
@@ -50,10 +63,11 @@ data class StudentDetailState(
 class StudentDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val students: StudentRepository,
-    private val subjects: SubjectRepository,
-    private val classes: ClassRepository,
+    subjects: SubjectRepository,
+    classes: ClassRepository,
     private val payments: PaymentRepository,
     private val enrollment: EnrollmentRepository,
+    rateHistory: RateHistoryRepository,
 ) : ViewModel() {
 
     private val studentId: Long = checkNotNull(savedStateHandle["id"])
@@ -68,22 +82,30 @@ class StudentDetailViewModel @Inject constructor(
         subjects.observeAll(),
         enrollment.observePricesFor(studentId),
         classes.observeForStudent(studentId),
-    ) { student, allSubjects, priceList, classList ->
+        // The whole student's log in one query, split per subject below — the card shows every
+        // subject at once, so a query per subject would be n queries for one screen.
+        rateHistory.observeForStudent(studentId),
+    ) { student, allSubjects, priceList, classList, changes ->
         val subjectsById = allSubjects.associateBy { it.id }
+        val historyBySubject = changes.groupBy { (it.owner as RateOwner.StudentSubject).subjectId }
         Partial(
             student = student,
             allSubjects = allSubjects,
             // A student's subjects ARE their priced subjects — one source of truth, so the list here
             // is exactly what can be booked. No "price not set" rows, no bookable-but-hidden subjects.
             subjects = priceList.mapNotNull { p ->
-                subjectsById[p.subjectId]?.let { SubjectPrice(it, p.amount) }
+                subjectsById[p.subjectId]?.let {
+                    SubjectPrice(it, p.amount, historyBySubject[p.subjectId].orEmpty())
+                }
             }.sortedBy { it.subject.name.lowercase() },
             classes = classList.map { ClassRow(it, subjectsById[it.subjectId]?.name ?: "") },
         )
     }.combine(payments.observeForStudent(studentId)) { partial, paymentList ->
+        val klasses = partial.classes.map { it.klass }
         StudentDetailState(
             student = partial.student,
-            balance = Billing.balanceOf(studentId, partial.classes.map { it.klass }, paymentList).balance,
+            balance = Billing.balanceOf(studentId, klasses, paymentList).balance,
+            totals = Taught.byStudent(klasses),
             subjects = partial.subjects,
             allSubjects = partial.allSubjects,
             classes = partial.classes,
@@ -139,6 +161,7 @@ class StudentDetailViewModel @Inject constructor(
         }
     }
 
+    /** Re-prices a subject. The change is logged by [EnrollmentRepository], not asked for here. */
     fun setPrice(subjectId: Long, amount: Money) {
         viewModelScope.launch { enrollment.reprice(studentId, subjectId, amount) }
     }

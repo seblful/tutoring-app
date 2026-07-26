@@ -4,6 +4,7 @@ import com.seblful.repetit.data.local.ClassEntity
 import com.seblful.repetit.data.local.GroupEntity
 import com.seblful.repetit.data.local.PaymentEntity
 import com.seblful.repetit.data.local.PriceEntity
+import com.seblful.repetit.data.local.RateChangeEntity
 import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.SubjectEntity
 import com.seblful.repetit.domain.model.ClassMode
@@ -12,11 +13,15 @@ import com.seblful.repetit.domain.model.Group
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.Payment
 import com.seblful.repetit.domain.model.Price
+import com.seblful.repetit.domain.model.RateChange
+import com.seblful.repetit.domain.model.RateOwner
 import com.seblful.repetit.domain.model.Student
 import com.seblful.repetit.domain.model.Subject
 import com.seblful.repetit.domain.model.TutoringClass
 import kotlinx.serialization.descriptors.elementNames
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 
@@ -52,6 +57,64 @@ class MappersTest {
     fun `price round-trips and keeps minor units exactly`() {
         val p = Price(studentId = 1, subjectId = 2, amount = Money(4505))
         assertEquals(p, p.toEntity().toDomain())
+    }
+
+    @Test
+    fun `a student's rate change round-trips, owner included`() {
+        val c = RateChange(
+            id = 3,
+            owner = RateOwner.StudentSubject(studentId = 1, subjectId = 2),
+            from = Money(2000),
+            to = Money(2550),
+            at = Instant.ofEpochMilli(1_700_000_123_000),
+        )
+        assertEquals(c, c.toEntity().toDomain())
+        assertNull("a student's change names no group", c.toEntity().groupId)
+    }
+
+    @Test
+    fun `a group's rate change round-trips, owner included`() {
+        val c = RateChange(
+            id = 4,
+            owner = RateOwner.GroupRate(groupId = 7),
+            from = Money(2000),
+            to = Money(2500),
+            at = Instant.ofEpochMilli(1_700_000_123_000),
+        )
+        assertEquals(c, c.toEntity().toDomain())
+        assertNull("a group's change names no student", c.toEntity().studentId)
+        assertNull("nor a subject", c.toEntity().subjectId)
+    }
+
+    /**
+     * The two nulls that carry meaning: no previous rate means the history starts here, and no date
+     * means the rate predates the log (the rows the v6 → v7 migration seeds). Both have to survive the
+     * round trip as *null*, since a zero or an epoch date would read as a real amount and a real day.
+     */
+    @Test
+    fun `an initial rate change keeps its missing previous amount and missing date`() {
+        val c = RateChange(
+            id = 5,
+            owner = RateOwner.StudentSubject(studentId = 1, subjectId = 2),
+            from = null,
+            to = Money(3000),
+            at = null,
+        )
+        assertEquals(c, c.toEntity().toDomain())
+        assertNull(c.toEntity().fromMinor)
+        assertNull(c.toEntity().atMillis)
+    }
+
+    /**
+     * A row belonging to neither a student's subject nor a group cannot be produced by the mapper, so
+     * it can only arrive from a hand-edited database or a doctored backup. Attributing it to some
+     * default owner would put a stranger's price in a tutor's history; failing is the honest option.
+     */
+    @Test
+    fun `a rate change belonging to nobody is rejected rather than guessed`() {
+        val orphan = RateChangeEntity(id = 9, toMinor = 1000)
+        val thrown = runCatching { orphan.toDomain() }.exceptionOrNull()
+        assertTrue("expected an error, got $thrown", thrown is IllegalStateException)
     }
 
     @Test
@@ -106,6 +169,9 @@ class MappersTest {
             "StudentEntity" to setOf("id", "name", "phone", "email", "note", "defaultMode", "archived"),
             "GroupEntity" to setOf("id", "name", "note", "priceMinor", "subjectId", "defaultMode", "archived"),
             "PriceEntity" to setOf("studentId", "subjectId", "amountMinor"),
+            "RateChangeEntity" to setOf(
+                "id", "studentId", "subjectId", "groupId", "fromMinor", "toMinor", "atMillis",
+            ),
             "PaymentEntity" to setOf("id", "studentId", "dateMillis", "amountMinor"),
             "ClassEntity" to setOf(
                 "id", "studentId", "subjectId", "startMillis", "durationMinutes",
@@ -117,6 +183,7 @@ class MappersTest {
             StudentEntity.serializer(),
             GroupEntity.serializer(),
             PriceEntity.serializer(),
+            RateChangeEntity.serializer(),
             PaymentEntity.serializer(),
             ClassEntity.serializer(),
         ).associate { it.descriptor.serialName.substringAfterLast('.') to it.descriptor.elementNames.toSet() }

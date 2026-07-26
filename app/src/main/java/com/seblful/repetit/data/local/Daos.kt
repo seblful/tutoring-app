@@ -175,6 +175,42 @@ interface PriceDao {
     suspend fun deleteAll()
 }
 
+/**
+ * The rate log. Ordered `atMillis DESC` so the newest change reads first — and because SQLite treats
+ * NULL as the smallest value, the seeded "this rate predates the log" rows fall to the bottom, which
+ * is where a change of unknown date belongs. `id DESC` breaks ties, so two changes recorded in the
+ * same millisecond still come out in the order they were made.
+ */
+@Dao
+interface RateHistoryDao {
+    @Query("SELECT * FROM price_history WHERE studentId = :studentId ORDER BY atMillis DESC, id DESC")
+    fun observeForStudent(studentId: Long): Flow<List<RateChangeEntity>>
+
+    @Query(
+        "SELECT * FROM price_history WHERE studentId = :studentId AND subjectId = :subjectId " +
+            "ORDER BY atMillis DESC, id DESC"
+    )
+    fun observeForStudentSubject(studentId: Long, subjectId: Long): Flow<List<RateChangeEntity>>
+
+    @Query("SELECT * FROM price_history WHERE groupId = :groupId ORDER BY atMillis DESC, id DESC")
+    fun observeForGroup(groupId: Long): Flow<List<RateChangeEntity>>
+
+    @Insert
+    suspend fun insert(change: RateChangeEntity): Long
+
+    @Query("DELETE FROM price_history WHERE studentId = :studentId AND subjectId = :subjectId")
+    suspend fun deleteForStudentSubject(studentId: Long, subjectId: Long)
+
+    @Query("SELECT * FROM price_history")
+    suspend fun getAll(): List<RateChangeEntity>
+
+    @Insert
+    suspend fun insertAll(changes: List<RateChangeEntity>)
+
+    @Query("DELETE FROM price_history")
+    suspend fun deleteAll()
+}
+
 @Dao
 interface ClassDao {
     @Query("SELECT * FROM classes WHERE id = :id")
@@ -188,6 +224,10 @@ interface ClassDao {
 
     @Query("SELECT * FROM classes WHERE studentId = :studentId ORDER BY startMillis DESC")
     fun observeForStudent(studentId: Long): Flow<List<ClassEntity>>
+
+    /** Every class ever booked as part of [groupId] — the group card's lesson list. */
+    @Query("SELECT * FROM classes WHERE groupId = :groupId ORDER BY startMillis DESC")
+    fun observeForGroup(groupId: Long): Flow<List<ClassEntity>>
 
     @Query("SELECT * FROM classes WHERE startMillis >= :fromMillis AND startMillis < :toMillis ORDER BY startMillis")
     fun observeBetween(fromMillis: Long, toMillis: Long): Flow<List<ClassEntity>>

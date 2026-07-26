@@ -29,9 +29,9 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps: billing, class rules, group rules (sessions, bookable subjects), calendar layout, reminders, reports, scheduling (bookable subjects, time conflicts), the `ReminderScheduler` port, and the models. All JVM-unit-tested. |
+| `domain/` | Pure Kotlin, no Android deps: billing, class rules, group rules (sessions, bookable subjects), calendar layout, reminders, reports, scheduling (bookable subjects, time conflicts), `Taught` (what a card's stat row counts), the `ReminderScheduler` port, and the models. All JVM-unit-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`. Entities are also `@Serializable` (for backup). |
-| `data/repository/` | Repositories mapping entities ⇄ domain models, and the place display **name ordering** is applied (`format/NameOrder`, not SQL). `ClassRepository` owns *all* side effects of a class change (calendar mirroring + reminder refresh); every write takes a whole **lesson** (see below). `EnrollmentRepository` owns the subject⇄price invariant — the single seam that links/unlinks a subject and sets/deletes its price together — and is also where prices are **read** (there is no separate price repository; every method on the one there used to be was a bare DAO forward). `GroupRepository` is the only writer of group membership (a group is always saved together with its exact roster). `SettingsRepository` takes one `update { it.copy(...) }` rather than a setter per field. |
+| `data/repository/` | Repositories mapping entities ⇄ domain models, and the place display **name ordering** is applied (`format/NameOrder`, not SQL). `ClassRepository` owns *all* side effects of a class change (calendar mirroring + reminder refresh); every write takes a whole **lesson** (see below). `EnrollmentRepository` owns the subject⇄price invariant — the single seam that links/unlinks a subject and sets/deletes its price together — and is also where prices are **read** (there is no separate price repository; every method on the one there used to be was a bare DAO forward). `GroupRepository` is the only writer of group membership (a group is always saved together with its exact roster). `RateHistoryRepository` owns what a *rate change* is, because **two** repositories set a rate (`EnrollmentRepository` a student's price, `GroupRepository` a group's) and both owe the same log. `SettingsRepository` takes one `update { it.copy(...) }` rather than a setter per field. |
 | `data/backup/` | Whole-DB JSON snapshot: export + transactional replace-all import, plus `BackupRestore` — everything a *restore* entails beyond the rows (reminders, calendar re-mirror, ending first run), so both entry points share one path. |
 | `calendar/` | `CalendarSync` port + a `CalendarContract` adapter, plus a `CalendarPermission` port (carrying both `isGranted()` and the `required` permission array, so the settings screen never imports the adapter) so "enabling sync needs the permission" can be a view-model rule instead of a branch in a composable. |
 | `notifications/` | `Notifier` port + an Android adapter, and `DueReminder` — everything a fired reminder does (is it still owed, whose name goes on it), kept outside the worker so a JVM test can drive it. |
@@ -137,6 +137,25 @@ flowchart TB
   student keeps their own invite and email reminder — with the group's name in the title. In-app
   **reminders are per lesson, not per member** (`Reminders.plan` dedupes a session and the notification
   names the group).
+- **A rate is current state; its past is a log** (`price_history`, v7). A price is *replaced* when it
+  changes while every booked lesson keeps the rate it was billed at — that split is what makes
+  re-pricing safe, and it also means raising a price used to leave no trace anywhere. `RateChange`
+  records it: what the rate was, what it became, when. One table covers **both** kinds of rate (a
+  student's price for a subject, and a group's own), because the tutor reads them as one question;
+  the two shapes are discriminated once, on the way out of storage, into the sealed `RateOwner`, and
+  `Mappers.kt` is the only place the nullable owner columns are interpreted (a row belonging to
+  neither fails loudly rather than being attributed to somebody). Two nulls carry meaning: **no
+  previous rate** means the row is where the history starts («Назначена 20 BYN», not a change), and
+  **no date** means the rate already existed before the log did — v7 seeds one such row per existing
+  price and group rate, so an upgrading tutor sees where each price stands instead of an empty list,
+  and refuses to stamp the upgrade date on it (the same refusal to invent data that leaves a pre-v6
+  group with no subject). `ORDER BY atMillis DESC` sorts those undated rows last, since SQLite treats
+  NULL as smallest. The rule about *what to log* lives in `RateHistoryRepository.record`: an
+  unchanged rate logs nothing, because both writers save whole objects and are routinely handed an
+  amount that hasn't moved — a group is re-saved on a rename, a student's prices are all rewritten on
+  every form save — and a log full of «25 → 25» would bury the changes the tutor came to read.
+  Un-enrolling a subject **forgets** its log (only reachable with zero classes, so nothing it
+  describes ever billed), which keeps a later re-enrollment from reading as a continuation.
 - **A student's subjects == their priced subjects** (single source of truth) — for **individual**
   lessons. Adding a subject links it and sets a price in one step; removing drops both, but is
   **refused when the student has any class for that subject**, preserving the invariant that an
@@ -184,7 +203,11 @@ flowchart TB
   **v5** adds `student_groups.priceMinor` (a group's own rate) and `settings.defaultGroupPriceMinor`,
   both `DEFAULT 0` — an upgraded group is left explicitly *unpriced* rather than given an invented
   amount, since its members were billed individually and no single number is the truth about that.
-  Migrations are validated against the exported schema JSONs by an instrumented test.
+  **v6** adds nullable `student_groups.subjectId`. **v7** adds `price_history` and seeds one row per
+  existing price and group rate as the *start* of its history, with `fromMinor` and `atMillis` both
+  NULL (see the rate-log decision above); nothing existing is read back or rewritten, so no lesson,
+  price or rate is touched. Migrations are validated against the exported schema JSONs by an
+  instrumented test.
 - **First-run onboarding is offered, not imposed.** It opens on a welcome step with three ways out:
   walk the setup (≥1 subject, then a first student with subjects and prices — each step still
   *requires* its input to move on), **restore a backup**, or **skip**. Skipping is the same flag flip
@@ -236,11 +259,15 @@ flowchart TB
   later change. The cost is that a lesson booked inside its own lead window gets no reminder at all —
   which is the point, since the tutor is looking at the lesson they just booked.
 - **Backup = full DB snapshot → JSON via SAF.** Ids are preserved; import is one transaction. The
-  format is versioned (**v2** carries groups, **v3** their rate); an older file still imports, since
+  format is versioned (**v2** carries groups, **v3** their rate, **v4** their subject, **v5** the rate
+  log); an older file still imports, since
   missing tables come back empty, missing columns take their default (a v2 file's groups arrive
   unpriced, as the v4 → v5 migration also leaves them) and retired keys are ignored. The bump exists
   for the *other* direction: a build predating the column would parse a v3 file and silently drop every
-  group's rate, so `isSupported` refuses a newer version instead. **Restoring is more than importing**: `BackupRestore` owns
+  group's rate, so `isSupported` refuses a newer version instead. A v4 file arrives with an **empty**
+  rate log, and the v7 migration's seeding is deliberately *not* repeated on import: a restore
+  reproduces the file it was given, and inventing «начальная цена» rows for a file that never recorded
+  them would put amounts and dates into a history nothing attests to. **Restoring is more than importing**: `BackupRestore` owns
   the whole act — replace the rows, end first run, re-plan reminders, re-mirror to *this* device's
   calendar (the imported event ids came from another one) — so the settings screen and the first-run
   screen can't drift, and a rejected file leaves data *and* the onboarding flag untouched. The view
@@ -275,6 +302,29 @@ flowchart TB
   — are pure and JVM-tested in `domain/CalendarLayout`, leaving the composables to draw only. The
   chosen view is view-model state, deliberately **not** persisted: it isn't in the settings row, so
   no migration.
+- **A student's and a group's card are tabbed, with the numbers on top.** Both open on a stat row —
+  a `StatRow` of two to four `Stat` tiles whose values shrink to fit rather than wrap or truncate (the
+  bottom bar's rule and mechanism) — then a **sticky** `TabRow` over one list at a time. A student's
+  tabs are «Предметы | Занятия | Платежи»; the three used to be stacked sections in one scroll, so
+  reaching a payment meant scrolling past every subject and lesson, and the lesson list had to be
+  capped behind a "show all" toggle to stay navigable. A tab shows its list at full length instead.
+  A **group's card is new** (`ui/groups/GroupDetailScreen`): tapping a group used to open its *edit
+  form*, which answered "how do I change this?" and nothing about "how is this going?" — editing is
+  now behind the pencil (`Routes.GROUP_EDIT`), as it is for a student, and the form is still the only
+  writer of a roster. Its tabs are **«Ученики | Занятия» only**: a balance belongs to a student and
+  spans all of their lessons, so any money-owed total on a group would describe neither the group nor
+  the person, and the member rows link through to the student cards where a balance means something.
+  What the group's roster tab *does* add is how many of the group's lessons each member was actually
+  in — a name list alone can't say that, and someone left out week after week is still a member.
+- **A stat row counts lessons, not classes — for a group** (`domain/Taught`). `byStudent` and
+  `byGroup` differ because the unit does: a lesson taught to three members is **one** lesson of the
+  tutor's and ran for its own duration, so counting the three classes would report a group as three
+  times as busy as it was and its 90-minute evening as four and a half hours. The money is the other
+  way round — it sums the members' charges, because each of them genuinely owes their share (the group
+  decides *how much*, never *who owes it*). A session counts as taught when **any** of its classes is
+  completed, which is what keeps a per-member correction (the lesson happened, one absentee cancelled)
+  as one lesson rather than a lost one. The student card's debt tile flips to «Переплата» rather than
+  printing a negative, and the lessons tile's hint prefers what is still ahead over what fell through.
 - **Responsive width.** Phone-first, but every screen's top-level scrollable content applies
   `Modifier.constrainedContent()` (`ui/common/`), capping width at ~600.dp and centring it on wide
   screens (tablets/foldables/landscape) while staying full-width on phones. Vertical fit comes from

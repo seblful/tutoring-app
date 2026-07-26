@@ -35,7 +35,8 @@
     <string name="schedule_next_week">Следующая неделя</string>
     <string name="schedule_previous_month">Предыдущий месяц</string>
     <string name="schedule_next_month">Следующий месяц</string>
-    <plurals name="schedule_day_classes">
+    <!-- A count of lessons, wherever one is shown: a calendar day, a group member's attendance. -->
+    <plurals name="lessons_count">
         <item quantity="one">%1$d занятие</item>
         <item quantity="few">%1$d занятия</item>
         <item quantity="many">%1$d занятий</item>
@@ -105,7 +106,25 @@
     <string name="student_archive_balance_warning">У ученика есть незакрытый баланс (%1$s). В архиве он не попадёт в отчёты. Всё равно отправить в архив?</string>
     <string name="student_payments_title">Платежи</string>
     <string name="student_classes_title">Занятия</string>
-    <string name="student_balance_label">Баланс</string>
+
+    <!-- Stat tiles at the top of a student's and a group's card -->
+    <string name="stat_debt">Долг</string>
+    <string name="stat_credit">Переплата</string>
+    <string name="stat_lessons">Занятий</string>
+    <string name="stat_hours">Часов</string>
+    <string name="stat_earned">Заработано</string>
+    <string name="stat_upcoming">впереди %1$d</string>
+    <string name="stat_cancelled">отменено %1$d</string>
+
+    <!-- Rate history -->
+    <string name="rate_history_title">История цены</string>
+    <string name="rate_history_empty">Цена не менялась</string>
+    <!-- %1$s: the amount the rate started at -->
+    <string name="rate_history_initial">Назначена %1$s</string>
+    <!-- %1$s: old rate, %2$s: new rate -->
+    <string name="rate_history_change">%1$s → %2$s</string>
+    <string name="rate_history_unknown_date">дата неизвестна</string>
+    <string name="rate_history_expand">Показать историю цены</string>
 
     <!-- Balance -->
     <string name="balance_settled">Нет задолженности</string>
@@ -119,7 +138,7 @@
     <string name="price_per_hour">%1$s/час</string>
 
     <!-- Payments -->
-    <string name="add_payment">Платёж</string>
+    <string name="add_payment">Добавить платёж</string>
     <string name="payments_empty">Платежей пока нет</string>
     <string name="payment_add_title">Новый платёж</string>
     <string name="payment_amount_label">Сумма</string>
@@ -155,6 +174,21 @@
     <string name="group_no_members">Участников нет</string>
     <string name="group_delete_confirm">Удалить эту группу? Ученики и их занятия останутся.</string>
     <string name="group_delete_blocked">Нельзя удалить группу: по ней есть занятия. Отправьте её в архив.</string>
+
+    <!-- Group card -->
+    <string name="group_students_title">Ученики</string>
+    <string name="group_lessons_title">Занятия</string>
+    <string name="group_lessons_empty">У группы пока нет занятий</string>
+    <string name="group_no_subject">Предмет не выбран</string>
+    <string name="group_add_lesson">Записать занятие</string>
+    <string name="group_member_open">Открыть карточку ученика</string>
+    <!-- %1$d: how many of the group's members were in this lesson -->
+    <plurals name="group_lesson_attended">
+        <item quantity="one">%1$d участник</item>
+        <item quantity="few">%1$d участника</item>
+        <item quantity="many">%1$d участников</item>
+        <item quantity="other">%1$d участника</item>
+    </plurals>
 
     <!-- More menu -->
     <string name="more_subjects">Предметы</string>
@@ -225,10 +259,6 @@
         <item quantity="many">Занятие завершено. Удаление уберёт начисленный доход у %1$d учеников. Удалить?</item>
         <item quantity="other">Занятие завершено. Удаление уберёт начисленный доход у %1$d учеников. Удалить?</item>
     </plurals>
-
-    <!-- Long lists -->
-    <string name="list_show_all">Показать все (%1$d)</string>
-    <string name="list_show_less">Свернуть</string>
 
     <!-- Schedule gating -->
     <string name="schedule_need_setup">Сначала добавьте предмет и ученика</string>

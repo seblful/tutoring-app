@@ -55,8 +55,8 @@ class BackupRestoreTest {
     ).build()
 
     private fun managerFor(db: AppDatabase) = BackupManager(
-        db, db.subjectDao(), db.studentDao(), db.groupDao(), db.priceDao(), db.classDao(),
-        db.paymentDao(),
+        db, db.subjectDao(), db.studentDao(), db.groupDao(), db.priceDao(), db.rateHistoryDao(),
+        db.classDao(), db.paymentDao(),
     )
 
     @Before fun setUp() {

@@ -5,6 +5,7 @@ import com.seblful.repetit.data.local.GroupEntity
 import com.seblful.repetit.data.local.GroupMemberCrossRef
 import com.seblful.repetit.data.local.PaymentEntity
 import com.seblful.repetit.data.local.PriceEntity
+import com.seblful.repetit.data.local.RateChangeEntity
 import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.StudentSubjectCrossRef
 import com.seblful.repetit.data.local.SubjectEntity
@@ -45,6 +46,7 @@ class BackupSchemaCoverageTest {
         "student_groups" to GroupEntity.serializer(),
         "group_members" to GroupMemberCrossRef.serializer(),
         "prices" to PriceEntity.serializer(),
+        "price_history" to RateChangeEntity.serializer(),
         "classes" to ClassEntity.serializer(),
         "payments" to PaymentEntity.serializer(),
     )

@@ -7,6 +7,7 @@ import com.seblful.repetit.data.repository.ClassRepository
 import com.seblful.repetit.data.repository.EnrollmentRepository
 import com.seblful.repetit.data.repository.GroupRepository
 import com.seblful.repetit.data.repository.PaymentRepository
+import com.seblful.repetit.data.repository.RateHistoryRepository
 import com.seblful.repetit.data.repository.SettingsRepository
 import com.seblful.repetit.data.repository.StudentRepository
 import com.seblful.repetit.data.repository.SubjectRepository
@@ -129,6 +130,7 @@ class TestEnv {
     val studentDao = FakeStudentDao()
     val groupDao = FakeGroupDao()
     val priceDao = FakePriceDao()
+    val rateHistoryDao = FakeRateHistoryDao()
     val classDao = FakeClassDao()
     val settingsDao = FakeSettingsDao()
     val paymentDao = FakePaymentDao()
@@ -140,8 +142,9 @@ class TestEnv {
     val settingsRepo = SettingsRepository(settingsDao)
     val subjectRepo = SubjectRepository(subjectDao, classDao)
     val studentRepo = StudentRepository(studentDao)
-    val groupRepo = GroupRepository(groupDao, classDao, studentDao)
-    val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classDao)
+    val rateHistoryRepo = RateHistoryRepository(rateHistoryDao)
+    val groupRepo = GroupRepository(groupDao, classDao, studentDao, rateHistoryRepo)
+    val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classDao, rateHistoryRepo)
     val paymentRepo = PaymentRepository(paymentDao)
     val classRepo = ClassRepository(
         dao = classDao,

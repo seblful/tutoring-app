@@ -1,22 +1,26 @@
 package com.seblful.repetit.ui.students
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -28,6 +32,8 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,35 +43,54 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
+import com.seblful.repetit.domain.model.ClassStatus
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.Payment
 import com.seblful.repetit.domain.model.Subject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.seblful.repetit.ui.common.RateHistoryList
+import com.seblful.repetit.ui.common.Stat
+import com.seblful.repetit.ui.common.StatRow
 import com.seblful.repetit.ui.common.StudentEditDialog
 import com.seblful.repetit.ui.common.TextFieldDialog
-import com.seblful.repetit.ui.common.balanceColor
 import com.seblful.repetit.ui.common.balanceDescription
 import com.seblful.repetit.ui.common.classModeLabel
 import com.seblful.repetit.ui.common.classStatusColor
 import com.seblful.repetit.ui.common.classStatusLabel
 import com.seblful.repetit.ui.common.constrainedContent
+import com.seblful.repetit.ui.common.lessonsStat
 import com.seblful.repetit.ui.common.text
 import com.seblful.repetit.format.formatDate
 import com.seblful.repetit.format.formatDateTime
+import com.seblful.repetit.format.formatHours
 import com.seblful.repetit.format.MoneyField
 import com.seblful.repetit.format.toAmountInput
+
+/**
+ * The three things a student's card is *about*, each its own tab.
+ *
+ * They used to be three stacked sections in one scroll, which meant reaching a payment scrolled past
+ * every subject and every lesson — and the lesson list, the longest of the three by far, had to be
+ * capped behind a "show all" toggle to stay navigable. A tab shows one list at full length instead,
+ * so nothing is hidden and each list starts at the top.
+ */
+private enum class StudentTab(val labelRes: Int) {
+    SUBJECTS(R.string.student_subjects_title),
+    CLASSES(R.string.student_classes_title),
+    PAYMENTS(R.string.student_payments_title),
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,13 +101,13 @@ fun StudentDetailScreen(
     val state by viewModel.state.collectAsState()
     val student = state.student
 
+    var tab by rememberSaveable { mutableStateOf(StudentTab.SUBJECTS) }
     var editing by remember { mutableStateOf(false) }
     var addingSubject by remember { mutableStateOf(false) }
     var pricingSubjectId by remember { mutableStateOf<Long?>(null) }
+    var expandedSubjectId by rememberSaveable { mutableStateOf<Long?>(null) }
     var addingPayment by remember { mutableStateOf(false) }
     var confirmingArchive by remember { mutableStateOf(false) }
-    var showAllPayments by remember { mutableStateOf(false) }
-    var showAllClasses by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -152,126 +177,50 @@ fun StudentDetailScreen(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxWidth().padding(padding).constrainedContent(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(bottom = 24.dp),
         ) {
-            item { BalanceCard(balance = state.balance) }
-
-            if (!student?.note.isNullOrBlank()) {
-                item { Text(student.note, style = MaterialTheme.typography.bodyMedium) }
+            item(key = StudentDetailKeys.STATS) {
+                StatRow(
+                    stats = studentStats(state),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                )
             }
 
-            student?.let { s ->
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        if (s.phone.isNotBlank()) {
-                            Text(
-                                "${stringResource(R.string.student_phone_label)}: ${s.phone}",
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                        if (s.email.isNotBlank()) {
-                            Text(
-                                "${stringResource(R.string.student_email_label)}: ${s.email}",
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                        Text(
-                            "${stringResource(R.string.student_mode_label)}: ${classModeLabel(s.defaultMode)}",
-                            style = MaterialTheme.typography.bodyMedium,
+            item(key = StudentDetailKeys.CONTACTS) {
+                student?.let { ContactBlock(it, Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) }
+            }
+
+            // Pinned, so the tab bar stays reachable however long the list under it runs.
+            stickyHeader(key = StudentDetailKeys.TABS) {
+                TabRow(
+                    selectedTabIndex = tab.ordinal,
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+                ) {
+                    StudentTab.entries.forEach { entry ->
+                        Tab(
+                            selected = tab == entry,
+                            onClick = { tab = entry },
+                            text = { Text(stringResource(entry.labelRes)) },
                         )
                     }
                 }
             }
 
-            item {
-                SectionHeader(
-                    title = stringResource(R.string.student_subjects_title),
-                    action = { TextButton(onClick = { addingSubject = true }) { Text(stringResource(R.string.action_add)) } },
+            when (tab) {
+                StudentTab.SUBJECTS -> subjectsTab(
+                    state = state,
+                    expandedSubjectId = expandedSubjectId,
+                    onExpand = { id -> expandedSubjectId = if (expandedSubjectId == id) null else id },
+                    onAdd = { addingSubject = true },
+                    onReprice = { id -> pricingSubjectId = id },
+                    onRemove = viewModel::removeSubject,
                 )
-            }
-            if (state.subjects.isEmpty()) {
-                item { Text(stringResource(R.string.student_no_subjects), color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            } else {
-                items(state.subjects, key = { StudentDetailKeys.subject(it.subject.id) }) { sp ->
-                    ListItem(
-                        headlineContent = { Text(sp.subject.name) },
-                        supportingContent = {
-                            Text(
-                                stringResource(R.string.price_per_hour, sp.price.text()),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        },
-                        trailingContent = {
-                            Row {
-                                IconButton(onClick = { pricingSubjectId = sp.subject.id }) {
-                                    Icon(Icons.Filled.Edit, stringResource(R.string.price_edit_title))
-                                }
-                                IconButton(onClick = { viewModel.removeSubject(sp.subject.id) }) {
-                                    Icon(Icons.Filled.Delete, stringResource(R.string.action_delete))
-                                }
-                            }
-                        },
-                    )
-                }
-            }
-
-            item {
-                SectionHeader(
-                    title = stringResource(R.string.student_payments_title),
-                    action = { TextButton(onClick = { addingPayment = true }) { Text(stringResource(R.string.add_payment)) } },
+                StudentTab.CLASSES -> classesTab(state)
+                StudentTab.PAYMENTS -> paymentsTab(
+                    state = state,
+                    onAdd = { addingPayment = true },
+                    onDelete = ::deletePaymentWithUndo,
                 )
-            }
-            if (state.payments.isEmpty()) {
-                item { Text(stringResource(R.string.payments_empty), color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            } else {
-                val visiblePayments = if (showAllPayments) state.payments else state.payments.take(LIST_CAP)
-                items(visiblePayments, key = { StudentDetailKeys.payment(it.id) }) { payment ->
-                    ListItem(
-                        headlineContent = { Text(payment.amount.text()) },
-                        supportingContent = { Text(payment.date.formatDate()) },
-                        trailingContent = {
-                            IconButton(onClick = { deletePaymentWithUndo(payment) }) {
-                                Icon(Icons.Filled.Delete, stringResource(R.string.action_delete))
-                            }
-                        },
-                    )
-                }
-                if (state.payments.size > LIST_CAP) {
-                    item {
-                        ShowMoreRow(expanded = showAllPayments, total = state.payments.size) {
-                            showAllPayments = !showAllPayments
-                        }
-                    }
-                }
-            }
-
-            item { SectionHeader(title = stringResource(R.string.student_classes_title)) }
-            if (state.classes.isEmpty()) {
-                item { Text(stringResource(R.string.schedule_empty), color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            } else {
-                val visibleClasses = if (showAllClasses) state.classes else state.classes.take(LIST_CAP)
-                items(visibleClasses, key = { StudentDetailKeys.klass(it.klass.id) }) { row ->
-                    // Read-only here: classes are edited from the schedule, not the student page.
-                    ListItem(
-                        headlineContent = { Text("${row.subjectName} · ${row.klass.start.formatDateTime()}") },
-                        supportingContent = {
-                            Text(classStatusLabel(row.klass.status), color = classStatusColor(row.klass.status))
-                        },
-                        trailingContent = {
-                            if (row.klass.status == com.seblful.repetit.domain.model.ClassStatus.COMPLETED) {
-                                Text(row.klass.charge.text())
-                            }
-                        },
-                    )
-                }
-                if (state.classes.size > LIST_CAP) {
-                    item {
-                        ShowMoreRow(expanded = showAllClasses, total = state.classes.size) {
-                            showAllClasses = !showAllClasses
-                        }
-                    }
-                }
             }
         }
     }
@@ -303,7 +252,7 @@ fun StudentDetailScreen(
             title = stringResource(R.string.price_edit_title),
             label = stringResource(R.string.price_label),
             initial = current?.toAmountInput() ?: "",
-            keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+            keyboardType = KeyboardType.Decimal,
             validate = { MoneyField(it, MoneyField.Kind.RATE).isValid },
             onConfirm = { text ->
                 MoneyField(text, MoneyField.Kind.RATE).amount?.let { viewModel.setPrice(subjectId, it) }
@@ -316,7 +265,7 @@ fun StudentDetailScreen(
             title = stringResource(R.string.payment_add_title),
             label = stringResource(R.string.payment_amount_label),
             initial = "",
-            keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+            keyboardType = KeyboardType.Decimal,
             validate = { MoneyField(it, MoneyField.Kind.PAYMENT).isValid },
             onConfirm = { text ->
                 MoneyField(text, MoneyField.Kind.PAYMENT).amount?.let { viewModel.addPayment(it) }
@@ -334,44 +283,205 @@ fun StudentDetailScreen(
     }
 }
 
-/** Max rows shown before a list collapses behind a "show all" toggle. */
-private const val LIST_CAP = 10
-
-/** A tappable row that expands or collapses a capped list. */
+/**
+ * The four numbers the card leads with: what is owed, and what has been taught for it.
+ *
+ * The money tile flips between debt and credit rather than printing a negative: «Долг −50» is a
+ * puzzle, «Переплата 50» is the fact. A settled balance still shows as «Долг 0», because the tile's
+ * job in a fixed row is to always occupy the same place with the same meaning.
+ */
 @Composable
-private fun ShowMoreRow(expanded: Boolean, total: Int, onToggle: () -> Unit) {
-    TextButton(onClick = onToggle, modifier = Modifier.fillMaxWidth()) {
+private fun studentStats(state: StudentDetailState): List<Stat> {
+    val balance = state.balance
+    val totals = state.totals
+    return listOf(
+        if (balance.isNegative) {
+            Stat(
+                label = stringResource(R.string.stat_credit),
+                value = (Money.ZERO - balance).text(),
+                color = MaterialTheme.colorScheme.primary,
+            )
+        } else {
+            Stat(
+                label = stringResource(R.string.stat_debt),
+                value = balance.text(),
+                color = if (balance.isZero) MaterialTheme.colorScheme.onSurfaceVariant
+                else MaterialTheme.colorScheme.error,
+            )
+        },
+        lessonsStat(totals),
+        Stat(label = stringResource(R.string.stat_hours), value = formatHours(totals.minutes)),
+        Stat(label = stringResource(R.string.stat_earned), value = totals.earned.text()),
+    )
+}
+
+@Composable
+private fun ContactBlock(
+    student: com.seblful.repetit.domain.model.Student,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        if (student.note.isNotBlank()) {
+            Text(
+                student.note,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+        }
+        if (student.phone.isNotBlank()) {
+            Text(
+                "${stringResource(R.string.student_phone_label)}: ${student.phone}",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        if (student.email.isNotBlank()) {
+            Text(
+                "${stringResource(R.string.student_email_label)}: ${student.email}",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
         Text(
-            if (expanded) stringResource(R.string.list_show_less)
-            else stringResource(R.string.list_show_all, total)
+            "${stringResource(R.string.student_mode_label)}: ${classModeLabel(student.defaultMode)}",
+            style = MaterialTheme.typography.bodyMedium,
         )
     }
 }
 
-@Composable
-private fun BalanceCard(balance: com.seblful.repetit.domain.model.Money) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
-            Text(stringResource(R.string.student_balance_label), style = MaterialTheme.typography.labelMedium)
-            Text(
-                balanceDescription(balance),
-                style = MaterialTheme.typography.headlineSmall,
-                color = balanceColor(balance),
+/**
+ * The subjects the student takes, each with its rate and — folded away until asked for — how that
+ * rate got there. The history is per subject rather than one combined list, because a price only
+ * means anything next to the subject it prices.
+ */
+private fun LazyListScope.subjectsTab(
+    state: StudentDetailState,
+    expandedSubjectId: Long?,
+    onExpand: (Long) -> Unit,
+    onAdd: () -> Unit,
+    onReprice: (Long) -> Unit,
+    onRemove: (Long) -> Unit,
+) {
+    item(key = StudentDetailKeys.SUBJECTS_ADD) { AddRow(stringResource(R.string.student_add_subject), onAdd) }
+    if (state.subjects.isEmpty()) {
+        item(key = StudentDetailKeys.SUBJECTS_EMPTY) {
+            TabEmptyState(stringResource(R.string.student_no_subjects))
+        }
+        return
+    }
+    items(state.subjects, key = { StudentDetailKeys.subject(it.subject.id) }) { sp ->
+        val expanded = expandedSubjectId == sp.subject.id
+        Column {
+            ListItem(
+                headlineContent = { Text(sp.subject.name) },
+                supportingContent = {
+                    Text(
+                        stringResource(R.string.price_per_hour, sp.price.text()),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                trailingContent = {
+                    Row {
+                        IconButton(onClick = { onReprice(sp.subject.id) }) {
+                            Icon(Icons.Filled.Edit, stringResource(R.string.price_edit_title))
+                        }
+                        IconButton(onClick = { onRemove(sp.subject.id) }) {
+                            Icon(Icons.Filled.Delete, stringResource(R.string.action_delete))
+                        }
+                    }
+                },
             )
+            // A rate's past is secondary to what it is now, so it stays behind one tap. The toggle is
+            // its own row rather than the whole `ListItem`, whose trailing icons already own taps.
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { onExpand(sp.subject.id) }
+                    .padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.rate_history_title),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Icon(
+                    if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = stringResource(R.string.rate_history_expand),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+            AnimatedVisibility(expanded) {
+                RateHistoryList(
+                    sp.history,
+                    Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                )
+            }
         }
     }
 }
 
-@Composable
-private fun SectionHeader(title: String, action: (@Composable () -> Unit)? = null) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        action?.invoke()
+/** Read-only: lessons are booked and edited from the schedule, not from the student's card. */
+private fun LazyListScope.classesTab(state: StudentDetailState) {
+    if (state.classes.isEmpty()) {
+        item(key = StudentDetailKeys.CLASSES_EMPTY) {
+            TabEmptyState(stringResource(R.string.schedule_empty))
+        }
+        return
     }
+    items(state.classes, key = { StudentDetailKeys.klass(it.klass.id) }) { row ->
+        ListItem(
+            headlineContent = { Text("${row.subjectName} · ${row.klass.start.formatDateTime()}") },
+            supportingContent = {
+                Text(classStatusLabel(row.klass.status), color = classStatusColor(row.klass.status))
+            },
+            trailingContent = {
+                if (row.klass.status == ClassStatus.COMPLETED) Text(row.klass.charge.text())
+            },
+        )
+    }
+}
+
+private fun LazyListScope.paymentsTab(
+    state: StudentDetailState,
+    onAdd: () -> Unit,
+    onDelete: (Payment) -> Unit,
+) {
+    item(key = StudentDetailKeys.PAYMENTS_ADD) { AddRow(stringResource(R.string.add_payment), onAdd) }
+    if (state.payments.isEmpty()) {
+        item(key = StudentDetailKeys.PAYMENTS_EMPTY) {
+            TabEmptyState(stringResource(R.string.payments_empty))
+        }
+        return
+    }
+    items(state.payments, key = { StudentDetailKeys.payment(it.id) }) { payment ->
+        ListItem(
+            headlineContent = { Text(payment.amount.text()) },
+            supportingContent = { Text(payment.date.formatDate()) },
+            trailingContent = {
+                IconButton(onClick = { onDelete(payment) }) {
+                    Icon(Icons.Filled.Delete, stringResource(R.string.action_delete))
+                }
+            },
+        )
+    }
+}
+
+/** The one way to add to a tab's list, sitting at its top where a section header's action used to. */
+@Composable
+private fun AddRow(label: String, onClick: () -> Unit) {
+    TextButton(onClick = onClick, modifier = Modifier.padding(start = 8.dp)) {
+        Icon(Icons.Filled.Add, contentDescription = null)
+        Text(label, Modifier.padding(start = 8.dp))
+    }
+}
+
+@Composable
+private fun TabEmptyState(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
+    )
 }
 
 /**

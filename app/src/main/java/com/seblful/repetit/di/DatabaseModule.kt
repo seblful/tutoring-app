@@ -8,6 +8,7 @@ import com.seblful.repetit.data.local.GroupDao
 import com.seblful.repetit.data.local.Migrations
 import com.seblful.repetit.data.local.PaymentDao
 import com.seblful.repetit.data.local.PriceDao
+import com.seblful.repetit.data.local.RateHistoryDao
 import com.seblful.repetit.data.local.SettingsDao
 import com.seblful.repetit.data.local.StudentDao
 import com.seblful.repetit.data.local.SubjectDao
@@ -37,6 +38,7 @@ object DatabaseModule {
     @Provides fun provideStudentDao(db: AppDatabase): StudentDao = db.studentDao()
     @Provides fun provideGroupDao(db: AppDatabase): GroupDao = db.groupDao()
     @Provides fun providePriceDao(db: AppDatabase): PriceDao = db.priceDao()
+    @Provides fun provideRateHistoryDao(db: AppDatabase): RateHistoryDao = db.rateHistoryDao()
     @Provides fun provideClassDao(db: AppDatabase): ClassDao = db.classDao()
     @Provides fun providePaymentDao(db: AppDatabase): PaymentDao = db.paymentDao()
     @Provides fun provideSettingsDao(db: AppDatabase): SettingsDao = db.settingsDao()

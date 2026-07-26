@@ -23,6 +23,7 @@ import com.seblful.repetit.ui.common.LocalCurrency
 import com.seblful.repetit.ui.theme.TutoringAppTheme
 import com.seblful.repetit.ui.backup.BackupScreen
 import com.seblful.repetit.ui.diagnostics.DiagnosticsScreen
+import com.seblful.repetit.ui.groups.GroupDetailScreen
 import com.seblful.repetit.ui.groups.GroupFormScreen
 import com.seblful.repetit.ui.groups.GroupsScreen
 import com.seblful.repetit.ui.more.MoreScreen
@@ -145,12 +146,26 @@ private fun MainApp(showGroupsTab: Boolean) {
                     onAddGroup = { navController.navigate(Routes.GROUP_ADD) },
                 )
             }
-            // Both routes are the same form.
+            // Declared before the `group/{id}` card so the literal route can never be read as an id.
             composable(Routes.GROUP_ADD) {
                 GroupFormScreen(onBack = { navController.popBackStack() })
             }
             composable(
                 Routes.GROUP_DETAIL,
+                arguments = listOf(navArgument("id") { type = NavType.LongType }),
+            ) { entry ->
+                val id = entry.arguments?.getLong("id") ?: 0L
+                GroupDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onEdit = { navController.navigate(Routes.groupEdit(id)) },
+                    onMemberClick = { navController.navigate(Routes.studentDetail(it)) },
+                    onLessonClick = { navController.navigate(Routes.classEdit(it)) },
+                    onAddLesson = { navController.navigate(Routes.classEdit(0, groupId = id)) },
+                )
+            }
+            // Adding and editing are the same form; it tells them apart by the id it is given.
+            composable(
+                Routes.GROUP_EDIT,
                 arguments = listOf(navArgument("id") { type = NavType.LongType }),
             ) {
                 GroupFormScreen(onBack = { navController.popBackStack() })

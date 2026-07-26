@@ -11,11 +11,12 @@ import androidx.room.RoomDatabase
         GroupEntity::class,
         GroupMemberCrossRef::class,
         PriceEntity::class,
+        RateChangeEntity::class,
         ClassEntity::class,
         PaymentEntity::class,
         SettingsEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -23,6 +24,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun studentDao(): StudentDao
     abstract fun groupDao(): GroupDao
     abstract fun priceDao(): PriceDao
+    abstract fun rateHistoryDao(): RateHistoryDao
     abstract fun classDao(): ClassDao
     abstract fun paymentDao(): PaymentDao
     abstract fun settingsDao(): SettingsDao

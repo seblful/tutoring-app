@@ -58,6 +58,20 @@ fun parseMoneyOrNull(text: String): Money? {
  */
 fun Money.toAmountInput(): String = amountText
 
+/**
+ * Formats a number of minutes as hours for a stat tile: `90` → "1,5", `2520` → "42", `30` → "0,5".
+ *
+ * Rounded to a tenth of an hour with integer arithmetic, matching the money model's refusal to let
+ * floating point near a displayed number, and a whole number of hours prints with no decimal at all —
+ * "42 ч" rather than "42,0 ч", since the tile is a summary and the extra digit only adds noise.
+ */
+fun formatHours(minutes: Int): String {
+    val tenths = (minutes * 10 + 30) / 60
+    val whole = tenths / 10
+    val fraction = tenths % 10
+    return if (fraction == 0) "$whole" else "$whole,$fraction"
+}
+
 /** Formats an epoch-month key (year * 12 + monthIndex) as e.g. "Июнь 2026". */
 fun formatMonthKey(key: Int): String {
     val year = key / 12

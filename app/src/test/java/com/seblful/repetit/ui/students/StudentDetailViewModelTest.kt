@@ -37,6 +37,7 @@ class StudentDetailViewModelTest {
         classes = env.classRepo,
         payments = env.paymentRepo,
         enrollment = env.enrollmentRepo,
+        rateHistory = env.rateHistoryRepo,
     )
 
     private suspend fun seedStudent(name: String = "Аня"): Long =
@@ -73,6 +74,50 @@ class StudentDetailViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf("Алгебра", "Математика"), vm.state.value.subjects.map { it.subject.name })
+    }
+
+    @Test
+    fun `the stat row counts completed lessons, their hours and their income`() = runTest(mainRule.dispatcher) {
+        val sid = seedStudent()
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor))
+        env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 90, status = "COMPLETED", chargeMinor = Money.ofMajor(45).minor))
+        env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = "SCHEDULED", chargeMinor = 0))
+
+        val vm = vm(sid)
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+
+        val totals = vm.state.value.totals
+        assertEquals(2, totals.lessons)
+        assertEquals(1, totals.upcoming)
+        assertEquals("a scheduled lesson adds no hours yet", 150, totals.minutes)
+        assertEquals(Money.ofMajor(75), totals.earned)
+    }
+
+    /**
+     * The history hangs off the subject it prices, so a student taking two subjects gets two separate
+     * timelines rather than one pile the tutor has to disentangle.
+     */
+    @Test
+    fun `each subject carries its own rate history, newest first`() = runTest(mainRule.dispatcher) {
+        val sid = seedStudent()
+        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val geometry = env.subjectDao.upsert(SubjectEntity(name = "Геометрия"))
+        env.enrollmentRepo.enroll(sid, algebra, Money.ofMajor(30))
+        env.enrollmentRepo.enroll(sid, geometry, Money.ofMajor(25))
+        env.enrollmentRepo.reprice(sid, algebra, Money.ofMajor(35))
+
+        val vm = vm(sid)
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+
+        val bySubject = vm.state.value.subjects.associateBy { it.subject.name }
+        assertEquals(2, bySubject.getValue("Алгебра").history.size)
+        assertEquals(Money.ofMajor(35), bySubject.getValue("Алгебра").history.first().to)
+        assertEquals(Money.ofMajor(30), bySubject.getValue("Алгебра").history.first().from)
+        assertEquals("geometry never moved", 1, bySubject.getValue("Геометрия").history.size)
+        assertTrue(bySubject.getValue("Геометрия").history.single().isInitial)
     }
 
     @Test

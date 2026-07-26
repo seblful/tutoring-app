@@ -7,6 +7,8 @@ import com.seblful.repetit.data.local.StudentDao
 import com.seblful.repetit.data.toDomain
 import com.seblful.repetit.data.toEntity
 import com.seblful.repetit.domain.model.Group
+import com.seblful.repetit.domain.model.Money
+import com.seblful.repetit.domain.model.RateOwner
 import com.seblful.repetit.format.NameOrder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -22,12 +24,16 @@ import javax.inject.Singleton
  * history. What history does constrain is deletion: [delete] refuses a group that has classes,
  * because those classes are billed lessons that must keep naming the group they were taught in.
  * Retiring such a group is [setArchived], mirroring students.
+ *
+ * A group *does* own a **rate**, and [save] is the only place it changes, so this is also where a
+ * group's rate history is logged (see [RateHistoryRepository]).
  */
 @Singleton
 class GroupRepository @Inject constructor(
     private val dao: GroupDao,
     private val classDao: ClassDao,
     private val studentDao: StudentDao,
+    private val rateHistory: RateHistoryRepository,
 ) {
     fun observeActive(): Flow<List<Group>> =
         dao.observeActive().map { list -> NameOrder.sorted(list.map { it.toDomain() }) { it.name } }
@@ -61,11 +67,17 @@ class GroupRepository @Inject constructor(
      * their group id, so a group lesson someone left still reads as the group lesson it was.
      */
     suspend fun save(group: Group, memberIds: Set<Long>): Long {
+        // Read before writing: the stored rate is what the new one is a change *from*.
+        val previousRate = dao.getById(group.id)?.let { Money(it.priceMinor) }
         // Room's @Upsert returns the new rowid when it inserts, but -1 when it updated an existing
         // row instead. Trusting it blindly on an edit made every member insert reference group -1
         // and fail the group_members foreign key, so fall back to the id we were handed.
         val rowId = dao.upsert(group.toEntity())
         val id = if (rowId == -1L) group.id else rowId
+        // Logged after the upsert, so the row the log's foreign key points at already exists — and
+        // only when the amount moved, since a rename or a roster edit comes through here too
+        // (RateHistoryRepository.record drops the no-op).
+        rateHistory.record(RateOwner.GroupRate(id), from = previousRate, to = group.price)
         val wanted = eligible(group, memberIds)
         val current = dao.getMemberIds(id).toSet()
         (wanted - current).forEach { dao.addMember(GroupMemberCrossRef(id, it)) }

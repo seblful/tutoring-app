@@ -9,6 +9,8 @@ import com.seblful.repetit.data.local.PaymentDao
 import com.seblful.repetit.data.local.PaymentEntity
 import com.seblful.repetit.data.local.PriceDao
 import com.seblful.repetit.data.local.PriceEntity
+import com.seblful.repetit.data.local.RateChangeEntity
+import com.seblful.repetit.data.local.RateHistoryDao
 import com.seblful.repetit.data.local.SettingsDao
 import com.seblful.repetit.data.local.SettingsEntity
 import com.seblful.repetit.data.local.StudentDao
@@ -233,6 +235,51 @@ class FakePriceDao : PriceDao {
     }
 }
 
+/**
+ * The rate log. Reproduces the DAO's **ordering** (newest first, with the undated "predates the log"
+ * rows last) because that is what the UI reads rows in — and, unlike name ordering, it is a rule SQL
+ * genuinely owns: `atMillis DESC` puts NULLs last in SQLite, since NULL sorts as the smallest value.
+ */
+class FakeRateHistoryDao : RateHistoryDao {
+    val items = MutableStateFlow<List<RateChangeEntity>>(emptyList())
+    private var nextId = 1L
+
+    /** `ORDER BY atMillis DESC, id DESC` — Kotlin's `compareValues` treats null as smallest, as SQLite does. */
+    private fun List<RateChangeEntity>.newestFirst(): List<RateChangeEntity> =
+        sortedWith(compareByDescending<RateChangeEntity> { it.atMillis }.thenByDescending { it.id })
+
+    override fun observeForStudent(studentId: Long): Flow<List<RateChangeEntity>> =
+        items.map { list -> list.filter { it.studentId == studentId }.newestFirst() }
+
+    override fun observeForStudentSubject(studentId: Long, subjectId: Long): Flow<List<RateChangeEntity>> =
+        items.map { list ->
+            list.filter { it.studentId == studentId && it.subjectId == subjectId }.newestFirst()
+        }
+
+    override fun observeForGroup(groupId: Long): Flow<List<RateChangeEntity>> =
+        items.map { list -> list.filter { it.groupId == groupId }.newestFirst() }
+
+    override suspend fun insert(change: RateChangeEntity): Long {
+        val id = if (change.id == 0L) nextId++ else change.id
+        items.value = items.value + change.copy(id = id)
+        return id
+    }
+
+    override suspend fun deleteForStudentSubject(studentId: Long, subjectId: Long) {
+        items.value = items.value.filterNot { it.studentId == studentId && it.subjectId == subjectId }
+    }
+
+    override suspend fun getAll(): List<RateChangeEntity> = items.value
+
+    override suspend fun insertAll(changes: List<RateChangeEntity>) {
+        items.value = items.value + changes
+    }
+
+    override suspend fun deleteAll() {
+        items.value = emptyList()
+    }
+}
+
 class FakeClassDao : ClassDao {
     val items = MutableStateFlow<List<ClassEntity>>(emptyList())
     private var nextId = 1L
@@ -248,6 +295,9 @@ class FakeClassDao : ClassDao {
 
     override fun observeForStudent(studentId: Long): Flow<List<ClassEntity>> =
         items.map { list -> list.filter { it.studentId == studentId }.sortedByDescending { it.startMillis } }
+
+    override fun observeForGroup(groupId: Long): Flow<List<ClassEntity>> =
+        items.map { list -> list.filter { it.groupId == groupId }.sortedByDescending { it.startMillis } }
 
     override fun observeBetween(fromMillis: Long, toMillis: Long): Flow<List<ClassEntity>> =
         items.map { list ->

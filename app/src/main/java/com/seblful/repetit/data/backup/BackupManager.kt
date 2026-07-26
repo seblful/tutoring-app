@@ -6,6 +6,7 @@ import com.seblful.repetit.data.local.ClassDao
 import com.seblful.repetit.data.local.GroupDao
 import com.seblful.repetit.data.local.PaymentDao
 import com.seblful.repetit.data.local.PriceDao
+import com.seblful.repetit.data.local.RateHistoryDao
 import com.seblful.repetit.data.local.StudentDao
 import com.seblful.repetit.data.local.SubjectDao
 import kotlinx.serialization.decodeFromString
@@ -25,6 +26,7 @@ class BackupManager @Inject constructor(
     private val students: StudentDao,
     private val groups: GroupDao,
     private val prices: PriceDao,
+    private val rateHistory: RateHistoryDao,
     private val classes: ClassDao,
     private val payments: PaymentDao,
 ) {
@@ -41,6 +43,7 @@ class BackupManager @Inject constructor(
         groups = groups.getAll(),
         groupMembers = groups.getAllMembers(),
         prices = prices.getAll(),
+        rateHistory = rateHistory.getAll(),
         classes = classes.getAll(),
         payments = payments.getAll(),
     )
@@ -57,6 +60,7 @@ class BackupManager @Inject constructor(
             // Children first, then parents, to respect foreign keys.
             payments.deleteAll()
             classes.deleteAll()
+            rateHistory.deleteAll()
             prices.deleteAll()
             groups.deleteAllMembers()
             groups.deleteAll()
@@ -71,6 +75,7 @@ class BackupManager @Inject constructor(
             groups.insertAll(data.groups)
             groups.insertMembers(data.groupMembers)
             prices.insertAll(data.prices)
+            rateHistory.insertAll(data.rateHistory)
             classes.insertAll(data.classes)
             payments.insertAll(data.payments)
         }

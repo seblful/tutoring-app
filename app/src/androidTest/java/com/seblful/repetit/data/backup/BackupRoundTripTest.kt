@@ -10,6 +10,7 @@ import com.seblful.repetit.data.local.GroupEntity
 import com.seblful.repetit.data.local.GroupMemberCrossRef
 import com.seblful.repetit.data.local.PaymentEntity
 import com.seblful.repetit.data.local.PriceEntity
+import com.seblful.repetit.data.local.RateChangeEntity
 import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.StudentSubjectCrossRef
 import com.seblful.repetit.data.local.SubjectEntity
@@ -33,8 +34,8 @@ class BackupRoundTripTest {
         ).build()
 
     private fun managerFor(db: AppDatabase) = BackupManager(
-        db, db.subjectDao(), db.studentDao(), db.groupDao(), db.priceDao(), db.classDao(),
-        db.paymentDao(),
+        db, db.subjectDao(), db.studentDao(), db.groupDao(), db.priceDao(), db.rateHistoryDao(),
+        db.classDao(), db.paymentDao(),
     )
 
     @Before fun setUp() {
@@ -68,6 +69,16 @@ class BackupRoundTripTest {
             ),
         )
         db.paymentDao().insertAll(listOf(PaymentEntity(1, 1, 1_899_000_000_000, 3000)))
+        // The rate log, in all three of its shapes: a student's price starting, that price rising, and
+        // a group's rate that predates the log (no previous amount, no date — both must survive as null
+        // rather than come back as 0 and 1970).
+        db.rateHistoryDao().insertAll(
+            listOf(
+                RateChangeEntity(1, studentId = 1, subjectId = 1, toMinor = 4000, atMillis = 1_890_000_000_000),
+                RateChangeEntity(2, studentId = 1, subjectId = 1, fromMinor = 4000, toMinor = 5000, atMillis = 1_895_000_000_000),
+                RateChangeEntity(3, groupId = 7, toMinor = 2000, atMillis = null),
+            ),
+        )
 
         val original = manager.export()
         val jsonText = manager.exportJson()

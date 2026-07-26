@@ -260,4 +260,139 @@ class MigrationTest {
             assertEquals(1, c.getInt(0))
         }
     }
+
+    /**
+     * v7 starts keeping a rate history, and seeds every rate that already exists as the **start** of
+     * its own — so an upgrading tutor opens a card and sees where each price stands rather than an
+     * empty list that looks broken.
+     *
+     * The seeded rows must carry `fromMinor` and `atMillis` as **NULL**: the amount is known, but
+     * neither a previous rate nor the day it was set is, and a 0 or an epoch date would read as a real
+     * amount on a real day. Nothing else may be touched — the prices, the group and the money already
+     * billed all have to come through untouched, since a migration that rewrote a charge would restate
+     * earned income.
+     */
+    @Test fun migrate6To7SeedsExistingRatesAsTheStartOfTheirHistory() {
+        helper.createDatabase(testDb, 6).use { db ->
+            db.execSQL("INSERT INTO students (id, name, phone, email, note, defaultMode, archived) VALUES (1, 'Аня', '', '', '', 'IN_PERSON', 0)")
+            db.execSQL("INSERT INTO students (id, name, phone, email, note, defaultMode, archived) VALUES (2, 'Борис', '', '', '', 'IN_PERSON', 0)")
+            db.execSQL("INSERT INTO subjects (id, name) VALUES (1, 'Алгебра')")
+            db.execSQL("INSERT INTO subjects (id, name) VALUES (2, 'Геометрия')")
+            db.execSQL("INSERT INTO student_subjects (studentId, subjectId) VALUES (1, 1)")
+            db.execSQL("INSERT INTO student_subjects (studentId, subjectId) VALUES (1, 2)")
+            db.execSQL("INSERT INTO student_subjects (studentId, subjectId) VALUES (2, 1)")
+            db.execSQL("INSERT INTO prices (studentId, subjectId, amountMinor) VALUES (1, 1, 3000)")
+            db.execSQL("INSERT INTO prices (studentId, subjectId, amountMinor) VALUES (1, 2, 3500)")
+            db.execSQL("INSERT INTO prices (studentId, subjectId, amountMinor) VALUES (2, 1, 4550)")
+            db.execSQL(
+                "INSERT INTO student_groups (id, name, note, priceMinor, subjectId, defaultMode, archived) " +
+                    "VALUES (7, '11 «А»', 'вечер', 2000, 1, 'REMOTE', 0)",
+            )
+            // A group v5 left explicitly unpriced: 0 is what the column holds, so 0 is what is recorded.
+            db.execSQL(
+                "INSERT INTO student_groups (id, name, note, priceMinor, subjectId, defaultMode, archived) " +
+                    "VALUES (8, 'Выпускники', '', 0, NULL, 'IN_PERSON', 0)",
+            )
+            db.execSQL("INSERT INTO group_members (groupId, studentId) VALUES (7, 1)")
+            db.execSQL(
+                "INSERT INTO classes (id, studentId, subjectId, startMillis, durationMinutes, priceMinor, " +
+                    "status, chargeMinor, groupId, mode, calendarEventId) " +
+                    "VALUES (1, 1, 1, 1900000000000, 90, 3000, 'COMPLETED', 4500, NULL, 'REMOTE', 'evt-1')",
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(testDb, 7, true, Migrations.MIGRATION_6_7)
+
+        // Three prices and two group rates, each seeded once as the start of its history.
+        db.query("SELECT COUNT(*) FROM price_history").use { c ->
+            c.moveToFirst()
+            assertEquals(5, c.getInt(0))
+        }
+        db.query(
+            "SELECT * FROM price_history WHERE studentId = 2 AND subjectId = 1",
+        ).use { c ->
+            assertEquals(1, c.count)
+            c.moveToFirst()
+            assertEquals("the amount is carried over exactly", 4550, c.getInt(c.getColumnIndexOrThrow("toMinor")))
+            assertTrue("no previous rate is invented", c.isNull(c.getColumnIndexOrThrow("fromMinor")))
+            assertTrue("no date is invented", c.isNull(c.getColumnIndexOrThrow("atMillis")))
+            assertTrue("a student's row names no group", c.isNull(c.getColumnIndexOrThrow("groupId")))
+        }
+        db.query("SELECT * FROM price_history WHERE groupId = 7").use { c ->
+            assertEquals(1, c.count)
+            c.moveToFirst()
+            assertEquals(2000, c.getInt(c.getColumnIndexOrThrow("toMinor")))
+            assertTrue("a group's row names no student", c.isNull(c.getColumnIndexOrThrow("studentId")))
+            assertTrue("nor a subject", c.isNull(c.getColumnIndexOrThrow("subjectId")))
+        }
+        db.query("SELECT toMinor FROM price_history WHERE groupId = 8").use { c ->
+            c.moveToFirst()
+            assertEquals("an unpriced group records the 0 it actually holds", 0, c.getInt(0))
+        }
+
+        // Nothing else moved: the prices, the group and the billed lesson are exactly as they were.
+        db.query("SELECT COUNT(*) FROM prices").use { c ->
+            c.moveToFirst()
+            assertEquals(3, c.getInt(0))
+        }
+        db.query("SELECT priceMinor, chargeMinor FROM classes WHERE id = 1").use { c ->
+            c.moveToFirst()
+            assertEquals(3000, c.getInt(0))
+            assertEquals("earned income is never restated", 4500, c.getInt(1))
+        }
+        db.query("SELECT priceMinor, subjectId FROM student_groups WHERE id = 7").use { c ->
+            c.moveToFirst()
+            assertEquals(2000, c.getInt(0))
+            assertEquals(1, c.getInt(1))
+        }
+
+        // The log is usable as a log: a real change, dated, on top of the seeded row.
+        db.execSQL(
+            "INSERT INTO price_history (studentId, subjectId, groupId, fromMinor, toMinor, atMillis) " +
+                "VALUES (2, 1, NULL, 4550, 5000, 1900000000000)",
+        )
+        db.query(
+            "SELECT toMinor FROM price_history WHERE studentId = 2 ORDER BY atMillis DESC, id DESC",
+        ).use { c ->
+            assertEquals(2, c.count)
+            c.moveToFirst()
+            assertEquals("the dated change reads first", 5000, c.getInt(0))
+            c.moveToNext()
+            assertEquals("the undated seed sorts last", 4550, c.getInt(0))
+        }
+    }
+
+    /**
+     * `price_history` cascades from all three of its parents (unlike `classes`, which restricts):
+     * it is a log *about* a price, not income, so a subject that is still deletable — one with no
+     * lessons — must take its rate log with it rather than leave rows describing a price for something
+     * that no longer exists.
+     */
+    @Test fun rateHistoryIsCascadedAwayWithTheSubjectItPrices() {
+        helper.createDatabase(testDb, 6).use { db ->
+            db.execSQL("INSERT INTO students (id, name, phone, email, note, defaultMode, archived) VALUES (1, 'Аня', '', '', '', 'IN_PERSON', 0)")
+            db.execSQL("INSERT INTO subjects (id, name) VALUES (1, 'Алгебра')")
+            db.execSQL("INSERT INTO prices (studentId, subjectId, amountMinor) VALUES (1, 1, 3000)")
+        }
+
+        val db = helper.runMigrationsAndValidate(testDb, 7, true, Migrations.MIGRATION_6_7)
+        db.execSQL("PRAGMA foreign_keys = ON")
+
+        db.query("SELECT COUNT(*) FROM price_history").use { c ->
+            c.moveToFirst()
+            assertEquals(1, c.getInt(0))
+        }
+
+        // The subject has no classes, so deleting it is legal — and takes the price and the log with it.
+        db.execSQL("DELETE FROM subjects WHERE id = 1")
+
+        db.query("SELECT COUNT(*) FROM price_history").use { c ->
+            c.moveToFirst()
+            assertEquals(0, c.getInt(0))
+        }
+        db.query("SELECT COUNT(*) FROM prices").use { c ->
+            c.moveToFirst()
+            assertEquals(0, c.getInt(0))
+        }
+    }
 }

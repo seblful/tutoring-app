@@ -39,4 +39,36 @@ class StudentDetailKeysTest {
             ).size,
         )
     }
+
+    /**
+     * The card's own furniture — the stat row, the sticky tab bar, each tab's add button and empty
+     * state — shares the list with the id-keyed rows, so its fixed names have to be distinct from each
+     * other *and* unable to collide with any row's key. This is the same crash as above, reached from
+     * the other side: a fixed key that happened to read like a row's would take a row's slot.
+     */
+    @Test
+    fun `the card's fixed keys are distinct from each other and from every row key`() {
+        val fixed = listOf(
+            StudentDetailKeys.STATS,
+            StudentDetailKeys.CONTACTS,
+            StudentDetailKeys.TABS,
+            StudentDetailKeys.SUBJECTS_ADD,
+            StudentDetailKeys.SUBJECTS_EMPTY,
+            StudentDetailKeys.CLASSES_EMPTY,
+            StudentDetailKeys.PAYMENTS_ADD,
+            StudentDetailKeys.PAYMENTS_EMPTY,
+        )
+        assertEquals("the fixed keys collide with each other", fixed.size, fixed.toSet().size)
+
+        // Row keys for a wide spread of ids, including the ones a small database actually produces.
+        val rows = (0L..50L).flatMap {
+            listOf(
+                StudentDetailKeys.subject(it),
+                StudentDetailKeys.payment(it),
+                StudentDetailKeys.klass(it),
+            )
+        }
+        val all = fixed + rows
+        assertEquals("a fixed key collides with a row key", all.size, all.toSet().size)
+    }
 }

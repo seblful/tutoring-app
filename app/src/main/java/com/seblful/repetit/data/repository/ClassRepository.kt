@@ -45,6 +45,13 @@ class ClassRepository @Inject constructor(
     fun observeForStudent(studentId: Long): Flow<List<TutoringClass>> =
         dao.observeForStudent(studentId).map { list -> list.map { it.toDomain() } }
 
+    /**
+     * Every class booked as part of [groupId] — one *lesson* of a three-member group is three of
+     * these, so a caller showing lessons collapses them with [GroupRules.sessions].
+     */
+    fun observeForGroup(groupId: Long): Flow<List<TutoringClass>> =
+        dao.observeForGroup(groupId).map { list -> list.map { it.toDomain() } }
+
     fun observeBetween(from: Instant, to: Instant): Flow<List<TutoringClass>> =
         dao.observeBetween(from.toEpochMilli(), to.toEpochMilli()).map { list -> list.map { it.toDomain() } }
 

@@ -4,6 +4,7 @@ import com.seblful.repetit.data.local.ClassEntity
 import com.seblful.repetit.data.local.GroupEntity
 import com.seblful.repetit.data.local.PaymentEntity
 import com.seblful.repetit.data.local.PriceEntity
+import com.seblful.repetit.data.local.RateChangeEntity
 import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.SubjectEntity
 import com.seblful.repetit.domain.model.ClassMode
@@ -12,6 +13,8 @@ import com.seblful.repetit.domain.model.Group
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.Payment
 import com.seblful.repetit.domain.model.Price
+import com.seblful.repetit.domain.model.RateChange
+import com.seblful.repetit.domain.model.RateOwner
 import com.seblful.repetit.domain.model.Student
 import com.seblful.repetit.domain.model.Subject
 import com.seblful.repetit.domain.model.TutoringClass
@@ -32,6 +35,35 @@ fun Group.toEntity() =
 
 fun PriceEntity.toDomain() = Price(studentId = studentId, subjectId = subjectId, amount = Money(amountMinor))
 fun Price.toEntity() = PriceEntity(studentId = studentId, subjectId = subjectId, amountMinor = amount.minor)
+
+/**
+ * The one place `price_history`'s nullable owner columns are turned back into a [RateOwner].
+ *
+ * A row is either about a (student, subject) price or a group's rate; a row that is about neither
+ * cannot be produced by [RateChange.toEntity] and could only come from a hand-edited database or a
+ * backup file, so it fails loudly here instead of being silently attributed to the wrong owner.
+ */
+fun RateChangeEntity.toDomain() = RateChange(
+    id = id,
+    owner = when {
+        studentId != null && subjectId != null -> RateOwner.StudentSubject(studentId, subjectId)
+        groupId != null -> RateOwner.GroupRate(groupId)
+        else -> error("Rate change $id belongs to neither a student's subject nor a group")
+    },
+    from = fromMinor?.let { Money(it) },
+    to = Money(toMinor),
+    at = atMillis?.let { Instant.ofEpochMilli(it) },
+)
+
+fun RateChange.toEntity() = RateChangeEntity(
+    id = id,
+    studentId = (owner as? RateOwner.StudentSubject)?.studentId,
+    subjectId = (owner as? RateOwner.StudentSubject)?.subjectId,
+    groupId = (owner as? RateOwner.GroupRate)?.groupId,
+    fromMinor = from?.minor,
+    toMinor = to.minor,
+    atMillis = at?.toEpochMilli(),
+)
 
 fun PaymentEntity.toDomain() =
     Payment(id = id, studentId = studentId, date = Instant.ofEpochMilli(dateMillis), amount = Money(amountMinor))

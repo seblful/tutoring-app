@@ -167,6 +167,69 @@ object Migrations {
         }
     }
 
+    /**
+     * v6 → v7: rates keep a history.
+     *
+     * Adds `price_history`, the log of every change to an hourly rate — a student's price for a
+     * subject, or a group's own rate (see [RateChangeEntity] for why both live in one table).
+     *
+     * Every rate that already exists is **seeded as the start of its own history**, so an upgrading
+     * tutor sees where each price stands rather than an empty list that looks broken. The seeded rows
+     * carry `atMillis = NULL` on purpose: the amount is known, the day it was set is not, and
+     * stamping the upgrade date on it would assert something untrue — the same reasoning that leaves
+     * a pre-v6 group with no subject rather than a guessed one. `fromMinor` is NULL too, which is
+     * what makes them read as «цена была назначена» instead of a change from nowhere. Group rates are
+     * seeded including the 0s that v5 left behind: 0 is what the column holds, and a group the tutor
+     * has since priced deliberately at 0 is indistinguishable from one v5 never priced, so recording
+     * the number that is actually there beats guessing which case it is.
+     *
+     * A plain `CREATE TABLE` plus `INSERT ... SELECT`: nothing existing is read back or rewritten, so
+     * no lesson, price or rate is touched by the upgrade.
+     */
+    val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `price_history` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `studentId` INTEGER,
+                    `subjectId` INTEGER,
+                    `groupId` INTEGER,
+                    `fromMinor` INTEGER,
+                    `toMinor` INTEGER NOT NULL,
+                    `atMillis` INTEGER,
+                    FOREIGN KEY(`studentId`) REFERENCES `students`(`id`)
+                        ON UPDATE NO ACTION ON DELETE CASCADE ,
+                    FOREIGN KEY(`subjectId`) REFERENCES `subjects`(`id`)
+                        ON UPDATE NO ACTION ON DELETE CASCADE ,
+                    FOREIGN KEY(`groupId`) REFERENCES `student_groups`(`id`)
+                        ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent()
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_price_history_studentId` ON `price_history` (`studentId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_price_history_subjectId` ON `price_history` (`subjectId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_price_history_groupId` ON `price_history` (`groupId`)")
+
+            // Each existing individual price becomes the start of its own history.
+            db.execSQL(
+                """
+                INSERT INTO `price_history` (`studentId`, `subjectId`, `groupId`, `fromMinor`, `toMinor`, `atMillis`)
+                SELECT `studentId`, `subjectId`, NULL, NULL, `amountMinor`, NULL FROM `prices`
+                """.trimIndent()
+            )
+            // And each group's own rate likewise.
+            db.execSQL(
+                """
+                INSERT INTO `price_history` (`studentId`, `subjectId`, `groupId`, `fromMinor`, `toMinor`, `atMillis`)
+                SELECT NULL, NULL, `id`, NULL, `priceMinor`, NULL FROM `student_groups`
+                """.trimIndent()
+            )
+        }
+    }
+
     /** Every migration, in order — passed to the Room builder. */
-    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+    val ALL = arrayOf(
+        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
+    )
 }

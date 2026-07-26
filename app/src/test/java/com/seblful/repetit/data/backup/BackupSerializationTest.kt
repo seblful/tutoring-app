@@ -5,6 +5,7 @@ import com.seblful.repetit.data.local.GroupEntity
 import com.seblful.repetit.data.local.GroupMemberCrossRef
 import com.seblful.repetit.data.local.PaymentEntity
 import com.seblful.repetit.data.local.PriceEntity
+import com.seblful.repetit.data.local.RateChangeEntity
 import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.StudentSubjectCrossRef
 import com.seblful.repetit.data.local.SubjectEntity
@@ -44,6 +45,14 @@ class BackupSerializationTest {
         prices = listOf(
             PriceEntity(1, 1, amountMinor = 5000),
             PriceEntity(2, 1, amountMinor = 4550), // 45,50 BYN — kopecks survive
+        ),
+        rateHistory = listOf(
+            // A student's price: where it started (no previous amount), then a rise.
+            RateChangeEntity(1, studentId = 1, subjectId = 1, toMinor = 4000, atMillis = 1_890_000_000_000),
+            RateChangeEntity(2, studentId = 1, subjectId = 1, fromMinor = 4000, toMinor = 5000, atMillis = 1_895_000_000_000),
+            // A group's rate, and a row that predates the log at all — both nulls must survive.
+            RateChangeEntity(3, groupId = 7, fromMinor = 1800, toMinor = 2050, atMillis = 1_896_000_000_000),
+            RateChangeEntity(4, groupId = 8, toMinor = 0, atMillis = null),
         ),
         classes = listOf(
             ClassEntity(
@@ -131,6 +140,32 @@ class BackupSerializationTest {
         assertEquals(0L, parsed.groups.single().priceMinor)
         // The lesson keeps the rate it was actually billed at — history is never rewritten.
         assertEquals(3000L, parsed.classes.single().priceMinor)
+    }
+
+    /**
+     * A v4 backup predates the rate log, so it arrives with an empty one — the same state a database
+     * that predates the table is in. The v6 → v7 migration's seeding is deliberately *not* repeated
+     * here: a restore reproduces the file it was given, and inventing "начальная цена" rows for a file
+     * that never recorded them would put dates and amounts in a history that nothing attests to.
+     */
+    @Test
+    fun `a version 4 backup still parses, with no rate history`() {
+        val v4 = """
+            {
+              "version": 4,
+              "subjects": [{"id": 1, "name": "Математика"}],
+              "students": [{"id": 1, "name": "Иван"}],
+              "prices": [{"studentId": 1, "subjectId": 1, "amountMinor": 5000}],
+              "classes": [],
+              "payments": []
+            }
+        """.trimIndent()
+
+        val parsed = json.decodeFromString<BackupData>(v4)
+
+        assertTrue(BackupData.isSupported(parsed.version))
+        assertTrue("no log is not a broken log", parsed.rateHistory.isEmpty())
+        assertEquals("the price itself is intact", 5000L, parsed.prices.single().amountMinor)
     }
 
     @Test

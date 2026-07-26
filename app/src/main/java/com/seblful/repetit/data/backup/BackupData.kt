@@ -5,6 +5,7 @@ import com.seblful.repetit.data.local.GroupEntity
 import com.seblful.repetit.data.local.GroupMemberCrossRef
 import com.seblful.repetit.data.local.PaymentEntity
 import com.seblful.repetit.data.local.PriceEntity
+import com.seblful.repetit.data.local.RateChangeEntity
 import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.StudentSubjectCrossRef
 import com.seblful.repetit.data.local.SubjectEntity
@@ -24,21 +25,27 @@ data class BackupData(
     val groups: List<GroupEntity> = emptyList(),
     val groupMembers: List<GroupMemberCrossRef> = emptyList(),
     val prices: List<PriceEntity> = emptyList(),
+    /** The rate log (`price_history`) — the record of what prices used to be. */
+    val rateHistory: List<RateChangeEntity> = emptyList(),
     val classes: List<ClassEntity> = emptyList(),
     val payments: List<PaymentEntity> = emptyList(),
 ) {
     companion object {
         /**
          * 2 added groups; **3 gave a group its own hourly rate** (`student_groups.priceMinor`);
-         * **4 gave a group its subject** (`student_groups.subjectId`).
+         * **4 gave a group its subject** (`student_groups.subjectId`); **5 carries the rate log**
+         * (`price_history`).
          *
          * Older files still import — a v1 has no groups at all, a v2's groups come back priced at 0
-         * for the tutor to re-price, and a v3's come back with no subject, exactly as the matching
-         * database migrations leave them. The bump is for the other direction: a v4 file *would*
-         * parse in a build that predates the column, which would silently drop every group's subject
-         * on the floor, so that build refuses it instead (see [isSupported]).
+         * for the tutor to re-price, a v3's come back with no subject, and a v4's arrive with no rate
+         * history (an empty log, which is exactly what a database that predates the table has; the
+         * v6 → v7 migration's seeding is an *upgrade* story, not an import one, and a restore
+         * deliberately reproduces the file rather than inventing rows it doesn't contain). All of that
+         * matches what the corresponding database migrations leave behind. The bump is for the other
+         * direction: a v5 file *would* parse in a build that predates the table, which would silently
+         * drop the whole log on the floor, so that build refuses it instead (see [isSupported]).
          */
-        const val CURRENT_VERSION = 4
+        const val CURRENT_VERSION = 5
 
         /**
          * Whether a backup of [version] can be safely imported by this build. A newer version may

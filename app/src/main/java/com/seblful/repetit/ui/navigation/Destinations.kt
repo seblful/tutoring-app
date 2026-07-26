@@ -28,8 +28,18 @@ object Routes {
 
     const val GROUPS = "groups"
     const val GROUP_ADD = "group/new"
+
+    /**
+     * A group's **card** — who is in it, what it has been taught, what its rate has been. Editing it
+     * is [GROUP_EDIT], reached from the card's pencil: tapping a group used to open the form directly,
+     * which answered how to change a group and nothing about how one is going.
+     */
     const val GROUP_DETAIL = "group/{id}"
     fun groupDetail(id: Long) = "group/$id"
+
+    /** The group form for an existing group — the only place its roster, subject or rate changes. */
+    const val GROUP_EDIT = "group/{id}/edit"
+    fun groupEdit(id: Long) = "group/$id/edit"
 
     const val CLASS_EDIT = "class/{id}?group={group}"
 

@@ -100,4 +100,22 @@ class FormattersTest {
             assertEquals(money, parseMoneyOrNull(money.toAmountInput()))
         }
     }
+
+    /**
+     * A stat tile is a summary, so a whole number of hours prints as one — «42 ч», not «42,0 ч» — and
+     * anything else rounds to a tenth with a Russian comma.
+     */
+    @Test
+    fun `hours print whole where they are whole and to a tenth where they are not`() {
+        assertEquals("0", formatHours(0))
+        assertEquals("1", formatHours(60))
+        assertEquals("1,5", formatHours(90))
+        assertEquals("0,5", formatHours(30))
+        assertEquals("42", formatHours(2520))
+        assertEquals("42,5", formatHours(2550))
+        // 45 minutes is 0.75 h, which rounds to the nearest tenth rather than truncating to 0,7.
+        assertEquals("0,8", formatHours(45))
+        // 20 minutes is 0.333… h.
+        assertEquals("0,3", formatHours(20))
+    }
 }
