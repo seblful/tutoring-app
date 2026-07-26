@@ -60,7 +60,7 @@ import com.seblful.klas.ui.common.leaveIntent
  *
  * Subject comes before the roster because it decides it: pick one and the member list narrows to the
  * students priced for it, since a group only ever teaches that subject. Leaving it unset is allowed
- * only so that groups made before v6 keep working; those list every active student, as they used to.
+ * only so that a group without one keeps working; those list every active student instead.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,7 +133,7 @@ fun GroupFormScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             // Subject first: it decides who may be in the group. 0 is the "not chosen" row — a real
-            // option rather than a hidden state, because a pre-v6 group legitimately has none and the
+            // option rather than a hidden state, because a group legitimately has none and the
             // tutor needs to see that rather than guess.
             DropdownField(
                 label = stringResource(R.string.group_subject_label),

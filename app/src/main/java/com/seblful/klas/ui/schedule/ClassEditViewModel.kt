@@ -397,8 +397,8 @@ class ClassEditViewModel @Inject constructor(
     /**
      * The subjects this lesson may be booked for. For a **student**: those with a price set for them,
      * so the class can be billed at completion. For a **group** that has a subject: only that one —
-     * the group is taught it, and every member is priced for it. For a group without one (made before
-     * v6): all of them, as before, because nothing on the group says otherwise.
+     * the group is taught it, and every member is priced for it. For a group without one: all of
+     * them, because nothing on the group says otherwise.
      */
     private val subjects: StateFlow<List<Subject>> =
         form.map { SubjectKey(it.target, it.studentId, it.groupId) }.distinctUntilChanged()
@@ -711,8 +711,8 @@ class ClassEditViewModel @Inject constructor(
                 // A group that has a subject decides it — there is nothing to pick per lesson.
                 subjectId = group.subjectId ?: form.value.subjectId,
             )
-            // A group made before v6 has no subject of its own, so it offers all of them — and if
-            // there is only one, it needs no picking either.
+            // A group with no subject of its own offers all of them — and if there is only one, it
+            // needs no picking either.
             if (group.subjectId == null) autoSelectOnlySubject()
         }
     }

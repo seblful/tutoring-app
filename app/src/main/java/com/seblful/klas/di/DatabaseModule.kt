@@ -5,7 +5,6 @@ import androidx.room.Room
 import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.ClassDao
 import com.seblful.klas.data.local.GroupDao
-import com.seblful.klas.data.local.Migrations
 import com.seblful.klas.data.local.PaymentDao
 import com.seblful.klas.data.local.PriceDao
 import com.seblful.klas.data.local.RateHistoryDao
@@ -29,10 +28,10 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.NAME)
-            // Real migrations (see Migrations.ALL) carry user data forward. The destructive fallback
-            // stays only as the last resort for dev/beta devices whose schema predates v1 and so has
-            // no migration path at all; every schema change from v1 on must ship a migration here.
-            .addMigrations(*Migrations.ALL)
+            // No migrations yet: v1 is the first schema this application id ever ships, so no device
+            // can hold an older one (see AppDatabase.NAME). The destructive fallback covers dev
+            // devices carrying a pre-release schema. Once v1 is released, every schema change must
+            // bump the version and add a real migration here.
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
 

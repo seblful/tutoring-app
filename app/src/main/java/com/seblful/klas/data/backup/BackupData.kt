@@ -38,12 +38,13 @@ data class BackupData(
          *
          * Older files still import — a v1 has no groups at all, a v2's groups come back priced at 0
          * for the tutor to re-price, a v3's come back with no subject, and a v4's arrive with no rate
-         * history (an empty log, which is exactly what a database that predates the table has; the
-         * v6 → v7 migration's seeding is an *upgrade* story, not an import one, and a restore
-         * deliberately reproduces the file rather than inventing rows it doesn't contain). All of that
-         * matches what the corresponding database migrations leave behind. The bump is for the other
-         * direction: a v5 file *would* parse in a build that predates the table, which would silently
-         * drop the whole log on the floor, so that build refuses it instead (see [isSupported]).
+         * history (an empty log). A restore deliberately reproduces the file rather than inventing
+         * rows it doesn't contain, so each of those gaps stays a gap. This version is the *only*
+         * compatibility story the app has — the database itself ships no migrations (see
+         * [com.seblful.klas.data.local.AppDatabase]), so a backup file is the one way data crosses
+         * builds. The bump is for the other direction: a v5 file *would* parse in a build that
+         * predates the table, which would silently drop the whole log on the floor, so that build
+         * refuses it instead (see [isSupported]).
          */
         const val CURRENT_VERSION = 5
 

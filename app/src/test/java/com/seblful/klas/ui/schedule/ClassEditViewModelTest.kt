@@ -1089,7 +1089,7 @@ class ClassEditViewModelTest {
         backgroundScope.launch { vm.state.collect {} }
         advanceUntilIdle()
 
-        // Pre-v6 groups keep choosing per lesson.
+        // A group with no subject keeps choosing per lesson.
         assertEquals(2, vm.state.value.subjects.size)
         assertFalse(vm.state.value.subjectFixedByGroup)
     }

@@ -36,7 +36,7 @@ flowchart TB
 | Package | Responsibility |
 |---|---|
 | `domain/` | Pure Kotlin, no Android deps: billing, class/group rules, scheduling, calendar layout, reminders, reports, `Taught` (what a stat row counts), `LessonKind` (individual vs a group's), models (incl. the report-only id types, `model/Ids.kt`), and the `ReminderScheduler` port. All JVM-tested. |
-| `data/local/` | Room entities, DAOs, `AppDatabase`, `Migrations`, and the `Transactor` port. Entities are also `@Serializable`, for the backup. |
+| `data/local/` | Room entities, DAOs, `AppDatabase`, and the `Transactor` port. Entities are also `@Serializable`, for the backup. |
 | `data/repository/` | Entities ⇄ domain models, and where display **name ordering** is applied. Each repository owns one invariant end to end, and writes it in one transaction (see *Ownership* below). |
 | `data/backup/` | Whole-DB JSON snapshot: export, transactional replace-all import, `BackupIntegrity` (what a file must be readable as before any of it is written), and `BackupRestore` (everything a *restore* means beyond the rows). |
 | `calendar/` | `CalendarSync` + `CalendarPermission` ports and a `CalendarContract` adapter. |
@@ -142,11 +142,13 @@ transaction and the write lock is held for less time.
   rate and a lesson writes one class per member *at that one rate*. Balances, debts and reports stay
   strictly per student: the group decides *how much*, never *who owes it*. A new group's rate is
   pre-filled from settings (0 = "not set" → the field starts empty); a rate is required but may be 0.
-- **A lesson has one rate.** Only a lesson booked before v5 can hold differing member rates; the form
-  then offers the group's current rate rather than picking one member's.
+- **A lesson has one rate.** Only a lesson restored from a backup written before a group had its own
+  rate (`BackupData` v2 and older) can hold differing member rates; the form then offers the group's
+  current rate rather than picking one member's.
 - **A group is taught one subject, fixed on the group.** Only students priced for it can be members —
   the roster is intersected on save — and the booking form takes the subject from the group. The column
-  is **nullable** purely for groups made before v6, which keep the old per-lesson behaviour.
+  is **nullable** for a group restored from a backup that predates it (`BackupData` v3 and older), and
+  until the tutor picks one; such a group keeps the looser per-lesson behaviour.
 - **Who attends one lesson is separate from who is on the roster**, and is a fact the tutor may
   correct afterwards. The lesson's form ticks its members — in any status, past or future. An unticked
   member has no class at all (not the same as a cancelled one); ticking one who has none writes a
@@ -188,13 +190,17 @@ transaction and the write lock is held for less time.
 - **Offline-first.** Room is authoritative; the calendar and notifications no-op when their permission
   or calendar is absent, never blocking or corrupting local data.
 - **Settings live in Room** (single row) and are **device-local** — deliberately not backed up.
-- **Every schema change ships a real migration** (`data/local/Migrations.kt`), validated against the
-  exported schema JSONs by an instrumented test; the destructive fallback covers only dev devices
-  predating v1. An entity's `defaultValue` and a migration's `DEFAULT` must stay in step or Room's
-  validation fails. History: **v2** groups + `classes.groupId`; **v3** email
-  invites (backfilled *on*); **v4** the «Группы» tab flag; **v5** a group's own rate (upgraded groups
-  left explicitly unpriced); **v6** a group's subject (nullable); **v7** `price_history`, seeded from
-  existing rates without rewriting anything.
+- **The database is at v1 and ships no migrations.** The only builds ever released are
+  `com.seblful.repetit` (v0.1.0-beta, v0.1.1); the rename to `com.seblful.klas` changed the
+  application id *and* the file name (`tutoring.db` → `klas.db`), and Android never upgrades one
+  application id into another. No device can therefore hold a pre-v1 `klas.db`, so the six
+  development-only migrations were dropped and the schema restarted at v1. The destructive fallback
+  covers dev devices still carrying a pre-release schema.
+- **Once v1 is released this stops being true**: from that point every schema change must bump the
+  version and ship a real migration, validated against the exported schema JSON by an instrumented
+  test, with an entity's `defaultValue` and the migration's `DEFAULT` kept in step or Room's
+  validation fails. Until then, **`BackupData.version` is the only cross-build compatibility story
+  the app has** — a backup file is the one way data moves between builds.
 - **Backup = full DB snapshot → JSON via SAF.** Ids preserved, import is one transaction (through the
   same `Transactor` port the class writes use). The format is versioned: an **older** file still imports
   (missing tables come back empty, missing columns take their default), a **newer** one is refused —
@@ -371,8 +377,9 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
 - **CI** (`.github/workflows/ci.yml`) runs the unit suite, `lintDebug`, the debug APK and the
   *compilation* of the instrumented tests on every push and PR — a tripwire nobody runs is not a
   tripwire. The instrumented tests themselves still need a device.
-- **Instrumented tests** (`src/androidTest`) cover Room integration, the **schema migrations** against
-  the exported JSONs, and **layout** questions that need real text measurement (`BottomBarLabelTest`).
+- **Instrumented tests** (`src/androidTest`) cover Room integration — including the FK cascade and
+  restrict rules (`SubjectDeletionCascadeTest`) — and **layout** questions that need real text
+  measurement (`BottomBarLabelTest`).
   A debug-only manifest entry lets the test host show over the keyguard, so they run against a locked
   phone (there is no emulator).
 - Notification display and real calendar writes can only be observed on a device.

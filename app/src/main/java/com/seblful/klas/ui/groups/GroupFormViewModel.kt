@@ -37,10 +37,10 @@ import javax.inject.Inject
  * priced for it could never be billed for one. Picking a subject therefore narrows the candidate list
  * on the spot, and `GroupRepository.save` drops anyone left over.
  *
- * The subject is **optional**, for one reason only: groups made before v6 have none, and there was no
- * honest way to invent one for them (see `Migrations.MIGRATION_5_6`). Such a group keeps the old
- * behaviour — any active student may join and the subject is chosen when booking — until the tutor
- * sets one here.
+ * The subject is **optional**, because a group can also arrive without one — from a backup written
+ * before the format carried a group's subject (`BackupData` v3 and older). Such a group keeps the
+ * old behaviour — any active student may join and the subject is chosen when booking — until the
+ * tutor sets one here.
  *
  * A new group's rate is pre-filled from `AppSettings.defaultGroupPriceMinor` when the tutor has set
  * one, so the common case is one less thing to type.
@@ -65,7 +65,7 @@ class GroupFormViewModel @Inject constructor(
         val note: String = "",
         /** The group's hourly rate as typed. Zero is allowed, blank is not — see [UiState.price]. */
         val price: MoneyField = MoneyField(kind = MoneyField.Kind.RATE),
-        /** What the group is taught. Null on a pre-v6 group, and until the tutor picks one. */
+        /** What the group is taught. Null until the tutor picks one. */
         val subjectId: Long? = null,
         val mode: ClassMode = ClassMode.IN_PERSON,
         val memberIds: Set<Long> = emptySet(),

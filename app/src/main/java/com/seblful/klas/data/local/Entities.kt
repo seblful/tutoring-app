@@ -65,9 +65,10 @@ data class GroupEntity(
      * What the group is taught, fixed when the group is made rather than chosen per lesson: its
      * lessons are all this subject, and only students priced for it can be added to the roster.
      *
-     * **Nullable, because v6 could not invent one.** A group created before this column has no
-     * honest subject to backfill — its members may not even share one — so it stays null and keeps
-     * behaving as it did: any student may be a member, and the subject is picked when booking.
+     * **Nullable, because a restore cannot invent one.** A group imported from a backup written
+     * before the format carried a subject (`BackupData` v3 and older) has none to backfill — its
+     * members may not even share one — so it stays null and keeps the looser behaviour: any student
+     * may be a member, and the subject is picked when booking.
      * Setting a subject is what opts a group into the stricter rules, and is one-way in practice
      * since [GroupRepository.save] then drops members who are not priced for it.
      *
@@ -157,8 +158,8 @@ data class RateChangeEntity(
     val fromMinor: Long? = null,
     val toMinor: Long,
     /**
-     * When the change was recorded — **null for a rate that predates the log** (the rows v7 seeds
-     * from the existing `prices` and `student_groups`). See
+     * When the change was recorded — **null for a rate that predates the log**. Nothing writes such
+     * a row today, but a restored backup can carry one, so the ordering still has to hold. See
      * [com.seblful.klas.domain.model.RateChange.at]: the amount is known, the date is not, and
      * `ORDER BY atMillis DESC` sorts these last, since SQLite treats NULL as the smallest value.
      */

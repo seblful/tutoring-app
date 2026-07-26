@@ -8,6 +8,7 @@ import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.PriceEntity
+import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.data.toDomain
@@ -80,5 +81,27 @@ class SubjectDeletionCascadeTest {
 
         assertTrue(deleted)
         assertEquals(1, db.subjectDao().getAll().size) // only Математика remains
+    }
+
+    /**
+     * `price_history` cascades from all three of its parents (unlike `classes`, which restricts):
+     * it is a log *about* a price, not income, so a subject that is still deletable — one with no
+     * lessons — must take its rate log with it rather than leave rows describing a price for
+     * something that no longer exists.
+     */
+    @Test fun deletingSubjectTakesItsRateLogWithIt() = runTest {
+        db.priceDao().upsert(PriceEntity(1, 2, amountMinor = 4000))
+        db.rateHistoryDao().insert(
+            RateChangeEntity(
+                studentId = 1, subjectId = 2, fromMinor = 3000, toMinor = 4000,
+                atMillis = Instant.parse("2026-05-10T12:00:00Z").toEpochMilli(),
+            ),
+        )
+
+        val deleted = subjects.delete(Subject(id = 2, name = "Физика")) // no classes reference it
+
+        assertTrue(deleted)
+        assertTrue(db.rateHistoryDao().getAll().isEmpty()) // the log went with the subject
+        assertEquals(1, db.priceDao().getAll().size) // only the Математика price remains
     }
 }

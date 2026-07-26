@@ -331,7 +331,7 @@ class GroupFormViewModelTest {
             backgroundScope.launch { vm.state.collect {} }
             advanceUntilIdle()
 
-            // No subject yet: everyone is a candidate, as before v6.
+            // No subject yet: everyone is a candidate.
             assertEquals(setOf(ann, bob), vm.state.value.candidates.map { it.id }.toSet())
 
             vm.setSubject(algebra)

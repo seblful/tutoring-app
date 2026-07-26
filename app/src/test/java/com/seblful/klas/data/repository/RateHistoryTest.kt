@@ -71,9 +71,9 @@ class RateHistoryTest {
     }
 
     /**
-     * The rows the v6 → v7 migration seeds have no date at all. They must sort **below** every dated
-     * change: "it was already this much" is the oldest thing the log knows, whatever order it was
-     * written in.
+     * An undated row — a rate that predates the log, as a restored backup can carry — must sort
+     * **below** every dated change: "it was already this much" is the oldest thing the log knows,
+     * whatever order it was written in.
      */
     @Test
     fun `a rate that predates the log sorts below the dated changes`() = runTest {
@@ -200,7 +200,7 @@ class RateHistoryTest {
     fun `a price seeded straight into the table has no log, and the next change starts one`() = runTest {
         val sid = student()
         val subj = subject()
-        // What an upgraded install looks like if v7's seeding is bypassed: a price with no log at all.
+        // What a restore from a pre-log backup looks like: a price with no log at all.
         env.priceDao.upsert(PriceEntity(sid, subj, Money.ofMajor(30).minor))
         assertTrue(changesFor(sid, subj).isEmpty())
 

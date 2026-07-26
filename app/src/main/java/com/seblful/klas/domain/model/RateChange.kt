@@ -36,10 +36,10 @@ sealed interface RateOwner {
  *   which is a genuinely different statement ("цена была назначена") from a change, and reads that
  *   way in the UI.
  * @param at when the change was recorded, or **null for a rate that already existed before the app
- *   kept this log** (the rows the v6 → v7 migration seeds). Its amount is known; the day it was set
- *   is not, and stamping the upgrade date on it would assert something untrue — the same reasoning
- *   that leaves a pre-v6 group with no subject rather than a guessed one. Sorting newest-first puts
- *   these last, which is where an "it was already this much" row belongs.
+ *   kept this log** — a row a restored backup can still carry. Its amount is known; the day it was
+ *   set is not, and stamping the import date on it would assert something untrue — the same
+ *   reasoning that leaves a subject-less group unguessed rather than backfilled. Sorting
+ *   newest-first puts these last, which is where an "it was already this much" row belongs.
  */
 data class RateChange(
     val id: Long = 0,

@@ -88,8 +88,8 @@ class MappersTest {
 
     /**
      * The two nulls that carry meaning: no previous rate means the history starts here, and no date
-     * means the rate predates the log (the rows the v6 → v7 migration seeds). Both have to survive the
-     * round trip as *null*, since a zero or an epoch date would read as a real amount and a real day.
+     * means the rate predates the log. Both have to survive the round trip as *null*, since a zero
+     * or an epoch date would read as a real amount and a real day.
      */
     @Test
     fun `an initial rate change keeps its missing previous amount and missing date`() {

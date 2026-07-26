@@ -113,9 +113,8 @@ class BackupSerializationTest {
 
     /**
      * A v2 backup — groups, but from before a group had a rate of its own — must still import, with
-     * its groups coming back at 0 for the tutor to re-price. That mirrors what the v4 → v5 database
-     * migration does, rather than inventing an amount for a group whose members were billed
-     * individually.
+     * its groups coming back at 0 for the tutor to re-price, rather than inventing an amount for a
+     * group whose members were billed individually.
      */
     @Test
     fun `a version 2 backup still parses, its groups left unpriced`() {
@@ -143,10 +142,10 @@ class BackupSerializationTest {
     }
 
     /**
-     * A v4 backup predates the rate log, so it arrives with an empty one — the same state a database
-     * that predates the table is in. The v6 → v7 migration's seeding is deliberately *not* repeated
-     * here: a restore reproduces the file it was given, and inventing "начальная цена" rows for a file
-     * that never recorded them would put dates and amounts in a history that nothing attests to.
+     * A v4 backup predates the rate log, so it arrives with an empty one. Seeding it from the prices
+     * in the file is deliberately *not* done: a restore reproduces the file it was given, and
+     * inventing "начальная цена" rows for a file that never recorded them would put dates and
+     * amounts in a history that nothing attests to.
      */
     @Test
     fun `a version 4 backup still parses, with no rate history`() {

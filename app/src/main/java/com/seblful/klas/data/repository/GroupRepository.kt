@@ -100,8 +100,8 @@ class GroupRepository @Inject constructor(
      *
      * A group with a subject only teaches that subject, so a member who is not priced for it could
      * never be billed for one of its lessons — such a member is dropped here rather than kept as a
-     * roster entry that silently fails at booking time. A group with no subject (everything made
-     * before v6) is left exactly as asked.
+     * roster entry that silently fails at booking time. A group with no subject (one restored from
+     * an older backup, or not yet given one) is left exactly as asked.
      *
      * This is enforced in the repository, not just the form, because [save] is the only writer of
      * membership: a caller that skipped the UI could otherwise seed an unbillable roster.
