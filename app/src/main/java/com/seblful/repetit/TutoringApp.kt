@@ -1,6 +1,7 @@
 package com.seblful.repetit
 
 import android.app.Application
+import android.content.Context
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.seblful.repetit.diagnostics.CrashLogger
@@ -21,6 +22,10 @@ class TutoringApp : Application(), Configuration.Provider {
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
             .build()
+
+    // Before anything can read a string: workers and notifications are built from this context, and
+    // they count things too. See [inRussian].
+    override fun attachBaseContext(base: Context) = super.attachBaseContext(base.inRussian())
 
     override fun onCreate() {
         super.onCreate()

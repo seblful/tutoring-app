@@ -2,6 +2,7 @@ package com.seblful.repetit.ui.common
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,10 +16,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.seblful.repetit.R
 import com.seblful.repetit.domain.LessonFilter
@@ -59,12 +62,41 @@ private fun lessonKindIcon(kind: LessonKind): ImageVector = when (kind) {
     LessonKind.GROUP -> Icons.Filled.Groups
 }
 
-/** Muted for an individual lesson, the brand colour for a group's — the rarer, busier thing. */
+/**
+ * One colour for both kinds — the brand colour.
+ *
+ * They used to differ, individual muted and group in the brand colour, which made the pair read as a
+ * ranking: the grey one looks like the disabled or lesser row rather than the other kind of lesson. The
+ * shape already carries the distinction, and it is the only thing that has to.
+ */
 @Composable
 private fun lessonKindColor(kind: LessonKind): Color = when (kind) {
-    LessonKind.INDIVIDUAL -> MaterialTheme.colorScheme.onSurfaceVariant
-    LessonKind.GROUP -> MaterialTheme.colorScheme.primary
+    LessonKind.INDIVIDUAL, LessonKind.GROUP -> MaterialTheme.colorScheme.primary
 }
+
+/**
+ * How tall both glyphs are actually drawn. Sizes below are derived from it, so the two stay matched.
+ */
+private val KindIconInk = 11.dp
+
+/**
+ * The nominal size each kind's icon is given, chosen so both are drawn to **the same ink height**.
+ *
+ * The two glyphs are not on the same optical scale inside their shared 24-unit viewport: `Person` is one
+ * figure spanning 16 of those units vertically, while `Groups` packs three small ones into 12. Given one
+ * nominal size they therefore come out a third apart — the person measurably taller, not merely
+ * seemingly. Scaling each by its own fill (24/16 and 24/12) is what makes them look like one size.
+ */
+private fun lessonKindIconSize(kind: LessonKind): Dp = when (kind) {
+    LessonKind.INDIVIDUAL -> KindIconInk * (24f / 16f)
+    LessonKind.GROUP -> KindIconInk * (24f / 12f)
+}
+
+/**
+ * The slot both icons sit in, wide enough for the wider of them. Fixed, so what follows the icon starts
+ * at the same place down a list whichever kind each row happens to be.
+ */
+private val KindIconSlot = KindIconInk * (24f / 12f)
 
 /**
  * The kind's colour when it is a **filled area** rather than an icon — the two halves of the reports
@@ -82,12 +114,14 @@ fun lessonKindFill(kind: LessonKind): Color = when (kind) {
 
 @Composable
 fun LessonKindIcon(kind: LessonKind, modifier: Modifier = Modifier) {
-    Icon(
-        imageVector = lessonKindIcon(kind),
-        contentDescription = lessonKindDescription(kind),
-        tint = lessonKindColor(kind),
-        modifier = modifier.size(20.dp),
-    )
+    Box(modifier.size(KindIconSlot), contentAlignment = Alignment.Center) {
+        Icon(
+            imageVector = lessonKindIcon(kind),
+            contentDescription = lessonKindDescription(kind),
+            tint = lessonKindColor(kind),
+            modifier = Modifier.size(lessonKindIconSize(kind)),
+        )
+    }
 }
 
 /**

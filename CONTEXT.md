@@ -172,6 +172,12 @@ flowchart TB
 
 ### UI
 
+- **The app pins its own locale to Russian** (`RussianLocale.inRussian`, applied in `TutoringApp` and
+  `MainActivity` via `attachBaseContext`). Strings live in the unqualified `values/` and the formatters
+  name `ru` outright, but a **plural** rule set comes from the *configuration's* locale, i.e. the phone's
+  — so on an English phone Russian text was declined by English rules (two forms) and the app said
+  «0 занятия», «5 занятия». Counted nouns therefore always go through `<plurals>`, never through
+  `%d` plus a fixed word, and the bundle does not split by language (there is only one resource set).
 - **A screen draws; it does not decide.** Rules that used to sit inside composables now live in the
   module behind them, because a `@Composable` can only be exercised on a device: `ClassFormState`
   answers every question the booking form has, `MoneyField` answers what a money input is, `leaveIntent`
@@ -187,6 +193,10 @@ flowchart TB
   whole week. Paging only *browses* — it never moves the selection, and opening a view snaps back to it.
   A calendar cell shows **one count per status**, so a mixed day states its makeup. Both the markers and
   the lessons are queried for the **active view's range only**, so no off-screen view holds a live query.
+- **The two lesson-kind icons are one pair, not a ranking** (`ui/common/LessonKindUi`): same brand
+  colour, and matched on **ink height** rather than nominal size. `Person` fills 16 of its 24-unit
+  viewport vertically and `Groups` only 12, so asking for one size drew the person a third taller; each
+  is scaled by its own fill and centred in a shared slot so what follows the icon stays aligned.
 - **One place answers "who was in this lesson"** — the lesson's own form, where the answer can be
   changed. The schedule's action sheet acts on the whole lesson (edit, move, status, delete) and
   deliberately lists no members: a menu for changing a lesson's status is not where a roster belongs.

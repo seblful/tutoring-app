@@ -1,6 +1,7 @@
 package com.seblful.repetit
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -17,6 +18,10 @@ class MainActivity : ComponentActivity() {
 
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* best-effort */ }
+
+    // The activity's base context comes from the device configuration, not from the application's, so
+    // pinning it there is not enough — every screen reads its strings through this one. See [inRussian].
+    override fun attachBaseContext(newBase: Context) = super.attachBaseContext(newBase.inRussian())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

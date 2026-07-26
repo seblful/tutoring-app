@@ -71,6 +71,15 @@ android {
     buildFeatures {
         compose = true
     }
+    bundle {
+        language {
+            // The app is Russian-only: every string lives in the unqualified `values/`, and the
+            // resource locale is pinned to Russian so plurals decline by Russian rules (see
+            // `RussianLocale`). There is therefore no per-language split for a device to be missing
+            // — splitting by language could only ever drop the one resource set there is.
+            enableSplit = false
+        }
+    }
     lint {
         // lintVitalAnalyzeRelease hits a file-locking bug in AGP 9.2.1's lint-jar migration on
         // Windows; lint still runs on debug builds (`lintDebug`), so skip it during release assembly.
