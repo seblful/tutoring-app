@@ -6,6 +6,7 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.Month
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -78,6 +79,14 @@ fun formatMonthKey(key: Int): String {
     val month = key % 12 + 1
     return formatMonth(YearMonth.of(year, month))
 }
+
+/**
+ * The month of an epoch-month key on its own, e.g. "Июнь" — for a list that already sits under the
+ * year it belongs to, where repeating "2026" on all twelve rows says nothing.
+ */
+fun formatMonthName(key: Int): String =
+    Month.of(key % 12 + 1).getDisplayName(TextStyle.FULL_STANDALONE, RU)
+        .replaceFirstChar { it.uppercase() }
 
 /** Formats a month as e.g. "Июнь 2026" — the schedule calendar's page title. */
 fun formatMonth(month: YearMonth): String =

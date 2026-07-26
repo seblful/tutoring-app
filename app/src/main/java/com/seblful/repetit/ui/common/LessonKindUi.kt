@@ -66,6 +66,20 @@ private fun lessonKindColor(kind: LessonKind): Color = when (kind) {
     LessonKind.GROUP -> MaterialTheme.colorScheme.primary
 }
 
+/**
+ * The kind's colour when it is a **filled area** rather than an icon — the two halves of the reports
+ * screen's income bar.
+ *
+ * Group keeps the brand colour it has beside a lesson, so the two places agree; individual takes the
+ * second accent rather than the muted grey [lessonKindColor] gives it, because a segment the eye reads
+ * as the bar's empty half is not a segment.
+ */
+@Composable
+fun lessonKindFill(kind: LessonKind): Color = when (kind) {
+    LessonKind.INDIVIDUAL -> MaterialTheme.colorScheme.tertiary
+    LessonKind.GROUP -> MaterialTheme.colorScheme.primary
+}
+
 @Composable
 fun LessonKindIcon(kind: LessonKind, modifier: Modifier = Modifier) {
     Icon(

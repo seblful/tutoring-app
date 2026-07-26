@@ -303,14 +303,48 @@
     <!-- Reports -->
     <string name="reports_title">Отчёты</string>
     <string name="reports_empty">Пока нет данных для отчётов</string>
-    <string name="reports_total_income">Доход всего</string>
+    <string name="reports_total_income">Доход за период</string>
+    <string name="reports_no_income">За этот период доходов не было</string>
     <string name="reports_by_month">Доход по месяцам</string>
+    <string name="reports_by_year">Доход по годам</string>
     <string name="reports_by_kind">Доход по типу занятий</string>
+    <string name="reports_by_group">Доход по группам</string>
     <string name="reports_by_subject">Доход по предметам</string>
     <string name="reports_by_student">Доход по ученикам</string>
     <string name="reports_debts">Задолженности</string>
     <string name="reports_no_debts">Задолженностей нет</string>
     <string name="reports_total_outstanding">Всего к оплате</string>
+    <!-- Said under the debts, which are a running balance and so never follow the chosen period. -->
+    <string name="reports_debts_all_time">Текущий баланс, за всё время</string>
+
+    <!-- Reports: the period being read -->
+    <string name="reports_period">Период</string>
+    <string name="reports_period_month">Месяц</string>
+    <string name="reports_period_year">Год</string>
+    <string name="reports_period_all">Всё время</string>
+    <!-- %1$d: the year being read, as the navigator's own title -->
+    <string name="reports_period_year_title">%1$d год</string>
+    <string name="reports_previous_period">Предыдущий период</string>
+    <string name="reports_next_period">Следующий период</string>
+    <!-- %1$d: a line's share of the period's income -->
+    <string name="reports_percent">%1$d %%</string>
+    <!-- %1$s: an amount, %2$d: its share of the whole — the legend under the income split -->
+    <string name="reports_amount_share">%1$s · %2$d %%</string>
+    <!-- Axis labels for the income chart: short enough for twelve of them across a phone. -->
+    <string-array name="month_short_names">
+        <item>янв</item>
+        <item>фев</item>
+        <item>мар</item>
+        <item>апр</item>
+        <item>май</item>
+        <item>июн</item>
+        <item>июл</item>
+        <item>авг</item>
+        <item>сен</item>
+        <item>окт</item>
+        <item>ноя</item>
+        <item>дек</item>
+    </string-array>
 
     <!-- Backup -->
     <string name="backup_title">Резервная копия</string>

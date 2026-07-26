@@ -31,6 +31,15 @@ object Taught {
         val minutes: Int,
         val earned: Money,
     ) {
+        /** Two disjoint sets of teaching added up — see [overall], the only thing that needs it. */
+        operator fun plus(other: Totals) = Totals(
+            lessons = lessons + other.lessons,
+            upcoming = upcoming + other.upcoming,
+            cancelled = cancelled + other.cancelled,
+            minutes = minutes + other.minutes,
+            earned = earned + other.earned,
+        )
+
         companion object {
             val NONE = Totals(lessons = 0, upcoming = 0, cancelled = 0, minutes = 0, earned = Money.ZERO)
         }
@@ -63,6 +72,20 @@ object Taught {
      * rather than a lost one; it is cancelled only when every member's class is. Duration comes from
      * the session's first class, since every class of one lesson shares it by construction.
      */
+    /**
+     * Everything the tutor taught, both kinds at once — what the reports screen leads with.
+     *
+     * Neither rule above covers a mixed set: counting every class would report a group evening as
+     * three lessons and nine hours, and counting every session would collapse two students' separate
+     * Tuesdays into one only because a session of one carries no group. So each half is counted by
+     * its own rule and the two are added — which is the whole reason [byStudent] and [byGroup] differ
+     * in the first place, applied to the one list that genuinely holds both.
+     */
+    fun overall(classes: List<TutoringClass>): Totals {
+        val (group, individual) = classes.partition { it.groupId != null }
+        return byStudent(individual) + byGroup(group)
+    }
+
     fun byGroup(classes: List<TutoringClass>): Totals {
         val sessions = GroupRules.sessions(classes)
         val taught = sessions.filter { s -> s.classes.any { it.status.isBillable } }

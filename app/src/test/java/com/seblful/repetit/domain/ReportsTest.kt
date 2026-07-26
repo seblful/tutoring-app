@@ -5,13 +5,19 @@ import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.StudentBalance
 import com.seblful.repetit.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
+import java.time.YearMonth
 import java.time.ZoneId
 
 class ReportsTest {
 
     private val zone = ZoneId.of("Europe/Minsk")
+
+    /** The epoch-month key the trend and `incomeByMonth` bucket by. */
+    private fun keyOf(year: Int, month: Int) = year * 12 + (month - 1)
 
     private fun klass(
         studentId: Long,
@@ -98,6 +104,116 @@ class ReportsTest {
             Reports.incomeByKind(onlyIndividual).map { it.kind },
         )
         assertEquals(emptyList<Reports.KindIncome>(), Reports.incomeByKind(emptyList()))
+    }
+
+    @Test
+    fun `income by group counts only group lessons, keyed by the group`() {
+        val classes = listOf(
+            klass(1, 10, "2026-05-10T10:00:00Z", 5000), // individual: not in the breakdown at all
+            klass(2, 10, "2026-05-11T18:00:00Z", 2000, groupId = 7),
+            klass(3, 10, "2026-05-11T18:00:00Z", 2000, groupId = 7),
+            klass(4, 10, "2026-05-12T18:00:00Z", 3000, groupId = 8),
+            klass(5, 10, "2026-05-13T18:00:00Z", 9000, ClassStatus.CANCELLED, groupId = 8),
+        )
+
+        val byGroup = Reports.incomeByGroup(classes)
+
+        // A group's line is the sum of its members' charges — the group set the rate, each owes a share.
+        assertEquals(Money(4000), byGroup[7])
+        assertEquals(Money(3000), byGroup[8])
+        assertEquals("individual lessons have no group to be counted under", setOf(7L, 8L), byGroup.keys)
+    }
+
+    @Test
+    fun `a percentage is rounded half-up and needs no whole to be safe`() {
+        assertEquals(33, Reports.percentOf(Money(1000), Money(3000)))
+        assertEquals(67, Reports.percentOf(Money(2000), Money(3000)))
+        assertEquals(50, Reports.percentOf(Money(50), Money(100)))
+        assertEquals(100, Reports.percentOf(Money(4000), Money(4000)))
+        assertEquals(0, Reports.percentOf(Money(0), Money(4000)))
+        // Nothing to be a share of: 0, not a division by zero.
+        assertEquals(0, Reports.percentOf(Money(4000), Money.ZERO))
+    }
+
+    /** Rounded shares are allowed not to add up — see [Reports.percentOf]. */
+    @Test
+    fun `three equal shares each report a third, not a forced hundred`() {
+        val third = Reports.percentOf(Money(1000), Money(3000))
+        assertEquals(99, third * 3)
+    }
+
+    @Test
+    fun `a year's trend is its twelve months, oldest first, quiet ones included`() {
+        val classes = listOf(
+            klass(1, 10, "2026-02-10T10:00:00Z", 5000),
+            klass(1, 10, "2026-02-20T10:00:00Z", 1000),
+            klass(1, 10, "2026-11-10T10:00:00Z", 3000),
+            klass(1, 10, "2025-06-10T10:00:00Z", 9900), // another year: outside the period
+        )
+        val period = ReportPeriod(ReportPeriod.Kind.YEAR, YearMonth.of(2026, 7))
+
+        val trend = Reports.trend(classes, period, zone)
+
+        assertEquals(Reports.Trend.Bucket.MONTHS, trend.bucket)
+        assertEquals("a year is drawn as all twelve of its months", 12, trend.bars.size)
+        assertEquals(keyOf(2026, 1), trend.bars.first().key)
+        assertEquals(keyOf(2026, 12), trend.bars.last().key)
+        assertEquals(Money(6000), trend.bars[1].total) // February
+        assertEquals(Money.ZERO, trend.bars[2].total) // March, taught nothing
+        assertEquals(Money(3000), trend.bars[10].total) // November
+        assertEquals(keyOf(2026, 2), trend.peak?.key)
+    }
+
+    @Test
+    fun `all time is drawn as years, from the first that earned to the last`() {
+        val classes = listOf(
+            klass(1, 10, "2024-03-10T10:00:00Z", 1000),
+            klass(1, 10, "2026-03-10T10:00:00Z", 4000),
+        )
+        val trend = Reports.trend(classes, ReportPeriod(ReportPeriod.Kind.ALL, YearMonth.of(2026, 7)), zone)
+
+        assertEquals(Reports.Trend.Bucket.YEARS, trend.bucket)
+        // 2025 earned nothing but is still a bar: a fallow year is part of the shape.
+        assertEquals(listOf(2024, 2025, 2026), trend.bars.map { it.key })
+        assertEquals(listOf(Money(1000), Money.ZERO, Money(4000)), trend.bars.map { it.total })
+        assertEquals(2026, trend.peak?.key)
+    }
+
+    @Test
+    fun `a single month has nothing to compare itself with`() {
+        val classes = listOf(klass(1, 10, "2026-05-10T10:00:00Z", 5000))
+        val trend = Reports.trend(classes, ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth.of(2026, 5)), zone)
+
+        assertEquals(1, trend.bars.size)
+        assertTrue("one bar is already said by the total above it", trend.isEmpty)
+    }
+
+    @Test
+    fun `a period that earned nothing has no chart, however many buckets it spans`() {
+        val classes = listOf(klass(1, 10, "2026-05-10T10:00:00Z", 5000, ClassStatus.CANCELLED))
+        val trend = Reports.trend(classes, ReportPeriod(ReportPeriod.Kind.YEAR, YearMonth.of(2026, 5)), zone)
+
+        assertEquals(12, trend.bars.size)
+        assertNull(trend.peak)
+        assertTrue("twelve empty bars are not a chart", trend.isEmpty)
+        assertTrue(Reports.trend(emptyList(), ReportPeriod(ReportPeriod.Kind.ALL, YearMonth.of(2026, 5)), zone).isEmpty)
+    }
+
+    /** The chart is drawn under the total, so it may never count something the total does not. */
+    @Test
+    fun `the trend adds up to the period's income`() {
+        val classes = listOf(
+            klass(1, 10, "2026-02-10T10:00:00Z", 5000),
+            klass(2, 10, "2026-11-11T18:00:00Z", 2000, groupId = 7),
+            klass(1, 10, "2025-02-10T10:00:00Z", 8000), // last year: in neither
+        )
+        val period = ReportPeriod(ReportPeriod.Kind.YEAR, YearMonth.of(2026, 1))
+        val trend = Reports.trend(classes, period, zone)
+
+        assertEquals(
+            Reports.totalIncome(period.filter(classes, zone)),
+            trend.bars.fold(Money.ZERO) { a, b -> a + b.total },
+        )
     }
 
     @Test

@@ -66,6 +66,11 @@ flowchart TB
 - **Status**: `scheduled → completed | cancelled`, with corrections. Auto-completes once the end time
   passes (opt-in). Cancelling voids the charge — there is no "missed" status.
 - **Reports cover active students only**, so archiving hides a debt — the app warns first.
+- **A report is read inside a period** (`domain/ReportPeriod`): a month, a year, or all time, opening on
+  the **year in progress** — an all-time total stops answering "how am I doing?" as soon as there is a
+  second year of history. Every income number on the screen means that one slice at once. **Debts are
+  the deliberate exception**: a balance is charges minus payments over a student's whole history, so
+  clipping the charges to a year while the payments stay whole would invent credit. The section says so.
 
 ### Lessons
 
@@ -102,6 +107,9 @@ flowchart TB
   class therefore leaves its session by construction. Statuses still apply per class, so a lesson
   whose members were corrected one at a time reads «Разные» — reachable now only through old data or
   the repository, since the schedule changes a lesson's status as a whole.
+- **A group earns a report line of its own** (`Reports.incomeByGroup`), which no other breakdown can
+  give: a member's line mixes their group lessons with the individual ones they also take, so only the
+  group's own total answers whether running it is worth the evening.
 - Groups are **archive-only once they have lessons**. A group lesson mirrors as **one calendar event
   per member** (each keeps their own invite), while in-app **reminders are per lesson**.
 
@@ -200,6 +208,16 @@ flowchart TB
   mixes them, at two different rates — names the group each lesson was one of, and offers counted chips
   when the student is taught both ways. Reports carry an income split by kind, the one question the
   per-student and per-subject lines cannot answer.
+- **A report draws a number only where the shape says something the number does not**, and stays plain
+  text otherwise — a picture on every row is wallpaper, not a chart. The period is pinned above the
+  report, because it is what everything below means. Then: a **column chart** where the order is *time*
+  (buckets one step finer than the period — a year draws its months, all time its years, a single month
+  nothing); **one stacked bar** where two parts make the whole (individual vs group), since the question
+  is how the whole divides; **ranked bars** where rows are compared with each other, each scaled to the
+  *largest* row and dropped when a section has only one; **plain text** for totals, counts, per-month
+  amounts and debts — a debt is money to collect, not a proportion. A percentage is printed only where
+  the rows genuinely partition the income (so not for groups, and not for debts), is integer arithmetic
+  on kopecks, and is **not** forced to add up to 100.
 - **Leaving a filled-in form asks first** (`ui/common/UnsavedChanges`). `leaveIntent(dirty, canSave)`
   picks the question: a complete form is offered «Сохранить / Не сохранять», an incomplete one only
   «Не сохранять / Отмена», an untouched one nothing. What counts as *dirty* differs per form on purpose

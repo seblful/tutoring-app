@@ -161,4 +161,37 @@ class TaughtTest {
         assertEquals(2, totals.lessons)
         assertEquals(120, totals.minutes)
     }
+
+    /**
+     * The reports screen's headline count. Each half must be counted by its own rule: three members
+     * in one room is one lesson of the tutor's, two students on separate hours is two.
+     */
+    @Test
+    fun `overall counts a group lesson once and every individual class on its own`() {
+        val evening = start.plusSeconds(7_200)
+        val totals = Taught.overall(
+            listOf(
+                klass(1, studentId = 1, minutes = 60),
+                klass(2, studentId = 2, at = evening, minutes = 45),
+                klass(3, studentId = 3, at = evening, minutes = 90, groupId = 7),
+                klass(4, studentId = 4, at = evening, minutes = 90, groupId = 7),
+                klass(5, studentId = 5, at = evening, minutes = 90, groupId = 7),
+            )
+        )
+
+        assertEquals("two individual lessons plus one group lesson", 3, totals.lessons)
+        // The tutor's own hours: 60 + 45 + the group's single 90, not three times 90.
+        assertEquals(195, totals.minutes)
+        // Money is the other way round — every member owes their share, so all five charges count.
+        assertEquals(Money.ofMajor(150), totals.earned)
+    }
+
+    @Test
+    fun `overall on one kind alone agrees with that kind's own rule`() {
+        val individual = listOf(klass(1, studentId = 1), klass(2, studentId = 2))
+        val group = listOf(klass(3, studentId = 1, groupId = 7), klass(4, studentId = 2, groupId = 7))
+
+        assertEquals(Taught.byStudent(individual), Taught.overall(individual))
+        assertEquals(Taught.byGroup(group), Taught.overall(group))
+    }
 }
