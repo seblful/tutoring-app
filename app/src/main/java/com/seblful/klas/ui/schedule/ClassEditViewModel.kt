@@ -306,7 +306,7 @@ class ClassEditViewModel @Inject constructor(
     private val subjectsRepo: SubjectRepository,
     private val enrollment: EnrollmentRepository,
     private val settingsRepo: SettingsRepository,
-    @ApplicationScope private val appScope: CoroutineScope,
+    @param:ApplicationScope private val appScope: CoroutineScope,
 ) : ViewModel() {
 
     private val zone: ZoneId = ZoneId.systemDefault()

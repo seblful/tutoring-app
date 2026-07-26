@@ -4,6 +4,7 @@ import com.seblful.klas.data.local.ClassDao
 import com.seblful.klas.data.local.GroupDao
 import com.seblful.klas.data.local.GroupMemberCrossRef
 import com.seblful.klas.data.local.StudentDao
+import com.seblful.klas.data.local.Transactor
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
 import com.seblful.klas.domain.model.Group
@@ -34,6 +35,7 @@ class GroupRepository @Inject constructor(
     private val classDao: ClassDao,
     private val studentDao: StudentDao,
     private val rateHistory: RateHistoryRepository,
+    private val transactor: Transactor,
 ) {
     fun observeActive(): Flow<List<Group>> =
         dao.observeActive().map { list -> NameOrder.sorted(list.map { it.toDomain() }) { it.name } }
@@ -65,24 +67,32 @@ class GroupRepository @Inject constructor(
      *
      * Dropping a member only stops *future* bookings from including them; their past classes keep
      * their group id, so a group lesson someone left still reads as the group lesson it was.
+     *
+     * All of it is **one transaction** — the group row, its rate log entry, and every roster link
+     * added or removed. A group is saved *with* a roster, which is the whole reason this is the only
+     * writer of membership; a save that stopped between the two would leave the half-roster nobody
+     * asked for, and it is the members' classes that get billed.
      */
     suspend fun save(group: Group, memberIds: Set<Long>): Long {
-        // Read before writing: the stored rate is what the new one is a change *from*.
+        // Both reads sit outside the transaction: neither depends on anything written inside it, and
+        // the eligibility read in particular hits another table for a decision, not for a row to write.
         val previousRate = dao.getById(group.id)?.let { Money(it.priceMinor) }
-        // Room's @Upsert returns the new rowid when it inserts, but -1 when it updated an existing
-        // row instead. Trusting it blindly on an edit made every member insert reference group -1
-        // and fail the group_members foreign key, so fall back to the id we were handed.
-        val rowId = dao.upsert(group.toEntity())
-        val id = if (rowId == -1L) group.id else rowId
-        // Logged after the upsert, so the row the log's foreign key points at already exists — and
-        // only when the amount moved, since a rename or a roster edit comes through here too
-        // (RateHistoryRepository.record drops the no-op).
-        rateHistory.record(RateOwner.GroupRate(id), from = previousRate, to = group.price)
         val wanted = eligible(group, memberIds)
-        val current = dao.getMemberIds(id).toSet()
-        (wanted - current).forEach { dao.addMember(GroupMemberCrossRef(id, it)) }
-        (current - wanted).forEach { dao.removeMember(id, it) }
-        return id
+        return transactor.transaction {
+            // Room's @Upsert returns the new rowid when it inserts, but -1 when it updated an existing
+            // row instead. Trusting it blindly on an edit made every member insert reference group -1
+            // and fail the group_members foreign key, so fall back to the id we were handed.
+            val rowId = dao.upsert(group.toEntity())
+            val id = if (rowId == -1L) group.id else rowId
+            // Logged after the upsert, so the row the log's foreign key points at already exists — and
+            // only when the amount moved, since a rename or a roster edit comes through here too
+            // (RateHistoryRepository.record drops the no-op).
+            rateHistory.record(RateOwner.GroupRate(id), from = previousRate, to = group.price)
+            val current = dao.getMemberIds(id).toSet()
+            (wanted - current).forEach { dao.addMember(GroupMemberCrossRef(id, it)) }
+            (current - wanted).forEach { dao.removeMember(id, it) }
+            id
+        }
     }
 
     /**

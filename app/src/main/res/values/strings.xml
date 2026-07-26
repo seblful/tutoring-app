@@ -58,7 +58,6 @@
     <string name="class_subject_label">Предмет</string>
     <string name="class_no_subjects_for_student">У ученика нет предметов с ценой. Укажите цену в карточке ученика.</string>
     <string name="class_date_label">Дата</string>
-    <string name="class_time_label">Время</string>
     <string name="class_time_from_label">Начало</string>
     <string name="class_time_to_label">Окончание</string>
     <string name="class_time_range_invalid">Окончание должно быть позже начала</string>
@@ -66,7 +65,6 @@
     <string name="class_time_conflict">Это время занято: %1$s, %2$s</string>
     <!-- Shown when the slot was taken between the form opening and the save. -->
     <string name="class_save_refused_time_taken">Это время уже занято — выберите другое</string>
-    <string name="class_duration_label">Длительность, мин</string>
     <string name="class_location_label">Место</string>
     <string name="class_mode_in_person">Очно</string>
     <string name="class_mode_remote">Удалённо</string>
@@ -125,7 +123,6 @@
     <string name="student_name_label">Имя</string>
     <string name="student_phone_label">Телефон</string>
     <string name="student_email_label">Email</string>
-    <string name="student_email_hint">Для напоминаний на почту перед занятием</string>
     <string name="student_note_label">Заметка</string>
     <string name="student_form_subjects_title">Предметы и цены</string>
     <string name="student_form_subjects_required">Выберите хотя бы один предмет и укажите цену</string>

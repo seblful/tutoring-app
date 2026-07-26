@@ -33,7 +33,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -197,7 +197,7 @@ fun StudentDetailScreen(
 
             // Pinned, so the tab bar stays reachable however long the list under it runs.
             stickyHeader(key = StudentDetailKeys.TABS) {
-                TabRow(
+                SecondaryTabRow(
                     selectedTabIndex = tab.ordinal,
                     modifier = Modifier.background(MaterialTheme.colorScheme.surface),
                 ) {

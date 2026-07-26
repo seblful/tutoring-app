@@ -15,7 +15,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class AndroidCalendarPermission @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) : CalendarPermission {
 
     override fun isGranted(): Boolean = REQUIRED.all { granted(it) }

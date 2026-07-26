@@ -20,16 +20,39 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import java.time.Instant
 
+/**
+ * How the two text-stored enums come back, and what happens when the text is not one of their names.
+ *
+ * A column holding an enum's `name` is a column that can hold something else — a hand-edited database
+ * is the only route left now that the backup import checks its rows (`BackupIntegrity`), but the read
+ * path still has to answer. It runs inside the `Flow`s every screen collects, so *throwing* here does
+ * not report an error to anybody: it kills the collector, and the screen simply never draws.
+ *
+ * So the two answers differ, by whether the column carries money:
+ *
+ * - **A mode does not.** It is a label and the calendar event's location, so an unreadable one falls
+ *   back to [ClassMode.IN_PERSON] and the app carries on. One lesson reads «Очно» when it was remote,
+ *   which is a wrong word on a screen rather than a screen that will not open.
+ * - **A status does.** `isBillable` is what makes a lesson count as income, so guessing would move
+ *   money: `SCHEDULED` un-bills a lesson that earned, `COMPLETED` invents one that did not. There is no
+ *   safe fallback, so this one fails — loudly and namedly, which is the best available outcome for a
+ *   row that should be unreachable.
+ */
+private fun modeOf(stored: String): ClassMode = ClassMode.parse(stored) ?: ClassMode.IN_PERSON
+
+private fun statusOf(stored: String, classId: Long): ClassStatus =
+    ClassStatus.parse(stored) ?: error("Class $classId has an unreadable status \"$stored\"")
+
 fun SubjectEntity.toDomain() = Subject(id = id, name = name)
 fun Subject.toEntity() = SubjectEntity(id = id, name = name)
 
 fun StudentEntity.toDomain() =
-    Student(id = id, name = name, phone = phone, email = email, note = note, defaultMode = ClassMode.valueOf(defaultMode), archived = archived)
+    Student(id = id, name = name, phone = phone, email = email, note = note, defaultMode = modeOf(defaultMode), archived = archived)
 fun Student.toEntity() =
     StudentEntity(id = id, name = name, phone = phone, email = email, note = note, defaultMode = defaultMode.name, archived = archived)
 
 fun GroupEntity.toDomain() =
-    Group(id = id, name = name, note = note, price = Money(priceMinor), subjectId = subjectId, defaultMode = ClassMode.valueOf(defaultMode), archived = archived)
+    Group(id = id, name = name, note = note, price = Money(priceMinor), subjectId = subjectId, defaultMode = modeOf(defaultMode), archived = archived)
 fun Group.toEntity() =
     GroupEntity(id = id, name = name, note = note, priceMinor = price.minor, subjectId = subjectId, defaultMode = defaultMode.name, archived = archived)
 
@@ -78,10 +101,10 @@ fun ClassEntity.toDomain() = TutoringClass(
     start = Instant.ofEpochMilli(startMillis),
     durationMinutes = durationMinutes,
     price = Money(priceMinor),
-    status = ClassStatus.valueOf(status),
+    status = statusOf(status, id),
     charge = Money(chargeMinor),
     groupId = groupId,
-    mode = ClassMode.valueOf(mode),
+    mode = modeOf(mode),
     calendarEventId = calendarEventId,
 )
 

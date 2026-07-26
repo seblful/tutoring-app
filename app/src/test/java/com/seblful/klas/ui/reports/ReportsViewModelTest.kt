@@ -309,4 +309,48 @@ class ReportsViewModelTest {
         assertFalse(vm.state.value.hasData)
         assertTrue(vm.state.value.noIncome)
     }
+
+    /**
+     * Every line on the report is labelled — which is the symptom the typed breakdown keys exist to
+     * make impossible.
+     *
+     * The three breakdowns are the same shape, and each is paired by hand with one of three equally
+     * shaped tables of names. Pairing two of them wrongly was not a type error, and it did not fail
+     * either: the lookup simply missed, `orEmpty()` turned the miss into `""`, and the report drew a
+     * real amount against a blank row. Typed ids (`model/Ids.kt`) stop it compiling; this asserts the
+     * result the tutor would have seen, so the guarantee is checked from the outside as well.
+     */
+    @Test
+    fun `every breakdown line carries a name, in all four sections at once`() = runTest(mainRule.dispatcher) {
+        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
+        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val group = env.groupDao.upsert(GroupEntity(name = "11 «А»"))
+        // An individual lesson, a group lesson for two, and a debt — so all four sections have rows.
+        completed(ann, algebra, at(thisYear, 5), 60)
+        completed(ann, algebra, at(thisYear, 6), 20, groupId = group)
+        completed(bob, algebra, at(thisYear, 6), 20, groupId = group)
+        env.paymentDao.insert(
+            com.seblful.klas.data.local.PaymentEntity(
+                studentId = ann, dateMillis = at(thisYear, 7), amountMinor = 1000,
+            ),
+        )
+
+        val vm = vm()
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+        val state = vm.state.value
+
+        assertTrue("the fixture fills every section", state.byStudent.isNotEmpty())
+        assertTrue(state.bySubject.isNotEmpty())
+        assertTrue(state.byGroup.isNotEmpty())
+        assertTrue(state.debts.isNotEmpty())
+        val unlabelled = (state.byStudent + state.bySubject + state.byGroup + state.debts)
+            .filter { it.label.isBlank() }
+        assertEquals("a blank label means a breakdown met the wrong names", emptyList<Any>(), unlabelled)
+        // And the names really are the right ones, not merely non-blank.
+        assertEquals(listOf("Алгебра"), state.bySubject.map { it.label })
+        assertEquals(listOf("11 «А»"), state.byGroup.map { it.label })
+        assertEquals(setOf("Аня", "Борис"), state.byStudent.map { it.label }.toSet())
+    }
 }

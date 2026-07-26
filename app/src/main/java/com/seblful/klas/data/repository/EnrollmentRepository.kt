@@ -4,6 +4,7 @@ import com.seblful.klas.data.local.ClassDao
 import com.seblful.klas.data.local.PriceDao
 import com.seblful.klas.data.local.StudentDao
 import com.seblful.klas.data.local.StudentSubjectCrossRef
+import com.seblful.klas.data.local.Transactor
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
 import com.seblful.klas.domain.model.Money
@@ -26,8 +27,12 @@ import javax.inject.Singleton
  * history can't be missed by a caller that changed a price and forgot to say so (see
  * [RateHistoryRepository]).
  *
- * Mutations are sequenced, not wrapped in a DB transaction: the app is single-user and offline, and
- * this matches the prior behaviour. The win is one home for the rule, not cross-table atomicity.
+ * Every mutation below is **one transaction**, because each of them spans three tables —
+ * `student_subjects`, `prices` and `price_history` — and the invariant this class exists to hold is
+ * precisely that they agree. A failure between the link and the price is not a lost edit but a
+ * *broken* one: a subject the student is listed as taking, at no price, which the booking form then
+ * offers and which no completed class could ever be billed at. Being single-user does not help here —
+ * the writes are sequential either way, and what a transaction rules out is stopping halfway.
  */
 @Singleton
 class EnrollmentRepository @Inject constructor(
@@ -35,6 +40,7 @@ class EnrollmentRepository @Inject constructor(
     private val priceDao: PriceDao,
     private val classDao: ClassDao,
     private val rateHistory: RateHistoryRepository,
+    private val transactor: Transactor,
 ) {
     // ---- Reads ---------------------------------------------------------------------------------
     // Prices are read here rather than from a repository of their own. There was one, and every
@@ -58,10 +64,15 @@ class EnrollmentRepository @Inject constructor(
         data object HasClasses : Unenroll
     }
 
-    /** Adds [subjectId] to [studentId] at [price] — links it and prices it together. */
+    /**
+     * Adds [subjectId] to [studentId] at [price] — links it and prices it together, in **one**
+     * transaction, which is what "together" has to mean to be worth saying.
+     */
     suspend fun enroll(studentId: Long, subjectId: Long, price: Money) {
-        studentDao.addSubjectLink(StudentSubjectCrossRef(studentId, subjectId))
-        record(studentId, subjectId, price)
+        transactor.transaction {
+            studentDao.addSubjectLink(StudentSubjectCrossRef(studentId, subjectId))
+            record(studentId, subjectId, price)
+        }
     }
 
     /**
@@ -71,33 +82,47 @@ class EnrollmentRepository @Inject constructor(
      * subject — which is also why dropping the log here is safe (nothing it describes ever billed).
      */
     suspend fun unenroll(studentId: Long, subjectId: Long): Unenroll {
+        // The count is read outside the transaction on purpose: it is the *decision* whether to write
+        // at all, and a refusal writes nothing there is anything to roll back.
         if (classDao.countForStudentSubject(studentId, subjectId) > 0) return Unenroll.HasClasses
-        studentDao.removeSubjectLink(studentId, subjectId)
-        priceDao.delete(studentId, subjectId)
-        rateHistory.forget(RateOwner.StudentSubject(studentId, subjectId))
+        transactor.transaction {
+            studentDao.removeSubjectLink(studentId, subjectId)
+            priceDao.delete(studentId, subjectId)
+            rateHistory.forget(RateOwner.StudentSubject(studentId, subjectId))
+        }
         return Unenroll.Ok
     }
 
-    /** Updates the price of a subject the student is already enrolled in, recording the change. */
+    /**
+     * Updates the price of a subject the student is already enrolled in, recording the change. One
+     * transaction: the new price and the log entry saying what it was are the same fact written twice,
+     * so a rate that changed without being logged is exactly the history the log exists to prevent.
+     */
     suspend fun reprice(studentId: Long, subjectId: Long, price: Money) {
-        record(studentId, subjectId, price)
+        transactor.transaction { record(studentId, subjectId, price) }
     }
 
     /**
      * Replaces a student's enrollments wholesale with [pricedSubjects] (subjectId → price). Used at
      * creation (the add-student form and onboarding): links the chosen subjects, sets each price,
      * and drops any subject — link and price together — no longer present, keeping the two in step.
+     *
+     * The widest write here, and so the one that most needs to be **one** transaction: a save that
+     * added three subjects and stopped after the second would leave the student taking a subject at no
+     * price, and the tutor with no way to tell which of the three it was.
      */
     suspend fun setEnrollments(studentId: Long, pricedSubjects: Map<Long, Money>) {
         val current = studentDao.getSubjectIds(studentId).toSet()
         val target = pricedSubjects.keys
-        (target - current).forEach { studentDao.addSubjectLink(StudentSubjectCrossRef(studentId, it)) }
-        (current - target).forEach {
-            studentDao.removeSubjectLink(studentId, it)
-            priceDao.delete(studentId, it)
-            rateHistory.forget(RateOwner.StudentSubject(studentId, it))
+        transactor.transaction {
+            (target - current).forEach { studentDao.addSubjectLink(StudentSubjectCrossRef(studentId, it)) }
+            (current - target).forEach {
+                studentDao.removeSubjectLink(studentId, it)
+                priceDao.delete(studentId, it)
+                rateHistory.forget(RateOwner.StudentSubject(studentId, it))
+            }
+            pricedSubjects.forEach { (subjectId, price) -> record(studentId, subjectId, price) }
         }
-        pricedSubjects.forEach { (subjectId, price) -> record(studentId, subjectId, price) }
     }
 
     /**
@@ -106,6 +131,10 @@ class EnrollmentRepository @Inject constructor(
      * [RateHistoryRepository.record], which drops the write when the rate did not actually move: this
      * method is called with an unchanged amount on every student-form save, and a log full of
      * "25 → 25" would bury the changes the tutor came to read.
+     *
+     * **The caller owns the transaction.** Every public mutation above opens one, so this deliberately
+     * does not: opening a second inside them would nest for no gain, and the two writes it makes are
+     * only ever part of a larger edit that has to land whole anyway.
      */
     private suspend fun record(studentId: Long, subjectId: Long, price: Money) {
         val previous = priceDao.get(studentId, subjectId)?.let { Money(it.amountMinor) }

@@ -4,6 +4,11 @@
   locked phone is the normal state of the one device this project is tested on (there is no emulator),
   where the tests then fail with "No compose hierarchies found in the app". Showing it over the
   keyguard is enough to let them run. Debug-only, and only ever this test host activity.
+
+  Both attributes need API 27, above this app's minSdk of 24 — which lint points out and which does not
+  matter: an older device simply ignores them, and what they exist for is the one modern phone the
+  instrumented tests are run against. Suppressed rather than gated, since there is no older-device
+  behaviour to arrange.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
@@ -12,6 +17,7 @@
             android:name="androidx.activity.ComponentActivity"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
+            tools:ignore="UnusedAttribute"
             tools:node="merge" />
     </application>
 </manifest>

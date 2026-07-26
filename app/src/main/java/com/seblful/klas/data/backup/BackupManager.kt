@@ -58,6 +58,11 @@ class BackupManager @Inject constructor(
                 supported = BackupData.CURRENT_VERSION,
             )
         }
+        // Both refusals happen before anything is deleted. The version says whether this build
+        // understands the *format*; the integrity check says whether it can read the *rows* — which
+        // matters because the rows go in verbatim and are only interpreted later, on the read path.
+        // See [BackupIntegrity].
+        BackupIntegrity.check(data)
         transactor.transaction {
             // Children first, then parents, to respect foreign keys.
             payments.deleteAll()

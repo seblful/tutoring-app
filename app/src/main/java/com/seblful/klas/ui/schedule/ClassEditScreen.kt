@@ -32,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -94,7 +95,7 @@ fun ClassEditScreen(
     // Unticking a member whose class already billed deletes that class and the income with it, so the
     // save asks first — the same warning deleting a completed lesson owes. Held as a count because
     // that is what the question says; zero means there is nothing to ask about.
-    var confirmingDrops by remember { mutableStateOf(0) }
+    var confirmingDrops by remember { mutableIntStateOf(0) }
     fun requestSave() {
         if (state.billedDrops > 0) confirmingDrops = state.billedDrops else viewModel.save(onBack)
     }

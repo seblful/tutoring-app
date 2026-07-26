@@ -4,6 +4,7 @@ import com.seblful.klas.domain.model.ClassStatus
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 
@@ -137,10 +138,41 @@ class SchedulingTest {
         assertEquals(3, clashes.single().size)
     }
 
+    /**
+     * A slot of no length is now refused outright, rather than tolerated and asked about.
+     *
+     * This test used to pin the tolerant behaviour — a zero-length slot inside a lesson did report the
+     * clash, so the rule looked total. It wasn't: `overlaps` needs `other.start < end`, and for a
+     * zero-length slot `end == start`, so the same query placed at a lesson's *own* start instant found
+     * nothing. The rule held mid-hour and failed open at the edge, which is the direction that lets a
+     * lesson be booked over one already there. There is nothing in the app that wants a zero-length
+     * slot, so it stopped being a value that can be made.
+     */
     @Test
-    fun `a zero-length slot cannot be squeezed between lessons`() {
-        // The form refuses a non-positive range before this point; pinned so the rule stays total.
-        val instant = Scheduling.Slot(Instant.parse("2026-09-01T10:30:00Z"), 0)
-        assertEquals(listOf(1L), Scheduling.conflicts(instant, listOf(klass(1, "2026-09-01T10:00:00Z"))).map { it.first.id })
+    fun `a slot of no length cannot be built at all`() {
+        val zero = runCatching { Scheduling.Slot(Instant.parse("2026-09-01T10:30:00Z"), 0) }
+        val negative = runCatching { Scheduling.Slot(Instant.parse("2026-09-01T10:30:00Z"), -30) }
+
+        assertTrue("zero is refused", zero.exceptionOrNull() is IllegalArgumentException)
+        assertTrue("so is an inverted span", negative.exceptionOrNull() is IllegalArgumentException)
+    }
+
+    /**
+     * The row that should not exist, met on the read path: a stored class of no length is skipped by
+     * the conflict scan rather than allowed to throw. One malformed row must not stop the overlap
+     * check being made for every other lesson — which is what asking `slotOf` about it would do,
+     * inside the flow a booking form collects.
+     */
+    @Test
+    fun `a stored class of no length is skipped rather than throwing`() {
+        val existing = listOf(
+            klass(1, "2026-09-01T10:00:00Z").copy(durationMinutes = 0),
+            klass(2, "2026-09-01T10:30:00Z"),
+        )
+
+        val clashes = Scheduling.conflicts(tenToEleven, existing)
+
+        // The good row is still found; the bad one is simply not in anybody's way.
+        assertEquals(listOf(2L), clashes.map { it.first.id })
     }
 }

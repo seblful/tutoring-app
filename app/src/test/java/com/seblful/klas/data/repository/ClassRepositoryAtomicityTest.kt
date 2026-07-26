@@ -64,10 +64,13 @@ class ClassRepositoryAtomicityTest {
         val f = Fixture()
         f.seed(groupRate)
         val transactor = f.env.transactor
+        // Seeding the group is a transaction of its own now (see `GroupRepositoryAtomicityTest`), so
+        // this counts what the booking added rather than what the whole test did.
+        val before = transactor.count
 
         f.book(listOf(f.ann, f.bob, f.cleo))
 
-        assertEquals("three rows, one transaction", 1, transactor.count)
+        assertEquals("three rows, one transaction", 1, transactor.count - before)
         assertEquals("no nesting", 1, transactor.maxDepth)
         assertEquals("nothing left open", 0, transactor.depth)
     }

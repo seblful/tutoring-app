@@ -81,9 +81,16 @@ object ClassRules {
     /**
      * The amount billed for a lesson of [durationMinutes] at [hourlyRate], rounded to the nearest
      * kopeck (half up). E.g. 30/h for 90 min → 45; for 30 min → 15.
+     *
+     * Floor division, not Kotlin's `/`. `/` truncates towards zero, which rounds *up* in magnitude
+     * below zero and so is only half-up while the rate is positive — a credit of −0,005 would have
+     * come back as −0,01 rather than −0,00, and the documented rule would have quietly meant two
+     * different things either side of zero. A negative rate should not reach here at all (the money
+     * inputs refuse one), which is exactly why the arithmetic should be right rather than defended:
+     * this is the one line that turns a rate into money owed.
      */
     fun chargeFor(hourlyRate: Money, durationMinutes: Int): Money =
-        Money((hourlyRate.minor * durationMinutes + 30) / 60)
+        Money(Math.floorDiv(hourlyRate.minor * durationMinutes + 30, 60L))
 
     /**
      * Reschedules a class to [newStart].

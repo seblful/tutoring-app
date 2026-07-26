@@ -157,6 +157,8 @@ class ClassRepository @Inject constructor(
      * or price unrepresentable.
      *
      * Refuses an empty roster: a lesson with nobody in it would be an invisible row that bills no one.
+     * Refuses a non-positive length for the reason `Scheduling.Slot` gives — such a lesson would occupy
+     * no time, and so would stand in no other lesson's way.
      */
     suspend fun book(
         subjectId: Long,
@@ -168,6 +170,7 @@ class ClassRepository @Inject constructor(
         groupId: Long? = null,
     ): List<Long> {
         require(studentIds.isNotEmpty()) { "A lesson needs at least one student" }
+        require(durationMinutes > 0) { "A lesson lasts a positive number of minutes, not $durationMinutes" }
         // Every member's row in one transaction: a group lesson is either wholly booked or not
         // booked, never a partial roster nobody asked for.
         val booked = transactor.transaction {

@@ -24,4 +24,19 @@ enum class ClassStatus {
      * back; a completed one did, so nothing else can be recorded as happening then.
      */
     val occupiesTime: Boolean get() = this != CANCELLED
+
+    companion object {
+        /**
+         * The status stored as [stored], or **null** when that is not one of these names.
+         *
+         * A total function, unlike `valueOf`, because the caller is always reading somebody else's
+         * text: the `classes.status` column, or a backup file's copy of it. `valueOf` throws, and it
+         * throws on the *read* path — inside a `Flow` the schedule collects — so one unrecognized row
+         * used to take down every screen that lists a lesson, permanently and with no way back short of
+         * clearing the app's data. Returning null lets each caller decide, and there are only two
+         * callers: the import refuses the file (`BackupIntegrity`), and the mapper fails loudly on a
+         * row the import can no longer have let through.
+         */
+        fun parse(stored: String): ClassStatus? = entries.firstOrNull { it.name == stored }
+    }
 }

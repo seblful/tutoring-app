@@ -92,7 +92,7 @@ class ScheduleViewModel @Inject constructor(
     private val students: StudentRepository,
     subjects: SubjectRepository,
     private val groups: GroupRepository,
-    @ApplicationScope private val appScope: CoroutineScope,
+    @param:ApplicationScope private val appScope: CoroutineScope,
 ) : ViewModel() {
 
     private val zone: ZoneId = ZoneId.systemDefault()

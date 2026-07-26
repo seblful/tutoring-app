@@ -1,7 +1,10 @@
 package com.seblful.klas.domain
 
+import com.seblful.klas.domain.model.GroupId
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.StudentBalance
+import com.seblful.klas.domain.model.StudentId
+import com.seblful.klas.domain.model.SubjectId
 import com.seblful.klas.domain.model.TutoringClass
 import java.time.LocalDate
 import java.time.ZoneId
@@ -21,7 +24,7 @@ object Reports {
     data class MonthlyIncome(val monthKey: Int, val total: Money)
 
     /** A student's outstanding debt (only students who actually owe appear). */
-    data class Debt(val studentId: Long, val amount: Money)
+    data class Debt(val student: StudentId, val amount: Money)
 
     /** Income from one kind of teaching — see [incomeByKind]. */
     data class KindIncome(val kind: LessonKind, val total: Money)
@@ -85,12 +88,14 @@ object Reports {
         return when (val bounds = period.bounds) {
             // All time has no bound to enumerate, so the data sets it: first earning year to last.
             null -> {
-                val byYear = sumChargesBy(inPeriod) { it.start.atZone(zone).toLocalDate().year.toLong() }
-                val years = byYear.keys.map { it.toInt() }
+                // Keyed by the year itself: a bucket is not an id, and now that the sum is generic it
+                // no longer has to be widened to a Long and narrowed back to index the result.
+                val byYear = sumChargesBy(inPeriod) { it.start.atZone(zone).toLocalDate().year }
+                val years = byYear.keys
                 Trend(
                     bucket = Trend.Bucket.YEARS,
                     bars = if (years.isEmpty()) emptyList()
-                    else (years.min()..years.max()).map { Trend.Bar(it, byYear[it.toLong()] ?: Money.ZERO) },
+                    else (years.min()..years.max()).map { Trend.Bar(it, byYear[it] ?: Money.ZERO) },
                 )
             }
             else -> {
@@ -106,11 +111,15 @@ object Reports {
         }
     }
 
-    fun incomeByStudent(classes: List<TutoringClass>): Map<Long, Money> =
-        sumChargesBy(classes) { it.studentId }
+    // The three breakdowns below are keyed by *typed* ids rather than by `Long`. They are otherwise
+    // identical in shape, and the screen pairs each with its own table of names — see `model/Ids.kt`
+    // for what that used to allow, and why this is the one place in the app where ids carry a type.
 
-    fun incomeBySubject(classes: List<TutoringClass>): Map<Long, Money> =
-        sumChargesBy(classes) { it.subjectId }
+    fun incomeByStudent(classes: List<TutoringClass>): Map<StudentId, Money> =
+        sumChargesBy(classes) { StudentId(it.studentId) }
+
+    fun incomeBySubject(classes: List<TutoringClass>): Map<SubjectId, Money> =
+        sumChargesBy(classes) { SubjectId(it.subjectId) }
 
     /**
      * Completed-class income from each group's lessons, keyed by group.
@@ -122,9 +131,9 @@ object Reports {
      * own number, and «Доход по ученикам» cannot give it: a member's line mixes their group lessons
      * with the individual ones they also take.
      */
-    fun incomeByGroup(classes: List<TutoringClass>): Map<Long, Money> =
+    fun incomeByGroup(classes: List<TutoringClass>): Map<GroupId, Money> =
         // An individual class keys to null and is dropped, which is the whole filter.
-        sumChargesBy(classes) { it.groupId }
+        sumChargesBy(classes) { c -> c.groupId?.let { GroupId(it) } }
 
     /**
      * What share of [whole] [part] is, as a whole percent rounded half-up — 0 when there is no whole.
@@ -161,7 +170,7 @@ object Reports {
     /** Students with a positive balance (owe money), largest debt first. */
     fun debts(balances: List<StudentBalance>): List<Debt> =
         balances.filter { it.balance.minor > 0 }
-            .map { Debt(it.studentId, it.balance) }
+            .map { Debt(StudentId(it.studentId), it.balance) }
             .sortedByDescending { it.amount.minor }
 
     /** Sum of every positive balance — total money owed to the tutor (credits excluded). */
@@ -173,7 +182,7 @@ object Reports {
      * the class from the result — which is how [incomeByGroup] states its filter once, in the key it
      * groups by, rather than as a `filter` and a matching `!!` that have to be kept in step.
      */
-    private inline fun sumChargesBy(classes: List<TutoringClass>, key: (TutoringClass) -> Long?): Map<Long, Money> =
+    private inline fun <K> sumChargesBy(classes: List<TutoringClass>, key: (TutoringClass) -> K?): Map<K, Money> =
         classes.filter { it.status.isBillable }
             .mapNotNull { c -> key(c)?.let { it to c } }
             .groupBy({ it.first }, { it.second })

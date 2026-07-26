@@ -67,6 +67,25 @@ class ClassRulesTest {
         assertEquals(Money(2567), ClassRules.chargeFor(Money(2000), 77))
     }
 
+    /**
+     * Half-up means the same thing below zero, which `/` does not deliver: it truncates towards zero,
+     * so it rounds up in magnitude there. −2 kopecks an hour for half an hour is −1 kopeck exactly and
+     * must come back as −1; truncation gave 0, silently forgiving the kopeck.
+     *
+     * A negative rate is not something the money inputs accept, so this is about the arithmetic being
+     * right rather than about a case the tutor can reach — but it is the one line that turns a rate
+     * into money owed, and "half up" should not mean two different things either side of zero.
+     */
+    @Test
+    fun `chargeFor rounds half up below zero too, not towards zero`() {
+        assertEquals(Money(-1), ClassRules.chargeFor(Money(-2), 30))
+        // Exactly on a half: -1,5 kopecks rounds up to -1, in the same direction 1,5 rounds to 2.
+        assertEquals(Money(-1), ClassRules.chargeFor(Money(-3), 30))
+        assertEquals(Money(2), ClassRules.chargeFor(Money(3), 30))
+        // And the ordinary positive cases are untouched.
+        assertEquals(Money(1), ClassRules.chargeFor(Money(2), 30))
+    }
+
     @Test
     fun `each class bills its own booked price independently`() {
         val first = ClassRules.applyStatus(scheduled.copy(price = Money.ofMajor(50)), ClassStatus.COMPLETED)

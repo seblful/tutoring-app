@@ -2,6 +2,8 @@ package com.seblful.klas.domain
 
 import com.seblful.klas.domain.model.ClassStatus
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.StudentId
+import com.seblful.klas.domain.model.SubjectId
 import com.seblful.klas.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -73,8 +75,8 @@ class CompletedClassMutationReproTest {
 
         assertEquals(Money(4000), reassigned.charge)
         // Income credits the new owner at the new rate, and nothing is left under the old student.
-        assertEquals(Money(4000), Reports.incomeByStudent(listOf(reassigned))[2])
-        assertEquals(null, Reports.incomeByStudent(listOf(reassigned))[1])
-        assertEquals(Money(4000), Reports.incomeBySubject(listOf(reassigned))[99])
+        assertEquals(Money(4000), Reports.incomeByStudent(listOf(reassigned))[StudentId(2)])
+        assertEquals(null, Reports.incomeByStudent(listOf(reassigned))[StudentId(1)])
+        assertEquals(Money(4000), Reports.incomeBySubject(listOf(reassigned))[SubjectId(99)])
     }
 }

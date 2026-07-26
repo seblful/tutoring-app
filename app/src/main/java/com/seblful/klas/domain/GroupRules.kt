@@ -78,7 +78,13 @@ data class SessionEdit(
      * non-null value for a lesson of more than one class rather than trusting callers to know that.
      */
     val studentId: Long? = null,
-)
+) {
+    init {
+        // The same rule `Scheduling.Slot` states, at the other end of the write: this is what a lesson
+        // is re-billed from, so a non-positive length would also charge nothing for it.
+        require(durationMinutes > 0) { "A lesson lasts a positive number of minutes, not $durationMinutes" }
+    }
+}
 
 /**
  * What a lesson's roster change comes to: [dropped] are the classes of the members leaving it,

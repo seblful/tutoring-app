@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.domain.LessonKind
@@ -92,7 +92,7 @@ class LessonKindIconTest {
             val hasInk = (0 until pixels.width).any { inked(it, y) }
             if (hasInk && start == null) start = y
             if (!hasInk && start != null) {
-                runs += start!!..(y - 1)
+                runs += start..(y - 1)
                 start = null
             }
         }

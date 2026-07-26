@@ -35,10 +35,10 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps: billing, class/group rules, scheduling, calendar layout, reminders, reports, `Taught` (what a stat row counts), `LessonKind` (individual vs a group's), models, and the `ReminderScheduler` port. All JVM-tested. |
+| `domain/` | Pure Kotlin, no Android deps: billing, class/group rules, scheduling, calendar layout, reminders, reports, `Taught` (what a stat row counts), `LessonKind` (individual vs a group's), models (incl. the report-only id types, `model/Ids.kt`), and the `ReminderScheduler` port. All JVM-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`, `Migrations`, and the `Transactor` port. Entities are also `@Serializable`, for the backup. |
-| `data/repository/` | Entities ⇄ domain models, and where display **name ordering** is applied. Each repository owns one invariant end to end (see *Ownership* below). |
-| `data/backup/` | Whole-DB JSON snapshot: export, transactional replace-all import, and `BackupRestore` (everything a *restore* means beyond the rows). |
+| `data/repository/` | Entities ⇄ domain models, and where display **name ordering** is applied. Each repository owns one invariant end to end, and writes it in one transaction (see *Ownership* below). |
+| `data/backup/` | Whole-DB JSON snapshot: export, transactional replace-all import, `BackupIntegrity` (what a file must be readable as before any of it is written), and `BackupRestore` (everything a *restore* means beyond the rows). |
 | `calendar/` | `CalendarSync` + `CalendarPermission` ports and a `CalendarContract` adapter. |
 | `notifications/` | `Notifier` port + Android adapter, and `DueReminder` — what a fired reminder decides, kept out of the worker. |
 | `work/` | WorkManager workers + `WorkScheduler`, and `Maintenance` — what an upkeep pass decides, kept out of the worker. |
@@ -61,6 +61,17 @@ flowchart TB
 - `RateHistoryRepository` — what a *rate change* is, since two repositories set rates.
 - `SettingsRepository` — one `update { it.copy(...) }` rather than a setter per field.
 
+**A write that spans tables is one transaction, in all three of them.** `ClassRepository` came first
+because a torn *lesson* is the loudest version of it, but the argument was never about lessons: an
+`EnrollmentRepository` write touches `student_subjects`, `prices` and `price_history`, and
+`GroupRepository.save` writes the group, its rate log and every roster link. In each case the thing
+that could half-happen is exactly the invariant the class exists to hold — a subject the student takes
+at no price, a roster nobody asked for — so a failure partway is not a lost edit but a broken one.
+Being single-user does not help: the writes are sequential either way, and what a transaction rules
+out is stopping. Reads that only *decide* whether to write (the class count that refuses an
+un-enrollment, the eligibility check that narrows a roster) stay outside it, so a refusal costs no
+transaction and the write lock is held for less time.
+
 ---
 
 ## Key design decisions
@@ -81,8 +92,39 @@ flowchart TB
   the deliberate exception**: a balance is charges minus payments over a student's whole history, so
   clipping the charges to a year while the payments stay whole would invent credit. The section says so.
 
+### Reading back what was stored
+
+- **An enum's constant name is a persisted value.** `classes.status` and the three `mode` columns store
+  it as text, two DAO queries match `'SCHEDULED'` as a SQL literal, and three columns default to
+  `"IN_PERSON"` — so renaming a constant is a migration, and one that fails *silently in two different
+  ways*: old rows stop being readable, and the SQL literals stop matching, which reads as "nothing is
+  due" rather than as an error. `StoredEnumNamesTest` is the acknowledgement list that makes the rename
+  fail in front of whoever does it.
+- **Storage is parsed with a total function, never `valueOf`** (`ClassStatus.parse`, `ClassMode.parse`).
+  `valueOf` throws, and it throws on the *read* path inside a `Flow`, where a throw reports nothing to
+  anybody — it kills the collector and the screen simply never draws. What the mappers do with an
+  unreadable column then splits on whether it carries money: a **mode** falls back to `IN_PERSON`, since
+  the cost is one wrong word rather than a screen that won't open, while a **status** fails loudly,
+  because `isBillable` is what makes a lesson count as income and every guess moves money
+  (`SCHEDULED` un-bills what earned, `COMPLETED` invents what didn't).
+- **Ids carry a type in the report breakdowns, and only there** (`domain/model/Ids.kt`). The three
+  breakdowns are the same shape and each was paired by hand with one of three equally shaped tables of
+  names; a mismatch was not a type error and did not fail either, since the lookup missed and
+  `orEmpty()` drew a real amount against a blank label. Silence is what made it worth a type. Elsewhere
+  an id is a named argument to a function that takes one kind, so the entities, models, Room and the
+  backup format all keep plain `Long`.
+
 ### Lessons
 
+- **A lesson lasts a positive number of minutes**, insisted on by `Scheduling.Slot`. This is a rule
+  about the *overlap check*, not about tidiness: a zero-length slot has `end == start`, so it collides
+  with a lesson that strictly contains it (10:30 inside 10:00–11:00) but not with one starting at the
+  same instant, because the half-open comparison needs `other.start < end`. The one-tutor-one-lesson
+  rule therefore held mid-hour and failed **open** at the edge — the worse direction, since the form
+  still showed the time as free. The booking form already validated the range, but it is not the only
+  way in, so the state stopped being representable instead. Read paths meeting a stored row that
+  breaks it (`Scheduling.conflicts`) skip that row rather than throw: one bad row must not stop the
+  check being made for every other lesson.
 - **A lesson is the unit of change.** Every write takes a `ClassSession`: a group lesson's *n* classes,
   or one student's class as a session of one. Re-attributing a class to another student is expressible
   only for a session of one.
@@ -158,6 +200,15 @@ flowchart TB
   (missing tables come back empty, missing columns take their default), a **newer** one is refused —
   which is the reason the version exists. A restored file is reproduced as given; v7's seeding is
   deliberately not repeated on import.
+- **A backup is checked for readability before a row of it is written** (`data/backup/BackupIntegrity`).
+  The import writes rows verbatim — it never interprets them — while the text columns holding an enum
+  are only read back much later, in `data/Mappers.kt`, inside the `Flow`s the screens collect. So a file
+  carrying an unknown `status`, or a lesson of no length, used to import *successfully* and then break
+  the app: every read of that row threw, the schedule could not be drawn, and reopening never helped
+  because the bad row was now the saved data. The check runs **before** the transaction, so the reason
+  survives to be shown rather than being whatever the first bad row happened to throw. It covers
+  exactly the columns a read can *fail* on — a backup is allowed to be strange, just not unreadable;
+  referential integrity is left to the foreign keys.
 - **A refused backup says which refusal it was** (`data/backup/BackupFailure`): a file from a newer
   build (carrying both version numbers), a file that isn't a Klas backup, or a file that wouldn't open.
   One flat "failed" told the tutor to check a file that may have been perfectly fine — a copy from a
@@ -216,7 +267,7 @@ flowchart TB
   changed. The schedule's action sheet acts on the whole lesson (edit, move, status, delete) and
   deliberately lists no members: a menu for changing a lesson's status is not where a roster belongs.
 - **A student's and a group's card are tabbed, with the numbers on top** — a `StatRow` whose values
-  shrink to fit, then a sticky `TabRow` over one full-length list. A student's tabs are «Предметы |
+  shrink to fit, then a sticky `SecondaryTabRow` over one full-length list. A student's tabs are «Предметы |
   Занятия | Платежи»; a group's are «Ученики | Занятия» **only**, because a balance belongs to a student
   and spans all their lessons. Editing either sits behind the pencil, so the card can answer "how is
   this going?" rather than only "how do I change this?". A group's roster tab adds how many of its
@@ -305,12 +356,18 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
   found a missing port, not a reason to switch it on.
 - **Fixtures pin the clock, not `now()`.** Times built from `Instant.now()` fail for the time of day
   rather than the behaviour. Seed a fixed hour and pick days by excluding today.
-- Two tests are **tripwires against silent drift**, both deriving expectations from generated
-  artifacts: `BackupSchemaCoverageTest` (a new table must be carried or named device-local) and
-  `MappersTest` (a new column must be mapped). Both are acknowledgement lists. Two more guard
-  structure rather than data: one asserts the booking form leaves **no query open** once nothing
-  collects it (`WhileSubscribed` has to be true, not decorative), and one asserts a save is launched
-  into the application scope by cancelling that scope and finding nothing written.
+- Three tests are **tripwires against silent drift**, all deriving expectations from a real artifact
+  rather than restating them: `BackupSchemaCoverageTest` (a new table must be carried or named
+  device-local), `MappersTest` (a new column must be mapped) and `StoredEnumNamesTest` (a renamed enum
+  constant is a migration — it reads the DAO source, since `@Query` is not retained at runtime). All
+  three are acknowledgement lists. Two more guard structure rather than data: one asserts the booking
+  form leaves **no query open** once nothing collects it (`WhileSubscribed` has to be true, not
+  decorative), and one asserts a save is launched into the application scope by cancelling that scope
+  and finding nothing written.
+- **Atomicity is tested by counting transactions**, not by rolling back: the fake DAOs are in-memory
+  maps with no rollback to reproduce, so `RecordingTransactor` counts and nests them, and the tests
+  assert a multi-table write is **one** flat transaction and that a failed one mirrors nothing and
+  refreshes no reminders. Real rollback is only observable against Room and belongs in `androidTest`.
 - **CI** (`.github/workflows/ci.yml`) runs the unit suite, `lintDebug`, the debug APK and the
   *compilation* of the instrumented tests on every push and PR — a tripwire nobody runs is not a
   tripwire. The instrumented tests themselves still need a device.

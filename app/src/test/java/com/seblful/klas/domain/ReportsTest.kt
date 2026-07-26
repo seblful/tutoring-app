@@ -1,8 +1,11 @@
 package com.seblful.klas.domain
 
 import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.GroupId
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.StudentBalance
+import com.seblful.klas.domain.model.StudentId
+import com.seblful.klas.domain.model.SubjectId
 import com.seblful.klas.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -63,10 +66,10 @@ class ReportsTest {
             klass(1, 11, "2026-05-11T10:00:00Z", 3000),
             klass(2, 10, "2026-05-12T10:00:00Z", 4000),
         )
-        assertEquals(Money(8000), Reports.incomeByStudent(classes)[1])
-        assertEquals(Money(4000), Reports.incomeByStudent(classes)[2])
-        assertEquals(Money(9000), Reports.incomeBySubject(classes)[10])
-        assertEquals(Money(3000), Reports.incomeBySubject(classes)[11])
+        assertEquals(Money(8000), Reports.incomeByStudent(classes)[StudentId(1)])
+        assertEquals(Money(4000), Reports.incomeByStudent(classes)[StudentId(2)])
+        assertEquals(Money(9000), Reports.incomeBySubject(classes)[SubjectId(10)])
+        assertEquals(Money(3000), Reports.incomeBySubject(classes)[SubjectId(11)])
     }
 
     @Test
@@ -119,9 +122,13 @@ class ReportsTest {
         val byGroup = Reports.incomeByGroup(classes)
 
         // A group's line is the sum of its members' charges — the group set the rate, each owes a share.
-        assertEquals(Money(4000), byGroup[7])
-        assertEquals(Money(3000), byGroup[8])
-        assertEquals("individual lessons have no group to be counted under", setOf(7L, 8L), byGroup.keys)
+        assertEquals(Money(4000), byGroup[GroupId(7)])
+        assertEquals(Money(3000), byGroup[GroupId(8)])
+        assertEquals(
+            "individual lessons have no group to be counted under",
+            setOf(GroupId(7), GroupId(8)),
+            byGroup.keys,
+        )
     }
 
     @Test
@@ -224,7 +231,7 @@ class ReportsTest {
             StudentBalance(3, charged = Money(10000), paid = Money(1000)), // owes 9000
         )
         val debts = Reports.debts(balances)
-        assertEquals(listOf(3L, 1L), debts.map { it.studentId })
+        assertEquals(listOf(StudentId(3), StudentId(1)), debts.map { it.student })
         assertEquals(Money(9000), debts[0].amount)
         assertEquals(Money(12000), Reports.totalOutstanding(balances)) // 3000 + 9000, credit excluded
     }

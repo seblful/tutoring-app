@@ -37,17 +37,27 @@ sealed interface BackupFailure {
      */
     data object FileUnavailable : BackupFailure
 
-    /** The file was read, and is not a Klas backup: a different JSON, or a truncated one. */
+    /**
+     * The file was read, and is not a Klas backup this app can use: a different JSON, a truncated one,
+     * or one whose rows parse but cannot be read back (see [MalformedBackupException]).
+     */
     data object Malformed : BackupFailure
 
     companion object {
         /**
          * Which failure [error] is. A [SerializationException] means the bytes arrived and did not
-         * parse; anything else that isn't a version refusal means they never arrived, since by then
-         * the only remaining step is the document store's own I/O.
+         * parse, and a [MalformedBackupException] that they parsed into rows this build cannot read —
+         * the same thing to the tutor, whose file is unusable either way. Anything else that isn't a
+         * version refusal means they never arrived, since by then the only remaining step is the
+         * document store's own I/O.
+         *
+         * Note that [MalformedBackupException] has to be listed **before** any `IllegalArgumentException`
+         * arm would be: it is one, as is [UnsupportedBackupVersionException], so an arm on the
+         * supertype would swallow both.
          */
         fun of(error: Throwable): BackupFailure = when (error) {
             is UnsupportedBackupVersionException -> UnsupportedVersion(error.found, error.supported)
+            is MalformedBackupException -> Malformed
             is SerializationException -> Malformed
             else -> FileUnavailable
         }

@@ -1,7 +1,7 @@
 package com.seblful.klas.storage
 
 import android.content.Context
-import android.net.Uri
+import androidx.core.net.toUri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,14 +19,14 @@ class SafDocumentStore @Inject constructor(
 ) : DocumentStore {
 
     override suspend fun read(ref: DocumentRef): String = withContext(Dispatchers.IO) {
-        context.contentResolver.openInputStream(Uri.parse(ref.value))
+        context.contentResolver.openInputStream(ref.value.toUri())
             ?.use { it.readBytes().decodeToString() }
             ?: error("Cannot open input stream")
     }
 
     override suspend fun write(ref: DocumentRef, text: String) {
         withContext(Dispatchers.IO) {
-            context.contentResolver.openOutputStream(Uri.parse(ref.value))
+            context.contentResolver.openOutputStream(ref.value.toUri())
                 ?.use { it.write(text.toByteArray()) }
                 ?: error("Cannot open output stream")
         }

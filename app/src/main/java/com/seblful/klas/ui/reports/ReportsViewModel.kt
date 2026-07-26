@@ -13,10 +13,13 @@ import com.seblful.klas.domain.ReportPeriod
 import com.seblful.klas.domain.Reports
 import com.seblful.klas.domain.Taught
 import com.seblful.klas.domain.model.Group
+import com.seblful.klas.domain.model.GroupId
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Student
+import com.seblful.klas.domain.model.StudentId
 import com.seblful.klas.domain.model.Subject
+import com.seblful.klas.domain.model.SubjectId
 import com.seblful.klas.domain.model.TutoringClass
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -118,11 +121,14 @@ class ReportsViewModel @Inject constructor(
         val activeClasses = classes.filter { it.studentId in activeIds }
         val activePayments = payments.filter { it.studentId in activeIds }
 
-        val studentNames = activeStudents.associate { it.id to it.name }
-        val subjectNames = subjects.associate { it.id to it.name }
+        // Keyed by typed ids, so each table can only be handed to the breakdown it names. The three
+        // are otherwise interchangeable, and a mismatch drew a real amount against a blank label
+        // rather than failing — see `model/Ids.kt`.
+        val studentNames = activeStudents.associate { StudentId(it.id) to it.name }
+        val subjectNames = subjects.associate { SubjectId(it.id) to it.name }
         // Archived groups included: income a group already earned stays the tutor's, and a line
         // labelled by an id would be the only unreadable row on the screen.
-        val groupNames = groups.associate { it.id to it.name }
+        val groupNames = groups.associate { GroupId(it.id) to it.name }
 
         // A balance spans a student's whole history, so it is built from every class and payment —
         // clipping the charges to a period while the payments stay whole would invent credit.
@@ -151,7 +157,7 @@ class ReportsViewModel @Inject constructor(
             // No share either: what matters about a debt is the money and who owes it, and a
             // percentage of the arrears is not something to act on.
             debts = Reports.debts(balances).map {
-                LabeledAmount(label = studentNames[it.studentId].orEmpty(), amount = it.amount)
+                LabeledAmount(label = studentNames[it.student].orEmpty(), amount = it.amount)
             },
             totalOutstanding = outstanding,
         )
@@ -163,9 +169,9 @@ class ReportsViewModel @Inject constructor(
      * @param whole what these lines are parts of, or null when they are not parts of anything — see
      *   [LabeledAmount.percent].
      */
-    private fun Map<Long, Money>.toSortedLines(
+    private fun <K> Map<K, Money>.toSortedLines(
         whole: Money?,
-        nameOf: (Long) -> String?,
+        nameOf: (K) -> String?,
     ): List<LabeledAmount> =
         entries
             .filter { it.value.minor > 0 }
