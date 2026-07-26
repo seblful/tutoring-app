@@ -1,0 +1,69 @@
+package com.seblful.klas.testutil
+
+import java.io.File
+
+/**
+ * Finds the project's own files from inside a unit test.
+ *
+ * Three tripwires derive their expectations from a real build artifact rather than restating them,
+ * and so have to read one off disk: `StoredEnumNamesTest` reads the DAO source (`@Query` is not
+ * retained at runtime), `MigrationChainTest` reads `AppDatabase.kt` (`@Database` is `BINARY`-retained)
+ * and both it and `BackupSchemaCoverageTest` read the exported schema JSON. Each had grown its own
+ * copy of the walk-up-from-the-working-directory search — the same twenty lines three times, with
+ * three different failure messages and three places to fix when a path moves.
+ *
+ * The walk itself is the part worth having once: the working directory is the `app` module under
+ * Gradle but the repo root under some IDE run configurations, so a fixed relative path works in one
+ * and not the other.
+ */
+object ProjectFiles {
+
+    /** Where the package's sources live, relative to the module. */
+    const val SOURCE_ROOT = "src/main/java/com/seblful/klas"
+
+    /** A path relative to the `app` module, or null when it does not exist. */
+    fun moduleFileOrNull(relative: String): File? {
+        var dir: File? = File(System.getProperty("user.dir") ?: ".").absoluteFile
+        while (dir != null) {
+            listOf(File(dir, relative), File(dir, "app/$relative"))
+                .firstOrNull { it.exists() }
+                ?.let { return it }
+            dir = dir.parentFile
+        }
+        return null
+    }
+
+    /** A path relative to the `app` module. */
+    fun moduleFile(relative: String): File = moduleFileOrNull(relative)
+        ?: error("Could not find `$relative` from ${System.getProperty("user.dir")}")
+
+    /** A source file under [SOURCE_ROOT], e.g. `data/local/Daos.kt`, or null when absent. */
+    fun sourceFileOrNull(relative: String): File? = moduleFileOrNull("$SOURCE_ROOT/$relative")
+
+    /**
+     * A source file under [SOURCE_ROOT], e.g. `data/local/Daos.kt`. A test reading one is asserting
+     * something about the source text, so the failure names the file: if it moved, the test has to be
+     * pointed at wherever it now lives rather than quietly finding nothing.
+     */
+    fun sourceFile(relative: String): File = sourceFileOrNull(relative)
+        ?: error("Could not find `$SOURCE_ROOT/$relative` from ${System.getProperty("user.dir")}")
+
+    /**
+     * Every schema version Room has exported, mapped to its JSON. Keyed by the file name, which is
+     * the version — that is the whole naming convention Room uses under `schemas/`.
+     */
+    fun exportedSchemas(): Map<Int, File> {
+        val dir = moduleFileOrNull("schemas") ?: error("Could not find the exported schemas directory")
+        return dir.walkTopDown()
+            .filter { it.isFile && it.extension == "json" }
+            .mapNotNull { file -> file.nameWithoutExtension.toIntOrNull()?.let { it to file } }
+            .toMap()
+    }
+
+    /** The highest-versioned exported schema — the one describing the database as it stands. */
+    fun newestExportedSchema(): File {
+        val schemas = exportedSchemas()
+        val newest = schemas.keys.maxOrNull() ?: error("No exported schema JSON under `schemas/`")
+        return schemas.getValue(newest)
+    }
+}

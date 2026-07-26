@@ -4,6 +4,8 @@ import com.seblful.klas.data.local.SettingsDao
 import com.seblful.klas.data.local.SettingsEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -45,10 +47,24 @@ class SettingsRepository @Inject constructor(
      * Applies [transform] to the current settings and stores the result. Read-modify-write against
      * the single row, so a caller changes one field with `update { it.copy(currency = "RUB") }`
      * and leaves the rest alone.
+     *
+     * **Serialized, because the row is written whole.** The read and the write are two suspension
+     * points around one row, and the write carries every field — so two updates that overlap lose
+     * one: both read the same settings, both write their own copy of them, and the second copy has
+     * the first one's change reverted in it. It is not a hypothetical interleaving. The settings
+     * screen launches one coroutine per switch, so flipping two in quick succession is enough; and
+     * [SettingsViewModel.setCalendarSyncEnabled] holds its update open across a whole calendar
+     * resync, which is a long time for another toggle to land in.
+     *
+     * The lock is the repository's own, and this is the only writer of the row, so it is the whole
+     * story rather than half of one. A `Mutex` rather than a Room `@Transaction`: what needs to be
+     * atomic is `transform` — Kotlin the caller passed in — and not merely the two queries.
      */
     suspend fun update(transform: (AppSettings) -> AppSettings) {
-        dao.upsert(transform(get()).toEntity())
+        writeLock.withLock { dao.upsert(transform(get()).toEntity()) }
     }
+
+    private val writeLock = Mutex()
 
     private fun SettingsEntity?.toSettings(): AppSettings =
         if (this == null) AppSettings()

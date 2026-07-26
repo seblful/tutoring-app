@@ -110,6 +110,15 @@ interface GroupDao {
     @Query("SELECT * FROM student_groups WHERE id = :id")
     suspend fun getById(id: Long): GroupEntity?
 
+    /**
+     * How many groups are taught [subjectId] — what stops a subject being deleted out from under a
+     * group. `student_groups.subjectId` is `ON DELETE RESTRICT`, so without this the delete reaches
+     * SQLite and throws a constraint violation from inside a `launch`, which is a crash rather than a
+     * refusal (see `SubjectRepository.delete`).
+     */
+    @Query("SELECT COUNT(*) FROM student_groups WHERE subjectId = :subjectId")
+    suspend fun countForSubject(subjectId: Long): Int
+
     @Upsert
     suspend fun upsert(group: GroupEntity): Long
 

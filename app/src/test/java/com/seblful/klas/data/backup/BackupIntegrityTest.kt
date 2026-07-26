@@ -7,6 +7,7 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -162,6 +163,69 @@ class BackupIntegrityTest {
 
         assertEquals(BackupFailure.Malformed, failure)
     }
+
+    // --- Amounts the money arithmetic has to survive ---------------------------------------------
+    //
+    // A rate is a bare `Long` of kopecks, so nothing about it fails to *load* — what fails is
+    // `rate × minutes`, which wraps past Long.MAX_VALUE and bills a negative charge. The typed-input
+    // gate (`parseMoneyOrNull`) holds every amount to `Money.MAX`; a file is the other way in.
+
+    @Test
+    fun `a rate too large to bill is refused`() {
+        val data = BackupData(classes = listOf(validClass.copy(priceMinor = Money.MAX.minor + 1)))
+
+        val reason = assertThrows(data)
+        assertTrue("names the column: $reason", reason.contains("rate"))
+    }
+
+    @Test
+    fun `a charge too large to add up is refused`() {
+        val data = BackupData(classes = listOf(validClass.copy(chargeMinor = Long.MAX_VALUE)))
+
+        assertTrue(assertThrows(data).contains("charge"))
+    }
+
+    @Test
+    fun `a negative amount is refused`() {
+        // The money fields reject one, so a stored negative can only be a hand-edit or corruption.
+        val data = BackupData(classes = listOf(validClass.copy(priceMinor = -1)))
+
+        assertTrue(assertThrows(data).contains("-1"))
+    }
+
+    @Test
+    fun `a group rate too large to bill is refused`() {
+        val data = BackupData(
+            groups = listOf(GroupEntity(id = 1, name = "11 «А»", priceMinor = Money.MAX.minor + 1)),
+        )
+
+        assertTrue(assertThrows(data).contains("group 1"))
+    }
+
+    @Test
+    fun `an ordinary amount passes`() {
+        BackupIntegrity.check(
+            BackupData(
+                classes = listOf(validClass.copy(priceMinor = 3000, chargeMinor = 3000)),
+                groups = listOf(GroupEntity(id = 1, name = "11 «А»", priceMinor = 2000)),
+            ),
+        )
+    }
+
+    /** The largest accepted amount is accepted — the bound is inclusive, not merely near. */
+    @Test
+    fun `the ceiling itself passes`() {
+        BackupIntegrity.check(
+            BackupData(classes = listOf(validClass.copy(priceMinor = Money.MAX.minor))),
+        )
+    }
+
+    private fun assertThrows(data: BackupData): String =
+        runCatching { BackupIntegrity.check(data) }
+            .exceptionOrNull()
+            .let { it as? MalformedBackupException }
+            ?.reason
+            ?: error("expected the backup to be refused")
 
     // --- The parse the whole thing rests on -------------------------------------------------------
 

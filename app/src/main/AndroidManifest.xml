@@ -6,11 +6,14 @@
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
 
+    <!--
+      No platform backup, on purpose — see res/xml/data_extraction_rules.xml for the argument.
+      The app's own JSON export (Ещё → Резервная копия) is how data moves between devices.
+    -->
     <application
         android:name=".KlasApp"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"

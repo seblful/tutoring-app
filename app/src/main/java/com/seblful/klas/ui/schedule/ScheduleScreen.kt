@@ -102,7 +102,7 @@ fun ScheduleScreen(
     val grid by viewModel.monthGrid.collectAsState()
     val week by viewModel.weekDays.collectAsState()
     val loads by viewModel.dayLoads.collectAsState()
-    val moveConflict by viewModel.moveConflict.collectAsState()
+    val timeConflict by viewModel.timeConflict.collectAsState()
 
     // The sheet acts on the whole lesson in it, a group's included: its actions are the lesson's
     // time and status, and who is in one is changed on the lesson's own form.
@@ -250,10 +250,11 @@ fun ScheduleScreen(
         )
     }
 
-    // The move is refused when that hour is already taken; say which lesson holds it.
-    moveConflict?.let { clash ->
+    // A move, or a lesson being returned to the schedule, is refused when that hour is already
+    // taken; either way, say which lesson holds it.
+    timeConflict?.let { clash ->
         AlertDialog(
-            onDismissRequest = viewModel::dismissMoveConflict,
+            onDismissRequest = viewModel::dismissTimeConflict,
             text = {
                 Text(
                     stringResource(
@@ -264,7 +265,7 @@ fun ScheduleScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = viewModel::dismissMoveConflict) {
+                TextButton(onClick = viewModel::dismissTimeConflict) {
                     Text(stringResource(R.string.action_ok))
                 }
             },

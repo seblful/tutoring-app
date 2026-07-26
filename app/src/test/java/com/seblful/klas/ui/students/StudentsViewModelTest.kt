@@ -7,8 +7,8 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -35,7 +35,7 @@ class StudentsViewModelTest {
         env.paymentRepo.add(Payment(studentId = active, date = Instant.ofEpochMilli(1), amount = Money.ofMajor(10)))
 
         val vm = vm()
-        backgroundScope.launch { vm.rows.collect {} }
+        observing(vm.rows)
         advanceUntilIdle()
 
         assertEquals(listOf("Аня"), vm.rows.value.map { it.student.name })
@@ -48,7 +48,7 @@ class StudentsViewModelTest {
         env.studentDao.upsert(StudentEntity(name = "Старый", archived = true))
 
         val vm = vm()
-        backgroundScope.launch { vm.rows.collect {} }
+        observing(vm.rows)
         advanceUntilIdle()
         assertEquals(1, vm.rows.value.size)
 

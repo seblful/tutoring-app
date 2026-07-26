@@ -6,8 +6,8 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -29,7 +29,7 @@ class SettingsViewModelTest {
     @Test
     fun `setters persist each setting`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.update { it.copy(reminderLeadMinutes = 30) }
@@ -56,7 +56,7 @@ class SettingsViewModelTest {
     @Test
     fun `no default group price is set until the tutor sets one`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         // 0 is "not set", so a new group's rate is left blank rather than pre-filled with a guess.
@@ -73,7 +73,7 @@ class SettingsViewModelTest {
     @Test
     fun `the groups tab is on by default and switching it back on sticks`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertTrue("a fresh install shows the tab", vm.state.value.showGroupsTab)

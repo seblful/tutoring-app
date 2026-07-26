@@ -7,15 +7,21 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.ClassSession
+import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.ClassStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
-import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.Student
+import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.observing
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
@@ -30,10 +36,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneId
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ClassEditViewModelTest {
@@ -145,7 +147,7 @@ class ClassEditViewModelTest {
     )
 
     private val someoneElse = TimeConflict(
-        slot = com.seblful.klas.domain.Scheduling.Slot(Instant.parse("2026-06-20T07:00:00Z"), 60),
+        slot = Scheduling.Slot(Instant.parse("2026-06-20T07:00:00Z"), 60),
         who = "Борис",
     )
 
@@ -264,7 +266,7 @@ class ClassEditViewModelTest {
     fun `a new class auto-selects the only student and their only priced subject and prefills the price`() = runTest(mainRule.dispatcher) {
         val (studentId, subjectId) = seedStudentWithPricedSubject(price = Money.ofMajor(30))
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(studentId, vm.form.value.studentId)
@@ -318,7 +320,7 @@ class ClassEditViewModelTest {
     fun `everything the form fills in for itself leaves it clean`() = runTest(mainRule.dispatcher) {
         seedStudentWithPricedSubject()
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         // A student and a subject have been chosen — by the app, not by anybody.
@@ -337,7 +339,7 @@ class ClassEditViewModelTest {
         )
 
         val vm = vm(groupId = groupId)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(ClassTarget.GROUP, vm.form.value.target)
@@ -360,7 +362,7 @@ class ClassEditViewModelTest {
             )
 
             val vm = vm(id = classId)
-            backgroundScope.launch { vm.state.collect {} }
+            observing(vm.state)
             advanceUntilIdle()
 
             assertEquals(LocalTime.of(10, 0), vm.form.value.timeFrom)
@@ -380,7 +382,7 @@ class ClassEditViewModelTest {
         env.studentDao.upsert(StudentEntity(name = "Аня"))
         env.studentDao.upsert(StudentEntity(name = "Борис"))
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertNull(vm.form.value.studentId)
@@ -392,7 +394,7 @@ class ClassEditViewModelTest {
         env.studentDao.upsert(StudentEntity(name = "Аня", defaultMode = ClassMode.IN_PERSON.name))
         val remoteId = env.studentDao.upsert(StudentEntity(name = "Борис", defaultMode = ClassMode.REMOTE.name))
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.update { it.copy(subjectId = 99, price = MoneyField("50")) }
@@ -413,7 +415,7 @@ class ClassEditViewModelTest {
         env.priceDao.upsert(PriceEntity(studentId, math, Money.ofMajor(30).minor))
         env.priceDao.upsert(PriceEntity(studentId, physics, Money.ofMajor(40).minor))
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         // Two students? No — one student, two subjects, so nothing auto-selected.
@@ -504,7 +506,7 @@ class ClassEditViewModelTest {
     fun `saving a new class persists it with the chosen fields and signals done`() = runTest(mainRule.dispatcher) {
         val (studentId, subjectId) = seedStudentWithPricedSubject()
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val date = LocalDate.now(zone).plusDays(3)
@@ -542,7 +544,7 @@ class ClassEditViewModelTest {
     fun `the save is launched into the application scope, not the view model's`() = runTest(mainRule.dispatcher) {
         val (studentId, subjectId) = seedStudentWithPricedSubject()
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.update {
@@ -603,7 +605,7 @@ class ClassEditViewModelTest {
         val (annId, subjectId) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         // Аня at 10:30 would overlap Борис's lesson — the tutor cannot teach both.
@@ -629,7 +631,7 @@ class ClassEditViewModelTest {
         val (annId, subjectId) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.fillFor(annId, subjectId, date, LocalTime.of(11, 0), LocalTime.of(12, 0))
@@ -652,7 +654,7 @@ class ClassEditViewModelTest {
         val (annId, subjectId) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.fillFor(annId, subjectId, date, LocalTime.of(10, 0), LocalTime.of(11, 0))
@@ -670,7 +672,7 @@ class ClassEditViewModelTest {
         val (_, bookedId) = seedLesson(date, LocalTime.of(10, 0))
 
         val vm = vm(bookedId)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertNull("its own hour is not a conflict", vm.state.value.conflict)
@@ -704,7 +706,7 @@ class ClassEditViewModelTest {
         )
 
         val vm = vm(id = ids.first())
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         // Every member's class is excluded, not just the one that was opened.
@@ -731,7 +733,7 @@ class ClassEditViewModelTest {
         val (carl, physics) = seedStudentWithPricedSubject(studentName = "Вова", subjectName = "Физика")
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.fillFor(carl, physics, date, LocalTime.of(10, 30), LocalTime.of(11, 30))
@@ -779,7 +781,7 @@ class ClassEditViewModelTest {
         runTest(mainRule.dispatcher) {
             val (groupId, ann, bob) = seedGroup()
             val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+            observing(vm.state)
             advanceUntilIdle()
 
             vm.setTarget(ClassTarget.GROUP)
@@ -829,7 +831,7 @@ class ClassEditViewModelTest {
             ),
         )
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertFalse(vm.isNew)
@@ -853,7 +855,7 @@ class ClassEditViewModelTest {
             ),
         )
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         // Move it to the future and save.
@@ -898,7 +900,7 @@ class ClassEditViewModelTest {
     fun `a form opened from a group starts out booking that group, in its default mode`() = runTest(mainRule.dispatcher) {
         val (groupId, _, _) = seedGroup()
         val vm = vm(groupId = groupId)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(ClassTarget.GROUP, vm.form.value.target)
@@ -914,7 +916,7 @@ class ClassEditViewModelTest {
         env.subjectDao.upsert(SubjectEntity(name = "Физика"))
 
         val vm = vm(groupId = groupId)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(listOf("Алгебра", "Физика"), vm.state.value.subjects.map { it.name })
@@ -924,7 +926,7 @@ class ClassEditViewModelTest {
     fun `choosing a group prefills the lesson's rate from the group`() = runTest(mainRule.dispatcher) {
         val (groupId, _, _) = seedGroup(annPrice = Money.ofMajor(30), bobPrice = Money.ofMajor(25))
         val vm = vm(groupId = groupId)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         // The group's rate, not either member's individual price — and known from the group alone,
@@ -937,7 +939,7 @@ class ClassEditViewModelTest {
     fun `a rate already typed survives the group's prefill`() = runTest(mainRule.dispatcher) {
         val (groupId, _, _) = seedGroup()
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.setTarget(ClassTarget.GROUP)
@@ -958,7 +960,7 @@ class ClassEditViewModelTest {
         env.studentDao.upsert(env.studentDao.getById(bob)!!.copy(archived = true))
 
         val vm = vm(groupId = groupId)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(listOf(ann), vm.state.value.members.map { it.id })
@@ -990,7 +992,7 @@ class ClassEditViewModelTest {
     fun `saving a new group lesson writes one class per member at the group's rate`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
         val vm = vm(groupId = groupId)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val date = LocalDate.now(zone).plusDays(2)
@@ -1015,7 +1017,7 @@ class ClassEditViewModelTest {
     fun `a member excluded from this lesson gets no class at all`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
         val vm = vm(groupId = groupId)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val date = LocalDate.now(zone).plusDays(2)
@@ -1041,7 +1043,7 @@ class ClassEditViewModelTest {
     fun `excluding everyone books nothing`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
         val vm = vm(groupId = groupId)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val date = LocalDate.now(zone).plusDays(2)
@@ -1070,7 +1072,7 @@ class ClassEditViewModelTest {
         )
 
         val vm = vm(groupId = groupId)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         // Only the group's subject is on offer, it is already chosen, and the picker is locked.
@@ -1086,7 +1088,7 @@ class ClassEditViewModelTest {
         env.subjectDao.upsert(SubjectEntity(name = "Физика"))
 
         val vm = vm(groupId = groupId)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         // A group with no subject keeps choosing per lesson.
@@ -1107,7 +1109,7 @@ class ClassEditViewModelTest {
 
         // Opening it by *one* member's class must still edit the whole lesson.
         val vm = vm(id = ids.first())
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(ClassTarget.GROUP, vm.form.value.target)
@@ -1146,7 +1148,7 @@ class ClassEditViewModelTest {
         env.groupRepo.save(Group(id = groupId, name = "11 «А»"), setOf(ann, carl))
 
         val vm = vm(id = ids.first())
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         // Bob is still listed though he left the group — he is in this lesson and can be taken out
@@ -1174,7 +1176,7 @@ class ClassEditViewModelTest {
         )
 
         val vm = vm(id = ids.first())
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.setMemberIncluded(bob, false)
@@ -1196,7 +1198,7 @@ class ClassEditViewModelTest {
         )
 
         val vm = vm(id = ids.first())
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
         assertEquals("Bob is offered, unticked", setOf(bob), vm.form.value.excludedMemberIds)
 
@@ -1222,7 +1224,7 @@ class ClassEditViewModelTest {
         )
 
         val vm = vm(id = ids.first())
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.setMemberIncluded(ann, false)
@@ -1252,7 +1254,7 @@ class ClassEditViewModelTest {
         env.classRepo.setStatus(ClassSession.of(bobsClass), ClassStatus.CANCELLED)
 
         val vm = vm(id = ids.first())
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals("nothing unticked yet", 0, vm.state.value.billedDrops)
@@ -1270,7 +1272,7 @@ class ClassEditViewModelTest {
     fun `switching the target clears the other target's choices`() = runTest(mainRule.dispatcher) {
         val (groupId, _, _) = seedGroup()
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.setTarget(ClassTarget.GROUP)
@@ -1300,7 +1302,7 @@ class ClassEditViewModelTest {
             ),
         )
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         // Keep it in the past (its own date), change price to 40/h and duration to 90 min → charge 60.

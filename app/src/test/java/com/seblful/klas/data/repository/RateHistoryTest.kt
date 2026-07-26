@@ -1,12 +1,15 @@
 package com.seblful.klas.data.repository
 
+import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.PriceEntity
+import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.testutil.TestEnv
+import java.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -14,7 +17,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.Instant
 
 /**
  * The rate log, through the two repositories that actually set a rate.
@@ -79,7 +81,7 @@ class RateHistoryTest {
     fun `a rate that predates the log sorts below the dated changes`() = runTest {
         val owner = RateOwner.GroupRate(1)
         env.rateHistoryDao.insert(
-            com.seblful.klas.data.local.RateChangeEntity(groupId = 1, toMinor = 2000, atMillis = null),
+            RateChangeEntity(groupId = 1, toMinor = 2000, atMillis = null),
         )
         history.record(owner, Money.ofMajor(20), Money.ofMajor(25), at = Instant.ofEpochMilli(2_000))
 
@@ -186,7 +188,7 @@ class RateHistoryTest {
         val subj = subject()
         env.enrollmentRepo.enroll(sid, subj, Money.ofMajor(30))
         env.classDao.upsert(
-            com.seblful.klas.data.local.ClassEntity(
+            ClassEntity(
                 studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60,
                 status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor,
             ),

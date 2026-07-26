@@ -58,10 +58,41 @@ class MoneyFieldTest {
 
     @Test
     fun `junk is never an amount, whatever the kind`() {
-        for (field in listOf(rate("abc"), payment("abc"), optional("abc"))) {
-            assertNull(field.amount)
-            assertFalse(field.isValid)
+        // Including the near-misses: a second separator, an exponent, and a number too big for
+        // kopecks in a Long.
+        for (text in listOf("abc", "1,2,3", "NaN", "Infinity", "1e9999", "-5")) {
+            for (field in listOf(rate(text), payment(text), optional(text))) {
+                assertNull("${field.kind} accepted \"$text\"", field.amount)
+                assertFalse(field.isValid)
+            }
         }
+    }
+
+    @Test
+    fun `a thousands space is typed, not junk`() {
+        assertEquals(Money.ofMajor(1000), rate("1 000").amount)
+    }
+
+    /**
+     * The point of [MoneyField.Kind] is that the three kinds differ in *exactly* one text each and
+     * agree about every other. Stated as a property rather than case by case, because the risk is a
+     * new rule quietly diverging somewhere nobody wrote a case for — a payment that stopped accepting
+     * kopecks, say.
+     */
+    @Test
+    fun `zero and blank are the only texts the kinds disagree about`() {
+        val texts = listOf("25", "25,50", "25.50", "1 000", "0,01", "abc", "NaN", "-5", "1,")
+
+        texts.forEach { text ->
+            assertEquals("rate and payment disagreed about \"$text\"", rate(text).amount, payment(text).amount)
+            assertEquals("rate and optional disagreed about \"$text\"", rate(text).amount, optional(text).amount)
+        }
+
+        // ...and the two disagreements themselves, which the list above deliberately leaves out.
+        assertEquals(Money.ZERO, rate("0").amount)
+        assertNull("a payment of nothing is a slip", payment("0").amount)
+        assertNull("a blank rate is unanswered", rate("").amount)
+        assertEquals("a blank optional rate is «not set»", Money.ZERO, optional("").amount)
     }
 
     // --- isError: empty is incomplete, not wrong ----------------------------------------------

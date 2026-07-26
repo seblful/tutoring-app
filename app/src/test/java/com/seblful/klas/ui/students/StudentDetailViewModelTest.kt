@@ -10,8 +10,11 @@ import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.observing
+import java.time.Instant
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -22,7 +25,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class StudentDetailViewModelTest {
@@ -54,10 +56,10 @@ class StudentDetailViewModelTest {
         env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor))
         env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 90, status = "COMPLETED", chargeMinor = Money.ofMajor(45).minor))
         env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = "CANCELLED", chargeMinor = 0))
-        env.paymentRepo.add(com.seblful.klas.domain.model.Payment(studentId = sid, date = Instant.ofEpochMilli(10), amount = Money.ofMajor(50)))
+        env.paymentRepo.add(Payment(studentId = sid, date = Instant.ofEpochMilli(10), amount = Money.ofMajor(50)))
 
         val vm = vm(sid)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(Money.ofMajor(25), vm.state.value.balance)
@@ -73,7 +75,7 @@ class StudentDetailViewModelTest {
         env.priceDao.upsert(PriceEntity(sid, algebra, Money.ofMajor(20).minor))
 
         val vm = vm(sid)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(listOf("Алгебра", "Математика"), vm.state.value.subjects.map { it.subject.name })
@@ -88,7 +90,7 @@ class StudentDetailViewModelTest {
         env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = "SCHEDULED", chargeMinor = 0))
 
         val vm = vm(sid)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val totals = vm.state.value.totals
@@ -112,7 +114,7 @@ class StudentDetailViewModelTest {
         env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 60, status = "COMPLETED", chargeMinor = Money.ofMajor(20).minor, groupId = groupId))
 
         val vm = vm(sid)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val rows = vm.state.value.classes.sortedBy { it.klass.start }
@@ -131,7 +133,7 @@ class StudentDetailViewModelTest {
         env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 60, status = "SCHEDULED", chargeMinor = 0))
 
         val vm = vm(sid)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(mapOf(LessonKind.INDIVIDUAL to 2), vm.state.value.lessonKinds)
@@ -162,7 +164,7 @@ class StudentDetailViewModelTest {
         env.enrollmentRepo.reprice(sid, algebra, Money.ofMajor(35))
 
         val vm = vm(sid)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val bySubject = vm.state.value.subjects.associateBy { it.subject.name }
@@ -178,7 +180,7 @@ class StudentDetailViewModelTest {
         val sid = seedStudent()
         val math = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val vm = vm(sid)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.addSubject(math, Money.ofMajor(35))
@@ -195,7 +197,7 @@ class StudentDetailViewModelTest {
         env.studentDao.addSubjectLink(StudentSubjectCrossRef(sid, math))
         env.priceDao.upsert(PriceEntity(sid, math, Money.ofMajor(30).minor))
         val vm = vm(sid)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.removeSubject(math)
@@ -215,7 +217,7 @@ class StudentDetailViewModelTest {
 
         val vm = vm(sid)
         val events = mutableListOf<StudentDetailViewModel.Event>()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         backgroundScope.launch { vm.events.stream.collect { events += it } }
         advanceUntilIdle()
 
@@ -232,7 +234,7 @@ class StudentDetailViewModelTest {
     fun `addPayment ignores a zero amount`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent()
         val vm = vm(sid)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.addPayment(Money.ZERO)
@@ -248,7 +250,7 @@ class StudentDetailViewModelTest {
     fun `editStudent trims fields and ignores a blank name`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent("Аня")
         val vm = vm(sid)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.editStudent(name = "   ", phone = "x", email = "y", note = "z", mode = ClassMode.REMOTE)
@@ -268,7 +270,7 @@ class StudentDetailViewModelTest {
     fun `archiving and restoring a student is reflected in the entity`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent()
         val vm = vm(sid)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.setArchived(true)

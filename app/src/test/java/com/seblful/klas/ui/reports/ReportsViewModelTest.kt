@@ -2,6 +2,7 @@ package com.seblful.klas.ui.reports
 
 import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.GroupEntity
+import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.ReportPeriod
@@ -10,8 +11,11 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.observing
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -19,9 +23,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReportsViewModelTest {
@@ -62,7 +63,7 @@ class ReportsViewModelTest {
     @Test
     fun `the screen opens on the year in progress`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(ReportPeriod.currentYear(LocalDate.now(zone)), vm.state.value.period)
@@ -77,7 +78,7 @@ class ReportsViewModelTest {
         completed(sid, subj, at(thisYear - 1, 3), 100)
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals("last year's income is not this year's", Money.ofMajor(30), vm.state.value.totalIncome)
@@ -101,7 +102,7 @@ class ReportsViewModelTest {
         completed(sid, subj, at(thisYear, 6), 70)
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.setKind(ReportPeriod.Kind.MONTH)
@@ -125,7 +126,7 @@ class ReportsViewModelTest {
         env.paymentRepo.add(Payment(studentId = sid, date = Instant.ofEpochMilli(at(thisYear, 4)), amount = Money.ofMajor(50)))
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val state = vm.state.value
@@ -147,7 +148,7 @@ class ReportsViewModelTest {
         completed(a, subj, at(thisYear, 4), 90) // individual: not a group's income
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val byGroup = vm.state.value.byGroup
@@ -166,7 +167,7 @@ class ReportsViewModelTest {
         completed(sid, subj, at(thisYear, 2), 40, groupId = old)
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(listOf("Выпускники"), vm.state.value.byGroup.map { it.label })
@@ -182,7 +183,7 @@ class ReportsViewModelTest {
         completed(b, subj, at(thisYear, 3), 25)
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(listOf(75, 25), vm.state.value.byStudent.map { it.percent })
@@ -201,7 +202,7 @@ class ReportsViewModelTest {
         completed(archived, subj, at(thisYear, 3), 100)
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val state = vm.state.value
@@ -222,7 +223,7 @@ class ReportsViewModelTest {
         completed(b, subj, at(thisYear, 2), 50)
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(listOf("Борис", "Аня"), vm.state.value.byStudent.map { it.label })
@@ -236,7 +237,7 @@ class ReportsViewModelTest {
         env.paymentRepo.add(Payment(studentId = sid, date = Instant.ofEpochMilli(at(thisYear, 3)), amount = Money.ofMajor(30)))
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertTrue(vm.state.value.debts.isEmpty())
@@ -252,7 +253,7 @@ class ReportsViewModelTest {
         completed(sid, subj, at(thisYear, 3), 20)
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val trend = vm.state.value.trend
@@ -274,7 +275,7 @@ class ReportsViewModelTest {
         completed(a, subj, at(thisYear, 2, day = 11), 90)
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val taught = vm.state.value.taught
@@ -290,7 +291,7 @@ class ReportsViewModelTest {
         completed(sid, subj, at(thisYear - 3, 5), 60)
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val state = vm.state.value
@@ -303,7 +304,7 @@ class ReportsViewModelTest {
     @Test
     fun `an empty database reports as empty`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertFalse(vm.state.value.hasData)
@@ -331,13 +332,13 @@ class ReportsViewModelTest {
         completed(ann, algebra, at(thisYear, 6), 20, groupId = group)
         completed(bob, algebra, at(thisYear, 6), 20, groupId = group)
         env.paymentDao.insert(
-            com.seblful.klas.data.local.PaymentEntity(
+            PaymentEntity(
                 studentId = ann, dateMillis = at(thisYear, 7), amountMinor = 1000,
             ),
         )
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
         val state = vm.state.value
 

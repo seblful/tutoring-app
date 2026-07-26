@@ -6,6 +6,7 @@ import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.Money
 
 /**
  * Thrown when a file parses as a backup but carries a row this build cannot read back. Classified as
@@ -35,6 +36,9 @@ class MalformedBackupException(val reason: String) :
  * validator for plausible data. A backup is allowed to be strange (a lesson at 4 a.m., a rate of 0, a
  * student with no subjects); it is not allowed to be unreadable. Referential integrity is left to the
  * database's own foreign keys, which the import's transaction already enforces.
+ *
+ * "Unreadable" includes an amount the money arithmetic cannot survive, which is not obvious and is
+ * why [checkAmount] argues it: a rate does not fail to *load*, it fails when something multiplies it.
  */
 object BackupIntegrity {
 
@@ -43,6 +47,8 @@ object BackupIntegrity {
         data.classes.forEach { checkClass(it) }
         data.students.forEach { checkStudent(it) }
         data.groups.forEach { checkGroup(it) }
+        data.prices.forEach { checkAmount(it.amountMinor, "price for student ${it.studentId}") }
+        data.payments.forEach { checkAmount(it.amountMinor, "payment ${it.id}") }
         data.rateHistory.forEach { checkRateChange(it) }
     }
 
@@ -58,6 +64,8 @@ object BackupIntegrity {
         if (c.durationMinutes <= 0) {
             refuse("class ${c.id} lasts ${c.durationMinutes} minutes")
         }
+        checkAmount(c.priceMinor, "class ${c.id}'s rate")
+        checkAmount(c.chargeMinor, "class ${c.id}'s charge")
     }
 
     private fun checkStudent(s: StudentEntity) {
@@ -69,6 +77,27 @@ object BackupIntegrity {
     private fun checkGroup(g: GroupEntity) {
         if (ClassMode.parse(g.defaultMode) == null) {
             refuse("group ${g.id} has default mode \"${g.defaultMode}\"")
+        }
+        checkAmount(g.priceMinor, "group ${g.id}'s rate")
+    }
+
+    /**
+     * An amount has to be one the app's arithmetic survives: within `0..`[Money.MAX], the same bound
+     * every typed amount is held to by `parseMoneyOrNull`.
+     *
+     * This is the second way in, and until it was checked the only one left open. A rate is not read
+     * back through a parser — it is a bare `Long` of kopecks, so nothing about it can fail to *load*.
+     * What fails is the arithmetic on it: a charge is `rate × minutes`, which wraps past
+     * `Long.MAX_VALUE` and comes back **negative**, and a negative charge reads as the tutor owing the
+     * student. A negative amount is refused for the same reason from the other direction — the money
+     * fields reject one, so a stored one can only have come from a hand-edited or corrupt file.
+     *
+     * It belongs here with the enum and duration checks because it is the same kind of fact: a column
+     * this build cannot make sense of, caught before it becomes the saved data.
+     */
+    private fun checkAmount(minor: Long, what: String) {
+        if (minor < 0 || minor > Money.MAX.minor) {
+            refuse("$what is $minor kopecks, outside 0..${Money.MAX.minor}")
         }
     }
 

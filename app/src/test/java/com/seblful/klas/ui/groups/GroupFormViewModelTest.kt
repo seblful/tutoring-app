@@ -11,6 +11,7 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -48,7 +49,7 @@ class GroupFormViewModelTest {
     fun `a group needs a name, a rate and at least one member`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertFalse(vm.state.value.isValid)
@@ -70,7 +71,7 @@ class GroupFormViewModelTest {
     fun `a rate of zero is a rate, but a blank one is not`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.update { it.copy(name = "Бесплатно") }
@@ -90,7 +91,7 @@ class GroupFormViewModelTest {
         runTest(mainRule.dispatcher) {
             val (ann, bob) = seedStudents()
             val vm = vm()
-            backgroundScope.launch { vm.state.collect {} }
+            observing(vm.state)
             advanceUntilIdle()
 
             vm.update {
@@ -117,7 +118,7 @@ class GroupFormViewModelTest {
             val id = env.groupRepo.save(Group(name = "Группа", price = Money.ofMajor(20)), setOf(ann))
 
             val vm = vm(id)
-            backgroundScope.launch { vm.state.collect {} }
+            observing(vm.state)
             advanceUntilIdle()
 
             assertEquals("Группа", vm.state.value.form.name)
@@ -140,7 +141,7 @@ class GroupFormViewModelTest {
         env.settingsRepo.update { it.copy(defaultGroupPriceMinor = Money.ofMajor(15).minor) }
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(Money.ofMajor(15), vm.state.value.price)
@@ -152,7 +153,7 @@ class GroupFormViewModelTest {
             seedStudents()
 
             val vm = vm()
-            backgroundScope.launch { vm.state.collect {} }
+            observing(vm.state)
             advanceUntilIdle()
 
             // 0 means "not set": pre-filling it would invent an amount, so the field stays empty and
@@ -172,7 +173,7 @@ class GroupFormViewModelTest {
         env.settingsRepo.update { it.copy(defaultGroupPriceMinor = Money.ofMajor(15).minor) }
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(Money.ofMajor(15), vm.state.value.price)
@@ -186,7 +187,7 @@ class GroupFormViewModelTest {
         env.settingsRepo.update { it.copy(defaultGroupPriceMinor = Money.ofMajor(15).minor) }
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         vm.update { it.copy(price = MoneyField.of(Money.ofMajor(25))) }
         advanceUntilIdle()
 
@@ -200,7 +201,7 @@ class GroupFormViewModelTest {
         val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann))
 
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertFalse("loading a group is not editing it", vm.state.value.isDirty)
@@ -229,7 +230,7 @@ class GroupFormViewModelTest {
         val id = env.groupRepo.save(Group(name = "Выпускники", price = Money.ofMajor(20)), setOf(ann))
 
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.setArchived(true)
@@ -246,7 +247,7 @@ class GroupFormViewModelTest {
         val id = env.groupRepo.save(Group(name = "Группа", price = Money.ofMajor(40)), setOf(ann))
 
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals("the group's own rate, not the default for new ones", Money.ofMajor(40), vm.state.value.price)
@@ -260,7 +261,7 @@ class GroupFormViewModelTest {
             val (ann, bob) = seedStudents()
 
             val vm = vm()
-            backgroundScope.launch { vm.state.collect {} }
+            observing(vm.state)
             advanceUntilIdle()
 
             assertEquals(listOf(ann, bob), vm.state.value.candidates.map { it.id })
@@ -273,7 +274,7 @@ class GroupFormViewModelTest {
         env.studentDao.upsert(env.studentDao.getById(bob)!!.copy(archived = true))
 
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(listOf(ann), vm.state.value.candidates.map { it.id })
@@ -284,7 +285,7 @@ class GroupFormViewModelTest {
         val (ann, _) = seedStudents()
         val id = env.groupRepo.save(Group(name = "Выпускники"), setOf(ann))
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         vm.setArchived(true)
@@ -307,7 +308,7 @@ class GroupFormViewModelTest {
             ),
         )
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         var deleted = false
@@ -328,7 +329,7 @@ class GroupFormViewModelTest {
             val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
             env.studentDao.addSubjectLink(StudentSubjectCrossRef(ann, algebra))
             val vm = vm()
-            backgroundScope.launch { vm.state.collect {} }
+            observing(vm.state)
             advanceUntilIdle()
 
             // No subject yet: everyone is a candidate.
@@ -347,7 +348,7 @@ class GroupFormViewModelTest {
             val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
             env.studentDao.addSubjectLink(StudentSubjectCrossRef(ann, algebra))
             val vm = vm()
-            backgroundScope.launch { vm.state.collect {} }
+            observing(vm.state)
             advanceUntilIdle()
 
             vm.update { it.copy(name = "11 «А»", price = MoneyField("300")) }
@@ -376,7 +377,7 @@ class GroupFormViewModelTest {
             val (ann, _) = seedStudents()
             val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
             val vm = vm()
-            backgroundScope.launch { vm.state.collect {} }
+            observing(vm.state)
             advanceUntilIdle()
 
             vm.update { it.copy(name = "11 «А»", price = MoneyField("300")) }
@@ -394,7 +395,7 @@ class GroupFormViewModelTest {
         val (ann, _) = seedStudents()
         val id = env.groupRepo.save(Group(name = "Ошибка"), setOf(ann))
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         var deleted = false

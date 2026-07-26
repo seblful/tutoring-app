@@ -4,6 +4,7 @@ import com.seblful.klas.domain.model.ClassStatus
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
@@ -150,11 +151,14 @@ class SchedulingTest {
      */
     @Test
     fun `a slot of no length cannot be built at all`() {
-        val zero = runCatching { Scheduling.Slot(Instant.parse("2026-09-01T10:30:00Z"), 0) }
-        val negative = runCatching { Scheduling.Slot(Instant.parse("2026-09-01T10:30:00Z"), -30) }
+        val at = Instant.parse("2026-09-01T10:30:00Z")
 
-        assertTrue("zero is refused", zero.exceptionOrNull() is IllegalArgumentException)
-        assertTrue("so is an inverted span", negative.exceptionOrNull() is IllegalArgumentException)
+        assertThrows("zero is refused", IllegalArgumentException::class.java) {
+            Scheduling.Slot(at, 0)
+        }
+        assertThrows("so is an inverted span", IllegalArgumentException::class.java) {
+            Scheduling.Slot(at, -30)
+        }
     }
 
     /**

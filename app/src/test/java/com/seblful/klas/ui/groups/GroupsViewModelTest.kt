@@ -4,8 +4,8 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -30,7 +30,7 @@ class GroupsViewModelTest {
         env.groupRepo.save(Group(name = "Выпускники"), setOf(bob))
 
         val vm = vm()
-        backgroundScope.launch { vm.rows.collect {} }
+        observing(vm.rows)
         advanceUntilIdle()
 
         assertEquals(listOf("11 «А»", "Выпускники"), vm.rows.value.map { it.group.name })
@@ -46,7 +46,7 @@ class GroupsViewModelTest {
         env.groupRepo.setArchived(env.groupRepo.getById(retired)!!, true)
 
         val vm = vm()
-        backgroundScope.launch { vm.rows.collect {} }
+        observing(vm.rows)
         advanceUntilIdle()
 
         assertEquals(listOf(active), vm.rows.value.map { it.group.id })

@@ -9,6 +9,7 @@ import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.testutil.ProjectFiles
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.descriptors.elementNames
@@ -18,7 +19,6 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import java.io.File
 
 /**
  * Pins the backup snapshot to the actual schema.
@@ -103,7 +103,7 @@ class BackupSchemaCoverageTest {
 
     /** Table name → its column names, read from the newest exported schema JSON. */
     private val schemaTables: Map<String, Set<String>> by lazy {
-        val database = Json.parseToJsonElement(newestSchemaFile().readText())
+        val database = Json.parseToJsonElement(ProjectFiles.newestExportedSchema().readText())
             .jsonObject.getValue("database").jsonObject
         database.getValue("entities").jsonArray.associate { entity ->
             val o = entity.jsonObject
@@ -112,25 +112,5 @@ class BackupSchemaCoverageTest {
                     .map { it.jsonObject.getValue("columnName").jsonPrimitive.content }
                     .toSet()
         }
-    }
-
-    /**
-     * The highest-versioned schema JSON under the module's `schemas/` directory. Walks up from the
-     * working directory so it doesn't matter whether tests run from the module or the repo root.
-     */
-    private fun newestSchemaFile(): File {
-        val workingDir = System.getProperty("user.dir") ?: "."
-        var dir: File? = File(workingDir).absoluteFile
-        while (dir != null) {
-            val schemas = listOf(File(dir, "schemas"), File(dir, "app/schemas")).firstOrNull { it.isDirectory }
-            if (schemas != null) {
-                return schemas.walkTopDown()
-                    .filter { it.isFile && it.extension == "json" }
-                    .maxByOrNull { it.nameWithoutExtension.toIntOrNull() ?: -1 }
-                    ?: error("No exported schema JSON under $schemas")
-            }
-            dir = dir.parentFile
-        }
-        error("Could not find the exported schemas directory from ${System.getProperty("user.dir")}")
     }
 }

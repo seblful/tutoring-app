@@ -1,19 +1,47 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Klas takes part in **no** platform backup or transfer. `android:allowBackup="false"` in the manifest
+  already says so; this file says it again for Android 12+, where cloud backup and device-to-device
+  transfer are governed here, so the intent is stated rather than inferred from one attribute.
+
+  Three reasons, in order of what they cost:
+
+  1. **It would contradict what the app is.** Klas is offline-first and local-only: no backend, no
+     account, no network calls, and so no privacy policy to write. Auto Backup *is* a network call —
+     it copies klas.db to Google's servers. That database holds every student's name, phone number and
+     email address, and the transfer would have to be declared on Play's Data safety form. The app was
+     designed not to need that conversation.
+
+  2. **A restored database would be quietly wrong.** Auto Backup copies the file; it does not run the
+     app's own restore path (`data/backup/BackupRestore`), which exists because restoring is more than
+     rows: reminders have to be re-planned and lessons re-mirrored to *this* device's calendar. Every
+     `classes.calendar_event_id` in a transferred database points at an event in the old phone's
+     calendar, so the mirror would go on updating and deleting nothing, for ever, with nothing on
+     screen to say so. Settings are device-local by design and would come back regardless, including
+     `onboardingComplete`.
+
+  3. **The copy might not even be sound.** Room runs SQLite in WAL mode, and Auto Backup copies the
+     database while the app may be writing, with no checkpoint — the documented way to restore a torn
+     database.
+
+  What replaces it is deliberate rather than absent: the tutor exports a versioned JSON snapshot
+  through SAF, to storage they chose, and first-run onboarding offers to restore one. That path is
+  checked before it writes a row (`BackupIntegrity`), and it re-plans reminders and re-mirrors the
+  calendar afterwards.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!--
-        <include .../>
-        <exclude .../>
-        -->
+        <exclude domain="root" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="external" path="." />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <exclude domain="root" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="external" path="." />
     </device-transfer>
-    -->
 </data-extraction-rules>

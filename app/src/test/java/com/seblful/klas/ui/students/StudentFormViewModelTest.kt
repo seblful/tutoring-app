@@ -4,8 +4,8 @@ import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -28,7 +28,7 @@ class StudentFormViewModelTest {
     fun `form starts invalid and becomes valid with a name and a priced subject`() = runTest(mainRule.dispatcher) {
         val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
 
         assertFalse(vm.state.value.isValid)
 
@@ -46,7 +46,7 @@ class StudentFormViewModelTest {
     fun `a blank or unparseable price keeps the form invalid`() = runTest(mainRule.dispatcher) {
         val id = env.subjectDao.upsert(SubjectEntity(name = "Физика"))
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
 
         vm.update { it.copy(name = "Иван") }
         vm.toggleSubject(id, on = true)
@@ -61,7 +61,7 @@ class StudentFormViewModelTest {
     fun `setPriceText is ignored for a subject that isn't selected`() = runTest(mainRule.dispatcher) {
         val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
 
         vm.setPriceText(id, "40") // never toggled on
         assertTrue(vm.state.value.form.subjectPrices.isEmpty())
@@ -71,7 +71,7 @@ class StudentFormViewModelTest {
     fun `toggling a subject off drops its price text`() = runTest(mainRule.dispatcher) {
         val id = env.subjectDao.upsert(SubjectEntity(name = "История"))
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
 
         vm.toggleSubject(id, on = true)
         vm.setPriceText(id, "25")
@@ -83,7 +83,7 @@ class StudentFormViewModelTest {
     fun `save persists a trimmed student with linked, priced subjects and signals done`() = runTest(mainRule.dispatcher) {
         val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
 
         vm.update { it.copy(name = "  Аня  ", email = " a@b.co ", phone = "  +375 29  ", note = "  hi ") }
         vm.toggleSubject(mathId, on = true)
@@ -111,7 +111,7 @@ class StudentFormViewModelTest {
     fun `an untouched form is clean, and clearing an edit makes it clean again`() = runTest(mainRule.dispatcher) {
         val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
 
         assertFalse("the prefilled phone prefix is not the tutor's work", vm.state.value.isDirty)
 
@@ -129,7 +129,7 @@ class StudentFormViewModelTest {
     fun `save does nothing when the form is invalid`() = runTest(mainRule.dispatcher) {
         env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val vm = vm()
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
 
         vm.update { it.copy(name = "") } // no name, no subjects
 

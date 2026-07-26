@@ -8,6 +8,7 @@ import com.seblful.klas.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
@@ -292,13 +293,10 @@ class GroupRulesTest {
             studentId = 3,
         )
 
-        var threw = false
-        try {
-            GroupRules.editsFor(session, changes)
-        } catch (_: IllegalArgumentException) {
-            threw = true
-        }
-        assertTrue("who was in a lesson is changed by adding and removing classes", threw)
+        assertThrows(
+            "who was in a lesson is changed by adding and removing classes",
+            IllegalArgumentException::class.java,
+        ) { GroupRules.editsFor(session, changes) }
     }
 
     // --- rosterChange: correcting who was in a lesson ---
@@ -408,25 +406,19 @@ class GroupRulesTest {
     fun `a lesson cannot be emptied of everybody`() {
         val session = groupSession(1L to 1L)
 
-        var threw = false
-        try {
-            GroupRules.rosterChange(session, wanted = emptySet(), lessonEdit, t0)
-        } catch (_: IllegalArgumentException) {
-            threw = true
-        }
-        assertTrue("a lesson with nobody in it bills no one", threw)
+        assertThrows(
+            "a lesson with nobody in it bills no one",
+            IllegalArgumentException::class.java,
+        ) { GroupRules.rosterChange(session, wanted = emptySet(), lessonEdit, t0) }
     }
 
     @Test
     fun `an individual lesson has no roster to reconcile`() {
         val session = ClassSession.of(klass(1, studentId = 1))
 
-        var threw = false
-        try {
-            GroupRules.rosterChange(session, wanted = setOf(2), lessonEdit, t0)
-        } catch (_: IllegalArgumentException) {
-            threw = true
-        }
-        assertTrue("re-attributing an individual class is SessionEdit.studentId's job", threw)
+        assertThrows(
+            "re-attributing an individual class is SessionEdit.studentId's job",
+            IllegalArgumentException::class.java,
+        ) { GroupRules.rosterChange(session, wanted = setOf(2), lessonEdit, t0) }
     }
 }

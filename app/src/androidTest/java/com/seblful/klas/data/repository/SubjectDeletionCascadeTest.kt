@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.RateChangeEntity
@@ -27,10 +28,13 @@ import org.junit.runner.RunWith
 import java.time.Instant
 
 /**
- * BUG-1 (HIGH) regression: deleting a subject used to CASCADE-delete its classes — including
- * COMPLETED ones (earned income) — while payments survived, flipping an owing student into a
- * false credit. [SubjectRepository.delete] now refuses to delete a subject that still has
- * classes, so the history is preserved. (Needs a device/emulator for Room.)
+ * What a subject's deletion is allowed to take with it, against a real database — the foreign keys
+ * being the point, and the fake DAOs having none.
+ *
+ * Deleting a subject used to CASCADE-delete its classes — including COMPLETED ones (earned income) —
+ * while payments survived, flipping an owing student into a false credit. [SubjectRepository.delete]
+ * refuses a subject that still has classes, or that a group is taught (each for its own reason), and
+ * takes only its rate log with it. (Needs a device/emulator for Room.)
  */
 @RunWith(AndroidJUnit4::class)
 class SubjectDeletionCascadeTest {
@@ -45,7 +49,7 @@ class SubjectDeletionCascadeTest {
         db.subjectDao().insertAll(listOf(SubjectEntity(1, "Математика"), SubjectEntity(2, "Физика")))
         db.studentDao().insertAll(listOf(StudentEntity(1, "Иван")))
         db.priceDao().insertAll(listOf(PriceEntity(1, 1, amountMinor = 5000)))
-        subjects = SubjectRepository(db.subjectDao(), db.classDao())
+        subjects = SubjectRepository(db.subjectDao(), db.classDao(), db.groupDao())
     }
 
     @After fun tearDown() = db.close()
@@ -81,6 +85,24 @@ class SubjectDeletionCascadeTest {
 
         assertTrue(deleted)
         assertEquals(1, db.subjectDao().getAll().size) // only Математика remains
+    }
+
+    /**
+     * The other reference a subject can have: `student_groups.subjectId` is `ON DELETE RESTRICT`.
+     *
+     * A brand-new group with no lessons of its own is enough to reach it — the class count is 0, so
+     * until the group was checked too the delete went through to SQLite and threw a constraint
+     * violation from inside the `viewModelScope.launch` it was called in, which reaches the tutor as a
+     * crash rather than as a refusal. This is the half of the guard a JVM test cannot show: the fake
+     * DAOs have no foreign keys, so only a real database says no.
+     */
+    @Test fun deletingSubjectTaughtToAGroupIsBlocked() = runTest {
+        db.groupDao().upsert(GroupEntity(name = "Физика, 11 класс", subjectId = 2, priceMinor = 2000))
+
+        val deleted = subjects.delete(Subject(id = 2, name = "Физика"))
+
+        assertFalse(deleted) // refused, rather than the constraint throwing
+        assertEquals(2, db.subjectDao().getAll().size) // both subjects still there
     }
 
     /**

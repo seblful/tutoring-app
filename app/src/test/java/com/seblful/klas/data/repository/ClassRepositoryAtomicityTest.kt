@@ -64,8 +64,9 @@ class ClassRepositoryAtomicityTest {
         val f = Fixture()
         f.seed(groupRate)
         val transactor = f.env.transactor
-        // Seeding the group is a transaction of its own now (see `GroupRepositoryAtomicityTest`), so
-        // this counts what the booking added rather than what the whole test did.
+        // Seeding the group is a transaction of its own now (see `EnrollmentAtomicityTest`, which
+        // covers the group and enrollment writes), so this counts what the booking added rather than
+        // what the whole test did.
         val before = transactor.count
 
         f.book(listOf(f.ann, f.bob, f.cleo))

@@ -2,8 +2,8 @@ package com.seblful.klas.ui.onboarding
 
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -25,7 +25,7 @@ class OnboardingViewModelTest {
     @Test
     fun `addSubject trims the name and ignores a blank one`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        backgroundScope.launch { vm.subjects.collect {} }
+        observing(vm.subjects)
 
         vm.addSubject("   ")
         advanceUntilIdle()

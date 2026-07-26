@@ -2,10 +2,10 @@ package com.seblful.klas.data.local
 
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.testutil.ProjectFiles
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
 
 /**
  * An enum constant's **name is a persisted value**, and nothing else in the build says so.
@@ -86,7 +86,7 @@ class StoredEnumNamesTest {
      */
     @Test
     fun `every status literal in the DAO SQL names a real status`() {
-        val sql = sourceFile("data/local/Daos.kt").readText()
+        val sql = ProjectFiles.sourceFile("data/local/Daos.kt").readText()
         val literals = Regex("""status\s*=\s*'([A-Za-z_]+)'""").findAll(sql).map { it.groupValues[1] }.toList()
 
         assertTrue(
@@ -101,21 +101,5 @@ class StoredEnumNamesTest {
             emptyList<String>(),
             unknown,
         )
-    }
-
-    /**
-     * A source file under `app/src/main/java/com/seblful/klas/`, found by walking up from the working
-     * directory so it doesn't matter whether the tests run from the module or the repo root.
-     */
-    private fun sourceFile(relative: String): File {
-        val prefix = "src/main/java/com/seblful/klas"
-        var dir: File? = File(System.getProperty("user.dir") ?: ".").absoluteFile
-        while (dir != null) {
-            listOf(File(dir, "$prefix/$relative"), File(dir, "app/$prefix/$relative"))
-                .firstOrNull { it.isFile }
-                ?.let { return it }
-            dir = dir.parentFile
-        }
-        error("Could not find $relative from ${System.getProperty("user.dir")}")
     }
 }

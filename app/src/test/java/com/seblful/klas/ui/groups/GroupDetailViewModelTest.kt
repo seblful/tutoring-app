@@ -3,13 +3,14 @@ package com.seblful.klas.ui.groups
 import androidx.lifecycle.SavedStateHandle
 import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.StudentEntity
+import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -62,14 +63,14 @@ class GroupDetailViewModelTest {
     fun `the card names the group's subject and rate`() = runTest(mainRule.dispatcher) {
         val anya = student("Аня")
         val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        env.studentDao.addSubjectLink(com.seblful.klas.data.local.StudentSubjectCrossRef(anya, algebra))
+        env.studentDao.addSubjectLink(StudentSubjectCrossRef(anya, algebra))
         val id = env.groupRepo.save(
             Group(name = "11 «А»", price = Money.ofMajor(25), subjectId = algebra),
             setOf(anya),
         )
 
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals("11 «А»", vm.state.value.group?.name)
@@ -84,7 +85,7 @@ class GroupDetailViewModelTest {
         val id = env.groupRepo.save(Group(name = "Вечер", price = Money.ofMajor(25)), setOf(anya))
 
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertNull(vm.state.value.subjectName)
@@ -101,7 +102,7 @@ class GroupDetailViewModelTest {
         )
 
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(
@@ -126,7 +127,7 @@ class GroupDetailViewModelTest {
         groupClass(id, anya, algebra, startMillis = 2_000)
 
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val attended = vm.state.value.members.associate { it.student.name to it.attended }
@@ -140,7 +141,7 @@ class GroupDetailViewModelTest {
         val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(anya))
 
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(1, vm.state.value.members.size)
@@ -159,7 +160,7 @@ class GroupDetailViewModelTest {
         groupClass(id, boris, algebra, startMillis = 2_000)
 
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val lessons = vm.state.value.lessons
@@ -185,7 +186,7 @@ class GroupDetailViewModelTest {
         groupClass(id, boris, algebra, startMillis = 2_000, minutes = 60, status = "SCHEDULED")
 
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val totals = vm.state.value.totals
@@ -213,7 +214,7 @@ class GroupDetailViewModelTest {
         )
 
         val vm = vm(ours)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(1, vm.state.value.lessons.size)
@@ -227,7 +228,7 @@ class GroupDetailViewModelTest {
         env.groupRepo.save(Group(id = id, name = "11 «А»", price = Money.ofMajor(25)), setOf(anya))
 
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         val changes = vm.state.value.rateHistory
@@ -242,7 +243,7 @@ class GroupDetailViewModelTest {
         val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(anya))
 
         val vm = vm(id)
-        backgroundScope.launch { vm.state.collect {} }
+        observing(vm.state)
         advanceUntilIdle()
 
         assertTrue(vm.state.value.lessons.isEmpty())

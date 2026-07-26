@@ -115,11 +115,11 @@ class ScheduleViewModel @Inject constructor(
     val viewMode: StateFlow<ScheduleViewMode> = _viewMode.asStateFlow()
 
     /**
-     * The lesson a refused [move] would have collided with, until it is acknowledged. State rather
-     * than a fire-and-forget event, so the message survives a recomposition or a rotation.
+     * The lesson a refused [move] or [setStatus] would have collided with, until it is acknowledged.
+     * State rather than a fire-and-forget event, so the message survives a recomposition or a rotation.
      */
-    private val _moveConflict = MutableStateFlow<TimeConflict?>(null)
-    val moveConflict: StateFlow<TimeConflict?> = _moveConflict.asStateFlow()
+    private val _timeConflict = MutableStateFlow<TimeConflict?>(null)
+    val timeConflict: StateFlow<TimeConflict?> = _timeConflict.asStateFlow()
 
     /**
      * A class can only be booked once there is at least one student and one priced subject — a
@@ -267,37 +267,75 @@ class ScheduleViewModel @Inject constructor(
     // closes as the action is tapped, and marking a lesson completed or deleting one must not be cut
     // in half because the screen went away a moment later — see [ApplicationScope].
 
+    /**
+     * Changes a whole lesson's status.
+     *
+     * Returning one **to the schedule** is checked against the hour first, because it is the one
+     * status change that re-*occupies* time. A cancelled class gives its slot back on purpose
+     * ([ClassStatus.occupiesTime]) — that is what lets the tutor re-book the freed hour for somebody
+     * else — so by the time they un-cancel, the hour may be held by that somebody. Without this the
+     * one-tutor-one-lesson rule that [move] and booking both enforce had a way in behind it: the
+     * schedule simply drew two lessons at 10:00, and neither the form nor the sheet had said no.
+     *
+     * The refusal is reported through the same [timeConflict] a refused move uses, since it is the
+     * same fact — this hour is taken, by that lesson. Every other status change occupies no new time
+     * and goes straight to the write.
+     */
     fun setStatus(session: ClassSession, status: ClassStatus) {
-        appScope.launch { classes.setStatus(session, status) }
+        if (status != ClassStatus.SCHEDULED) {
+            appScope.launch { classes.setStatus(session, status) }
+            return
+        }
+        viewModelScope.launch {
+            if (refuseIfTaken(session, session.start)) return@launch
+            appScope.launch { classes.setStatus(session, status) }
+        }
     }
 
     /**
      * Reschedules a whole lesson, unless that hour is already taken — one tutor cannot teach two
-     * lessons at once, so a move onto an occupied slot is refused and reported through [moveConflict]
+     * lessons at once, so a move onto an occupied slot is refused and reported through [timeConflict]
      * rather than silently doing nothing. The lesson's **own** classes are ignored, so nudging it by
      * ten minutes doesn't clash with where it currently is.
      */
     fun move(session: ClassSession, newStart: Instant) {
         viewModelScope.launch {
-            // The refusal is this screen's to report — [_moveConflict] is state the dialog reads — so
+            // The refusal is this screen's to report — [_timeConflict] is state the dialog reads — so
             // the check stays here and only the move itself is handed to the scope that outlives it.
-            val slot = Scheduling.Slot(newStart, session.first.durationMinutes)
-            val clash = classes.conflictsWith(slot, session.classes.map { it.id }.toSet()).firstOrNull()
-            if (clash != null) {
-                _moveConflict.value = TimeConflict.of(
-                    clash = clash,
-                    groupName = clash.groupId?.let { groups.getById(it)?.name },
-                    studentName = students.getById(clash.first.studentId)?.name,
-                )
-                return@launch
-            }
+            if (refuseIfTaken(session, newStart)) return@launch
             appScope.launch { classes.move(session, newStart) }
         }
     }
 
+    /**
+     * Whether [session] starting at [start] would collide with another lesson — and, when it would,
+     * records which one in [timeConflict] for the dialog to read.
+     *
+     * The lesson's **own** classes are excluded by id, so a lesson never stands in its own way.
+     *
+     * A session whose stored duration is not positive is reported as free rather than asked about.
+     * Such a row should not exist (`BackupIntegrity` refuses one), but `Scheduling.Slot` *requires* a
+     * positive length, so constructing one here would throw — inside a `launch`, which is a crash
+     * rather than a refusal. It occupies no time by its own arithmetic anyway, so nothing can be in
+     * its way; the read path takes the same view (`Scheduling.conflicts` skips such rows).
+     */
+    private suspend fun refuseIfTaken(session: ClassSession, start: Instant): Boolean {
+        val minutes = session.first.durationMinutes
+        if (minutes <= 0) return false
+        val slot = Scheduling.Slot(start, minutes)
+        val clash = classes.conflictsWith(slot, session.classes.map { it.id }.toSet()).firstOrNull()
+            ?: return false
+        _timeConflict.value = TimeConflict.of(
+            clash = clash,
+            groupName = clash.groupId?.let { groups.getById(it)?.name },
+            studentName = students.getById(clash.first.studentId)?.name,
+        )
+        return true
+    }
+
     /** Acknowledges the refusal message, so the dialog closes. */
-    fun dismissMoveConflict() {
-        _moveConflict.value = null
+    fun dismissTimeConflict() {
+        _timeConflict.value = null
     }
 
     fun delete(session: ClassSession) {

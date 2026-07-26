@@ -180,7 +180,7 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
     val reminders = RecordingReminderScheduler()
 
     val settingsRepo = SettingsRepository(settingsDao)
-    val subjectRepo = SubjectRepository(subjectDao, classDao)
+    val subjectRepo = SubjectRepository(subjectDao, classDao, groupDao)
     val studentRepo = StudentRepository(studentDao)
     val rateHistoryRepo = RateHistoryRepository(rateHistoryDao)
     val groupRepo = GroupRepository(groupDao, classDao, studentDao, rateHistoryRepo, transactor)

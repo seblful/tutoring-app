@@ -79,6 +79,13 @@ transaction and the write lock is held for less time.
 ### Money and billing
 
 - **Money is integer minor units** (kopecks) — no floating point.
+- **An amount has a ceiling, enforced once where text becomes money** (`Money.MAX`, applied in
+  `parseMoneyOrNull`). Fitting in a `Long` is not enough, because the arithmetic downstream
+  *multiplies*: `chargeFor` is `rate × minutes` and `percentOf` is `part × 100`, so an uncapped rate
+  the field called valid could bill a **negative** charge and read as a student's «Переплата». The
+  ceiling is what makes those multiplications safe rather than merely unlikely, and it belongs at the
+  input — every later stage sees a plain number that has already lost the truth. A backup's raw minor
+  units do **not** pass this gate (`BackupIntegrity` checks only what a read can fail on).
 - **Price is an hourly rate booked per class**, pre-filled from the student's rate for the subject (or
   the group's own), editable per lesson. `charge = booked rate × duration`, so later re-pricing never
   touches existing classes.
@@ -132,6 +139,12 @@ transaction and the write lock is held for less time.
   is fine, a cancelled class gives its slot back, and the lesson being edited is excluded by every one
   of its class ids. Booking in the **past is allowed**. The rule is pure; the *refusal* lives in the
   view models, because it has to name which lesson is in the way.
+  **Every way back into an hour is checked, un-cancelling included.** A cancelled lesson giving its
+  slot back is what lets the tutor re-book that hour for somebody else — so returning the first lesson
+  to the schedule is a *second* claim on it, and it was the one path that made no check: booking, the
+  form's edit and the move all refused, while «вернуть в расписание» simply drew two lessons at 10:00.
+  `ScheduleViewModel.setStatus` therefore refuses it the same way a move is refused, through the one
+  `timeConflict` both report, since it is the same fact — this hour is taken, by that lesson.
 - **Editing is allowed in any status and the charge is recomputed**, in place, so income cannot be
   double-counted. Deleting is allowed in any status; deleting a completed lesson removes its income and
   the UI warns. Classes are **one-off only** — no recurring series.
@@ -382,6 +395,13 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
   form leaves **no query open** once nothing collects it (`WhileSubscribed` has to be true, not
   decorative), and one asserts a save is launched into the application scope by cancelling that scope
   and finding nothing written.
+- **`EdgeCaseCombinationsTest` is the one test file not beside its subject**, deliberately: what it
+  tests is the *combination*, and each case spans layers that have no shared home (the schedule's
+  status change against the booking rule, a subject's deletion against a group's foreign key, a money
+  field against the charge arithmetic). It holds regressions for bugs found that way, and — kept in
+  the same file on purpose — pins for behaviour that reads like a bug and is decided (a lesson cannot
+  cross midnight, saving a group re-staffs it), so the next person to notice one finds the answer
+  where they went looking rather than re-deriving it.
 - **Atomicity is tested by counting transactions**, not by rolling back: the fake DAOs are in-memory
   maps with no rollback to reproduce, so `RecordingTransactor` counts and nests them, and the tests
   assert a multi-table write is **one** flat transaction and that a failed one mirrors nothing and

@@ -1,8 +1,10 @@
 package com.seblful.klas.format
 
+import com.seblful.klas.domain.ClassRules
 import com.seblful.klas.domain.model.Money
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek
@@ -102,6 +104,31 @@ class FormattersTest {
     }
 
     /**
+     * A rate is typed, so it can be typed to more precision than money has. Kopecks are the smallest
+     * unit there is, so a third decimal has to go somewhere, and it rounds rather than truncating —
+     * truncating would quietly forgive a kopeck on every such amount.
+     */
+    @Test
+    fun `an amount typed past two decimals rounds to the nearest kopeck`() {
+        assertEquals(Money(200), parseMoneyOrNull("1,999"))
+        assertEquals("half goes up", Money(124), parseMoneyOrNull("1,235"))
+        assertEquals(Money(4505), parseMoneyOrNull("45,05"))
+        assertEquals(Money(5), parseMoneyOrNull("0,05"))
+    }
+
+    /**
+     * A balance is the one amount that goes below zero, and between −1 and 0 the whole-ruble part is
+     * "0" — so the sign is the only thing distinguishing a small debt from a small credit, and
+     * formatting the two halves separately used to drop it.
+     */
+    @Test
+    fun `a negative amount under one ruble keeps its sign`() {
+        assertEquals("-0,50", Money(-50).toAmountInput())
+        assertEquals("-0,05", Money(-5).toAmountInput())
+        assertEquals("-1,50", Money(-150).toAmountInput())
+    }
+
+    /**
      * A stat tile is a summary, so a whole number of hours prints as one — «42 ч», not «42,0 ч» — and
      * anything else rounds to a tenth with a Russian comma.
      */
@@ -117,5 +144,31 @@ class FormattersTest {
         assertEquals("0,8", formatHours(45))
         // 20 minutes is 0.333… h.
         assertEquals("0,3", formatHours(20))
+    }
+
+    // --- The one ceiling on how large an amount can be -------------------------------------------
+    //
+    // Fitting in a Long is not the bar: `ClassRules.chargeFor` computes `rate × minutes`, so a rate
+    // that fits can still bill a wrapped, negative charge. Rejecting the input is the only place the
+    // problem is still legible — see `Money.MAX`.
+
+    @Test
+    fun `an amount above the ceiling is not an amount`() {
+        assertNull(parseMoneyOrNull("2000000000000000"))
+        assertNull(parseMoneyOrNull(Money(Money.MAX.minor + 1).amountText))
+    }
+
+    @Test
+    fun `the ceiling itself parses, and still bills a positive charge over the longest lesson`() {
+        assertEquals(Money.MAX, parseMoneyOrNull(Money.MAX.amountText))
+
+        val charge = ClassRules.chargeFor(Money.MAX, durationMinutes = 24 * 60)
+        assertTrue("the ceiling exists so this cannot wrap", charge.minor > 0)
+    }
+
+    @Test
+    fun `ordinary tutoring amounts are unaffected by the ceiling`() {
+        assertEquals(Money.ofMajor(30), parseMoneyOrNull("30"))
+        assertEquals(Money.ofMajor(2_500), parseMoneyOrNull("2500"))
     }
 }

@@ -9,7 +9,6 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -19,6 +18,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import com.seblful.klas.domain.CalendarLayout
+import com.seblful.klas.testutil.observing
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
@@ -42,7 +42,7 @@ class ScheduleViewModelTest {
     @Test
     fun `add is disabled until at least one student and one subject exist`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        backgroundScope.launch { vm.canAddClass.collect {} }
+        observing(vm.canAddClass)
         advanceUntilIdle()
         assertFalse(vm.canAddClass.value)
 
@@ -66,7 +66,7 @@ class ScheduleViewModelTest {
         env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = startMillisOn(today.plusDays(1), LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED"))
 
         val vm = vm()
-        backgroundScope.launch { vm.content.collect {} }
+        observing(vm.content)
         advanceUntilIdle()
 
         val rows = vm.content.value.rows
@@ -160,7 +160,7 @@ class ScheduleViewModelTest {
     @Test
     fun `the week strip shows seven contiguous days from the visible Monday`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        backgroundScope.launch { vm.weekDays.collect {} }
+        observing(vm.weekDays)
         vm.selectDate(LocalDate.of(2026, 7, 15))
         advanceUntilIdle()
 
@@ -194,7 +194,7 @@ class ScheduleViewModelTest {
         }
 
         val vm = vm()
-        backgroundScope.launch { vm.content.collect {} }
+        observing(vm.content)
         vm.setViewMode(ScheduleViewMode.WEEK)
         vm.selectDate(LocalDate.of(2026, 7, 15))
         advanceUntilIdle()
@@ -222,7 +222,7 @@ class ScheduleViewModelTest {
         )
 
         val vm = vm()
-        backgroundScope.launch { vm.content.collect {} }
+        observing(vm.content)
         vm.setViewMode(ScheduleViewMode.WEEK)
         vm.selectDate(LocalDate.of(2026, 7, 15))
         advanceUntilIdle()
@@ -260,7 +260,7 @@ class ScheduleViewModelTest {
         )
 
         val vm = vm()
-        backgroundScope.launch { vm.content.collect {} }
+        observing(vm.content)
         advanceUntilIdle()
 
         // The day view assembles the selected day — and no week agenda exists to go stale.
@@ -292,7 +292,7 @@ class ScheduleViewModelTest {
         )
 
         val vm = vm()
-        backgroundScope.launch { vm.dayLoads.collect {} }
+        observing(vm.dayLoads)
         vm.selectDate(day)
         advanceUntilIdle()
         assertTrue("the day view draws no calendar, so it queries none", vm.dayLoads.value.isEmpty())
@@ -305,7 +305,7 @@ class ScheduleViewModelTest {
     @Test
     fun `the calendar grid follows the visible month`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        backgroundScope.launch { vm.monthGrid.collect {} }
+        observing(vm.monthGrid)
         vm.selectDate(LocalDate.of(2026, 7, 15))
         advanceUntilIdle()
 
@@ -338,7 +338,7 @@ class ScheduleViewModelTest {
         )
 
         val vm = vm()
-        backgroundScope.launch { vm.dayLoads.collect {} }
+        observing(vm.dayLoads)
         vm.setViewMode(ScheduleViewMode.MONTH)
         vm.selectDate(LocalDate.of(2026, 7, 1))
         advanceUntilIdle()
@@ -362,7 +362,7 @@ class ScheduleViewModelTest {
         )
 
         val vm = vm()
-        backgroundScope.launch { vm.dayLoads.collect {} }
+        observing(vm.dayLoads)
         vm.setViewMode(ScheduleViewMode.MONTH)
         vm.selectDate(LocalDate.of(2026, 7, 1))
         advanceUntilIdle()
@@ -413,15 +413,89 @@ class ScheduleViewModelTest {
         vm.move(env.classRepo.getSessionFor(moving)!!, target)
         advanceUntilIdle()
 
-        assertEquals("Борис", vm.moveConflict.value?.who)
+        assertEquals("Борис", vm.timeConflict.value?.who)
         assertEquals(
             "the lesson stayed where it was",
             startMillisOn(day, LocalTime.of(9, 0)),
             env.classDao.items.value.single { it.id == moving }.startMillis,
         )
 
-        vm.dismissMoveConflict()
-        assertNull(vm.moveConflict.value)
+        vm.dismissTimeConflict()
+        assertNull(vm.timeConflict.value)
+    }
+
+    /**
+     * Cancelling gives the hour back on purpose, so re-booking it is legitimate — which makes
+     * un-cancelling the way back into an hour somebody else now holds. The status path used to write
+     * unconditionally, and the schedule simply drew both lessons at once.
+     */
+    @Test
+    fun `a cancelled lesson cannot be returned to an hour taken since`() = runTest(mainRule.dispatcher) {
+        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val day = LocalDate.of(2026, 7, 15)
+        val at = startMillisOn(day, LocalTime.of(10, 0))
+        val cancelled = env.classDao.upsert(
+            ClassEntity(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "CANCELLED"),
+        )
+        // The freed hour, re-booked for somebody else.
+        env.classDao.upsert(
+            ClassEntity(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED"),
+        )
+
+        val vm = vm()
+        vm.setStatus(env.classRepo.getSessionFor(cancelled)!!, ClassStatus.SCHEDULED)
+        advanceUntilIdle()
+
+        assertEquals("Борис", vm.timeConflict.value?.who)
+        assertEquals(
+            "the lesson stayed cancelled",
+            "CANCELLED",
+            env.classDao.items.value.single { it.id == cancelled }.status,
+        )
+    }
+
+    @Test
+    fun `a cancelled lesson returns to a free hour`() = runTest(mainRule.dispatcher) {
+        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val day = LocalDate.of(2026, 7, 15)
+        val cancelled = env.classDao.upsert(
+            ClassEntity(
+                studentId = ann, subjectId = subj,
+                startMillis = startMillisOn(day, LocalTime.of(10, 0)),
+                durationMinutes = 60, status = "CANCELLED",
+            ),
+        )
+
+        val vm = vm()
+        vm.setStatus(env.classRepo.getSessionFor(cancelled)!!, ClassStatus.SCHEDULED)
+        advanceUntilIdle()
+
+        assertNull("nothing holds the hour, so nothing to refuse", vm.timeConflict.value)
+        assertEquals("SCHEDULED", env.classDao.items.value.single().status)
+    }
+
+    /** Completing occupies no new time, so it must not be checked against the hour it already holds. */
+    @Test
+    fun `marking a lesson completed is never refused`() = runTest(mainRule.dispatcher) {
+        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val id = env.classDao.upsert(
+            ClassEntity(
+                studentId = ann, subjectId = subj,
+                startMillis = startMillisOn(LocalDate.of(2026, 7, 15), LocalTime.of(10, 0)),
+                durationMinutes = 60, status = "SCHEDULED", priceMinor = 3000,
+            ),
+        )
+
+        val vm = vm()
+        vm.setStatus(env.classRepo.getSessionFor(id)!!, ClassStatus.COMPLETED)
+        advanceUntilIdle()
+
+        assertNull(vm.timeConflict.value)
+        assertEquals("COMPLETED", env.classDao.items.value.single().status)
     }
 
     @Test
@@ -438,7 +512,7 @@ class ScheduleViewModelTest {
         vm.move(env.classRepo.getSessionFor(id)!!, day.atTime(9, 10).atZone(zone).toInstant())
         advanceUntilIdle()
 
-        assertNull(vm.moveConflict.value)
+        assertNull(vm.timeConflict.value)
         assertEquals(
             startMillisOn(day, LocalTime.of(9, 10)),
             env.classDao.items.value.single().startMillis,
@@ -461,7 +535,7 @@ class ScheduleViewModelTest {
         vm.move(env.classRepo.getSessionFor(first)!!, target)
         advanceUntilIdle()
 
-        assertNull(vm.moveConflict.value)
+        assertNull(vm.timeConflict.value)
         assertEquals(
             "both members moved together",
             listOf(target.toEpochMilli(), target.toEpochMilli()),
@@ -481,7 +555,7 @@ class ScheduleViewModelTest {
         env.classDao.upsert(ClassEntity(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
 
         val vm = vm()
-        backgroundScope.launch { vm.content.collect {} }
+        observing(vm.content)
         vm.setViewMode(ScheduleViewMode.WEEK)
         vm.selectDate(wednesday)
         advanceUntilIdle()
@@ -508,7 +582,7 @@ class ScheduleViewModelTest {
         env.classDao.upsert(ClassEntity(studentId = ann, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED"))
 
         val vm = vm()
-        backgroundScope.launch { vm.content.collect {} }
+        observing(vm.content)
         advanceUntilIdle()
 
         val rows = vm.content.value.rows
@@ -536,7 +610,7 @@ class ScheduleViewModelTest {
         env.classDao.upsert(ClassEntity(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, priceMinor = Money.ofMajor(20).minor, status = "SCHEDULED", groupId = groupId))
 
         val vm = vm()
-        backgroundScope.launch { vm.content.collect {} }
+        observing(vm.content)
         advanceUntilIdle()
         vm.setStatus(vm.content.value.rows.single().session, ClassStatus.COMPLETED)
         advanceUntilIdle()

@@ -1,5 +1,6 @@
 package com.seblful.klas.data.local
 
+import com.seblful.klas.testutil.ProjectFiles
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
@@ -102,7 +103,7 @@ class MigrationChainTest {
     /** The version `@Database` declares today. */
     private val declaredVersion: Int by lazy {
         val declarations = Regex("""\bversion\s*=\s*(\d+)""")
-            .findAll(sourceFile("data/local/AppDatabase.kt").readText())
+            .findAll(ProjectFiles.sourceFile("data/local/AppDatabase.kt").readText())
             .map { it.groupValues[1] }
             .toList()
         assertEquals(
@@ -116,16 +117,14 @@ class MigrationChainTest {
     }
 
     /** Every version Room has exported a schema for, ascending. */
-    private val exportedVersions: List<Int> by lazy {
-        schemaFiles.keys.sorted()
-    }
+    private val exportedVersions: List<Int> by lazy { schemaFiles.keys.sorted() }
 
     /**
      * The `(from, to)` step of every migration the project declares, ascending — empty while
      * `Migrations.kt` does not exist, which is the state a v1 schema is supposed to be in.
      */
     private fun migrationSteps(): List<Pair<Int, Int>> {
-        val source = findFile("$SOURCE_ROOT/data/local/Migrations.kt") ?: return emptyList()
+        val source = ProjectFiles.sourceFileOrNull("data/local/Migrations.kt") ?: return emptyList()
         return Regex("""Migration\((\d+)\s*,\s*(\d+)\)""")
             .findAll(source.readText())
             .map { it.groupValues[1].toInt() to it.groupValues[2].toInt() }
@@ -133,39 +132,13 @@ class MigrationChainTest {
             .toList()
     }
 
-    private val databaseModuleSource: String by lazy { sourceFile("di/DatabaseModule.kt").readText() }
+    private val databaseModuleSource: String by lazy {
+        ProjectFiles.sourceFile("di/DatabaseModule.kt").readText()
+    }
 
     private fun schemaFile(version: Int): File =
         schemaFiles[version] ?: error("No exported schema for v$version")
 
     /** Version → its exported schema JSON, under the module's `schemas/` directory. */
-    private val schemaFiles: Map<Int, File> by lazy {
-        val dir = findFile("schemas") ?: error("Could not find the exported schemas directory")
-        dir.walkTopDown()
-            .filter { it.isFile && it.extension == "json" }
-            .mapNotNull { file -> file.nameWithoutExtension.toIntOrNull()?.let { it to file } }
-            .toMap()
-    }
-
-    private fun sourceFile(relative: String): File =
-        findFile("$SOURCE_ROOT/$relative") ?: error("Could not find $relative")
-
-    /**
-     * A path relative to the `app` module, found by walking up from the working directory so it does
-     * not matter whether the tests run from the module or the repo root.
-     */
-    private fun findFile(relative: String): File? {
-        var dir: File? = File(System.getProperty("user.dir") ?: ".").absoluteFile
-        while (dir != null) {
-            listOf(File(dir, relative), File(dir, "app/$relative"))
-                .firstOrNull { it.exists() }
-                ?.let { return it }
-            dir = dir.parentFile
-        }
-        return null
-    }
-
-    private companion object {
-        const val SOURCE_ROOT = "src/main/java/com/seblful/klas"
-    }
+    private val schemaFiles: Map<Int, File> by lazy { ProjectFiles.exportedSchemas() }
 }

@@ -42,13 +42,19 @@ fun Instant.formatDateTime(): String = atZone(zone).format(dateTimeFmt)
  * Uses [BigDecimal] — not floating point — so it matches the integer-kopeck money model exactly,
  * rejects non-finite input ("Infinity"/"NaN") and clamps nothing: an amount too large to fit in
  * [Money]'s `Long` minor units is rejected (null) rather than silently overflowing.
+ *
+ * **This is the app's one gate on how large an amount can be** — anything above [Money.MAX] is
+ * rejected here, where the answer is still "that is not an amount" rather than a number that has
+ * already lost its meaning. Fitting in a `Long` is not enough: the charge for a lesson is
+ * `rate × minutes`, so a rate that fits can still bill a wrapped, negative amount. See [Money.MAX]
+ * for why that particular ceiling.
  */
 fun parseMoneyOrNull(text: String): Money? {
     val normalized = text.trim().replace(',', '.').replace(" ", "")
     if (normalized.isEmpty()) return null
     val value = normalized.toBigDecimalOrNull()?.takeIf { it.signum() >= 0 } ?: return null
     val minor = value.movePointRight(2).setScale(0, RoundingMode.HALF_UP)
-    return runCatching { Money(minor.longValueExact()) }.getOrNull()
+    return runCatching { Money(minor.longValueExact()) }.getOrNull()?.takeIf { it <= Money.MAX }
 }
 
 /**

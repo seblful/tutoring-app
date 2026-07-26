@@ -59,6 +59,38 @@ class ReportsTest {
         assertEquals(Money(8000), byMonth[1].total)
     }
 
+    /**
+     * Rescheduling a lesson that already earned must not *move* its income into the month it was
+     * pushed to. [ClassRules.move] re-plans it instead — scheduled again, charge voided — so the month
+     * it was taught in stops claiming it and no other month starts. It is recognized again when the
+     * rescheduled lesson completes.
+     *
+     * Asserted through the report rather than on the class, because the month a charge lands in is
+     * what a tutor actually reads, and "the charge is zero" alone does not say the old month released
+     * it.
+     */
+    @Test
+    fun `moving a completed lesson forward takes its income out of the month, without relocating it`() {
+        val may = klass(1, 1, "2026-05-10T10:00:00Z", 5000)
+        assertEquals(
+            listOf(keyOf(2026, 5) to Money(5000)),
+            Reports.incomeByMonth(listOf(may), zone).map { it.monthKey to it.total },
+        )
+
+        val moved = ClassRules.move(
+            may,
+            newStart = Instant.parse("2026-06-10T10:00:00Z"),
+            now = Instant.parse("2026-05-20T10:00:00Z"),
+        )
+
+        assertEquals(ClassStatus.SCHEDULED, moved.status)
+        assertEquals(
+            "neither May nor June recognizes a lesson that has not happened yet",
+            emptyList<Reports.MonthlyIncome>(),
+            Reports.incomeByMonth(listOf(moved), zone),
+        )
+    }
+
     @Test
     fun `income by student and subject sum the right charges`() {
         val classes = listOf(

@@ -145,6 +145,9 @@ class FakeGroupDao : GroupDao {
 
     override suspend fun getById(id: Long): GroupEntity? = items.value.firstOrNull { it.id == id }
 
+    override suspend fun countForSubject(subjectId: Long): Int =
+        items.value.count { it.subjectId == subjectId }
+
     override suspend fun upsert(group: GroupEntity): Long {
         val inserting = group.id == 0L
         val id = if (inserting) nextId++ else group.id

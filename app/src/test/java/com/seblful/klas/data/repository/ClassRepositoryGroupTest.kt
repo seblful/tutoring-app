@@ -93,8 +93,10 @@ class ClassRepositoryGroupTest {
     @Test
     fun `an empty roster cannot be booked`() = runTest {
         seed()
-        var threw = false
-        try {
+
+        // `assertThrows` takes a non-suspending block, so a refused suspend call is caught rather than
+        // asserted around — the idiom the rest of the suite uses for the same reason.
+        val failure = runCatching {
             repo.book(
                 subjectId = algebra,
                 start = start,
@@ -104,10 +106,12 @@ class ClassRepositoryGroupTest {
                 price = groupRate,
                 groupId = groupId,
             )
-        } catch (_: IllegalArgumentException) {
-            threw = true
-        }
-        assertTrue("a lesson with nobody in it bills no one", threw)
+        }.exceptionOrNull()
+
+        assertTrue(
+            "a lesson with nobody in it bills no one, got $failure",
+            failure is IllegalArgumentException,
+        )
         assertTrue(env.classDao.items.value.isEmpty())
     }
 

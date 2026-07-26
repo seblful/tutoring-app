@@ -2,8 +2,10 @@ package com.seblful.klas.ui.subjects
 
 import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -26,7 +28,7 @@ class SubjectsViewModelTest {
     @Test
     fun `save trims the name and ignores a blank one`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        backgroundScope.launch { vm.subjects.collect {} }
+        observing(vm.subjects)
 
         vm.save(id = 0, name = "   ")
         advanceUntilIdle()
@@ -41,10 +43,10 @@ class SubjectsViewModelTest {
     fun `deleting a subject with no classes removes it`() = runTest(mainRule.dispatcher) {
         val id = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val vm = vm()
-        backgroundScope.launch { vm.subjects.collect {} }
+        observing(vm.subjects)
         advanceUntilIdle()
 
-        vm.delete(com.seblful.klas.domain.model.Subject(id = id, name = "Математика"))
+        vm.delete(Subject(id = id, name = "Математика"))
         advanceUntilIdle()
 
         assertTrue(env.subjectDao.items.value.isEmpty())
@@ -56,11 +58,11 @@ class SubjectsViewModelTest {
         env.classDao.upsert(ClassEntity(studentId = 1, subjectId = id, startMillis = 1, durationMinutes = 60, status = "COMPLETED"))
         val vm = vm()
         val events = mutableListOf<SubjectsViewModel.Event>()
-        backgroundScope.launch { vm.subjects.collect {} }
+        observing(vm.subjects)
         backgroundScope.launch { vm.events.stream.collect { events += it } }
         advanceUntilIdle()
 
-        vm.delete(com.seblful.klas.domain.model.Subject(id = id, name = "Математика"))
+        vm.delete(Subject(id = id, name = "Математика"))
         advanceUntilIdle()
 
         assertEquals(listOf(SubjectsViewModel.Event.DELETE_BLOCKED_HAS_CLASSES), events)

@@ -35,6 +35,26 @@ value class Money(val minor: Long) : Comparable<Money> {
     companion object {
         val ZERO = Money(0)
 
+        /**
+         * The largest amount the app accepts, 1 000 000,00 — enforced once, at the parse gate every
+         * typed amount goes through (`parseMoneyOrNull`).
+         *
+         * A bound is needed because `Money` is a `Long` and the arithmetic downstream **multiplies**:
+         * `ClassRules.chargeFor` computes `rate × minutes`, and `Reports.percentOf` computes
+         * `part × 100`. Nothing capped a typed rate, so a field the app called valid could bill a
+         * *negative* charge — 2 000 000 000 000 000 accepted, times 60 minutes, wrapped past
+         * `Long.MAX_VALUE` and came back owing the student money. Rejecting the input is the only
+         * place the problem is still legible: every later stage sees a plain number that has already
+         * lost the truth.
+         *
+         * This value is what makes the multiplications safe rather than merely unlikely. A lesson
+         * lasts under a day (1 439 minutes), so the largest charge is `1e8 × 1439 ≈ 1.4e11`; a
+         * lifetime of those summed stays around `1e16`, and `× 100` for a percentage stays under
+         * `9.2e18`. It is also far above any hourly rate or payment a tutor will type, so the ceiling
+         * is only ever met by a slip or by a hostile file.
+         */
+        val MAX = Money(100_000_000)
+
         /** Builds a [Money] from a whole-ruble amount. */
         fun ofMajor(major: Long): Money = Money(major * 100)
     }
