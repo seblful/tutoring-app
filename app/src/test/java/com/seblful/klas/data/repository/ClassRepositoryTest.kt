@@ -31,6 +31,17 @@ class ClassRepositoryTest {
 
     private val defaultStart: Instant = Instant.parse("2026-06-20T10:00:00Z")
 
+    /**
+     * The moment these tests treat as "now" — two hours after [defaultStart], so a lesson booked at
+     * the default start is in the past.
+     *
+     * Pinned, and passed explicitly to every write whose rules consult the clock, rather than left to
+     * `Instant.now()`. A test that says `Instant.now().minusSeconds(3600)` decides on the hour the
+     * suite happens to run at: it passes at 14:00 and can fail on a boundary, and when it does fail it
+     * indicts the time of day rather than the behaviour it was written for.
+     */
+    private val now: Instant = Instant.parse("2026-06-20T12:00:00Z")
+
     /** Books one individual lesson at 30/h for an hour, and returns its class id. */
     private suspend fun book(start: Instant = defaultStart): Long = repo.book(
         subjectId = 1,
@@ -157,10 +168,10 @@ class ClassRepositoryTest {
 
     @Test
     fun `moving a class to the future re-plans it back to scheduled with no charge`() = runTest {
-        val id = book(Instant.now().minusSeconds(3600))
+        val id = book(now.minusSeconds(3600))
         repo.setStatus(session(id), ClassStatus.COMPLETED)
 
-        val moved = repo.move(session(id), Instant.now().plusSeconds(86_400)).single()
+        val moved = repo.move(session(id), now.plusSeconds(86_400), now = now).single()
 
         assertEquals(ClassStatus.SCHEDULED, moved.status)
         assertTrue(moved.charge.isZero)
@@ -168,13 +179,13 @@ class ClassRepositoryTest {
 
     @Test
     fun `an edit re-bills a completed class instead of keeping its old charge`() = runTest {
-        val past = Instant.now().minusSeconds(7200)
+        val past = now.minusSeconds(7200)
         val id = book(past)
         repo.setStatus(session(id), ClassStatus.COMPLETED)
         assertEquals(Money.ofMajor(30), repo.getById(id)!!.charge)
 
         // Same (past) start, new rate: the class stays completed and its income follows the edit.
-        repo.apply(session(id), edit(price = Money.ofMajor(50)), newStart = past)
+        repo.apply(session(id), edit(price = Money.ofMajor(50)), newStart = past, now = now)
 
         val after = repo.getById(id)!!
         assertEquals(ClassStatus.COMPLETED, after.status)
@@ -185,7 +196,7 @@ class ClassRepositoryTest {
     fun `an edit updates the class in place, so income cannot be double-counted`() = runTest {
         val id = book()
 
-        repo.apply(session(id), edit(price = Money.ofMajor(40)), newStart = defaultStart)
+        repo.apply(session(id), edit(price = Money.ofMajor(40)), newStart = defaultStart, now = now)
 
         assertEquals(1, repo.getAll().size)
         assertEquals(Money.ofMajor(40), repo.getById(id)!!.price)
@@ -206,6 +217,7 @@ class ClassRepositoryTest {
                 studentId = other,
             ),
             newStart = defaultStart,
+            now = now,
         )
 
         val after = repo.getById(id)!!
@@ -215,7 +227,6 @@ class ClassRepositoryTest {
 
     @Test
     fun `autoCompleteDue completes only scheduled classes whose end has passed`() = runTest {
-        val now = Instant.parse("2026-06-20T12:00:00Z")
         val due = book(now.minusSeconds(7200))     // ended an hour ago
         val future = book(now.plusSeconds(7200))   // not yet started
 
@@ -242,11 +253,11 @@ class ClassRepositoryTest {
 
     @Test
     fun `every write asks for a reminder refresh, exactly once`() = runTest {
-        val id = book()                                                   // 1
-        repo.apply(session(id), edit(), newStart = defaultStart)           // 2
-        repo.setStatus(session(id), ClassStatus.CANCELLED)                 // 3
-        repo.move(session(id), Instant.now().plusSeconds(3600))            // 4
-        repo.delete(session(id))                                          // 5
+        val id = book()                                                       // 1
+        repo.apply(session(id), edit(), newStart = defaultStart, now = now)    // 2
+        repo.setStatus(session(id), ClassStatus.CANCELLED)                     // 3
+        repo.move(session(id), now.plusSeconds(3600), now = now)               // 4
+        repo.delete(session(id))                                              // 5
         assertEquals(5, env.reminders.refreshCount)
     }
 

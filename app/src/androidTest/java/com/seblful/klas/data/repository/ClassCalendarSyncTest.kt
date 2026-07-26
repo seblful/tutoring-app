@@ -8,6 +8,7 @@ import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.data.local.AppDatabase
+import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.ClassMode
@@ -55,7 +56,7 @@ class ClassCalendarSyncTest {
         settings.update { it.copy(calendarSyncEnabled = true) } // calendar mirroring is off unless enabled
         repo = ClassRepository(
             db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(), calendar,
-            RecordingReminderScheduler(), settings,
+            RecordingReminderScheduler(), settings, RoomTransactor(db),
         )
     }
 

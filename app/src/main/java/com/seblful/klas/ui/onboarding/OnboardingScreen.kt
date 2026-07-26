@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -45,6 +46,7 @@ import com.seblful.klas.R
 import com.seblful.klas.ui.backup.BACKUP_MIME_TYPES
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.backup.BackupResult
+import com.seblful.klas.ui.backup.messageIn
 import com.seblful.klas.ui.backup.BackupViewModel
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
@@ -76,11 +78,14 @@ fun OnboardingScreen(
     var confirmRestoreUri by remember { mutableStateOf<Uri?>(null) }
     val snackbarHost = remember { SnackbarHostState() }
 
-    val restoreError = stringResource(R.string.backup_error)
+    val context = LocalContext.current
     LaunchedEffect(Unit) {
-        // Only a failure needs saying — a successful restore leaves this screen behind.
+        // Only a failure needs saying — a successful restore leaves this screen behind. It says which
+        // failure: someone restoring on a fresh install has the least context for a bare «Не удалось».
         backupViewModel.events.stream.collect { result ->
-            if (result == BackupResult.ERROR) snackbarHost.showSnackbar(restoreError)
+            if (result is BackupResult.Failed) {
+                snackbarHost.showSnackbar(result.failure.messageIn(context))
+            }
         }
     }
 

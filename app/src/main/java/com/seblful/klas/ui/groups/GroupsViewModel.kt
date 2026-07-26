@@ -11,6 +11,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -37,10 +38,13 @@ class GroupsViewModel @Inject constructor(
     subjects: SubjectRepository,
 ) : ViewModel() {
 
-    val showArchived = MutableStateFlow(false)
+    private val _showArchived = MutableStateFlow(false)
+
+    /** Whether archived groups are listed too. Changed through [toggleArchived], not written to. */
+    val showArchived: StateFlow<Boolean> = _showArchived.asStateFlow()
 
     val rows: StateFlow<List<GroupRow>> =
-        showArchived.flatMapLatest { archived ->
+        _showArchived.flatMapLatest { archived ->
             val source = if (archived) groups.observeAll() else groups.observeActive()
             combine(
                 source,
@@ -63,6 +67,6 @@ class GroupsViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun toggleArchived() {
-        showArchived.value = !showArchived.value
+        _showArchived.value = !_showArchived.value
     }
 }

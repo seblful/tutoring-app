@@ -7,6 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
 import com.seblful.klas.data.local.AppDatabase
+import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.StudentEntity
@@ -54,9 +55,11 @@ class BackupRestoreTest {
         ApplicationProvider.getApplicationContext<Context>(), AppDatabase::class.java,
     ).build()
 
+    // The real RoomTransactor, not a fake: these tests run against real Room, so the import's
+    // all-or-nothing transaction is one of the things being exercised.
     private fun managerFor(db: AppDatabase) = BackupManager(
-        db, db.subjectDao(), db.studentDao(), db.groupDao(), db.priceDao(), db.rateHistoryDao(),
-        db.classDao(), db.paymentDao(),
+        RoomTransactor(db), db.subjectDao(), db.studentDao(), db.groupDao(), db.priceDao(),
+        db.rateHistoryDao(), db.classDao(), db.paymentDao(),
     )
 
     @Before fun setUp() {
@@ -65,7 +68,7 @@ class BackupRestoreTest {
         settings = SettingsRepository(target.settingsDao())
         val classes = ClassRepository(
             target.classDao(), target.studentDao(), target.subjectDao(), target.groupDao(),
-            noCalendar, RecordingReminderScheduler(), settings,
+            noCalendar, RecordingReminderScheduler(), settings, RoomTransactor(target),
         )
         restore = BackupRestore(
             backup = managerFor(target),

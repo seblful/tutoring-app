@@ -3,6 +3,9 @@ package com.seblful.klas.testutil
 import com.seblful.klas.calendar.CalendarPermission
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
+import com.seblful.klas.data.backup.BackupManager
+import com.seblful.klas.data.backup.BackupRestore
+import com.seblful.klas.data.local.Transactor
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.EnrollmentRepository
 import com.seblful.klas.data.repository.GroupRepository
@@ -94,6 +97,43 @@ class RecordingNotifier : Notifier {
     }
 }
 
+/**
+ * Runs transactions inline — the fake DAOs are plain in-memory maps, so there is no real atomicity
+ * to reproduce. It counts them instead, which is what tests actually need to assert: that a lesson's
+ * rows are written in **one** transaction rather than several.
+ *
+ * [failAt] makes that numbered transaction throw after the block has run, standing in for a commit
+ * that doesn't land; it is a `var` so a test can seed its data over successful transactions and then
+ * arm the failure for the one it is actually about. The fake DAOs cannot roll back, so a test uses it
+ * to assert that the *calendar* and the reminder scheduler are left alone when a write fails — the
+ * observable half of atomicity that doesn't need a database to check.
+ */
+class RecordingTransactor(var failAt: Int? = null) : Transactor {
+    var count = 0
+        private set
+
+    /** How deeply nested the transaction currently in progress is; 0 when none is. */
+    var depth = 0
+        private set
+
+    /** The greatest nesting reached, so a test can assert one flat transaction rather than several. */
+    var maxDepth = 0
+        private set
+
+    override suspend fun <T> transaction(block: suspend () -> T): T {
+        count++
+        depth++
+        maxDepth = maxOf(maxDepth, depth)
+        try {
+            val result = block()
+            if (count == failAt) error("Transaction $count failed to commit")
+            return result
+        } finally {
+            depth--
+        }
+    }
+}
+
 /** Stands in for the device's calendar permission; flip [granted] to drive either branch. */
 class FakeCalendarPermission(var granted: Boolean = true) : CalendarPermission {
     override fun isGranted(): Boolean = granted
@@ -125,7 +165,7 @@ class FakeDocumentStore(var failing: Boolean = false) : DocumentStore {
  * (calendar, calendar permission, reminder scheduler) are fakes — so mapping logic and repository
  * side effects are exercised for real.
  */
-class TestEnv {
+class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
     val subjectDao = FakeSubjectDao()
     val studentDao = FakeStudentDao()
     val groupDao = FakeGroupDao()
@@ -154,5 +194,30 @@ class TestEnv {
         calendarSync = calendar,
         reminderScheduler = reminders,
         settings = settingsRepo,
+        transactor = transactor,
+    )
+
+    /**
+     * The real backup manager and restore, on the same fake DAOs. Reachable in a JVM test because
+     * both take the [com.seblful.klas.data.local.Transactor] port rather than an `AppDatabase` — which
+     * is what lets the *failure* paths (an unsupported version, a file that isn't a backup) be
+     * exercised through the production code that classifies them.
+     */
+    val backupManager = BackupManager(
+        transactor = transactor,
+        subjects = subjectDao,
+        students = studentDao,
+        groups = groupDao,
+        prices = priceDao,
+        rateHistory = rateHistoryDao,
+        classes = classDao,
+        payments = paymentDao,
+    )
+
+    val backupRestore = BackupRestore(
+        backup = backupManager,
+        settings = settingsRepo,
+        classes = classRepo,
+        reminders = reminders,
     )
 }

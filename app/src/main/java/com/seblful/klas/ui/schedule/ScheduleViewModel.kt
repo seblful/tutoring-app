@@ -15,7 +15,9 @@ import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.di.ApplicationScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -90,6 +92,7 @@ class ScheduleViewModel @Inject constructor(
     private val students: StudentRepository,
     subjects: SubjectRepository,
     private val groups: GroupRepository,
+    @ApplicationScope private val appScope: CoroutineScope,
 ) : ViewModel() {
 
     private val zone: ZoneId = ZoneId.systemDefault()
@@ -259,9 +262,13 @@ class ScheduleViewModel @Inject constructor(
 
     // Every action below takes a session, so it reads the same whether the tutor tapped a lesson for
     // one student or a whole group; the repository applies it per class and refreshes reminders once.
+    //
+    // Each write runs in [appScope] rather than `viewModelScope`. The sheet these are called from
+    // closes as the action is tapped, and marking a lesson completed or deleting one must not be cut
+    // in half because the screen went away a moment later — see [ApplicationScope].
 
     fun setStatus(session: ClassSession, status: ClassStatus) {
-        viewModelScope.launch { classes.setStatus(session, status) }
+        appScope.launch { classes.setStatus(session, status) }
     }
 
     /**
@@ -272,6 +279,8 @@ class ScheduleViewModel @Inject constructor(
      */
     fun move(session: ClassSession, newStart: Instant) {
         viewModelScope.launch {
+            // The refusal is this screen's to report — [_moveConflict] is state the dialog reads — so
+            // the check stays here and only the move itself is handed to the scope that outlives it.
             val slot = Scheduling.Slot(newStart, session.first.durationMinutes)
             val clash = classes.conflictsWith(slot, session.classes.map { it.id }.toSet()).firstOrNull()
             if (clash != null) {
@@ -282,7 +291,7 @@ class ScheduleViewModel @Inject constructor(
                 )
                 return@launch
             }
-            classes.move(session, newStart)
+            appScope.launch { classes.move(session, newStart) }
         }
     }
 
@@ -292,7 +301,7 @@ class ScheduleViewModel @Inject constructor(
     }
 
     fun delete(session: ClassSession) {
-        viewModelScope.launch { classes.delete(session) }
+        appScope.launch { classes.delete(session) }
     }
 
     /** Points both calendar pages at [date], so whichever view opens next contains it. */

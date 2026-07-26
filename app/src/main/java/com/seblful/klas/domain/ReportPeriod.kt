@@ -42,6 +42,23 @@ data class ReportPeriod(val kind: Kind, val anchor: YearMonth) {
         Kind.ALL -> null
     }
 
+    /**
+     * The days this period spans, or **null** for [Kind.ALL] — which has no bounds, the data being
+     * what sets its ends.
+     *
+     * The same fact as [from] and [until] being non-null, in a shape the compiler can follow: a caller
+     * that has to enumerate the period (drawing a bar per month, say) branches on this instead of
+     * asserting `from!!` in the arm where [kind] happens to rule out all time. The two statements of
+     * "this period is bounded" then cannot come apart.
+     */
+    val bounds: Bounds? = if (from != null && until != null) Bounds(from, until) else null
+
+    /** A period's ends. [untilExclusive] is the first day *after* it, as [until] is. */
+    data class Bounds(val from: LocalDate, val untilExclusive: LocalDate) {
+        /** The last day actually inside the period — what names its final month. */
+        val lastDay: LocalDate get() = untilExclusive.minusDays(1)
+    }
+
     /** Whether ‹ › mean anything here: all time has nowhere to step to. */
     val isNavigable: Boolean get() = kind != Kind.ALL
 

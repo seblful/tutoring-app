@@ -33,7 +33,8 @@ class ScheduleViewModelTest {
     private val env = TestEnv()
     private val zone: ZoneId = ZoneId.systemDefault()
 
-    private fun vm() = ScheduleViewModel(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo)
+    private fun vm() =
+        ScheduleViewModel(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, mainRule.appScope)
 
     private fun startMillisOn(date: LocalDate, time: LocalTime): Long =
         date.atTime(time).atZone(zone).toInstant().toEpochMilli()

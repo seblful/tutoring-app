@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.klas.data.local.AppDatabase
+import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.GroupMemberCrossRef
@@ -34,8 +35,8 @@ class BackupRoundTripTest {
         ).build()
 
     private fun managerFor(db: AppDatabase) = BackupManager(
-        db, db.subjectDao(), db.studentDao(), db.groupDao(), db.priceDao(), db.rateHistoryDao(),
-        db.classDao(), db.paymentDao(),
+        RoomTransactor(db), db.subjectDao(), db.studentDao(), db.groupDao(), db.priceDao(),
+        db.rateHistoryDao(), db.classDao(), db.paymentDao(),
     )
 
     @Before fun setUp() {

@@ -51,11 +51,14 @@ private fun RateChangeRow(change: RateChange) {
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
+        // Branching on `from` itself rather than on `isInitial`, which is the same test one step
+        // removed: the compiler follows the null check and the previous rate needs no assertion.
+        val from = change.from
         Text(
-            text = if (change.isInitial) {
+            text = if (from == null) {
                 stringResource(R.string.rate_history_initial, change.to.text())
             } else {
-                stringResource(R.string.rate_history_change, change.from!!.text(), change.to.text())
+                stringResource(R.string.rate_history_change, from.text(), change.to.text())
             },
             style = MaterialTheme.typography.bodySmall,
         )

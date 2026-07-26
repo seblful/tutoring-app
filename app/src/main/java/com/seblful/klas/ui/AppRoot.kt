@@ -42,7 +42,10 @@ import com.seblful.klas.ui.subjects.SubjectsScreen
 
 @Composable
 fun AppRoot(rootViewModel: RootViewModel = hiltViewModel()) {
-    val settings by rootViewModel.settings.collectAsState()
+    // Read into a plain local rather than a `by` delegate: a delegated property is a getter call each
+    // time it is read, so Kotlin cannot smart-cast it and the branches below had to re-assert with
+    // `settings!!` what `settings == null` had just ruled out.
+    val settings = rootViewModel.settings.collectAsState().value
 
     val darkTheme = when (settings?.themeMode) {
         "LIGHT" -> false
@@ -56,9 +59,9 @@ fun AppRoot(rootViewModel: RootViewModel = hiltViewModel()) {
                 settings == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-                !settings!!.onboardingComplete ->
+                !settings.onboardingComplete ->
                     OnboardingScreen(onFinished = { /* settings flip re-renders into MainApp */ })
-                else -> MainApp(showGroupsTab = settings!!.showGroupsTab)
+                else -> MainApp(showGroupsTab = settings.showGroupsTab)
             }
         }
     }

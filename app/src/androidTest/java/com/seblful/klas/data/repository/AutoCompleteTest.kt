@@ -8,6 +8,7 @@ import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.data.local.AppDatabase
+import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.StudentEntity
@@ -45,7 +46,7 @@ class AutoCompleteTest {
         db.priceDao().insertAll(listOf(PriceEntity(1, 1, amountMinor = 5000))) // 50 BYN
         repo = ClassRepository(
             db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(), noCalendar,
-            RecordingReminderScheduler(), SettingsRepository(db.settingsDao()),
+            RecordingReminderScheduler(), SettingsRepository(db.settingsDao()), RoomTransactor(db),
         )
     }
 

@@ -1,0 +1,68 @@
+name: CI
+
+# The unit suite is the project's safety net, and two of its tests — BackupSchemaCoverageTest and
+# MappersTest — exist purely to trip when a new table or column is added without being carried
+# through the backup or the mappers. A tripwire that only runs when somebody remembers to run it is
+# not a tripwire, so it runs here on every push and every pull request.
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # A new push supersedes the run in progress for the same ref — except on the default branch, where
+  # every commit's result is worth keeping.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # JDK 21, matching the Android Studio JBR the project is built with locally.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
+
+      # No local.properties here (it is gitignored, holding a machine-specific SDK path); the runner
+      # exports ANDROID_HOME, which Gradle falls back to.
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
+
+      - name: Lint
+        # lintDebug rather than lint: release lint is switched off in the build script to dodge an
+        # AGP 9.2.1 file-locking bug on Windows, so debug is where lint actually runs.
+        run: ./gradlew :app:lintDebug --stacktrace
+
+      # The instrumented tests need a device and there is no emulator in this project's workflow, but
+      # compiling them still catches the breakage that matters most often: a schema or entity change
+      # that leaves MigrationTest referring to something that no longer exists.
+      - name: Compile instrumented tests
+        run: ./gradlew :app:assembleDebugAndroidTest --stacktrace
+
+      - name: Assemble debug APK
+        run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Upload test and lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            app/build/reports/tests/
+            app/build/reports/lint-results-*.html
+            app/build/test-results/
+          retention-days: 14
+          if-no-files-found: ignore

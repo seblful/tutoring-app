@@ -17,8 +17,10 @@ import com.seblful.klas.format.MoneyField
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -50,6 +52,7 @@ class ClassEditViewModelTest {
         subjectsRepo = env.subjectRepo,
         enrollment = env.enrollmentRepo,
         settingsRepo = env.settingsRepo,
+        appScope = mainRule.appScope,
     )
 
     private suspend fun seedStudentWithPricedSubject(
@@ -267,6 +270,41 @@ class ClassEditViewModelTest {
         assertEquals(studentId, vm.form.value.studentId)
         assertEquals(subjectId, vm.form.value.subjectId)
         assertEquals("30", vm.form.value.price.text)
+    }
+
+    /**
+     * The form's shared flows say `WhileSubscribed(5_000)`, and that has to be true: once the screen
+     * stops watching, the queries behind it must actually stop.
+     *
+     * They used to not. Two `init` collectors — auto-selecting the only student and the only subject —
+     * subscribed for the view model's whole life, so the timeout could never fire and the student,
+     * price and subject queries stayed live behind a form nobody was looking at. Both are one-shot
+     * reads now, and this is what would notice them turning back into collectors.
+     */
+    @Test
+    fun `no query stays open once nothing is collecting the form`() = runTest(mainRule.dispatcher) {
+        seedStudentWithPricedSubject()
+        val vm = vm()
+
+        val watching = launch { vm.state.collect {} }
+        advanceUntilIdle()
+        assertTrue("the query is live while the screen watches", env.studentDao.items.subscriptionCount.value > 0)
+
+        watching.cancel()
+        // Past the sharing timeout, so WhileSubscribed has had its chance to stop the upstream.
+        advanceTimeBy(10_000)
+        advanceUntilIdle()
+
+        assertEquals(
+            "the students query is dropped once nothing is watching",
+            0,
+            env.studentDao.items.subscriptionCount.value,
+        )
+        assertEquals(
+            "and so is the subject-price query",
+            0,
+            env.priceDao.items.subscriptionCount.value,
+        )
     }
 
     // --- Unsaved changes: what the back arrow and the back gesture consult ---
@@ -489,6 +527,38 @@ class ClassEditViewModelTest {
         assertEquals(Money.ofMajor(30).minor, saved.priceMinor)
         assertEquals("SCHEDULED", saved.status)
         assertEquals("REMOTE", saved.mode)
+    }
+
+    /**
+     * The write runs in the injected application scope, not in `viewModelScope` — so that going back
+     * the instant after tapping save cannot cut it in half, between the rows it commits and the
+     * calendar mirror and reminder refresh that follow them.
+     *
+     * Asserted from the other side, by cancelling the application scope: nothing is written. Were the
+     * save launched into `viewModelScope` instead, that scope would still be live here and the lesson
+     * would be booked regardless — which is what makes this a tripwire rather than a restatement.
+     */
+    @Test
+    fun `the save is launched into the application scope, not the view model's`() = runTest(mainRule.dispatcher) {
+        val (studentId, subjectId) = seedStudentWithPricedSubject()
+        val vm = vm()
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+
+        vm.update {
+            it.copy(
+                studentId = studentId, subjectId = subjectId, date = LocalDate.now(zone).plusDays(3),
+                timeFrom = LocalTime.of(10, 0), timeTo = LocalTime.of(11, 0), price = MoneyField("30"),
+            )
+        }
+        mainRule.appScope.cancel()
+
+        var done = false
+        vm.save { done = true }
+        advanceUntilIdle()
+
+        assertFalse("no save can complete once the scope that owns writes is gone", done)
+        assertTrue("and nothing was written", env.classDao.items.value.isEmpty())
     }
 
     // --- Save: a time that is already taken ---

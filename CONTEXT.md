@@ -36,7 +36,7 @@ flowchart TB
 | Package | Responsibility |
 |---|---|
 | `domain/` | Pure Kotlin, no Android deps: billing, class/group rules, scheduling, calendar layout, reminders, reports, `Taught` (what a stat row counts), `LessonKind` (individual vs a group's), models, and the `ReminderScheduler` port. All JVM-tested. |
-| `data/local/` | Room entities, DAOs, `AppDatabase`, `Migrations`. Entities are also `@Serializable`, for the backup. |
+| `data/local/` | Room entities, DAOs, `AppDatabase`, `Migrations`, and the `Transactor` port. Entities are also `@Serializable`, for the backup. |
 | `data/repository/` | Entities ⇄ domain models, and where display **name ordering** is applied. Each repository owns one invariant end to end (see *Ownership* below). |
 | `data/backup/` | Whole-DB JSON snapshot: export, transactional replace-all import, and `BackupRestore` (everything a *restore* means beyond the rows). |
 | `calendar/` | `CalendarSync` + `CalendarPermission` ports and a `CalendarContract` adapter. |
@@ -52,6 +52,10 @@ flowchart TB
 
 - `ClassRepository` — **all** side effects of a class change (calendar mirror + reminder refresh).
   Every write takes a whole **lesson** (`ClassSession`), so there is no single-class path to drift.
+  Each write is also **one transaction**, in three fixed phases: pure rules → every row inside
+  `Transactor.transaction` → calendar and reminders *after* the commit. A group lesson is *n* rows, so
+  without the transaction a failure halfway leaves a torn lesson; the calendar stays outside it
+  because it is an IPC call, and because a best-effort mirror must not be a participant in the write.
 - `EnrollmentRepository` — the subject⇄price invariant, and where prices are read.
 - `GroupRepository` — the only writer of group membership; a group is saved with its exact roster.
 - `RateHistoryRepository` — what a *rate change* is, since two repositories set rates.
@@ -149,10 +153,16 @@ flowchart TB
   invites (backfilled *on*); **v4** the «Группы» tab flag; **v5** a group's own rate (upgraded groups
   left explicitly unpriced); **v6** a group's subject (nullable); **v7** `price_history`, seeded from
   existing rates without rewriting anything.
-- **Backup = full DB snapshot → JSON via SAF.** Ids preserved, import is one transaction. The format is
-  versioned: an **older** file still imports (missing tables come back empty, missing columns take their
-  default), a **newer** one is refused — which is the reason the version exists. A restored file is
-  reproduced as given; v7's seeding is deliberately not repeated on import.
+- **Backup = full DB snapshot → JSON via SAF.** Ids preserved, import is one transaction (through the
+  same `Transactor` port the class writes use). The format is versioned: an **older** file still imports
+  (missing tables come back empty, missing columns take their default), a **newer** one is refused —
+  which is the reason the version exists. A restored file is reproduced as given; v7's seeding is
+  deliberately not repeated on import.
+- **A refused backup says which refusal it was** (`data/backup/BackupFailure`): a file from a newer
+  build (carrying both version numbers), a file that isn't a Klas backup, or a file that wouldn't open.
+  One flat "failed" told the tutor to check a file that may have been perfectly fine — a copy from a
+  newer build needs an app update, not another look. Classification is pure; the wording is shared by
+  the backup screen and the first-run restore.
 - **Restoring is more than importing**: `BackupRestore` owns the whole act (replace rows, end first run,
   re-plan reminders, re-mirror to *this* device's calendar), so both entry points share one path.
 
@@ -259,6 +269,21 @@ ViewModels observe repository `Flow`s and expose `StateFlow` UI state. Writes go
 repository → Room, and the repository then mirrors to the calendar and refreshes reminders — so a
 ViewModel expresses intent only and cannot forget a side effect.
 
+**Reads live in `viewModelScope`; writes do not.** A write goes to the injected `@ApplicationScope`
+(`di/CoroutinesModule`) and the view model keeps only the navigation and the one-shot event, because
+`viewModelScope` dies with its screen: tapping «Сохранить» and going straight back would otherwise
+cancel a save between its committed rows and the mirroring that follows them. `ClassEditViewModel`
+awaits the write for its `onDone`; the schedule's status/move/delete actions just launch it.
+
+State a view model exposes is **read-only** (`StateFlow`, never `MutableStateFlow`) and changes only
+through its mutators — which is what keeps derived bookkeeping like `ClassEditViewModel.touched` in
+step with the form it describes.
+
+Guarded suspend calls use `runCatchingCancellable`, never `runCatching`: the latter catches
+`CancellationException` too, which reports a cancelled operation as a failed one and lets a dead
+coroutine carry on. Plain `runCatching` stays only around **non**-suspending best-effort work, as in
+the calendar adapter.
+
 ---
 
 ## Non-goals (v1)
@@ -269,17 +294,26 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
 
 ## Testing
 
-- **JVM unit tests** (`src/test`, `testDebugUnitTest`) cover the domain layer, the backup format, view
-  models, repository side effects, mappers and formatters — against **in-memory fake DAOs** with a test
-  main dispatcher, so most logic is verified without a device. Android-bound halves are reachable
-  through their ports; a worker or handler is an adapter, never a decision. The fakes reproduce
-  filtering and time ordering only — **name ordering is not restated there**, so they have no version
-  of it to disagree with.
+- **JVM unit tests** (`src/test`, `testDebugUnitTest`) cover the domain layer, the backup format and
+  its failure classification, view models, repository side effects and transaction boundaries, mappers
+  and formatters — against **in-memory fake DAOs** with a test main dispatcher, so most logic is
+  verified without a device. Android-bound halves are reachable through their ports; a worker or
+  handler is an adapter, never a decision. The fakes reproduce filtering and time ordering only —
+  **name ordering is not restated there**, so they have no version of it to disagree with.
+- **`isReturnDefaultValues` is deliberately off.** It turns an unmocked framework call — something a
+  JVM test here should never make — into a silent pass on `null`/`0`. A test that needs Android has
+  found a missing port, not a reason to switch it on.
 - **Fixtures pin the clock, not `now()`.** Times built from `Instant.now()` fail for the time of day
   rather than the behaviour. Seed a fixed hour and pick days by excluding today.
 - Two tests are **tripwires against silent drift**, both deriving expectations from generated
   artifacts: `BackupSchemaCoverageTest` (a new table must be carried or named device-local) and
-  `MappersTest` (a new column must be mapped). Both are acknowledgement lists.
+  `MappersTest` (a new column must be mapped). Both are acknowledgement lists. Two more guard
+  structure rather than data: one asserts the booking form leaves **no query open** once nothing
+  collects it (`WhileSubscribed` has to be true, not decorative), and one asserts a save is launched
+  into the application scope by cancelling that scope and finding nothing written.
+- **CI** (`.github/workflows/ci.yml`) runs the unit suite, `lintDebug`, the debug APK and the
+  *compilation* of the instrumented tests on every push and PR — a tripwire nobody runs is not a
+  tripwire. The instrumented tests themselves still need a device.
 - **Instrumented tests** (`src/androidTest`) cover Room integration, the **schema migrations** against
   the exported JSONs, and **layout** questions that need real text measurement (`BottomBarLabelTest`).
   A debug-only manifest entry lets the test host show over the keyguard, so they run against a locked
@@ -310,6 +344,7 @@ app/src/main/java/com/seblful/klas/
 ├── domain/            # pure rules + ports + models
 ├── data/{local,repository,backup}/
 ├── calendar/  notifications/  diagnostics/  work/  format/  storage/  di/
+├── Coroutines.kt      # runCatchingCancellable — the only way suspend calls are guarded
 ├── ui/{schedule,students,groups,subjects,reports,backup,more,onboarding,diagnostics,common,navigation,theme}/
 ├── MainActivity.kt    # @AndroidEntryPoint → AppRoot()
 └── KlasApp.kt     # @HiltAndroidApp, WorkManager config, startup scheduling

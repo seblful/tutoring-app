@@ -226,6 +226,9 @@ class GroupFormViewModel @Inject constructor(
     fun save(onSaved: (Long) -> Unit) {
         val s = state.value
         if (!s.isValid) return
+        // The rate `isValid` has just proved, taken as a value instead of re-asserted with `!!` — the
+        // same check twice is the same check drifting apart.
+        val price = s.price ?: return
         val f = s.form
         viewModelScope.launch {
             val id = groups.save(
@@ -233,7 +236,7 @@ class GroupFormViewModel @Inject constructor(
                     id = groupId,
                     name = f.name.trim(),
                     note = f.note.trim(),
-                    price = s.price!!,
+                    price = price,
                     subjectId = f.subjectId,
                     defaultMode = f.mode,
                     archived = archived.value,

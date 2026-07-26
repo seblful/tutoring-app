@@ -87,9 +87,12 @@ android {
         // Windows; lint still runs on debug builds (`lintDebug`), so skip it during release assembly.
         checkReleaseBuilds = false
     }
-    testOptions {
-        unitTests.isReturnDefaultValues = true
-    }
+    // Deliberately no `unitTests.isReturnDefaultValues`. It makes an unmocked android.jar call return
+    // null/0 instead of throwing, which turns "this test reached the Android framework" — something a
+    // JVM test in this project should never do — into a silent pass on a zero value. The domain is
+    // pure and every Android edge sits behind a port (CalendarSync, Notifier, DocumentStore,
+    // ReminderScheduler, Transactor), so a test that needs the framework has found a missing port
+    // rather than a reason to turn this back on.
     // Room's exported schema JSONs (see `ksp { room.schemaLocation }`) are shipped as androidTest
     // assets so MigrationTestHelper can create an old-version DB and validate migrations against the
     // bundled schema for each version.

@@ -80,9 +80,11 @@ object Reports {
      */
     fun trend(classes: List<TutoringClass>, period: ReportPeriod, zone: ZoneId): Trend {
         val inPeriod = period.filter(classes, zone)
-        return when (period.kind) {
+        // Branching on the bounds rather than on the kind: "all time" and "has no bounds to
+        // enumerate" are the same statement, and this way the months arm gets them non-null.
+        return when (val bounds = period.bounds) {
             // All time has no bound to enumerate, so the data sets it: first earning year to last.
-            ReportPeriod.Kind.ALL -> {
+            null -> {
                 val byYear = sumChargesBy(inPeriod) { it.start.atZone(zone).toLocalDate().year.toLong() }
                 val years = byYear.keys.map { it.toInt() }
                 Trend(
@@ -93,9 +95,9 @@ object Reports {
             }
             else -> {
                 val byMonth = incomeByMonth(inPeriod, zone).associate { it.monthKey to it.total }
-                val first = monthKeyOf(period.from!!)
+                val first = monthKeyOf(bounds.from)
                 // until is exclusive, so the last day inside the period names the last month.
-                val last = monthKeyOf(period.until!!.minusDays(1))
+                val last = monthKeyOf(bounds.lastDay)
                 Trend(
                     bucket = Trend.Bucket.MONTHS,
                     bars = (first..last).map { Trend.Bar(it, byMonth[it] ?: Money.ZERO) },
@@ -121,7 +123,8 @@ object Reports {
      * with the individual ones they also take.
      */
     fun incomeByGroup(classes: List<TutoringClass>): Map<Long, Money> =
-        sumChargesBy(classes.filter { it.groupId != null }) { it.groupId!! }
+        // An individual class keys to null and is dropped, which is the whole filter.
+        sumChargesBy(classes) { it.groupId }
 
     /**
      * What share of [whole] [part] is, as a whole percent rounded half-up — 0 when there is no whole.
@@ -165,9 +168,15 @@ object Reports {
     fun totalOutstanding(balances: List<StudentBalance>): Money =
         balances.fold(Money.ZERO) { acc, b -> if (b.balance.minor > 0) acc + b.balance else acc }
 
-    private inline fun sumChargesBy(classes: List<TutoringClass>, key: (TutoringClass) -> Long): Map<Long, Money> =
+    /**
+     * Billable charges summed per key. A **null** key means "this class has no such thing" and drops
+     * the class from the result — which is how [incomeByGroup] states its filter once, in the key it
+     * groups by, rather than as a `filter` and a matching `!!` that have to be kept in step.
+     */
+    private inline fun sumChargesBy(classes: List<TutoringClass>, key: (TutoringClass) -> Long?): Map<Long, Money> =
         classes.filter { it.status.isBillable }
-            .groupBy(key)
+            .mapNotNull { c -> key(c)?.let { it to c } }
+            .groupBy({ it.first }, { it.second })
             .mapValues { (_, list) -> list.fold(Money.ZERO) { a, c -> a + c.charge } }
 
     private fun monthKeyOf(c: TutoringClass, zone: ZoneId): Int =

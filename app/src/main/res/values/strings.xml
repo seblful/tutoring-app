@@ -356,7 +356,13 @@
     <string name="backup_import_confirm">Импорт заменит все текущие данные. Продолжить?</string>
     <string name="backup_export_success">Данные сохранены</string>
     <string name="backup_import_success">Данные восстановлены</string>
-    <string name="backup_error">Не удалось — проверьте файл</string>
+    <!--
+      One message per BackupFailure. A single «Не удалось» told the tutor to check a file that may
+      have been perfectly fine — a copy from a newer build needs an app update, not another look.
+    -->
+    <string name="backup_error_file">Не удалось открыть файл — возможно, он перемещён или недоступен</string>
+    <string name="backup_error_malformed">Это не похоже на резервную копию Klas</string>
+    <string name="backup_error_version">Копия создана более новой версией Klas (%1$d) — обновите приложение. Эта версия читает копии до %2$d</string>
 
     <!-- Diagnostics -->
     <string name="diagnostics_title">Диагностика</string>

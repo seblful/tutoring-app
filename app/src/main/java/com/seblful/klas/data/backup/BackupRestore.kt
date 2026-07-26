@@ -2,6 +2,7 @@ package com.seblful.klas.data.backup
 
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.domain.ReminderScheduler
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,6 +32,8 @@ class BackupRestore @Inject constructor(
         settings.update { it.copy(onboardingComplete = true) }
         // Imported classes change what's upcoming/overdue — re-run auto-complete & reminders.
         reminders.refreshNow()
-        runCatching { classes.resyncCalendar() } // best-effort, like all calendar work
+        // Best-effort, like all calendar work — but a *cancellation* still propagates, so a restore
+        // that was abandoned partway cannot return as though it had finished.
+        runCatchingCancellable { classes.resyncCalendar() }
     }
 }

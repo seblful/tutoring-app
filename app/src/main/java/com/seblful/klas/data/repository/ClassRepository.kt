@@ -7,6 +7,7 @@ import com.seblful.klas.data.local.ClassDao
 import com.seblful.klas.data.local.GroupDao
 import com.seblful.klas.data.local.StudentDao
 import com.seblful.klas.data.local.SubjectDao
+import com.seblful.klas.data.local.Transactor
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
 import com.seblful.klas.domain.CalendarSyncPolicy
@@ -38,6 +39,7 @@ class ClassRepository @Inject constructor(
     private val calendarSync: CalendarSync,
     private val reminderScheduler: ReminderScheduler,
     private val settings: SettingsRepository,
+    private val transactor: Transactor,
 ) {
     fun observeById(id: Long): Flow<TutoringClass?> = dao.observeById(id).map { it?.toDomain() }
 
@@ -129,6 +131,20 @@ class ClassRepository @Inject constructor(
     // single-class form and a batch form drifting apart — and the obligations of changing a lesson
     // (run the rules per class, mirror each to the calendar, refresh reminders **once** for the
     // lesson) are discharged here rather than remembered at each call site.
+    //
+    // Each of them is also **one transaction**, and every one has the same three phases in the same
+    // order:
+    //
+    //   1. the rules run (pure, no I/O),
+    //   2. every row the lesson touches is written inside [Transactor.transaction],
+    //   3. the calendar is mirrored and reminders refreshed, *after* the commit.
+    //
+    // A group lesson is n rows, so without (2) a failure or a cancellation halfway through leaves a
+    // torn lesson — some members dropped, others still at the old time, joiners missing — and the
+    // database has no notion of the lesson those rows were meant to make up. (3) sits outside the
+    // transaction on purpose: the calendar is a ContentProvider across an IPC call, and holding
+    // SQLite's write lock across it invites an ANR. It is also the right order, the calendar being a
+    // best-effort mirror of committed data rather than a participant in the write.
 
     /**
      * Books one lesson: a class per entry in [studentIds], every one of them at [price] — the group's
@@ -152,22 +168,25 @@ class ClassRepository @Inject constructor(
         groupId: Long? = null,
     ): List<Long> {
         require(studentIds.isNotEmpty()) { "A lesson needs at least one student" }
-        val ids = studentIds.map { studentId ->
-            val klass = TutoringClass(
-                studentId = studentId,
-                subjectId = subjectId,
-                start = start,
-                durationMinutes = durationMinutes,
-                price = price,
-                mode = mode,
-                groupId = groupId,
-            )
-            val id = dao.upsert(klass.toEntity())
-            mirrorToCalendar(klass.copy(id = id))
-            id
+        // Every member's row in one transaction: a group lesson is either wholly booked or not
+        // booked, never a partial roster nobody asked for.
+        val booked = transactor.transaction {
+            studentIds.map { studentId ->
+                val klass = TutoringClass(
+                    studentId = studentId,
+                    subjectId = subjectId,
+                    start = start,
+                    durationMinutes = durationMinutes,
+                    price = price,
+                    mode = mode,
+                    groupId = groupId,
+                )
+                klass.copy(id = dao.upsert(klass.toEntity()))
+            }
         }
+        booked.forEach { mirrorToCalendar(it) }
         reminderScheduler.refreshNow()
-        return ids
+        return booked.map { it.id }
     }
 
     /**
@@ -182,8 +201,9 @@ class ClassRepository @Inject constructor(
      * [roster] additionally says who the lesson is for afterwards: members outside it lose their
      * class, members in it without one get one ([GroupRules.rosterChange]). Null leaves the roster
      * exactly as it is, which is all an individual lesson can mean. Changing who was in a lesson and
-     * changing the lesson's own fields is **one** write, so a save can neither bill a member on their
-     * way out nor leave a joiner behind at the old time.
+     * changing the lesson's own fields is **one transaction**, so a save can neither bill a member on
+     * their way out nor leave a joiner behind at the old time — and a failure partway through leaves
+     * the lesson exactly as it was rather than half-reconciled.
      */
     suspend fun apply(
         session: ClassSession,
@@ -193,8 +213,6 @@ class ClassRepository @Inject constructor(
         roster: Set<Long>? = null,
     ): List<TutoringClass> {
         val change = roster?.let { GroupRules.rosterChange(session, it, changes, newStart) } ?: RosterChange()
-        // Leavers go first, so the edit below has nobody left to re-bill on their way out.
-        change.dropped.forEach { remove(it) }
         val leaving = change.dropped.map { it.id }.toSet()
         return persist(
             // editsFor runs over the whole session, so its refusal to re-attribute a group lesson is
@@ -203,6 +221,9 @@ class ClassRepository @Inject constructor(
                 .filterNot { (c, _) -> c.id in leaving }
                 .map { (c, edit) -> ClassRules.edit(c, edit, newStart, now) },
             joining = change.joining,
+            // Leavers are dropped inside the same transaction as the edit, which is what stops a
+            // member being billed on their way out: the delete and the re-bill cannot half-happen.
+            dropped = change.dropped,
         )
     }
 
@@ -229,40 +250,49 @@ class ClassRepository @Inject constructor(
      * its recognized income, which is derived rather than stored, so it simply stops being counted.
      */
     suspend fun delete(session: ClassSession) {
-        session.classes.forEach { remove(it) }
+        transactor.transaction { session.classes.forEach { dao.delete(it.toEntity()) } }
+        session.classes.forEach { dropCalendarEvent(it) }
         reminderScheduler.refreshNow()
     }
 
-    /** Takes one class out of the database, with its mirrored event. */
-    private suspend fun remove(klass: TutoringClass) {
+    /**
+     * Deletes the event mirroring a class whose row has **already gone**. No `detachCalendarEvent`
+     * here: that nulls the row's event id, and there is no longer a row to null it on.
+     */
+    private suspend fun dropCalendarEvent(klass: TutoringClass) {
         klass.calendarEventId?.let { calendarSync.delete(it) }
-        // No detachCalendarEvent here: the row is going away, so there is no column left to null.
-        dao.delete(klass.toEntity())
     }
 
     /**
      * The one place an existing lesson is written: every class in [resolved] is updated **in place**,
-     * so an edit can't double-count income, and mirrored; then reminders are refreshed **once**. One
-     * lesson earns one reminder, so refreshing per class would repeat the same work n times.
+     * so an edit can't double-count income; then the whole lesson is mirrored and reminders refreshed
+     * **once**. One lesson earns one reminder, so refreshing per class would repeat the same work n
+     * times.
      *
      * [joining] are members arriving in the lesson, who have no row to update yet. They are inserted
      * and billed by [ClassRules.rebill] — the same rule the others' charges come from — so joining a
      * completed lesson costs what having been in it costs, and no caller can insert an unbilled class
-     * into a lesson that has already earned.
+     * into a lesson that has already earned. [dropped] are members leaving it, whose rows go.
+     *
+     * All three happen in **one** transaction, so the lesson a caller describes is the lesson the
+     * database ends up with. Mirroring follows the commit, per the phases documented above; a joiner
+     * is mirrored with the id its insert returned, so the event id lands back on the right row.
      */
     private suspend fun persist(
         resolved: List<TutoringClass>,
         joining: List<TutoringClass> = emptyList(),
+        dropped: List<TutoringClass> = emptyList(),
     ): List<TutoringClass> {
-        resolved.forEach {
-            dao.update(it.toEntity())
-            mirrorToCalendar(it)
+        val joined = transactor.transaction {
+            // Leavers go first, so the updates below have nobody left to re-bill on their way out.
+            dropped.forEach { dao.delete(it.toEntity()) }
+            resolved.forEach { dao.update(it.toEntity()) }
+            joining.map { ClassRules.rebill(it) }.map { klass ->
+                klass.copy(id = dao.upsert(klass.toEntity()))
+            }
         }
-        val joined = joining.map { ClassRules.rebill(it) }.map { klass ->
-            // Inserted before mirroring: the event id is written back against the class's row.
-            val id = dao.upsert(klass.toEntity())
-            klass.copy(id = id).also { mirrorToCalendar(it) }
-        }
+        dropped.forEach { dropCalendarEvent(it) }
+        (resolved + joined).forEach { mirrorToCalendar(it) }
         reminderScheduler.refreshNow()
         return resolved + joined
     }
@@ -275,15 +305,16 @@ class ClassRepository @Inject constructor(
      * Returns the classes that were completed. (Completed classes need no calendar change — their
      * event is already in the past.)
      */
-    suspend fun autoCompleteDue(now: Instant): List<TutoringClass> =
-        dao.dueForCompletion(now.toEpochMilli())
+    suspend fun autoCompleteDue(now: Instant): List<TutoringClass> {
+        val due = dao.dueForCompletion(now.toEpochMilli())
             .map { it.toDomain() }
             .filter { ClassRules.shouldAutoComplete(it, now) }
-            .map { c ->
-                val completed = ClassRules.applyStatus(c, ClassStatus.COMPLETED)
-                dao.update(completed.toEntity())
-                completed
-            }
+            .map { ClassRules.applyStatus(it, ClassStatus.COMPLETED) }
+        // One pass, one transaction: an upkeep run that recognized half of an evening's income and
+        // then failed would leave a group lesson billing some of its members and not the rest.
+        transactor.transaction { due.forEach { dao.update(it.toEntity()) } }
+        return due
+    }
 
     private suspend fun syncEnabled(): Boolean = settings.get().calendarSyncEnabled
 

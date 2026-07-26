@@ -12,6 +12,8 @@ import com.seblful.klas.data.local.RateHistoryDao
 import com.seblful.klas.data.local.SettingsDao
 import com.seblful.klas.data.local.StudentDao
 import com.seblful.klas.data.local.SubjectDao
+import com.seblful.klas.data.local.RoomTransactor
+import com.seblful.klas.data.local.Transactor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -42,4 +44,8 @@ object DatabaseModule {
     @Provides fun provideClassDao(db: AppDatabase): ClassDao = db.classDao()
     @Provides fun providePaymentDao(db: AppDatabase): PaymentDao = db.paymentDao()
     @Provides fun provideSettingsDao(db: AppDatabase): SettingsDao = db.settingsDao()
+
+    @Provides
+    @Singleton
+    fun provideTransactor(db: AppDatabase): Transactor = RoomTransactor(db)
 }

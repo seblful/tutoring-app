@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.runtime.LaunchedEffect
@@ -51,15 +52,15 @@ fun BackupScreen(
 
     val exportSuccess = stringResource(R.string.backup_export_success)
     val importSuccess = stringResource(R.string.backup_import_success)
-    val errorMessage = stringResource(R.string.backup_error)
     val backupFilename = stringResource(R.string.backup_filename)
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.events.stream.collect { result ->
             val message = when (result) {
-                BackupResult.EXPORT_OK -> exportSuccess
-                BackupResult.IMPORT_OK -> importSuccess
-                BackupResult.ERROR -> errorMessage
+                BackupResult.ExportOk -> exportSuccess
+                BackupResult.ImportOk -> importSuccess
+                is BackupResult.Failed -> result.failure.messageIn(context)
             }
             snackbarHost.showSnackbar(message)
         }

@@ -623,7 +623,11 @@ private fun MoveClassFlow(
     onDone: () -> Unit,
 ) {
     var pickedDate by remember { mutableStateOf<LocalDate?>(null) }
-    if (pickedDate == null) {
+    // Held in a local so the time step can use the date without asserting it: `pickedDate` is a `by`
+    // delegate over mutable state, which Kotlin re-reads on each access and so cannot smart-cast, and
+    // the `null` branch below is precisely what establishes that it is set.
+    val date = pickedDate
+    if (date == null) {
         DatePickerModal(
             initial = start.toLocalDate(),
             onConfirm = { pickedDate = it },
@@ -633,8 +637,7 @@ private fun MoveClassFlow(
         TimePickerModal(
             initial = start.toLocalTime(),
             onConfirm = { time ->
-                val newStart = pickedDate!!.atTime(time).atZone(ZoneId.systemDefault()).toInstant()
-                onMoved(newStart)
+                onMoved(date.atTime(time).atZone(ZoneId.systemDefault()).toInstant())
                 onDone()
             },
             onDismiss = onDone,

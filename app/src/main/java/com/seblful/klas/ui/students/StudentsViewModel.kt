@@ -13,6 +13,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -29,10 +30,13 @@ class StudentsViewModel @Inject constructor(
     payments: PaymentRepository,
 ) : ViewModel() {
 
-    val showArchived = MutableStateFlow(false)
+    private val _showArchived = MutableStateFlow(false)
+
+    /** Whether archived students are listed too. Changed through [toggleArchived], not written to. */
+    val showArchived: StateFlow<Boolean> = _showArchived.asStateFlow()
 
     val rows: StateFlow<List<StudentRow>> =
-        showArchived.flatMapLatest { archived ->
+        _showArchived.flatMapLatest { archived ->
             val source = if (archived) students.observeAll() else students.observeActive()
             combine(source, classes.observeAll(), payments.observeAll()) { studentList, allClasses, allPayments ->
                 val balances = Billing.balancesFor(studentList, allClasses, allPayments)
@@ -41,6 +45,6 @@ class StudentsViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun toggleArchived() {
-        showArchived.value = !showArchived.value
+        _showArchived.value = !_showArchived.value
     }
 }

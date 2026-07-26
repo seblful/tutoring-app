@@ -1,7 +1,5 @@
 package com.seblful.klas.data.backup
 
-import androidx.room.withTransaction
-import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.ClassDao
 import com.seblful.klas.data.local.GroupDao
 import com.seblful.klas.data.local.PaymentDao
@@ -9,6 +7,7 @@ import com.seblful.klas.data.local.PriceDao
 import com.seblful.klas.data.local.RateHistoryDao
 import com.seblful.klas.data.local.StudentDao
 import com.seblful.klas.data.local.SubjectDao
+import com.seblful.klas.data.local.Transactor
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -21,7 +20,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class BackupManager @Inject constructor(
-    private val db: AppDatabase,
+    private val transactor: Transactor,
     private val subjects: SubjectDao,
     private val students: StudentDao,
     private val groups: GroupDao,
@@ -53,10 +52,13 @@ class BackupManager @Inject constructor(
     fun parse(text: String): BackupData = json.decodeFromString(text)
 
     suspend fun import(data: BackupData) {
-        require(BackupData.isSupported(data.version)) {
-            "Unsupported backup version ${data.version} (this build supports up to ${BackupData.CURRENT_VERSION})"
+        if (!BackupData.isSupported(data.version)) {
+            throw UnsupportedBackupVersionException(
+                found = data.version,
+                supported = BackupData.CURRENT_VERSION,
+            )
         }
-        db.withTransaction {
+        transactor.transaction {
             // Children first, then parents, to respect foreign keys.
             payments.deleteAll()
             classes.deleteAll()

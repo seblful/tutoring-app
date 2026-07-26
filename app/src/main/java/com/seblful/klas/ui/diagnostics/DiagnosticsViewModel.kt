@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.klas.di.DebugBuild
 import com.seblful.klas.diagnostics.CrashLogger
+import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentStore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -46,7 +47,7 @@ class DiagnosticsViewModel @Inject constructor(
 
     fun export(ref: DocumentRef) {
         viewModelScope.launch {
-            val ok = runCatching { documents.write(ref, crashLogger.read()) }.isSuccess
+            val ok = runCatchingCancellable { documents.write(ref, crashLogger.read()) }.isSuccess
             events.send(if (ok) DiagnosticsEvent.EXPORT_OK else DiagnosticsEvent.ERROR)
         }
     }
