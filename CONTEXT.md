@@ -269,8 +269,14 @@ transaction and the write lock is held for less time.
   next invite" — turning it off and re-syncing **withdraws** invitations already sent.
 - **The calendar-permission rule sits behind the view model**, not behind the switch: sync cannot be
   enabled without the grant, since that flag is what the whole mirror keys off.
+- **A lesson mirrors as one batch, under one snapshot of the settings** (`ClassRepository.mirror`). The
+  settings row governs every class of a lesson identically, so reading it per class asked one question
+  once per member — and let a lesson mirror half under the old invite setting and half under a new one.
 - **A reminder only fires *ahead* of a lesson, never on booking.** The plan is re-derived from scratch
   on every change, so a lesson booked inside its own lead window gets none — which is the point.
+  "From scratch" means over the **horizon**, not over the whole history: `Maintenance` names the horizon
+  once and uses it both to fetch the window and to filter it, since a window narrower than the filter
+  would drop a reminder silently. `MaintenanceTest` pins the boundary lesson.
 - **A reminder is an alarm; upkeep is a worker.** The split is by whether being late is acceptable.
   Reminders were `OneTimeWorkRequest`s with a delay, which WorkManager treats as a *lower bound* and
   batches under Doze — «занятие через час» two hours late is not a late reminder but a wrong one, and

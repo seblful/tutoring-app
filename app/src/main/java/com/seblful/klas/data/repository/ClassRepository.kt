@@ -90,7 +90,7 @@ class ClassRepository @Inject constructor(
      * direction — `plan` applies the real filter — and this keeps the boundary lesson in it.
      */
     suspend fun startingWithin(now: Instant, horizon: Duration): List<TutoringClass> =
-        getBetween(now, now.plus(horizon))
+        getBetween(now, now.plus(horizon).plusMillis(1))
 
     private suspend fun getBetween(from: Instant, to: Instant): List<TutoringClass> =
         dao.getBetween(from.toEpochMilli(), to.toEpochMilli()).map { it.toDomain() }
