@@ -18,6 +18,9 @@ object Reports {
     /** A student's outstanding debt (only students who actually owe appear). */
     data class Debt(val studentId: Long, val amount: Money)
 
+    /** Income from one kind of teaching — see [incomeByKind]. */
+    data class KindIncome(val kind: LessonKind, val total: Money)
+
     fun totalIncome(classes: List<TutoringClass>): Money =
         Billing.charged(classes)
 
@@ -33,6 +36,23 @@ object Reports {
 
     fun incomeBySubject(classes: List<TutoringClass>): Map<Long, Money> =
         sumChargesBy(classes) { it.subjectId }
+
+    /**
+     * Completed-class income split into one-to-one and group teaching, largest first.
+     *
+     * This is the question the other breakdowns cannot answer: a group is usually taught below the
+     * one-to-one rate, so "how much of my income comes from groups" decides whether the arrangement
+     * is worth the hours — and per-student or per-subject lines both mix the two kinds inside every
+     * row. A kind that earned nothing is **left out** rather than printed as a zero, which also means
+     * a tutor who teaches only one way sees a single line saying no more than the total already does;
+     * the screen drops the section then (see `ReportsViewModel`).
+     */
+    fun incomeByKind(classes: List<TutoringClass>): List<KindIncome> =
+        classes.filter { it.status.isBillable }
+            .groupBy { LessonKind.of(it) }
+            .map { (kind, list) -> KindIncome(kind, list.fold(Money.ZERO) { a, c -> a + c.charge }) }
+            .filterNot { it.total.isZero }
+            .sortedByDescending { it.total.minor }
 
     /** Students with a positive balance (owe money), largest debt first. */
     fun debts(balances: List<StudentBalance>): List<Debt> =

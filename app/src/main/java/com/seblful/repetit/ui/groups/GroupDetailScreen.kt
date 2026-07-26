@@ -15,12 +15,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -73,9 +71,12 @@ private enum class GroupTab(val labelRes: Int) {
  * Opening a group used to open its **edit form**, which answered "how do I change this?" and nothing
  * about "how is this going?". Editing now sits behind the pencil, where it does for a student.
  *
+ * Booking is **not** offered here. A lesson is booked from the schedule, which is the one place that
+ * knows what else the hour holds — there is one tutor, so a booking is a claim on their day rather
+ * than an entry in a group's ledger. The schedule's add button asks who the lesson is for.
+ *
  * @param onEdit opens the group form — the only place a group's roster, subject or rate changes.
  * @param onMemberClick opens a member's own card, which is where their money lives.
- * @param onAddLesson books a lesson already pointed at this group.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,7 +85,6 @@ fun GroupDetailScreen(
     onEdit: () -> Unit,
     onMemberClick: (Long) -> Unit,
     onLessonClick: (Long) -> Unit,
-    onAddLesson: () -> Unit,
     viewModel: GroupDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -109,21 +109,10 @@ fun GroupDetailScreen(
                 },
             )
         },
-        floatingActionButton = {
-            // Only for a group that can still be booked: an archived one keeps its past lessons but
-            // takes no new ones, so offering to add one would be an offer the app then refuses.
-            if (group != null && !group.archived) {
-                ExtendedFloatingActionButton(
-                    onClick = onAddLesson,
-                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                    text = { Text(stringResource(R.string.group_add_lesson)) },
-                )
-            }
-        },
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxWidth().padding(padding).constrainedContent(),
-            contentPadding = PaddingValues(bottom = 88.dp),
+            contentPadding = PaddingValues(bottom = 24.dp),
         ) {
             item(key = GroupDetailKeys.HEADER) {
                 GroupHeader(

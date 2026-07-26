@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -266,6 +267,74 @@ class ClassEditViewModelTest {
         assertEquals(subjectId, vm.form.value.subjectId)
         assertEquals("30", vm.form.value.price.text)
     }
+
+    // --- Unsaved changes: what the back arrow and the back gesture consult ---
+
+    /**
+     * The form fills itself in as it goes — the only student, their only subject, that subject's
+     * price, the end time following the start. None of that is the tutor's work, so none of it may
+     * make leaving ask whether to save.
+     */
+    @Test
+    fun `everything the form fills in for itself leaves it clean`() = runTest(mainRule.dispatcher) {
+        seedStudentWithPricedSubject()
+        val vm = vm()
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+
+        // A student and a subject have been chosen — by the app, not by anybody.
+        assertNotNull(vm.form.value.studentId)
+        assertNotNull(vm.form.value.subjectId)
+        assertFalse(vm.state.value.isDirty)
+    }
+
+    @Test
+    fun `a form opened already pointed at a group is clean`() = runTest(mainRule.dispatcher) {
+        val (studentId, subjectId) = seedStudentWithPricedSubject()
+        env.studentDao.addSubjectLink(StudentSubjectCrossRef(studentId, subjectId))
+        val groupId = env.groupRepo.save(
+            Group(name = "11 «А»", price = Money.ofMajor(20), subjectId = subjectId),
+            setOf(studentId),
+        )
+
+        val vm = vm(groupId = groupId)
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(ClassTarget.GROUP, vm.form.value.target)
+        assertEquals(groupId, vm.form.value.groupId)
+        assertEquals("the group's rate was prefilled", "20", vm.form.value.price.text)
+        assertFalse("opening the form from a group is not editing it", vm.state.value.isDirty)
+    }
+
+    @Test
+    fun `loading a lesson to edit is clean, touching it is not, and saving it is clean again`() =
+        runTest(mainRule.dispatcher) {
+            val (studentId, subjectId) = seedStudentWithPricedSubject()
+            val start = LocalDate.of(2026, 6, 22).atTime(10, 0).atZone(zone).toInstant()
+            val classId = env.classDao.upsert(
+                ClassEntity(
+                    studentId = studentId, subjectId = subjectId,
+                    startMillis = start.toEpochMilli(), durationMinutes = 60,
+                    priceMinor = Money.ofMajor(30).minor, status = ClassStatus.SCHEDULED.name,
+                )
+            )
+
+            val vm = vm(id = classId)
+            backgroundScope.launch { vm.state.collect {} }
+            advanceUntilIdle()
+
+            assertEquals(LocalTime.of(10, 0), vm.form.value.timeFrom)
+            assertFalse("loading the lesson is not editing it", vm.state.value.isDirty)
+
+            vm.setTimeFrom(LocalTime.of(11, 0))
+            advanceUntilIdle()
+            assertTrue(vm.state.value.isDirty)
+
+            vm.save { }
+            advanceUntilIdle()
+            assertFalse("there is nothing unsaved left", vm.state.value.isDirty)
+        }
 
     @Test
     fun `with several students none is auto-selected`() = runTest(mainRule.dispatcher) {

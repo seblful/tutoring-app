@@ -169,6 +169,16 @@ data class ClassFormState(
     val subjects: List<Subject> = emptyList(),
     val subjectFixedByGroup: Boolean = false,
     val conflict: TimeConflict? = null,
+    /**
+     * Whether the tutor has changed anything — what leaving without saving would throw away.
+     *
+     * This form tracks having been *touched* rather than differing from a snapshot, unlike the group
+     * form: it fills itself in as it goes (the only student, the only subject, the group's rate, the
+     * end time following the start), each arriving asynchronously after the screen is up, so there is
+     * no one moment when "as it was opened" is settled. The cost is that typing something and undoing
+     * it still counts as a change; back then asks a question whose answer is harmless either way.
+     */
+    val isDirty: Boolean = false,
 ) {
     /** Whether the lesson yet has somebody to be for. Until then most of the form means nothing. */
     val targetChosen: Boolean
@@ -252,6 +262,15 @@ class ClassEditViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val form = MutableStateFlow(ClassForm())
+
+    /**
+     * Set by the mutators the **screen** calls, and by none of the ones this view model calls on its
+     * own — which is why every user-facing `selectX` below is a one-liner over a private `applyX` that
+     * the auto-selection in `init` uses instead. Loading a lesson to edit, pre-selecting the group the
+     * form was opened from, filling in the only student or the only subject: none of those is the
+     * tutor's work, so none of them may make the form look unsaved.
+     */
+    private val touched = MutableStateFlow(false)
 
     /**
      * The groups offered in the picker: the active ones, plus the group of the lesson being edited so
@@ -375,7 +394,8 @@ class ClassEditViewModel @Inject constructor(
             combine(students, groups, members, subjects, subjectFixedByGroup, ::Pickers),
             form,
             conflict,
-        ) { pickers, f, clash ->
+            touched,
+        ) { pickers, f, clash, isTouched ->
             ClassFormState(
                 form = f,
                 isNew = isNew,
@@ -385,6 +405,7 @@ class ClassEditViewModel @Inject constructor(
                 subjects = pickers.subjects,
                 subjectFixedByGroup = pickers.subjectFixedByGroup,
                 conflict = clash,
+                isDirty = isTouched,
             )
         }.stateIn(
             viewModelScope,
@@ -404,8 +425,8 @@ class ClassEditViewModel @Inject constructor(
         if (!isNew) {
             viewModelScope.launch { loadExisting() }
         } else if (preselectedGroupId != 0L) {
-            setTarget(ClassTarget.GROUP)
-            selectGroup(preselectedGroupId)
+            applyTarget(ClassTarget.GROUP)
+            applyGroup(preselectedGroupId)
         }
         viewModelScope.launch { defaultLessonMinutes = settingsRepo.get().defaultLessonMinutes.toLong() }
         // Auto-select the only student there is (a new class, before any choice). With several
@@ -415,7 +436,7 @@ class ClassEditViewModel @Inject constructor(
                 students.collect { list ->
                     val f = form.value
                     if (f.target == ClassTarget.STUDENT && f.studentId == null && list.size == 1) {
-                        selectStudent(list.first().id)
+                        applyStudent(list.first().id)
                     }
                 }
             }
@@ -425,7 +446,7 @@ class ClassEditViewModel @Inject constructor(
         viewModelScope.launch {
             subjects.collect { list ->
                 if (hasTarget() && form.value.subjectId == null && list.size == 1) {
-                    selectSubject(list.first().id)
+                    applySubject(list.first().id)
                 }
             }
         }
@@ -471,6 +492,7 @@ class ClassEditViewModel @Inject constructor(
     }
 
     fun update(transform: (ClassForm) -> ClassForm) {
+        touched.value = true
         form.value = transform(form.value)
     }
 
@@ -480,6 +502,11 @@ class ClassEditViewModel @Inject constructor(
      * have nothing to do with each other.
      */
     fun setTarget(target: ClassTarget) {
+        touched.value = true
+        applyTarget(target)
+    }
+
+    private fun applyTarget(target: ClassTarget) {
         if (form.value.target == target) return
         form.value = form.value.copy(
             target = target,
@@ -491,7 +518,7 @@ class ClassEditViewModel @Inject constructor(
         // Auto-select the only group there is, mirroring the single-student case.
         if (target == ClassTarget.GROUP) {
             val only = groups.value.singleOrNull()
-            if (only != null) selectGroup(only.id)
+            if (only != null) applyGroup(only.id)
         }
     }
 
@@ -500,6 +527,11 @@ class ClassEditViewModel @Inject constructor(
      * student) and pre-fills the class mode from the new student's default.
      */
     fun selectStudent(studentId: Long) {
+        touched.value = true
+        applyStudent(studentId)
+    }
+
+    private fun applyStudent(studentId: Long) {
         if (form.value.studentId == studentId) return
         val mode = students.value.firstOrNull { it.id == studentId }?.defaultMode ?: ClassMode.IN_PERSON
         form.value = form.value.copy(
@@ -516,6 +548,11 @@ class ClassEditViewModel @Inject constructor(
      * is known as soon as the group is — there is nothing left to wait for.
      */
     fun selectGroup(groupId: Long) {
+        touched.value = true
+        applyGroup(groupId)
+    }
+
+    private fun applyGroup(groupId: Long) {
         if (form.value.groupId == groupId) return
         // A different group is a different set of people, so last group's exclusions mean nothing.
         form.value = form.value.copy(
@@ -545,6 +582,7 @@ class ClassEditViewModel @Inject constructor(
      * their history, because the lesson was never theirs.
      */
     fun setMemberIncluded(studentId: Long, included: Boolean) {
+        touched.value = true
         val excluded = form.value.excludedMemberIds
         form.value = form.value.copy(
             excludedMemberIds = if (included) excluded - studentId else excluded + studentId,
@@ -556,6 +594,11 @@ class ClassEditViewModel @Inject constructor(
      * the group's and does not depend on the subject, so there is nothing to pre-fill there.
      */
     fun selectSubject(subjectId: Long) {
+        touched.value = true
+        applySubject(subjectId)
+    }
+
+    private fun applySubject(subjectId: Long) {
         form.value = form.value.copy(subjectId = subjectId)
         if (form.value.target == ClassTarget.STUDENT) prefillStudentPrice(subjectId)
     }
@@ -577,12 +620,14 @@ class ClassEditViewModel @Inject constructor(
      * stops the end from going stale (and the duration from breaking) when the start is edited.
      */
     fun setTimeFrom(time: LocalTime) {
+        touched.value = true
         val f = form.value
         val minutes = f.durationMinutes?.toLong() ?: defaultLessonMinutes
         form.value = f.copy(timeFrom = time, timeTo = time.plusMinutes(minutes))
     }
 
     fun setTimeTo(time: LocalTime) {
+        touched.value = true
         form.value = form.value.copy(timeTo = time)
     }
 
@@ -677,6 +722,8 @@ class ClassEditViewModel @Inject constructor(
                     groupId = if (isGroup) f.groupId else null,
                 )
             }
+            // Nothing is unsaved any more, so leaving must not ask about it.
+            touched.value = false
             onDone()
         }
     }

@@ -28,8 +28,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
+import com.seblful.repetit.domain.LessonKind
 import com.seblful.repetit.ui.common.EmptyState
 import com.seblful.repetit.ui.common.constrainedContent
+import com.seblful.repetit.ui.common.lessonKindLabel
 import com.seblful.repetit.ui.common.text
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,6 +50,9 @@ fun ReportsScreen(viewModel: ReportsViewModel = hiltViewModel()) {
         // Resolve labels here (composable scope) so the LazyListScope block below stays string-free.
         val totalIncomeLabel = stringResource(R.string.reports_total_income)
         val byMonthTitle = stringResource(R.string.reports_by_month)
+        val byKindTitle = stringResource(R.string.reports_by_kind)
+        // The kind's own words, resolved here for the same reason as every other label on this screen.
+        val kindLabels = LessonKind.entries.associateWith { lessonKindLabel(it) }
         val bySubjectTitle = stringResource(R.string.reports_by_subject)
         val byStudentTitle = stringResource(R.string.reports_by_student)
         val debtsTitle = stringResource(R.string.reports_debts)
@@ -64,6 +69,12 @@ fun ReportsScreen(viewModel: ReportsViewModel = hiltViewModel()) {
             item { TotalIncomeCard(totalIncomeLabel, state.totalIncome.text()) }
 
             section(byMonthTitle, state.byMonth)
+            // Where the money came from, by *kind* of teaching — the one split the per-student and
+            // per-subject lines below cannot show, since both kinds are mixed inside each of them.
+            section(
+                byKindTitle,
+                state.byKind.map { LabeledAmount(kindLabels.getValue(it.kind), it.total) },
+            )
             section(bySubjectTitle, state.bySubject)
             section(byStudentTitle, state.byStudent)
 

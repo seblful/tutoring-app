@@ -24,6 +24,14 @@ data class LabeledAmount(val label: String, val amount: Money)
 data class ReportsState(
     val totalIncome: Money = Money.ZERO,
     val byMonth: List<LabeledAmount> = emptyList(),
+    /**
+     * Income split into one-to-one and group teaching. Carries the kind rather than a label, because
+     * the two words for it are string resources and belong on the screen — every other breakdown here
+     * is labelled by a name that came out of the database.
+     *
+     * Empty unless **both** kinds earned something: a single line would only restate the total.
+     */
+    val byKind: List<Reports.KindIncome> = emptyList(),
     val bySubject: List<LabeledAmount> = emptyList(),
     val byStudent: List<LabeledAmount> = emptyList(),
     val debts: List<LabeledAmount> = emptyList(),
@@ -63,6 +71,9 @@ class ReportsViewModel @Inject constructor(
             totalIncome = Reports.totalIncome(activeClasses),
             byMonth = Reports.incomeByMonth(activeClasses, zone)
                 .map { LabeledAmount(formatMonthKey(it.monthKey), it.total) },
+            // Only worth a section when there is a split to see; a tutor who teaches one way would
+            // otherwise get a heading over one line repeating the total above it.
+            byKind = Reports.incomeByKind(activeClasses).takeIf { it.size > 1 }.orEmpty(),
             bySubject = Reports.incomeBySubject(activeClasses)
                 .toSortedLines { subjectNames[it] },
             byStudent = Reports.incomeByStudent(activeClasses)

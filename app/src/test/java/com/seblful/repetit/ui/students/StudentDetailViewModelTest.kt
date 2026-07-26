@@ -2,10 +2,12 @@ package com.seblful.repetit.ui.students
 
 import androidx.lifecycle.SavedStateHandle
 import com.seblful.repetit.data.local.ClassEntity
+import com.seblful.repetit.data.local.GroupEntity
 import com.seblful.repetit.data.local.PriceEntity
 import com.seblful.repetit.data.local.StudentEntity
 import com.seblful.repetit.data.local.StudentSubjectCrossRef
 import com.seblful.repetit.data.local.SubjectEntity
+import com.seblful.repetit.domain.LessonKind
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.testutil.MainDispatcherRule
@@ -35,6 +37,7 @@ class StudentDetailViewModelTest {
         students = env.studentRepo,
         subjects = env.subjectRepo,
         classes = env.classRepo,
+        groups = env.groupRepo,
         payments = env.paymentRepo,
         enrollment = env.enrollmentRepo,
         rateHistory = env.rateHistoryRepo,
@@ -93,6 +96,56 @@ class StudentDetailViewModelTest {
         assertEquals(1, totals.upcoming)
         assertEquals("a scheduled lesson adds no hours yet", 150, totals.minutes)
         assertEquals(Money.ofMajor(75), totals.earned)
+    }
+
+    /**
+     * A student's lesson list is the one place the two kinds of teaching mix, and they are billed at
+     * different rates — the group's, and the student's own — so a row has to say which it was. The
+     * name matters more than a flag: *which* group is what explains the amount.
+     */
+    @Test
+    fun `a lesson says whether it was individual or which group it was with`() = runTest(mainRule.dispatcher) {
+        val sid = seedStudent()
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Биология"))
+        val groupId = env.groupDao.upsert(GroupEntity(name = "11 «А»", subjectId = subj))
+        env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor))
+        env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 60, status = "COMPLETED", chargeMinor = Money.ofMajor(20).minor, groupId = groupId))
+
+        val vm = vm(sid)
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+
+        val rows = vm.state.value.classes.sortedBy { it.klass.start }
+        assertEquals(LessonKind.INDIVIDUAL, rows[0].kind)
+        assertNull("an individual lesson has no group to name", rows[0].groupName)
+        assertEquals(LessonKind.GROUP, rows[1].kind)
+        assertEquals("11 «А»", rows[1].groupName)
+    }
+
+    /** The chips only earn their space when there is a mix to narrow; both counts must be honest. */
+    @Test
+    fun `the kind tally counts both kinds, and one kind alone offers no narrowing`() = runTest(mainRule.dispatcher) {
+        val sid = seedStudent()
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Биология"))
+        env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor))
+        env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 60, status = "SCHEDULED", chargeMinor = 0))
+
+        val vm = vm(sid)
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(mapOf(LessonKind.INDIVIDUAL to 2), vm.state.value.lessonKinds)
+        assertFalse("nothing to narrow", vm.state.value.hasBothKinds)
+
+        val groupId = env.groupDao.upsert(GroupEntity(name = "11 «А»", subjectId = subj))
+        env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = "SCHEDULED", chargeMinor = 0, groupId = groupId))
+        advanceUntilIdle()
+
+        assertEquals(
+            mapOf(LessonKind.INDIVIDUAL to 2, LessonKind.GROUP to 1),
+            vm.state.value.lessonKinds,
+        )
+        assertTrue(vm.state.value.hasBothKinds)
     }
 
     /**

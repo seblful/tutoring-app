@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.seblful.repetit.R
 import com.seblful.repetit.domain.AvatarPalette
 import com.seblful.repetit.domain.model.ClassMode
@@ -234,6 +235,15 @@ fun ConfirmDialog(
     )
 }
 
+/**
+ * Dialog behaviour for every dialog the tutor **types into**: a tap outside no longer closes it.
+ *
+ * The full-screen forms answer the same problem by asking «Сохранить изменения?» on the way out (see
+ * `ui/common/UnsavedChanges.kt`). A dialog does not need the question — it already shows «Отмена» and
+ * «Сохранить», so leaving it is a deliberate tap — it only needs to stop being closed *by accident*.
+ */
+private val KeepTypedInput = DialogProperties(dismissOnClickOutside = false)
+
 /** A dialog to edit a student's name, phone, email, optional note and default class mode. */
 @Composable
 fun StudentEditDialog(
@@ -253,6 +263,7 @@ fun StudentEditDialog(
     var mode by remember { mutableStateOf(initialMode) }
     AlertDialog(
         onDismissRequest = onDismiss,
+        properties = KeepTypedInput,
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -319,6 +330,11 @@ fun TextFieldDialog(
     var value by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
+        // A stray tap beside the dialog must not throw away what was typed into it — the same rule
+        // the full-screen forms follow with their «Сохранить изменения?» prompt, kept cheap here:
+        // a dialog already has «Отмена», so the fix is to stop *accidental* dismissal rather than to
+        // ask about a deliberate one. Back still closes it, as it closes any dialog.
+        properties = KeepTypedInput,
         title = { Text(title) },
         text = {
             OutlinedTextField(

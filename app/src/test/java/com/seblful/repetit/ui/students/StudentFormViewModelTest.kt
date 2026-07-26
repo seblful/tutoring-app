@@ -103,6 +103,28 @@ class StudentFormViewModelTest {
         assertEquals(Money(3050), env.enrollmentRepo.priceFor(student.id, mathId)?.amount)
     }
 
+    /**
+     * What back has to consult. The phone prefix the form opens with is a default, not typed input,
+     * so it must not on its own make leaving ask a question.
+     */
+    @Test
+    fun `an untouched form is clean, and clearing an edit makes it clean again`() = runTest(mainRule.dispatcher) {
+        val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val vm = vm()
+        backgroundScope.launch { vm.state.collect {} }
+
+        assertFalse("the prefilled phone prefix is not the tutor's work", vm.state.value.isDirty)
+
+        vm.update { it.copy(name = "Аня") }
+        assertTrue(vm.state.value.isDirty)
+
+        vm.update { it.copy(name = "") }
+        assertFalse("deleting what was typed leaves nothing to save", vm.state.value.isDirty)
+
+        vm.toggleSubject(mathId, on = true)
+        assertTrue("a ticked subject is unsaved work even before it is priced", vm.state.value.isDirty)
+    }
+
     @Test
     fun `save does nothing when the form is invalid`() = runTest(mainRule.dispatcher) {
         env.subjectDao.upsert(SubjectEntity(name = "Математика"))

@@ -1,6 +1,7 @@
 package com.seblful.repetit.ui.groups
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -47,8 +48,11 @@ import com.seblful.repetit.domain.model.Student
 import com.seblful.repetit.ui.common.Avatar
 import com.seblful.repetit.ui.common.ConfirmDialog
 import com.seblful.repetit.ui.common.DropdownField
+import com.seblful.repetit.ui.common.LeaveIntent
 import com.seblful.repetit.ui.common.ModeSelector
+import com.seblful.repetit.ui.common.UnsavedChangesDialog
 import com.seblful.repetit.ui.common.constrainedContent
+import com.seblful.repetit.ui.common.leaveIntent
 
 /**
  * Create or edit one group: **subject**, name, note, hourly rate, default mode and roster — plus, for
@@ -67,6 +71,16 @@ fun GroupFormScreen(
     val state by viewModel.state.collectAsState()
     val form = state.form
     var confirmingDelete by remember { mutableStateOf(false) }
+
+    // Back — the arrow or the system gesture — asks before throwing away edits to a group.
+    var leaving by remember { mutableStateOf<LeaveIntent?>(null) }
+    fun requestLeave() {
+        when (val intent = leaveIntent(dirty = state.isDirty, canSave = state.isValid)) {
+            LeaveIntent.LEAVE -> onBack()
+            else -> leaving = intent
+        }
+    }
+    BackHandler(enabled = state.isDirty) { requestLeave() }
 
     val context = LocalContext.current
     val deleteBlockedMsg = stringResource(R.string.group_delete_blocked)
@@ -90,7 +104,7 @@ fun GroupFormScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = ::requestLeave) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
@@ -233,6 +247,15 @@ fun GroupFormScreen(
                 viewModel.delete(onDeleted = onBack)
             },
             onDismiss = { confirmingDelete = false },
+        )
+    }
+
+    leaving?.let { intent ->
+        UnsavedChangesDialog(
+            intent = intent,
+            onSave = { viewModel.save { onBack() } },
+            onDiscard = { leaving = null; onBack() },
+            onKeepEditing = { leaving = null },
         )
     }
 }

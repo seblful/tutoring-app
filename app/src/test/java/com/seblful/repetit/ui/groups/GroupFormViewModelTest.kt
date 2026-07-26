@@ -161,6 +161,84 @@ class GroupFormViewModelTest {
             assertFalse(vm.state.value.isValid)
         }
 
+    /**
+     * What back consults. Everything this form fills in for the tutor — a loaded group, the default
+     * rate for a new one — arrives from the database *after* the screen is up, so a naive "has the
+     * form changed since construction" would report unsaved work on a form nobody has touched.
+     */
+    @Test
+    fun `a prefilled default rate is not unsaved work`() = runTest(mainRule.dispatcher) {
+        seedStudents()
+        env.settingsRepo.update { it.copy(defaultGroupPriceMinor = Money.ofMajor(15).minor) }
+
+        val vm = vm()
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(Money.ofMajor(15), vm.state.value.price)
+        assertFalse("the app filled that in, not the tutor", vm.state.value.isDirty)
+    }
+
+    /** Typing before the default lands must survive it — and must still count as unsaved work. */
+    @Test
+    fun `a rate typed before the default arrives stays, and stays dirty`() = runTest(mainRule.dispatcher) {
+        seedStudents()
+        env.settingsRepo.update { it.copy(defaultGroupPriceMinor = Money.ofMajor(15).minor) }
+
+        val vm = vm()
+        backgroundScope.launch { vm.state.collect {} }
+        vm.update { it.copy(price = MoneyField.of(Money.ofMajor(25))) }
+        advanceUntilIdle()
+
+        assertEquals(Money.ofMajor(25), vm.state.value.price)
+        assertTrue(vm.state.value.isDirty)
+    }
+
+    @Test
+    fun `an edited group is clean until changed, and clean again once saved`() = runTest(mainRule.dispatcher) {
+        val (ann, _) = seedStudents()
+        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann))
+
+        val vm = vm(id)
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+
+        assertFalse("loading a group is not editing it", vm.state.value.isDirty)
+
+        vm.update { it.copy(name = "11 «Б»") }
+        advanceUntilIdle()
+        assertTrue(vm.state.value.isDirty)
+
+        vm.update { it.copy(name = "11 «А»") }
+        advanceUntilIdle()
+        assertFalse("renamed back — nothing left to save", vm.state.value.isDirty)
+
+        vm.update { it.copy(price = MoneyField.of(Money.ofMajor(30))) }
+        advanceUntilIdle()
+        assertTrue(vm.state.value.isDirty)
+
+        vm.save { }
+        advanceUntilIdle()
+        assertFalse("saved is the new baseline", vm.state.value.isDirty)
+    }
+
+    /** Archiving writes to the database immediately, so it is never pending work. */
+    @Test
+    fun `archiving does not leave the form looking unsaved`() = runTest(mainRule.dispatcher) {
+        val (ann, _) = seedStudents()
+        val id = env.groupRepo.save(Group(name = "Выпускники", price = Money.ofMajor(20)), setOf(ann))
+
+        val vm = vm(id)
+        backgroundScope.launch { vm.state.collect {} }
+        advanceUntilIdle()
+
+        vm.setArchived(true)
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.archived)
+        assertFalse(vm.state.value.isDirty)
+    }
+
     @Test
     fun `the default never overwrites the rate of a group being edited`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()

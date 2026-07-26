@@ -81,6 +81,14 @@ class GroupFormViewModel @Inject constructor(
         /** Everything the tutor could teach this group, for the subject picker. */
         val subjects: List<Subject> = emptyList(),
         val archived: Boolean = false,
+        /**
+         * Whether the form differs from the group as it was loaded (or, for a new one, from the
+         * prefilled blank) — what leaving without saving would throw away.
+         *
+         * Archiving is deliberately **not** part of it: that button writes to the database there and
+         * then, so it is already saved by the time back is pressed.
+         */
+        val isDirty: Boolean = false,
     ) {
         /**
          * The rate as [Money], or null while the field doesn't hold a valid amount. Zero is allowed —
@@ -115,6 +123,17 @@ class GroupFormViewModel @Inject constructor(
     private val archived = MutableStateFlow(false)
 
     /**
+     * The form as it was last put there by the app rather than by the tutor: the loaded group, or a
+     * new group's prefilled rate. Anything the form holds beyond this is unsaved work.
+     *
+     * A snapshot rather than a "touched" flag because both of those assignments arrive **after** the
+     * screen is already on display (they wait on the database), so a flag would have to be un-set
+     * again — and a snapshot also forgives a round trip: typing a name and deleting it again leaves
+     * nothing to save, and back should not ask about it.
+     */
+    private val pristine = MutableStateFlow(Form())
+
+    /**
      * Ids priced for the chosen subject, or null while there is no subject (meaning "no restriction").
      * Re-queried whenever the subject changes, so enrolling a student elsewhere shows up here at once.
      */
@@ -126,18 +145,23 @@ class GroupFormViewModel @Inject constructor(
             else students.observeIdsForSubject(subjectId).map { it.toSet() }
         }
 
+    /** The form together with whether it has been edited — one source, since `combine` takes five. */
+    private val edited: Flow<Pair<Form, Boolean>> =
+        combine(form, pristine) { f, p -> f to (f != p) }
+
     val state: StateFlow<UiState> = combine(
-        form,
+        edited,
         students.observeActive(),
         subjects.observeAll(),
         pricedForSubject,
         archived,
-    ) { f, activeStudents, allSubjects, priced, isArchived ->
+    ) { (f, dirty), activeStudents, allSubjects, priced, isArchived ->
         UiState(
             form = f,
             candidates = if (priced == null) activeStudents else activeStudents.filter { it.id in priced },
             subjects = allSubjects,
             archived = isArchived,
+            isDirty = dirty,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
 
@@ -154,6 +178,7 @@ class GroupFormViewModel @Inject constructor(
                         mode = group.defaultMode,
                         memberIds = groups.getMemberIds(groupId).toSet(),
                     )
+                    pristine.value = form.value
                 }
             }
         } else {
@@ -163,9 +188,13 @@ class GroupFormViewModel @Inject constructor(
             viewModelScope.launch {
                 val default = settings.get().defaultGroupPriceMinor
                 // 0 means "not set"; prefilledWith leaves an amount already typed alone.
-                form.value = form.value.copy(
-                    price = form.value.price.prefilledWith(Money(default).takeIf { default != 0L }),
-                )
+                val suggested = Money(default).takeIf { default != 0L }
+                form.value = form.value.copy(price = form.value.price.prefilledWith(suggested))
+                // The baseline takes the suggestion too, so a prefilled rate is not "unsaved work".
+                // Applied to each separately on purpose: if the tutor typed an amount before this
+                // arrived, the form keeps theirs while the baseline takes the default — which is the
+                // truth, and is what makes back ask about it.
+                pristine.value = pristine.value.copy(price = pristine.value.price.prefilledWith(suggested))
             }
         }
     }
@@ -211,6 +240,9 @@ class GroupFormViewModel @Inject constructor(
                 ),
                 s.selectedMemberIds,
             )
+            // Saved is the new baseline, so a save that leaves the screen open (or a slow navigation)
+            // cannot be followed by "you have unsaved changes".
+            pristine.value = f
             onSaved(id)
         }
     }

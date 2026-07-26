@@ -22,6 +22,7 @@ internal object StudentDetailKeys {
     const val TABS = "tabs"
     const val SUBJECTS_ADD = "subjects:add"
     const val SUBJECTS_EMPTY = "subjects:empty"
+    const val CLASSES_FILTER = "classes:filter"
     const val CLASSES_EMPTY = "classes:empty"
     const val PAYMENTS_ADD = "payments:add"
     const val PAYMENTS_EMPTY = "payments:empty"

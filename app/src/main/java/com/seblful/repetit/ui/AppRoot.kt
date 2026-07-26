@@ -160,7 +160,6 @@ private fun MainApp(showGroupsTab: Boolean) {
                     onEdit = { navController.navigate(Routes.groupEdit(id)) },
                     onMemberClick = { navController.navigate(Routes.studentDetail(it)) },
                     onLessonClick = { navController.navigate(Routes.classEdit(it)) },
-                    onAddLesson = { navController.navigate(Routes.classEdit(0, groupId = id)) },
                 )
             }
             // Adding and editing are the same form; it tells them apart by the id it is given.

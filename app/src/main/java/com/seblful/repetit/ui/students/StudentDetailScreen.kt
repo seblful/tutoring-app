@@ -52,14 +52,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
+import com.seblful.repetit.domain.LessonFilter
 import com.seblful.repetit.domain.model.ClassStatus
 import com.seblful.repetit.domain.model.Money
 import com.seblful.repetit.domain.model.Payment
 import com.seblful.repetit.domain.model.Subject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.seblful.repetit.ui.common.LessonFilterChips
+import com.seblful.repetit.ui.common.LessonKindIcon
 import com.seblful.repetit.ui.common.RateHistoryList
 import com.seblful.repetit.ui.common.Stat
 import com.seblful.repetit.ui.common.StatRow
@@ -102,6 +106,7 @@ fun StudentDetailScreen(
     val student = state.student
 
     var tab by rememberSaveable { mutableStateOf(StudentTab.SUBJECTS) }
+    var lessonFilter by rememberSaveable { mutableStateOf(LessonFilter.ALL) }
     var editing by remember { mutableStateOf(false) }
     var addingSubject by remember { mutableStateOf(false) }
     var pricingSubjectId by remember { mutableStateOf<Long?>(null) }
@@ -215,7 +220,11 @@ fun StudentDetailScreen(
                     onReprice = { id -> pricingSubjectId = id },
                     onRemove = viewModel::removeSubject,
                 )
-                StudentTab.CLASSES -> classesTab(state)
+                StudentTab.CLASSES -> classesTab(
+                    state = state,
+                    filter = lessonFilter,
+                    onFilter = { lessonFilter = it },
+                )
                 StudentTab.PAYMENTS -> paymentsTab(
                     state = state,
                     onAdd = { addingPayment = true },
@@ -419,19 +428,53 @@ private fun LazyListScope.subjectsTab(
     }
 }
 
-/** Read-only: lessons are booked and edited from the schedule, not from the student's card. */
-private fun LazyListScope.classesTab(state: StudentDetailState) {
-    if (state.classes.isEmpty()) {
+/**
+ * Read-only: lessons are booked and edited from the schedule, not from the student's card.
+ *
+ * This is the one list in the app that genuinely **mixes** individual lessons with a group's, so it is
+ * where the distinction has to be drawn: each row is marked with its kind and names the group it
+ * belonged to, and a student who is taught both ways gets chips to see one kind at a time. Without
+ * that, two lessons of the same subject an hour apart, billed at different amounts, look like a bug.
+ */
+private fun LazyListScope.classesTab(
+    state: StudentDetailState,
+    filter: LessonFilter,
+    onFilter: (LessonFilter) -> Unit,
+) {
+    if (state.hasBothKinds) {
+        item(key = StudentDetailKeys.CLASSES_FILTER) {
+            LessonFilterChips(
+                selected = filter,
+                tally = state.lessonKinds,
+                onSelect = onFilter,
+                modifier = Modifier.padding(vertical = 8.dp),
+            )
+        }
+    }
+    // A filter that isn't on screen doesn't apply. The chips come and go with the data — deleting a
+    // student's last group lesson from the schedule takes them away — and a selection left behind
+    // would go on hiding their remaining lessons with nothing left to say why, or to undo it.
+    val rows = state.classes.filter { !state.hasBothKinds || filter.accepts(it.kind) }
+    if (rows.isEmpty()) {
         item(key = StudentDetailKeys.CLASSES_EMPTY) {
             TabEmptyState(stringResource(R.string.schedule_empty))
         }
         return
     }
-    items(state.classes, key = { StudentDetailKeys.klass(it.klass.id) }) { row ->
+    items(rows, key = { StudentDetailKeys.klass(it.klass.id) }) { row ->
         ListItem(
+            leadingContent = { LessonKindIcon(row.kind) },
             headlineContent = { Text("${row.subjectName} · ${row.klass.start.formatDateTime()}") },
             supportingContent = {
-                Text(classStatusLabel(row.klass.status), color = classStatusColor(row.klass.status))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(classStatusLabel(row.klass.status), color = classStatusColor(row.klass.status))
+                    // The group's name for a group lesson, since *which* group is the useful half of
+                    // "not individual" — a student in two groups is billed a different rate by each.
+                    Text(
+                        row.groupName ?: stringResource(R.string.lesson_kind_individual_one),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             },
             trailingContent = {
                 if (row.klass.status == ClassStatus.COMPLETED) Text(row.klass.charge.text())
@@ -500,6 +543,8 @@ private fun AddSubjectPriceDialog(
     var price by remember { mutableStateOf(MoneyField(kind = MoneyField.Kind.RATE)) }
     AlertDialog(
         onDismissRequest = onDismiss,
+        // A stray tap beside the dialog must not throw away the price just typed — see `KeepTypedInput`.
+        properties = DialogProperties(dismissOnClickOutside = false),
         title = { Text(stringResource(R.string.student_add_subject)) },
         text = {
             Column {

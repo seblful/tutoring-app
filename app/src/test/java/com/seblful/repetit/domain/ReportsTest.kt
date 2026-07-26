@@ -19,9 +19,10 @@ class ReportsTest {
         start: String,
         charge: Long,
         status: ClassStatus = ClassStatus.COMPLETED,
+        groupId: Long? = null,
     ) = TutoringClass(
         studentId = studentId, subjectId = subjectId, start = Instant.parse(start),
-        durationMinutes = 60, status = status, charge = Money(charge),
+        durationMinutes = 60, status = status, charge = Money(charge), groupId = groupId,
     )
 
     @Test
@@ -60,6 +61,43 @@ class ReportsTest {
         assertEquals(Money(4000), Reports.incomeByStudent(classes)[2])
         assertEquals(Money(9000), Reports.incomeBySubject(classes)[10])
         assertEquals(Money(3000), Reports.incomeBySubject(classes)[11])
+    }
+
+    @Test
+    fun `income by kind splits one-to-one from group teaching, largest first`() {
+        val classes = listOf(
+            klass(1, 10, "2026-05-10T10:00:00Z", 5000),
+            klass(2, 10, "2026-05-11T18:00:00Z", 2000, groupId = 7),
+            klass(3, 10, "2026-05-11T18:00:00Z", 2000, groupId = 7),
+            klass(4, 10, "2026-05-11T18:00:00Z", 2000, groupId = 7),
+            // Neither of these was billed, so neither kind may count it.
+            klass(1, 10, "2026-05-12T10:00:00Z", 5000, ClassStatus.CANCELLED),
+            klass(2, 10, "2026-05-12T18:00:00Z", 2000, ClassStatus.SCHEDULED, groupId = 7),
+        )
+
+        val lines = Reports.incomeByKind(classes)
+
+        // A group lesson's money is the sum of its members' charges — the group sets the rate, each
+        // member owes their share of it — so three at 20 outweighs one at 50.
+        assertEquals(listOf(LessonKind.GROUP, LessonKind.INDIVIDUAL), lines.map { it.kind })
+        assertEquals(Money(6000), lines[0].total)
+        assertEquals(Money(5000), lines[1].total)
+        assertEquals(Reports.totalIncome(classes), lines.fold(Money.ZERO) { a, l -> a + l.total })
+    }
+
+    /** A tutor who teaches one way should not be shown a "split" that only restates the total. */
+    @Test
+    fun `a kind that earned nothing is left out rather than printed as zero`() {
+        val onlyIndividual = listOf(
+            klass(1, 10, "2026-05-10T10:00:00Z", 5000),
+            klass(2, 10, "2026-05-11T18:00:00Z", 2000, ClassStatus.CANCELLED, groupId = 7),
+        )
+
+        assertEquals(
+            listOf(LessonKind.INDIVIDUAL),
+            Reports.incomeByKind(onlyIndividual).map { it.kind },
+        )
+        assertEquals(emptyList<Reports.KindIncome>(), Reports.incomeByKind(emptyList()))
     }
 
     @Test

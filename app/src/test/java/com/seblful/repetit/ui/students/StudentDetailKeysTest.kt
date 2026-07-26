@@ -54,6 +54,7 @@ class StudentDetailKeysTest {
             StudentDetailKeys.TABS,
             StudentDetailKeys.SUBJECTS_ADD,
             StudentDetailKeys.SUBJECTS_EMPTY,
+            StudentDetailKeys.CLASSES_FILTER,
             StudentDetailKeys.CLASSES_EMPTY,
             StudentDetailKeys.PAYMENTS_ADD,
             StudentDetailKeys.PAYMENTS_EMPTY,

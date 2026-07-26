@@ -53,6 +53,16 @@ class StudentFormViewModel @Inject constructor(
             get() = form.name.isNotBlank() &&
                 form.subjectPrices.isNotEmpty() &&
                 form.subjectPrices.values.all { it.isValid }
+
+        /**
+         * Whether anything has been entered — what leaving without saving would cost.
+         *
+         * A new student's form is compared against a fresh [Form] because nothing else ever sets it:
+         * there is no record to load and no default to prefill, so "as it was opened" and "as the
+         * class declares it" are the same value. The dialled phone prefix is part of that default and
+         * so does not, on its own, make the form dirty.
+         */
+        val isDirty: Boolean get() = form != Form()
     }
 
     val state: StateFlow<UiState> = combine(

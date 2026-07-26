@@ -44,7 +44,9 @@ object Routes {
     const val CLASS_EDIT = "class/{id}?group={group}"
 
     /**
-     * id = 0 means "new class". [groupId] (non-zero) opens the form already booking for that group.
+     * id = 0 means "new class". [groupId] (non-zero) opens the form already booking for that group —
+     * an entry point the form still honours, though **no screen passes it today**: booking lives on
+     * the schedule, which is the one place that knows what else the hour holds.
      *
      * There is deliberately no date argument: the booking form starts with an empty date on purpose
      * (see [com.seblful.repetit.ui.schedule.ClassForm]), so the one that used to be declared here

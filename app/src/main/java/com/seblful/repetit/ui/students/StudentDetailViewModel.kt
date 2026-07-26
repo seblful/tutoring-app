@@ -5,11 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.repetit.data.repository.ClassRepository
 import com.seblful.repetit.data.repository.EnrollmentRepository
+import com.seblful.repetit.data.repository.GroupRepository
 import com.seblful.repetit.data.repository.PaymentRepository
 import com.seblful.repetit.data.repository.RateHistoryRepository
 import com.seblful.repetit.data.repository.StudentRepository
 import com.seblful.repetit.data.repository.SubjectRepository
 import com.seblful.repetit.domain.Billing
+import com.seblful.repetit.domain.LessonKind
 import com.seblful.repetit.domain.Taught
 import com.seblful.repetit.domain.model.ClassMode
 import com.seblful.repetit.domain.model.Money
@@ -21,6 +23,7 @@ import com.seblful.repetit.domain.model.Subject
 import com.seblful.repetit.domain.model.TutoringClass
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.seblful.repetit.ui.common.UiEvents
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -45,8 +48,22 @@ data class SubjectPrice(
     val history: List<RateChange> = emptyList(),
 )
 
-/** A class plus its subject's display name. */
-data class ClassRow(val klass: TutoringClass, val subjectName: String)
+/**
+ * A class plus what it takes to read it on its own: the subject's name, and — for a group lesson —
+ * the group it was one of.
+ *
+ * @param groupName the group whose lesson this was, or null for an individual one. It is the *name*
+ *   rather than a flag because "which group" is the useful half of "not individual": a student in two
+ *   groups is billed a different rate by each.
+ */
+data class ClassRow(
+    val klass: TutoringClass,
+    val subjectName: String,
+    val groupName: String? = null,
+) {
+    /** Read off the class, so a group lesson whose group row can't be found still reads as one. */
+    val kind: LessonKind get() = LessonKind.of(klass)
+}
 
 data class StudentDetailState(
     val student: Student? = null,
@@ -57,7 +74,15 @@ data class StudentDetailState(
     val allSubjects: List<Subject> = emptyList(),
     val classes: List<ClassRow> = emptyList(),
     val payments: List<Payment> = emptyList(),
-)
+    /** How many lessons of each kind, for the lessons tab's chips. A kind with none is absent. */
+    val lessonKinds: Map<LessonKind, Int> = emptyMap(),
+) {
+    /**
+     * Whether narrowing the lesson list by kind means anything here. A student taught only one way
+     * gets no chips: every chip but one would be empty, and «Все» would filter nothing.
+     */
+    val hasBothKinds: Boolean get() = lessonKinds.size > 1
+}
 
 @HiltViewModel
 class StudentDetailViewModel @Inject constructor(
@@ -65,6 +90,7 @@ class StudentDetailViewModel @Inject constructor(
     private val students: StudentRepository,
     subjects: SubjectRepository,
     classes: ClassRepository,
+    groups: GroupRepository,
     private val payments: PaymentRepository,
     private val enrollment: EnrollmentRepository,
     rateHistory: RateHistoryRepository,
@@ -77,7 +103,7 @@ class StudentDetailViewModel @Inject constructor(
 
     val events = UiEvents<Event>()
 
-    val state: StateFlow<StudentDetailState> = combine(
+    private val partial: Flow<Partial> = combine(
         students.observeById(studentId),
         subjects.observeAll(),
         enrollment.observePricesFor(studentId),
@@ -98,18 +124,39 @@ class StudentDetailViewModel @Inject constructor(
                     SubjectPrice(it, p.amount, historyBySubject[p.subjectId].orEmpty())
                 }
             }.sortedBy { it.subject.name.lowercase() },
-            classes = classList.map { ClassRow(it, subjectsById[it.subjectId]?.name ?: "") },
+            classes = classList,
         )
-    }.combine(payments.observeForStudent(studentId)) { partial, paymentList ->
-        val klasses = partial.classes.map { it.klass }
+    }
+
+    /**
+     * The card, in two stages only because `combine` takes at most five typed sources.
+     *
+     * Groups are here for the **names** of the lessons that were a group's: a student's lesson list
+     * mixes both kinds, and «Биология, 18:00» twice over — once billed at 30 and once at 20 — is a
+     * puzzle until it says which of the two was the group's.
+     */
+    val state: StateFlow<StudentDetailState> = combine(
+        partial,
+        payments.observeForStudent(studentId),
+        groups.observeAll(),
+    ) { partial, paymentList, groupList ->
+        val subjectsById = partial.allSubjects.associateBy { it.id }
+        val groupNames = groupList.associate { it.id to it.name }
         StudentDetailState(
             student = partial.student,
-            balance = Billing.balanceOf(studentId, klasses, paymentList).balance,
-            totals = Taught.byStudent(klasses),
+            balance = Billing.balanceOf(studentId, partial.classes, paymentList).balance,
+            totals = Taught.byStudent(partial.classes),
             subjects = partial.subjects,
             allSubjects = partial.allSubjects,
-            classes = partial.classes,
+            classes = partial.classes.map { c ->
+                ClassRow(
+                    klass = c,
+                    subjectName = subjectsById[c.subjectId]?.name ?: "",
+                    groupName = c.groupId?.let { groupNames[it] },
+                )
+            },
             payments = paymentList,
+            lessonKinds = LessonKind.tally(partial.classes),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StudentDetailState())
 
@@ -117,7 +164,7 @@ class StudentDetailViewModel @Inject constructor(
         val student: Student?,
         val allSubjects: List<Subject>,
         val subjects: List<SubjectPrice>,
-        val classes: List<ClassRow>,
+        val classes: List<TutoringClass>,
     )
 
     fun editStudent(name: String, phone: String, email: String, note: String, mode: ClassMode) {

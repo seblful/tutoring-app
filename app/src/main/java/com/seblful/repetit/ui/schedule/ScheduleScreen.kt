@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.Event
-import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -63,11 +62,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
 import com.seblful.repetit.domain.GroupRules
+import com.seblful.repetit.domain.LessonKind
 import com.seblful.repetit.domain.model.ClassStatus
 import com.seblful.repetit.ui.common.ConfirmDialog
 import com.seblful.repetit.ui.common.ContentCard
 import com.seblful.repetit.ui.common.DatePickerModal
 import com.seblful.repetit.ui.common.EmptyState
+import com.seblful.repetit.ui.common.LessonKindIcon
 import com.seblful.repetit.ui.common.StatusBadge
 import com.seblful.repetit.ui.common.TimePickerModal
 import com.seblful.repetit.ui.common.classModeLabel
@@ -348,14 +349,10 @@ private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit, modifier: Modifi
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (row.isGroup) {
-                        Icon(
-                            Icons.Filled.Groups,
-                            contentDescription = stringResource(R.string.class_target_group),
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(end = 6.dp),
-                        )
-                    }
+                    // Both kinds are marked, not just the group ones: an icon that appears only
+                    // sometimes reads as "this lesson has something extra", which leaves an individual
+                    // lesson looking like a lesson with a missing icon rather than an individual one.
+                    LessonKindIcon(LessonKind.of(row.klass), Modifier.padding(end = 6.dp))
                     Text(row.title, style = MaterialTheme.typography.titleMedium)
                 }
                 Text(
@@ -536,6 +533,7 @@ private fun ClassActionsSheet(
                 Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                LessonKindIcon(LessonKind.of(klass), Modifier.padding(end = 10.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
                         "${klass.start.formatTime()} · ${row.title}",

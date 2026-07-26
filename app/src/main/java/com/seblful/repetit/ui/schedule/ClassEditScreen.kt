@@ -1,6 +1,7 @@
 package com.seblful.repetit.ui.schedule
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,10 +45,13 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
 import com.seblful.repetit.ui.common.DropdownField
 import com.seblful.repetit.ui.common.DatePickerModal
+import com.seblful.repetit.ui.common.LeaveIntent
 import com.seblful.repetit.ui.common.ModeSelector
 import com.seblful.repetit.ui.common.TimePickerModal
+import com.seblful.repetit.ui.common.UnsavedChangesDialog
 import com.seblful.repetit.ui.common.classModeLabel
 import com.seblful.repetit.ui.common.constrainedContent
+import com.seblful.repetit.ui.common.leaveIntent
 import com.seblful.repetit.ui.common.text
 import com.seblful.repetit.format.formatDate
 import com.seblful.repetit.format.formatTime
@@ -85,6 +89,16 @@ fun ClassEditScreen(
     var showModeSelector by remember { mutableStateOf(false) }
     var showPriceField by remember { mutableStateOf(false) }
 
+    // Back — the arrow or the system gesture — asks before throwing away a half-booked lesson.
+    var leaving by remember { mutableStateOf<LeaveIntent?>(null) }
+    fun requestLeave() {
+        when (val intent = leaveIntent(dirty = state.isDirty, canSave = state.canSave)) {
+            LeaveIntent.LEAVE -> onBack()
+            else -> leaving = intent
+        }
+    }
+    BackHandler(enabled = state.isDirty) { requestLeave() }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -92,7 +106,7 @@ fun ClassEditScreen(
                     Text(stringResource(if (viewModel.isNew) R.string.class_add_title else R.string.class_edit_title))
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = ::requestLeave) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
@@ -337,6 +351,15 @@ fun ClassEditScreen(
                 showToPicker = false
             },
             onDismiss = { showToPicker = false },
+        )
+    }
+
+    leaving?.let { intent ->
+        UnsavedChangesDialog(
+            intent = intent,
+            onSave = { viewModel.save(onBack) },
+            onDiscard = { leaving = null; onBack() },
+            onKeepEditing = { leaving = null },
         )
     }
 }

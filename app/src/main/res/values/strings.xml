@@ -20,6 +20,16 @@
     <string name="action_unarchive">Из архива</string>
     <string name="action_undo">Отменить</string>
 
+    <!--
+      Leaving a form that has been filled in but not saved. Two questions, not one: a complete form
+      can still be saved, a half-filled one can only be thrown away.
+    -->
+    <string name="unsaved_save_title">Сохранить изменения?</string>
+    <string name="unsaved_save_text">Вы заполнили форму, но не сохранили её.</string>
+    <string name="unsaved_discard_title">Выйти без сохранения?</string>
+    <string name="unsaved_discard_text">Заполнено не всё, поэтому сохранить пока нечего. Введённое будет потеряно.</string>
+    <string name="unsaved_discard">Не сохранять</string>
+
     <!-- Schedule -->
     <string name="schedule_title">Расписание</string>
     <string name="schedule_empty">На этот день занятий нет</string>
@@ -66,7 +76,9 @@
     <string name="class_target_student">Ученик</string>
     <string name="class_target_group">Группа</string>
     <string name="class_group_label">Группа</string>
-    <string name="class_no_groups">Групп пока нет. Создайте группу в разделе «Ещё».</string>
+    <!-- Says no more than "make one first": «Группы» is its own section now, and can also be moved
+         into «Ещё», so naming a place to go would be wrong half the time. -->
+    <string name="class_no_groups">Групп пока нет. Сначала создайте группу.</string>
     <string name="class_no_subjects_for_group">Сначала добавьте предметы</string>
     <string name="class_group_members_title">Участники</string>
     <string name="class_group_no_members_left">Выберите хотя бы одного участника</string>
@@ -81,6 +93,18 @@
     <string name="class_status_scheduled">Запланировано</string>
     <string name="class_status_completed">Проведено</string>
     <string name="class_status_cancelled">Отменено</string>
+
+    <!--
+      Individual vs group lessons: one vocabulary for the distinction, used everywhere it is drawn —
+      the filter chips over a student's lessons and the income split in the reports.
+    -->
+    <string name="lesson_kind_all">Все</string>
+    <string name="lesson_kind_individual">Индивидуальные</string>
+    <string name="lesson_kind_group">Групповые</string>
+    <!-- One lesson, on a student's card, where a group lesson names its group instead -->
+    <string name="lesson_kind_individual_one">Индивидуально</string>
+    <!-- %1$s: what the chip narrows to, %2$d: how many lessons that is -->
+    <string name="lesson_kind_count">%1$s · %2$d</string>
 
     <!-- Students -->
     <string name="students_title">Ученики</string>
@@ -180,7 +204,6 @@
     <string name="group_lessons_title">Занятия</string>
     <string name="group_lessons_empty">У группы пока нет занятий</string>
     <string name="group_no_subject">Предмет не выбран</string>
-    <string name="group_add_lesson">Записать занятие</string>
     <string name="group_member_open">Открыть карточку ученика</string>
     <!-- %1$d: how many of the group's members were in this lesson -->
     <plurals name="group_lesson_attended">
@@ -273,6 +296,7 @@
     <string name="reports_empty">Пока нет данных для отчётов</string>
     <string name="reports_total_income">Доход всего</string>
     <string name="reports_by_month">Доход по месяцам</string>
+    <string name="reports_by_kind">Доход по типу занятий</string>
     <string name="reports_by_subject">Доход по предметам</string>
     <string name="reports_by_student">Доход по ученикам</string>
     <string name="reports_debts">Задолженности</string>

@@ -25,9 +25,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -36,8 +40,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.repetit.R
 import com.seblful.repetit.format.MoneyField
+import com.seblful.repetit.ui.common.LeaveIntent
 import com.seblful.repetit.ui.common.ModeSelector
+import com.seblful.repetit.ui.common.UnsavedChangesDialog
 import com.seblful.repetit.ui.common.constrainedContent
+import com.seblful.repetit.ui.common.leaveIntent
 
 /** Full-screen "add student" with required subjects + prices. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,12 +54,23 @@ fun StudentFormScreen(
     viewModel: StudentFormViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+
+    // Back — the arrow or the system gesture — asks before throwing a filled-in form away.
+    var leaving by remember { mutableStateOf<LeaveIntent?>(null) }
+    fun requestLeave() {
+        when (val intent = leaveIntent(dirty = state.isDirty, canSave = state.isValid)) {
+            LeaveIntent.LEAVE -> onBack()
+            else -> leaving = intent
+        }
+    }
+    BackHandler(enabled = state.isDirty) { requestLeave() }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.student_add_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = ::requestLeave) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
@@ -68,6 +86,15 @@ fun StudentFormScreen(
             state = state,
             viewModel = viewModel,
             modifier = Modifier.fillMaxSize().padding(padding),
+        )
+    }
+
+    leaving?.let { intent ->
+        UnsavedChangesDialog(
+            intent = intent,
+            onSave = { viewModel.save(onBack) },
+            onDiscard = { leaving = null; onBack() },
+            onKeepEditing = { leaving = null },
         )
     }
 }
