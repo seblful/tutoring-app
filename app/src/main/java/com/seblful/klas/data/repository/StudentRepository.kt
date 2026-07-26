@@ -13,6 +13,12 @@ import javax.inject.Singleton
 @Singleton
 class StudentRepository @Inject constructor(
     private val dao: StudentDao,
+    /**
+     * Archiving a student has to settle their planned lessons, and every side effect of a class change
+     * belongs to that class — so this reaches for it rather than restating any of it. The direction is
+     * safe: `ClassRepository` depends on `StudentDao`, not on this.
+     */
+    private val classes: ClassRepository,
 ) {
     fun observeActive(): Flow<List<Student>> =
         dao.observeActive().map { list -> NameOrder.sorted(list.map { it.toDomain() }) { it.name } }
@@ -28,16 +34,33 @@ class StudentRepository @Inject constructor(
 
     suspend fun upsert(student: Student): Long = dao.upsert(student.toEntity())
 
-    suspend fun setArchived(student: Student, archived: Boolean) {
+    /**
+     * Archives or restores [student], and returns how many of their planned lessons archiving called
+     * off (zero when restoring).
+     *
+     * **Archiving is more than a flag.** It retires the student — they leave every list, every picker
+     * and, decisively, every report (`ReportsViewModel` counts active students only). A lesson of theirs
+     * still marked scheduled does not retire with them: the maintenance pass auto-completes it, which
+     * bills it, and the money then exists in the database while appearing in no total on any screen. The
+     * debt the archive dialog warns about would keep growing where nobody could look at it. So the
+     * planned lessons are called off first — see [ClassRepository.cancelScheduledFor], which also gives
+     * the hours back, withdraws the calendar events and re-plans the reminders.
+     *
+     * Cancelling comes **before** the flag on purpose. If it fails, the student is still active with
+     * their lessons called off — visible, correctable, and reported. The other order would leave an
+     * archived student with live lessons, which is precisely the state being ruled out.
+     *
+     * Restoring does not un-cancel anything: a lesson that was called off is a fact, and the tutor can
+     * put any of them back on the schedule themselves (`ClassRules` allows cancelled → scheduled).
+     */
+    suspend fun setArchived(student: Student, archived: Boolean): Int {
+        val cancelled = if (archived) classes.cancelScheduledFor(student.id).size else 0
         dao.upsert(student.copy(archived = archived).toEntity())
+        return cancelled
     }
-
-    fun observeSubjectIds(studentId: Long): Flow<List<Long>> = dao.observeSubjectIds(studentId)
 
     /** Who is priced for [subjectId] — the candidates for a group bound to that subject. */
     fun observeIdsForSubject(subjectId: Long): Flow<List<Long>> = dao.observeStudentIdsForSubject(subjectId)
-
-    suspend fun getIdsForSubject(subjectId: Long): List<Long> = dao.getStudentIdsForSubject(subjectId)
 
     // A student's subjects and their prices are kept in lock-step by EnrollmentRepository — the one
     // seam that links/unlinks a subject and sets/deletes its price together. Don't add link-only or

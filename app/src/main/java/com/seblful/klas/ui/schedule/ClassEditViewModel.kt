@@ -3,6 +3,7 @@ package com.seblful.klas.ui.schedule
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.EnrollmentRepository
 import com.seblful.klas.data.repository.GroupRepository
@@ -21,11 +22,14 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.format.MoneyField
+import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.UiEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -307,6 +311,7 @@ class ClassEditViewModel @Inject constructor(
     private val enrollment: EnrollmentRepository,
     private val settingsRepo: SettingsRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
+    @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val zone: ZoneId = ZoneId.systemDefault()
@@ -331,6 +336,7 @@ class ClassEditViewModel @Inject constructor(
     private val session = MutableStateFlow<ClassSession?>(null)
 
     private val students: StateFlow<List<Student>> = studentsRepo.observeActive()
+        .flowOn(computation)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _form = MutableStateFlow(ClassForm())
@@ -359,7 +365,9 @@ class ClassEditViewModel @Inject constructor(
     private val groups: StateFlow<List<Group>> =
         combine(groupsRepo.observeAll(), form.map { it.groupId }.distinctUntilChanged()) { all, selected ->
             all.filter { !it.archived || it.id == selected }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }
+            .flowOn(computation)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /**
      * Who the lesson may cover, listed under the group with a tick each. While **booking**, the
@@ -389,6 +397,7 @@ class ClassEditViewModel @Inject constructor(
                     else -> membersOf(key.groupId)
                 }
             }
+            .flowOn(computation)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** [bookedIds] is null while booking something new, and the lesson's members while editing one. */
@@ -403,6 +412,7 @@ class ClassEditViewModel @Inject constructor(
     private val subjects: StateFlow<List<Subject>> =
         form.map { SubjectKey(it.target, it.studentId, it.groupId) }.distinctUntilChanged()
             .flatMapLatest { subjectsFor(it) }
+            .flowOn(computation)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /**
@@ -441,6 +451,7 @@ class ClassEditViewModel @Inject constructor(
                 if (groupId == null) flowOf(false)
                 else groupsRepo.observeById(groupId).map { it?.subjectId != null }
             }
+            .flowOn(computation)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     private data class SubjectKey(val target: ClassTarget, val studentId: Long?, val groupId: Long?)
@@ -471,6 +482,7 @@ class ClassEditViewModel @Inject constructor(
                     }
                 }
             }
+            .flowOn(computation)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /**
@@ -505,7 +517,9 @@ class ClassEditViewModel @Inject constructor(
                 conflict = clash,
                 isDirty = isTouched,
             )
-        }.stateIn(
+        }
+            .flowOn(computation)
+            .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),
             ClassFormState(isNew = isNew),
@@ -804,6 +818,13 @@ class ClassEditViewModel @Inject constructor(
 
         /** Every member was unticked, so the lesson would bill nobody. */
         SAVE_REFUSED_NO_MEMBERS,
+
+        /**
+         * The write itself failed — a database or calendar error rather than a rule. Distinct from the
+         * two refusals above because there is nothing the tutor can change about it: the answer is
+         * "that didn't save, try again", not "pick another time".
+         */
+        SAVE_FAILED,
     }
 
     val events = UiEvents<Event>()
@@ -822,9 +843,16 @@ class ClassEditViewModel @Inject constructor(
             // tapping save would otherwise cancel it partway, between the committed rows and the
             // calendar mirror that follows them. Awaiting it here is what makes leaving abandon only
             // the navigation — the write itself is already out of this scope's reach.
-            val outcome = appScope.async { write(valid) }.await()
-            when (outcome) {
-                is SaveOutcome.Refused -> events.send(outcome.reason)
+            //
+            // Guarded inside the `async`, because a failure has to come back as a *value*. An
+            // exception would cross the `await` into this scope, where nothing catches it — and the
+            // application scope's own handler does not see it either, since `async` holds a failure in
+            // its `Deferred` rather than reporting it. Tapping «Сохранить» on a write that failed
+            // therefore crashed the app, in the one place the tutor is most sure of what they did.
+            val outcome = appScope.async { runCatchingCancellable { write(valid) } }.await()
+            when (val settled = outcome.getOrNull()) {
+                null -> events.send(Event.SAVE_FAILED)
+                is SaveOutcome.Refused -> events.send(settled.reason)
                 SaveOutcome.Saved -> {
                     // Nothing is unsaved any more, so leaving must not ask about it.
                     touched.value = false

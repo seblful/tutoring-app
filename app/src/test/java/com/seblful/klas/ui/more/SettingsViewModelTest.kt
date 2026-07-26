@@ -24,7 +24,7 @@ class SettingsViewModelTest {
 
     private val env = TestEnv()
 
-    private fun vm() = SettingsViewModel(env.settingsRepo, env.classRepo, env.calendarPermission)
+    private fun vm() = SettingsViewModel(env.settingsRepo, env.classRepo, env.calendarPermission, env.notificationPermission)
 
     @Test
     fun `setters persist each setting`() = runTest(mainRule.dispatcher) {
@@ -225,5 +225,70 @@ class SettingsViewModelTest {
         assertEquals(listOf("evt-1"), env.calendar.deletes)
         // The event id is cleared off the class.
         assertEquals(null, env.classDao.items.value.single().calendarEventId)
+    }
+
+    // --- Intent and platform truth are two facts ---------------------------------------------------
+
+    /**
+     * The state a fresh Android 13+ install is in: the setting on by default, the permission never
+     * granted, `AndroidNotifier` no-opping in silence. The switch read on while no reminder could ever
+     * appear, and nothing anywhere said so.
+     *
+     * Deliberately *not* modelled as the calendar rule — see `NotificationPermission`. Saying yes is the
+     * tutor's to say; whether the platform will honour it is a separate fact the screen shows next to it.
+     */
+    @Test
+    fun `the platform's answer is reported apart from the tutor's intent`() = runTest(mainRule.dispatcher) {
+        env.notificationPermission.granted = false
+        val vm = vm()
+        observing(vm.notificationsPermitted)
+        advanceUntilIdle()
+
+        assertTrue("the tutor asked for reminders", vm.state.value.notificationsEnabled)
+        assertFalse("but the platform will not show them", vm.notificationsPermitted.value)
+    }
+
+    @Test
+    fun `granting the permission is picked up on the next check`() = runTest(mainRule.dispatcher) {
+        env.notificationPermission.granted = false
+        val vm = vm()
+        observing(vm.notificationsPermitted)
+        advanceUntilIdle()
+        assertFalse(vm.notificationsPermitted.value)
+
+        // What returning from the system dialog — or from system settings — amounts to.
+        env.notificationPermission.granted = true
+        vm.refreshPermissions()
+        advanceUntilIdle()
+
+        assertTrue(vm.notificationsPermitted.value)
+    }
+
+    /** And revoked the same way: a permission can be taken away while the app is in the background. */
+    @Test
+    fun `revoking the permission is picked up too`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        observing(vm.notificationsPermitted)
+        advanceUntilIdle()
+        assertTrue(vm.notificationsPermitted.value)
+
+        env.notificationPermission.granted = false
+        vm.refreshPermissions()
+        advanceUntilIdle()
+
+        assertFalse(vm.notificationsPermitted.value)
+    }
+
+    /** Turning reminders off is never blocked — nothing to ask for, nothing to warn about. */
+    @Test
+    fun `the setting can always be turned off`() = runTest(mainRule.dispatcher) {
+        env.notificationPermission.granted = false
+        val vm = vm()
+        observing(vm.state)
+
+        vm.update { it.copy(notificationsEnabled = false) }
+        advanceUntilIdle()
+
+        assertFalse(env.settingsRepo.get().notificationsEnabled)
     }
 }

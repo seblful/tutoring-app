@@ -17,6 +17,7 @@ import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.ReminderScheduler
 import com.seblful.klas.domain.Reminders
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentStore
@@ -141,6 +142,16 @@ class FakeCalendarPermission(var granted: Boolean = true) : CalendarPermission {
 }
 
 /**
+ * Stands in for whether a reminder would actually be shown. [granted] false is a fresh Android 13+
+ * install — the setting on, the permission never asked for — which is the case the settings row exists
+ * to stop being silent about.
+ */
+class FakeNotificationPermission(var granted: Boolean = true) : NotificationPermission {
+    override fun isGranted(): Boolean = granted
+    override val required: Array<String> get() = arrayOf("POST_NOTIFICATIONS")
+}
+
+/**
  * An in-memory [DocumentStore]. [docs] is the "file system": seed it to drive a read, inspect it
  * after a write. Set [failing] to make both operations throw, which is how the error branch of an
  * export or import is reached without a device.
@@ -177,11 +188,11 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
 
     val calendar = FakeCalendarSync()
     val calendarPermission = FakeCalendarPermission()
+    val notificationPermission = FakeNotificationPermission()
     val reminders = RecordingReminderScheduler()
 
     val settingsRepo = SettingsRepository(settingsDao)
     val subjectRepo = SubjectRepository(subjectDao, classDao, groupDao)
-    val studentRepo = StudentRepository(studentDao)
     val rateHistoryRepo = RateHistoryRepository(rateHistoryDao)
     val groupRepo = GroupRepository(groupDao, classDao, studentDao, rateHistoryRepo, transactor)
     val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classDao, rateHistoryRepo, transactor)
@@ -196,6 +207,10 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
         settings = settingsRepo,
         transactor = transactor,
     )
+
+    // After classRepo: archiving a student has to call off their planned lessons, so this reaches for
+    // the class repository rather than restating any of what a class change owes.
+    val studentRepo = StudentRepository(studentDao, classRepo)
 
     /**
      * The real backup manager and restore, on the same fake DAOs. Reachable in a JVM test because

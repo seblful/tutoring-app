@@ -2,6 +2,7 @@ package com.seblful.klas.data.repository
 
 import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.Student
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -89,5 +90,67 @@ class EnrollmentRepositoryTest {
 
         assertEquals(listOf(2L), env.studentDao.getSubjectIds(1))
         assertNull("the dropped subject's price must go with its link", env.priceDao.get(1, 3))
+    }
+
+    // --- The refusal the wide write used to lack ---------------------------------------------------
+
+    /**
+     * `unenroll` refuses to drop a subject the student has classes for; `setEnrollments` used to drop
+     * any number of them without asking. The same subject was therefore undroppable one way and
+     * droppable the other, and the wide write was the weaker one.
+     */
+    @Test
+    fun `setEnrollments keeps a subject the student has classes for, and says which`() = runTest {
+        repo.setEnrollments(studentId = 1, pricedSubjects = mapOf(2L to Money.ofMajor(30), 3L to Money.ofMajor(40)))
+        seedClass(studentId = 1, subjectId = 3)
+
+        val kept = repo.setEnrollments(studentId = 1, pricedSubjects = mapOf(2L to Money.ofMajor(30)))
+
+        assertEquals("the subject with billed history is named", setOf(3L), kept)
+        assertEquals(
+            "and kept, link and price both",
+            listOf(2L, 3L),
+            env.studentDao.getSubjectIds(1).sorted(),
+        )
+        assertEquals(Money.ofMajor(40), env.priceDao.get(1, 3)?.amountMinor?.let { Money(it) })
+    }
+
+    @Test
+    fun `setEnrollments still drops a subject with no classes, and names nothing`() = runTest {
+        repo.setEnrollments(studentId = 1, pricedSubjects = mapOf(2L to Money.ofMajor(30), 3L to Money.ofMajor(40)))
+
+        val kept = repo.setEnrollments(studentId = 1, pricedSubjects = mapOf(2L to Money.ofMajor(30)))
+
+        assertEquals(emptySet<Long>(), kept)
+        assertEquals(listOf(2L), env.studentDao.getSubjectIds(1))
+    }
+
+    // --- A student and their prices are one act ---------------------------------------------------
+
+    @Test
+    fun `createStudent writes the student and every priced subject in one transaction`() = runTest {
+        val before = env.transactor.count
+
+        val id = repo.createStudent(
+            Student(name = "Аня"),
+            mapOf(2L to Money.ofMajor(30), 3L to Money.ofMajor(25)),
+        )
+
+        assertEquals("one flat transaction, not one per subject", 1, env.transactor.count - before)
+        assertEquals("Аня", env.studentDao.items.value.single().name)
+        assertEquals(listOf(2L, 3L), env.studentDao.getSubjectIds(id).sorted())
+        assertEquals(Money.ofMajor(30), env.priceDao.get(id, 2)?.amountMinor?.let { Money(it) })
+        assertEquals(Money.ofMajor(25), env.priceDao.get(id, 3)?.amountMinor?.let { Money(it) })
+    }
+
+    /** The rate log starts at creation, so a first price is history's beginning rather than a change. */
+    @Test
+    fun `createStudent logs each opening rate`() = runTest {
+        val id = repo.createStudent(Student(name = "Аня"), mapOf(2L to Money.ofMajor(30)))
+
+        val logged = env.rateHistoryDao.items.value.single()
+        assertEquals(id, logged.studentId)
+        assertNull("no previous rate: the history starts here", logged.fromMinor)
+        assertEquals(Money.ofMajor(30).minor, logged.toMinor)
     }
 }

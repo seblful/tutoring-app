@@ -6,9 +6,12 @@ import com.seblful.klas.calendar.CalendarPermission
 import com.seblful.klas.data.repository.AppSettings
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.notifications.NotificationPermission
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,10 +28,38 @@ class SettingsViewModel @Inject constructor(
     private val settings: SettingsRepository,
     private val classes: ClassRepository,
     private val calendarPermission: CalendarPermission,
+    private val notificationPermission: NotificationPermission,
 ) : ViewModel() {
 
     val state: StateFlow<AppSettings> = settings.observe()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppSettings())
+
+    /** Bumped by [refreshPermissions] to re-ask the platform; a permission is not observable. */
+    private val permissionChecks = MutableStateFlow(0)
+
+    /**
+     * Whether a reminder would actually be shown — the platform's answer, next to the tutor's intent in
+     * [AppSettings.notificationsEnabled].
+     *
+     * Both are needed because they can disagree, and only one of them was ever on screen. The setting is
+     * on by default; the permission is not granted by default; `AndroidNotifier` no-ops without it. So a
+     * fresh install showed «Напоминания» switched on while no reminder could ever appear, and nothing
+     * anywhere said so — the app's one time-critical feature, silently dead, reading as enabled.
+     *
+     * Not a `Flow` from the platform, because there is no such thing: a permission changes while the app
+     * is away, in system settings. The screen re-asks on resume through [refreshPermissions].
+     */
+    val notificationsPermitted: StateFlow<Boolean> = permissionChecks
+        .map { notificationPermission.isGranted() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    /** What to request when [notificationsPermitted] is false; empty where there is nothing to ask. */
+    val notificationPermissionsRequired: Array<String> get() = notificationPermission.required
+
+    /** Re-asks the platform. Called on resume and after a permission dialog closes. */
+    fun refreshPermissions() {
+        permissionChecks.value += 1
+    }
 
     /**
      * The permissions the screen must request after a [CalendarSyncToggle.PERMISSION_NEEDED].

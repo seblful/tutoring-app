@@ -55,10 +55,16 @@ class GroupRepository @Inject constructor(
 
     suspend fun getMemberIds(groupId: Long): List<Long> = dao.getMemberIds(groupId)
 
-    /** studentId → the groups it belongs to, for showing a student's groups. */
-    fun observeMembershipsByStudent(): Flow<Map<Long, List<Long>>> =
+    /**
+     * groupId → its member ids, for a screen that needs several groups' rosters at once.
+     *
+     * Keyed by **group**, which is how every caller reads it. It used to be keyed by student, so the
+     * groups list inverted it back a group at a time — scanning every student's memberships once per
+     * group, on every emission, to find the entry it had just been given the other way round.
+     */
+    fun observeRosters(): Flow<Map<Long, List<Long>>> =
         dao.observeAllMembers().map { refs ->
-            refs.groupBy { it.studentId }.mapValues { (_, list) -> list.map { it.groupId } }
+            refs.groupBy { it.groupId }.mapValues { (_, list) -> list.map { it.studentId } }
         }
 
     /**
@@ -106,10 +112,26 @@ class GroupRepository @Inject constructor(
      * This is enforced in the repository, not just the form, because [save] is the only writer of
      * membership: a caller that skipped the UI could otherwise seed an unbillable roster.
      */
-    private suspend fun eligible(group: Group, memberIds: Set<Long>): Set<Long> {
-        val subjectId = group.subjectId ?: return memberIds
+    private suspend fun eligible(group: Group, memberIds: Set<Long>): Set<Long> =
+        memberIds - notPricedFor(group, memberIds)
+
+    /**
+     * Which of [memberIds] [save] would leave out — the ones not priced for the group's subject.
+     *
+     * The narrowing is right and stays in [save], but doing it *silently* was not: a member vanished
+     * from the roster with nothing said. It is not a hypothetical, either. Un-enrolling a student from
+     * the subject one-to-one is allowed (while the group has taught no lesson), and the next save of
+     * that group — **a rename is enough**, since every save re-intersects — quietly drops them.
+     *
+     * Exposed as a read so the form can say who and why before or after saving, which is where a
+     * refusal belongs: it has to name people, and only a screen can do that. The repository keeps
+     * enforcing it regardless, because [save] is the only writer of membership and a caller that
+     * skipped the UI could otherwise seed a roster no lesson could bill.
+     */
+    suspend fun notPricedFor(group: Group, memberIds: Set<Long>): Set<Long> {
+        val subjectId = group.subjectId ?: return emptySet()
         val priced = studentDao.getStudentIdsForSubject(subjectId).toSet()
-        return memberIds intersect priced
+        return memberIds - priced
     }
 
     suspend fun setArchived(group: Group, archived: Boolean) {

@@ -34,11 +34,20 @@ class Maintenance @Inject constructor(
         // Auto-completion (and therefore auto-billing) is opt-in; when off, the tutor confirms each
         // lesson by marking it completed.
         if (s.autoCompleteEnabled) classes.autoCompleteDue(now)
+        // The horizon is named once and used twice — to fetch the window and to filter it — because a
+        // plan derived over a shorter window than it filters on would quietly drop reminders.
+        val horizon = Reminders.DEFAULT_HORIZON
         scheduler.schedule(
             Reminders.plan(
                 now = now,
-                classes = classes.getAll(),
+                // Only the classes the plan could keep, not every class ever taught. This runs at
+                // every app start, on every periodic tick and behind every class write, and it used to
+                // read (and map, and parse the status text of) the tutor's whole history each time to
+                // decide about the coming week. `plan` still applies the real filter — the window is
+                // deliberately a superset of it.
+                classes = classes.startingWithin(now, horizon),
                 lead = Duration.ofMinutes(s.reminderLeadMinutes.toLong()),
+                horizon = horizon,
             ),
         )
     }

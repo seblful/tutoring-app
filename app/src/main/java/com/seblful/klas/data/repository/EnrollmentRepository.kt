@@ -10,6 +10,7 @@ import com.seblful.klas.data.toEntity
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Price
 import com.seblful.klas.domain.model.RateOwner
+import com.seblful.klas.domain.model.Student
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -65,6 +66,34 @@ class EnrollmentRepository @Inject constructor(
     }
 
     /**
+     * Creates [student] **with** the subjects they are priced for, in one transaction, and returns the
+     * new id.
+     *
+     * A student and their enrollments are one act, not two. The add-student form used to write them as
+     * two calls — `students.upsert(...)` then `setEnrollments(...)` — from `viewModelScope`, and then
+     * navigate. Tapping «Сохранить» and going straight back could cancel between them, leaving a
+     * student with no priced subject: no subject can be booked for them, so the row is unusable, which
+     * is the very thing [UiState.isValid] refuses to let the form submit. The form was enforcing an
+     * invariant that its own save could then break.
+     *
+     * It lives here rather than in `StudentRepository` because the invariant at stake is this class's
+     * one: a student's subjects **are** their priced subjects. A caller that has to remember to follow
+     * one write with another is exactly the caller discipline this seam exists to remove.
+     */
+    suspend fun createStudent(student: Student, pricedSubjects: Map<Long, Money>): Long =
+        transactor.transaction {
+            // Room's @Upsert returns the new rowid on insert and -1 on update; this is a creation, so
+            // it inserts — the fallback mirrors `GroupRepository.save` rather than trusting that.
+            val rowId = studentDao.upsert(student.toEntity())
+            val id = if (rowId == -1L) student.id else rowId
+            pricedSubjects.forEach { (subjectId, price) ->
+                studentDao.addSubjectLink(StudentSubjectCrossRef(id, subjectId))
+                record(id, subjectId, price)
+            }
+            id
+        }
+
+    /**
      * Adds [subjectId] to [studentId] at [price] — links it and prices it together, in **one**
      * transaction, which is what "together" has to mean to be worth saying.
      */
@@ -103,26 +132,38 @@ class EnrollmentRepository @Inject constructor(
     }
 
     /**
-     * Replaces a student's enrollments wholesale with [pricedSubjects] (subjectId → price). Used at
-     * creation (the add-student form and onboarding): links the chosen subjects, sets each price,
-     * and drops any subject — link and price together — no longer present, keeping the two in step.
+     * Replaces a student's enrollments wholesale with [pricedSubjects] (subjectId → price): links the
+     * chosen subjects, sets each price, and drops any subject — link and price together — no longer
+     * present, keeping the two in step. Returns the subjects it **refused** to drop.
      *
      * The widest write here, and so the one that most needs to be **one** transaction: a save that
      * added three subjects and stopped after the second would leave the student taking a subject at no
      * price, and the tutor with no way to tell which of the three it was.
+     *
+     * **A subject with classes is kept, exactly as [unenroll] keeps it**, and named in the return so a
+     * caller can say so. This used to be the one way round that refusal: `unenroll` guards a single
+     * subject and this dropped any number of them without asking, so the same subject was undroppable
+     * one way and droppable the other. Creation is where it is used, and there a student has no classes
+     * yet — which is why the hole was invisible rather than absent, and it is not a reason to leave the
+     * wider write the weaker one. Creating a student now goes through [createStudent] instead.
      */
-    suspend fun setEnrollments(studentId: Long, pricedSubjects: Map<Long, Money>) {
+    suspend fun setEnrollments(studentId: Long, pricedSubjects: Map<Long, Money>): Set<Long> {
         val current = studentDao.getSubjectIds(studentId).toSet()
         val target = pricedSubjects.keys
+        // Read outside the transaction: these decide *whether* to drop, and a refusal writes nothing.
+        val undroppable = (current - target)
+            .filter { classDao.countForStudentSubject(studentId, it) > 0 }
+            .toSet()
         transactor.transaction {
             (target - current).forEach { studentDao.addSubjectLink(StudentSubjectCrossRef(studentId, it)) }
-            (current - target).forEach {
+            (current - target - undroppable).forEach {
                 studentDao.removeSubjectLink(studentId, it)
                 priceDao.delete(studentId, it)
                 rateHistory.forget(RateOwner.StudentSubject(studentId, it))
             }
             pricedSubjects.forEach { (subjectId, price) -> record(studentId, subjectId, price) }
         }
+        return undroppable
     }
 
     /**

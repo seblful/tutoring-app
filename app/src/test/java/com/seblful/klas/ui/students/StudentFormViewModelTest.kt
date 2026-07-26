@@ -6,6 +6,8 @@ import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -22,7 +24,7 @@ class StudentFormViewModelTest {
 
     private val env = TestEnv()
 
-    private fun vm() = StudentFormViewModel(env.studentRepo, env.subjectRepo, env.enrollmentRepo)
+    private fun vm() = StudentFormViewModel(env.subjectRepo, env.enrollmentRepo, mainRule.appScope, mainRule.dispatcher)
 
     @Test
     fun `form starts invalid and becomes valid with a name and a priced subject`() = runTest(mainRule.dispatcher) {
@@ -123,6 +125,76 @@ class StudentFormViewModelTest {
 
         vm.toggleSubject(mathId, on = true)
         assertTrue("a ticked subject is unsaved work even before it is priced", vm.state.value.isDirty)
+    }
+
+    // --- A student and their prices are one act ---------------------------------------------------
+
+    /**
+     * The form refuses to submit a student with no priced subject, because nothing could be booked for
+     * one. Its own save used to be able to produce exactly that: two writes in `viewModelScope`, then
+     * navigation, so going back in between cancelled the second. One transaction is what makes the
+     * invariant the form checks the invariant the database ends up with.
+     */
+    @Test
+    fun `a student and their priced subjects are written in one transaction`() = runTest(mainRule.dispatcher) {
+        val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val vm = vm()
+        observing(vm.state)
+        vm.update { it.copy(name = "Аня") }
+        vm.toggleSubject(mathId, on = true)
+        vm.setPriceText(mathId, "30")
+
+        val before = env.transactor.count
+        var done = false
+        vm.save { done = true }
+        advanceUntilIdle()
+
+        assertTrue(done)
+        assertEquals("one flat transaction, not one per table", 1, env.transactor.count - before)
+        assertEquals(1, env.studentDao.items.value.size)
+        val studentId = env.studentDao.items.value.single().id
+        assertEquals(listOf(mathId), env.studentDao.links.value.filter { it.studentId == studentId }.map { it.subjectId })
+        assertEquals(Money.ofMajor(30).minor, env.priceDao.items.value.single().amountMinor)
+    }
+
+    @Test
+    fun `a creation that fails to commit writes no half-student and is reported`() = runTest(mainRule.dispatcher) {
+        val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val vm = vm()
+        observing(vm.state)
+        vm.update { it.copy(name = "Аня") }
+        vm.toggleSubject(mathId, on = true)
+        vm.setPriceText(mathId, "30")
+
+        env.transactor.failAt = env.transactor.count + 1
+        var done = false
+        vm.save { done = true }
+        advanceUntilIdle()
+
+        assertFalse("a failed write must not navigate away as though it had saved", done)
+        assertEquals(StudentFormViewModel.Event.SAVE_FAILED, vm.events.stream.first())
+    }
+
+    /**
+     * The write outlives the screen: the form hands it to the application scope and keeps only the
+     * navigation, so leaving the moment after tapping «Сохранить» abandons the *navigation* and not
+     * the student.
+     */
+    @Test
+    fun `the write survives the screen going away`() = runTest(mainRule.dispatcher) {
+        val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val vm = vm()
+        observing(vm.state)
+        vm.update { it.copy(name = "Аня") }
+        vm.toggleSubject(mathId, on = true)
+        vm.setPriceText(mathId, "30")
+
+        vm.save { }
+        // Whatever the screen does next, the student and their price are already the scope's business.
+        advanceUntilIdle()
+
+        assertEquals(1, env.studentDao.items.value.size)
+        assertEquals(1, env.priceDao.items.value.size)
     }
 
     @Test

@@ -25,8 +25,24 @@ class SubjectRepository @Inject constructor(
 
     suspend fun upsert(subject: Subject): Long = dao.upsert(subject.toEntity())
 
+    /** Why a subject could not be deleted — the two things that can reference one. */
+    sealed interface Delete {
+        /** It was deleted. */
+        data object Ok : Delete
+
+        /** Refused: lessons reference it, and they are billed history. */
+        data object HasClasses : Delete
+
+        /**
+         * Refused: a group is taught it. Distinct from [HasClasses] because the tutor has to be told
+         * something different — "remove its lessons first" is no help at all when the blocker is a
+         * brand-new group with no lessons.
+         */
+        data object TaughtToGroup : Delete
+    }
+
     /**
-     * Deletes [subject] only while nothing references it, and returns whether it did.
+     * Deletes [subject] only while nothing references it, and says what stopped it if something did.
      *
      * Two things can, and each refuses for its own reason:
      *
@@ -39,12 +55,12 @@ class SubjectRepository @Inject constructor(
      *   than as the "you can't do that yet" this returns. A brand-new group with no lessons of its own
      *   is enough to hit it, so it is not an exotic path.
      *
-     * The caller should ask the user to clear the reference first.
+     * The caller should ask the user to clear the reference first, which is why the two are told apart.
      */
-    suspend fun delete(subject: Subject): Boolean {
-        if (classDao.countForSubject(subject.id) > 0) return false
-        if (groupDao.countForSubject(subject.id) > 0) return false
+    suspend fun delete(subject: Subject): Delete {
+        if (classDao.countForSubject(subject.id) > 0) return Delete.HasClasses
+        if (groupDao.countForSubject(subject.id) > 0) return Delete.TaughtToGroup
         dao.delete(subject.toEntity())
-        return true
+        return Delete.Ok
     }
 }

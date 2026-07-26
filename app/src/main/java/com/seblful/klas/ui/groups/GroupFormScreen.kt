@@ -84,12 +84,14 @@ fun GroupFormScreen(
 
     val context = LocalContext.current
     val deleteBlockedMsg = stringResource(R.string.group_delete_blocked)
+    val notPricedMsg = stringResource(R.string.group_members_not_priced)
     LaunchedEffect(Unit) {
         viewModel.events.stream.collect { event ->
-            when (event) {
-                GroupFormViewModel.Event.DELETE_BLOCKED_HAS_LESSONS ->
-                    Toast.makeText(context, deleteBlockedMsg, Toast.LENGTH_LONG).show()
+            val message = when (event) {
+                GroupFormViewModel.Event.DELETE_BLOCKED_HAS_LESSONS -> deleteBlockedMsg
+                GroupFormViewModel.Event.MEMBERS_NOT_PRICED_FOR_SUBJECT -> notPricedMsg
             }
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }
     }
 

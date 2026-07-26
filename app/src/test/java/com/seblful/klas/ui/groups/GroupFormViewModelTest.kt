@@ -37,6 +37,7 @@ class GroupFormViewModelTest {
         settings = env.settingsRepo,
         students = env.studentRepo,
         subjects = env.subjectRepo,
+        computation = mainRule.dispatcher,
     )
 
     private suspend fun seedStudents(): Pair<Long, Long> {
@@ -293,6 +294,87 @@ class GroupFormViewModelTest {
 
         assertTrue(vm.state.value.archived)
         assertTrue(env.groupRepo.getById(id)!!.archived)
+        assertEquals(listOf(ann), env.groupRepo.getMemberIds(id))
+    }
+
+    /**
+     * A group with a subject keeps only the members priced for it, and the save now says when that
+     * left somebody out. The tutor need not have touched the roster: un-enrolling a member from the
+     * subject one-to-one is allowed, and the next save — **a rename is enough**, since every save
+     * re-intersects — is what drops them. It used to happen in silence.
+     */
+    @Test
+    fun `a save that leaves out an unpriced member says so`() = runTest(mainRule.dispatcher) {
+        val (ann, bob) = seedStudents()
+        val chem = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
+        env.enrollmentRepo.enroll(ann, chem, Money.ofMajor(25))
+        env.enrollmentRepo.enroll(bob, chem, Money.ofMajor(25))
+        val id = env.groupRepo.save(
+            Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)),
+            setOf(ann, bob),
+        )
+        // The tutor stops teaching Аня Химия one-to-one; the group still teaches it, and Борис is
+        // still priced, so the form stays saveable — which is what makes the drop silent.
+        env.enrollmentRepo.unenroll(ann, chem)
+
+        val vm = vm(id)
+        observing(vm.state)
+        advanceUntilIdle()
+        val events = mutableListOf<GroupFormViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+
+        // Nothing but the name changes.
+        vm.update { it.copy(name = "Химия, вечер") }
+        vm.save { }
+        advanceUntilIdle()
+
+        assertEquals(listOf(GroupFormViewModel.Event.MEMBERS_NOT_PRICED_FOR_SUBJECT), events)
+        assertEquals("and they really were dropped", listOf(bob), env.groupRepo.getMemberIds(id))
+    }
+
+    /**
+     * When the subject rule strands **everybody**, the form goes invalid instead — the save button is
+     * disabled and there is nothing to announce, because nothing is written. Worth pinning next to the
+     * case above so the two are not confused: one is a silent drop, the other is a visible dead end.
+     */
+    @Test
+    fun `a group whose every member lost the price cannot be saved at all`() = runTest(mainRule.dispatcher) {
+        val (ann, _) = seedStudents()
+        val chem = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
+        env.enrollmentRepo.enroll(ann, chem, Money.ofMajor(25))
+        val id = env.groupRepo.save(
+            Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)),
+            setOf(ann),
+        )
+        env.enrollmentRepo.unenroll(ann, chem)
+
+        val vm = vm(id)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        assertFalse("nobody left who could be billed", vm.state.value.isValid)
+        assertEquals(setOf(ann), vm.state.value.strandedMemberIds)
+        assertEquals("nothing written, so the roster is untouched", listOf(ann), env.groupRepo.getMemberIds(id))
+    }
+
+    @Test
+    fun `a save where everybody is priced says nothing`() = runTest(mainRule.dispatcher) {
+        val (ann, _) = seedStudents()
+        val chem = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
+        env.enrollmentRepo.enroll(ann, chem, Money.ofMajor(25))
+        val id = env.groupRepo.save(Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)), setOf(ann))
+
+        val vm = vm(id)
+        observing(vm.state)
+        advanceUntilIdle()
+        val events = mutableListOf<GroupFormViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+
+        vm.update { it.copy(name = "Химия, вечер") }
+        vm.save { }
+        advanceUntilIdle()
+
+        assertTrue("nothing was left out, so nothing to announce", events.isEmpty())
         assertEquals(listOf(ann), env.groupRepo.getMemberIds(id))
     }
 

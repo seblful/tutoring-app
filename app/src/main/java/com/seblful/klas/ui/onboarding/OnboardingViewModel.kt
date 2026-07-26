@@ -2,10 +2,13 @@ package com.seblful.klas.ui.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.model.Subject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -26,9 +29,11 @@ import javax.inject.Inject
 class OnboardingViewModel @Inject constructor(
     private val subjectsRepo: SubjectRepository,
     private val settings: SettingsRepository,
+    @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
 
     val subjects: StateFlow<List<Subject>> = subjectsRepo.observeAll()
+        .flowOn(computation)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun addSubject(name: String) {

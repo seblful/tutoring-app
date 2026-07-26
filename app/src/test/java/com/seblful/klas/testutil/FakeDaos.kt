@@ -91,9 +91,6 @@ class FakeStudentDao : StudentDao {
         items.value = items.value + students
     }
 
-    override fun observeSubjectIds(studentId: Long): Flow<List<Long>> =
-        links.map { list -> list.filter { it.studentId == studentId }.map { it.subjectId } }
-
     override suspend fun getSubjectIds(studentId: Long): List<Long> =
         links.value.filter { it.studentId == studentId }.map { it.subjectId }
 
@@ -213,8 +210,6 @@ class FakePriceDao : PriceDao {
     override fun observeForStudent(studentId: Long): Flow<List<PriceEntity>> =
         items.map { list -> list.filter { it.studentId == studentId } }
 
-    override fun observeAll(): Flow<List<PriceEntity>> = items
-
     override suspend fun get(studentId: Long, subjectId: Long): PriceEntity? =
         items.value.firstOrNull { it.studentId == studentId && it.subjectId == subjectId }
 
@@ -307,11 +302,17 @@ class FakeClassDao : ClassDao {
             list.filter { it.startMillis in fromMillis until toMillis }.sortedBy { it.startMillis }
         }
 
-    override suspend fun getForStudent(studentId: Long): List<ClassEntity> =
-        items.value.filter { it.studentId == studentId }
+    override suspend fun getBetween(fromMillis: Long, toMillis: Long): List<ClassEntity> =
+        items.value.filter { it.startMillis in fromMillis until toMillis }.sortedBy { it.startMillis }
+
+    override suspend fun withCalendarEvent(): List<ClassEntity> =
+        items.value.filter { it.calendarEventId != null }
 
     override suspend fun countForSubject(subjectId: Long): Int =
         items.value.count { it.subjectId == subjectId }
+
+    override suspend fun scheduledForStudent(studentId: Long): List<ClassEntity> =
+        items.value.filter { it.studentId == studentId && it.status == "SCHEDULED" }
 
     override suspend fun countForStudentSubject(studentId: Long, subjectId: Long): Int =
         items.value.count { it.studentId == studentId && it.subjectId == subjectId }
@@ -374,9 +375,6 @@ class FakePaymentDao : PaymentDao {
 
     override fun observeForStudent(studentId: Long): Flow<List<PaymentEntity>> =
         items.map { list -> list.filter { it.studentId == studentId }.sortedByDescending { it.dateMillis } }
-
-    override suspend fun getForStudent(studentId: Long): List<PaymentEntity> =
-        items.value.filter { it.studentId == studentId }
 
     override suspend fun getAll(): List<PaymentEntity> = items.value
 

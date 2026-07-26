@@ -2,14 +2,21 @@ package com.seblful.klas.ui.students
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.EnrollmentRepository
-import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
+import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
+import com.seblful.klas.runCatchingCancellable
+import com.seblful.klas.ui.common.UiEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,9 +32,10 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class StudentFormViewModel @Inject constructor(
-    private val students: StudentRepository,
     subjectsRepo: SubjectRepository,
     private val enrollment: EnrollmentRepository,
+    @param:ApplicationScope private val appScope: CoroutineScope,
+    @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
 
     data class Form(
@@ -69,6 +77,7 @@ class StudentFormViewModel @Inject constructor(
         form,
         subjectsRepo.observeAll(),
     ) { f, subjects -> UiState(f, subjects) }
+        .flowOn(computation)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
 
     fun update(transform: (Form) -> Form) {
@@ -89,26 +98,48 @@ class StudentFormViewModel @Inject constructor(
         )
     }
 
+    /** One-shot signals from a save that could not go through. */
+    enum class Event {
+        /** The write failed — a database error rather than anything the form got wrong. */
+        SAVE_FAILED,
+    }
+
+    val events = UiEvents<Event>()
+
+    /**
+     * Creates the student and their priced subjects.
+     *
+     * **One write, in the application scope.** It used to be two calls in `viewModelScope` followed by
+     * navigation, so going back the instant after tapping save could cancel between them and leave a
+     * student with no priced subject — a row this very form refuses to submit, and one nothing can be
+     * booked for. Both halves now land together (`EnrollmentRepository.createStudent`) in a scope that
+     * outlives the screen, and only the navigation stays here.
+     *
+     * The form is read into a snapshot **before** the write, for the reason `ValidForm` gives in the
+     * booking form: a write that outlives its screen must not read state the screen may still be
+     * editing.
+     */
     fun save(onSaved: () -> Unit) {
         val s = state.value
         if (!s.isValid) return
         val f = s.form
+        val student = Student(
+            name = f.name.trim(),
+            phone = f.phone.trim(),
+            email = f.email.trim(),
+            note = f.note.trim(),
+            defaultMode = f.mode,
+        )
+        // isValid guarantees every chosen subject has a parseable price.
+        val pricedSubjects = f.subjectPrices.mapNotNull { (subjectId, price) ->
+            price.amount?.let { subjectId to it }
+        }.toMap()
+
         viewModelScope.launch {
-            val id = students.upsert(
-                Student(
-                    name = f.name.trim(),
-                    phone = f.phone.trim(),
-                    email = f.email.trim(),
-                    note = f.note.trim(),
-                    defaultMode = f.mode,
-                )
-            )
-            // isValid guarantees every chosen subject has a parseable price.
-            val pricedSubjects = f.subjectPrices.mapNotNull { (subjectId, price) ->
-                price.amount?.let { subjectId to it }
-            }.toMap()
-            enrollment.setEnrollments(id, pricedSubjects)
-            onSaved()
+            val written = appScope
+                .async { runCatchingCancellable { enrollment.createStudent(student, pricedSubjects) } }
+                .await()
+            if (written.isSuccess) onSaved() else events.send(Event.SAVE_FAILED)
         }
     }
 }

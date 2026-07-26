@@ -6,6 +6,7 @@ import com.seblful.klas.calendar.Guest
 import com.seblful.klas.data.local.ClassDao
 import com.seblful.klas.data.local.GroupDao
 import com.seblful.klas.data.local.StudentDao
+import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectDao
 import com.seblful.klas.data.local.Transactor
 import com.seblful.klas.data.toDomain
@@ -23,8 +24,8 @@ import com.seblful.klas.domain.model.ClassStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
@@ -69,9 +70,30 @@ class ClassRepository @Inject constructor(
     fun observeConflicts(slot: Scheduling.Slot, ignoring: Set<Long> = emptySet()): Flow<List<ClassSession>> =
         observeBetween(windowStart(slot), slot.end).map { Scheduling.conflicts(slot, it, ignoring) }
 
-    /** [observeConflicts] as a one-shot read — the check a save makes against the database it writes. */
+    /**
+     * [observeConflicts] as a one-shot read — the check a save makes against the database it writes.
+     *
+     * A `suspend` query rather than `observeConflicts(...).first()`: collecting a Room `Flow` for a
+     * single value registers an invalidation observer and opens a channel only to close both again,
+     * and this runs behind every save, every move and every un-cancel.
+     */
     suspend fun conflictsWith(slot: Scheduling.Slot, ignoring: Set<Long> = emptySet()): List<ClassSession> =
-        observeConflicts(slot, ignoring).first()
+        Scheduling.conflicts(slot, getBetween(windowStart(slot), slot.end), ignoring)
+
+    /**
+     * The classes starting within [horizon] of [now] — what a reminder plan is derived from, rather
+     * than every class ever taught (see `work/Maintenance`).
+     *
+     * The window runs a millisecond past [horizon] because the two bounds disagree by design:
+     * [ClassDao.getBetween] excludes its upper bound, while a reminder horizon includes it
+     * ([Reminders.plan] keeps a lesson starting exactly on it). Handing over a superset is the safe
+     * direction — `plan` applies the real filter — and this keeps the boundary lesson in it.
+     */
+    suspend fun startingWithin(now: Instant, horizon: Duration): List<TutoringClass> =
+        getBetween(now, now.plus(horizon))
+
+    private suspend fun getBetween(from: Instant, to: Instant): List<TutoringClass> =
+        dao.getBetween(from.toEpochMilli(), to.toEpochMilli()).map { it.toDomain() }
 
     /**
      * How far back the conflict query has to look: the window filters on each class's **start**, so a
@@ -102,13 +124,19 @@ class ClassRepository @Inject constructor(
      * backfill events for classes created while it was off. Best-effort, like all calendar work.
      */
     suspend fun resyncCalendar() {
-        if (!syncEnabled()) return
-        dao.getAll().forEach { mirrorToCalendar(it.toDomain()) }
+        val settings = settings.get()
+        // Checked before the read, so a resync with sync off doesn't walk the whole history to
+        // decide it has nothing to do.
+        if (!settings.calendarSyncEnabled) return
+        mirror(dao.getAll().map { it.toDomain() }, settings)
     }
 
-    /** Removes every mirrored event. Run when the user turns calendar sync off. */
+    /**
+     * Removes every mirrored event. Run when the user turns calendar sync off. Only the classes that
+     * actually carry an event id are read: the rest have nothing to withdraw.
+     */
     suspend fun clearCalendar() {
-        dao.getAll().forEach { detachCalendarEvent(it.toDomain()) }
+        dao.withCalendarEvent().forEach { detachCalendarEvent(it.toDomain()) }
     }
 
     /**
@@ -187,7 +215,7 @@ class ClassRepository @Inject constructor(
                 klass.copy(id = dao.upsert(klass.toEntity()))
             }
         }
-        booked.forEach { mirrorToCalendar(it) }
+        mirror(booked)
         reminderScheduler.refreshNow()
         return booked.map { it.id }
     }
@@ -295,9 +323,47 @@ class ClassRepository @Inject constructor(
             }
         }
         dropped.forEach { dropCalendarEvent(it) }
-        (resolved + joined).forEach { mirrorToCalendar(it) }
+        mirror(resolved + joined)
         reminderScheduler.refreshNow()
         return resolved + joined
+    }
+
+    /**
+     * Cancels every class of [studentId]'s that is still [ClassStatus.SCHEDULED], and returns them.
+     *
+     * This is what archiving a student has to do to the schedule, and it lives here because every side
+     * effect of a class change does: the charges are voided, the slots are given back, the calendar
+     * events are withdrawn and the reminders are re-planned — once, after the commit, like every other
+     * write in this class.
+     *
+     * **Why cancel rather than leave them.** Archiving is how a student leaves without erasing history,
+     * and it removes them from every report (`ReportsViewModel` counts active students only). A
+     * scheduled class left behind does not stop being live: the maintenance pass auto-completes it,
+     * which bills it, and that income then exists in the database while appearing in no total on any
+     * screen. The debt tile the archive dialog warns about would go on growing where nobody could see
+     * it. Their reminders would also still fire, and their calendar events still stand.
+     *
+     * **Why cancel rather than delete.** A cancelled class records a lesson that was planned and did not
+     * happen, which is true. Deleting it would say it was never arranged.
+     *
+     * **Why every scheduled class and not only the future ones.** A past class still marked scheduled is
+     * exactly the one the auto-complete pass is about to bill. Archiving says the arrangement is over,
+     * so a lesson nobody ever confirmed is not about to become income; a lesson that *did* happen was
+     * marked completed, and completed classes are left alone here.
+     *
+     * A group lesson loses only this student's class — a per-member correction (`ClassSession.of`), so
+     * the lesson goes ahead for everyone else.
+     */
+    suspend fun cancelScheduledFor(studentId: Long): List<TutoringClass> {
+        val cancelled = dao.scheduledForStudent(studentId)
+            .map { ClassRules.applyStatus(it.toDomain(), ClassStatus.CANCELLED) }
+        if (cancelled.isEmpty()) return emptyList()
+        // One transaction for the lot: a half-archived student would have some lessons called off and
+        // others still due to bill, which is the state this exists to rule out.
+        transactor.transaction { cancelled.forEach { dao.update(it.toEntity()) } }
+        mirror(cancelled)
+        reminderScheduler.refreshNow()
+        return cancelled
     }
 
     suspend fun nextScheduledAfter(now: Instant): TutoringClass? =
@@ -319,18 +385,42 @@ class ClassRepository @Inject constructor(
         return due
     }
 
-    private suspend fun syncEnabled(): Boolean = settings.get().calendarSyncEnabled
+    /**
+     * Mirrors a whole lesson to the device calendar, reading the settings **once** for the batch.
+     *
+     * Every write above hands its classes over together rather than one at a time, because the
+     * settings row governs all of them identically: read per class, it was one query per member to
+     * answer the same question, and `resyncCalendar` asked it once per class over the entire history.
+     * Batching also makes the [AppSettings] one snapshot, so a lesson cannot mirror half under the
+     * old invite setting and half under a new one.
+     */
+    private suspend fun mirror(classes: List<TutoringClass>) {
+        if (classes.isEmpty()) return
+        mirror(classes, settings.get())
+    }
+
+    private suspend fun mirror(classes: List<TutoringClass>, settings: AppSettings) {
+        if (!settings.calendarSyncEnabled) return
+        classes.forEach { mirrorToCalendar(it, settings) }
+    }
 
     /**
-     * Reflects [klass]'s status into the device calendar. Best-effort: no-ops when calendar sync is
-     * off or the calendar is unavailable, so the local database is never blocked by sync.
+     * Reflects [klass]'s status into the device calendar. Best-effort: no-ops when the calendar is
+     * unavailable, so the local database is never blocked by sync. Only reached through [mirror],
+     * which is what has already established that sync is on.
      */
-    private suspend fun mirrorToCalendar(klass: TutoringClass) {
-        val s = settings.get()
-        if (!s.calendarSyncEnabled) return
+    private suspend fun mirrorToCalendar(klass: TutoringClass, settings: AppSettings) {
         when (CalendarSyncPolicy.actionFor(klass.status)) {
             CalendarSyncPolicy.Action.UPSERT -> {
-                val eventId = calendarSync.upsert(klass, titleFor(klass), guestFor(klass, s), s.reminderLeadMinutes)
+                // One read of the student, not two: their name titles the event and their address is
+                // what invites them to it, and the title and the guest each used to fetch the row.
+                val student = studentDao.getById(klass.studentId)
+                val eventId = calendarSync.upsert(
+                    klass = klass,
+                    title = titleFor(klass, student?.name.orEmpty()),
+                    guest = guestFor(student, settings),
+                    reminderLeadMinutes = settings.reminderLeadMinutes,
+                )
                 if (eventId != null && eventId != klass.calendarEventId) {
                     dao.update(klass.copy(calendarEventId = eventId).toEntity())
                 }
@@ -345,24 +435,24 @@ class ClassRepository @Inject constructor(
      * email reminder, and per-member corrections (one absentee cancelled) stay expressible. The
      * group's name goes in the title so those overlapping events read as one lesson.
      */
-    private suspend fun titleFor(klass: TutoringClass): String {
-        val student = studentDao.getById(klass.studentId)?.name.orEmpty()
-        val subject = subjectDao.getById(klass.subjectId)?.name.orEmpty()
-        val group = klass.groupId?.let { groupDao.getById(it)?.name }
-        return CalendarEvent.title(student, subject, group)
-    }
+    private suspend fun titleFor(klass: TutoringClass, studentName: String): String =
+        CalendarEvent.title(
+            studentName = studentName,
+            subjectName = subjectDao.getById(klass.subjectId)?.name.orEmpty(),
+            groupName = klass.groupId?.let { groupDao.getById(it)?.name },
+        )
 
     /**
-     * The student behind [klass] as a calendar guest: their email, if set, plus whether the tutor
-     * wants students invited. Null when the student has no address, since there is then nobody to
-     * invite *or* withdraw.
+     * [student] as a calendar guest: their email, if set, plus whether the tutor wants students
+     * invited. Null when the student has no address, since there is then nobody to invite *or*
+     * withdraw.
      *
      * The invited flag travels with every mirror rather than being read once at toggle time, so
      * turning invites off and re-syncing withdraws the invitations already sent — the setting
      * governs the tutor's whole calendar, not just the lessons booked after it.
      */
-    private suspend fun guestFor(klass: TutoringClass, settings: AppSettings): Guest? =
-        studentDao.getById(klass.studentId)?.email
+    private fun guestFor(student: StudentEntity?, settings: AppSettings): Guest? =
+        student?.email
             ?.takeIf { it.isNotBlank() }
             ?.let { Guest(email = it, invited = settings.emailInvitesEnabled) }
 }

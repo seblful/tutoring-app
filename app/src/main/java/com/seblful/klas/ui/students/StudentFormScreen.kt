@@ -27,6 +27,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +55,15 @@ fun StudentFormScreen(
     viewModel: StudentFormViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+
+    // A save that failed must not look like one that went through: the form stays open and says so.
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val saveFailedMsg = stringResource(R.string.save_failed)
+    LaunchedEffect(Unit) {
+        viewModel.events.stream.collect {
+            android.widget.Toast.makeText(context, saveFailedMsg, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
 
     // Back — the arrow or the system gesture — asks before throwing a filled-in form away.
     var leaving by remember { mutableStateOf<LeaveIntent?>(null) }

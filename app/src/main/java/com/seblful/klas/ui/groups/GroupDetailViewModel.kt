@@ -3,6 +3,7 @@ package com.seblful.klas.ui.groups
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.RateHistoryRepository
@@ -17,6 +18,8 @@ import com.seblful.klas.domain.model.RateChange
 import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.domain.model.Student
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -77,6 +80,7 @@ class GroupDetailViewModel @Inject constructor(
     subjects: SubjectRepository,
     classes: ClassRepository,
     rateHistory: RateHistoryRepository,
+    @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
 
     val groupId: Long = checkNotNull(savedStateHandle["id"])
@@ -112,5 +116,7 @@ class GroupDetailViewModel @Inject constructor(
         )
     }.combine(rateHistory.observeFor(RateOwner.GroupRate(groupId))) { state, changes ->
         state.copy(rateHistory = changes)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupDetailState())
+    }
+        .flowOn(computation)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupDetailState())
 }

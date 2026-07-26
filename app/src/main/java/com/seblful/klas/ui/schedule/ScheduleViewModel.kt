@@ -2,6 +2,7 @@ package com.seblful.klas.ui.schedule
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.StudentRepository
@@ -16,19 +17,27 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.di.ApplicationScope
+import com.seblful.klas.runCatchingCancellable
+import com.seblful.klas.ui.common.UiEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -93,12 +102,42 @@ class ScheduleViewModel @Inject constructor(
     subjects: SubjectRepository,
     private val groups: GroupRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
+    @param:Computation private val computation: CoroutineDispatcher,
+    private val clock: Clock,
 ) : ViewModel() {
 
-    private val zone: ZoneId = ZoneId.systemDefault()
+    // From the clock, so the one thing that watches the date can be moved in a test. See TimeModule.
+    private val zone: ZoneId = clock.zone
 
-    private val _selectedDate = MutableStateFlow(LocalDate.now(zone))
+    private val _selectedDate = MutableStateFlow(LocalDate.now(clock))
     val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
+
+    /**
+     * Today — **re-emitted when the date changes**, not read once.
+     *
+     * The screen used to compute `LocalDate.now()` in its own body, which is evaluated per composition
+     * and then never again on its own. An app left open overnight — which is exactly what a phone on a
+     * desk does — went on marking yesterday as today: the highlighted cell, the day headers and the
+     * «сегодня» affordance were all a day behind until something else happened to recompose.
+     *
+     * Sleeping until the next local midnight rather than polling: the answer changes once a day and it
+     * is knowable when. `delay` is virtual time under a test scheduler, so the rollover is testable
+     * without waiting for it.
+     *
+     * **A test that collects this must advance time by a stated amount, never `advanceUntilIdle()`.**
+     * A clock has no last emission, so there is always another `delay` on the scheduler and "until idle"
+     * never arrives — it hangs rather than failing. `WhileSubscribed` is what keeps that off every other
+     * test: nothing is collecting this unless a test says so.
+     */
+    val today: StateFlow<LocalDate> = flow {
+        while (true) {
+            val date = LocalDate.now(clock)
+            emit(date)
+            val nextMidnight = date.plusDays(1).atStartOfDay(zone).toInstant()
+            // At least a tick, so a clock already past midnight cannot spin on a zero-length sleep.
+            delay(Duration.between(clock.instant(), nextMidnight).toMillis().coerceAtLeast(1))
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LocalDate.now(clock))
 
     /**
      * The month the calendar page shows. Kept separate from [selectedDate] so paging through months
@@ -121,6 +160,19 @@ class ScheduleViewModel @Inject constructor(
     private val _timeConflict = MutableStateFlow<TimeConflict?>(null)
     val timeConflict: StateFlow<TimeConflict?> = _timeConflict.asStateFlow()
 
+    /** One-shot signals from an action that did not go through. */
+    enum class Event {
+        /**
+         * The write failed — a database or calendar error rather than a rule. These actions are tapped
+         * in a sheet that closes as it is tapped, so without saying this the lesson simply appeared
+         * not to change: the tutor marks a lesson completed, the sheet shuts, and the row still reads
+         * «Запланировано» with nothing to explain it.
+         */
+        ACTION_FAILED,
+    }
+
+    val events = UiEvents<Event>()
+
     /**
      * A class can only be booked once there is at least one student and one priced subject — a
      * class needs both, so the schedule's add button stays disabled until they exist.
@@ -128,10 +180,13 @@ class ScheduleViewModel @Inject constructor(
     val canAddClass: StateFlow<Boolean> =
         combine(students.observeActive(), subjects.observeAll()) { studentList, subjectList ->
             studentList.isNotEmpty() && subjectList.isNotEmpty()
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+        }
+            .flowOn(computation)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     val monthGrid: StateFlow<CalendarLayout.MonthGrid> =
         _visibleMonth.map { CalendarLayout.monthGrid(it) }
+            .flowOn(computation)
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
@@ -141,6 +196,7 @@ class ScheduleViewModel @Inject constructor(
     /** The seven days the week strip shows. */
     val weekDays: StateFlow<List<LocalDate>> =
         _visibleWeek.map { CalendarLayout.week(it) }
+            .flowOn(computation)
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
@@ -170,7 +226,9 @@ class ScheduleViewModel @Inject constructor(
                         range.second.atStartOfDay(zone).toInstant(),
                     ).map { CalendarLayout.dayLoads(it, zone) }
                 }
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+            }
+                .flowOn(computation)
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     /**
      * The lessons the **active view** needs, and no others.
@@ -221,7 +279,9 @@ class ScheduleViewModel @Inject constructor(
                         )
                     }
                 }
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ScheduleContent.Day(emptyList()))
+            }
+                .flowOn(computation)
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ScheduleContent.Day(emptyList()))
 
     /**
      * Switches view. Opening a calendar view on a page that doesn't contain the selected day would
@@ -242,7 +302,7 @@ class ScheduleViewModel @Inject constructor(
 
     fun goToNextDay() = selectDate(_selectedDate.value.plusDays(1))
 
-    fun goToToday() = selectDate(LocalDate.now(zone))
+    fun goToToday() = selectDate(LocalDate.now(clock))
 
     fun goToPreviousMonth() {
         _visibleMonth.value = _visibleMonth.value.minusMonths(1)
@@ -283,12 +343,12 @@ class ScheduleViewModel @Inject constructor(
      */
     fun setStatus(session: ClassSession, status: ClassStatus) {
         if (status != ClassStatus.SCHEDULED) {
-            appScope.launch { classes.setStatus(session, status) }
+            write { classes.setStatus(session, status) }
             return
         }
         viewModelScope.launch {
             if (refuseIfTaken(session, session.start)) return@launch
-            appScope.launch { classes.setStatus(session, status) }
+            write { classes.setStatus(session, status) }
         }
     }
 
@@ -303,7 +363,7 @@ class ScheduleViewModel @Inject constructor(
             // The refusal is this screen's to report — [_timeConflict] is state the dialog reads — so
             // the check stays here and only the move itself is handed to the scope that outlives it.
             if (refuseIfTaken(session, newStart)) return@launch
-            appScope.launch { classes.move(session, newStart) }
+            write { classes.move(session, newStart) }
         }
     }
 
@@ -339,7 +399,26 @@ class ScheduleViewModel @Inject constructor(
     }
 
     fun delete(session: ClassSession) {
-        appScope.launch { classes.delete(session) }
+        write { classes.delete(session) }
+    }
+
+    /**
+     * Runs one lesson write in the application scope, reporting a failure as [Event.ACTION_FAILED]
+     * rather than letting it escape.
+     *
+     * The scope is the point: the sheet these are tapped in closes as the action is tapped, so a write
+     * left in `viewModelScope` could be cut in half by the screen going away. What that scope does
+     * *not* give is a reply — a plain `appScope.launch` reports a failure only to the scope's handler,
+     * which records it to the diagnostics log and, quite correctly, says nothing to anybody. So a
+     * failed status change looked exactly like a status change that had not been tapped.
+     *
+     * [runCatchingCancellable] rather than `runCatching`: a cancelled write is not a failed one, and
+     * telling the tutor an action failed when the process was being torn down would be a lie.
+     */
+    private fun write(block: suspend () -> Unit) {
+        appScope.launch {
+            runCatchingCancellable { block() }.onFailure { events.send(Event.ACTION_FAILED) }
+        }
     }
 
     /** Points both calendar pages at [date], so whichever view opens next contains it. */

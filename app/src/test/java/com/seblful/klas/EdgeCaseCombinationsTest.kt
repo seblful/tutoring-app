@@ -3,6 +3,7 @@ package com.seblful.klas
 import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.ClassRules
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.GroupRules
@@ -93,6 +94,7 @@ class EdgeCaseCombinationsTest {
             // «Вернуть в расписание» — one tap in the lesson's action sheet.
             val vm = ScheduleViewModel(
                 env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, mainRule.appScope,
+                mainRule.dispatcher, java.time.Clock.systemDefaultZone(),
             )
             vm.setStatus(env.classRepo.getSessionFor(annIds.single())!!, ClassStatus.SCHEDULED)
             advanceUntilIdle()
@@ -119,8 +121,9 @@ class EdgeCaseCombinationsTest {
             emptySet(),
         )
 
-        assertFalse(
+        assertEquals(
             "a group is taught this subject, so it is still referenced",
+            SubjectRepository.Delete.TaughtToGroup,
             env.subjectRepo.delete(Subject(id = chem, name = "Химия")),
         )
     }

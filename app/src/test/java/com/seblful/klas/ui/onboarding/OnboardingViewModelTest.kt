@@ -20,7 +20,7 @@ class OnboardingViewModelTest {
 
     private val env = TestEnv()
 
-    private fun vm() = OnboardingViewModel(env.subjectRepo, env.settingsRepo)
+    private fun vm() = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.dispatcher)
 
     @Test
     fun `addSubject trims the name and ignores a blank one`() = runTest(mainRule.dispatcher) {

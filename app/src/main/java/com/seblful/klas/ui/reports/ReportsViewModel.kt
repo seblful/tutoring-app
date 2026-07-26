@@ -2,6 +2,7 @@ package com.seblful.klas.ui.reports
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.PaymentRepository
@@ -22,6 +23,8 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.SubjectId
 import com.seblful.klas.domain.model.TutoringClass
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -81,6 +84,7 @@ class ReportsViewModel @Inject constructor(
     subjects: SubjectRepository,
     groups: GroupRepository,
     payments: PaymentRepository,
+    @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val zone: ZoneId = ZoneId.systemDefault()
@@ -105,6 +109,9 @@ class ReportsViewModel @Inject constructor(
         payments.observeAll(),
         ::Sources,
     ).combine(_period) { sources, period -> sources.report(period) }
+        // The heaviest derivation in the app — every class against every payment and every student,
+        // re-run on each write anywhere — and it used to run on the main thread. See [Computation].
+        .flowOn(computation)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReportsState(_period.value))
 
     /** Reads the same period at another width, keeping where the tutor was looking. */

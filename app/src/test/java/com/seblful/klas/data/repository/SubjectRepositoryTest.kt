@@ -26,7 +26,7 @@ class SubjectRepositoryTest {
     fun `an unreferenced subject is deleted`() = runTest {
         val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
 
-        assertTrue(env.subjectRepo.delete(Subject(id = id, name = "Химия")))
+        assertEquals(SubjectRepository.Delete.Ok, env.subjectRepo.delete(Subject(id = id, name = "Химия")))
         assertTrue(env.subjectDao.items.value.isEmpty())
     }
 
@@ -38,7 +38,7 @@ class SubjectRepositoryTest {
             ClassEntity(studentId = student, subjectId = id, startMillis = 0, durationMinutes = 60, status = "COMPLETED"),
         )
 
-        assertFalse(env.subjectRepo.delete(Subject(id = id, name = "Химия")))
+        assertEquals(SubjectRepository.Delete.HasClasses, env.subjectRepo.delete(Subject(id = id, name = "Химия")))
         assertEquals("the subject is still there", 1, env.subjectDao.items.value.size)
     }
 
@@ -53,8 +53,32 @@ class SubjectRepositoryTest {
         val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
         env.groupRepo.save(Group(name = "Химия, 11 класс", subjectId = id, price = Money.ofMajor(20)), emptySet())
 
-        assertFalse(env.subjectRepo.delete(Subject(id = id, name = "Химия")))
+        assertEquals(
+            "a group is taught it, which is a different fix from removing lessons",
+            SubjectRepository.Delete.TaughtToGroup,
+            env.subjectRepo.delete(Subject(id = id, name = "Химия")),
+        )
         assertEquals("the subject is still there", 1, env.subjectDao.items.value.size)
+    }
+
+    /**
+     * A subject with **both** blockers names the classes, not the group. Either message is true; the
+     * classes are the one the tutor has to deal with first, since changing the group's subject would
+     * leave the lessons still pointing at it.
+     */
+    @Test
+    fun `classes are named ahead of a group when both block`() = runTest {
+        val student = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
+        env.classDao.upsert(
+            ClassEntity(studentId = student, subjectId = id, startMillis = 0, durationMinutes = 60, status = "COMPLETED"),
+        )
+        env.groupRepo.save(Group(name = "Химия, 11 класс", subjectId = id, price = Money.ofMajor(20)), emptySet())
+
+        assertEquals(
+            SubjectRepository.Delete.HasClasses,
+            env.subjectRepo.delete(Subject(id = id, name = "Химия")),
+        )
     }
 
     /** A group with no subject of its own constrains nothing. */
@@ -63,7 +87,7 @@ class SubjectRepositoryTest {
         val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
         env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), emptySet())
 
-        assertTrue(env.subjectRepo.delete(Subject(id = id, name = "Химия")))
+        assertEquals(SubjectRepository.Delete.Ok, env.subjectRepo.delete(Subject(id = id, name = "Химия")))
         assertTrue(env.subjectDao.items.value.isEmpty())
     }
 }

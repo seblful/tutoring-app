@@ -50,12 +50,14 @@ fun SubjectsScreen(
 
     val context = LocalContext.current
     val deleteBlockedMsg = stringResource(R.string.subject_delete_blocked)
+    val taughtToGroupMsg = stringResource(R.string.subject_delete_blocked_group)
     LaunchedEffect(Unit) {
         viewModel.events.stream.collect { event ->
-            when (event) {
-                SubjectsViewModel.Event.DELETE_BLOCKED_HAS_CLASSES ->
-                    Toast.makeText(context, deleteBlockedMsg, Toast.LENGTH_LONG).show()
+            val message = when (event) {
+                SubjectsViewModel.Event.DELETE_BLOCKED_HAS_CLASSES -> deleteBlockedMsg
+                SubjectsViewModel.Event.DELETE_BLOCKED_TAUGHT_TO_GROUP -> taughtToGroupMsg
             }
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }
     }
 

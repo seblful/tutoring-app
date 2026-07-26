@@ -3,6 +3,7 @@ package com.seblful.klas.work
 import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.Reminders
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
@@ -108,6 +109,34 @@ class MaintenanceTest {
 
             assertTrue(env.reminders.armed.isEmpty())
         }
+
+    /**
+     * The horizon is where the plan stops, and it is now also where the **query** stops: `run` asks
+     * the repository for the classes starting within it instead of reading every class ever taught.
+     *
+     * The two bounds disagree by one millisecond on purpose — `ClassDao.getBetween` excludes its upper
+     * bound while `Reminders.plan` keeps a lesson starting exactly on the horizon — so this is the case
+     * that fails if the compensation in `ClassRepository.startingWithin` is ever tidied away. It fails
+     * the quiet way, too: the lesson simply never gets a reminder, which is indistinguishable from
+     * there being no lesson.
+     */
+    @Test
+    fun `a lesson exactly on the horizon still earns a reminder`() = runTest(mainRule.dispatcher) {
+        val id = seedClass(now.plus(Reminders.DEFAULT_HORIZON))
+
+        maintenance().run(now)
+
+        assertEquals(listOf(id), env.reminders.armed.map { it.classId })
+    }
+
+    @Test
+    fun `a lesson past the horizon earns none`() = runTest(mainRule.dispatcher) {
+        seedClass(now.plus(Reminders.DEFAULT_HORIZON).plusMillis(1))
+
+        maintenance().run(now)
+
+        assertTrue(env.reminders.armed.isEmpty())
+    }
 
     @Test
     fun `the lead time comes from settings`() = runTest(mainRule.dispatcher) {

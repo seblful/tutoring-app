@@ -3,6 +3,8 @@ package com.seblful.klas.ui.students
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seblful.klas.di.ApplicationScope
+import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.EnrollmentRepository
 import com.seblful.klas.data.repository.GroupRepository
@@ -21,8 +23,12 @@ import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.runCatchingCancellable
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.seblful.klas.ui.common.UiEvents
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -84,6 +90,19 @@ data class StudentDetailState(
     val hasBothKinds: Boolean get() = lessonKinds.size > 1
 }
 
+/**
+ * The student's card.
+ *
+ * **Every mutator launches into [appScope], never `viewModelScope`** — which here holds only the
+ * `stateIn` that reads. This card is where the student's *money* is entered, and each of its writes
+ * is tapped in a dialog or a snackbar that closes as it is tapped: recording a payment and going
+ * straight back would otherwise cancel the write between the dialog closing and the row landing, and
+ * the tutor would have no way to tell that from a payment that saved. See
+ * [com.seblful.klas.di.ApplicationScope] for the rule and why reads stay behind.
+ *
+ * A write that fails says so through [Event.WRITE_FAILED] rather than only reaching the scope's
+ * crash log — a payment that silently did not record is the one failure the tutor must not miss.
+ */
 @HiltViewModel
 class StudentDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
@@ -94,12 +113,25 @@ class StudentDetailViewModel @Inject constructor(
     private val payments: PaymentRepository,
     private val enrollment: EnrollmentRepository,
     rateHistory: RateHistoryRepository,
+    @param:ApplicationScope private val appScope: CoroutineScope,
+    @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val studentId: Long = checkNotNull(savedStateHandle["id"])
 
     /** One-shot UI signals, e.g. removing a subject blocked because the student has classes for it. */
-    enum class Event { REMOVE_BLOCKED_HAS_CLASSES }
+    enum class Event {
+        REMOVE_BLOCKED_HAS_CLASSES,
+
+        /**
+         * Archiving called off lessons that were still planned. Confirmed beforehand by the dialog, and
+         * confirmed again here: it changed the schedule, which is another screen.
+         */
+        ARCHIVE_CANCELLED_LESSONS,
+
+        /** A write failed — a database error rather than a rule. */
+        WRITE_FAILED,
+    }
 
     val events = UiEvents<Event>()
 
@@ -158,7 +190,9 @@ class StudentDetailViewModel @Inject constructor(
             payments = paymentList,
             lessonKinds = LessonKind.tally(partial.classes),
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StudentDetailState())
+    }
+        .flowOn(computation)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StudentDetailState())
 
     private data class Partial(
         val student: Student?,
@@ -171,61 +205,99 @@ class StudentDetailViewModel @Inject constructor(
         val current = state.value.student ?: return
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
-        viewModelScope.launch {
-            students.upsert(
-                current.copy(
-                    name = trimmed,
-                    phone = phone.trim(),
-                    email = email.trim(),
-                    note = note.trim(),
-                    defaultMode = mode,
+        appScope.launch {
+            runCatchingCancellable {
+                students.upsert(
+                    current.copy(
+                        name = trimmed,
+                        phone = phone.trim(),
+                        email = email.trim(),
+                        note = note.trim(),
+                        defaultMode = mode,
+                    )
                 )
-            )
+            }.onFailure { events.send(Event.WRITE_FAILED) }
         }
     }
 
+    /**
+     * Archives or restores the student. Archiving also calls off their planned lessons — see
+     * [StudentRepository.setArchived] — and says how many, since that is a change to the schedule the
+     * tutor is making on purpose but from another screen.
+     */
     fun setArchived(archived: Boolean) {
         val current = state.value.student ?: return
-        viewModelScope.launch { students.setArchived(current, archived) }
+        appScope.launch {
+            runCatchingCancellable { students.setArchived(current, archived) }
+                .onSuccess { cancelled -> if (cancelled > 0) events.send(Event.ARCHIVE_CANCELLED_LESSONS) }
+                .onFailure { events.send(Event.WRITE_FAILED) }
+        }
     }
 
     /** Adds a subject to the student with a price — [EnrollmentRepository] keeps link and price in step. */
     fun addSubject(subjectId: Long, amount: Money) {
-        viewModelScope.launch { enrollment.enroll(studentId, subjectId, amount) }
+        appScope.launch {
+            runCatchingCancellable { enrollment.enroll(studentId, subjectId, amount) }
+                .onFailure { events.send(Event.WRITE_FAILED) }
+        }
     }
 
     /**
      * Removes a subject from the student. [EnrollmentRepository] refuses (and we signal
      * [Event.REMOVE_BLOCKED_HAS_CLASSES]) when the student has any class for it, since those classes
      * (completed ones especially) are billed history that must keep referencing a priced subject.
+     *
+     * The refusal is a *result*, not a failure, so it is read off a successful call; only a database
+     * error reaches [Event.WRITE_FAILED].
      */
     fun removeSubject(subjectId: Long) {
-        viewModelScope.launch {
-            when (enrollment.unenroll(studentId, subjectId)) {
-                EnrollmentRepository.Unenroll.HasClasses -> events.send(Event.REMOVE_BLOCKED_HAS_CLASSES)
-                EnrollmentRepository.Unenroll.Ok -> Unit
-            }
+        appScope.launch {
+            runCatchingCancellable { enrollment.unenroll(studentId, subjectId) }
+                .onSuccess { outcome ->
+                    when (outcome) {
+                        EnrollmentRepository.Unenroll.HasClasses ->
+                            events.send(Event.REMOVE_BLOCKED_HAS_CLASSES)
+                        EnrollmentRepository.Unenroll.Ok -> Unit
+                    }
+                }
+                .onFailure { events.send(Event.WRITE_FAILED) }
         }
     }
 
     /** Re-prices a subject. The change is logged by [EnrollmentRepository], not asked for here. */
     fun setPrice(subjectId: Long, amount: Money) {
-        viewModelScope.launch { enrollment.reprice(studentId, subjectId, amount) }
+        appScope.launch {
+            runCatchingCancellable { enrollment.reprice(studentId, subjectId, amount) }
+                .onFailure { events.send(Event.WRITE_FAILED) }
+        }
     }
 
     fun addPayment(amount: Money) {
         if (amount.isZero) return
-        viewModelScope.launch {
-            payments.add(Payment(studentId = studentId, date = Instant.now(), amount = amount))
+        appScope.launch {
+            runCatchingCancellable {
+                payments.add(Payment(studentId = studentId, date = Instant.now(), amount = amount))
+            }.onFailure { events.send(Event.WRITE_FAILED) }
         }
     }
 
     fun deletePayment(payment: Payment) {
-        viewModelScope.launch { payments.delete(payment) }
+        appScope.launch {
+            runCatchingCancellable { payments.delete(payment) }
+                .onFailure { events.send(Event.WRITE_FAILED) }
+        }
     }
 
-    /** Re-inserts a just-deleted payment (preserving its id, date and amount) for the undo action. */
+    /**
+     * Re-inserts a just-deleted payment (preserving its id, date and amount) for the undo action.
+     *
+     * In the application scope like every other write here, and this one has the shortest fuse of them
+     * all: the undo is offered by a snackbar, so it is tapped *while* the tutor may be leaving the card.
+     */
     fun restorePayment(payment: Payment) {
-        viewModelScope.launch { payments.add(payment) }
+        appScope.launch {
+            runCatchingCancellable { payments.add(payment) }
+                .onFailure { events.send(Event.WRITE_FAILED) }
+        }
     }
 }

@@ -76,11 +76,13 @@ fun ClassEditScreen(
     val context = LocalContext.current
     val timeTakenMsg = stringResource(R.string.class_save_refused_time_taken)
     val noMembersMsg = stringResource(R.string.class_group_no_members_left)
+    val saveFailedMsg = stringResource(R.string.save_failed)
     LaunchedEffect(Unit) {
         viewModel.events.stream.collect { event ->
             val message = when (event) {
                 ClassEditViewModel.Event.SAVE_REFUSED_TIME_TAKEN -> timeTakenMsg
                 ClassEditViewModel.Event.SAVE_REFUSED_NO_MEMBERS -> noMembersMsg
+                ClassEditViewModel.Event.SAVE_FAILED -> saveFailedMsg
             }
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }

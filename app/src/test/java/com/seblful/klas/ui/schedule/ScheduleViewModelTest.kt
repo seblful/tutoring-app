@@ -7,8 +7,11 @@ import com.seblful.klas.domain.model.ClassStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
+import com.seblful.klas.testutil.MutableClock
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -19,6 +22,7 @@ import org.junit.Rule
 import org.junit.Test
 import com.seblful.klas.domain.CalendarLayout
 import com.seblful.klas.testutil.observing
+import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
@@ -33,8 +37,11 @@ class ScheduleViewModelTest {
     private val env = TestEnv()
     private val zone: ZoneId = ZoneId.systemDefault()
 
-    private fun vm() =
-        ScheduleViewModel(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, mainRule.appScope)
+    private fun vm(clock: Clock = Clock.systemDefaultZone()) =
+        ScheduleViewModel(
+            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, mainRule.appScope,
+            mainRule.dispatcher, clock,
+        )
 
     private fun startMillisOn(date: LocalDate, time: LocalTime): Long =
         date.atTime(time).atZone(zone).toInstant().toEpochMilli()
@@ -74,6 +81,61 @@ class ScheduleViewModelTest {
         assertTrue("rows are sorted by start time", rows[0].klass.start < rows[1].klass.start)
         assertEquals("Аня", rows[0].title)
         assertEquals("Математика", rows[0].subjectName)
+    }
+
+    /**
+     * The screen used to read `LocalDate.now()` in its own body, evaluated per composition and never
+     * again on its own — so an app left open overnight went on marking yesterday as today.
+     *
+     * `delay` is virtual under the test scheduler, so crossing midnight costs no wall-clock time.
+     *
+     * Deliberately **no** `advanceUntilIdle()` anywhere here: a clock has no last emission, so there is
+     * always another `delay` queued and "until idle" never arrives — the test would hang rather than
+     * fail. Every step below advances by a stated amount.
+     */
+    @Test
+    fun `today rolls over at midnight`() = runTest(mainRule.dispatcher) {
+        val start = LocalDate.of(2026, 7, 15)
+        // 22:00 on the 15th, so midnight is two hours out.
+        val clock = MutableClock(start.atTime(22, 0).atZone(zone).toInstant(), zone)
+        val twoHours = java.time.Duration.ofHours(2).toMillis()
+
+        val vm = vm(clock)
+        observing(vm.today)
+        advanceTimeBy(1)
+        assertEquals(start, vm.today.value)
+
+        // One millisecond short of midnight. Both clocks move: the wall clock is what the date is read
+        // from, the scheduler is what the sleep is waiting on.
+        clock.advanceBy(twoHours - 2)
+        advanceTimeBy(twoHours - 2)
+        assertEquals("the moment before midnight is still today", start, vm.today.value)
+
+        clock.advanceBy(2)
+        advanceTimeBy(2)
+        assertEquals("and then it is tomorrow", start.plusDays(1), vm.today.value)
+    }
+
+    /** A device that slept through more than one night wakes up on the right day, not the next one. */
+    @Test
+    fun `today catches up when the phone slept for days`() = runTest(mainRule.dispatcher) {
+        val start = LocalDate.of(2026, 7, 15)
+        val clock = MutableClock(start.atTime(22, 0).atZone(zone).toInstant(), zone)
+
+        val vm = vm(clock)
+        observing(vm.today)
+        advanceTimeBy(1)
+        assertEquals(start, vm.today.value)
+
+        val threeDays = java.time.Duration.ofDays(3).toMillis()
+        clock.advanceBy(threeDays)
+        advanceTimeBy(threeDays)
+
+        assertEquals(
+            "the date is re-read from the clock, not counted up one sleep at a time",
+            start.plusDays(3),
+            vm.today.value,
+        )
     }
 
     @Test
@@ -475,6 +537,88 @@ class ScheduleViewModelTest {
 
         assertNull("nothing holds the hour, so nothing to refuse", vm.timeConflict.value)
         assertEquals("SCHEDULED", env.classDao.items.value.single().status)
+    }
+
+    // --- A write that fails is said out loud, not crashed on -------------------------------------
+
+    /**
+     * These actions are tapped in a sheet that closes as it is tapped, and the write is handed to the
+     * application scope so it outlives the screen. What that scope does not give is a reply: a plain
+     * `launch` reported a failure only to the scope's handler, so the tutor saw the sheet shut and the
+     * lesson not change, with nothing to explain it. Before the handler existed it was worse — the
+     * exception reached the thread's default handler and killed the process.
+     */
+    @Test
+    fun `a status change that fails to commit is reported`() = runTest(mainRule.dispatcher) {
+        val env = TestEnv()
+        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val id = env.classDao.upsert(
+            ClassEntity(
+                studentId = ann, subjectId = subj,
+                startMillis = startMillisOn(LocalDate.of(2026, 7, 15), LocalTime.of(10, 0)),
+                durationMinutes = 60, status = "SCHEDULED",
+            ),
+        )
+        val vm = ScheduleViewModel(
+            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, mainRule.appScope,
+            mainRule.dispatcher, Clock.systemDefaultZone(),
+        )
+        val seen = mutableListOf<ScheduleViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { seen += it } }
+
+        env.transactor.failAt = env.transactor.count + 1
+        vm.setStatus(env.classRepo.getSessionFor(id)!!, ClassStatus.COMPLETED)
+        advanceUntilIdle()
+
+        assertEquals(listOf(ScheduleViewModel.Event.ACTION_FAILED), seen)
+    }
+
+    @Test
+    fun `a delete that fails to commit is reported`() = runTest(mainRule.dispatcher) {
+        val env = TestEnv()
+        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val id = env.classDao.upsert(
+            ClassEntity(
+                studentId = ann, subjectId = subj,
+                startMillis = startMillisOn(LocalDate.of(2026, 7, 15), LocalTime.of(10, 0)),
+                durationMinutes = 60, status = "SCHEDULED",
+            ),
+        )
+        val vm = ScheduleViewModel(
+            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, mainRule.appScope,
+            mainRule.dispatcher, Clock.systemDefaultZone(),
+        )
+        val seen = mutableListOf<ScheduleViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { seen += it } }
+
+        env.transactor.failAt = env.transactor.count + 1
+        vm.delete(env.classRepo.getSessionFor(id)!!)
+        advanceUntilIdle()
+
+        assertEquals(listOf(ScheduleViewModel.Event.ACTION_FAILED), seen)
+    }
+
+    @Test
+    fun `a write that succeeds reports nothing`() = runTest(mainRule.dispatcher) {
+        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val id = env.classDao.upsert(
+            ClassEntity(
+                studentId = ann, subjectId = subj,
+                startMillis = startMillisOn(LocalDate.of(2026, 7, 15), LocalTime.of(10, 0)),
+                durationMinutes = 60, status = "SCHEDULED",
+            ),
+        )
+        val vm = vm()
+        val seen = mutableListOf<ScheduleViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { seen += it } }
+
+        vm.delete(env.classRepo.getSessionFor(id)!!)
+        advanceUntilIdle()
+
+        assertTrue("nothing failed, so nothing to announce", seen.isEmpty())
     }
 
     /** Completing occupies no new time, so it must not be checked against the hour it already holds. */

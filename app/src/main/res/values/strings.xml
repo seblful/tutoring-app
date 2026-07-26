@@ -65,6 +65,9 @@
     <string name="class_time_conflict">Это время занято: %1$s, %2$s</string>
     <!-- Shown when the slot was taken between the form opening and the save. -->
     <string name="class_save_refused_time_taken">Это время уже занято — выберите другое</string>
+    <!-- A write failed for a reason the tutor cannot act on (database, calendar). Not a refusal. -->
+    <string name="save_failed">Не удалось сохранить. Попробуйте ещё раз</string>
+    <string name="action_failed">Не удалось выполнить. Попробуйте ещё раз</string>
     <string name="class_location_label">Место</string>
     <string name="class_mode_in_person">Очно</string>
     <string name="class_mode_remote">Удалённо</string>
@@ -133,7 +136,26 @@
     <string name="student_add_subject">Добавить предмет</string>
     <string name="student_all_subjects_added">Все предметы уже добавлены</string>
     <string name="student_subject_remove_blocked">Нельзя убрать предмет: по нему есть занятия</string>
-    <string name="student_archive_balance_warning">У ученика есть незакрытый баланс (%1$s). В архиве он не попадёт в отчёты. Всё равно отправить в архив?</string>
+    <!--
+      Archiving is assembled from the parts that actually apply, because it can cost two different
+      things at once: a balance leaving the reports, and planned lessons being called off. A counted
+      noun goes through <plurals> — see RussianLocale for why «%d занятия» is not an option.
+    -->
+    <string name="student_archive_balance_part">У ученика есть незакрытый баланс (%1$s) — в архиве он не попадёт в отчёты.</string>
+    <string name="student_archive_question">Всё равно отправить в архив?</string>
+    <!-- %1$d: how many of the student's lessons are still merely planned, and so will be cancelled -->
+    <plurals name="student_archive_lessons_part">
+        <item quantity="one">%1$d запланированное занятие будет отменено.</item>
+        <item quantity="few">%1$d запланированных занятия будут отменены.</item>
+        <item quantity="many">%1$d запланированных занятий будут отменены.</item>
+        <item quantity="other">%1$d запланированных занятия будут отменены.</item>
+    </plurals>
+    <plurals name="student_archive_lessons_cancelled">
+        <item quantity="one">Отменено %1$d занятие</item>
+        <item quantity="few">Отменено %1$d занятия</item>
+        <item quantity="many">Отменено %1$d занятий</item>
+        <item quantity="other">Отменено %1$d занятия</item>
+    </plurals>
     <string name="student_payments_title">Платежи</string>
     <string name="student_classes_title">Занятия</string>
 
@@ -182,6 +204,8 @@
     <string name="subject_name_label">Название</string>
     <string name="subject_delete_confirm">Удалить этот предмет?</string>
     <string name="subject_delete_blocked">Нельзя удалить предмет: по нему есть занятия. Сначала удалите эти занятия.</string>
+    <!-- A group is taught the subject. A different fix from removing lessons — the group may have none. -->
+    <string name="subject_delete_blocked_group">Нельзя удалить предмет: его изучает группа. Сначала измените предмет группы.</string>
 
     <!-- Groups -->
     <string name="groups_title">Группы</string>
@@ -202,6 +226,8 @@
     <string name="group_no_students">Сначала добавьте учеников</string>
     <string name="group_no_students_for_subject">Нет учеников с ценой на этот предмет</string>
     <string name="group_no_members">Участников нет</string>
+    <!-- The save kept only the members priced for the group's subject; somebody was left out. -->
+    <string name="group_members_not_priced">Не все участники сохранены: у некоторых нет цены на предмет группы</string>
     <string name="group_delete_confirm">Удалить эту группу? Ученики и их занятия останутся.</string>
     <string name="group_delete_blocked">Нельзя удалить группу: по ней есть занятия. Отправьте её в архив.</string>
 
@@ -238,6 +264,11 @@
     <string name="settings_section_calendar">Календарь</string>
     <string name="settings_notifications">Напоминания</string>
     <string name="settings_notifications_desc">Уведомлять перед занятием</string>
+    <!--
+      Shown in place of the description when the setting is on but the platform will not show anything.
+      The switch used to read on while no reminder could ever appear, and nothing said so.
+    -->
+    <string name="settings_notifications_blocked">Уведомления запрещены в настройках телефона — напоминания не придут</string>
     <string name="settings_calendar_sync">Синхронизация с календарём</string>
     <string name="settings_calendar_sync_desc">Показывать занятия в календаре устройства</string>
     <string name="settings_email_invites">Приглашать учеников по email</string>
@@ -256,6 +287,8 @@
     <string name="theme_dark">Тёмная</string>
     <string name="currency_byn">BYN</string>
     <string name="currency_rub">RUB</string>
+    <string name="settings_currency_change">Сменить</string>
+    <string name="settings_currency_change_confirm">Суммы не пересчитываются по курсу: цены, платежи и отчёты просто начнут отображаться в %1$s. Сами числа останутся прежними.</string>
     <string name="minutes_short">%1$d мин</string>
     <string name="hours_one">1 ч</string>
     <string name="hours_one_and_half">1,5 ч</string>
@@ -347,7 +380,13 @@
     <string name="backup_title">Резервная копия</string>
     <string name="backup_filename">klas-backup.json</string>
     <string name="backup_export">Экспортировать данные</string>
-    <string name="backup_export_desc">Сохранить все данные в файл</string>
+    <!--
+      Says what the file holds, because the tutor decides where it goes. The export is the app's only
+      way off the device (platform backup is off — see res/xml/data_extraction_rules.xml), so this is
+      the one moment students' contact details leave it, in clear text, to storage of the tutor's
+      choosing — a cloud folder included.
+    -->
+    <string name="backup_export_desc">Сохранить все данные в файл. В файле — имена, телефоны и почта учеников, без шифрования</string>
     <string name="backup_import">Импортировать данные</string>
     <string name="backup_import_desc">Восстановить данные из файла</string>
     <string name="backup_import_confirm">Импорт заменит все текущие данные. Продолжить?</string>

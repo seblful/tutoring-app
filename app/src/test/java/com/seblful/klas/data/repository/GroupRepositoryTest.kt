@@ -153,14 +153,14 @@ class GroupRepositoryTest {
     }
 
     @Test
-    fun `memberships are observable per student`() = runTest {
+    fun `every group's roster is observable at once`() = runTest {
         val (ann, bob) = students("Аня", "Борис")
         val first = repo.save(Group(name = "Первая"), setOf(ann, bob))
         val second = repo.save(Group(name = "Вторая"), setOf(bob))
 
-        val byStudent = repo.observeMembershipsByStudent().first()
+        val rosters = repo.observeRosters().first()
 
-        assertEquals(listOf(first), byStudent[ann])
-        assertEquals(setOf(first, second), byStudent[bob]?.toSet())
+        assertEquals(setOf(ann, bob), rosters[first]?.toSet())
+        assertEquals(listOf(bob), rosters[second])
     }
 }

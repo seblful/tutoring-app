@@ -34,6 +34,7 @@ class GroupDetailViewModelTest {
         subjects = env.subjectRepo,
         classes = env.classRepo,
         rateHistory = env.rateHistoryRepo,
+        computation = mainRule.dispatcher,
     )
 
     private suspend fun student(name: String) = env.studentDao.upsert(StudentEntity(name = name))

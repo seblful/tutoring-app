@@ -2,12 +2,15 @@ package com.seblful.klas.ui.groups
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.model.Group
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -36,6 +39,7 @@ class GroupsViewModel @Inject constructor(
     groups: GroupRepository,
     students: StudentRepository,
     subjects: SubjectRepository,
+    @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val _showArchived = MutableStateFlow(false)
@@ -48,23 +52,21 @@ class GroupsViewModel @Inject constructor(
             val source = if (archived) groups.observeAll() else groups.observeActive()
             combine(
                 source,
-                groups.observeMembershipsByStudent(),
+                groups.observeRosters(),
                 // All students, not just active ones: an archived member still explains a roster.
                 students.observeAll(),
                 subjects.observeAll(),
-            ) { groupList, membershipsByStudent, studentList, subjectList ->
+            ) { groupList, rosters, studentList, subjectList ->
                 val namesById = studentList.associate { it.id to it.name }
                 val subjectsById = subjectList.associate { it.id to it.name }
                 groupList.map { group ->
-                    val names = membershipsByStudent
-                        .filterValues { group.id in it }
-                        .keys
-                        .mapNotNull { namesById[it] }
-                        .sorted()
+                    val names = rosters[group.id].orEmpty().mapNotNull { namesById[it] }.sorted()
                     GroupRow(group, names, group.subjectId?.let { subjectsById[it] })
                 }
             }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }
+            .flowOn(computation)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun toggleArchived() {
         _showArchived.value = !_showArchived.value

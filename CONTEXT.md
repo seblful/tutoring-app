@@ -40,13 +40,13 @@ flowchart TB
 | `data/repository/` | Entities ⇄ domain models, and where display **name ordering** is applied. Each repository owns one invariant end to end, and writes it in one transaction (see *Ownership* below). |
 | `data/backup/` | Whole-DB JSON snapshot: export, transactional replace-all import, `BackupIntegrity` (what a file must be readable as before any of it is written), and `BackupRestore` (everything a *restore* means beyond the rows). |
 | `calendar/` | `CalendarSync` + `CalendarPermission` ports and a `CalendarContract` adapter. |
-| `notifications/` | `Notifier` port + Android adapter, and `DueReminder` — what a fired reminder decides, kept out of the worker. |
-| `work/` | WorkManager workers + `WorkScheduler`, and `Maintenance` — what an upkeep pass decides, kept out of the worker. |
+| `notifications/` | `Notifier` and `NotificationPermission` ports + Android adapters, `DueReminder` (what a fired reminder decides), and `ReminderAlarms`/`ReminderReceiver` — reminders are **alarms**, not deferrable work. |
+| `work/` | WorkManager's half: the periodic `MaintenanceWorker`, `WorkScheduler`, `BootReceiver` (alarms die on reboot), and `Maintenance` — what an upkeep pass decides, kept out of the worker. |
 | `diagnostics/` | `CrashLogger` over `CrashLogStore`/`DeviceInfo` ports. Viewed and exported from `ui/diagnostics`. |
 | `storage/` | `DocumentStore` port + SAF adapter over an opaque `DocumentRef`, so no view model touches a `Uri` or a `Context`. |
 | `format/` | `ru`-locale date/time/money formatting, `MoneyField` (what a money input is), `NameOrder` (the one definition of how names are listed). |
 | `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` atoms, `onboarding/`, settings, and `RootViewModel` gating onboarding vs. the tabs. |
-| `di/` | The database module and the `@DebugBuild` flag. Other Hilt modules live beside their adapters. |
+| `di/` | The database module, the `@DebugBuild` flag, `@ApplicationScope`/`@Computation` (`CoroutinesModule`) and the `Clock` (`TimeModule`). Other Hilt modules live beside their adapters. |
 
 ### Ownership (one invariant, one place)
 
@@ -59,7 +59,11 @@ flowchart TB
 - `EnrollmentRepository` — the subject⇄price invariant, and where prices are read.
 - `GroupRepository` — the only writer of group membership; a group is saved with its exact roster.
 - `RateHistoryRepository` — what a *rate change* is, since two repositories set rates.
-- `SettingsRepository` — one `update { it.copy(...) }` rather than a setter per field.
+- `SettingsRepository` — one `update { it.copy(...) }` rather than a setter per field, serialized.
+- `StudentRepository` — the whole act of **archiving**, which is more than a flag: a retired student's
+  still-planned lessons are called off first (through `ClassRepository`, which owns what a class change
+  costs). Reports count active students only, so a scheduled lesson left behind would auto-complete into
+  income that exists in the database and appears in no total on any screen.
 
 **A write that spans tables is one transaction, in all three of them.** `ClassRepository` came first
 because a torn *lesson* is the loudest version of it, but the argument was never about lessons: an
@@ -78,7 +82,10 @@ transaction and the write lock is held for less time.
 
 ### Money and billing
 
-- **Money is integer minor units** (kopecks) — no floating point.
+- **Money is integer minor units** (kopecks) — no floating point, and **bounded** by `Money.MAX`
+  (1 000 000,00). The bound is not tidiness: a charge is `rate × minutes`, so a rate that merely fits
+  in a `Long` could still wrap past it and bill a **negative** amount. Enforced at both ways in — the
+  typed-input gate (`parseMoneyOrNull`) and a restored file (`BackupIntegrity`).
 - **An amount has a ceiling, enforced once where text becomes money** (`Money.MAX`, applied in
   `parseMoneyOrNull`). Fitting in a `Long` is not enough, because the arithmetic downstream
   *multiplies*: `chargeFor` is `rate × minutes` and `percentOf` is `part × 100`, so an uncapped rate
@@ -202,7 +209,15 @@ transaction and the write lock is held for less time.
 
 - **Offline-first.** Room is authoritative; the calendar and notifications no-op when their permission
   or calendar is absent, never blocking or corrupting local data.
-- **Settings live in Room** (single row) and are **device-local** — deliberately not backed up.
+- **Settings live in Room** (single row) and are **device-local** — deliberately not backed up. Writes go
+  through one `update {}` **under a `Mutex`**: the row is written whole, so two overlapping updates
+  lost one, and the settings screen launches a coroutine per switch.
+- **The platform's own backup is off** (`allowBackup="false"`, plus explicit exclusions in
+  `res/xml/data_extraction_rules.xml`). Auto Backup would have copied `klas.db` — every student's name,
+  phone and email — to Google's servers, contradicting the local-only design and Play's Data safety
+  declaration; copied it without a WAL checkpoint; and restored it *without* `BackupRestore`, leaving
+  every `calendar_event_id` pointing at the old device's calendar. The app's own JSON export is the way
+  data moves between devices, and the export screen says the file is unencrypted PII.
 - **The database is at v1 and ships no migrations.** The only builds ever released are
   `com.seblful.repetit` (v0.1.0-beta, v0.1.1); the rename to `com.seblful.klas` changed the
   application id *and* the file name (`tutoring.db` → `klas.db`), and Android never upgrades one
@@ -256,8 +271,23 @@ transaction and the write lock is held for less time.
   enabled without the grant, since that flag is what the whole mirror keys off.
 - **A reminder only fires *ahead* of a lesson, never on booking.** The plan is re-derived from scratch
   on every change, so a lesson booked inside its own lead window gets none — which is the point.
-- **WorkManager** drives time-based behaviour (one-shot reminders + a periodic maintenance pass). The
-  decisions are pure and tested; the workers are adapters.
+- **A reminder is an alarm; upkeep is a worker.** The split is by whether being late is acceptable.
+  Reminders were `OneTimeWorkRequest`s with a delay, which WorkManager treats as a *lower bound* and
+  batches under Doze — «занятие через час» two hours late is not a late reminder but a wrong one, and
+  `Reminders.shouldPost` would still post it. They now ride `AlarmManager` (`ReminderAlarms`): exact
+  where `SCHEDULE_EXACT_ALARM` allows, `setAndAllowWhileIdle` where it does not, never prompting for
+  the permission. Armed ids are kept in preferences because `AlarmManager` has no cancel-all and an
+  alarm can only be cancelled by rebuilding its `PendingIntent`. Alarms die on reboot, so `BootReceiver`
+  re-derives the plan. `refreshNow` and the periodic upkeep stay on WorkManager, where deferring is fine.
+- **Upkeep also runs in process at startup** (`KlasApp`), not only as an enqueued worker: auto-completion
+  is what *bills* a finished lesson, so leaving it to WorkManager meant the schedule and reports the
+  tutor was about to read were as current as WorkManager felt like being — and on a battery-restricted
+  install, possibly not at all.
+- **The notification permission is asked for where reminders are**, in settings, never over a first
+  launch. And the row shows the **platform's** answer beside the tutor's intent: the setting is on by
+  default and the permission is not, so a fresh install read «включено» while `AndroidNotifier` no-opped
+  in silence. Deliberately *not* the calendar's rule — that flag gates a mirror, this one is only a
+  preference, so it is never refused (`NotificationPermission`).
 - **Crash diagnostics are local + Play, no backend**: chains to the platform handler (so Android Vitals
   still reports) and appends to a size-capped file, exportable from **Ещё → Диагностика**. No
   Crashlytics/Sentry, to avoid a third-party SDK, network calls and a privacy policy.
@@ -281,6 +311,12 @@ transaction and the write lock is held for less time.
   The app still *opens* on the schedule. «Группы» is the one tab that can be switched off, which moves
   the section into «Ещё» rather than removing it; bar contents and "is this route a tab" derive from one
   place. Labels shrink a step at a time rather than wrapping or being cut.
+- **Today rolls over at midnight.** The screen used to read `LocalDate.now()` in its own body, evaluated
+  per composition and never again, so an app left open overnight went on marking yesterday. It now comes
+  from a flow that sleeps until the next local midnight and re-reads an injected `Clock` — which is what
+  makes the boundary testable, since `advanceTimeBy` moves virtual time and `now()` knows nothing of it.
+  A test collecting it must advance by a stated amount: a clock has no last emission, so
+  `advanceUntilIdle()` never returns.
 - **The schedule has three views.** Day and month both show one selected day; week always lists the
   whole week. Paging only *browses* — it never moves the selection, and opening a view snaps back to it.
   A calendar cell shows **one count per status**, so a mixed day states its makeup. Both the markers and
@@ -352,6 +388,21 @@ ViewModel expresses intent only and cannot forget a side effect.
 cancel a save between its committed rows and the mirroring that follows them. `ClassEditViewModel`
 awaits the write for its `onDone`; the schedule's status/move/delete actions just launch it.
 
+**Deriving state happens off the main thread.** Every screen is
+`combine(…repository flows…) { … }.flowOn(computation).stateIn(viewModelScope, …)`. Without that
+`flowOn` the whole derivation ran on `Dispatchers.Main.immediate` — Room's own `flowOn` governs only
+what is upstream of *it*, so the repositories' mapping, `NameOrder.sorted`, `GroupRules.sessions`,
+`Taught` and all of `Reports` were UI-thread work on every emission. The dispatcher is injected
+(`@Computation`) so tests keep one scheduler; `ReportsViewModelTest` has a tripwire that fails if the
+`flowOn` is deleted.
+
+**A failed write is reported, not fatal.** `@ApplicationScope` carries a `CoroutineExceptionHandler`
+into the crash log: `SupervisorJob` scopes *cancellation*, not failure, so an exception from a write
+launched there still reached the thread's default handler and killed the process. Where a screen can
+say so it does — `ClassEditViewModel` guards inside the `async` (a failure has to come back as a value,
+since `async` holds it in the `Deferred` where no handler sees it), and the schedule's sheet actions
+report `ACTION_FAILED` rather than silently not changing the lesson.
+
 State a view model exposes is **read-only** (`StateFlow`, never `MutableStateFlow`) and changes only
 through its mutators — which is what keeps derived bookkeeping like `ClassEditViewModel.touched` in
 step with the form it describes.
@@ -380,6 +431,9 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
 - **`isReturnDefaultValues` is deliberately off.** It turns an unmocked framework call — something a
   JVM test here should never make — into a silent pass on `null`/`0`. A test that needs Android has
   found a missing port, not a reason to switch it on.
+- **Two test doubles exist for what cannot otherwise be observed**: `CountingDispatcher` (was the
+  derivation really moved off the main thread — a `flowOn` is invisible in the result) and `MutableClock`
+  (a midnight rollover, which needs the wall clock and the scheduler moved together).
 - **Fixtures pin the clock, not `now()`.** Times built from `Instant.now()` fail for the time of day
   rather than the behaviour. Seed a fixed hour and pick days by excluding today.
 - Four tests are **tripwires against silent drift**, all deriving expectations from a real artifact
@@ -449,8 +503,9 @@ app/src/main/java/com/seblful/klas/
 ├── domain/            # pure rules + ports + models
 ├── data/{local,repository,backup}/
 ├── calendar/  notifications/  diagnostics/  work/  format/  storage/  di/
+│                 └── ReminderAlarms + ReminderReceiver (reminders are alarms, not workers)
 ├── Coroutines.kt      # runCatchingCancellable — the only way suspend calls are guarded
 ├── ui/{schedule,students,groups,subjects,reports,backup,more,onboarding,diagnostics,common,navigation,theme}/
 ├── MainActivity.kt    # @AndroidEntryPoint → AppRoot()
-└── KlasApp.kt     # @HiltAndroidApp, WorkManager config, startup scheduling
+└── KlasApp.kt     # @HiltAndroidApp, WorkManager config, in-process startup upkeep
 ```

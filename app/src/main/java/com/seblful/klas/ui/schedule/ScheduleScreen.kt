@@ -45,6 +45,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -96,7 +97,8 @@ fun ScheduleScreen(
     val content by viewModel.content.collectAsState()
     val date by viewModel.selectedDate.collectAsState()
     val canAddClass by viewModel.canAddClass.collectAsState()
-    val today = LocalDate.now(ZoneId.systemDefault())
+    // From the view model, so it rolls over at midnight rather than being fixed at composition.
+    val today by viewModel.today.collectAsState()
     val viewMode by viewModel.viewMode.collectAsState()
     val month by viewModel.visibleMonth.collectAsState()
     val grid by viewModel.monthGrid.collectAsState()
@@ -112,6 +114,15 @@ fun ScheduleScreen(
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val needSetupMsg = stringResource(R.string.schedule_need_setup)
+
+    // These actions are tapped in a sheet that closes as they are tapped, so a write that failed would
+    // otherwise read as one that had not been tapped at all.
+    val actionFailedMsg = stringResource(R.string.action_failed)
+    LaunchedEffect(Unit) {
+        viewModel.events.stream.collect {
+            android.widget.Toast.makeText(context, actionFailedMsg, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
 
     Scaffold(
         topBar = {

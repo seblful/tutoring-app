@@ -55,6 +55,7 @@ class ClassEditViewModelTest {
         enrollment = env.enrollmentRepo,
         settingsRepo = env.settingsRepo,
         appScope = mainRule.appScope,
+        computation = mainRule.dispatcher,
     )
 
     private suspend fun seedStudentWithPricedSubject(
@@ -774,6 +775,31 @@ class ClassEditViewModelTest {
                 ClassEditViewModel.Event.SAVE_REFUSED_TIME_TAKEN,
                 vm.events.stream.first(),
             )
+        }
+
+    /**
+     * A save that *fails* is not a save that was refused, and used to be neither: the write is handed
+     * to the application scope as an `async`, so an exception crossed the `await` back into
+     * `viewModelScope`, where nothing catches it — the app died on the one tap the tutor is most
+     * certain of. The scope's own handler cannot help, because `async` holds a failure in its
+     * `Deferred` rather than reporting it.
+     */
+    @Test
+    fun `a save that fails to commit is reported and does not navigate`() =
+        runTest(mainRule.dispatcher) {
+            val (ann, subject) = seedStudentWithPricedSubject()
+            val vm = vm()
+            advanceUntilIdle()
+            vm.fillFor(ann, subject, LocalDate.now(zone).plusDays(2), LocalTime.of(10, 0), LocalTime.of(11, 0))
+            advanceUntilIdle()
+
+            env.transactor.failAt = env.transactor.count + 1
+            var done = false
+            vm.save { done = true }
+            advanceUntilIdle()
+
+            assertFalse("a failed write must not navigate away as though it had saved", done)
+            assertEquals(ClassEditViewModel.Event.SAVE_FAILED, vm.events.stream.first())
         }
 
     @Test

@@ -8,6 +8,7 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.LessonKind
+import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
@@ -16,6 +17,7 @@ import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
 import java.time.Instant
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -43,6 +45,8 @@ class StudentDetailViewModelTest {
         payments = env.paymentRepo,
         enrollment = env.enrollmentRepo,
         rateHistory = env.rateHistoryRepo,
+        appScope = mainRule.appScope,
+        computation = mainRule.dispatcher,
     )
 
     private suspend fun seedStudent(name: String = "Аня"): Long =
@@ -280,5 +284,203 @@ class StudentDetailViewModelTest {
         vm.setArchived(false)
         advanceUntilIdle()
         assertFalse(env.studentDao.getById(sid)!!.archived)
+    }
+
+    // --- Archiving has to settle the schedule too --------------------------------------------------
+
+    /**
+     * The hole this closes: archiving removes the student from every report, but their planned lessons
+     * stayed live. The maintenance pass would auto-complete one, which bills it, and that income then
+     * existed in the database while appearing in no total on any screen — the debt the archive dialog
+     * warns about would go on growing where nobody could see it.
+     */
+    @Test
+    fun `archiving calls off the student's planned lessons`() = runTest(mainRule.dispatcher) {
+        val sid = seedStudent()
+        val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val future = env.classDao.upsert(
+            ClassEntity(
+                studentId = sid, subjectId = subject, startMillis = 4_000_000_000_000,
+                durationMinutes = 60, status = "SCHEDULED", priceMinor = 3000,
+            ),
+        )
+        // A past lesson still merely planned is the one auto-complete is about to bill.
+        val pastPlanned = env.classDao.upsert(
+            ClassEntity(
+                studentId = sid, subjectId = subject, startMillis = 1_000,
+                durationMinutes = 60, status = "SCHEDULED", priceMinor = 3000,
+            ),
+        )
+        val done = env.classDao.upsert(
+            ClassEntity(
+                studentId = sid, subjectId = subject, startMillis = 2_000,
+                durationMinutes = 60, status = "COMPLETED", priceMinor = 3000, chargeMinor = 3000,
+            ),
+        )
+        val vm = vm(sid)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        vm.setArchived(true)
+        advanceUntilIdle()
+
+        val byId = env.classDao.items.value.associateBy { it.id }
+        assertEquals("CANCELLED", byId.getValue(future).status)
+        assertEquals("a past lesson nobody confirmed is not about to become income", "CANCELLED", byId.getValue(pastPlanned).status)
+        assertEquals("what actually happened is history and stays", "COMPLETED", byId.getValue(done).status)
+        assertEquals("its income stays too", 3000, byId.getValue(done).chargeMinor)
+        assertTrue(env.studentDao.getById(sid)!!.archived)
+    }
+
+    @Test
+    fun `archiving says how many lessons it called off`() = runTest(mainRule.dispatcher) {
+        val sid = seedStudent()
+        val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        env.classDao.upsert(
+            ClassEntity(
+                studentId = sid, subjectId = subject, startMillis = 4_000_000_000_000,
+                durationMinutes = 60, status = "SCHEDULED", priceMinor = 3000,
+            ),
+        )
+        val vm = vm(sid)
+        observing(vm.state)
+        advanceUntilIdle()
+        val events = mutableListOf<StudentDetailViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+
+        vm.setArchived(true)
+        advanceUntilIdle()
+
+        assertEquals(listOf(StudentDetailViewModel.Event.ARCHIVE_CANCELLED_LESSONS), events)
+    }
+
+    @Test
+    fun `archiving a student with nothing planned announces nothing`() = runTest(mainRule.dispatcher) {
+        val sid = seedStudent()
+        val vm = vm(sid)
+        observing(vm.state)
+        advanceUntilIdle()
+        val events = mutableListOf<StudentDetailViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+
+        vm.setArchived(true)
+        advanceUntilIdle()
+
+        assertTrue(events.isEmpty())
+        assertTrue(env.studentDao.getById(sid)!!.archived)
+    }
+
+    /** Restoring is not an undo: a lesson that was called off is a fact the tutor can re-book by hand. */
+    @Test
+    fun `restoring does not put the called-off lessons back`() = runTest(mainRule.dispatcher) {
+        val sid = seedStudent()
+        val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        env.classDao.upsert(
+            ClassEntity(
+                studentId = sid, subjectId = subject, startMillis = 4_000_000_000_000,
+                durationMinutes = 60, status = "SCHEDULED", priceMinor = 3000,
+            ),
+        )
+        val vm = vm(sid)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        vm.setArchived(true)
+        advanceUntilIdle()
+        vm.setArchived(false)
+        advanceUntilIdle()
+
+        assertFalse(env.studentDao.getById(sid)!!.archived)
+        assertEquals("CANCELLED", env.classDao.items.value.single().status)
+    }
+
+    /** The freed hour really is free: a cancelled class gives its slot back. */
+    @Test
+    fun `the hours of a called-off lesson become bookable again`() = runTest(mainRule.dispatcher) {
+        val sid = seedStudent()
+        val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val at = 4_000_000_000_000
+        env.classDao.upsert(
+            ClassEntity(
+                studentId = sid, subjectId = subject, startMillis = at,
+                durationMinutes = 60, status = "SCHEDULED", priceMinor = 3000,
+            ),
+        )
+        val vm = vm(sid)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        vm.setArchived(true)
+        advanceUntilIdle()
+
+        val slot = Scheduling.Slot(Instant.ofEpochMilli(at), 60)
+        assertTrue(
+            "the cancelled lesson stands in nobody's way",
+            env.classRepo.conflictsWith(slot).isEmpty(),
+        )
+    }
+
+    // --- Writes outlive the screen ---
+
+    /**
+     * Every mutator on this card launches into the injected application scope, not `viewModelScope`.
+     *
+     * This is the card money is entered on, and each write is tapped in a dialog or a snackbar that
+     * closes as it is tapped — so «записал платёж, сразу назад» is the ordinary gesture, not an edge
+     * case, and in `viewModelScope` it would cancel the write with nothing said.
+     *
+     * Asserted from the other side, by cancelling the application scope and finding nothing written:
+     * `viewModelScope` is live for the whole of this test, so a write launched there would still land
+     * and the assertions would pass for the wrong reason. That is what makes this a tripwire rather
+     * than a restatement of the code.
+     */
+    @Test
+    fun `writes are launched into the application scope, not the view model's`() = runTest(mainRule.dispatcher) {
+        val sid = seedStudent(name = "Аня")
+        val subject = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        env.priceDao.upsert(PriceEntity(sid, subject, Money.ofMajor(30).minor))
+        val vm = vm(sid)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        mainRule.appScope.cancel()
+
+        vm.addPayment(Money.ofMajor(50))
+        vm.editStudent("Анна", "", "", "", ClassMode.IN_PERSON)
+        vm.setPrice(subject, Money.ofMajor(40))
+        advanceUntilIdle()
+
+        assertTrue("no payment was recorded", env.paymentDao.items.value.isEmpty())
+        assertEquals("the student was not renamed", "Аня", env.studentDao.getById(sid)!!.name)
+        assertEquals(
+            "the rate was not changed",
+            Money.ofMajor(30).minor,
+            env.priceDao.get(sid, subject)!!.amountMinor,
+        )
+    }
+
+    /**
+     * The undo of a deleted payment is the shortest-fused write of the lot: the snackbar offering it is
+     * on screen *while* the tutor may be leaving the card, so «Отмена» has to survive that too.
+     */
+    @Test
+    fun `restoring a deleted payment is launched into the application scope`() = runTest(mainRule.dispatcher) {
+        val sid = seedStudent()
+        val payment = Payment(studentId = sid, date = Instant.ofEpochMilli(10), amount = Money.ofMajor(50))
+        env.paymentRepo.add(payment)
+        val vm = vm(sid)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        val stored = vm.state.value.payments.single()
+        vm.deletePayment(stored)
+        advanceUntilIdle()
+        assertTrue("the delete went through first", env.paymentDao.items.value.isEmpty())
+
+        mainRule.appScope.cancel()
+        vm.restorePayment(stored)
+        advanceUntilIdle()
+
+        assertTrue("and the undo needed that scope to be alive", env.paymentDao.items.value.isEmpty())
     }
 }

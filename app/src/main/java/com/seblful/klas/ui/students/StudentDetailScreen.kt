@@ -49,6 +49,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -119,12 +120,23 @@ fun StudentDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     val removeBlockedMsg = stringResource(R.string.student_subject_remove_blocked)
+    val writeFailedMsg = stringResource(R.string.action_failed)
+    // Held here rather than read inside the collector: a plural needs the count, and the count is
+    // whatever the event carries — so the message is built from the state the dialog just confirmed.
+    val cancelledCount = state.totals.upcoming
+    val cancelledMsg = pluralStringResource(
+        R.plurals.student_archive_lessons_cancelled,
+        cancelledCount.coerceAtLeast(1),
+        cancelledCount,
+    )
     LaunchedEffect(Unit) {
         viewModel.events.stream.collect { event ->
-            when (event) {
-                StudentDetailViewModel.Event.REMOVE_BLOCKED_HAS_CLASSES ->
-                    android.widget.Toast.makeText(context, removeBlockedMsg, android.widget.Toast.LENGTH_LONG).show()
+            val message = when (event) {
+                StudentDetailViewModel.Event.REMOVE_BLOCKED_HAS_CLASSES -> removeBlockedMsg
+                StudentDetailViewModel.Event.ARCHIVE_CANCELLED_LESSONS -> cancelledMsg
+                StudentDetailViewModel.Event.WRITE_FAILED -> writeFailedMsg
             }
+            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
         }
     }
 
@@ -164,10 +176,15 @@ fun StudentDetailScreen(
                     }
                     if (student != null) {
                         TextButton(onClick = {
-                            // Archiving hides the student from Reports — including any debt they still
-                            // carry. Warn before silently dropping a non-zero balance from the totals.
-                            if (!student.archived && !state.balance.isZero) confirmingArchive = true
-                            else viewModel.setArchived(!student.archived)
+                            // Archiving costs two things, and asks whenever either applies: a debt the
+                            // student still carries leaves the reports, and their planned lessons are
+                            // called off (see StudentRepository.setArchived). Restoring costs nothing.
+                            val archiving = !student.archived
+                            if (archiving && (!state.balance.isZero || state.totals.upcoming > 0)) {
+                                confirmingArchive = true
+                            } else {
+                                viewModel.setArchived(archiving)
+                            }
                         }) {
                             Text(
                                 stringResource(
@@ -283,8 +300,25 @@ fun StudentDetailScreen(
         )
     }
     if (confirmingArchive && student != null) {
+        // Assembled from the parts that apply, so the question names exactly what archiving costs here
+        // — the balance leaving the reports, the planned lessons being called off, or both.
+        val parts = buildList {
+            if (!state.balance.isZero) {
+                add(stringResource(R.string.student_archive_balance_part, balanceDescription(state.balance)))
+            }
+            if (state.totals.upcoming > 0) {
+                add(
+                    pluralStringResource(
+                        R.plurals.student_archive_lessons_part,
+                        state.totals.upcoming,
+                        state.totals.upcoming,
+                    ),
+                )
+            }
+            add(stringResource(R.string.student_archive_question))
+        }
         com.seblful.klas.ui.common.ConfirmDialog(
-            text = stringResource(R.string.student_archive_balance_warning, balanceDescription(state.balance)),
+            text = parts.joinToString(" "),
             confirmLabel = stringResource(R.string.action_archive),
             onConfirm = { viewModel.setArchived(true) },
             onDismiss = { confirmingArchive = false },

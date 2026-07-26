@@ -3,6 +3,7 @@ package com.seblful.klas.ui.groups
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.data.repository.StudentRepository
@@ -15,7 +16,9 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.ui.common.UiEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -53,6 +56,7 @@ class GroupFormViewModel @Inject constructor(
     private val settings: SettingsRepository,
     students: StudentRepository,
     subjects: SubjectRepository,
+    @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
 
     /** 0 for a new group. */
@@ -109,13 +113,36 @@ class GroupFormViewModel @Inject constructor(
         val selectedMemberIds: Set<Long>
             get() = form.memberIds intersect candidates.map { it.id }.toSet()
 
+        /**
+         * Members the form is holding but will **not** save: ticked, or loaded with the group, and no
+         * longer priced for its subject.
+         *
+         * The exclusion above is right, and doing it in silence was not — this is the same fact said out
+         * loud (see [Event.MEMBERS_NOT_PRICED_FOR_SUBJECT]). The tutor need not have touched the roster
+         * to get here: un-enrolling somebody from the subject one-to-one is allowed while the group has
+         * taught no lesson, and the next save of the group — a rename is enough — is what drops them.
+         * Keeping them in [Form.memberIds] is what lets flipping the subject back restore the roster,
+         * so this is a report rather than a reason to prune.
+         */
+        val strandedMemberIds: Set<Long> get() = form.memberIds - selectedMemberIds
+
         /** A group needs a name, a rate and at least one member; without those there is nothing to book. */
         val isValid: Boolean
             get() = form.name.isNotBlank() && price != null && selectedMemberIds.isNotEmpty()
     }
 
     /** One-shot UI signals, e.g. a deletion blocked because the group already has lessons. */
-    enum class Event { DELETE_BLOCKED_HAS_LESSONS }
+    enum class Event {
+        DELETE_BLOCKED_HAS_LESSONS,
+
+        /**
+         * The save kept only the members priced for the group's subject, and left somebody out. Said
+         * out loud because the alternative is a roster that quietly shrank — and because the tutor may
+         * not have touched it: un-enrolling a member from the subject one-to-one is what makes the next
+         * save drop them.
+         */
+        MEMBERS_NOT_PRICED_FOR_SUBJECT,
+    }
 
     val events = UiEvents<Event>()
 
@@ -163,7 +190,9 @@ class GroupFormViewModel @Inject constructor(
             archived = isArchived,
             isDirty = dirty,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
+    }
+        .flowOn(computation)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
 
     init {
         if (!isNew) {
@@ -222,6 +251,11 @@ class GroupFormViewModel @Inject constructor(
     /**
      * Saves the group and its roster in one step (see `GroupRepository.save`) and reports the group's
      * id, so a freshly created group can go straight on to booking its first lesson.
+     *
+     * A group with a subject only keeps the members priced for it, and this says so when it happens
+     * ([Event.MEMBERS_NOT_PRICED_FOR_SUBJECT]) instead of letting them disappear. The tutor need not
+     * have touched the roster at all: un-enrolling somebody from the subject one-to-one is allowed, and
+     * the next save of the group — a rename included — is what drops them.
      */
     fun save(onSaved: (Long) -> Unit) {
         val s = state.value
@@ -230,22 +264,24 @@ class GroupFormViewModel @Inject constructor(
         // same check twice is the same check drifting apart.
         val price = s.price ?: return
         val f = s.form
+        val group = Group(
+            id = groupId,
+            name = f.name.trim(),
+            note = f.note.trim(),
+            price = price,
+            subjectId = f.subjectId,
+            defaultMode = f.mode,
+            archived = archived.value,
+        )
+        // Read from the form, not the repository: what is being left out is the difference between
+        // what the tutor has ticked and what the save will keep, and only the form knows the former.
+        val leftOut = s.strandedMemberIds
         viewModelScope.launch {
-            val id = groups.save(
-                Group(
-                    id = groupId,
-                    name = f.name.trim(),
-                    note = f.note.trim(),
-                    price = price,
-                    subjectId = f.subjectId,
-                    defaultMode = f.mode,
-                    archived = archived.value,
-                ),
-                s.selectedMemberIds,
-            )
+            val id = groups.save(group, s.selectedMemberIds)
             // Saved is the new baseline, so a save that leaves the screen open (or a slow navigation)
             // cannot be followed by "you have unsaved changes".
             pristine.value = f
+            if (leftOut.isNotEmpty()) events.send(Event.MEMBERS_NOT_PRICED_FOR_SUBJECT)
             onSaved(id)
         }
     }

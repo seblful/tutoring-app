@@ -24,7 +24,7 @@ class StudentsViewModelTest {
 
     private val env = TestEnv()
 
-    private fun vm() = StudentsViewModel(env.studentRepo, env.classRepo, env.paymentRepo)
+    private fun vm() = StudentsViewModel(env.studentRepo, env.classRepo, env.paymentRepo, mainRule.dispatcher)
 
     @Test
     fun `active list excludes archived students and carries each balance`() = runTest(mainRule.dispatcher) {

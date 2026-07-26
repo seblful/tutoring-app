@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The same refusal as res/xml/data_extraction_rules.xml, for Android 11 and below, which read their
+  backup rules from here instead. `android:allowBackup="false"` already disables backup on every
+  version; both rule files exist so the intent is *stated* on every version rather than inferred from
+  one attribute — and so a future change to `allowBackup` cannot quietly start uploading the database.
+
+  See data_extraction_rules.xml for the argument.
+-->
+<full-backup-content>
+    <exclude domain="root" path="." />
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="file" path="." />
+    <exclude domain="external" path="." />
+</full-backup-content>

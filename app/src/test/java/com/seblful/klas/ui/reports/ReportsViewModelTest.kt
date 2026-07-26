@@ -9,6 +9,7 @@ import com.seblful.klas.domain.ReportPeriod
 import com.seblful.klas.domain.Reports
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.testutil.CountingDispatcher
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
@@ -16,6 +17,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -41,7 +43,10 @@ class ReportsViewModelTest {
     private val thisYear = LocalDate.now(zone).year
 
     private fun vm() =
-        ReportsViewModel(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo)
+        ReportsViewModel(
+            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo,
+            mainRule.dispatcher,
+        )
 
     /** Local midnight on a date, as the millis a class entity stores. */
     private fun at(year: Int, month: Int, day: Int = 10): Long =
@@ -354,4 +359,40 @@ class ReportsViewModelTest {
         assertEquals(listOf("11 «А»"), state.byGroup.map { it.label })
         assertEquals(setOf("Аня", "Борис"), state.byStudent.map { it.label }.toSet())
     }
+
+    // --- Where the report is computed -------------------------------------------------------------
+
+    /**
+     * A tripwire, not a behaviour test: the report comes out the same whichever thread built it, so
+     * nothing else here would notice the `flowOn` being deleted.
+     *
+     * It is worth guarding because this is the heaviest derivation in the app — every class against
+     * every payment and every student, re-run on each lesson or payment written anywhere — and it used
+     * to run on `Dispatchers.Main.immediate`, since `stateIn(viewModelScope)` collects there and Room's
+     * own `flowOn` governs only what is upstream of *it*. Working at the scale a tutor starts with and
+     * failing at the scale they arrive at is the worst way for it to be wrong.
+     */
+    @Test
+    fun `the report is derived on the computation dispatcher, not the main one`() =
+        runTest(mainRule.dispatcher) {
+            // Standard rather than the rule's unconfined dispatcher: this one has to actually
+            // *dispatch* for the count to mean anything, and it shares the test's scheduler either way.
+            val counting = CountingDispatcher(StandardTestDispatcher(testScheduler))
+            val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+            val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+            completed(ann, subject, at(thisYear, 5), major = 30)
+
+            val vm = ReportsViewModel(
+                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo,
+                counting,
+            )
+            observing(vm.state)
+            advanceUntilIdle()
+
+            assertEquals("the report was built", Money.ofMajor(30), vm.state.value.totalIncome)
+            assertTrue(
+                "nothing reached the computation dispatcher, so the derivation ran on the main one",
+                counting.dispatches > 0,
+            )
+        }
 }

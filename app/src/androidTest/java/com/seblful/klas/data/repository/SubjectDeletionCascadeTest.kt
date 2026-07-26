@@ -70,7 +70,7 @@ class SubjectDeletionCascadeTest {
 
         val deleted = subjects.delete(Subject(id = 1, name = "Математика"))
 
-        assertFalse(deleted) // refused
+        assertEquals(SubjectRepository.Delete.HasClasses, deleted) // refused, and says why
         assertEquals(1, db.classDao().getAll().size) // class (income) preserved
         assertEquals(
             Money(3000), // student still correctly owes 30 BYN
@@ -83,7 +83,7 @@ class SubjectDeletionCascadeTest {
     @Test fun deletingSubjectWithoutClassesSucceeds() = runTest {
         val deleted = subjects.delete(Subject(id = 2, name = "Физика")) // no classes reference it
 
-        assertTrue(deleted)
+        assertEquals(SubjectRepository.Delete.Ok, deleted)
         assertEquals(1, db.subjectDao().getAll().size) // only Математика remains
     }
 
@@ -101,7 +101,9 @@ class SubjectDeletionCascadeTest {
 
         val deleted = subjects.delete(Subject(id = 2, name = "Физика"))
 
-        assertFalse(deleted) // refused, rather than the constraint throwing
+        // Named apart from HasClasses: "remove its lessons first" is no help when the blocker is a
+        // group that has taught none.
+        assertEquals(SubjectRepository.Delete.TaughtToGroup, deleted)
         assertEquals(2, db.subjectDao().getAll().size) // both subjects still there
     }
 
@@ -122,7 +124,7 @@ class SubjectDeletionCascadeTest {
 
         val deleted = subjects.delete(Subject(id = 2, name = "Физика")) // no classes reference it
 
-        assertTrue(deleted)
+        assertEquals(SubjectRepository.Delete.Ok, deleted)
         assertTrue(db.rateHistoryDao().getAll().isEmpty()) // the log went with the subject
         assertEquals(1, db.priceDao().getAll().size) // only the Математика price remains
     }

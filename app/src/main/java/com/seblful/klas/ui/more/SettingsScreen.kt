@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,11 +42,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.toAmountInput
+import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.text
 
@@ -56,8 +61,23 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settings by viewModel.state.collectAsState()
+    val notificationsPermitted by viewModel.notificationsPermitted.collectAsState()
     val context = LocalContext.current
     val deniedMsg = stringResource(R.string.calendar_denied)
+    val notificationsBlockedMsg = stringResource(R.string.settings_notifications_blocked)
+
+    // A permission can be granted or revoked in system settings while the app is away, so the screen
+    // re-asks each time it comes back rather than trusting what it learned when it opened.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.refreshPermissions()
+        }
+    }
+
+    val notificationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { viewModel.refreshPermissions() }
 
     // Requesting the permission is all this screen does about it — whether sync may be enabled is
     // the view model's rule, so asking again after a grant simply goes back through it.
@@ -68,6 +88,10 @@ fun SettingsScreen(
         val applied = granted && viewModel.setCalendarSyncEnabled(true) == CalendarSyncToggle.APPLIED
         if (!applied) Toast.makeText(context, deniedMsg, Toast.LENGTH_SHORT).show()
     }
+
+    // The currency the tutor picked but has not yet confirmed — null while nothing is being asked.
+    // Held rather than applied, because switching it re-labels every amount already recorded.
+    var pendingCurrency by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -89,9 +113,30 @@ fun SettingsScreen(
             SectionHeader(stringResource(R.string.settings_section_reminders))
             SwitchRow(
                 title = stringResource(R.string.settings_notifications),
-                description = stringResource(R.string.settings_notifications_desc),
+                // The row says what the platform will actually do, not only what the tutor asked for.
+                // With the setting on and the permission missing, no reminder can ever appear — which
+                // used to be true in complete silence, on every fresh install.
+                description = if (settings.notificationsEnabled && !notificationsPermitted) {
+                    stringResource(R.string.settings_notifications_blocked)
+                } else {
+                    stringResource(R.string.settings_notifications_desc)
+                },
                 checked = settings.notificationsEnabled,
-                onCheckedChange = { on -> viewModel.update { it.copy(notificationsEnabled = on) } },
+                onCheckedChange = { on ->
+                    viewModel.update { it.copy(notificationsEnabled = on) }
+                    // Asked here, where the tutor has just said they want reminders — rather than over
+                    // the first screen of a first launch, before they had met the feature.
+                    if (on && !notificationsPermitted) {
+                        val required = viewModel.notificationPermissionsRequired
+                        if (required.isNotEmpty()) {
+                            notificationPermission.launch(required)
+                        } else {
+                            // Nothing to request: notifications are off for the whole app in system
+                            // settings, which only the tutor can undo, so say so instead of asking.
+                            Toast.makeText(context, notificationsBlockedMsg, Toast.LENGTH_LONG).show()
+                        }
+                    }
+                },
             )
             ChoiceRow(
                 title = stringResource(R.string.settings_reminder_lead),
@@ -146,6 +191,12 @@ fun SettingsScreen(
             )
 
             SectionHeader(stringResource(R.string.settings_section_money))
+            // Asks first, because the change is a **re-labelling and not a conversion**: money is
+            // stored as minor units and the code is only what gets printed beside them, so 100 BYN of
+            // recorded history begins reading as 100 RUB. That is the right behaviour for an offline
+            // app — inventing an exchange rate would be worse, and rewriting billed history worse
+            // still — but it is not what "сменить валюту" leads a tutor to expect, so it is said out
+            // loud before every stored amount changes meaning.
             ChoiceRow(
                 title = stringResource(R.string.settings_currency),
                 options = listOf(
@@ -153,7 +204,7 @@ fun SettingsScreen(
                     "RUB" to stringResource(R.string.currency_rub),
                 ),
                 selected = settings.currency,
-                onSelect = { code -> viewModel.update { it.copy(currency = code) } },
+                onSelect = { code -> if (code != settings.currency) pendingCurrency = code },
             )
             // Free text rather than a segmented control: unlike a lesson length or a currency, there
             // is no shortlist of plausible amounts to offer.
@@ -188,6 +239,15 @@ fun SettingsScreen(
                 onSelect = { mode -> viewModel.update { it.copy(themeMode = mode) } },
             )
         }
+    }
+
+    pendingCurrency?.let { code ->
+        ConfirmDialog(
+            text = stringResource(R.string.settings_currency_change_confirm, code),
+            confirmLabel = stringResource(R.string.settings_currency_change),
+            onConfirm = { viewModel.update { it.copy(currency = code) } },
+            onDismiss = { pendingCurrency = null },
+        )
     }
 }
 

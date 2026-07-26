@@ -2,6 +2,7 @@ package com.seblful.klas.ui.students
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.PaymentRepository
 import com.seblful.klas.data.repository.StudentRepository
@@ -9,7 +10,9 @@ import com.seblful.klas.domain.Billing
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +31,7 @@ class StudentsViewModel @Inject constructor(
     private val students: StudentRepository,
     classes: ClassRepository,
     payments: PaymentRepository,
+    @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val _showArchived = MutableStateFlow(false)
@@ -42,7 +46,9 @@ class StudentsViewModel @Inject constructor(
                 val balances = Billing.balancesFor(studentList, allClasses, allPayments)
                 studentList.zip(balances) { student, balance -> StudentRow(student, balance.balance) }
             }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }
+            .flowOn(computation)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun toggleArchived() {
         _showArchived.value = !_showArchived.value

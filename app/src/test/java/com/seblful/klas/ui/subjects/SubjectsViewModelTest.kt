@@ -23,7 +23,7 @@ class SubjectsViewModelTest {
 
     private val env = TestEnv()
 
-    private fun vm() = SubjectsViewModel(env.subjectRepo)
+    private fun vm() = SubjectsViewModel(env.subjectRepo, mainRule.dispatcher)
 
     @Test
     fun `save trims the name and ignores a blank one`() = runTest(mainRule.dispatcher) {
