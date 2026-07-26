@@ -4,8 +4,8 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- The "K" wordmark with its book pages, converted from logo.svg (Illustrator artwork) at the
-         repo root. The SVG's indigo circle is mapped onto the 72dp visible circle, because the
+    <!-- The "K" wordmark with its book pages, converted from art/logo.svg (Illustrator artwork).
+         The SVG's indigo circle is mapped onto the 72dp visible circle, because the
          launcher mask plays that circle's part here; the mark itself only reaches 85% of that
          radius, so it stays inside the 66dp safe circle and no mask (nor Samsung's zoom) clips it.
          The indigo showing through between the two paths is the page edge, as in the artwork. -->
