@@ -194,13 +194,20 @@ transaction and the write lock is held for less time.
   `com.seblful.repetit` (v0.1.0-beta, v0.1.1); the rename to `com.seblful.klas` changed the
   application id *and* the file name (`tutoring.db` → `klas.db`), and Android never upgrades one
   application id into another. No device can therefore hold a pre-v1 `klas.db`, so the six
-  development-only migrations were dropped and the schema restarted at v1. The destructive fallback
-  covers dev devices still carrying a pre-release schema.
-- **Once v1 is released this stops being true**: from that point every schema change must bump the
-  version and ship a real migration, validated against the exported schema JSON by an instrumented
-  test, with an entity's `defaultValue` and the migration's `DEFAULT` kept in step or Room's
-  validation fails. Until then, **`BackupData.version` is the only cross-build compatibility story
-  the app has** — a backup file is the one way data moves between builds.
+  development-only migrations were dropped and the schema restarted at v1.
+- **The destructive fallback is debug-only.** It exists for a dev device carrying a pre-release schema
+  — which the squash to v1 makes every `.debug` install on hand — but Room applies it to *any* version
+  it finds no path for, so left unconditional it would also answer a forgotten migration by recreating
+  a released database empty, silently, on the first launch after an ordinary update. A release build
+  therefore **refuses to open** a database it cannot migrate: a crash leaves every row on disk for the
+  next build, and is recoverable in the way a wipe is not.
+- **Once v1 is released the "no migrations" part stops being true**: from that point every schema
+  change must bump the version and ship a real migration, validated against the exported schema JSON
+  by an instrumented test, with an entity's `defaultValue` and the migration's `DEFAULT` kept in step
+  or Room's validation fails. `MigrationChainTest` is what makes that a rule rather than a habit —
+  see *Testing*. Until then, **`BackupData.version` is the only cross-build compatibility story the
+  app has** — a backup file is the one way data moves between builds, and the only bridge out of
+  `com.seblful.repetit`, whose data the rename left where it stands.
 - **Backup = full DB snapshot → JSON via SAF.** Ids preserved, import is one transaction (through the
   same `Transactor` port the class writes use). The format is versioned: an **older** file still imports
   (missing tables come back empty, missing columns take their default), a **newer** one is refused —
@@ -362,11 +369,16 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
   found a missing port, not a reason to switch it on.
 - **Fixtures pin the clock, not `now()`.** Times built from `Instant.now()` fail for the time of day
   rather than the behaviour. Seed a fixed hour and pick days by excluding today.
-- Three tests are **tripwires against silent drift**, all deriving expectations from a real artifact
+- Four tests are **tripwires against silent drift**, all deriving expectations from a real artifact
   rather than restating them: `BackupSchemaCoverageTest` (a new table must be carried or named
-  device-local), `MappersTest` (a new column must be mapped) and `StoredEnumNamesTest` (a renamed enum
-  constant is a migration — it reads the DAO source, since `@Query` is not retained at runtime). All
-  three are acknowledgement lists. Two more guard structure rather than data: one asserts the booking
+  device-local), `MappersTest` (a new column must be mapped), `StoredEnumNamesTest` (a renamed enum
+  constant is a migration — it reads the DAO source, since `@Query` is not retained at runtime) and
+  `MigrationChainTest` (a bumped schema version must ship a migration for every step from v1 *and*
+  wire it into the builder, and the destructive fallback must stay debug-only — it reads
+  `AppDatabase.kt`, since `@Database` is `BINARY`-retained). The first three are acknowledgement
+  lists; the last is the upgrade path, and it sits in the **unit** suite precisely because the
+  instrumented migration tests need a device CI does not have — so a forgotten migration would
+  otherwise first be noticed on a tutor's phone. Two more guard structure rather than data: one asserts the booking
   form leaves **no query open** once nothing collects it (`WhileSubscribed` has to be true, not
   decorative), and one asserts a save is launched into the application scope by cancelling that scope
   and finding nothing written.
