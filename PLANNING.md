@@ -1,4 +1,4 @@
-# Tutoring App — Planning / Goal
+# Klas — Planning / Goal
 
 > Status: planning. Not yet started. Single open decision flagged below (no-show handling).
 

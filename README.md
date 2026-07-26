@@ -1,10 +1,10 @@
-# Repetit — Tutoring App
+# Klas — Tutoring App
 
 A native Android app for a **single private tutor** to manage students, groups, subjects, schedule,
 payments and debts. **Offline-first and local-only — no backend, no account, no cloud.** Russian UI,
 Material 3, currency in **BYN** (Belarusian ruble).
 
-> Application ID: `com.seblful.repetit` · current version: `0.1.1`
+> Application ID: `com.seblful.klas` · current version: `0.1.1` · launcher label: **Klas**
 
 ## Features
 
@@ -98,14 +98,14 @@ For the App Bundle (`.aab`), Play Console setup, and the testing/production roll
 ## Project Structure
 
 ```
-app/src/main/java/com/seblful/repetit/
+app/src/main/java/com/seblful/klas/
 ├── domain/                       # pure rules + ports + models (JVM-tested)
 ├── data/{local,repository,backup}/
 ├── calendar/ notifications/ diagnostics/ work/ format/ di/
 ├── ui/{schedule,students,groups,subjects,reports,backup,more,
 │       onboarding,diagnostics,common,navigation,theme}/
 ├── MainActivity.kt               # @AndroidEntryPoint → AppRoot()
-└── TutoringApp.kt                # @HiltAndroidApp, WorkManager config
+└── KlasApp.kt                # @HiltAndroidApp, WorkManager config
 ```
 
 ## License

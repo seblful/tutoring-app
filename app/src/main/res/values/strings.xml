@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Репетит</string>
+    <string name="app_name">Klas</string>
 
     <!-- Bottom navigation -->
     <string name="nav_schedule">Расписание</string>
@@ -348,7 +348,7 @@
 
     <!-- Backup -->
     <string name="backup_title">Резервная копия</string>
-    <string name="backup_filename">tutoring-backup.json</string>
+    <string name="backup_filename">klas-backup.json</string>
     <string name="backup_export">Экспортировать данные</string>
     <string name="backup_export_desc">Сохранить все данные в файл</string>
     <string name="backup_import">Импортировать данные</string>
@@ -365,7 +365,7 @@
     <string name="diagnostics_export">Выгрузить в файл</string>
     <string name="diagnostics_clear">Очистить</string>
     <string name="diagnostics_clear_confirm">Удалить сохранённые отчёты о сбоях?</string>
-    <string name="diagnostics_filename">tutoring-crash-log.txt</string>
+    <string name="diagnostics_filename">klas-crash-log.txt</string>
     <string name="diagnostics_export_success">Отчёт сохранён</string>
     <string name="diagnostics_error">Не удалось сохранить файл</string>
     <string name="diagnostics_test_crash">Вызвать тестовый сбой</string>

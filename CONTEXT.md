@@ -1,8 +1,13 @@
 # Project Context
 
-A native Android app for a **single** private tutor to manage students, groups, subjects, schedule,
-payments and debts. **Offline-first / local-only — no backend.** Russian UI, Material 3.
+**Klas** — a native Android app for a **single** private tutor to manage students, groups, subjects,
+schedule, payments and debts. **Offline-first / local-only — no backend.** Russian UI, Material 3.
 Currency is **BYN**. See `PLANNING.md` for the product goal and success criteria.
+
+The launcher label is the Latin **Klas** even though every other string is Russian: it is a brand, not
+a word being read. It was renamed from «Репетит» (`com.seblful.repetit`) while still unpublished —
+which is the only reason the application id could move with it. `TutoringClass` keeps its name: it is
+the *domain* noun for a tutoring class, not the app's.
 
 This file is the map: *what* was decided and *where* it lives. The **reasoning** for each rule sits in
 the KDoc next to it — that is the place to add or read the argument, so this file can stay short
@@ -172,7 +177,7 @@ flowchart TB
 
 ### UI
 
-- **The app pins its own locale to Russian** (`RussianLocale.inRussian`, applied in `TutoringApp` and
+- **The app pins its own locale to Russian** (`RussianLocale.inRussian`, applied in `KlasApp` and
   `MainActivity` via `attachBaseContext`). Strings live in the unqualified `values/` and the formatters
   name `ru` outright, but a **plural** rule set comes from the *configuration's* locale, i.e. the phone's
   — so on an English phone Russian text was declined by English rules (two forms) and the app said
@@ -301,11 +306,11 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
   `versionCode` per upload. R8 keep rules for `@Serializable` types live in `proguard-rules.pro`.
 
 ```
-app/src/main/java/com/seblful/repetit/
+app/src/main/java/com/seblful/klas/
 ├── domain/            # pure rules + ports + models
 ├── data/{local,repository,backup}/
 ├── calendar/  notifications/  diagnostics/  work/  format/  storage/  di/
 ├── ui/{schedule,students,groups,subjects,reports,backup,more,onboarding,diagnostics,common,navigation,theme}/
 ├── MainActivity.kt    # @AndroidEntryPoint → AppRoot()
-└── TutoringApp.kt     # @HiltAndroidApp, WorkManager config, startup scheduling
+└── KlasApp.kt     # @HiltAndroidApp, WorkManager config, startup scheduling
 ```

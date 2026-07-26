@@ -23,8 +23,8 @@
 -keepclassmembers class <2>$<3> {
     kotlinx.serialization.KSerializer serializer(...);
 }
--keep,includedescriptorclasses class com.seblful.repetit.data.**$$serializer { *; }
--keepclassmembers @kotlinx.serialization.Serializable class com.seblful.repetit.data.** {
+-keep,includedescriptorclasses class com.seblful.klas.data.**$$serializer { *; }
+-keepclassmembers @kotlinx.serialization.Serializable class com.seblful.klas.data.** {
     *** Companion;
     *** INSTANCE;
     kotlinx.serialization.KSerializer serializer(...);

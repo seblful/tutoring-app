@@ -17,19 +17,21 @@ val keystoreProps = Properties().apply {
 }
 
 android {
-    namespace = "com.seblful.repetit"
+    namespace = "com.seblful.klas"
+    // NOTE: the app was renamed from «Репетит» (com.seblful.repetit) before any Play upload, so the
+    // application id could still change. It cannot again — Play keys a listing to it forever.
     // Latest androidx (core-ktx 1.19, lifecycle 2.11) require compiling against API 37; targetSdk
     // stays at 36 (a stable runtime behavior target) — compileSdk and targetSdk move independently.
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.seblful.repetit"
+        applicationId = "com.seblful.klas"
         minSdk = 24
         targetSdk = 36
         versionCode = 2
         versionName = "0.1.1"
 
-        testInstrumentationRunner = "com.seblful.repetit.HiltTestRunner"
+        testInstrumentationRunner = "com.seblful.klas.HiltTestRunner"
     }
 
     signingConfigs {

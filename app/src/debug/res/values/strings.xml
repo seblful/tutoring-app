@@ -5,5 +5,5 @@
       real one on a phone that has both (the debug build carries its own application id — see
       `applicationIdSuffix` in build.gradle.kts).
     -->
-    <string name="app_name">Репетит-debug</string>
+    <string name="app_name">Klas-debug</string>
 </resources>

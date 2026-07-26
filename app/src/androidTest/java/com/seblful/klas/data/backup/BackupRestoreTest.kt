@@ -1,0 +1,122 @@
+package com.seblful.klas.data.backup
+
+import android.content.Context
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.seblful.klas.calendar.CalendarSync
+import com.seblful.klas.calendar.Guest
+import com.seblful.klas.data.local.AppDatabase
+import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.PriceEntity
+import com.seblful.klas.data.local.StudentEntity
+import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.repository.ClassRepository
+import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.testutil.RecordingReminderScheduler
+import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.TutoringClass
+import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import java.time.Instant
+
+/**
+ * The restore path as a whole: replacing the data also ends first run (so a tutor restoring onto a
+ * fresh install isn't asked to set the app up again) and re-plans reminders.
+ */
+@RunWith(AndroidJUnit4::class)
+class BackupRestoreTest {
+
+    private val noCalendar = object : CalendarSync {
+        override suspend fun upsert(
+            klass: TutoringClass,
+            title: String,
+            guest: Guest?,
+            reminderLeadMinutes: Int,
+        ): String? = null
+
+        override suspend fun delete(eventId: String) = Unit
+    }
+
+    private lateinit var source: AppDatabase
+    private lateinit var target: AppDatabase
+    private lateinit var settings: SettingsRepository
+    private lateinit var restore: BackupRestore
+    private val reminders = RecordingReminderScheduler()
+
+    private fun newDb(): AppDatabase = Room.inMemoryDatabaseBuilder(
+        ApplicationProvider.getApplicationContext<Context>(), AppDatabase::class.java,
+    ).build()
+
+    private fun managerFor(db: AppDatabase) = BackupManager(
+        db, db.subjectDao(), db.studentDao(), db.groupDao(), db.priceDao(), db.rateHistoryDao(),
+        db.classDao(), db.paymentDao(),
+    )
+
+    @Before fun setUp() {
+        source = newDb()
+        target = newDb()
+        settings = SettingsRepository(target.settingsDao())
+        val classes = ClassRepository(
+            target.classDao(), target.studentDao(), target.subjectDao(), target.groupDao(),
+            noCalendar, RecordingReminderScheduler(), settings,
+        )
+        restore = BackupRestore(
+            backup = managerFor(target),
+            settings = settings,
+            classes = classes,
+            reminders = reminders,
+        )
+    }
+
+    @After fun tearDown() {
+        source.close()
+        target.close()
+    }
+
+    /** A backup of one lesson, exported from [source]. */
+    private suspend fun snapshot(): String {
+        source.subjectDao().insertAll(listOf(SubjectEntity(1, "Математика")))
+        source.studentDao().insertAll(listOf(StudentEntity(1, "Иван")))
+        source.priceDao().insertAll(listOf(PriceEntity(1, 1, amountMinor = 5000)))
+        source.classDao().insertAll(
+            listOf(
+                ClassEntity(
+                    1, 1, 1, Instant.parse("2026-06-18T10:00:00Z").toEpochMilli(), 60,
+                    priceMinor = 5000, status = ClassStatus.SCHEDULED.name,
+                ),
+            ),
+        )
+        return managerFor(source).exportJson()
+    }
+
+    @Test fun restoreLoadsTheDataAndEndsFirstRun() = runTest {
+        val json = snapshot()
+        assertFalse(settings.get().onboardingComplete) // a fresh install: onboarding pending
+
+        restore.restore(json)
+
+        assertEquals(listOf("Математика"), target.subjectDao().getAll().map { it.name })
+        assertEquals(listOf("Иван"), target.studentDao().getAll().map { it.name })
+        assertEquals(1, target.classDao().getAll().size)
+        assertTrue(settings.get().onboardingComplete) // restored data *is* the setup
+        assertEquals(1, reminders.refreshCount) // imported classes re-plan reminders
+    }
+
+    @Test fun aFileThatIsNotABackupChangesNothing() = runTest {
+        target.subjectDao().insertAll(listOf(SubjectEntity(7, "Физика")))
+
+        val failure = runCatching { restore.restore("not a backup at all") }
+
+        assertTrue(failure.isFailure)
+        assertEquals(listOf("Физика"), target.subjectDao().getAll().map { it.name })
+        assertFalse(settings.get().onboardingComplete) // still first run
+        assertEquals(0, reminders.refreshCount)
+    }
+}
