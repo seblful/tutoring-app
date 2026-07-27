@@ -18,6 +18,8 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectDao
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.toDomain
+import com.seblful.klas.domain.model.ClassStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -282,7 +284,15 @@ class FakeClassDao : ClassDao {
     val items = MutableStateFlow<List<ClassEntity>>(emptyList())
     private var nextId = 1L
 
-    private fun endMillis(c: ClassEntity) = c.startMillis + c.durationMinutes * 60000L
+    /**
+     * When a class ends — from the domain model, not restated.
+     *
+     * This was a third copy of the arithmetic, beside `TutoringClass.end` and the SQL in
+     * `ClassDao.dueForCompletion`. A double that computes the answer its own way can agree with the
+     * production rule today and disagree after one edit, and the disagreement surfaces as a test that
+     * passes about behaviour the app does not have.
+     */
+    private fun endMillis(c: ClassEntity) = c.toDomain().end.toEpochMilli()
 
     override fun observeById(id: Long): Flow<ClassEntity?> =
         items.map { list -> list.firstOrNull { it.id == id } }
@@ -312,7 +322,7 @@ class FakeClassDao : ClassDao {
         items.value.count { it.subjectId == subjectId }
 
     override suspend fun scheduledForStudent(studentId: Long): List<ClassEntity> =
-        items.value.filter { it.studentId == studentId && it.status == "SCHEDULED" }
+        items.value.filter { it.studentId == studentId && it.status == ClassStatus.SCHEDULED.name }
 
     override suspend fun countForStudentSubject(studentId: Long, subjectId: Long): Int =
         items.value.count { it.studentId == studentId && it.subjectId == subjectId }
@@ -324,10 +334,10 @@ class FakeClassDao : ClassDao {
         items.value.filter { it.groupId == groupId && it.startMillis == startMillis }.sortedBy { it.id }
 
     override suspend fun dueForCompletion(nowMillis: Long): List<ClassEntity> =
-        items.value.filter { it.status == "SCHEDULED" && endMillis(it) <= nowMillis }
+        items.value.filter { it.status == ClassStatus.SCHEDULED.name && endMillis(it) <= nowMillis }
 
     override suspend fun nextScheduledAfter(nowMillis: Long): ClassEntity? =
-        items.value.filter { it.status == "SCHEDULED" && it.startMillis > nowMillis }
+        items.value.filter { it.status == ClassStatus.SCHEDULED.name && it.startMillis > nowMillis }
             .minByOrNull { it.startMillis }
 
     override suspend fun getAll(): List<ClassEntity> = items.value

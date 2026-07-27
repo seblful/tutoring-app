@@ -1,11 +1,6 @@
 package com.seblful.klas.ui.groups
 
 import androidx.lifecycle.SavedStateHandle
-import com.seblful.klas.data.local.ClassEntity
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.data.local.StudentSubjectCrossRef
-import com.seblful.klas.data.local.SubjectEntity
-import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
@@ -18,6 +13,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GroupDetailViewModelTest {
@@ -26,6 +22,10 @@ class GroupDetailViewModelTest {
     val mainRule = MainDispatcherRule()
 
     private val env = TestEnv()
+    private val fixtures get() = env.fixtures
+
+    /** The group's rate throughout, so a lesson's charge is this scaled by its duration. */
+    private val rate = Money.ofMajor(20)
 
     private fun vm(id: Long) = GroupDetailViewModel(
         savedStateHandle = SavedStateHandle(mapOf("id" to id)),
@@ -37,38 +37,13 @@ class GroupDetailViewModelTest {
         computation = mainRule.dispatcher,
     )
 
-    private suspend fun student(name: String) = env.studentDao.upsert(StudentEntity(name = name))
-
-    private suspend fun groupClass(
-        groupId: Long,
-        studentId: Long,
-        subjectId: Long,
-        startMillis: Long,
-        minutes: Int = 60,
-        status: String = "COMPLETED",
-        charge: Money = Money.ofMajor(20),
-    ) = env.classDao.upsert(
-        ClassEntity(
-            studentId = studentId,
-            subjectId = subjectId,
-            startMillis = startMillis,
-            durationMinutes = minutes,
-            priceMinor = Money.ofMajor(20).minor,
-            status = status,
-            chargeMinor = if (status == "COMPLETED") charge.minor else 0,
-            groupId = groupId,
-        ),
-    )
+    private fun at(millis: Long): Instant = Instant.ofEpochMilli(millis)
 
     @Test
     fun `the card names the group's subject and rate`() = runTest(mainRule.dispatcher) {
-        val anya = student("Аня")
-        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        env.studentDao.addSubjectLink(StudentSubjectCrossRef(anya, algebra))
-        val id = env.groupRepo.save(
-            Group(name = "11 «А»", price = Money.ofMajor(25), subjectId = algebra),
-            setOf(anya),
-        )
+        val algebra = fixtures.subject("Алгебра")
+        val anya = fixtures.pricedStudent("Аня", algebra)
+        val id = fixtures.group("11 «А»", subjectId = algebra, members = setOf(anya), rate = Money.ofMajor(25))
 
         val vm = vm(id)
         observing(vm.state)
@@ -82,8 +57,8 @@ class GroupDetailViewModelTest {
     /** A group made before subjects were fixed on the group has none — and the card must not invent one. */
     @Test
     fun `a group with no subject reports none rather than guessing`() = runTest(mainRule.dispatcher) {
-        val anya = student("Аня")
-        val id = env.groupRepo.save(Group(name = "Вечер", price = Money.ofMajor(25)), setOf(anya))
+        val anya = fixtures.student("Аня")
+        val id = fixtures.group("Вечер", members = setOf(anya), rate = Money.ofMajor(25))
 
         val vm = vm(id)
         observing(vm.state)
@@ -94,13 +69,10 @@ class GroupDetailViewModelTest {
 
     @Test
     fun `the roster lists members in the app's name order, archived ones last`() = runTest(mainRule.dispatcher) {
-        val yaroslav = student("Ярослав")
-        val anna = student("анна")
-        val boris = env.studentDao.upsert(StudentEntity(name = "Борис", archived = true))
-        val id = env.groupRepo.save(
-            Group(name = "11 «А»", price = Money.ofMajor(25)),
-            setOf(yaroslav, anna, boris),
-        )
+        val yaroslav = fixtures.student("Ярослав")
+        val anna = fixtures.student("анна")
+        val boris = fixtures.archivedStudent("Борис")
+        val id = fixtures.group("11 «А»", members = setOf(yaroslav, anna, boris), rate = Money.ofMajor(25))
 
         val vm = vm(id)
         observing(vm.state)
@@ -118,14 +90,13 @@ class GroupDetailViewModelTest {
      */
     @Test
     fun `a member's count is of the group's lessons they were in`() = runTest(mainRule.dispatcher) {
-        val anya = student("Аня")
-        val boris = student("Борис")
-        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(anya, boris))
+        val algebra = fixtures.subject("Алгебра")
+        val anya = fixtures.student("Аня")
+        val boris = fixtures.student("Борис")
+        val id = fixtures.group("11 «А»", members = setOf(anya, boris), rate = rate)
         // Two lessons; Boris was only in the first.
-        groupClass(id, anya, algebra, startMillis = 1_000)
-        groupClass(id, boris, algebra, startMillis = 1_000)
-        groupClass(id, anya, algebra, startMillis = 2_000)
+        fixtures.completedLesson(algebra, listOf(anya, boris), at(1_000), rate = rate, groupId = id)
+        fixtures.completedLesson(algebra, listOf(anya), at(2_000), rate = rate, groupId = id)
 
         val vm = vm(id)
         observing(vm.state)
@@ -138,8 +109,8 @@ class GroupDetailViewModelTest {
 
     @Test
     fun `a member who has never attended is still listed, at zero`() = runTest(mainRule.dispatcher) {
-        val anya = student("Аня")
-        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(anya))
+        val anya = fixtures.student("Аня")
+        val id = fixtures.group("11 «А»", members = setOf(anya), rate = rate)
 
         val vm = vm(id)
         observing(vm.state)
@@ -151,14 +122,12 @@ class GroupDetailViewModelTest {
 
     @Test
     fun `lessons are one row per session, newest first, charging every member`() = runTest(mainRule.dispatcher) {
-        val anya = student("Аня")
-        val boris = student("Борис")
-        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(anya, boris))
-        groupClass(id, anya, algebra, startMillis = 1_000)
-        groupClass(id, boris, algebra, startMillis = 1_000)
-        groupClass(id, anya, algebra, startMillis = 2_000)
-        groupClass(id, boris, algebra, startMillis = 2_000)
+        val algebra = fixtures.subject("Алгебра")
+        val anya = fixtures.student("Аня")
+        val boris = fixtures.student("Борис")
+        val id = fixtures.group("11 «А»", members = setOf(anya, boris), rate = rate)
+        fixtures.completedLesson(algebra, listOf(anya, boris), at(1_000), rate = rate, groupId = id)
+        fixtures.completedLesson(algebra, listOf(anya, boris), at(2_000), rate = rate, groupId = id)
 
         val vm = vm(id)
         observing(vm.state)
@@ -172,19 +141,21 @@ class GroupDetailViewModelTest {
     }
 
     /**
-     * The stat row's numbers are the tutor's, not the members': two lessons of an hour each is two
-     * hours however many people were in the room, while the money is every member's charge.
+     * The stat row's numbers are the tutor's, not the members': one lesson of an hour and a half is
+     * ninety minutes however many people were in the room, while the money is every member's charge.
+     *
+     * The money used to be asserted as 40 — two members at the group's flat hourly rate — because the
+     * test wrote the charge into the row itself and ignored the duration it had asked for. Booked and
+     * completed the way the app does it, ninety minutes at 20 an hour bills each member 30.
      */
     @Test
     fun `the stats count the tutor's lessons and hours but every member's money`() = runTest(mainRule.dispatcher) {
-        val anya = student("Аня")
-        val boris = student("Борис")
-        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(anya, boris))
-        groupClass(id, anya, algebra, startMillis = 1_000, minutes = 90)
-        groupClass(id, boris, algebra, startMillis = 1_000, minutes = 90)
-        groupClass(id, anya, algebra, startMillis = 2_000, minutes = 60, status = "SCHEDULED")
-        groupClass(id, boris, algebra, startMillis = 2_000, minutes = 60, status = "SCHEDULED")
+        val algebra = fixtures.subject("Алгебра")
+        val anya = fixtures.student("Аня")
+        val boris = fixtures.student("Борис")
+        val id = fixtures.group("11 «А»", members = setOf(anya, boris), rate = rate)
+        fixtures.completedLesson(algebra, listOf(anya, boris), at(1_000), minutes = 90, rate = rate, groupId = id)
+        fixtures.lesson(algebra, listOf(anya, boris), at(2_000), minutes = 60, rate = rate, groupId = id)
 
         val vm = vm(id)
         observing(vm.state)
@@ -194,25 +165,20 @@ class GroupDetailViewModelTest {
         assertEquals(1, totals.lessons)
         assertEquals(1, totals.upcoming)
         assertEquals(90, totals.minutes)
-        assertEquals(Money.ofMajor(40), totals.earned)
+        assertEquals(Money.ofMajor(60), totals.earned)
     }
 
     /** Another group's lessons must not appear here, however similar their times. */
     @Test
     fun `only this group's lessons are counted`() = runTest(mainRule.dispatcher) {
-        val anya = student("Аня")
-        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val ours = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(anya))
-        val theirs = env.groupRepo.save(Group(name = "11 «Б»", price = Money.ofMajor(20)), setOf(anya))
-        groupClass(ours, anya, algebra, startMillis = 1_000)
-        groupClass(theirs, anya, algebra, startMillis = 2_000)
+        val algebra = fixtures.subject("Алгебра")
+        val anya = fixtures.student("Аня")
+        val ours = fixtures.group("11 «А»", members = setOf(anya), rate = rate)
+        val theirs = fixtures.group("11 «Б»", members = setOf(anya), rate = rate)
+        fixtures.completedLesson(algebra, listOf(anya), at(1_000), rate = rate, groupId = ours)
+        fixtures.completedLesson(algebra, listOf(anya), at(2_000), rate = rate, groupId = theirs)
         // An individual class of the same student is not the group's either.
-        env.classDao.upsert(
-            ClassEntity(
-                studentId = anya, subjectId = algebra, startMillis = 3_000, durationMinutes = 60,
-                status = "COMPLETED", chargeMinor = Money.ofMajor(50).minor,
-            ),
-        )
+        fixtures.completedLesson(algebra, listOf(anya), at(3_000), rate = Money.ofMajor(50))
 
         val vm = vm(ours)
         observing(vm.state)
@@ -224,9 +190,12 @@ class GroupDetailViewModelTest {
 
     @Test
     fun `the card carries the group's rate history, newest first`() = runTest(mainRule.dispatcher) {
-        val anya = student("Аня")
-        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(anya))
-        env.groupRepo.save(Group(id = id, name = "11 «А»", price = Money.ofMajor(25)), setOf(anya))
+        val anya = fixtures.student("Аня")
+        val id = fixtures.group("11 «А»", members = setOf(anya), rate = rate)
+        env.groupRepo.save(
+            env.groupRepo.getById(id)!!.copy(price = Money.ofMajor(25)),
+            setOf(anya),
+        )
 
         val vm = vm(id)
         observing(vm.state)
@@ -240,8 +209,8 @@ class GroupDetailViewModelTest {
 
     @Test
     fun `a group with no lessons reports empty totals`() = runTest(mainRule.dispatcher) {
-        val anya = student("Аня")
-        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(anya))
+        val anya = fixtures.student("Аня")
+        val id = fixtures.group("11 «А»", members = setOf(anya), rate = rate)
 
         val vm = vm(id)
         observing(vm.state)

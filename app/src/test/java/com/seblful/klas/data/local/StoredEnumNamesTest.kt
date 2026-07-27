@@ -102,4 +102,32 @@ class StoredEnumNamesTest {
             unknown,
         )
     }
+
+    /**
+     * The in-memory doubles must not name a stored status themselves.
+     *
+     * This test's sibling above guards the SQL literals in `Daos.kt`, which is where the queries live —
+     * but `FakeDaos` reproduced three of the same predicates in Kotlin with `"SCHEDULED"` spelled out,
+     * and it is outside that scan. So renaming the constant passed the very tripwire built for the
+     * risk: the real queries were caught, the doubles were not, and the JVM suite went on asserting
+     * auto-completion and reminder planning that the app had stopped doing.
+     *
+     * The fix was to have the fakes read `ClassStatus.SCHEDULED.name`, which a rename follows. This
+     * keeps it that way.
+     */
+    @Test
+    fun `the fake DAOs name no status as a bare string`() {
+        val source = ProjectFiles.testSourceFile("testutil/FakeDaos.kt").readText()
+        val literals = Regex("""status\s*==\s*"([A-Za-z_]+)"""").findAll(source)
+            .map { it.groupValues[1] }
+            .distinct()
+            .toList()
+
+        assertEquals(
+            "A fake DAO compares a status against a bare string, which a rename of the constant will " +
+                "not follow. Use `ClassStatus.<NAME>.name` instead: $literals",
+            emptyList<String>(),
+            literals,
+        )
+    }
 }

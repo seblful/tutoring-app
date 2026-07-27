@@ -228,6 +228,12 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
         payments = paymentDao,
     )
 
+    /**
+     * Seeds a starting state through the repositories rather than into the DAOs — see [Fixtures] for
+     * why that matters. Lazy, because it closes over this environment.
+     */
+    val fixtures: Fixtures by lazy { Fixtures(this) }
+
     val backupRestore = BackupRestore(
         backup = backupManager,
         settings = settingsRepo,

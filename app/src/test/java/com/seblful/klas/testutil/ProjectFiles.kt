@@ -48,6 +48,27 @@ object ProjectFiles {
     fun sourceFile(relative: String): File = sourceFileOrNull(relative)
         ?: error("Could not find `$SOURCE_ROOT/$relative` from ${System.getProperty("user.dir")}")
 
+    /** Where the package's unit-test sources live, relative to the module. */
+    const val TEST_SOURCE_ROOT = "src/test/java/com/seblful/klas"
+
+    /**
+     * A unit-test source file under [TEST_SOURCE_ROOT], e.g. `testutil/FakeDaos.kt`.
+     *
+     * The doubles are worth scanning for the same reason the DAOs are: a fake that restates a stored
+     * enum name or a piece of production arithmetic can be left behind by a rename that the compiler
+     * follows everywhere else, and the result is a suite that passes about behaviour the app no longer
+     * has.
+     */
+    fun testSourceFile(relative: String): File = moduleFileOrNull("$TEST_SOURCE_ROOT/$relative")
+        ?: error("Could not find `$TEST_SOURCE_ROOT/$relative` from ${System.getProperty("user.dir")}")
+
+    /** Every `.kt` file under [TEST_SOURCE_ROOT] — for the one test that scans the suite itself. */
+    fun testSources(): List<File> {
+        val root = moduleFileOrNull(TEST_SOURCE_ROOT)
+            ?: error("Could not find `$TEST_SOURCE_ROOT` from ${System.getProperty("user.dir")}")
+        return root.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
+    }
+
     /**
      * Every schema version Room has exported, mapped to its JSON. Keyed by the file name, which is
      * the version — that is the whole naming convention Room uses under `schemas/`.

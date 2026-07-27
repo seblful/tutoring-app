@@ -4,6 +4,7 @@ import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.Reminders
+import com.seblful.klas.domain.model.ClassStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
@@ -34,24 +35,17 @@ class MaintenanceTest {
         scheduler = env.reminders,
     )
 
-    private suspend fun seedStudentAndSubject(): Pair<Long, Long> {
-        val studentId = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subjectId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        return studentId to subjectId
-    }
-
-    private suspend fun seedClass(start: Instant, status: String = "SCHEDULED"): Long {
-        val (studentId, subjectId) = seedStudentAndSubject()
-        return env.classDao.upsert(
-            ClassEntity(
-                studentId = studentId,
-                subjectId = subjectId,
-                startMillis = start.toEpochMilli(),
-                durationMinutes = 60,
-                priceMinor = Money.ofMajor(30).minor,
-                status = status,
-            ),
-        )
+    /**
+     * One lesson, booked through the repository — so its price and charge are what the app would have
+     * written, not what this test remembered to fill in. It used to set `priceMinor` and omit
+     * `chargeMinor`, one of three disagreeing hand-built versions of the same row (see [Fixtures]).
+     */
+    private suspend fun seedClass(start: Instant, status: ClassStatus = ClassStatus.SCHEDULED): Long {
+        val subjectId = env.fixtures.subject("Математика")
+        val studentId = env.fixtures.pricedStudent(subjectId = subjectId, rate = Money.ofMajor(30))
+        return env.fixtures.lesson(subjectId = subjectId, students = listOf(studentId), start = start)
+            .single()
+            .also { if (status != ClassStatus.SCHEDULED) env.fixtures.setStatus(it, status) }
     }
 
     @Test
@@ -61,7 +55,7 @@ class MaintenanceTest {
 
         maintenance().run(now)
 
-        assertEquals("COMPLETED", env.classDao.items.value.single { it.id == id }.status)
+        assertEquals(ClassStatus.COMPLETED, env.classRepo.getById(id)?.status)
     }
 
     @Test
@@ -72,7 +66,7 @@ class MaintenanceTest {
 
         maintenance().run(now)
 
-        assertEquals("SCHEDULED", env.classDao.items.value.single { it.id == id }.status)
+        assertEquals(ClassStatus.SCHEDULED, env.classRepo.getById(id)?.status)
     }
 
     @Test

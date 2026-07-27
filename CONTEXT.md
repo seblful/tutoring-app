@@ -399,11 +399,23 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
   (was the derivation really moved off the main thread — a `flowOn` is invisible in the result),
   `MutableClock` (a midnight rollover needs the wall clock and the scheduler moved together) and
   `RecordingTransactor` (see *atomicity* below).
+- **Seed through `testutil/Fixtures`, not the DAOs** (`env.fixtures.completedLesson(…)`). Writing rows
+  straight to a fake skips the repository that owns the invariant, so a test can set up a state the app
+  cannot reach — and every test that builds its own rows builds them differently. Three versions of "a
+  completed class" once coexisted, each asserting only the field it had remembered to fill in; one
+  hard-coded a charge that ignored the duration it was passed, and the assertion built on it was wrong
+  by 20. A fixture books and completes the lesson, so the charge is `ClassRules`'. The ~330 direct
+  writes predating this are being migrated a file at a time, and `DirectSeedingRatchetTest` caps the
+  count so it can only fall: a new direct write fails there, and a migration has to bring the cap down
+  with it. Reaching for a DAO to build what the repositories deliberately refuse is still legitimate —
+  lowering the cap by hand is how such a call gets acknowledged rather than absorbed.
 - **Fixtures pin the clock, not `now()`.** Seed a fixed hour and pick days by excluding today.
 - Four tests are **tripwires against silent drift**, all deriving expectations from a real artifact
   rather than restating them: `BackupSchemaCoverageTest` (a new table must be carried or named
   device-local), `MappersTest` (a new column must be mapped), `StoredEnumNamesTest` (a renamed enum
-  constant is a migration — it reads the DAO source, since `@Query` is not retained at runtime) and
+  constant is a migration — it reads the DAO source, since `@Query` is not retained at runtime, *and*
+  `FakeDaos.kt`, which had restated three of the same predicates as bare strings and so sat outside the
+  very scan built for the risk) and
   `MigrationChainTest` (a bumped schema version must ship a migration for every step from v1 *and* wire
   it into the builder, and the destructive fallback must stay debug-only — it reads `AppDatabase.kt`,
   since `@Database` is `BINARY`-retained). The first three are acknowledgement lists; the last is the
