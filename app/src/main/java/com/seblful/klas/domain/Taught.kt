@@ -47,7 +47,7 @@ object Taught {
 
     /** A student's card: every one of their classes is one lesson of theirs. */
     fun byStudent(classes: List<TutoringClass>): Totals {
-        val completed = classes.filter { it.status.isBillable }
+        val completed = Billing.billable(classes)
         return Totals(
             lessons = completed.size,
             upcoming = classes.count { it.status == ClassStatus.SCHEDULED },
@@ -86,17 +86,27 @@ object Taught {
         return byStudent(individual) + byGroup(group)
     }
 
-    fun byGroup(classes: List<TutoringClass>): Totals {
-        val sessions = GroupRules.sessions(classes)
-        val taught = sessions.filter { s -> s.classes.any { it.status.isBillable } }
+    fun byGroup(classes: List<TutoringClass>): Totals = bySessions(GroupRules.sessions(classes))
+
+    /**
+     * [byGroup] for a caller that has already collapsed the classes into sessions.
+     *
+     * A separate name rather than an overload: both take a `List`, which erases to the same JVM
+     * signature.
+     *
+     * The group card had both: it collapsed the sessions to list the lessons, then handed the raw
+     * classes to [byGroup], which collapsed the same list again — twice per emission of one screen.
+     */
+    fun bySessions(sessions: List<ClassSession>): Totals {
+        val taught = sessions.filter { s -> Billing.billable(s.classes).isNotEmpty() }
         return Totals(
             lessons = taught.size,
             upcoming = sessions.count { s ->
-                s.classes.none { it.status.isBillable } && s.classes.any { it.status == ClassStatus.SCHEDULED }
+                Billing.billable(s.classes).isEmpty() && s.classes.any { it.status == ClassStatus.SCHEDULED }
             },
             cancelled = sessions.count { s -> s.classes.all { it.status == ClassStatus.CANCELLED } },
             minutes = taught.sumOf { it.first.durationMinutes },
-            earned = Billing.charged(classes),
+            earned = Billing.charged(sessions.flatMap { it.classes }),
         )
     }
 }

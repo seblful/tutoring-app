@@ -103,7 +103,7 @@ data class RosterChange(
      * charged with them, so it is worth asking about first — the same warning deleting a completed
      * lesson owes.
      */
-    val billedDropped: List<TutoringClass> get() = dropped.filter { it.status.isBillable }
+    val billedDropped: List<TutoringClass> get() = Billing.billable(dropped)
 }
 
 /** Rules for groups: who a group's lesson covers, and how its classes read as one lesson. */

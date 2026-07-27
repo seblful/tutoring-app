@@ -10,6 +10,7 @@ import com.seblful.klas.data.repository.RateHistoryRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.ClassSession
+import com.seblful.klas.domain.Billing
 import com.seblful.klas.domain.GroupRules
 import com.seblful.klas.domain.Taught
 import com.seblful.klas.domain.model.Group
@@ -101,7 +102,8 @@ class GroupDetailViewModel @Inject constructor(
         GroupDetailState(
             group = group,
             subjectName = group?.subjectId?.let { id -> allSubjects.firstOrNull { it.id == id }?.name },
-            totals = Taught.byGroup(groupClasses),
+            // The sessions already collapsed above, rather than collapsing the same classes again.
+            totals = Taught.bySessions(sessions),
             // The roster follows the same order students are listed in everywhere else: observeAll
             // has already applied it, so filtering preserves it rather than restating the rule.
             members = allStudents.filter { it.id in roster }
@@ -110,7 +112,7 @@ class GroupDetailViewModel @Inject constructor(
                 GroupLessonRow(
                     session = session,
                     attendees = session.size,
-                    charge = session.classes.fold(Money.ZERO) { acc, c -> acc + c.charge },
+                    charge = Billing.charged(session.classes),
                 )
             },
         )

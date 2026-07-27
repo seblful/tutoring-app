@@ -67,9 +67,9 @@ object Reports {
 
     /** Completed-class income grouped by the month the class took place in [zone], newest first. */
     fun incomeByMonth(classes: List<TutoringClass>, zone: ZoneId): List<MonthlyIncome> =
-        classes.filter { it.status.isBillable }
+        Billing.billable(classes)
             .groupBy { monthKeyOf(it, zone) }
-            .map { (key, list) -> MonthlyIncome(key, list.fold(Money.ZERO) { a, c -> a + c.charge }) }
+            .map { (key, list) -> MonthlyIncome(key, Billing.charged(list)) }
             .sortedByDescending { it.monthKey }
 
     /**
@@ -161,9 +161,9 @@ object Reports {
      * the screen drops the section then (see `ReportsViewModel`).
      */
     fun incomeByKind(classes: List<TutoringClass>): List<KindIncome> =
-        classes.filter { it.status.isBillable }
+        Billing.billable(classes)
             .groupBy { LessonKind.of(it) }
-            .map { (kind, list) -> KindIncome(kind, list.fold(Money.ZERO) { a, c -> a + c.charge }) }
+            .map { (kind, list) -> KindIncome(kind, Billing.charged(list)) }
             .filterNot { it.total.isZero }
             .sortedByDescending { it.total.minor }
 
@@ -218,10 +218,10 @@ object Reports {
      * groups by, rather than as a `filter` and a matching `!!` that have to be kept in step.
      */
     private inline fun <K> sumChargesBy(classes: List<TutoringClass>, key: (TutoringClass) -> K?): Map<K, Money> =
-        classes.filter { it.status.isBillable }
+        Billing.billable(classes)
             .mapNotNull { c -> key(c)?.let { it to c } }
             .groupBy({ it.first }, { it.second })
-            .mapValues { (_, list) -> list.fold(Money.ZERO) { a, c -> a + c.charge } }
+            .mapValues { (_, list) -> Billing.charged(list) }
 
     private fun monthKeyOf(c: TutoringClass, zone: ZoneId): Int =
         monthKeyOf(c.start.atZone(zone).toLocalDate())

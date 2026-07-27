@@ -194,4 +194,20 @@ class TaughtTest {
         assertEquals(Taught.byStudent(individual), Taught.overall(individual))
         assertEquals(Taught.byGroup(group), Taught.overall(group))
     }
+
+    /**
+     * `bySessions` exists so the group card can stop collapsing the same classes twice per emission —
+     * once to list the lessons, once inside `byGroup`. It has to be the same answer, or the card's
+     * header and its list would disagree about the same evening.
+     */
+    @Test
+    fun `bySessions agrees with byGroup over the same classes`() {
+        val classes = listOf(
+            klass(1, studentId = 1, groupId = 7, status = ClassStatus.COMPLETED),
+            klass(2, studentId = 2, groupId = 7, status = ClassStatus.CANCELLED),
+            klass(3, studentId = 1, groupId = 7, at = start.plusSeconds(86_400), status = ClassStatus.SCHEDULED),
+        )
+
+        assertEquals(Taught.byGroup(classes), Taught.bySessions(GroupRules.sessions(classes)))
+    }
 }

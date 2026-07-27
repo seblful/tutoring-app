@@ -12,9 +12,23 @@ import com.seblful.klas.domain.model.TutoringClass
  */
 object Billing {
 
+    /**
+     * Of [classes], the ones that count as income.
+     *
+     * `filter { it.status.isBillable }` was written out at ten sites across four modules and two view
+     * models, so "what counts as income" was a convention rather than a definition — and one of the ten
+     * (a group lesson's charge on its card) folded the charges without it, relying on cancelling having
+     * zeroed them while the other nine did not trust that.
+     *
+     * A **list**, not a sum, because several callers need to group or count the billable classes before
+     * adding anything up: filtering after grouping would invent a zero-earning month for a month whose
+     * only lesson was cancelled.
+     */
+    fun billable(classes: List<TutoringClass>): List<TutoringClass> = classes.filter { it.status.isBillable }
+
+    /** What [classes] earned. Idempotent over an already-[billable] list, so callers may group first. */
     fun charged(classes: List<TutoringClass>): Money =
-        classes.filter { it.status.isBillable }
-            .fold(Money.ZERO) { acc, c -> acc + c.charge }
+        billable(classes).fold(Money.ZERO) { acc, c -> acc + c.charge }
 
     fun paid(payments: List<Payment>): Money =
         payments.fold(Money.ZERO) { acc, p -> acc + p.amount }
