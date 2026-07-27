@@ -701,7 +701,8 @@ private fun LazyListScope.classesTab(
     // A filter that isn't on screen doesn't apply. The chips come and go with the data — deleting a
     // student's last group lesson from the schedule takes them away — and a selection left behind
     // would go on hiding their remaining lessons with nothing left to say why, or to undo it.
-    val rows = state.classes.filter { !state.hasBothKinds || filter.accepts(it.kind) }
+    // Through the domain filter, which had no production caller while this spelled the rule itself.
+    val rows = if (state.hasBothKinds) filter.accepted(state.classes) { it.kind } else state.classes
     if (rows.isEmpty()) {
         item(key = StudentDetailKeys.CLASSES_EMPTY) {
             TabEmptyState(stringResource(R.string.schedule_empty))

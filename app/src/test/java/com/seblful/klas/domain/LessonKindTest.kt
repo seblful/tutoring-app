@@ -99,4 +99,35 @@ class LessonKindTest {
             }
         }
     }
+
+    /**
+     * `accepted` is the form the shipped path can actually use — a student's lesson list is rows that
+     * already know their kind, not raw classes, which is why the `List<TutoringClass>` overload sat
+     * with no production caller while `StudentDetailScreen` spelled the same rule itself.
+     */
+    @Test
+    fun `accepted filters anything that can say its own kind`() {
+        data class Row(val id: Long, val kind: LessonKind)
+        val rows = listOf(
+            Row(1, LessonKind.INDIVIDUAL),
+            Row(2, LessonKind.GROUP),
+            Row(3, LessonKind.INDIVIDUAL),
+        )
+
+        assertEquals(listOf(1L, 2L, 3L), LessonFilter.ALL.accepted(rows) { it.kind }.map { it.id })
+        assertEquals(listOf(1L, 3L), LessonFilter.INDIVIDUAL.accepted(rows) { it.kind }.map { it.id })
+        assertEquals(listOf(2L), LessonFilter.GROUP.accepted(rows) { it.kind }.map { it.id })
+    }
+
+    @Test
+    fun `the class-list form agrees with it`() {
+        val individual = TutoringClass(id = 1, studentId = 1, subjectId = 1, start = Instant.EPOCH, durationMinutes = 60)
+        val group = individual.copy(id = 2, groupId = 7)
+        val classes = listOf(individual, group)
+
+        assertEquals(
+            LessonFilter.GROUP.accepted(classes) { LessonKind.of(it) },
+            LessonFilter.GROUP.apply(classes),
+        )
+    }
 }

@@ -12,6 +12,7 @@ import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.GroupRules
+import com.seblful.klas.domain.RosterChange
 import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.SessionEdit
 import com.seblful.klas.domain.model.ClassMode
@@ -287,7 +288,8 @@ data class ClassFormState(
      * deleting a completed lesson gets. Zero while booking, where nothing has billed yet.
      */
     val billedDrops: Int
-        get() = booked.count { it.studentId in form.excludedMemberIds && it.status.isBillable }
+        get() = RosterChange(dropped = booked.filter { it.studentId in form.excludedMemberIds })
+            .billedDropped.size
 
     /** A group was chosen but there are none to choose — worded differently from "none picked". */
     val hasNoGroups: Boolean get() = form.target == ClassTarget.GROUP && groups.isEmpty()
