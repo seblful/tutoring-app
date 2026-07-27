@@ -2,12 +2,19 @@ name: CI
 
 # The unit suite is the project's safety net, and two of its tests — BackupSchemaCoverageTest and
 # MappersTest — exist purely to trip when a new table or column is added without being carried
-# through the backup or the mappers. A tripwire that only runs when somebody remembers to run it is
-# not a tripwire, so it runs here on every push and every pull request.
+# through the backup or the mappers.
+#
+# It guards **main**, and nothing else. `develop` is where the work happens: it takes many commits a
+# day, most of them mid-thought, and a run on each one is minutes of compute to tell the author
+# something they are about to find out anyway. main is what gets tagged and released, so main is
+# where a red build has to mean something. Pull requests are checked only where they *target* main,
+# for the same reason — that is the merge that matters. `workflow_dispatch` stays so any branch can
+# still be run on demand.
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -34,7 +41,9 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
+          # Only main writes the cache. It is the sole branch with a push trigger now, so this is
+          # really about the pull-request runs, which read it and must not each save a copy.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       # No local.properties here (it is gitignored, holding a machine-specific SDK path); the runner
       # exports ANDROID_HOME, which Gradle falls back to.
