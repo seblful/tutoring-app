@@ -143,6 +143,12 @@
     <!-- Class status -->
     <string name="class_status_label">Статус</string>
     <string name="class_status_scheduled">Запланировано</string>
+    <!--
+      The same status as a *choice* in the sheet's segmented control, where it gets a third of a
+      phone's width: «Запланировано» wrapped onto two lines there while its neighbours stayed on one.
+      Everywhere the status is merely stated — the card's badge, the sheet header — it stays in full.
+    -->
+    <string name="class_status_scheduled_short">В плане</string>
     <string name="class_status_completed">Проведено</string>
     <string name="class_status_cancelled">Отменено</string>
 

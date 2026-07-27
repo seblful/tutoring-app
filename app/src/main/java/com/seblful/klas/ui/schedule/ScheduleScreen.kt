@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
@@ -34,6 +35,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -65,6 +67,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.takeOrElse
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.GroupRules
@@ -728,12 +732,15 @@ private fun ClassActionsSheet(
  * The lesson's status as a segmented control.
  *
  * Shows all three, with the lesson's own selected — so the sheet states the fact as well as offering
- * the change. Only the statuses [GroupRules.sessionTransitions] allows are tappable, which is the
- * same rule the old action rows were built from: a group whose members disagree offers the union, and
- * the change is applied to the members it is legal for.
+ * the change. A session in **mixed** states matches no segment and correctly shows none selected:
+ * «разные» is not a status a lesson can be set to, only one it can be found in.
  *
- * A session in **mixed** states matches no segment, and correctly shows none selected — «разные» is
- * not a status a lesson can be set to, only one it can be found in.
+ * **The current status is enabled and does nothing.** [ClassRules.availableTransitions] excludes the
+ * status a lesson is already in — quite rightly, it drove a menu of *actions* — so gating `enabled`
+ * on it alone greyed out the one segment that is selected, every single time. The control then read
+ * as broken rather than as informative. Being tappable-but-inert is how a segmented control's chosen
+ * option behaves anyway; what stays disabled is the genuinely unreachable transition, which is real
+ * information (a completed lesson can be cancelled but not un-completed).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -749,17 +756,63 @@ private fun StatusSelector(row: ScheduleRow, onStatus: (ClassStatus) -> Unit) {
         )
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             ClassStatus.entries.forEachIndexed { index, status ->
+                val isCurrent = status == current
                 SegmentedButton(
-                    selected = status == current,
-                    onClick = { onStatus(status) },
-                    enabled = status in allowed,
+                    selected = isCurrent,
+                    onClick = { if (!isCurrent) onStatus(status) },
+                    enabled = isCurrent || status in allowed,
                     shape = SegmentedButtonDefaults.itemShape(index, ClassStatus.entries.size),
-                    icon = { SegmentedButtonDefaults.Icon(active = status == current) },
-                ) { Text(classStatusLabel(status)) }
+                    // No check mark. Its slot costs ~28dp of a segment that is one third of a phone,
+                    // and the selected segment already carries a tinted container — which is
+                    // Material's own affordance, and is what the tick was duplicating.
+                    icon = {},
+                ) { SegmentLabel(statusChoiceLabel(status)) }
             }
         }
     }
 }
+
+/**
+ * A status as a **choice** in the control, which is not always how it reads as a statement.
+ *
+ * «Запланировано» is thirteen characters and does not fit a third of a phone's width: it wrapped onto
+ * two lines while its neighbours stayed on one, leaving the row visibly lopsided. Shortened only
+ * here — the badge on the card and in the sheet's header still names the status in full, where there
+ * is room for it and where it is being reported rather than offered.
+ */
+@Composable
+private fun statusChoiceLabel(status: ClassStatus): String = when (status) {
+    ClassStatus.SCHEDULED -> stringResource(R.string.class_status_scheduled_short)
+    else -> classStatusLabel(status)
+}
+
+/**
+ * A segment's label on **one line**, shrinking a step at a time rather than wrapping.
+ *
+ * The same rule and mechanism as the bottom bar's tab labels: a segment is a fixed fraction of the
+ * screen, so on a narrow phone or at a large font scale the longest word genuinely does not fit — and
+ * a wrapped label makes the row uneven, which is worse than a slightly smaller one. Capped at the
+ * inherited size so a label with room to spare is drawn untouched.
+ */
+@Composable
+private fun SegmentLabel(text: String) {
+    Text(
+        text = text,
+        maxLines = 1,
+        // Only reachable if even the minimum overflows; wrapping is what we are avoiding, so cut the
+        // word rather than add a line.
+        overflow = TextOverflow.Ellipsis,
+        autoSize = TextAutoSize.StepBased(
+            minFontSize = MinSegmentFontSize,
+            maxFontSize = LocalTextStyle.current.fontSize.takeOrElse { FallbackSegmentFontSize },
+        ),
+    )
+}
+
+private val MinSegmentFontSize = 10.sp
+
+/** Material's label size for a segmented button; used only if the style leaves the size unspecified. */
+private val FallbackSegmentFontSize = 14.sp
 
 @Composable
 private fun SheetAction(
