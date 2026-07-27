@@ -28,7 +28,21 @@ object NameOrder {
 
     /** [items] ordered by their display [name]. */
     fun <T> sorted(items: List<T>, name: (T) -> String): List<T> =
-        items.sortedWith { a, b -> comparator.compare(name(a), name(b)) }
+        items.sortedWith(by(name))
+
+    /**
+     * This order, over whatever carries a [name] — a row, a pairing, a domain object.
+     *
+     * Exists so that a caller doing more than a plain sort can still get the order from here instead of
+     * restating it. Three view models used to: two spelled it `sortedBy { it.name.lowercase() }`, losing
+     * the tie-break that keeps «Аня» and «аня» from swapping between emissions, and the third
+     * `sortedBy { it.name }`, which does not case-fold at all — the exact `COLLATE NOCASE` behaviour
+     * this object was written to get rid of, back in a Russian-language app where it sorts «Ярослав»
+     * before «анна». Compose it as a tie-break with [java.util.Comparator.thenComparing] or Kotlin's
+     * `then`, which is what the students list needs behind its debt ordering.
+     */
+    fun <T> by(name: (T) -> String): Comparator<T> =
+        Comparator { a, b -> comparator.compare(name(a), name(b)) }
 
     /**
      * [items] with the archived ones last, each group ordered by [name]. Archiving is how somebody

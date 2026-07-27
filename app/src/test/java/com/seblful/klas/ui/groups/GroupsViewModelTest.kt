@@ -55,4 +55,23 @@ class GroupsViewModelTest {
         advanceUntilIdle()
         assertEquals(setOf(active, retired), vm.rows.value.map { it.group.id }.toSet())
     }
+
+    /**
+     * The roster order used to be `sortedBy { it.name }` — no case folding — while every other listing
+     * of people went through `NameOrder`. In a Russian-language app that is not a subtle difference:
+     * every capital Cyrillic letter has a lower code point than every small one, so a single
+     * lower-case name sent the whole roster out of order. «Ярослав» sorted before «анна».
+     */
+    @Test
+    fun `a roster is case-folded, so a lower-case name does not sort last`() = runTest(mainRule.dispatcher) {
+        val yaroslav = env.studentDao.upsert(StudentEntity(name = "Ярослав"))
+        val anna = env.studentDao.upsert(StudentEntity(name = "анна"))
+        env.groupRepo.save(Group(name = "11 «А»"), setOf(yaroslav, anna))
+
+        val vm = vm()
+        observing(vm.rows)
+        advanceUntilIdle()
+
+        assertEquals(listOf("анна", "Ярослав"), vm.rows.value.single().memberNames)
+    }
 }

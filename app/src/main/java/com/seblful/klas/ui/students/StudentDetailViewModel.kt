@@ -12,6 +12,7 @@ import com.seblful.klas.data.repository.PaymentRepository
 import com.seblful.klas.data.repository.RateHistoryRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
+import com.seblful.klas.format.NameOrder
 import com.seblful.klas.domain.Billing
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.domain.Taught
@@ -151,11 +152,13 @@ class StudentDetailViewModel @Inject constructor(
             allSubjects = allSubjects,
             // A student's subjects ARE their priced subjects — one source of truth, so the list here
             // is exactly what can be booked. No "price not set" rows, no bookable-but-hidden subjects.
-            subjects = priceList.mapNotNull { p ->
-                subjectsById[p.subjectId]?.let {
-                    SubjectPrice(it, p.amount, historyBySubject[p.subjectId].orEmpty())
-                }
-            }.sortedBy { it.subject.name.lowercase() },
+            subjects = NameOrder.sorted(
+                priceList.mapNotNull { p ->
+                    subjectsById[p.subjectId]?.let {
+                        SubjectPrice(it, p.amount, historyBySubject[p.subjectId].orEmpty())
+                    }
+                },
+            ) { it.subject.name },
             classes = classList,
         )
     }

@@ -6,6 +6,7 @@ import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.PaymentRepository
 import com.seblful.klas.data.repository.StudentRepository
+import com.seblful.klas.format.NameOrder
 import com.seblful.klas.domain.Billing
 import com.seblful.klas.domain.PeopleSearch
 import com.seblful.klas.domain.model.Money
@@ -89,10 +90,12 @@ class StudentsViewModel @Inject constructor(
      */
     private val StudentSort.comparator: Comparator<StudentRow>
         get() = when (this) {
-            StudentSort.NAME -> compareBy { it.student.name.lowercase() }
-            StudentSort.DEBT -> compareByDescending<StudentRow> { it.balance.minor }
-                .thenBy { it.student.name.lowercase() }
+            StudentSort.NAME -> byName
+            StudentSort.DEBT -> compareByDescending<StudentRow> { it.balance.minor }.then(byName)
         }
+
+    /** The app's one name order, over a row — not a second spelling of it. See [NameOrder.by]. */
+    private val byName: Comparator<StudentRow> = NameOrder.by { it.student.name }
 
     fun toggleArchived() {
         _showArchived.value = !_showArchived.value

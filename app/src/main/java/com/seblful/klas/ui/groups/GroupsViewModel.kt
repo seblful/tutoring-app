@@ -6,6 +6,7 @@ import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
+import com.seblful.klas.format.NameOrder
 import com.seblful.klas.domain.PeopleSearch
 import com.seblful.klas.domain.model.Group
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -74,9 +75,12 @@ class GroupsViewModel @Inject constructor(
                 val studentsById = studentList.associateBy { it.id }
                 val subjectsById = subjectList.associate { it.id to it.name }
                 groupList.map { group ->
-                    val members = rosters[group.id].orEmpty()
-                        .mapNotNull { studentsById[it] }
-                        .sortedBy { it.name }
+                    // Through NameOrder, like every other listing of people: this used to be
+                    // `sortedBy { it.name }`, which does not case-fold at all, so a roster sorted
+                    // every Cyrillic capital before every lower-case name.
+                    val members = NameOrder.sorted(
+                        rosters[group.id].orEmpty().mapNotNull { studentsById[it] },
+                    ) { it.name }
                     GroupRow(
                         group = group,
                         memberNames = members.map { it.name },
