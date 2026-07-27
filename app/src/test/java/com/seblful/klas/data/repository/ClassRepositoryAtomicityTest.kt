@@ -1,5 +1,8 @@
 package com.seblful.klas.data.repository
 
+import com.seblful.klas.calendar.CalendarSync
+import com.seblful.klas.calendar.Guest
+import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.SessionEdit
@@ -172,5 +175,58 @@ class ClassRepositoryAtomicityTest {
         // Cancelling mirrors as a *delete*, so neither kind of calendar write may have happened.
         assertEquals(emptyList<Any>(), f.env.calendar.calls)
         assertEquals(emptyList<String>(), f.env.calendar.deletes)
+    }
+
+    /**
+     * The order itself, not just its consequences.
+     *
+     * The other tests here assert that a failed commit leaves the calendar alone, which catches phase 3
+     * running *before* phase 2. This catches it running *inside* — an IPC call to a `ContentProvider`
+     * while SQLite's write lock is held, which is an ANR rather than a wrong answer, so no assertion
+     * about the resulting data would ever notice. Every lesson write goes through
+     * `ClassRepository.write`, so pinning it once pins it for all five.
+     */
+    @Test
+    fun `the calendar is never written while a transaction is open`() = runTest {
+        val env = TestEnv()
+        val depths = mutableListOf<Int>()
+        val spying = object : CalendarSync {
+            override suspend fun upsert(
+                klass: TutoringClass,
+                title: String,
+                guest: Guest?,
+                reminderLeadMinutes: Int,
+            ): String? {
+                depths += env.transactor.depth
+                return "event-${depths.size}"
+            }
+
+            override suspend fun delete(eventId: String) {
+                depths += env.transactor.depth
+            }
+        }
+        val mirror = CalendarMirror(
+            env.classDao, env.studentDao, env.subjectDao, env.groupDao, spying, env.settingsRepo,
+        )
+        val repo = ClassRepository(env.classDao, mirror, env.reminders, env.settingsRepo, env.transactor)
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
+        env.studentDao.upsert(StudentEntity(id = 1, name = "Аня"))
+        env.subjectDao.upsert(SubjectEntity(id = 1, name = "Алгебра"))
+
+        // One of each shape of write: an insert, an in-place update, and a delete.
+        val id = repo.book(
+            subjectId = 1,
+            start = start,
+            durationMinutes = 60,
+            mode = ClassMode.IN_PERSON,
+            studentIds = listOf(1L),
+            price = Money.ofMajor(30),
+        ).single()
+        val session = repo.getSessionFor(id)!!
+        repo.setStatus(session, ClassStatus.CANCELLED)
+        repo.delete(repo.getSessionFor(id) ?: session)
+
+        assertTrue("no calendar write was observed at all", depths.isNotEmpty())
+        assertEquals("every calendar write must happen after the commit", listOf(0), depths.distinct())
     }
 }
