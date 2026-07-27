@@ -22,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -46,6 +47,7 @@ import com.seblful.klas.ui.common.ModeSelector
 import com.seblful.klas.ui.common.UnsavedChangesDialog
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.leaveIntent
+import com.seblful.klas.ui.common.rememberMessages
 
 /** Full-screen "add student" with required subjects + prices. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,12 +59,10 @@ fun StudentFormScreen(
     val state by viewModel.state.collectAsState()
 
     // A save that failed must not look like one that went through: the form stays open and says so.
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val messages = rememberMessages()
     val saveFailedMsg = stringResource(R.string.save_failed)
     LaunchedEffect(Unit) {
-        viewModel.events.stream.collect {
-            android.widget.Toast.makeText(context, saveFailedMsg, android.widget.Toast.LENGTH_LONG).show()
-        }
+        viewModel.events.stream.collect { messages.show(saveFailedMsg) }
     }
 
     // Back — the arrow or the system gesture — asks before throwing a filled-in form away.
@@ -76,6 +76,7 @@ fun StudentFormScreen(
     BackHandler(enabled = state.isDirty) { requestLeave() }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(messages.hostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.student_add_title)) },

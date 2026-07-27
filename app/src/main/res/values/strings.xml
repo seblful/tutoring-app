@@ -3,8 +3,13 @@
 
     <!-- Bottom navigation -->
     <string name="nav_schedule">Расписание</string>
-    <string name="nav_students">Ученики</string>
-    <string name="nav_groups">Группы</string>
+    <!--
+      One tab for the people, holding «Ученики» and «Группы» as two views of the same set. A group
+      *is* students seen as a roster, so the two never needed separate tabs — and the old arrangement
+      cost a settings switch, a conditional entry in «Ещё» and a fifth tab the labels were already
+      auto-shrinking to fit.
+    -->
+    <string name="nav_people">Люди</string>
     <string name="nav_reports">Отчёты</string>
     <string name="nav_more">Ещё</string>
 
@@ -19,6 +24,23 @@
     <string name="action_archive">В архив</string>
     <string name="action_unarchive">Из архива</string>
     <string name="action_undo">Отменить</string>
+    <!-- The action a snackbar carries when the message names something to go and look at. -->
+    <string name="action_show">Показать</string>
+    <string name="action_more">Ещё действия</string>
+
+    <!-- Search, shared by the three list screens -->
+    <string name="action_search">Поиск</string>
+    <string name="search_clear">Очистить</string>
+    <string name="search_no_results">Ничего не найдено</string>
+    <string name="search_no_results_detail">Попробуйте изменить запрос</string>
+    <string name="students_search_hint">Имя ученика</string>
+    <string name="groups_search_hint">Название группы</string>
+    <string name="subjects_search_hint">Название предмета</string>
+
+    <!-- Sorting the students list: the tutor's two questions are "who is this" and "who owes me" -->
+    <string name="students_sort">Сортировка</string>
+    <string name="students_sort_name">По имени</string>
+    <string name="students_sort_debt">Сначала должники</string>
 
     <!--
       Leaving a form that has been filled in but not saved. Two questions, not one: a complete form
@@ -33,8 +55,18 @@
     <!-- Schedule -->
     <string name="schedule_title">Расписание</string>
     <string name="schedule_empty">На этот день занятий нет</string>
+    <string name="schedule_empty_detail">Запишите занятие — оно появится здесь и в календаре</string>
+    <string name="schedule_add_class">Записать занятие</string>
     <string name="schedule_week_empty">На эту неделю занятий нет</string>
     <string name="schedule_view_mode">Вид расписания</string>
+    <!--
+      What the schedule says before anything can be booked. The button used to be a dead end: it
+      looked enabled, refused with a toast naming what was missing, and left the tutor to go and find
+      it. Now the empty state carries the fix.
+    -->
+    <string name="schedule_empty_no_setup">Пока нечего планировать</string>
+    <string name="schedule_empty_no_setup_detail">Занятие записывается на ученика и предмет с ценой. Начните с ученика.</string>
+    <string name="schedule_add_student">Добавить ученика</string>
     <string name="schedule_view_day">День</string>
     <string name="schedule_view_week">Неделя</string>
     <string name="schedule_view_month">Месяц</string>
@@ -61,6 +93,16 @@
     <string name="class_time_from_label">Начало</string>
     <string name="class_time_to_label">Окончание</string>
     <string name="class_time_range_invalid">Окончание должно быть позже начала</string>
+    <!--
+      Length, chosen as a duration rather than as an end time. A tutor arranges "an hour and a half",
+      not "ends at 15:30" — the end time is arithmetic they were being asked to do in their head, and
+      through a clock dial. The chips carry the common answers; «Другое» keeps the picker for the rest.
+    -->
+    <string name="class_duration_label">Длительность</string>
+    <string name="class_duration_custom">Другая</string>
+    <string name="class_duration_ends_at">до %1$s</string>
+    <string name="class_pick_date">Выберите дату</string>
+    <string name="class_pick_time">Выберите время</string>
     <!-- %1$s: ученик или группа, %2$s: время занятия, которое уже стоит в расписании -->
     <string name="class_time_conflict">Это время занято: %1$s, %2$s</string>
     <!-- Shown when the slot was taken between the form opening and the save. -->
@@ -95,11 +137,11 @@
     <string name="class_subject_from_group">Предмет задан группой</string>
     <string name="class_group_price_label">Цена за час с ученика</string>
     <string name="class_status_mixed">Разные</string>
+    <!-- The swipe gesture on a schedule card, and its accessibility label. -->
     <string name="class_mark_completed">Отметить проведённым</string>
-    <string name="class_mark_cancelled">Отменить занятие</string>
-    <string name="class_mark_scheduled">Вернуть в расписание</string>
 
     <!-- Class status -->
+    <string name="class_status_label">Статус</string>
     <string name="class_status_scheduled">Запланировано</string>
     <string name="class_status_completed">Проведено</string>
     <string name="class_status_cancelled">Отменено</string>
@@ -119,6 +161,8 @@
     <!-- Students -->
     <string name="students_title">Ученики</string>
     <string name="students_empty">Пока нет учеников</string>
+    <string name="students_empty_detail">Ученик — это имя, предметы и цена за час. Дальше можно записывать занятия и вести оплату.</string>
+    <string name="students_add">Добавить ученика</string>
     <string name="students_show_archived">Показать архив</string>
     <string name="student_archived_badge">в архиве</string>
     <string name="student_add_title">Новый ученик</string>
@@ -193,12 +237,26 @@
     <string name="add_payment">Добавить платёж</string>
     <string name="payments_empty">Платежей пока нет</string>
     <string name="payment_add_title">Новый платёж</string>
+    <string name="payment_edit_title">Изменить платёж</string>
     <string name="payment_amount_label">Сумма</string>
     <string name="payment_deleted">Платёж удалён</string>
+    <!--
+      A payment is recorded when the tutor gets round to it, not when it was handed over — «она
+      заплатила во вторник» had no way in, and a wrong amount could only be deleted and re-entered.
+    -->
+    <string name="payment_date_label">Дата платежа</string>
+
+    <!-- Contacting a student. The next thing after "who owes me" is "message them". -->
+    <string name="student_call">Позвонить</string>
+    <string name="student_write_email">Написать письмо</string>
+    <string name="student_write_telegram">Написать в Telegram</string>
+    <string name="student_contact_failed">Нет приложения для этого действия</string>
 
     <!-- Subjects -->
     <string name="subjects_title">Предметы</string>
     <string name="subjects_empty">Пока нет предметов</string>
+    <string name="subjects_empty_detail">Предмет — это то, что вы преподаёте. С него начинается цена и запись занятий.</string>
+    <string name="subjects_add">Добавить предмет</string>
     <string name="subject_add_title">Новый предмет</string>
     <string name="subject_edit_title">Изменить предмет</string>
     <string name="subject_name_label">Название</string>
@@ -210,7 +268,11 @@
     <!-- Groups -->
     <string name="groups_title">Группы</string>
     <string name="groups_empty">Пока нет групп</string>
+    <string name="groups_empty_detail">Группа — это несколько учеников с общей ценой. Одно занятие записывается сразу на всех.</string>
+    <string name="groups_add">Создать группу</string>
     <string name="groups_show_archived">Показать архив</string>
+    <!-- Danger zone at the foot of the group form, so it reads as a section and not as the next field. -->
+    <string name="group_danger_title">Управление группой</string>
     <string name="group_add_title">Новая группа</string>
     <string name="group_edit_title">Изменить группу</string>
     <string name="group_name_label">Название</string>
@@ -247,20 +309,24 @@
 
     <!-- More menu -->
     <string name="more_subjects">Предметы</string>
-    <string name="more_groups">Группы</string>
-    <string name="more_groups_desc">Занятия для нескольких учеников сразу</string>
     <string name="more_backup">Резервная копия</string>
     <string name="calendar_denied">Нет доступа к календарю</string>
+
+    <!-- About: every published app has one, and the version is the first thing a bug report needs. -->
+    <string name="about_title">О приложении</string>
+    <string name="about_version">Версия %1$s</string>
+    <string name="about_tagline">Учёт занятий, оплат и долгов для частного репетитора</string>
+    <string name="about_offline">Работает без интернета. Данные хранятся только на этом устройстве — их не видит никто, кроме вас.</string>
+    <string name="about_backup_hint">Чтобы не потерять данные при смене телефона, сделайте резервную копию.</string>
 
     <!-- Settings -->
     <string name="settings_title">Настройки</string>
     <string name="settings_section_reminders">Напоминания</string>
     <string name="settings_section_classes">Занятия</string>
     <string name="settings_section_money">Деньги</string>
-    <string name="settings_section_menu">Меню</string>
-    <string name="settings_groups_tab">Раздел «Группы»</string>
-    <string name="settings_groups_tab_desc">Показывать отдельным разделом внизу. Если выключить, группы останутся доступны в разделе «Ещё»</string>
     <string name="settings_section_appearance">Оформление</string>
+    <!-- Developer furniture, folded into the foot of Settings rather than sitting beside «Настройки». -->
+    <string name="settings_section_service">Обслуживание</string>
     <string name="settings_section_calendar">Календарь</string>
     <string name="settings_notifications">Напоминания</string>
     <string name="settings_notifications_desc">Уведомлять перед занятием</string>
@@ -295,16 +361,26 @@
     <string name="hours_two">2 ч</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_welcome_title">Добро пожаловать</string>
-    <string name="onboarding_welcome_desc">Настройка займёт минуту: предметы, которые вы преподаёте, и первый ученик с ценами. Если вы уже пользовались приложением, загрузите резервную копию.</string>
+    <!--
+      The first screen now says what the app is *for* before it asks for anything. It used to open on
+      a grey paragraph about setup taking a minute — an instruction, addressed to somebody who had not
+      yet been told what they were setting up.
+    -->
+    <string name="onboarding_tagline">Расписание, оплаты и долги учеников — в одном месте</string>
+    <string name="onboarding_value_schedule">Занятия по дням, неделям и месяцам, с напоминаниями</string>
+    <string name="onboarding_value_money">Кто сколько заплатил и кто сколько должен — считается само</string>
+    <string name="onboarding_value_offline">Без интернета и без аккаунта: данные остаются на телефоне</string>
+    <string name="onboarding_welcome_desc">Настройка займёт минуту: предметы, которые вы преподаёте, и первый ученик с ценами.</string>
     <string name="onboarding_start">Настроить</string>
     <string name="onboarding_restore">Загрузить резервную копию</string>
     <string name="onboarding_restore_desc">Данные из файла заменят текущие</string>
     <string name="onboarding_skip">Пропустить</string>
     <string name="onboarding_skip_desc">Предметы и учеников можно добавить позже</string>
-    <string name="onboarding_subjects_title">Шаг 1. Предметы</string>
+    <!-- %1$d: which step, %2$d: how many there are. Shown so the setup has a visible end. -->
+    <string name="onboarding_step">Шаг %1$d из %2$d</string>
+    <string name="onboarding_subjects_title">Предметы</string>
     <string name="onboarding_subjects_desc">Добавьте предметы, которые вы преподаёте. Их можно изменить позже.</string>
-    <string name="onboarding_student_title">Шаг 2. Первый ученик</string>
+    <string name="onboarding_student_title">Первый ученик</string>
     <string name="onboarding_continue">Далее</string>
     <string name="onboarding_finish">Готово</string>
 
@@ -333,7 +409,27 @@
     <!-- Reports -->
     <string name="reports_title">Отчёты</string>
     <string name="reports_empty">Пока нет данных для отчётов</string>
+    <string name="reports_empty_detail">Проведите первое занятие — доход, часы и задолженности появятся здесь.</string>
     <string name="reports_total_income">Доход за период</string>
+    <!--
+      The comparison the screen's own purpose asks for: «45 000 BYN» does not answer "am I doing
+      better than last month". %1$s is a signed percentage, %2$s the period being compared with.
+    -->
+    <string name="reports_vs_previous">%1$s к периоду «%2$s»</string>
+    <string name="reports_vs_previous_from_zero">За период «%1$s» дохода не было</string>
+    <string name="reports_percent_signed_up">+%1$d %%</string>
+    <string name="reports_percent_signed_down">−%1$d %%</string>
+    <string name="reports_percent_signed_same">0 %%</string>
+    <!-- Debts are the most action-shaped list in the app; each row opens the person who owes. -->
+    <string name="reports_open_student">Открыть карточку</string>
+    <!-- CSV, because a backup is for restoring and a spreadsheet is for the tax office. -->
+    <string name="reports_export">Выгрузить в CSV</string>
+    <string name="reports_export_filename">klas-report.csv</string>
+    <string name="reports_export_success">Отчёт сохранён</string>
+    <string name="reports_export_error">Не удалось сохранить файл</string>
+    <string name="reports_csv_section">Раздел</string>
+    <string name="reports_csv_label">Название</string>
+    <string name="reports_csv_amount">Сумма</string>
     <string name="reports_no_income">За этот период доходов не было</string>
     <string name="reports_by_month">Доход по месяцам</string>
     <string name="reports_by_year">Доход по годам</string>

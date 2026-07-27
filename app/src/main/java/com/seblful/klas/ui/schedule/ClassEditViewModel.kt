@@ -322,8 +322,35 @@ class ClassEditViewModel @Inject constructor(
 
     val isNew: Boolean = classId == 0L
 
-    /** Pre-fills the end time when a start is picked; loaded from settings. */
-    private var defaultLessonMinutes: Long = 60
+    /**
+     * The lesson length the tutor set in Settings. A flow rather than a plain field because the
+     * duration chips are built from it: it arrives asynchronously, after the screen is already up, so
+     * a screen reading it once would draw the wrong set and never correct itself.
+     */
+    private val defaultMinutes = MutableStateFlow(DEFAULT_LESSON_MINUTES)
+
+    /** Pre-fills the end time when a start is picked. */
+    private val defaultLessonMinutes: Long get() = defaultMinutes.value.toLong()
+
+    /**
+     * The lengths offered as chips, shortest first.
+     *
+     * The form used to ask for an **end time**, through a clock dial, in a second modal. That is
+     * arithmetic the tutor was doing in their head: a lesson is arranged as "an hour and a half", and
+     * "ends at 15:30" is a derived fact about it. Four chips answer it in one tap and take the
+     * booking flow from six taps to three.
+     *
+     * The tutor's own default is folded into the set, so the length they use most is always one of
+     * the offered ones even if it is not a round number — and the set stays sorted and distinct so it
+     * does not sprout a duplicate 60 for the common case.
+     */
+    val durationOptions: StateFlow<List<Int>> = defaultMinutes
+        .map { (COMMON_DURATIONS + it).distinct().sorted() }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            (COMMON_DURATIONS + DEFAULT_LESSON_MINUTES).distinct().sorted(),
+        )
 
     /**
      * The lesson being edited, if any. A group lesson is loaded as the whole session (every member's
@@ -540,7 +567,7 @@ class ClassEditViewModel @Inject constructor(
             applyTarget(ClassTarget.GROUP)
             applyGroup(preselectedGroupId)
         }
-        viewModelScope.launch { defaultLessonMinutes = settingsRepo.get().defaultLessonMinutes.toLong() }
+        viewModelScope.launch { defaultMinutes.value = settingsRepo.get().defaultLessonMinutes }
         // Auto-select the only student there is (a new class, before any choice). With several
         // students, the user picks — we don't guess.
         if (isNew) {
@@ -787,6 +814,19 @@ class ClassEditViewModel @Inject constructor(
     }
 
     /**
+     * Sets how long the lesson runs, which is how the form asks about it now — the end time is stored
+     * and still editable, but it is derived from a length rather than picked on a clock face.
+     *
+     * Does nothing before a start is chosen: there is nothing to add [minutes] to, and a duration with
+     * no start describes no lesson.
+     */
+    fun setDuration(minutes: Int) {
+        val from = form.value.timeFrom ?: return
+        touched.value = true
+        _form.value = _form.value.copy(timeTo = from.plusMinutes(minutes.toLong()))
+    }
+
+    /**
      * What the start-time picker opens on: the start already chosen, or — for a lesson whose time is
      * still empty — the current time, since a booking is normally written down as it is arranged.
      * [now] is a parameter so the rule can be tested without depending on the wall clock.
@@ -948,5 +988,13 @@ class ClassEditViewModel @Inject constructor(
         val ids = groupsRepo.getMemberIds(groupId).toSet()
         val active = studentsRepo.observeActive().first().filter { it.id in ids }
         return GroupRules.bookableMembers(active).map { it.id }
+    }
+
+    private companion object {
+        /** Matches `AppSettings.defaultLessonMinutes`, for the window before settings have loaded. */
+        const val DEFAULT_LESSON_MINUTES = 60
+
+        /** The lengths a tutoring lesson usually runs to — 45 minutes to two hours. */
+        val COMMON_DURATIONS = listOf(45, 60, 90, 120)
     }
 }

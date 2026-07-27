@@ -22,7 +22,6 @@ data class AppSettings(
     /** Pre-fills a new group's hourly rate, in minor units; 0 means "not set". */
     val defaultGroupPriceMinor: Long = 0,
     val currency: String = "BYN",
-    val showGroupsTab: Boolean = true,
 )
 
 /**
@@ -79,7 +78,6 @@ class SettingsRepository @Inject constructor(
             defaultLessonMinutes = defaultLessonMinutes,
             defaultGroupPriceMinor = defaultGroupPriceMinor,
             currency = currency,
-            showGroupsTab = showGroupsTab,
         )
 
     /**
@@ -98,6 +96,9 @@ class SettingsRepository @Inject constructor(
         defaultLessonMinutes = defaultLessonMinutes,
         defaultGroupPriceMinor = defaultGroupPriceMinor,
         currency = currency,
-        showGroupsTab = showGroupsTab,
+        // `SettingsEntity.showGroupsTab` is deliberately not set: nothing reads it any more (groups
+        // and students share one tab now), and the column stays only because dropping it would mean
+        // a table rebuild — SQLite before 3.35 has no `DROP COLUMN`, and minSdk 24 reaches back well
+        // before that. It keeps its Kotlin default. See the entity for the whole note.
     )
 }

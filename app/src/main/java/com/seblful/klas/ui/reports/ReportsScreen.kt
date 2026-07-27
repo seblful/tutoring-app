@@ -1,6 +1,9 @@
 package com.seblful.klas.ui.reports
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,6 +28,10 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.QueryStats
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -34,10 +42,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,15 +66,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
+import com.seblful.klas.domain.ReportCsv
 import com.seblful.klas.domain.ReportPeriod
 import com.seblful.klas.domain.Reports
 import com.seblful.klas.format.formatHours
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatMonthName
+import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.MinTouchTarget
+import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatRow
 import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.lessonKindFill
 import com.seblful.klas.ui.common.lessonKindLabel
 import com.seblful.klas.ui.common.lessonsStat
@@ -92,14 +107,69 @@ import com.seblful.klas.ui.common.text
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReportsScreen(viewModel: ReportsViewModel = hiltViewModel()) {
+fun ReportsScreen(
+    onStudentClick: (Long) -> Unit,
+    viewModel: ReportsViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsState()
+    val messages = rememberMessages()
+
+    val exportOkMsg = stringResource(R.string.reports_export_success)
+    val exportErrorMsg = stringResource(R.string.reports_export_error)
+    LaunchedEffect(Unit) {
+        viewModel.events.stream.collect { event ->
+            messages.show(
+                when (event) {
+                    ReportsViewModel.ExportEvent.OK -> exportOkMsg
+                    ReportsViewModel.ExportEvent.ERROR -> exportErrorMsg
+                }
+            )
+        }
+    }
+
+    // Assembled here, where the section headings are string resources and the rows are already in
+    // the order the screen shows them — so the file reads like the report rather than like a dump.
+    val csvHeader = listOf(
+        stringResource(R.string.reports_csv_section),
+        stringResource(R.string.reports_csv_label),
+        stringResource(R.string.reports_csv_amount),
+    )
+    val csvLines = csvLinesFor(state)
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(CSV_MIME_TYPE),
+    ) { uri ->
+        if (uri != null) viewModel.export(DocumentRef(uri.toString()), csvHeader, csvLines)
+    }
+    val exportFilename = stringResource(R.string.reports_export_filename)
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.reports_title)) }) },
+        snackbarHost = { SnackbarHost(messages.hostState) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.reports_title)) },
+                actions = {
+                    // A backup is JSON meant to be read back by this app. What a tutor totalling
+                    // their year — or an accountant — needs is a file that opens in a spreadsheet,
+                    // and there was nothing here that produced one.
+                    if (state.hasData) {
+                        IconButton(onClick = { exportLauncher.launch(exportFilename) }) {
+                            Icon(
+                                Icons.Filled.FileDownload,
+                                stringResource(R.string.reports_export),
+                            )
+                        }
+                    }
+                },
+            )
+        },
     ) { padding ->
         if (!state.hasData) {
-            EmptyState(stringResource(R.string.reports_empty), Modifier.padding(padding))
+            EmptyState(
+                title = stringResource(R.string.reports_empty),
+                detail = stringResource(R.string.reports_empty_detail),
+                icon = Icons.Filled.QueryStats,
+                modifier = Modifier.padding(padding),
+            )
             return@Scaffold
         }
 
@@ -113,13 +183,51 @@ fun ReportsScreen(viewModel: ReportsViewModel = hiltViewModel()) {
                 onKind = viewModel::setKind,
             )
             HorizontalDivider()
-            ReportBody(state, Modifier.weight(1f))
+            ReportBody(state, onStudentClick, Modifier.weight(1f))
+        }
+    }
+}
+
+private const val CSV_MIME_TYPE = "text/csv"
+
+/**
+ * The report as spreadsheet rows, in screen order.
+ *
+ * Debts are included even though they ignore the period — the file is what the tutor takes away, and
+ * leaving out the one section that says who owes money would make it the least useful export
+ * possible. Its heading says so, as the card on screen does.
+ */
+@Composable
+private fun csvLinesFor(state: ReportsState): List<ReportCsv.Line> {
+    val totalTitle = stringResource(R.string.reports_total_income)
+    val byGroupTitle = stringResource(R.string.reports_by_group)
+    val bySubjectTitle = stringResource(R.string.reports_by_subject)
+    val byStudentTitle = stringResource(R.string.reports_by_student)
+    val debtsTitle = stringResource(R.string.reports_debts)
+    val outstandingTitle = stringResource(R.string.reports_total_outstanding)
+    val periodName = periodTitle(state.period)
+
+    return buildList {
+        add(ReportCsv.Line(totalTitle, periodName, state.totalIncome))
+        fun section(title: String, lines: List<LabeledAmount>) {
+            lines.forEach { add(ReportCsv.Line(title, it.label, it.amount)) }
+        }
+        section(byGroupTitle, state.byGroup)
+        section(bySubjectTitle, state.bySubject)
+        section(byStudentTitle, state.byStudent)
+        if (state.debts.isNotEmpty()) {
+            add(ReportCsv.Line(debtsTitle, outstandingTitle, state.totalOutstanding))
+            section(debtsTitle, state.debts)
         }
     }
 }
 
 @Composable
-private fun ReportBody(state: ReportsState, modifier: Modifier = Modifier) {
+private fun ReportBody(
+    state: ReportsState,
+    onStudentClick: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     // Resolved here (composable scope) so the LazyListScope blocks below stay string-free.
     val byGroupTitle = stringResource(R.string.reports_by_group)
     val bySubjectTitle = stringResource(R.string.reports_by_subject)
@@ -152,7 +260,7 @@ private fun ReportBody(state: ReportsState, modifier: Modifier = Modifier) {
             rankedSection(byStudentTitle, state.byStudent)
         }
 
-        item { DebtsCard(state) }
+        item { DebtsCard(state, onStudentClick) }
     }
 }
 
@@ -228,7 +336,15 @@ private fun periodKindLabel(kind: ReportPeriod.Kind): Int = when (kind) {
 private fun hoursStat(minutes: Int): Stat =
     Stat(label = stringResource(R.string.stat_hours), value = formatHours(minutes))
 
-/** The screen's answer, in the loudest colour it has: what the chosen period earned. */
+/**
+ * The screen's answer, in the loudest colour it has: what the chosen period earned — and whether that
+ * is more or less than last time.
+ *
+ * The comparison is the line that turns the number into an answer. This screen's whole purpose is
+ * "how am I doing", and «45 000 BYN» on its own does not address it: without a baseline the biggest
+ * figure on the screen is a fact the tutor still has to interpret. One signed percentage, naming the
+ * period it is measured against, is the cheapest thing that closes the gap.
+ */
 @Composable
 private fun IncomeCard(state: ReportsState) {
     Card(
@@ -239,11 +355,60 @@ private fun IncomeCard(state: ReportsState) {
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(Modifier.padding(20.dp)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(stringResource(R.string.reports_total_income), style = MaterialTheme.typography.labelMedium)
             Text(state.totalIncome.text(), style = MaterialTheme.typography.headlineMedium)
+            ComparisonLine(state)
         }
     }
+}
+
+/** «+12 % к периоду "Июнь 2026"», or a note that there is nothing to compare against. */
+@Composable
+private fun ColumnScope.ComparisonLine(state: ReportsState) {
+    val change = state.change ?: return
+    val previous = state.previousPeriod ?: return
+    val previousName = periodTitle(previous)
+    val text = when (change) {
+        Reports.Change.NoBaseline -> stringResource(R.string.reports_vs_previous_from_zero, previousName)
+        is Reports.Change.Percent -> stringResource(
+            R.string.reports_vs_previous,
+            signedPercent(change.value),
+            previousName,
+        )
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+        // An arrow only where there is a direction: "the previous period earned nothing" has none,
+        // and an upward arrow beside it would be asserting growth the app just declined to measure.
+        if (change is Reports.Change.Percent && change.value != 0) {
+            Icon(
+                if (change.value > 0) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(4.dp))
+        }
+        Text(
+            text,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
+ * A percentage with its sign, using a real minus (−, U+2212) rather than a hyphen.
+ *
+ * The card's headline is set in a proportional face at 28sp; a hyphen beside it is a short mark at
+ * roughly x-height and reads as a dash, not as "less than". Money is the one place on the screen
+ * where the difference between −8 % and 8 % is the entire message.
+ */
+@Composable
+private fun signedPercent(value: Int): String = when {
+    value > 0 -> stringResource(R.string.reports_percent_signed_up, value)
+    value < 0 -> stringResource(R.string.reports_percent_signed_down, -value)
+    else -> stringResource(R.string.reports_percent_signed_same)
 }
 
 /**
@@ -411,7 +576,7 @@ private fun RankedBar(fraction: Float, modifier: Modifier = Modifier) {
  * would dress up the thing to act on as a statistic.
  */
 @Composable
-private fun DebtsCard(state: ReportsState) {
+private fun DebtsCard(state: ReportsState, onStudentClick: (Long) -> Unit) {
     ReportCard(stringResource(R.string.reports_debts)) {
         Text(
             stringResource(R.string.reports_debts_all_time),
@@ -431,43 +596,71 @@ private fun DebtsCard(state: ReportsState) {
             amount = state.totalOutstanding.text(),
             bold = true,
         )
-        state.debts.forEach {
-            AmountRow(it.label, it.amount.text(), color = MaterialTheme.colorScheme.error)
+        // Every row opens the person who owes. Reading a name here and then going to find them by
+        // hand — through a list that could not be searched or sorted by debt — was the longest
+        // journey in the app, between two screens that are one tap apart.
+        state.debts.forEach { debt ->
+            AmountRow(
+                label = debt.label,
+                amount = debt.amount.text(),
+                color = MaterialTheme.colorScheme.error,
+                onClick = debt.studentId?.let { id -> { onStudentClick(id) } },
+            )
         }
     }
 }
 
-/** A titled surface for one section of the report. */
+/**
+ * A titled surface for one section of the report.
+ *
+ * A *section*, so it sits on `surfaceContainer` — one rung above the item cards elsewhere in the app
+ * (see [com.seblful.klas.ui.common.SectionCard]). The title needs no explicit weight now that the
+ * type scale states `titleSmall` as semi-bold like the titles above it.
+ */
 @Composable
 private fun ReportCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-    ) {
+    SectionCard {
         Column(
             Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
+            Text(title, style = MaterialTheme.typography.titleSmall)
             content()
         }
     }
 }
 
-/** A label on the left, its amount on the right — the shape every number on this screen is read in. */
+/**
+ * A label on the left, its amount on the right — the shape every number on this screen is read in.
+ *
+ * @param onClick makes the row a target. Only the debts pass one: those name a person to go and talk
+ *   to, while «Июль · 12 400» names a month, which is not somewhere to be taken. A row that leads
+ *   somewhere gets a chevron and a full-height touch target so it says so before it is tapped.
+ */
 @Composable
 private fun AmountRow(
     label: String,
     amount: String,
     bold: Boolean = false,
     color: Color = Color.Unspecified,
+    onClick: (() -> Unit)? = null,
 ) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .then(
+                if (onClick != null) {
+                    Modifier
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable(onClick = onClick)
+                        .heightIn(min = MinTouchTarget)
+                        .padding(horizontal = 4.dp)
+                } else {
+                    Modifier
+                }
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
             label,
             style = MaterialTheme.typography.bodyMedium,
@@ -482,6 +675,14 @@ private fun AmountRow(
             fontWeight = if (bold) FontWeight.Bold else FontWeight.Medium,
             color = color,
         )
+        if (onClick != null) {
+            Icon(
+                Icons.Filled.ChevronRight,
+                contentDescription = stringResource(R.string.reports_open_student),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+        }
     }
 }
 

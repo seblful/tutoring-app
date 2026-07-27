@@ -39,7 +39,6 @@ class SettingsViewModelTest {
         vm.update { it.copy(currency = "RUB") }
         vm.update { it.copy(defaultGroupPriceMinor = 2000) }
         vm.update { it.copy(notificationsEnabled = false) }
-        vm.update { it.copy(showGroupsTab = false) }
         advanceUntilIdle()
 
         val s = env.settingsRepo.get()
@@ -50,7 +49,6 @@ class SettingsViewModelTest {
         assertEquals("RUB", s.currency)
         assertEquals(2000L, s.defaultGroupPriceMinor)
         assertFalse(s.notificationsEnabled)
-        assertFalse(s.showGroupsTab)
     }
 
     @Test
@@ -68,24 +66,6 @@ class SettingsViewModelTest {
         vm.update { it.copy(defaultGroupPriceMinor = 0) }
         advanceUntilIdle()
         assertEquals(0L, env.settingsRepo.get().defaultGroupPriceMinor)
-    }
-
-    @Test
-    fun `the groups tab is on by default and switching it back on sticks`() = runTest(mainRule.dispatcher) {
-        val vm = vm()
-        observing(vm.state)
-        advanceUntilIdle()
-
-        assertTrue("a fresh install shows the tab", vm.state.value.showGroupsTab)
-
-        vm.update { it.copy(showGroupsTab = false) }
-        advanceUntilIdle()
-        assertFalse(vm.state.value.showGroupsTab)
-
-        vm.update { it.copy(showGroupsTab = true) }
-        advanceUntilIdle()
-        assertTrue(vm.state.value.showGroupsTab)
-        assertTrue(env.settingsRepo.get().showGroupsTab)
     }
 
     @Test

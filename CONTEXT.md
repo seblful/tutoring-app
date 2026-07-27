@@ -310,23 +310,56 @@ transaction and the write lock is held for less time.
   module behind them, because a `@Composable` can only be exercised on a device: `ClassFormState`
   answers every question the booking form has, `MoneyField` answers what a money input is, `leaveIntent`
   answers what back does, `Maintenance`/`CrashLogger` hold what the workers used to decide inline.
-- **A refusal is said out loud.** View models report one-shot outcomes through `UiEvents` rather than
-  failing silently. The exception is `ScheduleViewModel.moveConflict`, which is state because it must
+- **A refusal is said out loud, and always the same way** (`ui/common/Messages`). View models report
+  one-shot outcomes through `UiEvents`; screens show them through **one** snackbar helper. There is no
+  `android.widget.Toast` in the app and no reason to add one: a toast ignores the theme, floats over the
+  bottom bar, and cannot carry an action — which is the point, since a message like «нельзя убрать
+  предмет: есть занятия» names something to go and look at and can offer «Показать» beside it. The
+  exception to the one-shot rule is `ScheduleViewModel.timeConflict`, which is state because it must
   survive a rotation.
-- **The bottom bar reads who → when → money**: «Ученики», «Группы», «Расписание», «Отчёты», «Ещё».
-  The app still *opens* on the schedule. «Группы» is the one tab that can be switched off, which moves
-  the section into «Ещё» rather than removing it; bar contents and "is this route a tab" derive from one
-  place. Labels shrink a step at a time rather than wrapping or being cut.
+- **An empty list carries the way out of itself** (`ui/common/EmptyState`): an icon, a line saying what
+  would be here, and — where there is one obvious thing to do — that action as a real button. A tutor who
+  skipped onboarding meets several in a row, so "a screen of grey text" is the app's whole first
+  impression. A list that is empty because *nothing matched a search* says so instead and offers nothing:
+  that is a typo to fix, not an invitation.
+- **The bottom bar reads who → when → money**: «Люди», «Расписание», «Отчёты», «Ещё». The app still
+  *opens* on the schedule. **Students and groups are one tab** with a segmented control inside it
+  (`ui/people/PeopleScreen`) — a group *is* students seen as a roster, so it was never a separate place.
+  That merge deleted a settings switch, a conditional entry in «Ещё», and the visibility plumbing that
+  existed so hiding a tab would not hide a section or leave the bar with nothing selected;
+  `TopDestination.entries` is now simply the tabs. (The `showGroupsTab` **column** survives in
+  `SettingsEntity`, written with its default and read by nothing: SQLite gained `DROP COLUMN` in 3.35 —
+  Android 12 — and this app supports API 24, so removing it means rebuilding the table under a migration.
+  `AppSettings` has dropped it, so nothing above the DAO can reach it.) Labels shrink a step at a time
+  rather than wrapping or being cut.
 - **Today rolls over at midnight.** The screen used to read `LocalDate.now()` in its own body, evaluated
   per composition and never again, so an app left open overnight went on marking yesterday. It now comes
   from a flow that sleeps until the next local midnight and re-reads an injected `Clock` — which is what
   makes the boundary testable, since `advanceTimeBy` moves virtual time and `now()` knows nothing of it.
   A test collecting it must advance by a stated amount: a clock has no last emission, so
   `advanceUntilIdle()` never returns.
-- **The schedule has three views.** Day and month both show one selected day; week always lists the
-  whole week. Paging only *browses* — it never moves the selection, and opening a view snaps back to it.
-  A calendar cell shows **one count per status**, so a mixed day states its makeup. Both the markers and
-  the lessons are queried for the **active view's range only**, so no off-screen view holds a live query.
+- **The schedule has three views**, picked with a segmented control rather than an unlabelled icon that
+  opened a menu — one tap instead of two, and the control is its own label. Day and month both show one
+  selected day; week always lists the whole week. Paging only *browses* — it never moves the selection,
+  and opening a view snaps back to it. A calendar cell shows **one count per status**, so a mixed day
+  states its makeup. Both the markers and the lessons are queried for the **active view's range only**,
+  so no off-screen view holds a live query.
+- **A cancelled lesson recedes.** It renders dimmed with its time struck through, because the question a
+  glance at the schedule answers is "how full is this day" — and a day of four lessons and three
+  cancellations used to look full, the badge being the only difference.
+- **Marking a lesson completed is one swipe.** It is the highest-frequency action in the product and cost
+  two taps and a sheet. The gesture is offered only where completing is legal (`GroupRules.
+  sessionTransitions`, the same rule the sheet is built from) and the row springs back rather than
+  staying dismissed — nothing is being removed, and the status badge is the confirmation.
+- **A lesson is booked by its length, not its end time.** The form asks «Длительность» as chips seeded
+  from the tutor's default, with «Другая» keeping the clock picker; the end time is still what gets
+  stored and is shown beside the label as a consequence. "Ends at 15:30" was arithmetic the tutor was
+  being asked to do in their head, through a dial, in a second modal.
+- **Anything hidden behind a tap is drawn as a field** (`ui/common/PickerField`). The booking form used
+  to render date and time as bordered pickers, price and location as bare clickable `Text`, and the
+  group rate as an ordinary text field — the same kind of input, three presentations, two of them with
+  no affordance at all. `PickerField` is a `Surface`, not a disabled `OutlinedTextField` with its colours
+  painted back in: that trick cost the ripple on the app's most-tapped input.
 - **The two lesson-kind icons are one pair, not a ranking** (`ui/common/LessonKindUi`): same brand
   colour, and matched on **ink height** rather than nominal size. `Person` fills 16 of its 24-unit
   viewport vertically and `Groups` only 12, so asking for one size drew the person a third taller; each
@@ -346,7 +379,19 @@ transaction and the write lock is held for less time.
   is *one* lesson of the tutor's, and ran for its own duration. The money is the other way round, summing
   the members' charges. A session counts as taught when **any** of its classes completed, which keeps a
   per-member correction one lesson rather than a lost one. A student's debt tile flips to «Переплата»
-  instead of printing a negative.
+  instead of printing a negative. A student's row holds **three** tiles, not four: on a 360dp phone four
+  leave ~80dp each with an 11sp floor, at which point «1 250,50 BYN» is present but unreadable. Hours
+  ride along as the lesson tile's hint instead.
+- **A student's contacts are actions.** Phone, email and Telegram open the platform's handler; the next
+  thing after "who owes me money" is "message them", and these used to be unselectable labels. Each
+  launch is guarded — a tablet with no dialler must not crash the card.
+- **A payment carries the date it was made**, defaulting to today, and can be **corrected in place**.
+  Both were holes in the money story rather than styling: a tutor writing up the week on Sunday recorded
+  five Sunday payments, and a mistyped amount could only be deleted and re-entered — two writes, a window
+  where the balance is wrong, and a new id for the same money.
+- **A rate's history lives in the reprice dialog**, not under every subject row. On the list it was a
+  28dp toggle (under the 48dp floor) answering a question nobody had asked, costing a line per subject;
+  in the dialog it is the context for the number being typed.
 - **Individual and group lessons are told apart wherever they meet** (`domain/LessonKind`). The schedule
   marks *both* kinds, not only the group ones. A student's lesson list — the one list that genuinely
   mixes them, at two different rates — names the group each lesson was one of, and offers counted chips
@@ -361,7 +406,13 @@ transaction and the write lock is held for less time.
   *largest* row and dropped when a section has only one; **plain text** for totals, counts, per-month
   amounts and debts — a debt is money to collect, not a proportion. A percentage is printed only where
   the rows genuinely partition the income (so not for groups, and not for debts), is integer arithmetic
-  on kopecks, and is **not** forced to add up to 100.
+  on kopecks, and is **not** forced to add up to 100. The total is stated **against the period before
+  it** (`Reports.change`), because "45 000 BYN" is a fact and the screen's question is "how am I doing";
+  growth from a period that earned nothing is reported as having no baseline rather than as «+100 %».
+  Debt rows **navigate to the student** — the most action-shaped list in the app was the one that went
+  nowhere. The report also exports as **CSV** (`domain/ReportCsv`), which a backup is not: semicolons and
+  a BOM, because the audience opens it in Excel in a comma-decimal locale, and amounts are bare decimals
+  so the column can be summed.
 - **Leaving a filled-in form asks first** (`ui/common/UnsavedChanges`). `leaveIntent(dirty, canSave)`
   picks the question: a complete form is offered «Сохранить / Не сохранять», an incomplete one only
   «Не сохранять / Отмена», an untouched one nothing. What counts as *dirty* differs per form on purpose
@@ -369,13 +420,36 @@ transaction and the write lock is held for less time.
   filling itself in (booking). Dialogs get no question, only `dismissOnClickOutside = false`.
 - **First-run onboarding is offered, not imposed**: walk the setup, restore a backup, or skip. Skipping
   is the same flag flip as finishing, so the app may legitimately open empty — every screen has an empty
-  state. Restore ends first run as part of what a restore *is*.
+  state. Restore ends first run as part of what a restore *is*. The welcome screen leads with the mark
+  and three lines of what the app is *for*, and each of the three ways out carries its own one-line
+  consequence; the setup steps are numbered «Шаг N из M» from the enum, so the sequence has a visible
+  end. «Ещё» holds only what a tutor goes looking for — Diagnostics is folded into the foot of Settings,
+  and an About screen states the version and the offline promise the architecture is built around.
 - **Names are ordered in Kotlin, not SQL** (`format/NameOrder`): `COLLATE NOCASE` folds ASCII only, so
   it cannot case-fold Russian. Time and id ordering stays in SQL.
 - **Design system** (`ui/theme/`): curated Material 3 palette (indigo + teal), light/dark, dynamic
-  colour off for a consistent brand. Content lists use `ContentCard`; settings-style lists stay plain
-  `ListItem`s. **Avatar colours key off the student's id, not their name**, so a rename or a typo fix
-  doesn't move them and collisions follow ids rather than the birthday problem.
+  colour off for a consistent brand. **The tonal ladder is stated**, not left to Material's defaults:
+  an *item* sits on `surfaceContainerLow` (`ContentCard`) and the *section* holding items on
+  `surfaceContainer` (`SectionCard`, `StatRow`, a report card). Undefined, those roles fell back to a
+  scheme that is not this one, which is why every card in the app reached for `surfaceVariant` and
+  landed on the same grey — a lesson, the stat strip above it and the section around it were three
+  kinds of thing painted one colour. Settings-style lists stay plain `ListItem`s. **The type scale
+  states every style**, including the ones matching the default: partially overriding it is what left
+  `titleSmall` — every section heading — at the platform weight beside a semi-bold `titleMedium`, so the
+  identity was declared and applied unevenly. `AppFontFamily` is one constant, so a Cyrillic-first face
+  is a one-line swap. **Avatar colours key off the student's id, not their name**, so a rename or a typo
+  fix doesn't move them and collisions follow ids rather than the birthday problem; `AvatarStack` draws
+  a roster as overlapping monograms, because a group of eight printed as names is a paragraph inside a
+  list row.
+- **Anything tappable clears 48dp** (`ui/common/MinTouchTarget`), and the main lists carry
+  `Modifier.animateItem()` — insertions, deletions and re-sorts that snap read as a glitch rather than
+  as a change.
+- **The three list screens can be searched** (`domain/PeopleSearch`, one rule so they cannot disagree):
+  case-insensitive in the Russian locale, substring rather than prefix, and every space-separated term
+  must match in any order, so «пет ив» finds «Иван Петров». Students also sort **by debt** — "who owes me
+  money" is the tutor's most frequent triage question, and it was answerable only on the reports screen.
+  Filtering and sorting happen in the view model, on the computation dispatcher, beside the balance
+  arithmetic they travel with.
 - **Responsive width**: every top-level scrollable applies `Modifier.constrainedContent()` (~600.dp cap,
   centred on wide screens, full-width on phones). Vertical fit comes from every screen scrolling.
 - **`java.time` everywhere** + core-library desugaring, so it works on `minSdk 24`.

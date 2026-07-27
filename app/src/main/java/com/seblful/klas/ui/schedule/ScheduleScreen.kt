@@ -1,8 +1,8 @@
 package com.seblful.klas.ui.schedule
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,24 +14,21 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditCalendar
-import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.EventBusy
+import androidx.compose.material.icons.filled.PersonAddAlt
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -40,10 +37,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -58,6 +62,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -76,6 +81,7 @@ import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatTime
@@ -91,6 +97,7 @@ import java.time.ZoneId
 fun ScheduleScreen(
     onAddClass: () -> Unit,
     onEditClass: (Long) -> Unit,
+    onAddStudent: () -> Unit,
     viewModel: ScheduleViewModel = hiltViewModel(),
 ) {
     // One state for the body: only the active view's lessons are assembled (see ScheduleContent).
@@ -112,37 +119,36 @@ fun ScheduleScreen(
     var movingRow by remember { mutableStateOf<ScheduleRow?>(null) }
     var deletingRow by remember { mutableStateOf<ScheduleRow?>(null) }
 
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val needSetupMsg = stringResource(R.string.schedule_need_setup)
-
     // These actions are tapped in a sheet that closes as they are tapped, so a write that failed would
     // otherwise read as one that had not been tapped at all.
+    val messages = rememberMessages()
     val actionFailedMsg = stringResource(R.string.action_failed)
     LaunchedEffect(Unit) {
-        viewModel.events.stream.collect {
-            android.widget.Toast.makeText(context, actionFailedMsg, android.widget.Toast.LENGTH_LONG).show()
-        }
+        viewModel.events.stream.collect { messages.show(actionFailedMsg) }
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.schedule_title)) },
-                actions = {
-                    ViewModePicker(selected = viewMode, onSelect = viewModel::setViewMode)
-                },
-            )
-        },
+        snackbarHost = { SnackbarHost(messages.hostState) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.schedule_title)) }) },
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                if (canAddClass) onAddClass()
-                else android.widget.Toast.makeText(context, needSetupMsg, android.widget.Toast.LENGTH_LONG).show()
-            }) {
-                Icon(Icons.Filled.Add, stringResource(R.string.action_add))
+            // Hidden rather than shown-and-refusing. It used to be always present: with no students
+            // it looked enabled, popped a toast naming what was missing, and left the tutor to go and
+            // find it — a control whose only behaviour is to decline. The empty state below carries
+            // the same information *and* the way out of it.
+            if (canAddClass) {
+                FloatingActionButton(onClick = onAddClass) {
+                    Icon(Icons.Filled.Add, stringResource(R.string.action_add))
+                }
             }
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).constrainedContent()) {
+            // Which view, said out loud. It used to hide behind an unlabelled calendar icon that
+            // opened a menu — two taps to switch, and the icon never told you which of the three you
+            // were in. A segmented control is one tap and is its own label; the app already picks
+            // this way in Settings.
+            ViewModeSelector(selected = viewMode, onSelect = viewModel::setViewMode)
+
             // The navigator stays pinned in every mode, so paging is always one tap away.
             when (viewMode) {
                 ScheduleViewMode.DAY -> {
@@ -175,7 +181,14 @@ fun ScheduleScreen(
             ) {
                 when (viewMode) {
                     // The day list stands alone under its stepper.
-                    ScheduleViewMode.DAY -> dayList(content.rows, onRowClick = { sheetFor = it })
+                    ScheduleViewMode.DAY -> dayList(
+                        rows = content.rows,
+                        canAddClass = canAddClass,
+                        onRowClick = { sheetFor = it },
+                        onComplete = { viewModel.setStatus(it.session, ClassStatus.COMPLETED) },
+                        onAddClass = onAddClass,
+                        onAddStudent = onAddStudent,
+                    )
 
                     // A whole week at once: the strip is an overview and a day picker for the add
                     // button, while the agenda below always shows every day that has classes.
@@ -196,8 +209,9 @@ fun ScheduleScreen(
                         if (content.sections.isEmpty()) {
                             item(key = "empty") {
                                 EmptyState(
-                                    stringResource(R.string.schedule_week_empty),
-                                    Modifier.heightIn(min = 200.dp),
+                                    title = stringResource(R.string.schedule_week_empty),
+                                    icon = Icons.Filled.EventBusy,
+                                    modifier = Modifier.heightIn(min = 200.dp),
                                 )
                             }
                         } else {
@@ -206,9 +220,12 @@ fun ScheduleScreen(
                                     DaySectionHeader(section.date, isSelected = section.date == date)
                                 }
                                 items(section.rows, key = { it.klass.id }) { row ->
-                                    ScheduleCard(
+                                    SwipeToCompleteCard(
                                         row = row,
                                         onClick = { sheetFor = row },
+                                        onComplete = {
+                                            viewModel.setStatus(row.session, ClassStatus.COMPLETED)
+                                        },
                                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
                                     )
                                 }
@@ -234,7 +251,14 @@ fun ScheduleScreen(
                                 Spacer(Modifier.height(11.dp))
                             }
                         }
-                        dayList(content.rows, onRowClick = { sheetFor = it })
+                        dayList(
+                            rows = content.rows,
+                            canAddClass = canAddClass,
+                            onRowClick = { sheetFor = it },
+                            onComplete = { viewModel.setStatus(it.session, ClassStatus.COMPLETED) },
+                            onAddClass = onAddClass,
+                            onAddStudent = onAddStudent,
+                        )
                     }
                 }
             }
@@ -302,17 +326,49 @@ fun ScheduleScreen(
     }
 }
 
-/** The selected day's classes, or an empty state. Shared by the day and month views. */
-private fun LazyListScope.dayList(rows: List<ScheduleRow>, onRowClick: (ScheduleRow) -> Unit) {
+/**
+ * The selected day's classes, or an empty state. Shared by the day and month views.
+ *
+ * The empty state depends on **why** it is empty. A day with no lessons is an ordinary day and offers
+ * to book one; an app with no students cannot book anything yet, and offers the step that unblocks it
+ * instead of naming it and stopping there.
+ */
+private fun LazyListScope.dayList(
+    rows: List<ScheduleRow>,
+    canAddClass: Boolean,
+    onRowClick: (ScheduleRow) -> Unit,
+    onComplete: (ScheduleRow) -> Unit,
+    onAddClass: () -> Unit,
+    onAddStudent: () -> Unit,
+) {
     if (rows.isEmpty()) {
         item(key = "empty") {
-            EmptyState(stringResource(R.string.schedule_empty), Modifier.heightIn(min = 200.dp))
+            if (canAddClass) {
+                EmptyState(
+                    title = stringResource(R.string.schedule_empty),
+                    detail = stringResource(R.string.schedule_empty_detail),
+                    icon = Icons.Filled.EventBusy,
+                    actionLabel = stringResource(R.string.schedule_add_class),
+                    onAction = onAddClass,
+                    modifier = Modifier.heightIn(min = 260.dp),
+                )
+            } else {
+                EmptyState(
+                    title = stringResource(R.string.schedule_empty_no_setup),
+                    detail = stringResource(R.string.schedule_empty_no_setup_detail),
+                    icon = Icons.Filled.PersonAddAlt,
+                    actionLabel = stringResource(R.string.schedule_add_student),
+                    onAction = onAddStudent,
+                    modifier = Modifier.heightIn(min = 260.dp),
+                )
+            }
         }
     } else {
         items(rows, key = { it.klass.id }) { row ->
-            ScheduleCard(
+            SwipeToCompleteCard(
                 row = row,
                 onClick = { onRowClick(row) },
+                onComplete = { onComplete(row) },
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
             )
         }
@@ -320,24 +376,18 @@ private fun LazyListScope.dayList(rows: List<ScheduleRow>, onRowClick: (Schedule
 }
 
 /** Chooses between the day, week and month views. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ViewModePicker(selected: ScheduleViewMode, onSelect: (ScheduleViewMode) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(Icons.Filled.CalendarMonth, stringResource(R.string.schedule_view_mode))
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            ScheduleViewMode.entries.forEach { mode ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(viewModeLabel(mode))) },
-                    onClick = { onSelect(mode); expanded = false },
-                    trailingIcon = {
-                        // Only the active mode is ticked; the others leave the column empty.
-                        if (mode == selected) Icon(Icons.Filled.Check, contentDescription = null)
-                    },
-                )
-            }
+private fun ViewModeSelector(selected: ScheduleViewMode, onSelect: (ScheduleViewMode) -> Unit) {
+    SingleChoiceSegmentedButtonRow(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+    ) {
+        ScheduleViewMode.entries.forEachIndexed { index, mode ->
+            SegmentedButton(
+                selected = mode == selected,
+                onClick = { onSelect(mode) },
+                shape = SegmentedButtonDefaults.itemShape(index, ScheduleViewMode.entries.size),
+            ) { Text(stringResource(viewModeLabel(mode))) }
         }
     }
 }
@@ -348,14 +398,92 @@ private fun viewModeLabel(mode: ScheduleViewMode): Int = when (mode) {
     ScheduleViewMode.MONTH -> R.string.schedule_view_month
 }
 
+/**
+ * A lesson card that can be marked **completed** with one swipe.
+ *
+ * Marking a lesson done is the highest-frequency action in the product and cost two taps and a sheet,
+ * every time, forever. A gesture on the row makes it one — and the row is exactly where the tutor is
+ * already looking, having just taught it.
+ *
+ * Two deliberate limits:
+ * - **Only where completing is legal.** A lesson already completed, or one whose members are in mixed
+ *   states, gets a plain card: [GroupRules.sessionTransitions] decides, the same rule the sheet's
+ *   actions are built from, so the gesture can never do something the menu would refuse.
+ * - **One direction, and it never sticks.** The row springs back rather than staying dismissed —
+ *   nothing is being removed, and the status badge flipping to «Проведено» is the confirmation. A box
+ *   left in its dismissed state would be a row hidden behind its own background until recomposed.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LazyItemScope.SwipeToCompleteCard(
+    row: ScheduleRow,
+    onClick: () -> Unit,
+    onComplete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val canComplete = ClassStatus.COMPLETED in GroupRules.sessionTransitions(row.session)
+    if (!canComplete) {
+        ScheduleCard(row, onClick, modifier.animateItem())
+        return
+    }
+    val state = rememberSwipeToDismissBoxState(
+        // Returning false is what makes the row spring back: the action has already been fired, and
+        // the settled "dismissed" state would leave a card that is still in the list drawn as gone.
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.StartToEnd) onComplete()
+            false
+        },
+        // Past a third of the width. The default (half) is a long drag for something done this often.
+        positionalThreshold = { total -> total * 0.33f },
+    )
+    SwipeToDismissBox(
+        state = state,
+        modifier = modifier.animateItem(),
+        enableDismissFromEndToStart = false,
+        backgroundContent = {
+            Row(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        MaterialTheme.colorScheme.tertiaryContainer,
+                        MaterialTheme.shapes.medium,
+                    )
+                    .padding(horizontal = 24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Filled.CheckCircle,
+                    contentDescription = stringResource(R.string.class_mark_completed),
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    stringResource(R.string.class_status_completed),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+            }
+        },
+    ) {
+        ScheduleCard(row, onClick)
+    }
+}
+
 @Composable
 private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    ContentCard(onClick = onClick, modifier = modifier) {
+    // A cancelled lesson is a record, not a plan. It used to render at full strength with only its
+    // badge differing, so a day with four lessons and three cancellations looked like a full day —
+    // the one question a glance at the schedule is meant to answer.
+    val cancelled = row.session.commonStatus == ClassStatus.CANCELLED
+    ContentCard(onClick = onClick, modifier = modifier, dimmed = cancelled) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 row.klass.start.formatTime(),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = if (cancelled) MaterialTheme.colorScheme.onSurfaceVariant
+                else MaterialTheme.colorScheme.primary,
+                // Struck through, so the hour reads as one that was given back.
+                textDecoration = if (cancelled) TextDecoration.LineThrough else null,
             )
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
@@ -499,7 +627,6 @@ private fun SelectedDayHeader(date: LocalDate) {
     Text(
         text = date.atStartOfDay(ZoneId.systemDefault()).toInstant().formatDay(),
         style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
     )
@@ -514,7 +641,6 @@ private fun DaySectionHeader(date: LocalDate, isSelected: Boolean) {
     Text(
         text = date.atStartOfDay(ZoneId.systemDefault()).toInstant().formatDay(),
         style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.SemiBold,
         color = if (isSelected) {
             MaterialTheme.colorScheme.primary
         } else {
@@ -525,7 +651,12 @@ private fun DaySectionHeader(date: LocalDate, isSelected: Boolean) {
 }
 
 /**
- * What can be done to the lesson that was tapped: edit it, move it, change its status, delete it.
+ * What can be done to the lesson that was tapped: change its status, edit it, move it, delete it.
+ *
+ * **Status comes first and is a control, not a list of verbs.** It is the most common reason the sheet
+ * is open by a wide margin, and it used to be one or two ordinary rows in the middle of a flat menu,
+ * indistinguishable from «Перенести» — so the sheet answered "what can I do" without answering "what
+ * is this lesson now".
  *
  * Every action is the **whole lesson's**, a group's included. The sheet deliberately does not list
  * the members: who a lesson covers is picked while booking it, on the form, and a menu that changes
@@ -564,22 +695,18 @@ private fun ClassActionsSheet(
                 }
                 SessionStatusBadge(row)
             }
+
+            // The lesson's state, as a state: every status it can be in, with the current one shown
+            // selected. Offering only the transitions (as a list of actions did) meant the sheet never
+            // said what the lesson *is* — the tutor had to infer it from which verbs were absent.
+            StatusSelector(row = row, onStatus = onStatus)
+
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
             // Editing details (student/subject/price) is allowed in any status; saving a completed
             // class re-bills it so its recognized income tracks the edit (see ClassRules.rebill).
             // A group lesson edits as a whole — every member's class moves and re-bills together.
             SheetAction(stringResource(R.string.action_edit), Icons.Filled.Edit, onClick = onEdit)
-            // Offer only the statuses this lesson can move to — never one it is already wholly in.
-            // For a group, that is the union across its members, and the change is applied to the
-            // members it is legal for (see GroupRules.applicableTo).
-            GroupRules.sessionTransitions(row.session).forEach { target ->
-                SheetAction(
-                    stringResource(statusActionLabel(target)),
-                    statusActionIcon(target),
-                    onClick = { onStatus(target) },
-                )
-            }
             // Move (reschedule) is offered for any status: moving a lesson to the future re-plans it,
             // moving it to the past just corrects its recorded time. A group lesson moves as one.
             SheetAction(stringResource(R.string.class_move), Icons.Filled.EditCalendar, onClick = onMove)
@@ -597,16 +724,41 @@ private fun ClassActionsSheet(
     }
 }
 
-private fun statusActionLabel(status: ClassStatus): Int = when (status) {
-    ClassStatus.COMPLETED -> R.string.class_mark_completed
-    ClassStatus.CANCELLED -> R.string.class_mark_cancelled
-    ClassStatus.SCHEDULED -> R.string.class_mark_scheduled
-}
-
-private fun statusActionIcon(status: ClassStatus): ImageVector = when (status) {
-    ClassStatus.COMPLETED -> Icons.Filled.CheckCircle
-    ClassStatus.CANCELLED -> Icons.Filled.Cancel
-    ClassStatus.SCHEDULED -> Icons.Filled.Event
+/**
+ * The lesson's status as a segmented control.
+ *
+ * Shows all three, with the lesson's own selected — so the sheet states the fact as well as offering
+ * the change. Only the statuses [GroupRules.sessionTransitions] allows are tappable, which is the
+ * same rule the old action rows were built from: a group whose members disagree offers the union, and
+ * the change is applied to the members it is legal for.
+ *
+ * A session in **mixed** states matches no segment, and correctly shows none selected — «разные» is
+ * not a status a lesson can be set to, only one it can be found in.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StatusSelector(row: ScheduleRow, onStatus: (ClassStatus) -> Unit) {
+    val current = row.session.commonStatus
+    val allowed = GroupRules.sessionTransitions(row.session)
+    Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
+        Text(
+            stringResource(R.string.class_status_label),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 6.dp),
+        )
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            ClassStatus.entries.forEachIndexed { index, status ->
+                SegmentedButton(
+                    selected = status == current,
+                    onClick = { onStatus(status) },
+                    enabled = status in allowed,
+                    shape = SegmentedButtonDefaults.itemShape(index, ClassStatus.entries.size),
+                    icon = { SegmentedButtonDefaults.Icon(active = status == current) },
+                ) { Text(classStatusLabel(status)) }
+            }
+        }
+    }
 }
 
 @Composable

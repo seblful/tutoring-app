@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -36,6 +37,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
@@ -45,6 +47,7 @@ import com.seblful.klas.R
 import com.seblful.klas.format.formatDateTime
 import com.seblful.klas.format.formatHours
 import com.seblful.klas.ui.common.Avatar
+import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.RateHistoryList
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatRow
@@ -188,8 +191,15 @@ private fun GroupHeader(
         if (group.note.isNotBlank()) {
             Text(group.note, style = MaterialTheme.typography.bodyMedium)
         }
+        // Held to the 48dp floor: this measured about 28dp, which is under the minimum for anything
+        // tappable — and it is the only control in the header.
         Row(
-            Modifier.fillMaxWidth().clickable(onClick = onToggleHistory).padding(vertical = 4.dp),
+            Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.small)
+                .clickable(onClick = onToggleHistory)
+                .heightIn(min = MinTouchTarget)
+                .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -251,7 +261,7 @@ private fun LazyListScope.studentsTab(state: GroupDetailState, onMemberClick: (L
                     contentDescription = stringResource(R.string.group_member_open),
                 )
             },
-            modifier = Modifier.clickable { onMemberClick(row.student.id) },
+            modifier = Modifier.clickable { onMemberClick(row.student.id) }.animateItem(),
         )
     }
 }
@@ -288,7 +298,7 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
                 }
             },
             trailingContent = { if (!row.charge.isZero) Text(row.charge.text()) },
-            modifier = Modifier.clickable { onLessonClick(row.session.first.id) },
+            modifier = Modifier.clickable { onLessonClick(row.session.first.id) }.animateItem(),
         )
     }
 }

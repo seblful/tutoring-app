@@ -167,6 +167,41 @@ object Reports {
             .filterNot { it.total.isZero }
             .sortedByDescending { it.total.minor }
 
+    /**
+     * How this period's income compares with the period before it.
+     *
+     * The reports screen exists to answer "how am I doing", and a bare «45 000 BYN» does not: without
+     * something to hold it against, the biggest number on the screen is a fact and not an answer. One
+     * signed percentage is the cheapest thing that turns it into one.
+     *
+     * Integer arithmetic on minor units throughout, for the reason [percentOf] gives.
+     */
+    sealed interface Change {
+
+        /**
+         * The period before earned nothing, so there is no ratio to state. Deliberately not "+100 %"
+         * or "+∞": growth from zero is not a percentage, and printing one would be arithmetic
+         * theatre. The screen says the previous period was empty instead, which is the actual news.
+         */
+        data object NoBaseline : Change
+
+        /** Signed: positive for more than last time, negative for less, zero for level. */
+        data class Percent(val value: Int) : Change
+    }
+
+    /**
+     * [current] against [previous]. Null when there is nothing to compare against — all time has no
+     * period before it.
+     */
+    fun change(current: Money, previous: Money?): Change? {
+        if (previous == null) return null
+        if (previous.minor <= 0) return Change.NoBaseline
+        val delta = current.minor - previous.minor
+        // Rounded away from zero at the half, so a 0.5 % rise reads as 1 % rather than as no change.
+        val magnitude = (kotlin.math.abs(delta) * 100 + previous.minor / 2) / previous.minor
+        return Change.Percent(if (delta < 0) (-magnitude).toInt() else magnitude.toInt())
+    }
+
     /** Students with a positive balance (owe money), largest debt first. */
     fun debts(balances: List<StudentBalance>): List<Debt> =
         balances.filter { it.balance.minor > 0 }

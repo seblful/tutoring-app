@@ -7,6 +7,7 @@ import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.toDomain
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.model.ClassMode
@@ -16,6 +17,7 @@ import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -241,14 +243,58 @@ class StudentDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        vm.addPayment(Money.ZERO)
+        vm.addPayment(Money.ZERO, Instant.now())
         advanceUntilIdle()
         assertTrue(env.paymentDao.items.value.isEmpty())
 
-        vm.addPayment(Money.ofMajor(10))
+        vm.addPayment(Money.ofMajor(10), Instant.now())
         advanceUntilIdle()
         assertEquals(1, env.paymentDao.items.value.size)
     }
+
+    @Test
+    fun `a payment is recorded on the day it was made, not the day it was typed`() =
+        runTest(mainRule.dispatcher) {
+            val sid = seedStudent()
+            val vm = vm(sid)
+            observing(vm.state)
+            advanceUntilIdle()
+
+            // "She paid me last Tuesday", written up on Sunday. The amount was always recordable;
+            // the date was not — every payment used to be stamped with the moment it was entered.
+            val lastTuesday = Instant.now().minus(5, ChronoUnit.DAYS)
+            vm.addPayment(Money.ofMajor(40), lastTuesday)
+            advanceUntilIdle()
+
+            assertEquals(
+                lastTuesday.toEpochMilli(),
+                env.paymentDao.items.value.single().dateMillis,
+            )
+        }
+
+    @Test
+    fun `editing a payment corrects the row rather than replacing it`() =
+        runTest(mainRule.dispatcher) {
+            val sid = seedStudent()
+            val vm = vm(sid)
+            observing(vm.state)
+            advanceUntilIdle()
+
+            val recordedOn = Instant.now().minus(3, ChronoUnit.DAYS)
+            vm.addPayment(Money.ofMajor(40), recordedOn)
+            advanceUntilIdle()
+            val original = env.paymentDao.items.value.single()
+
+            // A mistyped amount used to mean deleting the payment and entering it again — two writes,
+            // a window where the balance is wrong, and a new id for the same money.
+            vm.editPayment(original.toDomain(), Money.ofMajor(45), recordedOn)
+            advanceUntilIdle()
+
+            val corrected = env.paymentDao.items.value.single()
+            assertEquals("the same row", original.id, corrected.id)
+            assertEquals(Money.ofMajor(45).minor, corrected.amountMinor)
+            assertEquals("the date was left alone", recordedOn.toEpochMilli(), corrected.dateMillis)
+        }
 
     @Test
     fun `editStudent trims fields and ignores a blank name`() = runTest(mainRule.dispatcher) {
@@ -445,7 +491,7 @@ class StudentDetailViewModelTest {
 
         mainRule.appScope.cancel()
 
-        vm.addPayment(Money.ofMajor(50))
+        vm.addPayment(Money.ofMajor(50), Instant.now())
         vm.editStudent("Анна", "", "", "", ClassMode.IN_PERSON)
         vm.setPrice(subject, Money.ofMajor(40))
         advanceUntilIdle()

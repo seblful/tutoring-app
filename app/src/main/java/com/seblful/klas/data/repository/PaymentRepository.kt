@@ -21,5 +21,14 @@ class PaymentRepository @Inject constructor(
 
     suspend fun add(payment: Payment): Long = dao.insert(payment.toEntity())
 
+    /**
+     * Corrects a payment already recorded — its amount, its date, or both.
+     *
+     * Until this existed, fixing a mistyped amount meant deleting the payment and entering it again:
+     * two writes, a gap in which the student's balance is wrong, and a new id for what is the same
+     * money. A correction is one write that keeps the row.
+     */
+    suspend fun update(payment: Payment) = dao.update(payment.toEntity())
+
     suspend fun delete(payment: Payment) = dao.delete(payment.toEntity())
 }

@@ -4,16 +4,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.SubjectRepository
+import com.seblful.klas.domain.PeopleSearch
 import com.seblful.klas.domain.model.Subject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.seblful.klas.ui.common.UiEvents
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -38,9 +39,19 @@ class SubjectsViewModel @Inject constructor(
 
     val events = UiEvents<Event>()
 
-    val subjects: StateFlow<List<Subject>> = repository.observeAll()
-        .flowOn(computation)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val _query = MutableStateFlow("")
+    val query: StateFlow<String> = _query.asStateFlow()
+
+    val subjects: StateFlow<List<Subject>> =
+        combine(repository.observeAll(), _query) { all, query ->
+            PeopleSearch.filter(all, query) { it.name }
+        }
+            .flowOn(computation)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun setQuery(query: String) {
+        _query.value = query
+    }
 
     fun save(id: Long, name: String) {
         val trimmed = name.trim()

@@ -10,6 +10,7 @@ import com.seblful.klas.domain.Reports
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.testutil.CountingDispatcher
+import com.seblful.klas.testutil.FakeDocumentStore
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
@@ -42,10 +43,13 @@ class ReportsViewModelTest {
      */
     private val thisYear = LocalDate.now(zone).year
 
+    /** The report's CSV export writes here; the report assertions below never touch it. */
+    private val documents = FakeDocumentStore()
+
     private fun vm() =
         ReportsViewModel(
             env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo,
-            mainRule.dispatcher,
+            documents, mainRule.dispatcher,
         )
 
     /** Local midnight on a date, as the millis a class entity stores. */
@@ -384,7 +388,7 @@ class ReportsViewModelTest {
 
             val vm = ReportsViewModel(
                 env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo,
-                counting,
+                documents, counting,
             )
             observing(vm.state)
             advanceUntilIdle()

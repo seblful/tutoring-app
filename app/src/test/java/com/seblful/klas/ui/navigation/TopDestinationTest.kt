@@ -14,26 +14,28 @@ class TopDestinationTest {
     @Test
     fun `the tabs read who, then when, then the money`() {
         assertEquals(
-            listOf(Routes.STUDENTS, Routes.GROUPS, Routes.SCHEDULE, Routes.REPORTS, Routes.MORE),
-            TopDestination.visible(showGroupsTab = true).map { it.route },
+            listOf(Routes.PEOPLE, Routes.SCHEDULE, Routes.REPORTS, Routes.MORE),
+            TopDestination.entries.map { it.route },
         )
     }
 
     @Test
-    fun `switching the groups tab off drops it and leaves the rest in order`() {
-        assertEquals(
-            listOf(Routes.STUDENTS, Routes.SCHEDULE, Routes.REPORTS, Routes.MORE),
-            TopDestination.visible(showGroupsTab = false).map { it.route },
-        )
+    fun `every tab's route is a tab route, and nothing else is`() {
+        assertEquals(TopDestination.entries.map { it.route }.toSet(), TopDestination.routes)
+        // The sub-screens reached from a tab are not tabs: the bar hides for them, which is what
+        // gives them a back arrow instead of a selected tab.
+        listOf(Routes.SUBJECTS, Routes.SETTINGS, Routes.BACKUP, Routes.DIAGNOSTICS, Routes.ABOUT)
+            .forEach { assertFalse(it, it in TopDestination.routes) }
     }
 
+    /**
+     * Groups used to be a tab that could be switched off, which meant the bar, the route set and the
+     * «Ещё» menu all had to agree about a boolean. They are a view inside «Люди» now, so there is no
+     * groups *route* to be a tab at all — this is the tripwire for someone re-adding one without
+     * re-adding the visibility machinery that made it safe.
+     */
     @Test
-    fun `a hidden groups tab is not a tab route, so the bar stays off when it opens from More`() {
-        assertTrue(Routes.GROUPS in TopDestination.routes(showGroupsTab = true))
-        assertFalse(Routes.GROUPS in TopDestination.routes(showGroupsTab = false))
-        // Every other tab is unaffected either way.
-        assertTrue(TopDestination.routes(showGroupsTab = false).containsAll(
-            listOf(Routes.STUDENTS, Routes.SCHEDULE, Routes.REPORTS, Routes.MORE),
-        ))
+    fun `groups is not a top-level destination`() {
+        assertTrue(TopDestination.entries.none { it.route.contains("group") })
     }
 }

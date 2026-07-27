@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.more
 
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -14,6 +13,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -26,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,10 +39,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -52,17 +53,19 @@ import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.toAmountInput
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.text
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onDiagnostics: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settings by viewModel.state.collectAsState()
     val notificationsPermitted by viewModel.notificationsPermitted.collectAsState()
-    val context = LocalContext.current
+    val messages = rememberMessages()
     val deniedMsg = stringResource(R.string.calendar_denied)
     val notificationsBlockedMsg = stringResource(R.string.settings_notifications_blocked)
 
@@ -86,7 +89,7 @@ fun SettingsScreen(
     ) { result ->
         val granted = result.values.isNotEmpty() && result.values.all { it }
         val applied = granted && viewModel.setCalendarSyncEnabled(true) == CalendarSyncToggle.APPLIED
-        if (!applied) Toast.makeText(context, deniedMsg, Toast.LENGTH_SHORT).show()
+        if (!applied) messages.show(deniedMsg)
     }
 
     // The currency the tutor picked but has not yet confirmed — null while nothing is being asked.
@@ -94,6 +97,7 @@ fun SettingsScreen(
     var pendingCurrency by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(messages.hostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
@@ -133,7 +137,7 @@ fun SettingsScreen(
                         } else {
                             // Nothing to request: notifications are off for the whole app in system
                             // settings, which only the tutor can undo, so say so instead of asking.
-                            Toast.makeText(context, notificationsBlockedMsg, Toast.LENGTH_LONG).show()
+                            messages.show(notificationsBlockedMsg)
                         }
                     }
                 },
@@ -215,18 +219,6 @@ fun SettingsScreen(
                 onSet = { minor -> viewModel.update { it.copy(defaultGroupPriceMinor = minor) } },
             )
 
-            SectionHeader(stringResource(R.string.settings_section_menu))
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_groups_tab)) },
-                supportingContent = { Text(stringResource(R.string.settings_groups_tab_desc)) },
-                trailingContent = {
-                    Switch(
-                        checked = settings.showGroupsTab,
-                        onCheckedChange = { on -> viewModel.update { it.copy(showGroupsTab = on) } },
-                    )
-                },
-            )
-
             SectionHeader(stringResource(R.string.settings_section_appearance))
             ChoiceRow(
                 title = stringResource(R.string.settings_theme),
@@ -237,6 +229,17 @@ fun SettingsScreen(
                 ),
                 selected = settings.themeMode,
                 onSelect = { mode -> viewModel.update { it.copy(themeMode = mode) } },
+            )
+
+            // Last, and deliberately dull. Diagnostics used to stand in «Ещё» beside «Настройки» and
+            // «Резервная копия», which put a crash-log viewer at the same level as the things a tutor
+            // uses. It belongs where service tools belong: at the bottom of settings.
+            SectionHeader(stringResource(R.string.settings_section_service))
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.diagnostics_title)) },
+                supportingContent = { Text(stringResource(R.string.diagnostics_desc)) },
+                leadingContent = { Icon(Icons.Filled.BugReport, null) },
+                modifier = Modifier.clickable(onClick = onDiagnostics),
             )
         }
     }
@@ -324,6 +327,11 @@ private fun MoneyRow(
         }
         AlertDialog(
             onDismissRequest = { editing = false },
+            // The rule every dialog the tutor types into follows, and the one place that was missing
+            // it: a stray tap beside the box must not throw away the amount just entered. See
+            // `KeepTypedInput` in ui/common/Components.kt for the reasoning; «Отмена» is still there
+            // for leaving on purpose, and back still closes it.
+            properties = DialogProperties(dismissOnClickOutside = false),
             title = { Text(title) },
             text = {
                 OutlinedTextField(

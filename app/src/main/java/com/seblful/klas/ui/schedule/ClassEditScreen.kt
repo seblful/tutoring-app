@@ -1,30 +1,27 @@
 package com.seblful.klas.ui.schedule
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -38,7 +35,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -49,12 +45,15 @@ import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.LeaveIntent
+import com.seblful.klas.ui.common.MemberPickRow
 import com.seblful.klas.ui.common.ModeSelector
+import com.seblful.klas.ui.common.PickerField
 import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.UnsavedChangesDialog
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.leaveIntent
+import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.formatTime
@@ -71,9 +70,10 @@ fun ClassEditScreen(
     val state by viewModel.state.collectAsState()
     val form = state.form
     val members = state.members
+    val durations by viewModel.durationOptions.collectAsState()
 
     // A save can still be refused after the button was enabled — say so rather than doing nothing.
-    val context = LocalContext.current
+    val messages = rememberMessages()
     val timeTakenMsg = stringResource(R.string.class_save_refused_time_taken)
     val noMembersMsg = stringResource(R.string.class_group_no_members_left)
     val saveFailedMsg = stringResource(R.string.save_failed)
@@ -84,7 +84,7 @@ fun ClassEditScreen(
                 ClassEditViewModel.Event.SAVE_REFUSED_NO_MEMBERS -> noMembersMsg
                 ClassEditViewModel.Event.SAVE_FAILED -> saveFailedMsg
             }
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            messages.show(message)
         }
     }
 
@@ -113,6 +113,7 @@ fun ClassEditScreen(
     BackHandler(enabled = state.isDirty) { requestLeave() }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(messages.hostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -204,27 +205,36 @@ fun ClassEditScreen(
                 )
             }
 
-            PickerField(
-                value = form.date?.let { it.atStartOfDay(ZoneId.systemDefault()).toInstant().formatDate() } ?: "",
-                label = stringResource(R.string.class_date_label),
-                onClick = { showDatePicker = true },
-            )
-
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                PickerField(
+                    value = form.date?.let {
+                        it.atStartOfDay(ZoneId.systemDefault()).toInstant().formatDate()
+                    } ?: "",
+                    label = stringResource(R.string.class_date_label),
+                    placeholder = stringResource(R.string.class_pick_date),
+                    onClick = { showDatePicker = true },
+                    modifier = Modifier.weight(1.4f),
+                )
                 PickerField(
                     value = form.timeFrom?.formatHm() ?: "",
                     label = stringResource(R.string.class_time_from_label),
+                    placeholder = stringResource(R.string.class_pick_time),
                     onClick = { showFromPicker = true },
                     modifier = Modifier.weight(1f),
                 )
-                PickerField(
-                    value = form.timeTo?.formatHm() ?: "",
-                    label = stringResource(R.string.class_time_to_label),
-                    onClick = { showToPicker = true },
-                    enabled = form.timeFrom != null,
-                    modifier = Modifier.weight(1f),
-                )
             }
+
+            // How long, not when it ends. The end time is still what gets stored and is still
+            // editable through «Другая» — but the question the form asks is the one the tutor
+            // already has an answer to.
+            DurationPicker(
+                options = durations,
+                selected = form.durationMinutes,
+                endsAt = form.timeTo?.formatHm(),
+                enabled = form.timeFrom != null,
+                onSelect = viewModel::setDuration,
+                onCustom = { showToPicker = true },
+            )
 
             // Why the time won't do — said here rather than left to a greyed-out save button.
             state.timeProblem?.let { problem ->
@@ -262,20 +272,16 @@ fun ClassEditScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                    // The same row the group form's roster picker uses (see [MemberPickRow]) —
+                    // avatar, tinted while selected, one tap target. The two lists used to disagree:
+                    // picking who is in a group looked one way, picking who was at a lesson looked
+                    // like a bare name and a checkbox, and they are the same act.
                     members.forEach { student ->
-                        val included = student.id !in form.excludedMemberIds
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .toggleable(
-                                    value = included,
-                                    onValueChange = { on -> viewModel.setMemberIncluded(student.id, on) },
-                                ),
-                        ) {
-                            Text(student.name, Modifier.weight(1f))
-                            Checkbox(checked = included, onCheckedChange = null)
-                        }
+                        MemberPickRow(
+                            student = student,
+                            selected = student.id !in form.excludedMemberIds,
+                            onToggle = { on -> viewModel.setMemberIncluded(student.id, on) },
+                        )
                     }
                     if (state.allMembersExcluded) {
                         Text(
@@ -297,7 +303,10 @@ fun ClassEditScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             } else if (showPriceField) {
-                // Price is hidden behind its current value (like the location row); tap to edit.
+                // Price is pre-filled from the student's rate and usually right, so it stays folded
+                // until tapped — but as a *field*, not as a line of text. It used to render as a bare
+                // clickable `Text` directly beneath five bordered fields, which is the same input
+                // drawn three different ways on one form: an ordinary field, a picker, and a label.
                 OutlinedTextField(
                     value = form.price.text,
                     onValueChange = { text -> viewModel.update { it.copy(price = it.price.typed(text)) } },
@@ -308,13 +317,11 @@ fun ClassEditScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             } else {
-                Text(
-                    text = "${stringResource(R.string.price_label)}: " +
-                        (form.price.amount?.text() ?: stringResource(R.string.price_not_set)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showPriceField = true }
-                        .padding(vertical = 12.dp),
+                PickerField(
+                    value = form.price.amount?.text() ?: "",
+                    label = stringResource(R.string.price_label),
+                    placeholder = stringResource(R.string.price_not_set),
+                    onClick = { showPriceField = true },
                 )
             }
 
@@ -325,13 +332,11 @@ fun ClassEditScreen(
                     onSelect = { selected -> viewModel.update { it.copy(mode = selected) } },
                 )
             } else {
-                // Hidden by default; tap the current value to reveal the selector.
-                Text(
-                    text = "${stringResource(R.string.class_location_label)}: ${classModeLabel(form.mode)}",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showModeSelector = true }
-                        .padding(vertical = 12.dp),
+                // Folded away like the price, and now drawn like it too.
+                PickerField(
+                    value = classModeLabel(form.mode),
+                    label = stringResource(R.string.class_location_label),
+                    onClick = { showModeSelector = true },
                 )
             }
         }
@@ -419,33 +424,70 @@ private fun TargetSelector(selected: ClassTarget, onSelect: (ClassTarget) -> Uni
 }
 
 /**
- * A non-editable field that opens a picker when tapped. Unlike a plain disabled field, its text and
- * border keep their normal (non-faded) colours, so a chosen value reads as a real selection.
+ * How long the lesson runs, as chips.
+ *
+ * The chips are the primary answer and «Другая» keeps the clock picker for the rest — a 50-minute
+ * lesson is unusual, not impossible. The end time is shown beside the label rather than as a field of
+ * its own: it is now a *consequence* of the choice, worth confirming and not worth a picker.
+ *
+ * Disabled until a start is chosen, because a duration with nothing to count from means nothing. The
+ * label carries the state; the chips simply stop responding.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PickerField(
-    value: String,
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
+private fun DurationPicker(
+    options: List<Int>,
+    selected: Int?,
+    endsAt: String?,
+    enabled: Boolean,
+    onSelect: (Int) -> Unit,
+    onCustom: () -> Unit,
 ) {
-    Box(modifier.fillMaxWidth().let { if (enabled) it.clickable { onClick() } else it }) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = {},
-            readOnly = true,
-            enabled = false, // disabled so the Box catches the tap; colours below undo the fade
-            label = { Text(label) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            ),
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(R.string.class_duration_label),
+                style = MaterialTheme.typography.labelLarge,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (enabled && endsAt != null) {
+                Text(
+                    " · " + stringResource(R.string.class_duration_ends_at, endsAt),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            options.forEach { minutes ->
+                FilterChip(
+                    selected = enabled && minutes == selected,
+                    onClick = { onSelect(minutes) },
+                    enabled = enabled,
+                    label = { Text(durationLabel(minutes)) },
+                )
+            }
+            // Selected when the chosen length is not one of the offered ones — otherwise editing a
+            // lesson booked at 50 minutes would show no chip lit and look like nothing was set.
+            FilterChip(
+                selected = enabled && selected != null && selected !in options,
+                onClick = onCustom,
+                enabled = enabled,
+                label = { Text(stringResource(R.string.class_duration_custom)) },
+            )
+        }
     }
 }
 
-// DropdownField now lives in ui/common/Components.kt — the group form picks a subject the same way.
+/** «1 ч», «1,5 ч», «45 мин» — whole and half hours read better than a minute count. */
+@Composable
+private fun durationLabel(minutes: Int): String = when (minutes) {
+    60 -> stringResource(R.string.hours_one)
+    90 -> stringResource(R.string.hours_one_and_half)
+    120 -> stringResource(R.string.hours_two)
+    else -> stringResource(R.string.minutes_short, minutes)
+}
+
+// PickerField and DropdownField live in ui/common/Components.kt — every screen that hides a value
+// behind a tap has to draw it the same way, which is exactly what this form was not doing.

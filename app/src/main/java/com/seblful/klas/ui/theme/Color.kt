@@ -35,6 +35,23 @@ val md_onSurfaceVariant = Color(0xFF46464F)
 val md_outline = Color(0xFF777680)
 val md_outlineVariant = Color(0xFFC7C5D0)
 
+/*
+ * The tonal ladder — the surfaces a card is drawn on, from the page upward.
+ *
+ * Left undefined, every one of these falls back to a Material default derived from a palette that is
+ * not this one, which is why every card in the app was reaching for `surfaceVariant` and landing on
+ * the same grey: a lesson row, the stat strip above it and the report section holding it were three
+ * different *kinds* of thing painted one colour, so the screen had no hierarchy to read. Stated here,
+ * they give one: items sit on `surfaceContainerLow`, the sections that hold them on `surfaceContainer`.
+ */
+val md_surfaceDim = Color(0xFFDBD9E0)
+val md_surfaceBright = Color(0xFFFBF8FF)
+val md_surfaceContainerLowest = Color(0xFFFFFFFF)
+val md_surfaceContainerLow = Color(0xFFF5F2FA)
+val md_surfaceContainer = Color(0xFFEFEDF4)
+val md_surfaceContainerHigh = Color(0xFFE9E7EF)
+val md_surfaceContainerHighest = Color(0xFFE3E1E9)
+
 // --- Dark ---
 val md_primary_d = Color(0xFFBCC2FF)
 val md_onPrimary_d = Color(0xFF1A2691)
@@ -64,3 +81,12 @@ val md_surfaceVariant_d = Color(0xFF46464F)
 val md_onSurfaceVariant_d = Color(0xFFC7C5D0)
 val md_outline_d = Color(0xFF918F9A)
 val md_outlineVariant_d = Color(0xFF46464F)
+
+/** The same ladder in the dark scheme, climbing away from the page rather than towards white. */
+val md_surfaceDim_d = Color(0xFF121318)
+val md_surfaceBright_d = Color(0xFF38393F)
+val md_surfaceContainerLowest_d = Color(0xFF0D0E13)
+val md_surfaceContainerLow_d = Color(0xFF1A1B21)
+val md_surfaceContainer_d = Color(0xFF1E1F25)
+val md_surfaceContainerHigh_d = Color(0xFF292A2F)
+val md_surfaceContainerHighest_d = Color(0xFF34343A)

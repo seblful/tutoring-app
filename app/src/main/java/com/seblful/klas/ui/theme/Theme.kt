@@ -36,6 +36,13 @@ private val LightColorScheme = lightColorScheme(
     onSurfaceVariant = md_onSurfaceVariant,
     outline = md_outline,
     outlineVariant = md_outlineVariant,
+    surfaceDim = md_surfaceDim,
+    surfaceBright = md_surfaceBright,
+    surfaceContainerLowest = md_surfaceContainerLowest,
+    surfaceContainerLow = md_surfaceContainerLow,
+    surfaceContainer = md_surfaceContainer,
+    surfaceContainerHigh = md_surfaceContainerHigh,
+    surfaceContainerHighest = md_surfaceContainerHighest,
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -63,6 +70,13 @@ private val DarkColorScheme = darkColorScheme(
     onSurfaceVariant = md_onSurfaceVariant_d,
     outline = md_outline_d,
     outlineVariant = md_outlineVariant_d,
+    surfaceDim = md_surfaceDim_d,
+    surfaceBright = md_surfaceBright_d,
+    surfaceContainerLowest = md_surfaceContainerLowest_d,
+    surfaceContainerLow = md_surfaceContainerLow_d,
+    surfaceContainer = md_surfaceContainer_d,
+    surfaceContainerHigh = md_surfaceContainerHigh_d,
+    surfaceContainerHighest = md_surfaceContainerHighest_d,
 )
 
 @Composable

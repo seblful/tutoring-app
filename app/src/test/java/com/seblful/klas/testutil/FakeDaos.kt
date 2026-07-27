@@ -384,6 +384,13 @@ class FakePaymentDao : PaymentDao {
         return id
     }
 
+    override suspend fun update(payment: PaymentEntity) {
+        // Room's @Update matches on the primary key and does nothing when no row has it, so a fake
+        // that inserted the missing row would let a test pass against behaviour the real DAO
+        // does not have.
+        items.value = items.value.map { if (it.id == payment.id) payment else it }
+    }
+
     override suspend fun delete(payment: PaymentEntity) {
         items.value = items.value.filterNot { it.id == payment.id }
     }

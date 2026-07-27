@@ -25,19 +25,19 @@ import com.seblful.klas.ui.backup.BackupScreen
 import com.seblful.klas.ui.diagnostics.DiagnosticsScreen
 import com.seblful.klas.ui.groups.GroupDetailScreen
 import com.seblful.klas.ui.groups.GroupFormScreen
-import com.seblful.klas.ui.groups.GroupsScreen
+import com.seblful.klas.ui.more.AboutScreen
 import com.seblful.klas.ui.more.MoreScreen
 import com.seblful.klas.ui.more.SettingsScreen
 import com.seblful.klas.ui.navigation.BottomBar
 import com.seblful.klas.ui.navigation.Routes
 import com.seblful.klas.ui.navigation.TopDestination
 import com.seblful.klas.ui.onboarding.OnboardingScreen
+import com.seblful.klas.ui.people.PeopleScreen
 import com.seblful.klas.ui.reports.ReportsScreen
 import com.seblful.klas.ui.schedule.ClassEditScreen
 import com.seblful.klas.ui.schedule.ScheduleScreen
 import com.seblful.klas.ui.students.StudentDetailScreen
 import com.seblful.klas.ui.students.StudentFormScreen
-import com.seblful.klas.ui.students.StudentsScreen
 import com.seblful.klas.ui.subjects.SubjectsScreen
 
 @Composable
@@ -61,31 +61,24 @@ fun AppRoot(rootViewModel: RootViewModel = hiltViewModel()) {
                 }
                 !settings.onboardingComplete ->
                     OnboardingScreen(onFinished = { /* settings flip re-renders into MainApp */ })
-                else -> MainApp(showGroupsTab = settings.showGroupsTab)
+                else -> MainApp()
             }
         }
     }
 }
 
-/**
- * The main tabs and the whole navigation graph.
- *
- * @param showGroupsTab whether «Группы» is one of the tabs. When it isn't, the section keeps its
- *   route and is reached from «Ещё» instead — so it reads as an ordinary sub-screen there, with a
- *   back arrow and no bottom bar.
- */
+/** The main tabs and the whole navigation graph. */
 @Composable
-private fun MainApp(showGroupsTab: Boolean) {
+private fun MainApp() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val tabs = TopDestination.visible(showGroupsTab)
-    val showBottomBar = currentRoute in TopDestination.routes(showGroupsTab)
+    val showBottomBar = currentRoute in TopDestination.routes
 
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                BottomBar(tabs = tabs, currentRoute = currentRoute) { dest ->
+                BottomBar(tabs = TopDestination.entries, currentRoute = currentRoute) { dest ->
                     navController.navigate(dest.route) {
                         popUpTo(navController.graph.startDestinationId) { saveState = true }
                         launchSingleTop = true
@@ -104,27 +97,29 @@ private fun MainApp(showGroupsTab: Boolean) {
                 ScheduleScreen(
                     onAddClass = { navController.navigate(Routes.classEdit(0)) },
                     onEditClass = { navController.navigate(Routes.classEdit(it)) },
+                    // The way out of "nothing can be booked yet": the schedule's empty state offers
+                    // the missing step rather than only naming it.
+                    onAddStudent = { navController.navigate(Routes.STUDENT_ADD) },
                 )
             }
-            composable(Routes.REPORTS) { ReportsScreen() }
+            composable(Routes.REPORTS) {
+                ReportsScreen(onStudentClick = { navController.navigate(Routes.studentDetail(it)) })
+            }
             composable(Routes.MORE) {
                 MoreScreen(
                     onSubjects = { navController.navigate(Routes.SUBJECTS) },
-                    // Listed here only while it has no tab of its own, so the entry point moves
-                    // rather than being duplicated — and hiding the tab never hides the groups.
-                    onGroups = if (showGroupsTab) null else {
-                        { navController.navigate(Routes.GROUPS) }
-                    },
                     onBackup = { navController.navigate(Routes.BACKUP) },
                     onSettings = { navController.navigate(Routes.SETTINGS) },
-                    onDiagnostics = { navController.navigate(Routes.DIAGNOSTICS) },
+                    onAbout = { navController.navigate(Routes.ABOUT) },
                 )
             }
 
-            composable(Routes.STUDENTS) {
-                StudentsScreen(
+            composable(Routes.PEOPLE) {
+                PeopleScreen(
                     onStudentClick = { navController.navigate(Routes.studentDetail(it)) },
                     onAddStudent = { navController.navigate(Routes.STUDENT_ADD) },
+                    onGroupClick = { navController.navigate(Routes.groupDetail(it)) },
+                    onAddGroup = { navController.navigate(Routes.GROUP_ADD) },
                 )
             }
             composable(Routes.STUDENT_ADD) {
@@ -139,16 +134,6 @@ private fun MainApp(showGroupsTab: Boolean) {
                 )
             }
 
-            composable(Routes.GROUPS) {
-                GroupsScreen(
-                    // A tab has nowhere to go back to; opened from «Ещё» it does.
-                    onBack = if (showGroupsTab) null else {
-                        { navController.popBackStack() }
-                    },
-                    onGroupClick = { navController.navigate(Routes.groupDetail(it)) },
-                    onAddGroup = { navController.navigate(Routes.GROUP_ADD) },
-                )
-            }
             // Declared before the `group/{id}` card so the literal route can never be read as an id.
             composable(Routes.GROUP_ADD) {
                 GroupFormScreen(onBack = { navController.popBackStack() })
@@ -180,10 +165,18 @@ private fun MainApp(showGroupsTab: Boolean) {
                 BackupScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.SETTINGS) {
-                SettingsScreen(onBack = { navController.popBackStack() })
+                SettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    // Diagnostics is developer furniture and used to sit as a peer of «Настройки» in
+                    // «Ещё». It is reached from the foot of Settings now, where service tools belong.
+                    onDiagnostics = { navController.navigate(Routes.DIAGNOSTICS) },
+                )
             }
             composable(Routes.DIAGNOSTICS) {
                 DiagnosticsScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Routes.ABOUT) {
+                AboutScreen(onBack = { navController.popBackStack() })
             }
 
             composable(

@@ -23,9 +23,13 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Every tab label has to read as one whole word on one line. Five tabs (i.e. «Группы» shown) is the
- * tight case: «Расписание» takes all but a few pixels of its share of a 360dp screen, and it used to
- * wrap — leaving its last letter alone on a second line.
+ * Every tab label has to read as one whole word on one line.
+ *
+ * The bar carries **four** tabs now — students and groups became one «Люди» — which relieves the case
+ * this test was written for: «Расписание» used to take all but a few pixels of its fifth of a 360dp
+ * screen and wrapped, stranding its last letter on a second line. The tests stay, because that is the
+ * point of them: the fifth tab is the kind of thing that comes back, and it should come back with the
+ * layout still proven rather than assumed.
  *
  * Font scale is pinned to 1 throughout: these are assertions about the *layout*, and the device's own
  * font setting would otherwise decide whether they hold.
@@ -38,9 +42,8 @@ class BottomBarLabelTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test
-    fun everyLabelReadsAsOneWholeWord_withGroupsTabShown() {
-        val tabs = TopDestination.visible(showGroupsTab = true)
-        assertEquals("this test is about the five-tab bar", 5, tabs.size)
+    fun everyLabelReadsAsOneWholeWord() {
+        val tabs = TopDestination.entries
         val width = mutableStateOf(Widths.first())
         composeRule.setBarContent(width, tabs)
 
@@ -63,29 +66,37 @@ class BottomBarLabelTest {
     }
 
     /**
-     * How that one line is won: the type shrinks, and only for the label that would not otherwise
-     * fit. Autosize enlarges as readily as it shrinks, so a label with room to spare must come out
-     * exactly as wide as it is at the bar's own label size — the same width at every screen size.
+     * The cap on the autosizing, which is the half of it that is easy to get wrong.
+     *
+     * `TextAutoSize` enlarges as readily as it shrinks, so without a maximum a short label on a wide
+     * screen would be drawn *bigger* than the bar's own label style asks for — «Ещё» quietly larger
+     * than «Отчёты» beside it. A label with room to spare must therefore come out at exactly the same
+     * size however much room there is.
+     *
+     * Asserted on «Ещё», which is the shortest label and fits at every width by a wide margin, so the
+     * test says something about the cap rather than about how many tabs the bar happens to have.
      */
     @Test
-    fun theTightestSlotShrinksOnlyTheLabelThatNeedsIt() {
+    fun aLabelWithRoomToSpareIsNeverEnlarged() {
         val width = mutableStateOf(NarrowPhone)
-        composeRule.setBarContent(width, TopDestination.visible(showGroupsTab = true))
+        composeRule.setBarContent(width, TopDestination.entries)
 
-        val narrow = composeRule.widthsOf(TopDestination.SCHEDULE, TopDestination.MORE)
+        val narrow = composeRule.widthsOf(TopDestination.MORE, TopDestination.SCHEDULE)
         composeRule.runOnIdle { width.value = LargePhone }
         composeRule.waitForIdle()
-        val large = composeRule.widthsOf(TopDestination.SCHEDULE, TopDestination.MORE)
+        val large = composeRule.widthsOf(TopDestination.MORE, TopDestination.SCHEDULE)
 
         assertEquals(
             "«Ещё» fits either way, so it must be drawn at the same size either way",
             large[TopDestination.MORE],
             narrow[TopDestination.MORE],
         )
+        // The longest label may shrink on a narrow screen or may now fit outright — four tabs give it
+        // a quarter of the width instead of a fifth. What it must never do is grow.
         assertTrue(
             "«Расписание» is ${narrow[TopDestination.SCHEDULE]}px on a $NarrowPhone screen and " +
-                "${large[TopDestination.SCHEDULE]}px on a $LargePhone one — it is not shrinking to fit",
-            narrow.getValue(TopDestination.SCHEDULE) < large.getValue(TopDestination.SCHEDULE),
+                "${large[TopDestination.SCHEDULE]}px on a $LargePhone one — it grew past its cap",
+            narrow.getValue(TopDestination.SCHEDULE) <= large.getValue(TopDestination.SCHEDULE),
         )
     }
 

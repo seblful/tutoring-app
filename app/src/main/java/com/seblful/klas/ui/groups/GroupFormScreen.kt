@@ -1,8 +1,7 @@
 package com.seblful.klas.ui.groups
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,12 +9,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -24,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -36,23 +35,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
-import com.seblful.klas.domain.model.Student
-import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.LeaveIntent
+import com.seblful.klas.ui.common.MemberPickRow
 import com.seblful.klas.ui.common.ModeSelector
 import com.seblful.klas.ui.common.UnsavedChangesDialog
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.leaveIntent
+import com.seblful.klas.ui.common.rememberMessages
 
 /**
  * Create or edit one group: **subject**, name, note, hourly rate, default mode and roster — plus, for
@@ -82,7 +78,7 @@ fun GroupFormScreen(
     }
     BackHandler(enabled = state.isDirty) { requestLeave() }
 
-    val context = LocalContext.current
+    val messages = rememberMessages()
     val deleteBlockedMsg = stringResource(R.string.group_delete_blocked)
     val notPricedMsg = stringResource(R.string.group_members_not_priced)
     LaunchedEffect(Unit) {
@@ -91,11 +87,12 @@ fun GroupFormScreen(
                 GroupFormViewModel.Event.DELETE_BLOCKED_HAS_LESSONS -> deleteBlockedMsg
                 GroupFormViewModel.Event.MEMBERS_NOT_PRICED_FOR_SUBJECT -> notPricedMsg
             }
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            messages.show(message)
         }
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(messages.hostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -210,7 +207,7 @@ fun GroupFormScreen(
                 )
             }
             state.candidates.forEach { student ->
-                MemberRow(
+                MemberPickRow(
                     student = student,
                     selected = student.id in form.memberIds,
                     onToggle = { on -> viewModel.toggleMember(student.id, on) },
@@ -218,25 +215,36 @@ fun GroupFormScreen(
             }
 
             if (!viewModel.isNew) {
-                HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                OutlinedButton(
-                    onClick = { viewModel.setArchived(!state.archived) },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        stringResource(
-                            if (state.archived) R.string.action_unarchive else R.string.action_archive
+                // Under its own heading rather than dangling off the end of the roster. Archiving or
+                // deleting a group are not the last two entries in a list of students, and reaching
+                // them meant scrolling past every candidate — fifteen of them for a large group.
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                Text(
+                    stringResource(R.string.group_danger_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(
+                        onClick = { viewModel.setArchived(!state.archived) },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(
+                            stringResource(
+                                if (state.archived) R.string.action_unarchive else R.string.action_archive
+                            )
                         )
-                    )
-                }
-                TextButton(
-                    onClick = { confirmingDelete = true },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        stringResource(R.string.action_delete),
-                        color = MaterialTheme.colorScheme.error,
-                    )
+                    }
+                    OutlinedButton(
+                        onClick = { confirmingDelete = true },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                    ) {
+                        Text(stringResource(R.string.action_delete))
+                    }
                 }
             }
         }
@@ -262,34 +270,5 @@ fun GroupFormScreen(
     }
 }
 
-/**
- * One tappable person in the member picker. Just who they are: the group's lessons are billed at the
- * group's rate, so there is no per-person amount to show here any more.
- */
-@Composable
-private fun MemberRow(
-    student: Student,
-    selected: Boolean,
-    onToggle: (Boolean) -> Unit,
-) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
-            .background(
-                if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                else Color.Transparent
-            )
-            .toggleable(value = selected, onValueChange = onToggle)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Avatar(student.name, student.id)
-        Text(
-            student.name,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f).padding(start = 12.dp),
-        )
-        Checkbox(checked = selected, onCheckedChange = null)
-    }
-}
+// The member picker's row is `MemberPickRow` in ui/common/Components.kt now — the booking form picks
+// who was at a lesson with the same control, which is the same act and used to look nothing like it.

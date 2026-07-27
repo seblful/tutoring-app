@@ -49,9 +49,10 @@ data class Stat(
  */
 @Composable
 fun StatRow(stats: List<Stat>, modifier: Modifier = Modifier) {
+    // A section, not an item: `surfaceContainer`, one rung above the cards in the list beneath it.
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(

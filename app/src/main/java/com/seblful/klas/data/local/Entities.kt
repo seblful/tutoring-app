@@ -255,9 +255,15 @@ data class SettingsEntity(
     /** Currency code used to display all money, e.g. "BYN" or "RUB". */
     val currency: String = "BYN",
     /**
-     * Whether «Группы» gets its own tab in the bottom bar. **On by default**; a tutor who only
-     * teaches one-to-one turns it off and the section moves back into «Ещё» — it is never taken
-     * away, because the groups and their lessons still exist.
+     * **Vestigial — written with its default, read by nothing.**
+     *
+     * It used to decide whether «Группы» had a tab of its own. Students and groups now share one
+     * («Люди»), so there is no longer a tab to hide and the setting has no meaning. The *column*
+     * stays because removing it is not free: SQLite gained `ALTER TABLE … DROP COLUMN` only in 3.35,
+     * which is Android 12, and this app supports API 24 — so a real removal means rebuilding the
+     * table under a migration, which is a genuine risk to a tutor's data in exchange for one unread
+     * boolean. [com.seblful.klas.data.repository.AppSettings] has dropped it, so nothing above this
+     * layer can read it by accident.
      */
     val showGroupsTab: Boolean = true,
 ) {

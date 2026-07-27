@@ -6,6 +6,7 @@ import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
+import com.seblful.klas.domain.PeopleSearch
 import com.seblful.klas.domain.model.Group
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -21,12 +22,21 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 /**
- * A group as the list shows it: the group, the names of the students in it, and what it is taught.
+ * A group as the list shows it: the group, who is in it, and what it is taught.
+ *
+ * [memberNames] and [memberIds] are parallel and in the same order, because the row draws the roster
+ * as overlapping monograms and [com.seblful.klas.ui.common.Avatar] colours by **id** — so a member
+ * keeps their colour between this list, their own card and the group's.
  *
  * [subjectName] is null for a group made before subjects were fixed on the group — the row then says
  * nothing about a subject rather than claiming one.
  */
-data class GroupRow(val group: Group, val memberNames: List<String>, val subjectName: String? = null)
+data class GroupRow(
+    val group: Group,
+    val memberNames: List<String>,
+    val memberIds: List<Long> = emptyList(),
+    val subjectName: String? = null,
+)
 
 /**
  * The groups list. Read-only on purpose — editing, archiving and deleting a group all live in the
@@ -47,6 +57,9 @@ class GroupsViewModel @Inject constructor(
     /** Whether archived groups are listed too. Changed through [toggleArchived], not written to. */
     val showArchived: StateFlow<Boolean> = _showArchived.asStateFlow()
 
+    private val _query = MutableStateFlow("")
+    val query: StateFlow<String> = _query.asStateFlow()
+
     val rows: StateFlow<List<GroupRow>> =
         _showArchived.flatMapLatest { archived ->
             val source = if (archived) groups.observeAll() else groups.observeActive()
@@ -56,13 +69,25 @@ class GroupsViewModel @Inject constructor(
                 // All students, not just active ones: an archived member still explains a roster.
                 students.observeAll(),
                 subjects.observeAll(),
-            ) { groupList, rosters, studentList, subjectList ->
-                val namesById = studentList.associate { it.id to it.name }
+                _query,
+            ) { groupList, rosters, studentList, subjectList, query ->
+                val studentsById = studentList.associateBy { it.id }
                 val subjectsById = subjectList.associate { it.id to it.name }
                 groupList.map { group ->
-                    val names = rosters[group.id].orEmpty().mapNotNull { namesById[it] }.sorted()
-                    GroupRow(group, names, group.subjectId?.let { subjectsById[it] })
+                    val members = rosters[group.id].orEmpty()
+                        .mapNotNull { studentsById[it] }
+                        .sortedBy { it.name }
+                    GroupRow(
+                        group = group,
+                        memberNames = members.map { it.name },
+                        memberIds = members.map { it.id },
+                        subjectName = group.subjectId?.let { subjectsById[it] },
+                    )
                 }
+                    // Searched by the group's own name only. A roster search would find «Аня» inside
+                    // three groups and leave the tutor to work out why — the students tab beside this
+                    // one is where a person is looked up.
+                    .filter { PeopleSearch.matches(it.group.name, query) }
             }
         }
             .flowOn(computation)
@@ -70,5 +95,9 @@ class GroupsViewModel @Inject constructor(
 
     fun toggleArchived() {
         _showArchived.value = !_showArchived.value
+    }
+
+    fun setQuery(query: String) {
+        _query.value = query
     }
 }

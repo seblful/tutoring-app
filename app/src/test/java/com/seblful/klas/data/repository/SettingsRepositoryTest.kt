@@ -35,7 +35,6 @@ class SettingsRepositoryTest {
         assertFalse("calendar sync default off", settings.calendarSyncEnabled)
         assertFalse("email invites default off — mailing students is a deliberate opt-in", settings.emailInvitesEnabled)
         assertFalse("auto-complete default off — never bill unconfirmed", settings.autoCompleteEnabled)
-        assertTrue("the groups tab is on until turned off", settings.showGroupsTab)
         assertEquals(0L, settings.defaultGroupPriceMinor) // 0 means "not set"
         assertEquals("BYN", settings.currency)
     }
@@ -52,7 +51,6 @@ class SettingsRepositoryTest {
         assertEquals(AppSettings().notificationsEnabled, settings.notificationsEnabled)
         assertEquals(AppSettings().defaultLessonMinutes, settings.defaultLessonMinutes)
         assertEquals(AppSettings().themeMode, settings.themeMode)
-        assertEquals(AppSettings().showGroupsTab, settings.showGroupsTab)
     }
 
     @Test
@@ -68,7 +66,6 @@ class SettingsRepositoryTest {
             defaultLessonMinutes = 45,
             defaultGroupPriceMinor = 2_500,
             currency = "RUB",
-            showGroupsTab = false,
         )
 
         repo.update { wanted }
@@ -80,12 +77,12 @@ class SettingsRepositoryTest {
 
     @Test
     fun `observe emits the stored settings`() = runTest {
-        repo.update { it.copy(themeMode = "DARK", showGroupsTab = false) }
+        repo.update { it.copy(themeMode = "DARK", currency = "RUB") }
 
         val observed = repo.observe().first()
 
         assertEquals("DARK", observed.themeMode)
-        assertFalse(observed.showGroupsTab)
+        assertEquals("RUB", observed.currency)
     }
 
     @Test

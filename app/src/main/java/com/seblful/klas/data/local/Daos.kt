@@ -338,6 +338,16 @@ interface PaymentDao {
     @Insert
     suspend fun insert(payment: PaymentEntity): Long
 
+    /**
+     * Corrects an existing payment in place, keeping its id.
+     *
+     * Separate from [insert] rather than folded into it as a REPLACE: a payment is financial history,
+     * and "insert, or silently overwrite whatever is already there" is the wrong default for a table
+     * whose rows are money somebody handed over. An update is a deliberate correction and says so.
+     */
+    @Update
+    suspend fun update(payment: PaymentEntity)
+
     @Delete
     suspend fun delete(payment: PaymentEntity)
 

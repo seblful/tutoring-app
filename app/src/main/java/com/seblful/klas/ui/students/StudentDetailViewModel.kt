@@ -272,12 +272,35 @@ class StudentDetailViewModel @Inject constructor(
         }
     }
 
-    fun addPayment(amount: Money) {
+    /**
+     * Records a payment, on the day it was actually made.
+     *
+     * [date] is a parameter because it is the tutor's answer and not the app's: money is entered when
+     * they get round to it, and «она заплатила во вторник» used to have no way in — the payment was
+     * stamped `Instant.now()` and dated today whatever the truth was. The dialog defaults it to today,
+     * which is right most of the time and correctable the rest.
+     */
+    fun addPayment(amount: Money, date: Instant) {
         if (amount.isZero) return
         appScope.launch {
             runCatchingCancellable {
-                payments.add(Payment(studentId = studentId, date = Instant.now(), amount = amount))
+                payments.add(Payment(studentId = studentId, date = date, amount = amount))
             }.onFailure { events.send(Event.WRITE_FAILED) }
+        }
+    }
+
+    /**
+     * Corrects a payment already recorded, keeping its id.
+     *
+     * A wrong amount used to mean deleting the row and entering it again — which is two writes with
+     * the student's balance wrong in between, and a different payment as far as the database is
+     * concerned. Money that was handed over once should stay one row.
+     */
+    fun editPayment(payment: Payment, amount: Money, date: Instant) {
+        if (amount.isZero) return
+        appScope.launch {
+            runCatchingCancellable { payments.update(payment.copy(amount = amount, date = date)) }
+                .onFailure { events.send(Event.WRITE_FAILED) }
         }
     }
 
