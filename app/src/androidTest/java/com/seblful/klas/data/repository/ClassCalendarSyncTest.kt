@@ -8,6 +8,7 @@ import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.data.local.AppDatabase
+import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
@@ -49,8 +50,12 @@ class ClassCalendarSyncTest {
         db = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext<Context>(), AppDatabase::class.java,
         ).build()
-        db.subjectDao().insertAll(listOf(SubjectEntity(1, "Математика")))
-        db.studentDao().insertAll(listOf(StudentEntity(1, "Иван")))
+        db.snapshotDao().insert(
+            DatabaseSnapshot(
+                subjects = listOf(SubjectEntity(1, "Математика")),
+                students = listOf(StudentEntity(1, "Иван")),
+            ),
+        )
         calendar = FakeCalendarSync()
         val settings = SettingsRepository(db.settingsDao())
         settings.update { it.copy(calendarSyncEnabled = true) } // calendar mirroring is off unless enabled

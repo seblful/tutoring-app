@@ -9,6 +9,7 @@ import com.seblful.klas.calendar.Guest
 import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
@@ -58,10 +59,7 @@ class BackupRestoreTest {
 
     // The real RoomTransactor, not a fake: these tests run against real Room, so the import's
     // all-or-nothing transaction is one of the things being exercised.
-    private fun managerFor(db: AppDatabase) = BackupManager(
-        RoomTransactor(db), db.subjectDao(), db.studentDao(), db.groupDao(), db.priceDao(),
-        db.rateHistoryDao(), db.classDao(), db.paymentDao(),
-    )
+    private fun managerFor(db: AppDatabase) = BackupManager(RoomTransactor(db), db.snapshotDao())
 
     @Before fun setUp() {
         source = newDb()
@@ -86,14 +84,16 @@ class BackupRestoreTest {
 
     /** A backup of one lesson, exported from [source]. */
     private suspend fun snapshot(): String {
-        source.subjectDao().insertAll(listOf(SubjectEntity(1, "Математика")))
-        source.studentDao().insertAll(listOf(StudentEntity(1, "Иван")))
-        source.priceDao().insertAll(listOf(PriceEntity(1, 1, amountMinor = 5000)))
-        source.classDao().insertAll(
-            listOf(
-                ClassEntity(
-                    1, 1, 1, Instant.parse("2026-06-18T10:00:00Z").toEpochMilli(), 60,
-                    priceMinor = 5000, status = ClassStatus.SCHEDULED.name,
+        source.snapshotDao().insert(
+            DatabaseSnapshot(
+                subjects = listOf(SubjectEntity(1, "Математика")),
+                students = listOf(StudentEntity(1, "Иван")),
+                prices = listOf(PriceEntity(1, 1, amountMinor = 5000)),
+                classes = listOf(
+                    ClassEntity(
+                        1, 1, 1, Instant.parse("2026-06-18T10:00:00Z").toEpochMilli(), 60,
+                        priceMinor = 5000, status = ClassStatus.SCHEDULED.name,
+                    ),
                 ),
             ),
         )
@@ -106,20 +106,21 @@ class BackupRestoreTest {
 
         restore.restore(json)
 
-        assertEquals(listOf("Математика"), target.subjectDao().getAll().map { it.name })
-        assertEquals(listOf("Иван"), target.studentDao().getAll().map { it.name })
-        assertEquals(1, target.classDao().getAll().size)
+        val restored = target.snapshotDao().read()
+        assertEquals(listOf("Математика"), restored.subjects.map { it.name })
+        assertEquals(listOf("Иван"), restored.students.map { it.name })
+        assertEquals(1, restored.classes.size)
         assertTrue(settings.get().onboardingComplete) // restored data *is* the setup
         assertEquals(1, reminders.refreshCount) // imported classes re-plan reminders
     }
 
     @Test fun aFileThatIsNotABackupChangesNothing() = runTest {
-        target.subjectDao().insertAll(listOf(SubjectEntity(7, "Физика")))
+        target.snapshotDao().insert(DatabaseSnapshot(subjects = listOf(SubjectEntity(7, "Физика"))))
 
         val failure = runCatching { restore.restore("not a backup at all") }
 
         assertTrue(failure.isFailure)
-        assertEquals(listOf("Физика"), target.subjectDao().getAll().map { it.name })
+        assertEquals(listOf("Физика"), target.snapshotDao().read().subjects.map { it.name })
         assertFalse(settings.get().onboardingComplete) // still first run
         assertEquals(0, reminders.refreshCount)
     }

@@ -700,7 +700,7 @@ class ClassEditViewModelTest {
         // time of day rather than for the behaviour (see the cross-midnight test above).
         val start = LocalDate.now(zone).plusDays(3).atTime(10, 0).atZone(zone).toInstant()
         val ids = env.classRepo.book(
-            groupId = groupId, subjectId = env.subjectDao.getAll().first().id, start = start,
+            groupId = groupId, subjectId = env.subjectDao.items.value.first().id, start = start,
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
             price = groupRate,
@@ -725,7 +725,7 @@ class ClassEditViewModelTest {
         val (groupId, ann, bob) = seedGroup()
         val date = LocalDate.now(zone).plusDays(4)
         env.classRepo.book(
-            groupId = groupId, subjectId = env.subjectDao.getAll().first().id,
+            groupId = groupId, subjectId = env.subjectDao.items.value.first().id,
             start = date.atTime(10, 0).atZone(zone).toInstant(),
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
@@ -1127,7 +1127,7 @@ class ClassEditViewModelTest {
         val (groupId, ann, bob) = seedGroup()
         val start = Instant.parse("2026-09-01T09:00:00Z")
         val ids = env.classRepo.book(
-            groupId = groupId, subjectId = env.subjectDao.getAll().first().id, start = start,
+            groupId = groupId, subjectId = env.subjectDao.items.value.first().id, start = start,
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
             price = groupRate,
@@ -1161,7 +1161,7 @@ class ClassEditViewModelTest {
     @Test
     fun `editing an old lesson offers the current roster but ticks only its own members`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
-        val algebra = env.subjectDao.getAll().first().id
+        val algebra = env.subjectDao.items.value.first().id
         val ids = env.classRepo.book(
             groupId = groupId, subjectId = algebra, start = Instant.parse("2026-09-01T09:00:00Z"),
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
@@ -1194,7 +1194,7 @@ class ClassEditViewModelTest {
     fun `unticking a member of a booked lesson removes their class on save`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
         val ids = env.classRepo.book(
-            groupId = groupId, subjectId = env.subjectDao.getAll().first().id,
+            groupId = groupId, subjectId = env.subjectDao.items.value.first().id,
             start = Instant.parse("2026-09-01T09:00:00Z"),
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
@@ -1216,7 +1216,7 @@ class ClassEditViewModelTest {
     fun `ticking a group member who was not in a booked lesson adds their class`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
         val ids = env.classRepo.book(
-            groupId = groupId, subjectId = env.subjectDao.getAll().first().id,
+            groupId = groupId, subjectId = env.subjectDao.items.value.first().id,
             start = Instant.parse("2026-09-01T09:00:00Z"),
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann),
@@ -1242,7 +1242,7 @@ class ClassEditViewModelTest {
     fun `emptying a booked lesson of every member is refused, not saved`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
         val ids = env.classRepo.book(
-            groupId = groupId, subjectId = env.subjectDao.getAll().first().id,
+            groupId = groupId, subjectId = env.subjectDao.items.value.first().id,
             start = Instant.parse("2026-09-01T09:00:00Z"),
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
@@ -1267,7 +1267,7 @@ class ClassEditViewModelTest {
     fun `unticking a billed member is counted, an unbilled one is not`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
         val ids = env.classRepo.book(
-            groupId = groupId, subjectId = env.subjectDao.getAll().first().id,
+            groupId = groupId, subjectId = env.subjectDao.items.value.first().id,
             start = Instant.parse("2026-09-01T09:00:00Z"),
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),

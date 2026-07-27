@@ -138,7 +138,7 @@ class BackupIntegrityTest {
     @Test
     fun `importing a file with an unreadable row changes nothing`() = runTest {
         val env = TestEnv()
-        env.subjectDao.insertAll(listOf(SubjectEntity(7, "Физика")))
+        env.subjectDao.upsert(SubjectEntity(7, "Физика"))
         val bad = BackupData(
             subjects = listOf(SubjectEntity(1, "Алгебра")),
             students = listOf(StudentEntity(1, "Иван")),
@@ -150,7 +150,7 @@ class BackupIntegrityTest {
 
         assertTrue(failure.isFailure)
         assertEquals("no transaction was even opened", transactionsBefore, env.transactor.count)
-        assertEquals("the tutor's data is untouched", listOf("Физика"), env.subjectDao.getAll().map { it.name })
+        assertEquals("the tutor's data is untouched", listOf("Физика"), env.subjectDao.items.value.map { it.name })
     }
 
     /**

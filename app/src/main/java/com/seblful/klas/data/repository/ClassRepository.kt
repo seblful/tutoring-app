@@ -103,8 +103,34 @@ class ClassRepository @Inject constructor(
         return ClassSession(groupId, siblings.ifEmpty { listOf(klass) })
     }
 
+    // ---- Referenced-by guards ------------------------------------------------------------------
+    // "Is anything still taught here?" — asked by whoever is about to remove the thing being pointed
+    // at. It is a question about classes, so it is answered here.
+    //
+    // Three repositories used to ask the database instead, each injecting [ClassDao] for a single
+    // `countFor*` and nothing else. That handed the whole class table — including `deleteAll` — to
+    // three modules that only wanted a yes or no, and it put the reason for the refusal ("those
+    // classes are billed history and must keep referencing this") in the module doing the deleting
+    // rather than the module that knows it. It also let the answers drift: each caller wrote its own
+    // `> 0`, and a count is not what any of them wanted.
 
+    /** Whether any class is taught on [subjectId] — the guard behind deleting a subject. */
+    suspend fun anyForSubject(subjectId: Long): Boolean = dao.countForSubject(subjectId) > 0
 
+    /**
+     * Whether [studentId] has any class for [subjectId] — the guard behind unenrolling them from it.
+     * Such classes are billed history, and their charge only reads as a rate while the priced subject
+     * it was billed at still exists.
+     */
+    suspend fun anyForStudentSubject(studentId: Long, subjectId: Long): Boolean =
+        dao.countForStudentSubject(studentId, subjectId) > 0
+
+    /**
+     * Whether [groupId] has any lesson — the guard behind deleting a group. `classes.groupId` is
+     * `ON DELETE RESTRICT`, so this is the check that turns a foreign-key failure into an offer to
+     * archive instead.
+     */
+    suspend fun anyForGroup(groupId: Long): Boolean = dao.countForGroup(groupId) > 0
 
     // ---- Writes --------------------------------------------------------------------------------
     // Every write below takes a **lesson**, never a bare class. A group lesson is n classes sharing a

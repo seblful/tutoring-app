@@ -1,6 +1,7 @@
 package com.seblful.klas.data.backup
 
 import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.GroupMemberCrossRef
 import com.seblful.klas.data.local.PaymentEntity
@@ -56,3 +57,40 @@ data class BackupData(
         fun isSupported(version: Int): Boolean = version in 1..CURRENT_VERSION
     }
 }
+
+/**
+ * The rows this file carries, as the database's own [DatabaseSnapshot].
+ *
+ * The two shapes hold the same nine lists and are still separate types, because they answer to
+ * different masters: the field names here are **JSON keys in files already on somebody's phone**, and
+ * so may never be renamed, while the snapshot follows the schema. Nesting one inside the other to save
+ * the mapping would have made the file format a projection of the database, and the next table added
+ * would have changed the JSON shape of every backup ever written.
+ *
+ * A version older than [BackupData.CURRENT_VERSION] simply arrives with its newer lists empty — a
+ * restore reproduces the file rather than inventing rows it does not contain.
+ */
+fun BackupData.toSnapshot(): DatabaseSnapshot = DatabaseSnapshot(
+    subjects = subjects,
+    students = students,
+    studentSubjects = studentSubjects,
+    groups = groups,
+    groupMembers = groupMembers,
+    prices = prices,
+    rateHistory = rateHistory,
+    classes = classes,
+    payments = payments,
+)
+
+/** The database's rows as a backup file of this build's version. */
+fun DatabaseSnapshot.toBackupData(): BackupData = BackupData(
+    subjects = subjects,
+    students = students,
+    studentSubjects = studentSubjects,
+    groups = groups,
+    groupMembers = groupMembers,
+    prices = prices,
+    rateHistory = rateHistory,
+    classes = classes,
+    payments = payments,
+)

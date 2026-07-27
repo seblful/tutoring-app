@@ -1,6 +1,5 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.data.local.ClassDao
 import com.seblful.klas.data.local.GroupDao
 import com.seblful.klas.data.local.GroupMemberCrossRef
 import com.seblful.klas.data.local.StudentDao
@@ -32,7 +31,8 @@ import javax.inject.Singleton
 @Singleton
 class GroupRepository @Inject constructor(
     private val dao: GroupDao,
-    private val classDao: ClassDao,
+    /** Asked whether a group still has lessons — see `ClassRepository`'s referenced-by guards. */
+    private val classes: ClassRepository,
     private val studentDao: StudentDao,
     private val rateHistory: RateHistoryRepository,
     private val transactor: Transactor,
@@ -56,6 +56,14 @@ class GroupRepository @Inject constructor(
     fun observeMemberIds(groupId: Long): Flow<List<Long>> = dao.observeMemberIds(groupId)
 
     suspend fun getMemberIds(groupId: Long): List<Long> = dao.getMemberIds(groupId)
+
+    /**
+     * Whether any group is taught [subjectId] — the guard behind deleting a subject, asked here
+     * because it is a question about groups. `student_groups.subjectId` is `ON DELETE RESTRICT`, and a
+     * brand-new group with no lessons blocks the deletion just as firmly as one with a year of them,
+     * which is why the caller has to tell the two refusals apart.
+     */
+    suspend fun anyForSubject(subjectId: Long): Boolean = dao.countForSubject(subjectId) > 0
 
     /**
      * groupId → its member ids, for a screen that needs several groups' rosters at once.
@@ -151,7 +159,7 @@ class GroupRepository @Inject constructor(
      * archive it instead, which keeps the lessons readable.
      */
     suspend fun delete(group: Group): Boolean {
-        if (classDao.countForGroup(group.id) > 0) return false
+        if (classes.anyForGroup(group.id)) return false
         dao.delete(group.toEntity())
         return true
     }

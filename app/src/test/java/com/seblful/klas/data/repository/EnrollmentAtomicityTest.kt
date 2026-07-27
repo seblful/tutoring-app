@@ -71,7 +71,7 @@ class EnrollmentAtomicityTest {
         assertEquals("no nesting", 1, f.env.transactor.maxDepth)
         // And it really did both halves, so the transaction isn't wrapping a no-op.
         assertEquals(listOf(f.physics), f.env.studentDao.getSubjectIds(f.ivan))
-        assertEquals(listOf(f.physics), f.env.priceDao.getAll().map { it.subjectId })
+        assertEquals(listOf(f.physics), f.env.priceDao.items.value.map { it.subjectId })
     }
 
     @Test
@@ -84,7 +84,7 @@ class EnrollmentAtomicityTest {
         f.env.enrollmentRepo.reprice(f.ivan, f.algebra, Money.ofMajor(35))
 
         assertEquals("a rate never changes without its log", 1, f.env.transactor.count - before)
-        assertEquals(2, f.env.rateHistoryDao.getAll().size) // the initial rate, then the change
+        assertEquals(2, f.env.rateHistoryDao.items.value.size) // the initial rate, then the change
     }
 
     @Test
@@ -99,7 +99,7 @@ class EnrollmentAtomicityTest {
         assertEquals(EnrollmentRepository.Unenroll.Ok, outcome)
         assertEquals(1, f.env.transactor.count - before)
         assertEquals(emptyList<Long>(), f.env.studentDao.getSubjectIds(f.ivan))
-        assertEquals(emptyList<Any>(), f.env.rateHistoryDao.getAll())
+        assertEquals(emptyList<Any>(), f.env.rateHistoryDao.items.value)
     }
 
     /**
@@ -111,15 +111,13 @@ class EnrollmentAtomicityTest {
         val f = Fixture()
         f.seed()
         f.env.enrollmentRepo.enroll(f.ivan, f.algebra, Money.ofMajor(30))
-        f.env.classDao.insertAll(
-            listOf(
-                ClassEntity(
-                    id = 1, studentId = f.ivan, subjectId = f.algebra,
-                    startMillis = Instant.parse("2026-05-04T10:00:00Z").toEpochMilli(),
-                    durationMinutes = 60, priceMinor = 3000, status = ClassStatus.COMPLETED.name,
-                    chargeMinor = 3000,
-                ),
-            ),
+        // Booked and completed the way the app does it, so the class this guard refuses over is one
+        // the app could actually have produced.
+        f.env.fixtures.completedLesson(
+            subjectId = f.algebra,
+            students = listOf(f.ivan),
+            start = Instant.parse("2026-05-04T10:00:00Z"),
+            rate = Money.ofMajor(30),
         )
         val before = f.env.transactor.count
 
@@ -192,7 +190,7 @@ class EnrollmentAtomicityTest {
         f.env.groupRepo.save(Group(id = id, name = "11 «А»", price = Money.ofMajor(25)), emptySet())
 
         assertEquals(1, f.env.transactor.count - before)
-        assertEquals("the rise is logged", 2, f.env.rateHistoryDao.getAll().size)
+        assertEquals("the rise is logged", 2, f.env.rateHistoryDao.items.value.size)
     }
 
     @Test

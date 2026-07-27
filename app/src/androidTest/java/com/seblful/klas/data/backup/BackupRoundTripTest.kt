@@ -7,6 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.GroupMemberCrossRef
 import com.seblful.klas.data.local.PaymentEntity
@@ -34,10 +35,7 @@ class BackupRoundTripTest {
             AppDatabase::class.java,
         ).build()
 
-    private fun managerFor(db: AppDatabase) = BackupManager(
-        RoomTransactor(db), db.subjectDao(), db.studentDao(), db.groupDao(), db.priceDao(),
-        db.rateHistoryDao(), db.classDao(), db.paymentDao(),
-    )
+    private fun managerFor(db: AppDatabase) = BackupManager(RoomTransactor(db), db.snapshotDao())
 
     @Before fun setUp() {
         db = newDb()
@@ -49,35 +47,34 @@ class BackupRoundTripTest {
     }
 
     @Test fun exportThenImportOnEmptyDbReproducesIdenticalData() = runTest {
-        // Seed the source database (parents before children for foreign keys).
-        db.subjectDao().insertAll(listOf(SubjectEntity(1, "Математика"), SubjectEntity(2, "Физика")))
-        db.studentDao().insertAll(
-            listOf(
-                StudentEntity(1, "Иван", phone = "+375291112233", note = "ОГЭ", defaultMode = "REMOTE"),
-                StudentEntity(2, "Мария", archived = true),
-            ),
-        )
-        db.studentDao().insertLinks(
-            listOf(StudentSubjectCrossRef(1, 1), StudentSubjectCrossRef(1, 2), StudentSubjectCrossRef(2, 1)),
-        )
-        db.groupDao().insertAll(listOf(GroupEntity(7, "11 «А»", note = "вечер", defaultMode = "REMOTE")))
-        db.groupDao().insertMembers(listOf(GroupMemberCrossRef(7, 1), GroupMemberCrossRef(7, 2)))
-        db.priceDao().insertAll(listOf(PriceEntity(1, 1, 5000), PriceEntity(2, 1, 4550)))
-        db.classDao().insertAll(
-            listOf(
-                ClassEntity(1, 1, 1, 1_900_000_000_000, 90, priceMinor = 5000, status = "COMPLETED", chargeMinor = 5000, groupId = 7, mode = "REMOTE", calendarEventId = "evt-1"),
-                ClassEntity(2, 2, 1, 1_900_100_000_000, 60, status = "SCHEDULED"),
-            ),
-        )
-        db.paymentDao().insertAll(listOf(PaymentEntity(1, 1, 1_899_000_000_000, 3000)))
-        // The rate log, in all three of its shapes: a student's price starting, that price rising, and
-        // a group's rate that predates the log (no previous amount, no date — both must survive as null
-        // rather than come back as 0 and 1970).
-        db.rateHistoryDao().insertAll(
-            listOf(
-                RateChangeEntity(1, studentId = 1, subjectId = 1, toMinor = 4000, atMillis = 1_890_000_000_000),
-                RateChangeEntity(2, studentId = 1, subjectId = 1, fromMinor = 4000, toMinor = 5000, atMillis = 1_895_000_000_000),
-                RateChangeEntity(3, groupId = 7, toMinor = 2000, atMillis = null),
+        // Seed the source database. `insert` orders the tables for the foreign keys, so this says what
+        // is in the database rather than in what order to put it there.
+        db.snapshotDao().insert(
+            DatabaseSnapshot(
+                subjects = listOf(SubjectEntity(1, "Математика"), SubjectEntity(2, "Физика")),
+                students = listOf(
+                    StudentEntity(1, "Иван", phone = "+375291112233", note = "ОГЭ", defaultMode = "REMOTE"),
+                    StudentEntity(2, "Мария", archived = true),
+                ),
+                studentSubjects = listOf(
+                    StudentSubjectCrossRef(1, 1), StudentSubjectCrossRef(1, 2), StudentSubjectCrossRef(2, 1),
+                ),
+                groups = listOf(GroupEntity(7, "11 «А»", note = "вечер", defaultMode = "REMOTE")),
+                groupMembers = listOf(GroupMemberCrossRef(7, 1), GroupMemberCrossRef(7, 2)),
+                prices = listOf(PriceEntity(1, 1, 5000), PriceEntity(2, 1, 4550)),
+                // The rate log, in all three of its shapes: a student's price starting, that price
+                // rising, and a group's rate that predates the log (no previous amount, no date — both
+                // must survive as null rather than come back as 0 and 1970).
+                rateHistory = listOf(
+                    RateChangeEntity(1, studentId = 1, subjectId = 1, toMinor = 4000, atMillis = 1_890_000_000_000),
+                    RateChangeEntity(2, studentId = 1, subjectId = 1, fromMinor = 4000, toMinor = 5000, atMillis = 1_895_000_000_000),
+                    RateChangeEntity(3, groupId = 7, toMinor = 2000, atMillis = null),
+                ),
+                classes = listOf(
+                    ClassEntity(1, 1, 1, 1_900_000_000_000, 90, priceMinor = 5000, status = "COMPLETED", chargeMinor = 5000, groupId = 7, mode = "REMOTE", calendarEventId = "evt-1"),
+                    ClassEntity(2, 2, 1, 1_900_100_000_000, 60, status = "SCHEDULED"),
+                ),
+                payments = listOf(PaymentEntity(1, 1, 1_899_000_000_000, 3000)),
             ),
         )
 

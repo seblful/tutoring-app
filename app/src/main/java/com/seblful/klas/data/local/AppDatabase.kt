@@ -29,6 +29,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun paymentDao(): PaymentDao
     abstract fun settingsDao(): SettingsDao
 
+    /** Whole tables at once, for backup and restore only — see [SnapshotDao]. */
+    abstract fun snapshotDao(): SnapshotDao
+
     companion object {
         // Renamed with the app (was "tutoring.db"). Safe only because the application id changed in
         // the same breath: every install is a fresh one, so there is no old file left to look for.

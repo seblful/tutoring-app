@@ -1,7 +1,5 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.data.local.ClassDao
-import com.seblful.klas.data.local.GroupDao
 import com.seblful.klas.data.local.SubjectDao
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
@@ -15,8 +13,9 @@ import javax.inject.Singleton
 @Singleton
 class SubjectRepository @Inject constructor(
     private val dao: SubjectDao,
-    private val classDao: ClassDao,
-    private val groupDao: GroupDao,
+    /** Both asked whether anything still references a subject — see their referenced-by guards. */
+    private val classes: ClassRepository,
+    private val groups: GroupRepository,
     /** A subject's name is part of every mirrored event's title — see [CalendarMirror]. */
     private val calendar: CalendarMirror,
 ) {
@@ -66,8 +65,8 @@ class SubjectRepository @Inject constructor(
      * The caller should ask the user to clear the reference first, which is why the two are told apart.
      */
     suspend fun delete(subject: Subject): Delete {
-        if (classDao.countForSubject(subject.id) > 0) return Delete.HasClasses
-        if (groupDao.countForSubject(subject.id) > 0) return Delete.TaughtToGroup
+        if (classes.anyForSubject(subject.id)) return Delete.HasClasses
+        if (groups.anyForSubject(subject.id)) return Delete.TaughtToGroup
         dao.delete(subject.toEntity())
         return Delete.Ok
     }

@@ -13,6 +13,7 @@ import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.RateHistoryDao
 import com.seblful.klas.data.local.SettingsDao
 import com.seblful.klas.data.local.SettingsEntity
+import com.seblful.klas.data.local.SnapshotDao
 import com.seblful.klas.data.local.StudentDao
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
@@ -42,7 +43,6 @@ class FakeSubjectDao : SubjectDao {
     private var nextId = 1L
 
     override fun observeAll(): Flow<List<SubjectEntity>> = items
-    override suspend fun getAll(): List<SubjectEntity> = items.value
     override suspend fun getById(id: Long): SubjectEntity? = items.value.firstOrNull { it.id == id }
 
     override suspend fun upsert(subject: SubjectEntity): Long {
@@ -54,14 +54,6 @@ class FakeSubjectDao : SubjectDao {
 
     override suspend fun delete(subject: SubjectEntity) {
         items.value = items.value.filterNot { it.id == subject.id }
-    }
-
-    override suspend fun insertAll(subjects: List<SubjectEntity>) {
-        items.value = items.value + subjects
-    }
-
-    override suspend fun deleteAll() {
-        items.value = emptyList()
     }
 }
 
@@ -75,8 +67,6 @@ class FakeStudentDao : StudentDao {
 
     override fun observeAll(): Flow<List<StudentEntity>> = items
 
-    override suspend fun getAll(): List<StudentEntity> = items.value
-
     override fun observeById(id: Long): Flow<StudentEntity?> =
         items.map { list -> list.firstOrNull { it.id == id } }
 
@@ -87,10 +77,6 @@ class FakeStudentDao : StudentDao {
         val row = student.copy(id = id)
         items.value = items.value.filterNot { it.id == id } + row
         return id
-    }
-
-    override suspend fun insertAll(students: List<StudentEntity>) {
-        items.value = items.value + students
     }
 
     override suspend fun getSubjectIds(studentId: Long): List<Long> =
@@ -111,19 +97,6 @@ class FakeStudentDao : StudentDao {
 
     override suspend fun removeSubjectLink(studentId: Long, subjectId: Long) {
         links.value = links.value.filterNot { it.studentId == studentId && it.subjectId == subjectId }
-    }
-
-    override suspend fun getAllLinks(): List<StudentSubjectCrossRef> = links.value
-    override suspend fun insertLinks(links: List<StudentSubjectCrossRef>) {
-        this.links.value = this.links.value + links
-    }
-
-    override suspend fun deleteAll() {
-        items.value = emptyList()
-    }
-
-    override suspend fun deleteAllLinks() {
-        links.value = emptyList()
     }
 }
 
@@ -186,24 +159,6 @@ class FakeGroupDao : GroupDao {
     override suspend fun removeMember(groupId: Long, studentId: Long) {
         members.value = members.value.filterNot { it.groupId == groupId && it.studentId == studentId }
     }
-
-    override suspend fun getAllMembers(): List<GroupMemberCrossRef> = members.value
-
-    override suspend fun insertAll(groups: List<GroupEntity>) {
-        items.value = items.value + groups
-    }
-
-    override suspend fun insertMembers(members: List<GroupMemberCrossRef>) {
-        this.members.value = this.members.value + members
-    }
-
-    override suspend fun deleteAll() {
-        items.value = emptyList()
-    }
-
-    override suspend fun deleteAllMembers() {
-        members.value = emptyList()
-    }
 }
 
 class FakePriceDao : PriceDao {
@@ -223,15 +178,6 @@ class FakePriceDao : PriceDao {
 
     override suspend fun delete(studentId: Long, subjectId: Long) {
         items.value = items.value.filterNot { it.studentId == studentId && it.subjectId == subjectId }
-    }
-
-    override suspend fun getAll(): List<PriceEntity> = items.value
-    override suspend fun insertAll(prices: List<PriceEntity>) {
-        items.value = items.value + prices
-    }
-
-    override suspend fun deleteAll() {
-        items.value = emptyList()
     }
 }
 
@@ -267,16 +213,6 @@ class FakeRateHistoryDao : RateHistoryDao {
 
     override suspend fun deleteForStudentSubject(studentId: Long, subjectId: Long) {
         items.value = items.value.filterNot { it.studentId == studentId && it.subjectId == subjectId }
-    }
-
-    override suspend fun getAll(): List<RateChangeEntity> = items.value
-
-    override suspend fun insertAll(changes: List<RateChangeEntity>) {
-        items.value = items.value + changes
-    }
-
-    override suspend fun deleteAll() {
-        items.value = emptyList()
     }
 }
 
@@ -356,14 +292,6 @@ class FakeClassDao : ClassDao {
     override suspend fun delete(klass: ClassEntity) {
         items.value = items.value.filterNot { it.id == klass.id }
     }
-
-    override suspend fun insertAll(classes: List<ClassEntity>) {
-        items.value = items.value + classes
-    }
-
-    override suspend fun deleteAll() {
-        items.value = emptyList()
-    }
 }
 
 class FakeSettingsDao : SettingsDao {
@@ -386,8 +314,6 @@ class FakePaymentDao : PaymentDao {
     override fun observeForStudent(studentId: Long): Flow<List<PaymentEntity>> =
         items.map { list -> list.filter { it.studentId == studentId }.sortedByDescending { it.dateMillis } }
 
-    override suspend fun getAll(): List<PaymentEntity> = items.value
-
     override suspend fun insert(payment: PaymentEntity): Long {
         val id = if (payment.id == 0L) nextId++ else payment.id
         items.value = items.value.filterNot { it.id == id } + payment.copy(id = id)
@@ -404,12 +330,108 @@ class FakePaymentDao : PaymentDao {
     override suspend fun delete(payment: PaymentEntity) {
         items.value = items.value.filterNot { it.id == payment.id }
     }
+}
 
-    override suspend fun insertAll(payments: List<PaymentEntity>) {
-        items.value = items.value + payments
+/**
+ * The whole-table seam over the other fakes, so backup and restore are exercised against the same
+ * in-memory rows every repository sees.
+ *
+ * It subclasses the **real** [SnapshotDao] and fills in only its per-table methods, which means the
+ * two orders `replace` applies — children before parents out, parents before children in — are the
+ * production ones and not a copy. That matters more here than anywhere else: those orders exist to
+ * satisfy foreign keys, [FakeGroupDao] is the only fake that enforces one, and a restore whose delete
+ * order was wrong would fail on a device while passing here. The fake cannot get it wrong because it
+ * is never asked.
+ */
+class FakeSnapshotDao(
+    private val subjectDao: FakeSubjectDao,
+    private val studentDao: FakeStudentDao,
+    private val groupDao: FakeGroupDao,
+    private val priceDao: FakePriceDao,
+    private val rateHistoryDao: FakeRateHistoryDao,
+    private val classDao: FakeClassDao,
+    private val paymentDao: FakePaymentDao,
+) : SnapshotDao() {
+
+    override suspend fun subjects(): List<SubjectEntity> = subjectDao.items.value
+    override suspend fun students(): List<StudentEntity> = studentDao.items.value
+    override suspend fun studentSubjects(): List<StudentSubjectCrossRef> = studentDao.links.value
+    override suspend fun groups(): List<GroupEntity> = groupDao.items.value
+    override suspend fun groupMembers(): List<GroupMemberCrossRef> = groupDao.members.value
+    override suspend fun prices(): List<PriceEntity> = priceDao.items.value
+    override suspend fun rateHistory(): List<RateChangeEntity> = rateHistoryDao.items.value
+    override suspend fun classes(): List<ClassEntity> = classDao.items.value
+    override suspend fun payments(): List<PaymentEntity> = paymentDao.items.value
+
+    override suspend fun insertSubjects(rows: List<SubjectEntity>) {
+        subjectDao.items.value += rows
     }
 
-    override suspend fun deleteAll() {
-        items.value = emptyList()
+    override suspend fun insertStudents(rows: List<StudentEntity>) {
+        studentDao.items.value += rows
+    }
+
+    override suspend fun insertStudentSubjects(rows: List<StudentSubjectCrossRef>) {
+        studentDao.links.value += rows
+    }
+
+    override suspend fun insertGroups(rows: List<GroupEntity>) {
+        groupDao.items.value += rows
+    }
+
+    override suspend fun insertGroupMembers(rows: List<GroupMemberCrossRef>) {
+        groupDao.members.value += rows
+    }
+
+    override suspend fun insertPrices(rows: List<PriceEntity>) {
+        priceDao.items.value += rows
+    }
+
+    override suspend fun insertRateHistory(rows: List<RateChangeEntity>) {
+        rateHistoryDao.items.value += rows
+    }
+
+    override suspend fun insertClasses(rows: List<ClassEntity>) {
+        classDao.items.value += rows
+    }
+
+    override suspend fun insertPayments(rows: List<PaymentEntity>) {
+        paymentDao.items.value += rows
+    }
+
+    override suspend fun clearSubjects() {
+        subjectDao.items.value = emptyList()
+    }
+
+    override suspend fun clearStudents() {
+        studentDao.items.value = emptyList()
+    }
+
+    override suspend fun clearStudentSubjects() {
+        studentDao.links.value = emptyList()
+    }
+
+    override suspend fun clearGroups() {
+        groupDao.items.value = emptyList()
+    }
+
+    override suspend fun clearGroupMembers() {
+        groupDao.members.value = emptyList()
+    }
+
+    override suspend fun clearPrices() {
+        priceDao.items.value = emptyList()
+    }
+
+    override suspend fun clearRateHistory() {
+        rateHistoryDao.items.value = emptyList()
+    }
+
+    override suspend fun clearClasses() {
+        classDao.items.value = emptyList()
+    }
+
+    override suspend fun clearPayments() {
+        paymentDao.items.value = emptyList()
     }
 }

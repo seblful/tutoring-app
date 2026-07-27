@@ -187,6 +187,11 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
     val settingsDao = FakeSettingsDao()
     val paymentDao = FakePaymentDao()
 
+    /** The same rows again, whole tables at a time — what backup and restore see. */
+    val snapshotDao = FakeSnapshotDao(
+        subjectDao, studentDao, groupDao, priceDao, rateHistoryDao, classDao, paymentDao,
+    )
+
     val calendar = FakeCalendarSync()
     val calendarPermission = FakeCalendarPermission()
     val notificationPermission = FakeNotificationPermission()
@@ -194,11 +199,11 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
 
     val settingsRepo = SettingsRepository(settingsDao)
     val calendarMirror = CalendarMirror(classDao, studentDao, subjectDao, groupDao, calendar, settingsRepo)
-    val subjectRepo = SubjectRepository(subjectDao, classDao, groupDao, calendarMirror)
     val rateHistoryRepo = RateHistoryRepository(rateHistoryDao, groupDao, priceDao)
-    val groupRepo = GroupRepository(groupDao, classDao, studentDao, rateHistoryRepo, transactor, calendarMirror)
-    val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classDao, rateHistoryRepo, transactor)
     val paymentRepo = PaymentRepository(paymentDao)
+
+    // Declared before the four repositories below it, all of which ask it whether anything is still
+    // taught somewhere rather than counting rows in the class table themselves.
     val classRepo = ClassRepository(
         dao = classDao,
         calendar = calendarMirror,
@@ -207,8 +212,12 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
         transactor = transactor,
     )
 
-    // After classRepo: archiving a student has to call off their planned lessons, so this reaches for
-    // the class repository rather than restating any of what a class change owes.
+    val groupRepo = GroupRepository(groupDao, classRepo, studentDao, rateHistoryRepo, transactor, calendarMirror)
+    val subjectRepo = SubjectRepository(subjectDao, classRepo, groupRepo, calendarMirror)
+    val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classRepo, rateHistoryRepo, transactor)
+
+    // Archiving a student has to call off their planned lessons, so this reaches for the class
+    // repository rather than restating any of what a class change owes.
     val studentRepo = StudentRepository(studentDao, classRepo, calendarMirror)
 
     /**
@@ -217,16 +226,7 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
      * is what lets the *failure* paths (an unsupported version, a file that isn't a backup) be
      * exercised through the production code that classifies them.
      */
-    val backupManager = BackupManager(
-        transactor = transactor,
-        subjects = subjectDao,
-        students = studentDao,
-        groups = groupDao,
-        prices = priceDao,
-        rateHistory = rateHistoryDao,
-        classes = classDao,
-        payments = paymentDao,
-    )
+    val backupManager = BackupManager(transactor = transactor, snapshot = snapshotDao)
 
     /**
      * Seeds a starting state through the repositories rather than into the DAOs — see [Fixtures] for

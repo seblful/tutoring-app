@@ -37,10 +37,10 @@ flowchart TB
 | Package | Responsibility |
 |---|---|
 | `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, calendar layout, `CalendarSyncPolicy`, reminders, reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught`, `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, models (incl. the report-only id types, `model/Ids.kt`), and the `ReminderScheduler` port. All JVM-tested. |
-| `data/local/` | Room entities, DAOs, `AppDatabase`, and the `Transactor` port. Entities are also `@Serializable`, for the backup. |
+| `data/local/` | Room entities, DAOs, `AppDatabase`, and the `Transactor` port. Entities are also `@Serializable`, for the backup. `SnapshotDao` is the **separate** whole-table seam (see *Two interfaces onto the same tables*). |
 | `data/Mappers.kt` | Entities ⇄ domain models. Where a stored enum is parsed back. |
 | `data/repository/` | One invariant each, end to end, written in one transaction (see *Ownership*). Display **name ordering** is applied here. |
-| `data/backup/` | Whole-DB JSON snapshot: export, transactional replace-all import, `BackupIntegrity` (what a file must be readable as before any of it is written), `BackupFailure` (which refusal it was) and `BackupRestore` (everything a *restore* means beyond the rows). |
+| `data/backup/` | The **file format**: export, transactional replace-all import, `BackupIntegrity` (what a file must be readable as before any of it is written), `BackupFailure` (which refusal it was) and `BackupRestore` (everything a *restore* means beyond the rows). What tables exist and the order they may be emptied and filled in is `SnapshotDao`'s. |
 | `calendar/` | `CalendarSync` + `CalendarPermission` ports and a `CalendarContract` adapter. |
 | `notifications/` | `Notifier` and `NotificationPermission` ports + Android adapters, `DueReminder`, and `ReminderAlarms`/`ReminderReceiver` — reminders are **alarms**, not deferrable work. |
 | `work/` | WorkManager's half: the periodic `MaintenanceWorker`, `WorkScheduler`, `BootReceiver` (alarms die on reboot), and `Maintenance` — what an upkeep pass decides, kept out of the worker. |
@@ -66,6 +66,11 @@ flowchart TB
 - `StudentRepository` — the whole act of **archiving**, which is more than a flag: a retired student's
   still-planned lessons are called off first, through `ClassRepository`.
 - `SubjectRepository` — a subject is deletable only while nothing references it.
+
+**"Is anything still taught here?" is answered by whoever owns the answer.** `ClassRepository.anyFor*`
+and `GroupRepository.anyForSubject` are the referenced-by guards behind every refusal to delete or
+unenroll. Three repositories used to count rows in `ClassDao` themselves for a single yes-or-no, which
+put the reason for the refusal in the module doing the deleting rather than the one that knows it.
 
 **A write that spans tables is one transaction, in all of them**, in three fixed phases: pure rules →
 every row inside `Transactor.transaction` → calendar and reminders *after* the commit. What could
@@ -94,6 +99,22 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 - **A report is read inside a period** (`domain/ReportPeriod`): a month, a year, or all time, opening
   on the **year in progress**. **Debts are the deliberate exception** — a balance spans a student's
   whole history, and clipping charges to a year while payments stay whole would invent credit.
+
+### Two interfaces onto the same tables
+
+- **`SnapshotDao` is the whole-database seam, and the only one.** Backup and restore need what nothing
+  else does: whole tables, ids preserved, no rule applied. Those 25 methods used to sit on the same
+  eight DAOs the repositories use, so every repository holding an invariant was also handed the
+  `deleteAll()` that voids it. Its public surface is `read`, `insert` and `replace`; the per-table
+  methods are `protected`, because both foreign-key orders — children before parents out, parents
+  before children in — belong to the schema and are stated once, there. `WholeTableWritesTest` keeps
+  whole-table deletes out of `Daos.kt` and pins that every table read is also emptied.
+- **`classes` and `student_groups` are read whole in both**, and that duplicate SQL is deliberate: a
+  repository reading every class maps it to the domain and applies a rule, and must not be reachable
+  from the wipe next door.
+- **The backup *file format* is `BackupData`, a separate type from `DatabaseSnapshot`** though they hold
+  the same nine lists. `BackupData`'s field names are JSON keys in files already on somebody's phone, so
+  they may never be renamed; the snapshot follows the schema.
 
 ### Reading back what was stored
 
@@ -410,15 +431,16 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
   with it. Reaching for a DAO to build what the repositories deliberately refuse is still legitimate —
   lowering the cap by hand is how such a call gets acknowledged rather than absorbed.
 - **Fixtures pin the clock, not `now()`.** Seed a fixed hour and pick days by excluding today.
-- Four tests are **tripwires against silent drift**, all deriving expectations from a real artifact
+- Five tests are **tripwires against silent drift**, all deriving expectations from a real artifact
   rather than restating them: `BackupSchemaCoverageTest` (a new table must be carried or named
   device-local), `MappersTest` (a new column must be mapped), `StoredEnumNamesTest` (a renamed enum
   constant is a migration — it reads the DAO source, since `@Query` is not retained at runtime, *and*
   `FakeDaos.kt`, which had restated three of the same predicates as bare strings and so sat outside the
-  very scan built for the risk) and
+  very scan built for the risk), `WholeTableWritesTest` (a whole-table delete belongs to `SnapshotDao`,
+  and every table it reads it must also empty) and
   `MigrationChainTest` (a bumped schema version must ship a migration for every step from v1 *and* wire
   it into the builder, and the destructive fallback must stay debug-only — it reads `AppDatabase.kt`,
-  since `@Database` is `BINARY`-retained). The first three are acknowledgement lists; the last is the
+  since `@Database` is `BINARY`-retained). The first four are acknowledgement lists; the last is the
   upgrade path, and it sits in the **unit** suite precisely because instrumented tests need a device CI
   does not have. Two more guard structure: one asserts the booking form leaves **no query open** once
   nothing collects it, one asserts a save is launched into the application scope.

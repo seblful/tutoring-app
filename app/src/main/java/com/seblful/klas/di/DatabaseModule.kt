@@ -9,6 +9,7 @@ import com.seblful.klas.data.local.PaymentDao
 import com.seblful.klas.data.local.PriceDao
 import com.seblful.klas.data.local.RateHistoryDao
 import com.seblful.klas.data.local.SettingsDao
+import com.seblful.klas.data.local.SnapshotDao
 import com.seblful.klas.data.local.StudentDao
 import com.seblful.klas.data.local.SubjectDao
 import com.seblful.klas.data.local.RoomTransactor
@@ -59,6 +60,7 @@ object DatabaseModule {
     @Provides fun provideClassDao(db: AppDatabase): ClassDao = db.classDao()
     @Provides fun providePaymentDao(db: AppDatabase): PaymentDao = db.paymentDao()
     @Provides fun provideSettingsDao(db: AppDatabase): SettingsDao = db.settingsDao()
+    @Provides fun provideSnapshotDao(db: AppDatabase): SnapshotDao = db.snapshotDao()
 
     @Provides
     @Singleton

@@ -10,6 +10,8 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.DatabaseSnapshot
+import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.PriceEntity
@@ -17,6 +19,7 @@ import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.data.toDomain
+import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.domain.Billing
 import com.seblful.klas.domain.model.ClassStatus
 import com.seblful.klas.domain.model.Money
@@ -60,42 +63,60 @@ class SubjectDeletionCascadeTest {
         db = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext<Context>(), AppDatabase::class.java,
         ).build()
-        db.subjectDao().insertAll(listOf(SubjectEntity(1, "Математика"), SubjectEntity(2, "Физика")))
-        db.studentDao().insertAll(listOf(StudentEntity(1, "Иван")))
-        db.priceDao().insertAll(listOf(PriceEntity(1, 1, amountMinor = 5000)))
+        db.snapshotDao().insert(
+            DatabaseSnapshot(
+                subjects = listOf(SubjectEntity(1, "Математика"), SubjectEntity(2, "Физика")),
+                students = listOf(StudentEntity(1, "Иван")),
+                prices = listOf(PriceEntity(1, 1, amountMinor = 5000)),
+            ),
+        )
         // Sync stays off in this fixture, so the mirror is reached and returns immediately: what
         // is under test here is the foreign-key behaviour, not the calendar.
         val mirror = CalendarMirror(
             db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(),
             noCalendar, SettingsRepository(db.settingsDao()),
         )
-        subjects = SubjectRepository(db.subjectDao(), db.classDao(), db.groupDao(), mirror)
+        // The real repositories, because the guards being tested are theirs: "is this subject still
+        // taught" is a question about classes and about groups, and each is answered by whoever owns it.
+        val settings = SettingsRepository(db.settingsDao())
+        val transactor = RoomTransactor(db)
+        val classes = ClassRepository(
+            db.classDao(), mirror, RecordingReminderScheduler(), settings, transactor,
+        )
+        val rateHistory = RateHistoryRepository(db.rateHistoryDao(), db.groupDao(), db.priceDao())
+        val groups = GroupRepository(
+            db.groupDao(), classes, db.studentDao(), rateHistory, transactor, mirror,
+        )
+        subjects = SubjectRepository(db.subjectDao(), classes, groups, mirror)
     }
 
     @After fun tearDown() = db.close()
 
     @Test fun deletingSubjectWithClassesIsBlockedAndPreservesIncome() = runTest {
         // A completed 50 BYN lesson with a 20 BYN payment -> student owes 30 BYN.
-        db.classDao().insertAll(
-            listOf(
-                ClassEntity(
-                    1, 1, 1, Instant.parse("2026-05-10T10:00:00Z").toEpochMilli(), 60,
-                    status = ClassStatus.COMPLETED.name, chargeMinor = 5000,
+        db.snapshotDao().insert(
+            DatabaseSnapshot(
+                classes = listOf(
+                    ClassEntity(
+                        1, 1, 1, Instant.parse("2026-05-10T10:00:00Z").toEpochMilli(), 60,
+                        status = ClassStatus.COMPLETED.name, chargeMinor = 5000,
+                    ),
+                ),
+                payments = listOf(
+                    PaymentEntity(1, 1, Instant.parse("2026-05-10T12:00:00Z").toEpochMilli(), amountMinor = 2000),
                 ),
             ),
-        )
-        db.paymentDao().insertAll(
-            listOf(PaymentEntity(1, 1, Instant.parse("2026-05-10T12:00:00Z").toEpochMilli(), amountMinor = 2000)),
         )
 
         val deleted = subjects.delete(Subject(id = 1, name = "Математика"))
 
         assertEquals(SubjectRepository.Delete.HasClasses, deleted) // refused, and says why
-        assertEquals(1, db.classDao().getAll().size) // class (income) preserved
+        val rows = db.snapshotDao().read()
+        assertEquals(1, rows.classes.size) // class (income) preserved
         assertEquals(
             Money(3000), // student still correctly owes 30 BYN
             Billing.balanceOf(
-                1, db.classDao().getAll().map { it.toDomain() }, db.paymentDao().getAll().map { it.toDomain() },
+                1, rows.classes.map { it.toDomain() }, rows.payments.map { it.toDomain() },
             ).balance,
         )
     }
@@ -104,7 +125,7 @@ class SubjectDeletionCascadeTest {
         val deleted = subjects.delete(Subject(id = 2, name = "Физика")) // no classes reference it
 
         assertEquals(SubjectRepository.Delete.Ok, deleted)
-        assertEquals(1, db.subjectDao().getAll().size) // only Математика remains
+        assertEquals(1, db.snapshotDao().read().subjects.size) // only Математика remains
     }
 
     /**
@@ -124,7 +145,7 @@ class SubjectDeletionCascadeTest {
         // Named apart from HasClasses: "remove its lessons first" is no help when the blocker is a
         // group that has taught none.
         assertEquals(SubjectRepository.Delete.TaughtToGroup, deleted)
-        assertEquals(2, db.subjectDao().getAll().size) // both subjects still there
+        assertEquals(2, db.snapshotDao().read().subjects.size) // both subjects still there
     }
 
     /**
@@ -145,7 +166,8 @@ class SubjectDeletionCascadeTest {
         val deleted = subjects.delete(Subject(id = 2, name = "Физика")) // no classes reference it
 
         assertEquals(SubjectRepository.Delete.Ok, deleted)
-        assertTrue(db.rateHistoryDao().getAll().isEmpty()) // the log went with the subject
-        assertEquals(1, db.priceDao().getAll().size) // only the Математика price remains
+        val rows = db.snapshotDao().read()
+        assertTrue(rows.rateHistory.isEmpty()) // the log went with the subject
+        assertEquals(1, rows.prices.size) // only the Математика price remains
     }
 }

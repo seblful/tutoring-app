@@ -1,6 +1,5 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.data.local.ClassDao
 import com.seblful.klas.data.local.PriceDao
 import com.seblful.klas.data.local.StudentDao
 import com.seblful.klas.data.local.StudentSubjectCrossRef
@@ -39,7 +38,8 @@ import javax.inject.Singleton
 class EnrollmentRepository @Inject constructor(
     private val studentDao: StudentDao,
     private val priceDao: PriceDao,
-    private val classDao: ClassDao,
+    /** Asked whether a subject still has classes — see `ClassRepository`'s referenced-by guards. */
+    private val classes: ClassRepository,
     private val rateHistory: RateHistoryRepository,
     private val transactor: Transactor,
 ) {
@@ -113,7 +113,7 @@ class EnrollmentRepository @Inject constructor(
     suspend fun unenroll(studentId: Long, subjectId: Long): Unenroll {
         // The count is read outside the transaction on purpose: it is the *decision* whether to write
         // at all, and a refusal writes nothing there is anything to roll back.
-        if (classDao.countForStudentSubject(studentId, subjectId) > 0) return Unenroll.HasClasses
+        if (classes.anyForStudentSubject(studentId, subjectId)) return Unenroll.HasClasses
         transactor.transaction {
             studentDao.removeSubjectLink(studentId, subjectId)
             priceDao.delete(studentId, subjectId)
@@ -152,7 +152,7 @@ class EnrollmentRepository @Inject constructor(
         val target = pricedSubjects.keys
         // Read outside the transaction: these decide *whether* to drop, and a refusal writes nothing.
         val undroppable = (current - target)
-            .filter { classDao.countForStudentSubject(studentId, it) > 0 }
+            .filter { classes.anyForStudentSubject(studentId, it) }
             .toSet()
         transactor.transaction {
             (target - current).forEach { studentDao.addSubjectLink(StudentSubjectCrossRef(studentId, it)) }

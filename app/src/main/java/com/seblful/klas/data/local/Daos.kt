@@ -19,9 +19,6 @@ interface SubjectDao {
     @Query("SELECT * FROM subjects")
     fun observeAll(): Flow<List<SubjectEntity>>
 
-    @Query("SELECT * FROM subjects")
-    suspend fun getAll(): List<SubjectEntity>
-
     @Query("SELECT * FROM subjects WHERE id = :id")
     suspend fun getById(id: Long): SubjectEntity?
 
@@ -30,12 +27,6 @@ interface SubjectDao {
 
     @Delete
     suspend fun delete(subject: SubjectEntity)
-
-    @Insert
-    suspend fun insertAll(subjects: List<SubjectEntity>)
-
-    @Query("DELETE FROM subjects")
-    suspend fun deleteAll()
 }
 
 @Dao
@@ -46,9 +37,6 @@ interface StudentDao {
     @Query("SELECT * FROM students")
     fun observeAll(): Flow<List<StudentEntity>>
 
-    @Query("SELECT * FROM students")
-    suspend fun getAll(): List<StudentEntity>
-
     @Query("SELECT * FROM students WHERE id = :id")
     fun observeById(id: Long): Flow<StudentEntity?>
 
@@ -57,9 +45,6 @@ interface StudentDao {
 
     @Upsert
     suspend fun upsert(student: StudentEntity): Long
-
-    @Insert
-    suspend fun insertAll(students: List<StudentEntity>)
 
     @Query("SELECT subjectId FROM student_subjects WHERE studentId = :studentId")
     suspend fun getSubjectIds(studentId: Long): List<Long>
@@ -76,18 +61,6 @@ interface StudentDao {
 
     @Query("DELETE FROM student_subjects WHERE studentId = :studentId AND subjectId = :subjectId")
     suspend fun removeSubjectLink(studentId: Long, subjectId: Long)
-
-    @Query("SELECT * FROM student_subjects")
-    suspend fun getAllLinks(): List<StudentSubjectCrossRef>
-
-    @Insert
-    suspend fun insertLinks(links: List<StudentSubjectCrossRef>)
-
-    @Query("DELETE FROM students")
-    suspend fun deleteAll()
-
-    @Query("DELETE FROM student_subjects")
-    suspend fun deleteAllLinks()
 }
 
 @Dao
@@ -136,21 +109,6 @@ interface GroupDao {
 
     @Query("DELETE FROM group_members WHERE groupId = :groupId AND studentId = :studentId")
     suspend fun removeMember(groupId: Long, studentId: Long)
-
-    @Query("SELECT * FROM group_members")
-    suspend fun getAllMembers(): List<GroupMemberCrossRef>
-
-    @Insert
-    suspend fun insertAll(groups: List<GroupEntity>)
-
-    @Insert
-    suspend fun insertMembers(members: List<GroupMemberCrossRef>)
-
-    @Query("DELETE FROM student_groups")
-    suspend fun deleteAll()
-
-    @Query("DELETE FROM group_members")
-    suspend fun deleteAllMembers()
 }
 
 @Dao
@@ -166,15 +124,6 @@ interface PriceDao {
 
     @Query("DELETE FROM prices WHERE studentId = :studentId AND subjectId = :subjectId")
     suspend fun delete(studentId: Long, subjectId: Long)
-
-    @Query("SELECT * FROM prices")
-    suspend fun getAll(): List<PriceEntity>
-
-    @Insert
-    suspend fun insertAll(prices: List<PriceEntity>)
-
-    @Query("DELETE FROM prices")
-    suspend fun deleteAll()
 }
 
 /**
@@ -202,15 +151,6 @@ interface RateHistoryDao {
 
     @Query("DELETE FROM price_history WHERE studentId = :studentId AND subjectId = :subjectId")
     suspend fun deleteForStudentSubject(studentId: Long, subjectId: Long)
-
-    @Query("SELECT * FROM price_history")
-    suspend fun getAll(): List<RateChangeEntity>
-
-    @Insert
-    suspend fun insertAll(changes: List<RateChangeEntity>)
-
-    @Query("DELETE FROM price_history")
-    suspend fun deleteAll()
 }
 
 @Dao
@@ -304,12 +244,6 @@ interface ClassDao {
 
     @Delete
     suspend fun delete(klass: ClassEntity)
-
-    @Insert
-    suspend fun insertAll(classes: List<ClassEntity>)
-
-    @Query("DELETE FROM classes")
-    suspend fun deleteAll()
 }
 
 @Dao
@@ -332,9 +266,6 @@ interface PaymentDao {
     @Query("SELECT * FROM payments WHERE studentId = :studentId ORDER BY dateMillis DESC")
     fun observeForStudent(studentId: Long): Flow<List<PaymentEntity>>
 
-    @Query("SELECT * FROM payments")
-    suspend fun getAll(): List<PaymentEntity>
-
     @Insert
     suspend fun insert(payment: PaymentEntity): Long
 
@@ -350,10 +281,4 @@ interface PaymentDao {
 
     @Delete
     suspend fun delete(payment: PaymentEntity)
-
-    @Insert
-    suspend fun insertAll(payments: List<PaymentEntity>)
-
-    @Query("DELETE FROM payments")
-    suspend fun deleteAll()
 }

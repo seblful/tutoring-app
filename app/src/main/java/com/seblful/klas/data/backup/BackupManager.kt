@@ -1,12 +1,6 @@
 package com.seblful.klas.data.backup
 
-import com.seblful.klas.data.local.ClassDao
-import com.seblful.klas.data.local.GroupDao
-import com.seblful.klas.data.local.PaymentDao
-import com.seblful.klas.data.local.PriceDao
-import com.seblful.klas.data.local.RateHistoryDao
-import com.seblful.klas.data.local.StudentDao
-import com.seblful.klas.data.local.SubjectDao
+import com.seblful.klas.data.local.SnapshotDao
 import com.seblful.klas.data.local.Transactor
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -17,17 +11,16 @@ import javax.inject.Singleton
 /**
  * Exports the whole database to a JSON string and restores it. Import is a full replace inside
  * a single transaction, so a failure leaves the existing data untouched (no partial restore).
+ *
+ * What it knows is the **file format** — the version, the JSON, and which of them this build will
+ * accept. What tables there are, and the order they may be emptied and filled in, is the schema's and
+ * lives with it ([SnapshotDao]). This used to hold seven DAOs and both foreign-key orderings itself,
+ * which put a wipe of every table in reach of every repository that shared those DAOs.
  */
 @Singleton
 class BackupManager @Inject constructor(
     private val transactor: Transactor,
-    private val subjects: SubjectDao,
-    private val students: StudentDao,
-    private val groups: GroupDao,
-    private val prices: PriceDao,
-    private val rateHistory: RateHistoryDao,
-    private val classes: ClassDao,
-    private val payments: PaymentDao,
+    private val snapshot: SnapshotDao,
 ) {
     private val json = Json {
         prettyPrint = true
@@ -35,17 +28,7 @@ class BackupManager @Inject constructor(
         encodeDefaults = true
     }
 
-    suspend fun export(): BackupData = BackupData(
-        subjects = subjects.getAll(),
-        students = students.getAll(),
-        studentSubjects = students.getAllLinks(),
-        groups = groups.getAll(),
-        groupMembers = groups.getAllMembers(),
-        prices = prices.getAll(),
-        rateHistory = rateHistory.getAll(),
-        classes = classes.getAll(),
-        payments = payments.getAll(),
-    )
+    suspend fun export(): BackupData = snapshot.read().toBackupData()
 
     suspend fun exportJson(): String = json.encodeToString(export())
 
@@ -63,29 +46,10 @@ class BackupManager @Inject constructor(
         // matters because the rows go in verbatim and are only interpreted later, on the read path.
         // See [BackupIntegrity].
         BackupIntegrity.check(data)
-        transactor.transaction {
-            // Children first, then parents, to respect foreign keys.
-            payments.deleteAll()
-            classes.deleteAll()
-            rateHistory.deleteAll()
-            prices.deleteAll()
-            groups.deleteAllMembers()
-            groups.deleteAll()
-            students.deleteAllLinks()
-            students.deleteAll()
-            subjects.deleteAll()
-
-            // Parents first on the way back in.
-            subjects.insertAll(data.subjects)
-            students.insertAll(data.students)
-            students.insertLinks(data.studentSubjects)
-            groups.insertAll(data.groups)
-            groups.insertMembers(data.groupMembers)
-            prices.insertAll(data.prices)
-            rateHistory.insertAll(data.rateHistory)
-            classes.insertAll(data.classes)
-            payments.insertAll(data.payments)
-        }
+        // The transaction is here rather than on the DAO so it is the injected port, and so a JVM test
+        // can count it: `replace` empties every table before it fills any, and a restore that stopped
+        // in between would have destroyed the tutor's data to import nothing.
+        transactor.transaction { snapshot.replace(data.toSnapshot()) }
     }
 
     suspend fun importJson(text: String) = import(parse(text))

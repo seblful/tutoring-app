@@ -130,7 +130,7 @@ class BackupViewModelTest {
             val vm = vm()
             env.studentDao.upsert(StudentEntity(name = "Аня"))
             documents.docs[ref.value] = env.backupManager.exportJson()
-            env.studentDao.deleteAll()
+            env.studentDao.items.value = emptyList()
             var received: BackupResult? = null
             val job = backgroundScope.launch { vm.events.stream.collect { received = it } }
 
@@ -139,7 +139,7 @@ class BackupViewModelTest {
             job.cancel()
 
             assertEquals(BackupResult.ImportOk, received)
-            assertEquals(listOf("Аня"), env.studentDao.getAll().map { it.name })
+            assertEquals(listOf("Аня"), env.studentDao.items.value.map { it.name })
             assertTrue(env.settingsRepo.get().onboardingComplete)
         }
 }

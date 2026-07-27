@@ -10,6 +10,7 @@ import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
@@ -41,9 +42,13 @@ class AutoCompleteTest {
         db = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext<Context>(), AppDatabase::class.java,
         ).build()
-        db.subjectDao().insertAll(listOf(SubjectEntity(1, "Математика")))
-        db.studentDao().insertAll(listOf(StudentEntity(1, "Иван")))
-        db.priceDao().insertAll(listOf(PriceEntity(1, 1, amountMinor = 5000))) // 50 BYN
+        db.snapshotDao().insert(
+            DatabaseSnapshot(
+                subjects = listOf(SubjectEntity(1, "Математика")),
+                students = listOf(StudentEntity(1, "Иван")),
+                prices = listOf(PriceEntity(1, 1, amountMinor = 5000)), // 50 BYN
+            ),
+        )
         val settings = SettingsRepository(db.settingsDao())
         val mirror = CalendarMirror(
             db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(), noCalendar, settings,
@@ -58,8 +63,12 @@ class AutoCompleteTest {
     @Test fun pastClassAutoCompletesAtBookedPriceAndBecomesDebt() = runTest {
         // A scheduled class that ended an hour ago, booked at 50 BYN.
         val start = Instant.parse("2026-06-18T10:00:00Z")
-        db.classDao().insertAll(
-            listOf(ClassEntity(1, 1, 1, start.toEpochMilli(), 60, priceMinor = 5000, status = ClassStatus.SCHEDULED.name)),
+        db.snapshotDao().insert(
+            DatabaseSnapshot(
+                classes = listOf(
+                    ClassEntity(1, 1, 1, start.toEpochMilli(), 60, priceMinor = 5000, status = ClassStatus.SCHEDULED.name),
+                ),
+            ),
         )
         val now = start.plusSeconds(2 * 3600)
 
