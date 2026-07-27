@@ -12,6 +12,7 @@ import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.testutil.RecordingReminderScheduler
@@ -66,14 +67,14 @@ class BackupRestoreTest {
         source = newDb()
         target = newDb()
         settings = SettingsRepository(target.settingsDao())
-        val classes = ClassRepository(
+        val mirror = CalendarMirror(
             target.classDao(), target.studentDao(), target.subjectDao(), target.groupDao(),
-            noCalendar, RecordingReminderScheduler(), settings, RoomTransactor(target),
+            noCalendar, settings,
         )
         restore = BackupRestore(
             backup = managerFor(target),
             settings = settings,
-            classes = classes,
+            calendar = mirror,
             reminders = reminders,
         )
     }

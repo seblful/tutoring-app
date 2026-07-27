@@ -1,6 +1,6 @@
 package com.seblful.klas.data.backup
 
-import com.seblful.klas.data.repository.ClassRepository
+import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.domain.ReminderScheduler
@@ -20,7 +20,7 @@ import javax.inject.Singleton
 class BackupRestore @Inject constructor(
     private val backup: BackupManager,
     private val settings: SettingsRepository,
-    private val classes: ClassRepository,
+    private val calendar: CalendarMirror,
     private val reminders: ReminderScheduler,
 ) {
     /**
@@ -34,6 +34,6 @@ class BackupRestore @Inject constructor(
         reminders.refreshNow()
         // Best-effort, like all calendar work — but a *cancellation* still propagates, so a restore
         // that was abandoned partway cannot return as though it had finished.
-        runCatchingCancellable { classes.resyncCalendar() }
+        runCatchingCancellable { calendar.resyncAll() }
     }
 }

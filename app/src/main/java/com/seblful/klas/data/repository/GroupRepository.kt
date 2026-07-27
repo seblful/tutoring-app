@@ -36,6 +36,8 @@ class GroupRepository @Inject constructor(
     private val studentDao: StudentDao,
     private val rateHistory: RateHistoryRepository,
     private val transactor: Transactor,
+    /** A group's name titles every event of its lessons — see [CalendarMirror]. */
+    private val calendar: CalendarMirror,
 ) {
     fun observeActive(): Flow<List<Group>> =
         dao.observeActive().map { list -> NameOrder.sorted(list.map { it.toDomain() }) { it.name } }
@@ -98,6 +100,11 @@ class GroupRepository @Inject constructor(
             (wanted - current).forEach { dao.addMember(GroupMemberCrossRef(id, it)) }
             (current - wanted).forEach { dao.removeMember(id, it) }
             id
+        }.also {
+            // Phase 3, outside the transaction like every other calendar write: a group's name is what
+            // makes n overlapping events read as one lesson, so a rename makes every mirrored event of
+            // its lessons wrong. See [CalendarMirror].
+            calendar.refreshForGroup(it)
         }
     }
 

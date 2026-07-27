@@ -6,6 +6,7 @@ import com.seblful.klas.calendar.Guest
 import com.seblful.klas.data.backup.BackupManager
 import com.seblful.klas.data.backup.BackupRestore
 import com.seblful.klas.data.local.Transactor
+import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.EnrollmentRepository
 import com.seblful.klas.data.repository.GroupRepository
@@ -192,17 +193,15 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
     val reminders = RecordingReminderScheduler()
 
     val settingsRepo = SettingsRepository(settingsDao)
-    val subjectRepo = SubjectRepository(subjectDao, classDao, groupDao)
+    val calendarMirror = CalendarMirror(classDao, studentDao, subjectDao, groupDao, calendar, settingsRepo)
+    val subjectRepo = SubjectRepository(subjectDao, classDao, groupDao, calendarMirror)
     val rateHistoryRepo = RateHistoryRepository(rateHistoryDao)
-    val groupRepo = GroupRepository(groupDao, classDao, studentDao, rateHistoryRepo, transactor)
+    val groupRepo = GroupRepository(groupDao, classDao, studentDao, rateHistoryRepo, transactor, calendarMirror)
     val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classDao, rateHistoryRepo, transactor)
     val paymentRepo = PaymentRepository(paymentDao)
     val classRepo = ClassRepository(
         dao = classDao,
-        studentDao = studentDao,
-        subjectDao = subjectDao,
-        groupDao = groupDao,
-        calendarSync = calendar,
+        calendar = calendarMirror,
         reminderScheduler = reminders,
         settings = settingsRepo,
         transactor = transactor,
@@ -210,7 +209,7 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
 
     // After classRepo: archiving a student has to call off their planned lessons, so this reaches for
     // the class repository rather than restating any of what a class change owes.
-    val studentRepo = StudentRepository(studentDao, classRepo)
+    val studentRepo = StudentRepository(studentDao, classRepo, calendarMirror)
 
     /**
      * The real backup manager and restore, on the same fake DAOs. Reachable in a JVM test because
@@ -232,7 +231,7 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
     val backupRestore = BackupRestore(
         backup = backupManager,
         settings = settingsRepo,
-        classes = classRepo,
+        calendar = calendarMirror,
         reminders = reminders,
     )
 }

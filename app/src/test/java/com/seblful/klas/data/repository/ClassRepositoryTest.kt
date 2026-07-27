@@ -239,19 +239,6 @@ class ClassRepositoryTest {
     }
 
     @Test
-    fun `clearCalendar removes every mirrored event and nulls the stored ids`() = runTest {
-        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
-        book()
-        book(Instant.parse("2026-06-21T10:00:00Z"))
-        assertEquals(2, env.calendar.upserts.size)
-
-        repo.clearCalendar()
-
-        assertEquals(2, env.calendar.deletes.size)
-        assertTrue(repo.getAll().all { it.calendarEventId == null })
-    }
-
-    @Test
     fun `every write asks for a reminder refresh, exactly once`() = runTest {
         val id = book()                                                       // 1
         repo.apply(session(id), edit(), newStart = defaultStart, now = now)    // 2

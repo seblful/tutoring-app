@@ -19,6 +19,12 @@ class StudentRepository @Inject constructor(
      * safe: `ClassRepository` depends on `StudentDao`, not on this.
      */
     private val classes: ClassRepository,
+    /**
+     * A student's name titles every event mirroring one of their lessons, and their email is what is
+     * invited to it — so a rename or a corrected address makes those events wrong, and this is what
+     * puts them right. See [CalendarMirror]: the obligation belongs to the module that does the reading.
+     */
+    private val calendar: CalendarMirror,
 ) {
     fun observeActive(): Flow<List<Student>> =
         dao.observeActive().map { list -> NameOrder.sorted(list.map { it.toDomain() }) { it.name } }
@@ -32,7 +38,22 @@ class StudentRepository @Inject constructor(
 
     suspend fun getById(id: Long): Student? = dao.getById(id)?.toDomain()
 
-    suspend fun upsert(student: Student): Long = dao.upsert(student.toEntity())
+    /**
+     * Saves [student] and refreshes what their mirrored events say about them.
+     *
+     * The refresh is not incidental to a rename — it is what a rename *means* once the calendar is
+     * mirroring. Best-effort and after the row, in that order: the local database is authoritative and
+     * must never be held up by the calendar, so a failed refresh leaves a stale event to be corrected
+     * rather than an unsaved student.
+     */
+    suspend fun upsert(student: Student): Long {
+        val id = dao.upsert(student.toEntity())
+        // @Upsert returns -1 when it updated rather than inserted — an edit, which is the case that
+        // needs the refresh at all.
+        val saved = if (id == -1L) student.id else id
+        calendar.refreshForStudent(saved)
+        return saved
+    }
 
     /**
      * Archives or restores [student], and returns how many of their planned lessons archiving called

@@ -54,6 +54,10 @@ flowchart TB
 
 - `ClassRepository` — **all** side effects of a class change (calendar mirror + reminder refresh).
   Every write takes a whole **lesson** (`ClassSession`), so there is no single-class path to drift.
+- `CalendarMirror` — what a mirrored event *shows*, and every table that decides it. A title is built
+  from the student's, subject's and group's name and the guest from the student's email, so **four**
+  tables can invalidate an event, not just `classes`; a caller that changes one of them asks for a
+  refresh instead of knowing which table it touched. Also owns the sync on/off backfill and withdrawal.
 - `EnrollmentRepository` — the subject⇄price invariant, and where prices are read.
 - `GroupRepository` — the only writer of group membership; a group is saved with its exact roster.
 - `PaymentRepository` — a payment's own date, and correcting one in place.
@@ -205,8 +209,12 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   it off and re-syncing **withdraws** invitations already sent.
 - **The calendar-permission rule sits behind the view model**, not behind the switch: sync cannot be
   enabled without the grant.
-- **A lesson mirrors as one batch, under one snapshot of the settings** (`ClassRepository.mirror`), so
+- **A lesson mirrors as one batch, under one snapshot of the settings** (`CalendarMirror`), so
   a lesson cannot mirror half under an old invite setting and half under a new one.
+- **A rename re-mirrors.** An event's title and guest are read from the student, subject and group
+  rows at mirror time, so those writes owe a refresh too — `CalendarMirror.refreshFor*`, driven off the
+  classes that actually carry an event id. Until this existed only a `classes` write mirrored, and a
+  rename left every already-mirrored event stale until something unrelated triggered a resync.
 - **A reminder only fires *ahead* of a lesson, never on booking.** The plan is re-derived from scratch
   on every change — over the **horizon**, not the whole history; `Maintenance` names that horizon once
   and uses it both to fetch the window and to filter it. `MaintenanceTest` pins the boundary lesson.

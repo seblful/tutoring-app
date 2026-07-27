@@ -54,9 +54,11 @@ class ClassCalendarSyncTest {
         calendar = FakeCalendarSync()
         val settings = SettingsRepository(db.settingsDao())
         settings.update { it.copy(calendarSyncEnabled = true) } // calendar mirroring is off unless enabled
+        val mirror = CalendarMirror(
+            db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(), calendar, settings,
+        )
         repo = ClassRepository(
-            db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(), calendar,
-            RecordingReminderScheduler(), settings, RoomTransactor(db),
+            db.classDao(), mirror, RecordingReminderScheduler(), settings, RoomTransactor(db),
         )
     }
 

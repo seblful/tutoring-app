@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.klas.calendar.CalendarPermission
 import com.seblful.klas.data.repository.AppSettings
-import com.seblful.klas.data.repository.ClassRepository
+import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.notifications.NotificationPermission
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,7 +26,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settings: SettingsRepository,
-    private val classes: ClassRepository,
+    private val calendar: CalendarMirror,
     private val calendarPermission: CalendarPermission,
     private val notificationPermission: NotificationPermission,
 ) : ViewModel() {
@@ -83,7 +83,7 @@ class SettingsViewModel @Inject constructor(
     fun setEmailInvitesEnabled(enabled: Boolean) {
         viewModelScope.launch {
             settings.update { it.copy(emailInvitesEnabled = enabled) }
-            classes.resyncCalendar()
+            calendar.resyncAll()
         }
     }
 
@@ -101,7 +101,7 @@ class SettingsViewModel @Inject constructor(
         if (enabled && !calendarPermission.isGranted()) return CalendarSyncToggle.PERMISSION_NEEDED
         viewModelScope.launch {
             settings.update { it.copy(calendarSyncEnabled = enabled) }
-            if (enabled) classes.resyncCalendar() else classes.clearCalendar()
+            if (enabled) calendar.resyncAll() else calendar.clear()
         }
         return CalendarSyncToggle.APPLIED
     }

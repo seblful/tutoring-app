@@ -17,13 +17,21 @@ class SubjectRepository @Inject constructor(
     private val dao: SubjectDao,
     private val classDao: ClassDao,
     private val groupDao: GroupDao,
+    /** A subject's name is part of every mirrored event's title — see [CalendarMirror]. */
+    private val calendar: CalendarMirror,
 ) {
     fun observeAll(): Flow<List<Subject>> =
         dao.observeAll().map { list -> NameOrder.sorted(list.map { it.toDomain() }) { it.name } }
 
     suspend fun getById(id: Long): Subject? = dao.getById(id)?.toDomain()
 
-    suspend fun upsert(subject: Subject): Long = dao.upsert(subject.toEntity())
+    /** Saves [subject] and refreshes the event titles carrying its name (see [StudentRepository.upsert]). */
+    suspend fun upsert(subject: Subject): Long {
+        val id = dao.upsert(subject.toEntity())
+        val saved = if (id == -1L) subject.id else id
+        calendar.refreshForSubject(saved)
+        return saved
+    }
 
     /** Why a subject could not be deleted — the two things that can reference one. */
     sealed interface Delete {

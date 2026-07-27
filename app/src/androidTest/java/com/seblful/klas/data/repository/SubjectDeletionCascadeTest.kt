@@ -4,6 +4,10 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.seblful.klas.calendar.CalendarSync
+import com.seblful.klas.calendar.Guest
+import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.GroupEntity
@@ -42,6 +46,16 @@ class SubjectDeletionCascadeTest {
     private lateinit var db: AppDatabase
     private lateinit var subjects: SubjectRepository
 
+    private val noCalendar = object : CalendarSync {
+        override suspend fun upsert(
+            klass: TutoringClass,
+            title: String,
+            guest: Guest?,
+            reminderLeadMinutes: Int,
+        ): String? = null
+        override suspend fun delete(eventId: String) = Unit
+    }
+
     @Before fun setUp() = runTest {
         db = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext<Context>(), AppDatabase::class.java,
@@ -49,7 +63,13 @@ class SubjectDeletionCascadeTest {
         db.subjectDao().insertAll(listOf(SubjectEntity(1, "Математика"), SubjectEntity(2, "Физика")))
         db.studentDao().insertAll(listOf(StudentEntity(1, "Иван")))
         db.priceDao().insertAll(listOf(PriceEntity(1, 1, amountMinor = 5000)))
-        subjects = SubjectRepository(db.subjectDao(), db.classDao(), db.groupDao())
+        // Sync stays off in this fixture, so the mirror is reached and returns immediately: what
+        // is under test here is the foreign-key behaviour, not the calendar.
+        val mirror = CalendarMirror(
+            db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(),
+            noCalendar, SettingsRepository(db.settingsDao()),
+        )
+        subjects = SubjectRepository(db.subjectDao(), db.classDao(), db.groupDao(), mirror)
     }
 
     @After fun tearDown() = db.close()

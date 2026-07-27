@@ -44,9 +44,12 @@ class AutoCompleteTest {
         db.subjectDao().insertAll(listOf(SubjectEntity(1, "Математика")))
         db.studentDao().insertAll(listOf(StudentEntity(1, "Иван")))
         db.priceDao().insertAll(listOf(PriceEntity(1, 1, amountMinor = 5000))) // 50 BYN
+        val settings = SettingsRepository(db.settingsDao())
+        val mirror = CalendarMirror(
+            db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(), noCalendar, settings,
+        )
         repo = ClassRepository(
-            db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(), noCalendar,
-            RecordingReminderScheduler(), SettingsRepository(db.settingsDao()), RoomTransactor(db),
+            db.classDao(), mirror, RecordingReminderScheduler(), settings, RoomTransactor(db),
         )
     }
 

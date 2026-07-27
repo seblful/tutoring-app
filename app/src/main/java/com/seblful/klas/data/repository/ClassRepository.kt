@@ -1,17 +1,9 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.calendar.CalendarEvent
-import com.seblful.klas.calendar.CalendarSync
-import com.seblful.klas.calendar.Guest
 import com.seblful.klas.data.local.ClassDao
-import com.seblful.klas.data.local.GroupDao
-import com.seblful.klas.data.local.StudentDao
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.data.local.SubjectDao
 import com.seblful.klas.data.local.Transactor
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
-import com.seblful.klas.domain.CalendarSyncPolicy
 import com.seblful.klas.domain.ClassRules
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.GroupRules
@@ -33,10 +25,7 @@ import javax.inject.Singleton
 @Singleton
 class ClassRepository @Inject constructor(
     private val dao: ClassDao,
-    private val studentDao: StudentDao,
-    private val subjectDao: SubjectDao,
-    private val groupDao: GroupDao,
-    private val calendarSync: CalendarSync,
+    private val calendar: CalendarMirror,
     private val reminderScheduler: ReminderScheduler,
     private val settings: SettingsRepository,
     private val transactor: Transactor,
@@ -114,38 +103,8 @@ class ClassRepository @Inject constructor(
         return ClassSession(groupId, siblings.ifEmpty { listOf(klass) })
     }
 
-    /**
-     * Re-mirrors every class to the device calendar. Run after the user turns calendar sync on, to
-     * backfill events for classes created while it was off. Best-effort, like all calendar work.
-     */
-    suspend fun resyncCalendar() {
-        val settings = settings.get()
-        // Checked before the read, so a resync with sync off doesn't walk the whole history to
-        // decide it has nothing to do.
-        if (!settings.calendarSyncEnabled) return
-        mirror(dao.getAll().map { it.toDomain() }, settings)
-    }
 
-    /**
-     * Removes every mirrored event. Run when the user turns calendar sync off. Only the classes that
-     * actually carry an event id are read: the rest have nothing to withdraw.
-     */
-    suspend fun clearCalendar() {
-        dao.withCalendarEvent().forEach { detachCalendarEvent(it.toDomain()) }
-    }
 
-    /**
-     * Deletes [klass]'s mirrored event and forgets its id, or does nothing when there isn't one.
-     *
-     * The two halves belong together: an event id left behind after the event is gone would make
-     * the next mirror try to update something that no longer exists. Turning sync off, deleting a
-     * lesson and cancelling one all owe exactly this, so they all say it here.
-     */
-    private suspend fun detachCalendarEvent(klass: TutoringClass) {
-        val eventId = klass.calendarEventId ?: return
-        calendarSync.delete(eventId)
-        dao.update(klass.copy(calendarEventId = null).toEntity())
-    }
 
     // ---- Writes --------------------------------------------------------------------------------
     // Every write below takes a **lesson**, never a bare class. A group lesson is n classes sharing a
@@ -210,7 +169,7 @@ class ClassRepository @Inject constructor(
                 klass.copy(id = dao.upsert(klass.toEntity()))
             }
         }
-        mirror(booked)
+        calendar.mirror(booked)
         reminderScheduler.refreshNow()
         return booked.map { it.id }
     }
@@ -277,17 +236,10 @@ class ClassRepository @Inject constructor(
      */
     suspend fun delete(session: ClassSession) {
         transactor.transaction { session.classes.forEach { dao.delete(it.toEntity()) } }
-        session.classes.forEach { dropCalendarEvent(it) }
+        session.classes.forEach { calendar.drop(it) }
         reminderScheduler.refreshNow()
     }
 
-    /**
-     * Deletes the event mirroring a class whose row has **already gone**. No `detachCalendarEvent`
-     * here: that nulls the row's event id, and there is no longer a row to null it on.
-     */
-    private suspend fun dropCalendarEvent(klass: TutoringClass) {
-        klass.calendarEventId?.let { calendarSync.delete(it) }
-    }
 
     /**
      * The one place an existing lesson is written: every class in [resolved] is updated **in place**,
@@ -317,8 +269,8 @@ class ClassRepository @Inject constructor(
                 klass.copy(id = dao.upsert(klass.toEntity()))
             }
         }
-        dropped.forEach { dropCalendarEvent(it) }
-        mirror(resolved + joined)
+        dropped.forEach { calendar.drop(it) }
+        calendar.mirror(resolved + joined)
         reminderScheduler.refreshNow()
         return resolved + joined
     }
@@ -356,7 +308,7 @@ class ClassRepository @Inject constructor(
         // One transaction for the lot: a half-archived student would have some lessons called off and
         // others still due to bill, which is the state this exists to rule out.
         transactor.transaction { cancelled.forEach { dao.update(it.toEntity()) } }
-        mirror(cancelled)
+        calendar.mirror(cancelled)
         reminderScheduler.refreshNow()
         return cancelled
     }
@@ -379,75 +331,4 @@ class ClassRepository @Inject constructor(
         transactor.transaction { due.forEach { dao.update(it.toEntity()) } }
         return due
     }
-
-    /**
-     * Mirrors a whole lesson to the device calendar, reading the settings **once** for the batch.
-     *
-     * Every write above hands its classes over together rather than one at a time, because the
-     * settings row governs all of them identically: read per class, it was one query per member to
-     * answer the same question, and `resyncCalendar` asked it once per class over the entire history.
-     * Batching also makes the [AppSettings] one snapshot, so a lesson cannot mirror half under the
-     * old invite setting and half under a new one.
-     */
-    private suspend fun mirror(classes: List<TutoringClass>) {
-        if (classes.isEmpty()) return
-        mirror(classes, settings.get())
-    }
-
-    private suspend fun mirror(classes: List<TutoringClass>, settings: AppSettings) {
-        if (!settings.calendarSyncEnabled) return
-        classes.forEach { mirrorToCalendar(it, settings) }
-    }
-
-    /**
-     * Reflects [klass]'s status into the device calendar. Best-effort: no-ops when the calendar is
-     * unavailable, so the local database is never blocked by sync. Only reached through [mirror],
-     * which is what has already established that sync is on.
-     */
-    private suspend fun mirrorToCalendar(klass: TutoringClass, settings: AppSettings) {
-        when (CalendarSyncPolicy.actionFor(klass.status)) {
-            CalendarSyncPolicy.Action.UPSERT -> {
-                // One read of the student, not two: their name titles the event and their address is
-                // what invites them to it, and the title and the guest each used to fetch the row.
-                val student = studentDao.getById(klass.studentId)
-                val eventId = calendarSync.upsert(
-                    klass = klass,
-                    title = titleFor(klass, student?.name.orEmpty()),
-                    guest = guestFor(student, settings),
-                    reminderLeadMinutes = settings.reminderLeadMinutes,
-                )
-                if (eventId != null && eventId != klass.calendarEventId) {
-                    dao.update(klass.copy(calendarEventId = eventId).toEntity())
-                }
-            }
-            CalendarSyncPolicy.Action.DELETE -> detachCalendarEvent(klass)
-            CalendarSyncPolicy.Action.NONE -> Unit
-        }
-    }
-
-    /**
-     * A group lesson mirrors as one event **per member** — each student keeps their own invite and
-     * email reminder, and per-member corrections (one absentee cancelled) stay expressible. The
-     * group's name goes in the title so those overlapping events read as one lesson.
-     */
-    private suspend fun titleFor(klass: TutoringClass, studentName: String): String =
-        CalendarEvent.title(
-            studentName = studentName,
-            subjectName = subjectDao.getById(klass.subjectId)?.name.orEmpty(),
-            groupName = klass.groupId?.let { groupDao.getById(it)?.name },
-        )
-
-    /**
-     * [student] as a calendar guest: their email, if set, plus whether the tutor wants students
-     * invited. Null when the student has no address, since there is then nobody to invite *or*
-     * withdraw.
-     *
-     * The invited flag travels with every mirror rather than being read once at toggle time, so
-     * turning invites off and re-syncing withdraws the invitations already sent — the setting
-     * governs the tutor's whole calendar, not just the lessons booked after it.
-     */
-    private fun guestFor(student: StudentEntity?, settings: AppSettings): Guest? =
-        student?.email
-            ?.takeIf { it.isNotBlank() }
-            ?.let { Guest(email = it, invited = settings.emailInvitesEnabled) }
 }

@@ -24,7 +24,7 @@ class SettingsViewModelTest {
 
     private val env = TestEnv()
 
-    private fun vm() = SettingsViewModel(env.settingsRepo, env.classRepo, env.calendarPermission, env.notificationPermission)
+    private fun vm() = SettingsViewModel(env.settingsRepo, env.calendarMirror, env.calendarPermission, env.notificationPermission)
 
     @Test
     fun `setters persist each setting`() = runTest(mainRule.dispatcher) {
