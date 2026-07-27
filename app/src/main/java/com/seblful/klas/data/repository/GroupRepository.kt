@@ -84,7 +84,7 @@ class GroupRepository @Inject constructor(
     suspend fun save(group: Group, memberIds: Set<Long>): Long {
         // Both reads sit outside the transaction: neither depends on anything written inside it, and
         // the eligibility read in particular hits another table for a decision, not for a row to write.
-        val previousRate = dao.getById(group.id)?.let { Money(it.priceMinor) }
+        val previousRate = rateHistory.currentRate(RateOwner.GroupRate(group.id))
         val wanted = eligible(group, memberIds)
         return transactor.transaction {
             // Room's @Upsert returns the new rowid when it inserts, but -1 when it updated an existing

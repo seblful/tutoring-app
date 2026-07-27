@@ -178,7 +178,7 @@ class EnrollmentRepository @Inject constructor(
      * only ever part of a larger edit that has to land whole anyway.
      */
     private suspend fun record(studentId: Long, subjectId: Long, price: Money) {
-        val previous = priceDao.get(studentId, subjectId)?.let { Money(it.amountMinor) }
+        val previous = rateHistory.currentRate(RateOwner.StudentSubject(studentId, subjectId))
         priceDao.upsert(Price(studentId, subjectId, price).toEntity())
         rateHistory.record(RateOwner.StudentSubject(studentId, subjectId), from = previous, to = price)
     }

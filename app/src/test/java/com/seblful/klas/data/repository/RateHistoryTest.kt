@@ -260,4 +260,34 @@ class RateHistoryTest {
 
         assertEquals(1, history.observeFor(RateOwner.GroupRate(id)).first().size)
     }
+
+    // --- currentRate: where a baseline comes from ---
+
+    /**
+     * The baseline read used to sit in each caller, against a different DAO — `GroupDao` in one,
+     * `PriceDao` in the other — for a log with one definition of what counts as a change. These pin
+     * both halves of the discriminator now that the module resolves it.
+     */
+    @Test
+    fun `currentRate reads a group's rate from the group row`() = runTest {
+        val sid = student()
+        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(25)), setOf(sid))
+
+        assertEquals(Money.ofMajor(25), history.currentRate(RateOwner.GroupRate(id)))
+    }
+
+    @Test
+    fun `currentRate reads a student's subject price from the price row`() = runTest {
+        val sid = student()
+        val subj = subject()
+        env.enrollmentRepo.enroll(sid, subj, Money.ofMajor(40))
+
+        assertEquals(Money.ofMajor(40), history.currentRate(RateOwner.StudentSubject(sid, subj)))
+    }
+
+    @Test
+    fun `currentRate is null when there is no rate yet, which is what starts a history`() = runTest {
+        assertNull(history.currentRate(RateOwner.GroupRate(999)))
+        assertNull(history.currentRate(RateOwner.StudentSubject(999, 999)))
+    }
 }

@@ -1,5 +1,7 @@
 package com.seblful.klas.data.repository
 
+import com.seblful.klas.data.local.GroupDao
+import com.seblful.klas.data.local.PriceDao
 import com.seblful.klas.data.local.RateHistoryDao
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
@@ -27,6 +29,13 @@ import javax.inject.Singleton
 @Singleton
 class RateHistoryRepository @Inject constructor(
     private val dao: RateHistoryDao,
+    /**
+     * The two tables a rate actually lives in, so that [currentRate] can answer where a baseline comes
+     * from. [RateOwner] already discriminates between them; before this, each caller resolved its own
+     * half against its own DAO and the module only knew what it was told.
+     */
+    private val groupDao: GroupDao,
+    private val priceDao: PriceDao,
 ) {
     /** Every recorded change to [owner]'s rate, newest first. */
     fun observeFor(owner: RateOwner): Flow<List<RateChange>> = when (owner) {
@@ -41,6 +50,29 @@ class RateHistoryRepository @Inject constructor(
      */
     fun observeForStudent(studentId: Long): Flow<List<RateChange>> =
         dao.observeForStudent(studentId).map { list -> list.map { it.toDomain() } }
+
+    /**
+     * [owner]'s rate as currently stored, or null when it has none yet — the baseline a change is
+     * measured against, and the [from] a caller should hand [record].
+     *
+     * Which table that is, is this module's business rather than each caller's: [RateOwner] is the
+     * discriminator, and it already lives here. Both callers used to resolve it themselves — one
+     * against `GroupDao`, one against `PriceDao` — so "what was the rate before" had two
+     * implementations for a log with one definition of what counts as a change.
+     *
+     * **Why this is a separate call and not folded into [record].** A rate is *clobbered* by the write
+     * that changes it, and both callers log after that write: `GroupRepository` because a brand-new
+     * group's id does not exist until its row is inserted, and the log's foreign key has to point at
+     * something. Reading the baseline inside [record] would therefore read the value just written,
+     * conclude nothing had changed, and silently drop the row — losing exactly the initial entry that
+     * starts a new group's history. So the baseline is captured before the write and handed over
+     * after it, and the two-step is the ordering, not an accident of the interface.
+     */
+    suspend fun currentRate(owner: RateOwner): Money? = when (owner) {
+        is RateOwner.StudentSubject ->
+            priceDao.get(owner.studentId, owner.subjectId)?.let { Money(it.amountMinor) }
+        is RateOwner.GroupRate -> groupDao.getById(owner.groupId)?.let { Money(it.priceMinor) }
+    }
 
     /**
      * Records that [owner]'s rate is now [to], having been [from], and reports whether anything was
