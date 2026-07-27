@@ -142,13 +142,14 @@
 
     <!-- Class status -->
     <string name="class_status_label">Статус</string>
-    <string name="class_status_scheduled">Запланировано</string>
     <!--
-      The same status as a *choice* in the sheet's segmented control, where it gets a third of a
-      phone's width: «Запланировано» wrapped onto two lines there while its neighbours stayed on one.
-      Everywhere the status is merely stated — the card's badge, the sheet header — it stays in full.
+      «В плане», not «Запланировано». Thirteen characters is too many for every place this word has to
+      fit: as a badge it took a third of a lesson card and squeezed the lesson's own name into two
+      lines, and as a segment in the status control it wrapped while its neighbours stayed on one. The
+      short form says the same thing and fits everywhere, so there is one label per status rather than
+      a long one and a short one to keep in step.
     -->
-    <string name="class_status_scheduled_short">В плане</string>
+    <string name="class_status_scheduled">В плане</string>
     <string name="class_status_completed">Проведено</string>
     <string name="class_status_cancelled">Отменено</string>
 

@@ -141,16 +141,30 @@ private const val DimmedAlpha = 0.5f
 /** The floor for anything tappable, per the Material accessibility guidance. */
 val MinTouchTarget = 48.dp
 
-/** A small tonal pill — e.g. a class status. The tint is derived from [color]. */
+/**
+ * A small tonal pill — e.g. a class status. The tint is derived from [color].
+ *
+ * Kept deliberately tight (8dp of side padding, one line) because of where it sits: on a lesson card
+ * it shares a row with the lesson's *name*, and every dp the pill takes is a dp the name loses. A
+ * status is a two-word fact; the name is the thing being read.
+ */
 @Composable
 fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
     Box(
         modifier
             .clip(MaterialTheme.shapes.small)
             .background(color.copy(alpha = 0.15f))
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
-        Text(text, style = MaterialTheme.typography.labelMedium, color = color)
+        Text(
+            text,
+            // labelSmall, not labelMedium. The pill is the secondary half of its row and the name
+            // beside it is the primary one, so when the two compete for a phone's width the pill is
+            // what gives — a status read at 11sp is still read; a name cut short is not.
+            style = MaterialTheme.typography.labelSmall,
+            color = color,
+            maxLines = 1,
+        )
     }
 }
 

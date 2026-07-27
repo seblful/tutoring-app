@@ -489,29 +489,48 @@ private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit, modifier: Modifi
                 // Struck through, so the hour reads as one that was given back.
                 textDecoration = if (cancelled) TextDecoration.LineThrough else null,
             )
-            Spacer(Modifier.width(16.dp))
+            // 12dp rather than 16. Every dp between the time and the badge is width the lesson's own
+            // name does not get, and that name is the one thing on the card that can run long.
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // Both kinds are marked, not just the group ones: an icon that appears only
                     // sometimes reads as "this lesson has something extra", which leaves an individual
                     // lesson looking like a lesson with a missing icon rather than an individual one.
                     LessonKindIcon(LessonKind.of(row.klass), Modifier.padding(end = 6.dp))
-                    Text(row.title, style = MaterialTheme.typography.titleMedium)
+                    // **One line.** A name long enough to wrap — «Группа Биология» — used to break
+                    // across two, and because the time on the left is centred against the whole card
+                    // it then sat beside the *second* line with a hole above it. Rows also stopped
+                    // being a uniform height, which is what a scannable list is for. The weight is
+                    // what makes the ellipsis land at the badge rather than the text pushing into it.
+                    Text(
+                        row.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
                 }
                 Text(
                     "${row.subjectName} · ${classModeLabel(row.klass.mode)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 if (row.isGroup) {
                     Text(
+                        // The roster is the least important line on the card and the most likely to
+                        // run long, so it is the one allowed to be cut.
                         row.members.joinToString(", "),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(8.dp))
             SessionStatusBadge(row)
         }
     }
@@ -766,24 +785,10 @@ private fun StatusSelector(row: ScheduleRow, onStatus: (ClassStatus) -> Unit) {
                     // and the selected segment already carries a tinted container — which is
                     // Material's own affordance, and is what the tick was duplicating.
                     icon = {},
-                ) { SegmentLabel(statusChoiceLabel(status)) }
+                ) { SegmentLabel(classStatusLabel(status)) }
             }
         }
     }
-}
-
-/**
- * A status as a **choice** in the control, which is not always how it reads as a statement.
- *
- * «Запланировано» is thirteen characters and does not fit a third of a phone's width: it wrapped onto
- * two lines while its neighbours stayed on one, leaving the row visibly lopsided. Shortened only
- * here — the badge on the card and in the sheet's header still names the status in full, where there
- * is room for it and where it is being reported rather than offered.
- */
-@Composable
-private fun statusChoiceLabel(status: ClassStatus): String = when (status) {
-    ClassStatus.SCHEDULED -> stringResource(R.string.class_status_scheduled_short)
-    else -> classStatusLabel(status)
 }
 
 /**
