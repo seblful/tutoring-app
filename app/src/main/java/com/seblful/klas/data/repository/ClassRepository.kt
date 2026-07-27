@@ -27,7 +27,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Duration
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -67,8 +66,10 @@ class ClassRepository @Inject constructor(
      * This is a **read**: refusing the write is the view model's job (like the calendar-permission
      * rule), because a refusal has to name the lesson in the way rather than merely throw.
      */
-    fun observeConflicts(slot: Scheduling.Slot, ignoring: Set<Long> = emptySet()): Flow<List<ClassSession>> =
-        observeBetween(windowStart(slot), slot.end).map { Scheduling.conflicts(slot, it, ignoring) }
+    fun observeConflicts(slot: Scheduling.Slot, ignoring: Set<Long> = emptySet()): Flow<List<ClassSession>> {
+        val window = Scheduling.windowFor(slot)
+        return observeBetween(window.from, window.toExclusive).map { Scheduling.conflicts(slot, it, ignoring) }
+    }
 
     /**
      * [observeConflicts] as a one-shot read — the check a save makes against the database it writes.
@@ -77,8 +78,10 @@ class ClassRepository @Inject constructor(
      * single value registers an invalidation observer and opens a channel only to close both again,
      * and this runs behind every save, every move and every un-cancel.
      */
-    suspend fun conflictsWith(slot: Scheduling.Slot, ignoring: Set<Long> = emptySet()): List<ClassSession> =
-        Scheduling.conflicts(slot, getBetween(windowStart(slot), slot.end), ignoring)
+    suspend fun conflictsWith(slot: Scheduling.Slot, ignoring: Set<Long> = emptySet()): List<ClassSession> {
+        val window = Scheduling.windowFor(slot)
+        return Scheduling.conflicts(slot, getBetween(window.from, window.toExclusive), ignoring)
+    }
 
     /**
      * The classes starting within [horizon] of [now] — what a reminder plan is derived from, rather
@@ -94,14 +97,6 @@ class ClassRepository @Inject constructor(
 
     private suspend fun getBetween(from: Instant, to: Instant): List<TutoringClass> =
         dao.getBetween(from.toEpochMilli(), to.toEpochMilli()).map { it.toDomain() }
-
-    /**
-     * How far back the conflict query has to look: the window filters on each class's **start**, so a
-     * class that began earlier and is still running when [slot] opens would otherwise be missed. A day
-     * of lead-in covers every one of them — a class's times are wall-clock on a single date, so none
-     * can span 24 hours (see the cross-midnight limitation in `ClassForm`).
-     */
-    private fun windowStart(slot: Scheduling.Slot): Instant = slot.start.minus(1, ChronoUnit.DAYS)
 
     suspend fun getById(id: Long): TutoringClass? = dao.getById(id)?.toDomain()
 

@@ -7,6 +7,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Duration
 import java.time.Instant
 
 class SchedulingTest {
@@ -137,6 +138,60 @@ class SchedulingTest {
         assertEquals(1, clashes.size)
         assertEquals(7L, clashes.single().groupId)
         assertEquals(3, clashes.single().size)
+    }
+
+    // --- The window: which classes the rule above ever gets asked about ---
+
+    /**
+     * These pin the window's **magnitude**, which is what nothing did while it was a private helper on
+     * `ClassRepository`. Its existence was covered — deleting it broke three tests — but shrinking the
+     * lead-in from a day to an hour left all 647 green, and the app would then have stopped detecting
+     * exactly the containing overlap `every kind of overlap is a conflict` was written to catch: the
+     * scan filters on a class's *start*, so a lesson already under way when the slot opens is simply
+     * never offered to [Scheduling.conflicts] and the hour reads as free.
+     */
+    @Test
+    fun `the window reaches back the length of the longest lesson there can be`() {
+        val window = Scheduling.windowFor(tenToEleven)
+
+        // Deliberately a literal, not `Scheduling.LONGEST_LESSON`: asserting the window against the
+        // constant it is derived from restates the implementation and holds for any value of it, which
+        // is the shape of the gap this whole section exists to close.
+        assertEquals(Duration.ofDays(1), Duration.between(window.from, tenToEleven.start))
+    }
+
+    @Test
+    fun `a lesson already under way when the slot opens is inside the window`() {
+        val window = Scheduling.windowFor(tenToEleven)
+        // The 08:00 four-hour lesson from `every kind of overlap is a conflict`, which that test hands
+        // to the rule directly — so only this one says it would ever be read from the database.
+        val containing = klass(4, "2026-09-01T08:00:00Z", minutes = 240)
+
+        assertTrue("it must be read", containing.start >= window.from)
+        assertEquals(listOf(4L), Scheduling.conflicts(tenToEleven, listOf(containing)).map { it.first.id })
+    }
+
+    /**
+     * The bound is tight, not generous: a lesson's times are wall-clock on one date, so its length is
+     * strictly under 24 hours, so anything still running at the slot's start began strictly after
+     * `start - LONGEST_LESSON`. A whole day is the smallest window that cannot miss one.
+     */
+    @Test
+    fun `the window covers even the longest lesson a single date could hold`() {
+        val window = Scheduling.windowFor(tenToEleven)
+        val nearlyADay = klass(1, "2026-08-31T10:30:00Z", minutes = 24 * 60 - 1)
+
+        assertTrue("inside the window", nearlyADay.start >= window.from)
+        assertEquals(listOf(1L), Scheduling.conflicts(tenToEleven, listOf(nearlyADay)).map { it.first.id })
+    }
+
+    @Test
+    fun `the window closes where the slot does, so a back-to-back lesson is outside it`() {
+        val window = Scheduling.windowFor(tenToEleven)
+        val after = klass(1, "2026-09-01T11:00:00Z") // starts as the slot closes
+
+        assertEquals(tenToEleven.end, window.toExclusive)
+        assertTrue("not read, and not a clash either", after.start >= window.toExclusive)
     }
 
     /**

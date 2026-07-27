@@ -2,6 +2,7 @@ package com.seblful.klas.domain
 
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
+import java.time.Duration
 import java.time.Instant
 
 /** Rules for composing a valid class booking. */
@@ -56,6 +57,40 @@ object Scheduling {
         val priced = pricedSubjectIds.toSet()
         return allSubjects.filter { it.id in priced }
     }
+
+    /**
+     * The longest a single lesson can run, and therefore how far back [windowFor] has to reach.
+     *
+     * A class's times are wall-clock on a single date, so none can span 24 hours (see the
+     * cross-midnight limitation in `ClassForm`). That is the whole argument for the figure: it is not a
+     * comfortable margin, it is the bound the data model already guarantees.
+     */
+    val LONGEST_LESSON: Duration = Duration.ofDays(1)
+
+    /**
+     * The span of class **start** times [conflicts] must be given to answer correctly for [slot].
+     *
+     * Half-open, like [Slot]: [from] is included, [toExclusive] is not — a lesson beginning exactly as
+     * the slot closes is back-to-back with it, not on top of it.
+     */
+    data class Window(val from: Instant, val toExclusive: Instant)
+
+    /**
+     * Which classes a conflict scan for [slot] has to read.
+     *
+     * This used to be a private helper on `ClassRepository`, on the far side of the seam from the rule
+     * it feeds — and that split is what made it untestable. [conflicts] decides whether two spans
+     * overlap; the window decides which classes are ever *offered* to it. Get the window too small and
+     * the rule is never asked, so a lesson already under way when [slot] opens is simply not found and
+     * the hour reads as free. Both halves of one question now live in one module, so a test can pin the
+     * magnitude and not merely the existence: shrinking [LONGEST_LESSON] fails `SchedulingTest`, where
+     * before it left all 647 tests green.
+     *
+     * The window filters on each class's start, which is why it reaches *backwards* at all: a class that
+     * began earlier and is still running when [slot] opens starts outside any window bounded by the slot
+     * itself.
+     */
+    fun windowFor(slot: Slot): Window = Window(slot.start.minus(LONGEST_LESSON), slot.end)
 
     /**
      * The lessons already in the schedule that a lesson at [slot] would collide with. Empty means the
