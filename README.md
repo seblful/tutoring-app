@@ -2,28 +2,29 @@
 
 A native Android app for a **single private tutor** to manage students, groups, subjects, schedule,
 payments and debts. **Offline-first and local-only — no backend, no account, no cloud.** Russian UI,
-Material 3, currency in **BYN** (Belarusian ruble).
+Material 3, money in **BYN** or **RUB**.
 
-> Application ID: `com.seblful.klas` · current version: `0.1.1` · launcher label: **Klas**
+> Application ID: `com.seblful.klas` · current version: `0.2.0` (`versionCode` 3) · launcher label: **Klas**
 
 ## Features
 
-- **Students & subjects** — per-student subjects, each with an hourly price; archive-only (history is protected).
-- **Groups** — a named roster taught together; booking one lesson books it for every member at their own rate, so the schedule shows one card while billing stays per-student (including "this one didn't come").
-- **Schedule** — one-off classes with a `scheduled → completed | cancelled` lifecycle; optional auto-complete once a class ends.
-- **Billing** — hourly rate booked per class; balances and income derived on the fly, never stored.
-- **Reports** — income and outstanding debt for active students.
-- **Calendar sync** (opt-in) — mirrors classes to the device calendar via `CalendarContract`, so the OS syncs them to Google; email reminders ride on calendar attendees.
-- **Reminders** — precise notifications driven by WorkManager.
-- **Backup** — full database export/import as a JSON snapshot via the Storage Access Framework.
+- **People** — students and groups in one tab, searchable; students also sortable by who owes the most.
+- **Students & subjects** — per-student subjects, each with an hourly price and a change log; archive-only (history is protected).
+- **Groups** — a named roster taught one subject at the group's own hourly rate. Booking one lesson books it for every member, so the schedule shows one card while billing stays per-student — including "this one didn't come".
+- **Schedule** — day / week / month views of one-off classes, with a `scheduled → completed | cancelled` lifecycle, swipe-to-complete, and optional auto-complete once a class ends. One tutor, one lesson at a time: an overlapping slot is refused.
+- **Billing** — hourly rate booked per class, so re-pricing never rewrites history; balances and income derived on the fly, never stored.
+- **Reports** — income and outstanding debt for a month, a year or all time: trend over time, individual vs group split, per-student/subject/group breakdowns, and **CSV export**.
+- **Calendar sync** (opt-in) — mirrors classes to the device calendar via `CalendarContract`, so the OS syncs them to Google; email reminders ride on calendar attendees (a separate opt-in).
+- **Reminders** — notifications ahead of a lesson, driven by `AlarmManager` (exact where the platform allows) so they arrive on time rather than whenever the system feels like it.
+- **Backup** — full database export/import as a JSON snapshot via the Storage Access Framework, checked for readability before a single row is written.
 - **Crash diagnostics** — local crash log (viewable/exportable in-app) plus Google Play Vitals; no third-party SDK.
 
 ## Tech Stack
 
-- **Kotlin 2.3.20**, **Jetpack Compose** (Material 3), Navigation Compose
-- **Room** (single source of truth) · **Hilt** DI · **WorkManager**
+- **Kotlin 2.3.21**, **Jetpack Compose** (Material 3), Navigation Compose
+- **Room** 2.8 (single source of truth) · **Hilt** 2.60 DI · **WorkManager** + `AlarmManager`
 - **kotlinx-serialization** (backup) · `java.time` with core-library desugaring
-- AGP 9.2.1 (built-in Kotlin) · Gradle 9.6.0 · **JDK 21** · compileSdk 37 / targetSdk 36 · **minSdk 24**
+- AGP 9.3.1 (built-in Kotlin) · Gradle 9.6.1 · **JDK 21** · compileSdk 37 / targetSdk 36 · **minSdk 24**
 
 Architecture is MVVM over a pure, unit-tested domain layer. See **[CONTEXT.md](CONTEXT.md)** for the
 full architecture, module map, and design decisions.
@@ -44,10 +45,16 @@ full architecture, module map, and design decisions.
 ```bash
 ./gradlew :app:assembleDebug            # debug APK
 ./gradlew :app:testDebugUnitTest        # JVM unit tests (domain, view models, mappers, backup)
+./gradlew :app:lintDebug                # lint (release lint is off — see CONTEXT.md)
 ./gradlew :app:assembleDebugAndroidTest # build instrumented tests (Room, calendar, backup round-trip)
 ```
 
-The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk` and installs without any signing setup.
+The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk` and installs without any signing
+setup. It carries a `.debug` application id, so it sits beside a release install with its own database.
+
+CI (`.github/workflows/ci.yml`) runs the unit suite, `lintDebug`, the debug APK and the *compilation*
+of the instrumented tests on every PR and every push to `main`/`develop`. Running the instrumented
+tests themselves needs a connected device (`./gradlew :app:connectedDebugAndroidTest`).
 
 ## Building a Signed Release APK
 
@@ -100,12 +107,12 @@ For the App Bundle (`.aab`), Play Console setup, and the testing/production roll
 ```
 app/src/main/java/com/seblful/klas/
 ├── domain/                       # pure rules + ports + models (JVM-tested)
-├── data/{local,repository,backup}/
-├── calendar/ notifications/ diagnostics/ work/ format/ di/
-├── ui/{schedule,students,groups,subjects,reports,backup,more,
+├── data/                         # Mappers.kt + {local,repository,backup}/
+├── calendar/ notifications/ diagnostics/ work/ format/ storage/ di/
+├── ui/{schedule,people,students,groups,subjects,reports,backup,more,
 │       onboarding,diagnostics,common,navigation,theme}/
 ├── MainActivity.kt               # @AndroidEntryPoint → AppRoot()
-└── KlasApp.kt                # @HiltAndroidApp, WorkManager config
+└── KlasApp.kt                    # @HiltAndroidApp, WorkManager config, startup upkeep
 ```
 
 ## License

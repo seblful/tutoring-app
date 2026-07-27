@@ -48,7 +48,7 @@ jobs:
 
       # The instrumented tests need a device and there is no emulator in this project's workflow, but
       # compiling them still catches the breakage that matters most often: a schema or entity change
-      # that leaves MigrationTest referring to something that no longer exists.
+      # that leaves a test referring to something that no longer exists.
       - name: Compile instrumented tests
         run: ./gradlew :app:assembleDebugAndroidTest --stacktrace
 

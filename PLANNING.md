@@ -1,83 +1,83 @@
-# Klas — Planning / Goal
+# Klas — Product Goal
 
-> Status: planning. Not yet started. Single open decision flagged below (no-show handling).
+> Status: **v1 scope is built and shipping** (`0.2.0`). This file holds the *goal* and the *success
+> criteria*; `CONTEXT.md` holds the architecture and the decisions.
 
 ## Purpose
 
-A native Android app for a **single** private tutor to manage students, subjects,
-schedule, payments, and debts, with Google Calendar sync. Russian UI, Material 3,
-**fully offline / local-only** — no backend.
+A native Android app for a **single** private tutor to manage students, groups, subjects, schedule,
+payments and debts, mirrored into the device calendar. Russian UI, Material 3, **fully offline /
+local-only** — no backend, no account, no cloud.
 
-## Stack
-
-Kotlin · Jetpack Compose · Material 3 · Room · WorkManager (notifications) ·
-Google Calendar API (on-device OAuth) · MVVM with a unit-tested domain layer.
-
-Currency: **BYN** (Belarusian ruble), displayed as e.g. `1500 BYN`.
+Money is displayed in **BYN** or **RUB**, chosen in Settings.
 
 ## Domain model
 
-- **Subject** — create/edit/list.
-- **Student** — add/edit/archive; takes one or more subjects.
-- **Price** — one price per (student, subject), *versioned*: editing it never alters
-  classes already completed.
-- **Class** — (student, subject, start, duration, status).
-  Statuses: `scheduled → completed | cancelled | missed | moved`.
-  Recurring weekly + one-tap add.
-- **Payment** — date + amount per student.
-- **Balance** = Σ(price of completed unpaid classes) − Σ(payments).
+- **Subject** — create/edit/list; deletable only while nothing references it.
+- **Student** — add/edit/**archive** (never delete — history is protected); takes one or more subjects.
+- **Group** — a named roster taught one subject together, with its own hourly rate.
+- **Price** — one price per (student, subject), or one rate per group. Editing it never alters classes
+  already booked: the rate is copied onto the class at booking time. Past rates are kept as a log.
+- **Class** — (student, subject, start, duration, mode, status), one-off. Booking for a group writes
+  one class per member at the group's rate; the classes sharing a `(group, start)` pair *are* the
+  lesson.
+- **Payment** — date + amount per student, correctable in place.
+- **Balance** = Σ(charges on completed classes) − Σ(payments).
 
 ## Behavior
 
-- **Auto-completion:** a `scheduled` class becomes `completed` once its end time passes
-  (WorkManager job). It then adds its then-current price to the student's debt.
-- **Missed vs completed:** the app cannot detect attendance — it only knows the clock.
-  When a class's end time passes it is assumed to have happened and is auto-completed
-  (Option A). If the student didn't show, the tutor manually marks the class `missed`,
-  which voids its charge. A `missed` class costs **0₽**.
-- **Payments** reduce balance; handle partial and over-payment (credit).
-- **Notifications** before next class: time, subject, student, location if set.
-- **Calendar:** push/update/cancel events to mirror class status.
+- **Auto-completion** (opt-in): a `scheduled` class becomes `completed` once its end time passes,
+  which is what bills it. Runs both as periodic upkeep and in-process at app start.
+- **No-show handling:** the app cannot detect attendance, only the clock. A class that didn't happen
+  is **cancelled**, which voids its charge. For a group lesson the tutor unticks the member instead,
+  and that member simply has no class.
+- **Payments** reduce the balance; partial payments and over-payment (shown as «Переплата») both work.
+- **Reminders** before the next lesson: time, subject, student, location if set — as alarms, so they
+  arrive on time.
+- **Calendar:** push/update/cancel events to mirror class status; a group lesson mirrors one event per
+  member, each with their own email invite (a separate opt-in).
 
 ## Production-ready (v1) means
 
 - Polished Material 3 UI, works fully offline, no crashes, no data loss.
-- **Backup/export:** export & import all data (JSON/file or Google Drive) so a dead
-  phone isn't a total loss.
-- **Reports:** income by month / student / subject, and a debt overview.
+- **Backup/export:** export & import all data as a JSON file via SAF, so a dead phone isn't a total loss.
+- **Reports:** income by period / student / subject / group / lesson kind, plus a debt overview and
+  CSV export.
 
 ## Non-goals (v1)
 
-Multi-user/login, cloud sync across devices, web/iOS, in-app payments.
+Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring lesson series.
 
-## Success criteria (write as tests)
+## Success criteria (each written as a test)
 
-1. A class whose end time passes auto-completes and adds its *then-current* price to debt.
-2. Editing a price changes only future classes, never completed ones.
-3. Recording a payment reduces balance; partial and over-payment behave correctly.
-4. Cancelled/missed classes never add debt.
-5. Moving a class updates its time and the synced calendar event.
-6. Export then import on an empty DB reproduces identical data.
-7. A reminder notification fires before a `scheduled` class.
+| # | Criterion | Pinned by |
+|---|---|---|
+| 1 | A class whose end time passes auto-completes and adds its *booked* price to the debt | `work/MaintenanceTest`, `androidTest .../AutoCompleteTest` |
+| 2 | Editing a price changes only future classes, never booked ones | `domain/BillingTest`, `data/repository/RateHistoryTest` |
+| 3 | Recording a payment reduces the balance; partial and over-payment behave correctly | `domain/BillingTest` |
+| 4 | Cancelled classes never add debt | `domain/ClassRulesTest` |
+| 5 | Moving a class updates its time and its synced calendar event | `androidTest .../ClassCalendarSyncTest` |
+| 6 | Export then import on an empty DB reproduces identical data | `androidTest .../BackupRoundTripTest` |
+| 7 | A reminder fires ahead of a `scheduled` class, and never on booking | `domain/RemindersTest`, `notifications/DueReminderTest` |
+| 8 | Two lessons cannot claim the same hour, by any route in | `domain/SchedulingTest`, `ui/schedule/ScheduleViewModelTest` |
+| 9 | A multi-table write lands whole or not at all | `data/repository/*AtomicityTest` |
 
-## Open decisions
+## Decisions superseded since planning
 
-_None — all resolved._
+Kept because the reasoning still gets re-proposed:
 
-## Consequences worth knowing
+- **`missed` and `moved` statuses were dropped.** The lifecycle is `scheduled → completed | cancelled`.
+  A "missed" class is a cancelled one (charge voided); a "moved" one is the same class with a new time.
+- **Recurring weekly series were dropped** from v1 — classes are one-off. Booking is fast enough
+  (duration chips, pre-filled rate and mode) that a series would mostly add edit-scope questions.
+- **Calendar sync uses `CalendarContract`, not the Google Calendar REST API.** The OS syncs the device
+  calendar to Google itself, so there is no Cloud project, no OAuth consent screen and no extra
+  privacy-policy surface — the setup step the original plan flagged simply disappeared.
+- **Google Drive is not a backup destination**; SAF covers "put the file wherever you like", including
+  Drive, without the app holding a cloud credential.
 
-- **Auto-complete forces a no-show decision** — without one, a student who didn't show
-  still gets charged.
-- **Local-only + Google Calendar still needs OAuth setup** — a Google Cloud project,
-  consent screen, and (for unrestricted use) a privacy policy URL. Setup step, not code.
+## What v1 still owes
 
-## Suggested build order (each step independently verifiable)
-
-1. Domain layer + Room (Subject, Student, Price, Class, Payment) → unit tests for
-   balance & price-versioning.
-2. UI: students, subjects, pricing → manual flows work offline.
-3. Scheduling + one-tap/recurring add, status transitions.
-4. WorkManager auto-complete + reminders.
-5. Reports.
-6. Backup/export & import.
-7. Google Calendar sync (last — most external setup).
+- An instrumented Room **migration** test, before the first schema bump after v1 — see *Testing* in
+  `CONTEXT.md`.
+- Play publication under the new `com.seblful.klas` id — see `docs/publishing-to-google-play.md`.

@@ -44,7 +44,12 @@ contributors without the key are unaffected.
 Play requires an **App Bundle** (`.aab`), not an APK.
 
 1. **Bump `versionCode`** in `app/build.gradle.kts` — every upload needs a higher value
-   (currently `1`). `versionName` (e.g. `0.1.0-beta`) is cosmetic.
+   (currently `3`). `versionName` (currently `0.2.0`) is cosmetic.
+
+   > Nothing has been uploaded to Play yet. The earlier `0.1.0-beta` / `0.1.1` builds were sideloaded
+   > under the old `com.seblful.repetit` id, so the first Play upload creates a **new** app entry
+   > under `com.seblful.klas` — there is no old listing to update, and no upgrade path from a
+   > sideloaded `repetit` install (export a backup and import it into Klas).
 2. Build:
    ```bash
    ./gradlew :app:bundleRelease
@@ -70,9 +75,11 @@ live in `proguard-rules.pro`.
    - Feature graphic (1024×500)
    - At least **2 phone screenshots**
 3. **Required questionnaires** (must be complete before release):
-   - **Privacy policy URL** — required: the app stores student names, phones and payment data.
+   - **Privacy policy URL** — required: the app stores student names, phones, emails and payment data.
      (Note: all data stays on-device, no backend, so the policy is simple.)
-   - **Data safety form** — data is collected but stays local; declare accordingly.
+   - **Data safety form** — data stays local and is never transmitted; declare no collection and no
+     sharing. This matches `allowBackup="false"` in the manifest — Play's Auto Backup is deliberately
+     off so `klas.db` is never copied to Google's servers. Keep the two consistent.
    - Content rating, target audience, ads declaration, app access.
 4. **Upload** the `.aab` to a testing track (start with internal or closed testing).
 5. **Roll out** to testers; satisfy the 14-day / 12-tester closed-testing requirement.
@@ -82,8 +89,10 @@ live in `proguard-rules.pro`.
 
 ## Per-release checklist
 
-- [ ] Bump `versionCode` (and `versionName` if user-facing)
+- [ ] Bump `versionCode` (and `versionName` if user-facing), and update the version in `README.md`
+- [ ] Schema change? A migration is shipped and `MigrationChainTest` passes
 - [ ] `keystore.properties` present and correct
+- [ ] `./gradlew :app:testDebugUnitTest` and `:app:lintDebug` pass
 - [ ] `./gradlew :app:bundleRelease` succeeds
 - [ ] Backup round-trip verified on a release build (device)
 - [ ] Upload `.aab` to the chosen track
