@@ -2,7 +2,6 @@ package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -92,6 +91,11 @@ fun Modifier.constrainedContent(max: Dp = MaxContentWidth): Modifier =
  * because an item and the *section* that holds items are different things and used to be the same
  * grey. Sections use [SectionCard], one step higher.
  *
+ * Takes its tap through `Card`'s own `onClick` rather than a `clickable` modifier. A `clickable`
+ * handed *to* the card sits outside the card's clip, so the press ripple was drawn as a hard-cornered
+ * grey rectangle over the rounded corners — a grey frame flashing behind every lesson that was
+ * tapped in the schedule. `CardPressFeedbackTest` keeps it that way.
+ *
  * @param dimmed for an item whose content no longer counts — a cancelled lesson. It stays fully
  *   legible (it is still a record of something) but stops competing with the lessons that are on.
  */
@@ -103,7 +107,8 @@ fun ContentCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
-        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                 .copy(alpha = if (dimmed) DimmedAlpha else 1f),
