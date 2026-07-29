@@ -12,8 +12,9 @@ import java.io.File
  * exported schema JSON, and `WholeTableWritesTest` the two DAO files a wipe may and may not appear in.
  * The rest **scan the tree** for something that must not reappear anywhere: `ReportsSurfaceTest` for the
  * app reaching past `Reports.of`, `ScreenStateSurfaceTest` for a hand-written sharing tail,
- * `CardPressFeedbackTest` for a card taking its tap from a `clickable`, `DirectSeedingRatchetTest` for
- * tests seeding through a DAO.
+ * `CardPressFeedbackTest` for a card taking its tap from a `clickable`, `ClockFormatTest` for the app
+ * deciding 12- or 24-hour instead of the phone, `DirectSeedingRatchetTest` for tests seeding through a
+ * DAO. The two asking what a *call* passes read its arguments through [SourceText].
  *
  * The first three had each grown their own copy of the walk-up-from-the-working-directory search — the
  * same twenty lines three times, with three different failure messages and three places to fix when a

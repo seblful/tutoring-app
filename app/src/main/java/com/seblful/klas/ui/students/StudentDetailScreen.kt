@@ -85,10 +85,10 @@ import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.lessonsStat
+import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.format.formatDate
-import com.seblful.klas.format.formatDateTime
 import com.seblful.klas.format.formatHours
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.toAmountInput
@@ -698,7 +698,7 @@ private fun LazyListScope.classesTab(
     items(rows, key = { StudentDetailKeys.klass(it.klass.id) }) { row ->
         ListItem(
             leadingContent = { LessonKindIcon(row.kind) },
-            headlineContent = { Text("${row.subjectName} · ${row.klass.start.formatDateTime()}") },
+            headlineContent = { Text("${row.subjectName} · ${row.klass.start.dateTimeText()}") },
             supportingContent = {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(classStatusLabel(row.klass.status), color = classStatusColor(row.klass.status))

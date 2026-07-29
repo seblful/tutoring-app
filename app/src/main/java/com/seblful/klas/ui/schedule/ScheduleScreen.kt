@@ -86,9 +86,9 @@ import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.sessionStatusColor
 import com.seblful.klas.ui.common.sessionStatusLabel
+import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.formatMonth
-import com.seblful.klas.format.formatTime
 import com.seblful.klas.format.formatWeekRange
 import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.format.toLocalTime
@@ -299,7 +299,7 @@ fun ScheduleScreen(
                     stringResource(
                         R.string.class_time_conflict,
                         clash.who,
-                        "${clash.slot.start.formatTime()} – ${clash.slot.end.formatTime()}",
+                        "${clash.slot.start.timeText()} – ${clash.slot.end.timeText()}",
                     )
                 )
             },
@@ -481,7 +481,7 @@ private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit, modifier: Modifi
     ContentCard(onClick = onClick, modifier = modifier, dimmed = cancelled) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                row.klass.start.formatTime(),
+                row.klass.start.timeText(),
                 style = MaterialTheme.typography.titleMedium,
                 color = if (cancelled) MaterialTheme.colorScheme.onSurfaceVariant
                 else MaterialTheme.colorScheme.primary,
@@ -699,7 +699,7 @@ private fun ClassActionsSheet(
                 LessonKindIcon(LessonKind.of(klass), Modifier.padding(end = 10.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        "${klass.start.formatTime()} · ${row.title}",
+                        "${klass.start.timeText()} · ${row.title}",
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Text(

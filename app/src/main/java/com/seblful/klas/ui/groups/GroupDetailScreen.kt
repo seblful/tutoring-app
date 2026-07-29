@@ -44,7 +44,6 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
-import com.seblful.klas.format.formatDateTime
 import com.seblful.klas.format.formatHours
 import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.MinTouchTarget
@@ -52,6 +51,7 @@ import com.seblful.klas.ui.common.RateHistoryList
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatRow
 import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.sessionStatusColor
 import com.seblful.klas.ui.common.sessionStatusLabel
@@ -280,7 +280,7 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
     items(state.lessons, key = { GroupDetailKeys.lesson(it.session.first.id) }) { row ->
         val status = row.session.commonStatus
         ListItem(
-            headlineContent = { Text(row.session.start.formatDateTime()) },
+            headlineContent = { Text(row.session.start.dateTimeText()) },
             supportingContent = {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(

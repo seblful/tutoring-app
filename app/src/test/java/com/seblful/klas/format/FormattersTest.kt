@@ -8,7 +8,9 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.YearMonth
 
 /** Covers the month-key encoding and the amount-input formatter not pinned elsewhere. */
@@ -94,6 +96,42 @@ class FormattersTest {
             val label = formatWeekRange(start, end)
             assertTrue("«$label» is too long for the navigator", label.length <= 26)
         }
+    }
+
+    /** The face a 24-hour phone gets, and every non-screen caller: zero-padded, no marker. */
+    @Test
+    fun `the 24-hour clock is the default face`() {
+        assertEquals("21:00", LocalTime.of(21, 0).formatTime())
+        assertEquals("09:05", LocalTime.of(9, 5).formatTime())
+        assertEquals("00:30", LocalTime.of(0, 30).formatTime())
+    }
+
+    /**
+     * The 12-hour face, for a phone whose clock is set that way (`ui/common/timeText` asks).
+     *
+     * Pinned here rather than left to the device, because the marker is the part that varies by platform
+     * — `ru` CLDR has rendered it both «ПП» and "PM" — and because the hours a 12-hour clock has to get
+     * right are the two it renumbers: midnight is 12 AM, not 0 AM, and noon is 12 PM, not 0 PM.
+     */
+    @Test
+    fun `the 12-hour clock names the half of the day, midnight and noon included`() {
+        assertEquals("9:00 PM", LocalTime.of(21, 0).formatTime(hour12 = true))
+        assertEquals("9:05 AM", LocalTime.of(9, 5).formatTime(hour12 = true))
+        assertEquals("12:00 AM", LocalTime.MIDNIGHT.formatTime(hour12 = true))
+        assertEquals("12:30 PM", LocalTime.of(12, 30).formatTime(hour12 = true))
+        assertEquals("11:59 PM", LocalTime.of(23, 59).formatTime(hour12 = true))
+    }
+
+    /** The date-and-time label carries the marker through — a group's lesson list prints this one. */
+    @Test
+    fun `a 12-hour date and time keeps the date and gains the marker`() {
+        val at = Instant.parse("2026-07-29T09:00:00Z")
+
+        val label = at.formatDateTime(hour12 = true)
+
+        assertTrue("«$label» says neither AM nor PM", label.endsWith("AM") || label.endsWith("PM"))
+        assertTrue("«$label» has lost its date", label.contains("июл"))
+        assertNotEquals("the two faces are the same label", at.formatDateTime(), label)
     }
 
     @Test

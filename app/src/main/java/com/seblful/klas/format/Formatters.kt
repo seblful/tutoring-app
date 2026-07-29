@@ -10,7 +10,9 @@ import java.time.Month
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
 import java.time.format.TextStyle
+import java.time.temporal.ChronoField
 import java.util.Locale
 
 /**
@@ -27,6 +29,28 @@ private val dateTimeFmt = DateTimeFormatter.ofPattern("d MMM, HH:mm", RU)
 private val dayMonthFmt = DateTimeFormatter.ofPattern("d MMMM", RU)
 private val monthFmt = DateTimeFormatter.ofPattern("LLLL yyyy", RU)
 
+/**
+ * The 12-hour faces of [timeFmt] and [dateTimeFmt], for a phone whose clock is set that way — asked for
+ * by `hour12`, never by this module deciding. The app's own default is the 24-hour one above.
+ *
+ * The marker is spelled "AM"/"PM" here rather than taken from the locale: `ru` renders it «ДП»/«ПП» under
+ * some CLDR versions and "AM"/"PM" under others, so an unpinned marker would have read differently on two
+ * Androids — and it is the Latin pair a tutor reading a 12-hour clock expects. Built rather than patterned
+ * because a pattern's `a` is exactly the part that varies.
+ */
+private val amPm = mapOf(0L to "AM", 1L to "PM")
+private val time12Fmt = DateTimeFormatterBuilder()
+    .appendValue(ChronoField.CLOCK_HOUR_OF_AMPM)
+    .appendLiteral(':')
+    .appendValue(ChronoField.MINUTE_OF_HOUR, 2)
+    .appendLiteral(' ')
+    .appendText(ChronoField.AMPM_OF_DAY, amPm)
+    .toFormatter(RU)
+private val dateTime12Fmt = DateTimeFormatterBuilder()
+    .appendPattern("d MMM, ")
+    .append(time12Fmt)
+    .toFormatter(RU)
+
 private val zone: ZoneId get() = ZoneId.systemDefault()
 
 fun Instant.toLocalDate(): LocalDate = atZone(zone).toLocalDate()
@@ -34,8 +58,16 @@ fun Instant.toLocalTime(): LocalTime = atZone(zone).toLocalTime()
 
 fun Instant.formatDate(): String = atZone(zone).format(dateFmt)
 fun Instant.formatDay(): String = atZone(zone).format(dayFmt).replaceFirstChar { it.uppercase() }
-fun Instant.formatTime(): String = atZone(zone).format(timeFmt)
-fun Instant.formatDateTime(): String = atZone(zone).format(dateTimeFmt)
+
+// A clock is the one format the *phone* has an opinion about, so these take it as an argument. The
+// default is the app's 24-hour face, which keeps every caller that has no phone to ask — a notification,
+// a report, an export — printing what it always did. UI goes through `ui/common/timeText` instead of
+// passing the flag itself.
+fun Instant.formatTime(hour12: Boolean = false): String =
+    atZone(zone).format(if (hour12) time12Fmt else timeFmt)
+
+fun Instant.formatDateTime(hour12: Boolean = false): String =
+    atZone(zone).format(if (hour12) dateTime12Fmt else dateTimeFmt)
 
 // The same formats for callers already holding a local date or time. Before these existed, five
 // screens spelled `atStartOfDay(ZoneId.systemDefault()).toInstant()` to reach the Instant overloads
@@ -43,7 +75,7 @@ fun Instant.formatDateTime(): String = atZone(zone).format(dateTimeFmt)
 // "%02d:%02d" for lesson times, a second spelling of [timeFmt].
 fun LocalDate.formatDate(): String = format(dateFmt)
 fun LocalDate.formatDay(): String = format(dayFmt).replaceFirstChar { it.uppercase() }
-fun LocalTime.formatTime(): String = format(timeFmt)
+fun LocalTime.formatTime(hour12: Boolean = false): String = format(if (hour12) time12Fmt else timeFmt)
 
 /**
  * Parses a user-entered amount in rubles (comma or dot decimals) into [Money], or null.

@@ -52,8 +52,8 @@ import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.format.formatDate
-import com.seblful.klas.format.formatTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -207,7 +207,7 @@ fun ClassEditScreen(
                     modifier = Modifier.weight(1.4f),
                 )
                 PickerField(
-                    value = form.timeFrom?.formatTime() ?: "",
+                    value = form.timeFrom?.timeText() ?: "",
                     label = stringResource(R.string.class_time_from_label),
                     placeholder = stringResource(R.string.class_pick_time),
                     onClick = { showFromPicker = true },
@@ -221,7 +221,7 @@ fun ClassEditScreen(
             DurationPicker(
                 options = durations,
                 selected = form.durationMinutes,
-                endsAt = form.timeTo?.formatTime(),
+                endsAt = form.timeTo?.timeText(),
                 enabled = form.timeFrom != null,
                 onSelect = { minutes -> viewModel.change(BookingIntent.LastsFor(minutes)) },
                 onCustom = { showToPicker = true },
@@ -235,8 +235,8 @@ fun ClassEditScreen(
                         is TimeProblem.Taken -> stringResource(
                             R.string.class_time_conflict,
                             problem.conflict.who,
-                            "${problem.conflict.slot.start.formatTime()} – " +
-                                problem.conflict.slot.end.formatTime(),
+                            "${problem.conflict.slot.start.timeText()} – " +
+                                problem.conflict.slot.end.timeText(),
                         )
                     },
                     style = MaterialTheme.typography.bodySmall,

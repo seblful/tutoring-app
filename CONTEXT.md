@@ -349,6 +349,13 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 - **`java.time` everywhere** + core-library desugaring, so it works on `minSdk 24`. **Today rolls over
   at midnight** — from a flow that sleeps until the next local midnight and re-reads an injected
   `Clock`, not `LocalDate.now()` in a composable body.
+- **12- or 24-hour is the phone's answer, on the dial and in the text** (`ClockFormatTest`).
+  `TimePickerModal` leaves `is24Hour` out; screens print times through `ui/common/timeText` /
+  `dateTimeText`, composables that ask `DateFormat.is24HourFormat` and pick one of the two faces
+  `format/Formatters` owns — the same division as `Money.text` and the currency. **Everything that is not
+  a screen keeps `HH:mm`**: `formatTime()` with no argument, for a notification, a report or an export,
+  which is read away from the phone that made it. The 12-hour marker is a pinned "AM"/"PM", since `ru`
+  CLDR renders it «ДП»/«ПП» on some Androids and not others.
 
 ### UI — navigation and lists
 

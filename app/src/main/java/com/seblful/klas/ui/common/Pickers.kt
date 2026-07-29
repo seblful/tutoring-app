@@ -52,6 +52,12 @@ fun DatePickerModal(
  * Time picker. As with [DatePickerModal], [onConfirm] and [onDismiss] are separate and the caller
  * is responsible for closing the dialog, so confirming one step of a flow never triggers the
  * flow's cancel path.
+ *
+ * **The dial reads 12- or 24-hour from the phone** — which is what `rememberTimePickerState` does when
+ * `is24Hour` is left out. It used to be pinned to `true`, so a phone set to a 12-hour clock was still
+ * handed a 24-hour dial to book a lesson on: the app answering a question the phone had already
+ * answered. The text the lesson is then read back as follows the same setting ([timeText]), so a time is
+ * set and shown on one clock rather than two. `ClockFormatTest` keeps both from drifting.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,7 +69,6 @@ fun TimePickerModal(
     val state = rememberTimePickerState(
         initialHour = initial.hour,
         initialMinute = initial.minute,
-        is24Hour = true,
     )
     AlertDialog(
         onDismissRequest = onDismiss,
