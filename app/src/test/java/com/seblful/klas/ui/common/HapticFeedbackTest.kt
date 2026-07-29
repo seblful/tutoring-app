@@ -13,9 +13,10 @@ import java.io.File
  * app would have had to invent. The `VIBRATE` permission is the tell that it happened, so the manifest is
  * checked too.
  *
- * And it is performed in one place ([rememberConfirmFeedback]) rather than at each gesture, so *which*
- * effect an action gets is a decision with one home — the same argument as [timeText] having the only
- * copy of "which clock is this phone on".
+ * And it is performed in one file (`ui/common/Haptics.kt`) rather than at each gesture, so *which* effect a
+ * moment gets is a decision with one home — the same argument as [timeText] having the only copy of "which
+ * clock is this phone on". There are two moments: the mark a drag crosses ([rememberArmedFeedback]) and the
+ * action landing ([rememberConfirmFeedback]).
  */
 class HapticFeedbackTest {
 
@@ -73,14 +74,19 @@ class HapticFeedbackTest {
 
     /** So the scans above cannot pass by the app having stopped buzzing at all. */
     @Test
-    fun `the confirm buzz exists and is used`() {
+    fun `both buzzes exist and are used`() {
         val haptics = ProjectFiles.sourceFile("ui/common/Haptics.kt").readText()
-        val callers = ProjectFiles.sources()
-            .filter { it.name != "Haptics.kt" }
-            .count { "rememberConfirmFeedback()" in it.readText() }
+        val elsewhere = ProjectFiles.sources().filter { it.name != "Haptics.kt" }.map { it.readText() }
 
         assertTrue("`Haptics.kt` performs no haptic feedback", "performHapticFeedback" in haptics)
-        assertTrue("Nothing asks for the confirm buzz — the swipe used to", callers >= 1)
+        assertTrue(
+            "Nothing asks for the confirm buzz — the swipe used to, on the lift",
+            elsewhere.any { "rememberConfirmFeedback()" in it },
+        )
+        assertTrue(
+            "Nothing asks for the armed tick — the swipe used to, at its mark",
+            elsewhere.any { "rememberArmedFeedback()" in it },
+        )
     }
 
     private companion object {

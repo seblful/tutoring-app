@@ -16,13 +16,14 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * [rememberConfirmFeedback] performs the platform's **Confirm** effect, and performs it through
+ * Each buzz is the platform effect that *means* its moment, and each is performed through
  * `LocalHapticFeedback` — which is the whole point, since that is the path that honours the phone's
  * touch-feedback setting.
  *
  * Asserted by substituting the composition local: a real buzz cannot be observed from a test, but *what
  * was asked of the phone* can, and the effect is the part a refactor could quietly change (`LongPress` for
- * a confirmation feels like a rejection).
+ * a confirmation feels like a rejection). The two moments are named apart on purpose — «now» at a drag's
+ * mark and «done» when the action lands — so a single gesture saying both says two different things.
  */
 class ConfirmFeedbackTest {
 
@@ -51,6 +52,25 @@ class ConfirmFeedbackTest {
         rule.onNodeWithText("готово").performClick()
 
         assertEquals(listOf(HapticFeedbackType.Confirm), recorder.performed)
+    }
+
+    @Test
+    fun theArmedTickIsTheThresholdEffect() {
+        val recorder = Recorder()
+        rule.setContent {
+            KlasTheme {
+                CompositionLocalProvider(LocalHapticFeedback provides recorder) {
+                    val armed = rememberArmedFeedback()
+                    Text("метка", Modifier.clickable { armed() })
+                }
+            }
+        }
+
+        rule.onNodeWithText("метка").performClick()
+
+        // The platform's own name for a drag that has become eligible and can still be cancelled by
+        // moving back — see [rememberArmedFeedback]. `Confirm` here would say the thing was already done.
+        assertEquals(listOf(HapticFeedbackType.GestureThresholdActivate), recorder.performed)
     }
 
     @Test

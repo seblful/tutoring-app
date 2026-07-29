@@ -370,9 +370,11 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   app speaks Russian to a tutor in Minsk. Material's `DatePicker` cannot be made to follow: it reads
   `WeekFields.of(locale)`, which ignores the keyword here (`WeekStartKeywordTest` pins this), so its own
   little month stays Monday-first.
-- **A gesture confirms with the phone's haptics** (`ui/common/Haptics`, `HapticFeedbackTest`): swipe-to-
-  complete performs `HapticFeedbackType.Confirm` through `LocalHapticFeedback`, which honours the system
-  touch-feedback setting. No `Vibrator`, no `VIBRATE` permission, and the effect is chosen in one place.
+- **A gesture speaks through the phone's haptics** (`ui/common/Haptics`, `HapticFeedbackTest`), and a
+  gesture that can be taken back has **two** moments to say: `GestureThresholdActivate` at the mark
+  («now»), `Confirm` when the action lands («done»). Both go through `LocalHapticFeedback`, which honours
+  the system touch-feedback setting and degrades an effect the phone is too old to know. No `Vibrator`, no
+  `VIBRATE` permission, and each effect is chosen in one place.
 
 ### UI — navigation and lists
 
@@ -407,6 +409,15 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   now nobody's status at all (`ui/common/classStatusColor`).
 - **Marking a lesson completed is one swipe**, offered only where completing is legal
   (`GroupRules.sessionTransitions`); the row springs back, and the status badge is the confirmation.
+- **The swipe is a promise, and it can be taken back** (`ui/common/SwipeToConfirm`): the phone ticks at the
+  mark — a third of the row — the lesson is marked **on the lift**, and sliding home again in between
+  undoes the whole thing in silence. `swipeArmed` is the only copy of "would letting go act?", so the tick
+  and the release cannot disagree; it is pure, and `SwipeToConfirmTest` asks it on the JVM while
+  `SwipeToConfirmBoxTest` pins the wiring on a device, list-scroll arbitration included.
+  **Deliberately not `SwipeToDismissBox`**: its release also has a *velocity* path (a flick commits from
+  anywhere) and its live `targetValue` is half the width, so the mark, the tick and the action were three
+  different places. Here a flick that travels nowhere does nothing — marking a lesson taught is what bills
+  it.
 - **A lesson is booked by its length, not its end time — and *held* as one.** «Длительность» as chips
   seeded from the tutor's default, «Другая» asking for hours and minutes; the end is derived from the
   start **instant** and only shown («до 00:00 (след. день)» when it crosses midnight). The form once kept
@@ -573,12 +584,14 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
 - **CI** (`.github/workflows/ci.yml`) runs the unit suite, `lintDebug`, the debug APK and the
   *compilation* of the instrumented tests on every PR and every push to `main`/`develop` — a tripwire
   nobody runs is not a tripwire. The instrumented tests themselves still need a device.
-- **Instrumented tests** (`src/androidTest`, 8 classes) cover Room integration — including the FK
+- **Instrumented tests** (`src/androidTest`, 13 classes) cover Room integration — including the FK
   cascade and restrict rules (`SubjectDeletionCascadeTest`) — backup round-trip and restore, calendar
   sync, auto-completion, and the questions that need real rendering: text measurement
-  (`BottomBarLabelTest`), icon ink height (`LessonKindIconTest`) and the plural rule set
-  (`RussianPluralsTest`). A debug-only manifest entry lets the test host show over the keyguard, so
-  they run against a locked phone (there is no emulator).
+  (`BottomBarLabelTest`), icon ink height (`LessonKindIconTest`), the plural rule set
+  (`RussianPluralsTest`) and **a gesture**, which exists nowhere else (`SwipeToConfirmBoxTest` —
+  it caught the swipe deciding against a stale offset, so a slide home still confirmed). A debug-only
+  manifest entry lets the test host show over the keyguard, so they run against a locked phone (there is
+  no emulator).
 - **Known gap: there is no instrumented Room *migration* test yet.** `room-testing` and the exported
   schema JSON are wired up and `MigrationChainTest` guards the chain's *existence*, but nothing yet
   runs a real v1→vN upgrade against `MigrationTestHelper`. This has to exist before the first schema

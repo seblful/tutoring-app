@@ -43,13 +43,10 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -79,12 +76,12 @@ import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.StatusBadge
+import com.seblful.klas.ui.common.SwipeToConfirmBox
 import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.constrainedContent
-import com.seblful.klas.ui.common.rememberConfirmFeedback
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.format.formatDay
@@ -410,15 +407,17 @@ private fun viewModeLabel(mode: ScheduleViewMode): Int = when (mode) {
  * every time, forever. A gesture on the row makes it one — and the row is exactly where the tutor is
  * already looking, having just taught it.
  *
- * Two deliberate limits:
+ * Three deliberate limits:
  * - **Only where completing is legal.** A lesson already completed, or one whose members are in mixed
  *   states, gets a plain card: [ScheduleRow.canSwipeComplete] decides, from the same rule the sheet's
  *   actions are built from, so the gesture can never do something the menu would refuse.
+ * - **It is taken back by sliding home.** The phone ticks at the mark and the lesson is marked only on
+ *   the lift, so a swipe begun by accident — or aimed at the row below — costs a thumb moving back and
+ *   nothing else. [SwipeToConfirmBox] owns that whole contract.
  * - **One direction, and it never sticks.** The row springs back rather than staying dismissed —
  *   nothing is being removed, and the status badge flipping to «Проведено» is the confirmation. A box
  *   left in its dismissed state would be a row hidden behind its own background until recomposed.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LazyItemScope.SwipeToCompleteCard(
     row: ScheduleRow,
@@ -430,27 +429,10 @@ private fun LazyItemScope.SwipeToCompleteCard(
         ScheduleCard(row, onClick, modifier.animateItem())
         return
     }
-    // The card springs back rather than staying dismissed, so the gesture's own confirmation is a buzz
-    // and the badge flipping to «Проведено». Through the phone's haptics — see [rememberConfirmFeedback].
-    val confirm = rememberConfirmFeedback()
-    val state = rememberSwipeToDismissBoxState(
-        // Returning false is what makes the row spring back: the action has already been fired, and
-        // the settled "dismissed" state would leave a card that is still in the list drawn as gone.
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.StartToEnd) {
-                confirm()
-                onComplete()
-            }
-            false
-        },
-        // Past a third of the width. The default (half) is a long drag for something done this often.
-        positionalThreshold = { total -> total * 0.33f },
-    )
-    SwipeToDismissBox(
-        state = state,
+    SwipeToConfirmBox(
+        onConfirm = onComplete,
         modifier = modifier.animateItem(),
-        enableDismissFromEndToStart = false,
-        backgroundContent = {
+        reveal = {
             Row(
                 Modifier
                     .fillMaxSize()
