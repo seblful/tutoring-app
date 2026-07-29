@@ -14,6 +14,7 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
+import com.seblful.klas.ui.common.LeavableForm
 import com.seblful.klas.ui.common.UiEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -92,8 +93,8 @@ class GroupFormViewModel @Inject constructor(
          * Archiving is deliberately **not** part of it: that button writes to the database there and
          * then, so it is already saved by the time back is pressed.
          */
-        val isDirty: Boolean = false,
-    ) {
+        override val isDirty: Boolean = false,
+    ) : LeavableForm {
         /**
          * The rate as [Money], or null while the field doesn't hold a valid amount. Zero is allowed —
          * a group taught for free still needs booking and billing (at 0) — but blank is not: a group
@@ -127,7 +128,7 @@ class GroupFormViewModel @Inject constructor(
         val strandedMemberIds: Set<Long> get() = form.memberIds - selectedMemberIds
 
         /** A group needs a name, a rate and at least one member; without those there is nothing to book. */
-        val isValid: Boolean
+        override val canSave: Boolean
             get() = form.name.isNotBlank() && price != null && selectedMemberIds.isNotEmpty()
     }
 
@@ -259,8 +260,8 @@ class GroupFormViewModel @Inject constructor(
      */
     fun save(onSaved: (Long) -> Unit) {
         val s = state.value
-        if (!s.isValid) return
-        // The rate `isValid` has just proved, taken as a value instead of re-asserted with `!!` — the
+        if (!s.canSave) return
+        // The rate `canSave` has just proved, taken as a value instead of re-asserted with `!!` — the
         // same check twice is the same check drifting apart.
         val price = s.price ?: return
         val f = s.form

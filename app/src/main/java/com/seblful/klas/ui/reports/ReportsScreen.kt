@@ -134,7 +134,7 @@ fun ReportsScreen(
         stringResource(R.string.reports_csv_label),
         stringResource(R.string.reports_csv_amount),
     )
-    val csvLines = csvLinesFor(state)
+    val csvLines = ReportCsv.linesFor(state, csvHeadings(state.period))
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument(CSV_MIME_TYPE),
     ) { uri ->
@@ -191,36 +191,19 @@ fun ReportsScreen(
 private const val CSV_MIME_TYPE = "text/csv"
 
 /**
- * The report as spreadsheet rows, in screen order.
- *
- * Debts are included even though they ignore the period — the file is what the tutor takes away, and
- * leaving out the one section that says who owes money would make it the least useful export
- * possible. Its heading says so, as the card on screen does.
+ * The section headings the export is labelled with — the words, and nothing else. Which rows the file
+ * contains is [ReportCsv.linesFor]'s.
  */
 @Composable
-private fun csvLinesFor(state: Reports.Report): List<ReportCsv.Line> {
-    val totalTitle = stringResource(R.string.reports_total_income)
-    val byGroupTitle = stringResource(R.string.reports_by_group)
-    val bySubjectTitle = stringResource(R.string.reports_by_subject)
-    val byStudentTitle = stringResource(R.string.reports_by_student)
-    val debtsTitle = stringResource(R.string.reports_debts)
-    val outstandingTitle = stringResource(R.string.reports_total_outstanding)
-    val periodName = periodTitle(state.period)
-
-    return buildList {
-        add(ReportCsv.Line(totalTitle, periodName, state.totalIncome))
-        fun section(title: String, lines: List<Reports.Line>) {
-            lines.forEach { add(ReportCsv.Line(title, it.label, it.amount)) }
-        }
-        section(byGroupTitle, state.byGroup)
-        section(bySubjectTitle, state.bySubject)
-        section(byStudentTitle, state.byStudent)
-        if (state.debts.isNotEmpty()) {
-            add(ReportCsv.Line(debtsTitle, outstandingTitle, state.totalOutstanding))
-            section(debtsTitle, state.debts)
-        }
-    }
-}
+private fun csvHeadings(period: ReportPeriod): ReportCsv.Headings = ReportCsv.Headings(
+    total = stringResource(R.string.reports_total_income),
+    period = periodTitle(period),
+    byGroup = stringResource(R.string.reports_by_group),
+    bySubject = stringResource(R.string.reports_by_subject),
+    byStudent = stringResource(R.string.reports_by_student),
+    debts = stringResource(R.string.reports_debts),
+    outstanding = stringResource(R.string.reports_total_outstanding),
+)
 
 @Composable
 private fun ReportBody(

@@ -32,16 +32,16 @@ class StudentFormViewModelTest {
         val vm = vm()
         observing(vm.state)
 
-        assertFalse(vm.state.value.isValid)
+        assertFalse(vm.state.value.canSave)
 
         vm.update { it.copy(name = "Аня") }
-        assertFalse("a name alone isn't enough — needs a priced subject", vm.state.value.isValid)
+        assertFalse("a name alone isn't enough — needs a priced subject", vm.state.value.canSave)
 
         vm.toggleSubject(mathId, on = true)
-        assertFalse("a checked subject with no price is invalid", vm.state.value.isValid)
+        assertFalse("a checked subject with no price is invalid", vm.state.value.canSave)
 
         vm.setPriceText(mathId, "30")
-        assertTrue(vm.state.value.isValid)
+        assertTrue(vm.state.value.canSave)
     }
 
     @Test
@@ -53,10 +53,10 @@ class StudentFormViewModelTest {
         vm.update { it.copy(name = "Иван") }
         vm.toggleSubject(id, on = true)
         vm.setPriceText(id, "abc")
-        assertFalse(vm.state.value.isValid)
+        assertFalse(vm.state.value.canSave)
 
         vm.setPriceText(id, "")
-        assertFalse(vm.state.value.isValid)
+        assertFalse(vm.state.value.canSave)
     }
 
     @Test

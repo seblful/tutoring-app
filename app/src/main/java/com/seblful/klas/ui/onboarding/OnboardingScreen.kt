@@ -117,10 +117,11 @@ fun OnboardingScreen(
     val restoreLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri ->
-        // Nothing to replace on a fresh install, so no confirmation — unless the user already
-        // added subjects in step 1 and came back here, which a restore would wipe.
+        // Whether a restore here would destroy anything is `restoreNeedsConfirming`'s — an import is a
+        // full replace, and what that costs is a fact about the backup rather than about this screen.
         if (uri != null) {
-            if (subjects.isEmpty()) backupViewModel.import(DocumentRef(uri.toString())) else confirmRestoreUri = uri
+            if (viewModel.restoreNeedsConfirming()) confirmRestoreUri = uri
+            else backupViewModel.import(DocumentRef(uri.toString()))
         }
     }
 
@@ -271,7 +272,7 @@ fun OnboardingScreen(
                     )
                     Button(
                         onClick = { studentVm.save { viewModel.complete(); onFinished() } },
-                        enabled = studentState.isValid,
+                        enabled = studentState.canSave,
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                     ) { Text(stringResource(R.string.onboarding_finish)) }
                 }

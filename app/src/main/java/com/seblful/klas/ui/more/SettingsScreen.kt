@@ -129,16 +129,12 @@ fun SettingsScreen(
                 onCheckedChange = { on ->
                     viewModel.update { it.copy(notificationsEnabled = on) }
                     // Asked here, where the tutor has just said they want reminders — rather than over
-                    // the first screen of a first launch, before they had met the feature.
-                    if (on && !notificationsPermitted) {
-                        val required = viewModel.notificationPermissionsRequired
-                        if (required.isNotEmpty()) {
-                            notificationPermission.launch(required)
-                        } else {
-                            // Nothing to request: notifications are off for the whole app in system
-                            // settings, which only the tutor can undo, so say so instead of asking.
-                            messages.show(notificationsBlockedMsg)
-                        }
+                    // the first screen of a first launch, before they had met the feature. Which of the
+                    // three things to do is [NotificationsIntent]'s.
+                    when (val intent = viewModel.notificationsIntent(on)) {
+                        is NotificationsIntent.Request -> notificationPermission.launch(intent.permissions)
+                        NotificationsIntent.BlockedBySystem -> messages.show(notificationsBlockedMsg)
+                        NotificationsIntent.Nothing -> Unit
                     }
                 },
             )

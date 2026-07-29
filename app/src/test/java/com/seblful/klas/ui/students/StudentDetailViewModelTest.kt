@@ -14,9 +14,12 @@ import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.testutil.MainDispatcherRule
+import com.seblful.klas.testutil.MutableClock
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -38,6 +41,11 @@ class StudentDetailViewModelTest {
 
     private val env = TestEnv()
 
+    // A pinned clock, because the hour a payment lands at is derived from "today" — see `PaymentDate`.
+    private val zone: ZoneId = ZoneId.of("Europe/Minsk")
+    private val today: LocalDate = LocalDate.of(2026, 5, 17)
+    private val clock = MutableClock(today.atTime(14, 30).atZone(zone).toInstant(), zone)
+
     private fun vm(id: Long) = StudentDetailViewModel(
         savedStateHandle = SavedStateHandle(mapOf("id" to id)),
         students = env.studentRepo,
@@ -47,6 +55,7 @@ class StudentDetailViewModelTest {
         payments = env.paymentRepo,
         enrollment = env.enrollmentRepo,
         rateHistory = env.rateHistoryRepo,
+        clock = clock,
         appScope = mainRule.appScope,
         computation = mainRule.dispatcher,
     )
@@ -243,11 +252,11 @@ class StudentDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        vm.addPayment(Money.ZERO, Instant.now())
+        vm.addPayment(Money.ZERO, today)
         advanceUntilIdle()
         assertTrue(env.paymentDao.items.value.isEmpty())
 
-        vm.addPayment(Money.ofMajor(10), Instant.now())
+        vm.addPayment(Money.ofMajor(10), today)
         advanceUntilIdle()
         assertEquals(1, env.paymentDao.items.value.size)
     }
@@ -262,13 +271,44 @@ class StudentDetailViewModelTest {
 
             // "She paid me last Tuesday", written up on Sunday. The amount was always recordable;
             // the date was not — every payment used to be stamped with the moment it was entered.
-            val lastTuesday = Instant.now().minus(5, ChronoUnit.DAYS)
+            val lastTuesday = today.minusDays(5)
             vm.addPayment(Money.ofMajor(40), lastTuesday)
             advanceUntilIdle()
 
             assertEquals(
-                lastTuesday.toEpochMilli(),
+                "the start of that day: there is no hour the tutor could have supplied",
+                lastTuesday.atStartOfDay(zone).toInstant().toEpochMilli(),
                 env.paymentDao.items.value.single().dateMillis,
+            )
+        }
+
+    /**
+     * The other half of the rule, and the half that was unreachable while it lived in the screen: a
+     * payment dated **today** keeps the current time, so several entered in one sitting stay in the
+     * order they were entered. The list is ordered by instant, and a row of identical midnights would
+     * shuffle.
+     */
+    @Test
+    fun `payments entered today keep the hour, so a run of them stays in order`() =
+        runTest(mainRule.dispatcher) {
+            val sid = seedStudent()
+            val vm = vm(sid)
+            observing(vm.state)
+            advanceUntilIdle()
+
+            vm.addPayment(Money.ofMajor(10), today)
+            advanceUntilIdle()
+            clock.advanceBy(60_000)
+            vm.addPayment(Money.ofMajor(20), today)
+            advanceUntilIdle()
+
+            val stamps = env.paymentDao.items.value.sortedBy { it.id }.map { it.dateMillis }
+            assertEquals("two different instants, not two midnights", 2, stamps.distinct().size)
+            assertTrue("the second is later", stamps[1] > stamps[0])
+            assertEquals(
+                "and both are the moment they were entered, not the start of the day",
+                today.atTime(14, 30).atZone(zone).toInstant().toEpochMilli(),
+                stamps[0],
             )
         }
 
@@ -280,7 +320,7 @@ class StudentDetailViewModelTest {
             observing(vm.state)
             advanceUntilIdle()
 
-            val recordedOn = Instant.now().minus(3, ChronoUnit.DAYS)
+            val recordedOn = today.minusDays(3)
             vm.addPayment(Money.ofMajor(40), recordedOn)
             advanceUntilIdle()
             val original = env.paymentDao.items.value.single()
@@ -293,7 +333,11 @@ class StudentDetailViewModelTest {
             val corrected = env.paymentDao.items.value.single()
             assertEquals("the same row", original.id, corrected.id)
             assertEquals(Money.ofMajor(45).minor, corrected.amountMinor)
-            assertEquals("the date was left alone", recordedOn.toEpochMilli(), corrected.dateMillis)
+            assertEquals(
+                "the date was left alone",
+                recordedOn.atStartOfDay(zone).toInstant().toEpochMilli(),
+                corrected.dateMillis,
+            )
         }
 
     @Test
@@ -330,6 +374,76 @@ class StudentDetailViewModelTest {
         vm.setArchived(false)
         advanceUntilIdle()
         assertFalse(env.studentDao.getById(sid)!!.archived)
+    }
+
+    /**
+     * Whether archiving is worth asking about, and what the question would have to say, are one rule
+     * with two halves — and both used to live in `StudentDetailScreen`, twenty lines apart, where no
+     * test could reach either.
+     */
+    @Test
+    fun `archiving a student who owes nothing and has no lessons booked asks nothing`() =
+        runTest(mainRule.dispatcher) {
+            val sid = seedStudent()
+            val vm = vm(sid)
+            observing(vm.state)
+            advanceUntilIdle()
+
+            assertEquals(ArchiveIntent.Archive, vm.state.value.archiveIntent)
+        }
+
+    @Test
+    fun `the archive question names the balance, the planned lessons, or both`() =
+        runTest(mainRule.dispatcher) {
+            val subject = env.fixtures.subject("Математика")
+            val sid = env.fixtures.pricedStudent("Аня", subject, Money.ofMajor(30))
+            // One lesson taught and unpaid — a debt — and one still to come.
+            env.fixtures.completedLesson(subject, listOf(sid), today.minusDays(2).atTime(10, 0).atZone(zone).toInstant())
+            env.fixtures.lesson(subject, listOf(sid), today.plusDays(2).atTime(10, 0).atZone(zone).toInstant())
+            val vm = vm(sid)
+            observing(vm.state)
+            advanceUntilIdle()
+
+            val both = vm.state.value.archiveIntent as ArchiveIntent.Confirm
+            assertEquals(Money.ofMajor(30), both.openBalance)
+            assertEquals(1, both.upcomingLessons)
+
+            // Paid up, but a lesson still booked: one part, not none.
+            vm.addPayment(Money.ofMajor(30), today)
+            advanceUntilIdle()
+            val lessonsOnly = vm.state.value.archiveIntent as ArchiveIntent.Confirm
+            assertNull("nothing outstanding to mention", lessonsOnly.openBalance)
+            assertEquals(1, lessonsOnly.upcomingLessons)
+        }
+
+    /** Credit counts as much as debt: it leaves the reports the same way, and the tutor owes it back. */
+    @Test
+    fun `an over-payment is worth asking about too`() = runTest(mainRule.dispatcher) {
+        val sid = seedStudent()
+        val vm = vm(sid)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        vm.addPayment(Money.ofMajor(25), today)
+        advanceUntilIdle()
+
+        val confirm = vm.state.value.archiveIntent as ArchiveIntent.Confirm
+        assertEquals(Money.ofMajor(-25), confirm.openBalance)
+        assertEquals(0, confirm.upcomingLessons)
+    }
+
+    /** Restoring takes nothing away, so it never asks — whatever the student is still carrying. */
+    @Test
+    fun `restoring an archived student asks nothing even with a debt`() = runTest(mainRule.dispatcher) {
+        val subject = env.fixtures.subject("Математика")
+        val sid = env.fixtures.pricedStudent("Аня", subject, Money.ofMajor(30))
+        env.fixtures.completedLesson(subject, listOf(sid), today.minusDays(2).atTime(10, 0).atZone(zone).toInstant())
+        env.studentRepo.setArchived(env.studentRepo.getById(sid)!!, archived = true)
+        val vm = vm(sid)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        assertEquals(ArchiveIntent.Restore, vm.state.value.archiveIntent)
     }
 
     // --- Archiving has to settle the schedule too --------------------------------------------------
@@ -491,7 +605,7 @@ class StudentDetailViewModelTest {
 
         mainRule.appScope.cancel()
 
-        vm.addPayment(Money.ofMajor(50), Instant.now())
+        vm.addPayment(Money.ofMajor(50), today)
         vm.editStudent("Анна", "", "", "", ClassMode.IN_PERSON)
         vm.setPrice(subject, Money.ofMajor(40))
         advanceUntilIdle()

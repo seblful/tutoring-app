@@ -24,6 +24,7 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.runCatchingCancellable
+import com.seblful.klas.ui.common.LeavableForm
 import com.seblful.klas.ui.common.UiEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -246,8 +247,8 @@ data class ClassFormState(
      * no one moment when "as it was opened" is settled. The cost is that typing something and undoing
      * it still counts as a change; back then asks a question whose answer is harmless either way.
      */
-    val isDirty: Boolean = false,
-) {
+    override val isDirty: Boolean = false,
+) : LeavableForm {
     /** Whether the lesson yet has somebody to be for. Until then most of the form means nothing. */
     val targetChosen: Boolean
         get() = when (form.target) {
@@ -299,7 +300,36 @@ data class ClassFormState(
      * lesson could not happen. The save re-checks against the database regardless, since the slot
      * can be taken between here and there.
      */
-    val canSave: Boolean get() = form.isValid && conflict == null && !allMembersExcluded
+    override val canSave: Boolean get() = form.isValid && conflict == null && !allMembersExcluded
+
+    /**
+     * What tapping save should do: save, or ask about the income it would destroy first.
+     *
+     * The gate was a `state.billedDrops > 0` in the composable, next to an `Int` of screen state held
+     * only to remember the count the question needed. Both are one answer to one question, and this is
+     * where it can be tested.
+     */
+    val saveIntent: SaveIntent
+        get() = billedDrops.let { if (it > 0) SaveIntent.ConfirmBilledDrops(it) else SaveIntent.Save }
+}
+
+/**
+ * What saving this lesson means right now.
+ *
+ * Unticking a member whose class already **billed** deletes that class and the income with it, so the
+ * save asks first — the same courtesy deleting a completed lesson gets.
+ */
+sealed interface SaveIntent {
+
+    /** Nothing would be lost that the tutor has not already seen. */
+    data object Save : SaveIntent
+
+    /**
+     * Ask first.
+     *
+     * @param billedLessons how many billed classes the save would delete — what the question counts.
+     */
+    data class ConfirmBilledDrops(val billedLessons: Int) : SaveIntent
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

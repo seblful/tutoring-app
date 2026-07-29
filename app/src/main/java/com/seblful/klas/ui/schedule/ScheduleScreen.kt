@@ -312,14 +312,15 @@ fun ScheduleScreen(
     }
 
     deletingRow?.let { row ->
-        val hasCompleted = row.classes.any { it.status == ClassStatus.COMPLETED }
-        val count = row.session.size
+        // Which warning applies is `row.deleteWarning`'s — see [DeleteWarning]. The four strings for it
+        // are this screen's, and that is all this `when` says.
+        val warning = row.deleteWarning
+        val count = warning.classes
         val confirmText = when {
-            // Deleting a completed lesson takes its recognized income with it — say so first.
-            hasCompleted && row.isGroup ->
+            warning.billed && warning.group ->
                 pluralStringResource(R.plurals.class_delete_group_completed_confirm, count, count)
-            hasCompleted -> stringResource(R.string.class_delete_completed_confirm)
-            row.isGroup -> pluralStringResource(R.plurals.class_delete_group_confirm, count, count)
+            warning.billed -> stringResource(R.string.class_delete_completed_confirm)
+            warning.group -> pluralStringResource(R.plurals.class_delete_group_confirm, count, count)
             else -> stringResource(R.string.class_delete_confirm)
         }
         ConfirmDialog(

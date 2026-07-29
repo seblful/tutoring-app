@@ -36,6 +36,17 @@ class OnboardingViewModel @Inject constructor(
         .flowOn(computation)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /**
+     * Whether restoring a backup here would destroy something, and so has to be confirmed.
+     *
+     * On a fresh install there is nothing to replace, and a confirmation between the file picker and the
+     * import would be a question with one sensible answer. But the tutor can add subjects in step 1 and
+     * come back — an import is a **full replace**, so those subjects would go without being mentioned.
+     * The gate was an `if (subjects.isEmpty())` in the picker's result callback, which is both a rule
+     * about the backup format and a place no test reaches.
+     */
+    fun restoreNeedsConfirming(): Boolean = subjects.value.isNotEmpty()
+
     fun addSubject(name: String) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return

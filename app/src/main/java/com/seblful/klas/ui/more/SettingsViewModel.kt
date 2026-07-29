@@ -56,6 +56,23 @@ class SettingsViewModel @Inject constructor(
     /** What to request when [notificationsPermitted] is false; empty where there is nothing to ask. */
     val notificationPermissionsRequired: Array<String> get() = notificationPermission.required
 
+    /**
+     * What has to happen, besides storing the setting, when the tutor turns reminders [on].
+     *
+     * Three outcomes, and the screen used to work them out in a nest of three `if`s inside the toggle's
+     * `onCheckedChange`: turning it off asks nothing, turning it on with the permission already granted
+     * asks nothing, turning it on without it asks the platform — unless the platform has nothing to ask,
+     * which means notifications are off for the whole app in system settings and only the tutor can undo
+     * it. That last arm is the one worth naming: it looks like the permission case and behaves like a
+     * dead end, and getting it wrong shows a dialog that can never appear.
+     */
+    fun notificationsIntent(on: Boolean): NotificationsIntent = when {
+        !on || notificationsPermitted.value -> NotificationsIntent.Nothing
+        notificationPermissionsRequired.isNotEmpty() ->
+            NotificationsIntent.Request(notificationPermissionsRequired)
+        else -> NotificationsIntent.BlockedBySystem
+    }
+
     /** Re-asks the platform. Called on resume and after a permission dialog closes. */
     fun refreshPermissions() {
         permissionChecks.value += 1
@@ -114,4 +131,33 @@ enum class CalendarSyncToggle {
 
     /** Nothing changed: enabling needs the calendar permission, which isn't granted yet. */
     PERMISSION_NEEDED,
+}
+
+/**
+ * What turning the reminder setting on owes the platform.
+ *
+ * Storing the setting always happens; this is the rest of it. Kept as a value rather than as branches in
+ * the toggle's callback so the dead end — notifications switched off for the whole app, where asking
+ * would show a dialog that can never appear — is a named outcome instead of an `else`.
+ */
+sealed interface NotificationsIntent {
+
+    /** Nothing to ask: it was switched off, or the permission is already granted. */
+    data object Nothing : NotificationsIntent
+
+    /** Ask the platform for these. */
+    data class Request(val permissions: Array<String>) : NotificationsIntent {
+        // Array equality is identity, which would make this data class lie about being equal.
+        override fun equals(other: Any?): Boolean =
+            this === other || (other is Request && permissions.contentEquals(other.permissions))
+
+        override fun hashCode(): Int = permissions.contentHashCode()
+    }
+
+    /**
+     * There is nothing the app may ask for: notifications are off for the whole app in system settings,
+     * which only the tutor can undo. Say so instead of showing a request that would be dismissed
+     * instantly.
+     */
+    data object BlockedBySystem : NotificationsIntent
 }

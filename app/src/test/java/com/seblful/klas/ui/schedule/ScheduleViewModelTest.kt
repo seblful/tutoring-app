@@ -23,6 +23,7 @@ import org.junit.Test
 import com.seblful.klas.domain.CalendarLayout
 import com.seblful.klas.testutil.observing
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
@@ -45,6 +46,10 @@ class ScheduleViewModelTest {
 
     private fun startMillisOn(date: LocalDate, time: LocalTime): Long =
         date.atTime(time).atZone(zone).toInstant().toEpochMilli()
+
+    /** A fixed day at [hour], for tests that only need distinct lesson times. */
+    private fun at(hour: Int): Instant =
+        LocalDate.of(2026, 5, 18).atTime(hour, 0).atZone(zone).toInstant()
 
     @Test
     fun `add is disabled until at least one student and one subject exist`() = runTest(mainRule.dispatcher) {
@@ -780,4 +785,39 @@ class ScheduleViewModelTest {
 
         assertTrue(env.classDao.items.value.isEmpty())
     }
+
+    /**
+     * Deleting a lesson owes one of four warnings, and both facts that pick it — has anything billed, is
+     * it a group's — used to be read off the session inside a composable. Losing recognized income is the
+     * half that matters: it is money the tutor has counted, and nothing else in the app takes it back.
+     */
+    @Test
+    fun `the delete warning says whether income is at stake and how many students`() =
+        runTest(mainRule.dispatcher) {
+            val subject = env.fixtures.subject("Математика")
+            val anya = env.fixtures.pricedStudent("Аня", subject)
+            val boris = env.fixtures.pricedStudent("Борис", subject)
+            val group = env.fixtures.group("11 «А»", subjectId = subject, members = setOf(anya, boris))
+
+            val scheduled = env.fixtures.lesson(subject, listOf(anya), at(9))
+            val completed = env.fixtures.completedLesson(subject, listOf(anya), at(10))
+            val groupScheduled = env.fixtures.lesson(subject, listOf(anya, boris), at(11), groupId = group)
+            val groupCompleted =
+                env.fixtures.completedLesson(subject, listOf(anya, boris), at(12), groupId = group)
+
+            suspend fun warningFor(ids: List<Long>) =
+                DeleteWarning.of(env.classRepo.getSessionFor(ids.first())!!)
+
+            assertEquals(DeleteWarning(billed = false, group = false, classes = 1), warningFor(scheduled))
+            assertEquals(DeleteWarning(billed = true, group = false, classes = 1), warningFor(completed))
+            assertEquals(
+                "a group lesson is several students' classes at once",
+                DeleteWarning(billed = false, group = true, classes = 2),
+                warningFor(groupScheduled),
+            )
+            assertEquals(
+                DeleteWarning(billed = true, group = true, classes = 2),
+                warningFor(groupCompleted),
+            )
+        }
 }

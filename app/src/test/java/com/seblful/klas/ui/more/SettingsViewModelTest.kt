@@ -26,6 +26,39 @@ class SettingsViewModelTest {
 
     private fun vm() = SettingsViewModel(env.settingsRepo, env.calendarMirror, env.calendarPermission, env.notificationPermission)
 
+    /**
+     * Turning reminders on has three possible consequences, and telling the last two apart is the point:
+     * "ask the platform" and "the platform has nothing to ask" look identical from the setting's side and
+     * behave completely differently. This was three nested `if`s inside a composable's callback.
+     */
+    @Test
+    fun `turning reminders on asks for the permission only when there is one to ask for`() =
+        runTest(mainRule.dispatcher) {
+            val vm = vm()
+            observing(vm.notificationsPermitted)
+            advanceUntilIdle()
+
+            assertEquals("switching off asks nothing", NotificationsIntent.Nothing, vm.notificationsIntent(on = false))
+            assertEquals(
+                "already granted, so nothing to ask",
+                NotificationsIntent.Nothing,
+                vm.notificationsIntent(on = true),
+            )
+
+            env.notificationPermission.granted = false
+            vm.refreshPermissions()
+            advanceUntilIdle()
+            assertEquals(
+                NotificationsIntent.Request(arrayOf("POST_NOTIFICATIONS")),
+                vm.notificationsIntent(on = true),
+            )
+
+            // Notifications off for the whole app: there is no permission to request, so asking would
+            // show a dialog that can never be granted. Say so instead.
+            env.notificationPermission.required = emptyArray()
+            assertEquals(NotificationsIntent.BlockedBySystem, vm.notificationsIntent(on = true))
+        }
+
     @Test
     fun `setters persist each setting`() = runTest(mainRule.dispatcher) {
         val vm = vm()

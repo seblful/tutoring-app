@@ -11,6 +11,7 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.runCatchingCancellable
+import com.seblful.klas.ui.common.LeavableForm
 import com.seblful.klas.ui.common.UiEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -53,11 +54,11 @@ class StudentFormViewModel @Inject constructor(
     data class UiState(
         val form: Form = Form(),
         val allSubjects: List<Subject> = emptyList(),
-    ) {
+    ) : LeavableForm {
         val selectedSubjectIds: Set<Long> get() = form.subjectPrices.keys
 
         /** Name set, at least one subject chosen, and every chosen subject has a valid price. */
-        val isValid: Boolean
+        override val canSave: Boolean
             get() = form.name.isNotBlank() &&
                 form.subjectPrices.isNotEmpty() &&
                 form.subjectPrices.values.all { it.isValid }
@@ -70,7 +71,7 @@ class StudentFormViewModel @Inject constructor(
          * class declares it" are the same value. The dialled phone prefix is part of that default and
          * so does not, on its own, make the form dirty.
          */
-        val isDirty: Boolean get() = form != Form()
+        override val isDirty: Boolean get() = form != Form()
     }
 
     val state: StateFlow<UiState> = combine(
@@ -121,7 +122,7 @@ class StudentFormViewModel @Inject constructor(
      */
     fun save(onSaved: () -> Unit) {
         val s = state.value
-        if (!s.isValid) return
+        if (!s.canSave) return
         val f = s.form
         val student = Student(
             name = f.name.trim(),

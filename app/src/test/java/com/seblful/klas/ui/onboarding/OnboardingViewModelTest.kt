@@ -36,6 +36,27 @@ class OnboardingViewModelTest {
         assertEquals(listOf("Математика"), env.subjectDao.items.value.map { it.name })
     }
 
+    /**
+     * An import is a **full replace**, so restoring after the tutor has already added something in step 1
+     * would take it away without mentioning it. On a genuinely fresh install there is nothing to replace
+     * and the confirmation would be a question with one answer. The gate was in the file picker's result
+     * callback, where no test could reach it.
+     */
+    @Test
+    fun `restoring asks first only once there is something a full replace would destroy`() =
+        runTest(mainRule.dispatcher) {
+            val vm = vm()
+            observing(vm.subjects)
+            advanceUntilIdle()
+
+            assertFalse("a fresh install has nothing to lose", vm.restoreNeedsConfirming())
+
+            vm.addSubject("Алгебра")
+            advanceUntilIdle()
+
+            assertTrue("the subject added in step 1 would go with the replace", vm.restoreNeedsConfirming())
+        }
+
     @Test
     fun `complete flips the onboarding flag`() = runTest(mainRule.dispatcher) {
         val vm = vm()

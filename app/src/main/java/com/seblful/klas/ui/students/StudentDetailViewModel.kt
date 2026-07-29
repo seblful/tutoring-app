@@ -14,6 +14,7 @@ import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.format.NameOrder
 import com.seblful.klas.domain.Billing
+import com.seblful.klas.domain.PaymentDate
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.domain.Taught
 import com.seblful.klas.domain.model.ClassMode
@@ -36,7 +37,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import javax.inject.Inject
 
 /**
@@ -89,6 +92,61 @@ data class StudentDetailState(
      * gets no chips: every chip but one would be empty, and «Все» would filter nothing.
      */
     val hasBothKinds: Boolean get() = lessonKinds.size > 1
+
+    /**
+     * What the archive action should do, given what this student is carrying.
+     *
+     * The screen used to work it out: it read the balance and the upcoming count, decided whether
+     * either was worth asking about, and then decided again — twenty lines further down — which parts
+     * the question should name. Two spellings of one rule, in a composable, where no test reaches them.
+     */
+    val archiveIntent: ArchiveIntent
+        get() = when {
+            student == null -> ArchiveIntent.Nothing
+            // Restoring costs nothing: the lessons are not coming back and the debt was never gone.
+            student.archived -> ArchiveIntent.Restore
+            else -> ArchiveIntent.of(balance, totals.upcoming)
+        }
+}
+
+/**
+ * What tapping archive/restore means here — and, when it means asking first, what the question has to
+ * account for.
+ *
+ * Archiving costs two things, either of which is worth a confirmation: a debt the student still carries
+ * leaves the reports (they cover active students only), and their planned lessons are called off (see
+ * `StudentRepository.setArchived`). So the parts of the question are a **decision**, made from the state.
+ * The words for them are string resources and stay on the screen.
+ */
+sealed interface ArchiveIntent {
+
+    /** No student loaded yet, so there is nothing to offer. */
+    data object Nothing : ArchiveIntent
+
+    /** Archive without asking: nothing is lost that the tutor has not already seen. */
+    data object Archive : ArchiveIntent
+
+    /** Un-archive. Never asks — restoring takes nothing away. */
+    data object Restore : ArchiveIntent
+
+    /**
+     * Ask first, and say what it costs.
+     *
+     * @param openBalance the balance that would leave the reports, or null when it is settled. Either
+     *   sign counts: an over-payment is credit the tutor owes back, and it disappears from the reports
+     *   just as a debt does.
+     * @param upcomingLessons how many planned lessons would be called off; 0 when none would.
+     */
+    data class Confirm(val openBalance: Money?, val upcomingLessons: Int) : ArchiveIntent
+
+    companion object {
+        /** [Archive] when archiving costs nothing worth naming, [Confirm] with the parts that apply. */
+        fun of(balance: Money, upcoming: Int): ArchiveIntent {
+            val open = balance.takeUnless { it.isZero }
+            return if (open == null && upcoming <= 0) Archive
+            else Confirm(openBalance = open, upcomingLessons = upcoming.coerceAtLeast(0))
+        }
+    }
 }
 
 /**
@@ -114,6 +172,8 @@ class StudentDetailViewModel @Inject constructor(
     private val payments: PaymentRepository,
     private val enrollment: EnrollmentRepository,
     rateHistory: RateHistoryRepository,
+    /** What "today" is, so the hour a payment lands at can be moved in a test. See `TimeModule`. */
+    private val clock: Clock,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
@@ -283,8 +343,9 @@ class StudentDetailViewModel @Inject constructor(
      * stamped `Instant.now()` and dated today whatever the truth was. The dialog defaults it to today,
      * which is right most of the time and correctable the rest.
      */
-    fun addPayment(amount: Money, date: Instant) {
+    fun addPayment(amount: Money, day: LocalDate) {
         if (amount.isZero) return
+        val date = PaymentDate.instantFor(day, clock)
         appScope.launch {
             runCatchingCancellable {
                 payments.add(Payment(studentId = studentId, date = date, amount = amount))
@@ -299,8 +360,11 @@ class StudentDetailViewModel @Inject constructor(
      * the student's balance wrong in between, and a different payment as far as the database is
      * concerned. Money that was handed over once should stay one row.
      */
-    fun editPayment(payment: Payment, amount: Money, date: Instant) {
+    fun editPayment(payment: Payment, amount: Money, day: LocalDate) {
         if (amount.isZero) return
+        // Re-derived from the day, as recording one is: a correction that leaves the date alone still
+        // re-stamps the hour, which is only visible as two payments of the same day swapping places.
+        val date = PaymentDate.instantFor(day, clock)
         appScope.launch {
             runCatchingCancellable { payments.update(payment.copy(amount = amount, date = date)) }
                 .onFailure { events.send(Event.WRITE_FAILED) }

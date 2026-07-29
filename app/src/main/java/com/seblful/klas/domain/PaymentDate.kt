@@ -1,0 +1,31 @@
+package com.seblful.klas.domain
+
+import java.time.Clock
+import java.time.Instant
+import java.time.LocalDate
+
+/**
+ * When a payment entered for a given **day** is recorded as having happened.
+ *
+ * The tutor answers with a date, because that is what they know: money is entered when they get round
+ * to it, and «она заплатила во вторник» has to have a way in. The database stores an instant, so
+ * something has to pick the hour — and which hour it picks is visible, because the payment list is
+ * ordered by instant.
+ *
+ * This lived in `StudentDetailScreen` as a `LocalDate.asPaymentInstant()` extension, which is the one
+ * place in the app that could not be given the injected [Clock]: it called `LocalDate.now()` and
+ * `Instant.now()` directly. So the app's one rule about what time "now" is had an exception exactly
+ * where money is recorded, and no test could move the clock past it.
+ */
+object PaymentDate {
+
+    /**
+     * The instant to store a payment dated [day] at.
+     *
+     * **Today keeps the current time**, so several payments entered in one sitting stay in the order
+     * they were entered — a row of identical midnights would shuffle. Any other day gets the start of
+     * it: there is no hour to know, and inventing one would be a precision the tutor never supplied.
+     */
+    fun instantFor(day: LocalDate, clock: Clock): Instant =
+        if (day == LocalDate.now(clock)) clock.instant() else day.atStartOfDay(clock.zone).toInstant()
+}

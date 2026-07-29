@@ -1284,14 +1284,19 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         assertEquals("nothing unticked yet", 0, vm.state.value.billedDrops)
+        assertEquals("so saving asks nothing", SaveIntent.Save, vm.state.value.saveIntent)
 
         vm.setMemberIncluded(bob, false)
         advanceUntilIdle()
         assertEquals("a cancelled class earned nothing to lose", 0, vm.state.value.billedDrops)
+        assertEquals(SaveIntent.Save, vm.state.value.saveIntent)
 
         vm.setMemberIncluded(ann, false)
         advanceUntilIdle()
         assertEquals(1, vm.state.value.billedDrops)
+        // The gate and the count the question needs, together. Both were in the composable, where the
+        // count was also kept as a second copy in screen state.
+        assertEquals(SaveIntent.ConfirmBilledDrops(1), vm.state.value.saveIntent)
     }
 
     @Test

@@ -71,7 +71,7 @@ fun GroupFormScreen(
     // Back — the arrow or the system gesture — asks before throwing away edits to a group.
     var leaving by remember { mutableStateOf<LeaveIntent?>(null) }
     fun requestLeave() {
-        when (val intent = leaveIntent(dirty = state.isDirty, canSave = state.isValid)) {
+        when (val intent = leaveIntent(state)) {
             LeaveIntent.LEAVE -> onBack()
             else -> leaving = intent
         }
@@ -108,7 +108,7 @@ fun GroupFormScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = { viewModel.save { onBack() } }, enabled = state.isValid) {
+                    TextButton(onClick = { viewModel.save { onBack() } }, enabled = state.canSave) {
                         Text(stringResource(R.string.action_save))
                     }
                 },

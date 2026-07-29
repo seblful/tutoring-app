@@ -1,5 +1,6 @@
 package com.seblful.klas.ui
 
+import com.seblful.klas.data.repository.AppSettings
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
@@ -52,6 +53,33 @@ class RootViewModelTest {
         assertTrue("onboarding is done, so the tabs open", settings?.onboardingComplete == true)
         assertEquals("DARK", settings?.themeMode)
         assertEquals("RUB", settings?.currency)
+    }
+
+    /**
+     * Which of the three screens the app opens on. `AppRoot` used to decide it in a `when` over the
+     * nullable row, so "not read yet" and "read, and onboarding is owed" were told apart by the order of
+     * two arms in a composable.
+     */
+    @Test
+    fun `the route waits while settings are unread, then onboards or opens the tabs`() {
+        val vm = RootViewModel(env.settingsRepo)
+
+        assertEquals(RootRoute.LOADING, vm.routeFor(null))
+        assertEquals(RootRoute.ONBOARDING, vm.routeFor(AppSettings(onboardingComplete = false)))
+        assertEquals(RootRoute.MAIN, vm.routeFor(AppSettings(onboardingComplete = true)))
+    }
+
+    /**
+     * «Follow the system» is a real answer, and so is a value nothing wrote — a settings row that has not
+     * arrived must follow the system too, because the alternative is a flash of the wrong theme.
+     */
+    @Test
+    fun `an unset or unrecognised theme follows the system`() {
+        assertEquals(ThemeChoice.LIGHT, ThemeChoice.parse("LIGHT"))
+        assertEquals(ThemeChoice.DARK, ThemeChoice.parse("DARK"))
+        assertEquals(ThemeChoice.SYSTEM, ThemeChoice.parse("SYSTEM"))
+        assertEquals("nothing loaded yet", ThemeChoice.SYSTEM, ThemeChoice.parse(null))
+        assertEquals("a value this build does not know", ThemeChoice.SYSTEM, ThemeChoice.parse("SEPIA"))
     }
 
     /** A fresh install has no settings row at all, and must still resolve — to the defaults. */

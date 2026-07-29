@@ -187,16 +187,14 @@ fun StudentDetailScreen(
                     if (student != null) {
                         OverflowMenu(
                             archived = student.archived,
+                            // Whether archiving is worth asking about, and what the question would have
+                            // to say, are both `state.archiveIntent`'s — see [ArchiveIntent].
                             onArchive = {
-                                // Archiving costs two things, and asks whenever either applies: a debt
-                                // the student still carries leaves the reports, and their planned
-                                // lessons are called off (see StudentRepository.setArchived).
-                                // Restoring costs nothing.
-                                val archiving = !student.archived
-                                if (archiving && (!state.balance.isZero || state.totals.upcoming > 0)) {
-                                    confirmingArchive = true
-                                } else {
-                                    viewModel.setArchived(archiving)
+                                when (state.archiveIntent) {
+                                    is ArchiveIntent.Confirm -> confirmingArchive = true
+                                    ArchiveIntent.Archive -> viewModel.setArchived(true)
+                                    ArchiveIntent.Restore -> viewModel.setArchived(false)
+                                    ArchiveIntent.Nothing -> Unit
                                 }
                             },
                         )
@@ -316,19 +314,20 @@ fun StudentDetailScreen(
             onDismiss = { editingPayment = null },
         )
     }
-    if (confirmingArchive && student != null) {
-        // Assembled from the parts that apply, so the question names exactly what archiving costs here
-        // — the balance leaving the reports, the planned lessons being called off, or both.
+    val confirm = state.archiveIntent as? ArchiveIntent.Confirm
+    if (confirmingArchive && confirm != null) {
+        // One string per part the intent named, so the question says exactly what archiving costs here.
+        // Which parts apply is decided in [ArchiveIntent]; only the wording is this screen's.
         val parts = buildList {
-            if (!state.balance.isZero) {
-                add(stringResource(R.string.student_archive_balance_part, balanceDescription(state.balance)))
+            confirm.openBalance?.let {
+                add(stringResource(R.string.student_archive_balance_part, balanceDescription(it)))
             }
-            if (state.totals.upcoming > 0) {
+            if (confirm.upcomingLessons > 0) {
                 add(
                     pluralStringResource(
                         R.plurals.student_archive_lessons_part,
-                        state.totals.upcoming,
-                        state.totals.upcoming,
+                        confirm.upcomingLessons,
+                        confirm.upcomingLessons,
                     ),
                 )
             }
@@ -608,7 +607,7 @@ private fun PaymentDialog(
     title: String,
     initialAmount: Money?,
     initialDate: LocalDate,
-    onConfirm: (Money, Instant) -> Unit,
+    onConfirm: (Money, LocalDate) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var field by remember {
@@ -644,7 +643,9 @@ private fun PaymentDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    field.amount?.let { onConfirm(it, date.asPaymentInstant()) }
+                    // The day, not an instant: which hour a payment lands at is `PaymentDate`'s,
+                    // and it needs the injected clock this composable has no way to hold.
+                    field.amount?.let { onConfirm(it, date) }
                     onDismiss()
                 },
                 enabled = field.isValid,
@@ -660,19 +661,6 @@ private fun PaymentDialog(
             onDismiss = { picking = false },
         )
     }
-}
-
-/**
- * The instant a payment dated on this day is stored at.
- *
- * Today keeps the **current time**, so several payments entered in one sitting stay in the order they
- * were entered — the list is sorted by instant, and a row of identical midnights would shuffle. Any
- * other date gets the start of its day: there is no hour to know, and inventing one would be a
- * precision the tutor never supplied.
- */
-private fun LocalDate.asPaymentInstant(): Instant {
-    val zone = ZoneId.systemDefault()
-    return if (this == LocalDate.now(zone)) Instant.now() else atStartOfDay(zone).toInstant()
 }
 
 /**

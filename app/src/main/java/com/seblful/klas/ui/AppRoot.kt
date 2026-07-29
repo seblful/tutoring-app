@@ -47,21 +47,23 @@ fun AppRoot(rootViewModel: RootViewModel = hiltViewModel()) {
     // `settings!!` what `settings == null` had just ruled out.
     val settings = rootViewModel.settings.collectAsState().value
 
-    val darkTheme = when (settings?.themeMode) {
-        "LIGHT" -> false
-        "DARK" -> true
-        else -> isSystemInDarkTheme()
+    // Reading the stored string is [ThemeChoice]'s; only resolving «follow the system» is this
+    // composable's, because that answer comes from the platform.
+    val darkTheme = when (ThemeChoice.parse(settings?.themeMode)) {
+        ThemeChoice.LIGHT -> false
+        ThemeChoice.DARK -> true
+        ThemeChoice.SYSTEM -> isSystemInDarkTheme()
     }
 
     KlasTheme(darkTheme = darkTheme) {
         CompositionLocalProvider(LocalCurrency provides (settings?.currency ?: "BYN")) {
-            when {
-                settings == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            when (rootViewModel.routeFor(settings)) {
+                RootRoute.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-                !settings.onboardingComplete ->
+                RootRoute.ONBOARDING ->
                     OnboardingScreen(onFinished = { /* settings flip re-renders into MainApp */ })
-                else -> MainApp()
+                RootRoute.MAIN -> MainApp()
             }
         }
     }

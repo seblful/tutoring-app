@@ -146,10 +146,16 @@ class FakeCalendarPermission(var granted: Boolean = true) : CalendarPermission {
  * Stands in for whether a reminder would actually be shown. [granted] false is a fresh Android 13+
  * install — the setting on, the permission never asked for — which is the case the settings row exists
  * to stop being silent about.
+ *
+ * @param required what the platform would let the app ask for. **Empty is a real state**, not a
+ *   degenerate one: notifications switched off for the whole app in system settings leave nothing to
+ *   request, and the app has to say so rather than show a dialog that closes itself.
  */
-class FakeNotificationPermission(var granted: Boolean = true) : NotificationPermission {
+class FakeNotificationPermission(
+    var granted: Boolean = true,
+    override var required: Array<String> = arrayOf("POST_NOTIFICATIONS"),
+) : NotificationPermission {
     override fun isGranted(): Boolean = granted
-    override val required: Array<String> get() = arrayOf("POST_NOTIFICATIONS")
 }
 
 /**

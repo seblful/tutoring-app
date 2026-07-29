@@ -9,16 +9,24 @@ import org.junit.Test
  */
 class UnsavedChangesTest {
 
+    /** The two facts a form has to be able to state about itself, and nothing else. */
+    private class Form(
+        override val isDirty: Boolean,
+        override val canSave: Boolean,
+    ) : LeavableForm
+
+    private fun intentFor(dirty: Boolean, canSave: Boolean) = leaveIntent(Form(dirty, canSave))
+
     @Test
     fun `an untouched form leaves without asking`() {
-        assertEquals(LeaveIntent.LEAVE, leaveIntent(dirty = false, canSave = false))
+        assertEquals(LeaveIntent.LEAVE, intentFor(dirty = false, canSave = false))
         // Valid but untouched — an existing record opened and closed again. Nothing to ask about.
-        assertEquals(LeaveIntent.LEAVE, leaveIntent(dirty = false, canSave = true))
+        assertEquals(LeaveIntent.LEAVE, intentFor(dirty = false, canSave = true))
     }
 
     @Test
     fun `a complete form offers to save it`() {
-        assertEquals(LeaveIntent.ASK_SAVE_OR_DISCARD, leaveIntent(dirty = true, canSave = true))
+        assertEquals(LeaveIntent.ASK_SAVE_OR_DISCARD, intentFor(dirty = true, canSave = true))
     }
 
     /**
@@ -27,6 +35,6 @@ class UnsavedChangesTest {
      */
     @Test
     fun `an incomplete form only asks about losing the work`() {
-        assertEquals(LeaveIntent.ASK_DISCARD, leaveIntent(dirty = true, canSave = false))
+        assertEquals(LeaveIntent.ASK_DISCARD, intentFor(dirty = true, canSave = false))
     }
 }

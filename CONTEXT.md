@@ -107,6 +107,20 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   rule at a time; `ReportsSurfaceTest` stops the app reaching past `of` to reassemble a report itself.
   The screen supplies only the subject and group **names**, keyed by the typed ids of `model/Ids.kt`.
 
+### A screen draws, it does not decide
+
+- **Every branch a screen takes is a value the module behind it returned.** `ArchiveIntent`,
+  `SaveIntent`, `DeleteWarning`, `NotificationsIntent`, `RootRoute`, `ThemeChoice`,
+  `OnboardingViewModel.restoreNeedsConfirming`, `ReportCsv.linesFor` and `PaymentDate.instantFor` are
+  the named answers; the screen holds only the words and the layout. A `@Composable` can be exercised
+  only on a device, so a decision that lives in one is a decision with no test — and the eight sites
+  these replaced included which rows the CSV export contains and what instant a payment is stored at.
+- **`PaymentDate` was the app's one exception to the injected `Clock`.** It called `LocalDate.now()`
+  and `Instant.now()` directly, in a composable, on the path that records money.
+- **The condition that enables a save is named `canSave`, on a `LeavableForm`.** `leaveIntent` takes the
+  form rather than two booleans: with booleans, one screen passed its full save condition and two passed
+  only field validity, and nothing said which the shared rule meant.
+
 ### Two interfaces onto the same tables
 
 - **`SnapshotDao` is the whole-database seam, and the only one.** Backup and restore need what nothing

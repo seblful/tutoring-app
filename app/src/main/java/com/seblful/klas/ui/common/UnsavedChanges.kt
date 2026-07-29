@@ -36,13 +36,32 @@ enum class LeaveIntent {
 }
 
 /**
- * @param dirty whether the form differs from what it was opened with.
- * @param canSave whether the form is complete enough to be saved — the same condition that enables
- *   its save button, so the dialog can never offer a save that would silently do nothing.
+ * A form whose state can answer both halves of [leaveIntent].
+ *
+ * An interface rather than two boolean parameters, because two booleans is exactly how the three
+ * screens came to disagree. `ClassEditScreen` passed its `canSave` — valid, no time conflict, not every
+ * member unticked — while the two form screens passed `isValid`, which is only the first of those. Both
+ * were right for their own screen, and nothing said so; the shared rule's own KDoc claimed one meaning
+ * ("the same condition that enables its save button") that a reader had to check three call sites to
+ * confirm. Naming it here makes each state say which of its properties is the save condition, once, and
+ * leaves the call site nothing to get wrong.
  */
-fun leaveIntent(dirty: Boolean, canSave: Boolean): LeaveIntent = when {
-    !dirty -> LeaveIntent.LEAVE
-    canSave -> LeaveIntent.ASK_SAVE_OR_DISCARD
+interface LeavableForm {
+
+    /** Whether the form differs from what it was opened with. */
+    val isDirty: Boolean
+
+    /**
+     * Whether the form is complete enough to be saved — **the condition that enables its save button**,
+     * so the dialog can never offer a save that would silently do nothing.
+     */
+    val canSave: Boolean
+}
+
+/** What leaving [form] should do. */
+fun leaveIntent(form: LeavableForm): LeaveIntent = when {
+    !form.isDirty -> LeaveIntent.LEAVE
+    form.canSave -> LeaveIntent.ASK_SAVE_OR_DISCARD
     else -> LeaveIntent.ASK_DISCARD
 }
 

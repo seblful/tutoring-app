@@ -27,6 +27,46 @@ object ReportCsv {
     /** One row: which section of the report it came from, what it is, and how much. */
     data class Line(val section: String, val label: String, val amount: Money)
 
+    /**
+     * The section headings, already localized — the domain does not own language, so the words come in
+     * and only the *choice of rows* is decided here.
+     *
+     * @param period the name of the period the total covers, e.g. «Июнь 2026».
+     */
+    data class Headings(
+        val total: String,
+        val period: String,
+        val byGroup: String,
+        val bySubject: String,
+        val byStudent: String,
+        val debts: String,
+        val outstanding: String,
+    )
+
+    /**
+     * Which rows a report exports, in the order the screen shows them, so the file reads like the
+     * report rather than like a table dump.
+     *
+     * **Debts are included even though they ignore the period.** The file is what the tutor takes away,
+     * and leaving out the one section that says who owes money would make it the least useful export
+     * possible; the heading says so, as the card on screen does. That, and the fact that the debts
+     * section is skipped entirely when nobody owes anything rather than printing a bare total of zero,
+     * is what the export *is* — and it was decided in a `@Composable`, so no test could open the file.
+     */
+    fun linesFor(report: Reports.Report, headings: Headings): List<Line> = buildList {
+        add(Line(headings.total, headings.period, report.totalIncome))
+        fun section(title: String, lines: List<Reports.Line>) {
+            lines.forEach { add(Line(title, it.label, it.amount)) }
+        }
+        section(headings.byGroup, report.byGroup)
+        section(headings.bySubject, report.bySubject)
+        section(headings.byStudent, report.byStudent)
+        if (report.debts.isNotEmpty()) {
+            add(Line(headings.debts, headings.outstanding, report.totalOutstanding))
+            section(headings.debts, report.debts)
+        }
+    }
+
     private const val SEPARATOR = ';'
     private const val NEWLINE = "\r\n"
 

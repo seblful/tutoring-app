@@ -4,6 +4,7 @@ import com.seblful.klas.domain.model.Money
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.YearMonth
 
 class ReportCsvTest {
 
@@ -17,6 +18,62 @@ class ReportCsvTest {
     private val BOM = "\uFEFF"
 
     private fun build(vararg lines: ReportCsv.Line) = ReportCsv.build(header, lines.toList())
+
+    private val headings = ReportCsv.Headings(
+        total = "Доход", period = "Июнь 2026", byGroup = "По группам", bySubject = "По предметам",
+        byStudent = "По ученикам", debts = "Долги", outstanding = "Всего к получению",
+    )
+
+    private fun line(amount: Long, label: String) = Reports.Line(label, Money(amount))
+
+    /**
+     * Which rows the file contains. This used to be worked out in `ReportsScreen`, so the one thing
+     * anybody actually checks about an export — that the sections are all there and in screen order —
+     * was outside the reach of every test.
+     */
+    @Test
+    fun `the file is the total, then each section in screen order, debts last`() {
+        val report = Reports.Report(
+            period = ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth.of(2026, 6)),
+            totalIncome = Money(9000),
+            byGroup = listOf(line(2000, "11 «А»")),
+            bySubject = listOf(line(6000, "Алгебра"), line(3000, "Физика")),
+            byStudent = listOf(line(5000, "Аня")),
+            debts = listOf(line(1500, "Борис")),
+            totalOutstanding = Money(1500),
+        )
+
+        assertEquals(
+            listOf(
+                "Доход" to "Июнь 2026",
+                "По группам" to "11 «А»",
+                "По предметам" to "Алгебра",
+                "По предметам" to "Физика",
+                "По ученикам" to "Аня",
+                "Долги" to "Всего к получению",
+                "Долги" to "Борис",
+            ),
+            ReportCsv.linesFor(report, headings).map { it.section to it.label },
+        )
+    }
+
+    /**
+     * Nobody owing anything is not a debts section with a zero in it. The heading and its total both go,
+     * because a line saying «Всего к получению; 0,00» reads as an assertion rather than as an absence.
+     */
+    @Test
+    fun `a report nobody owes anything on has no debts section at all`() {
+        val report = Reports.Report(
+            period = ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth.of(2026, 6)),
+            totalIncome = Money(9000),
+            byStudent = listOf(line(9000, "Аня")),
+        )
+
+        assertEquals(
+            listOf("Доход", "По ученикам"),
+            ReportCsv.linesFor(report, headings).map { it.section },
+        )
+    }
 
     /** Excel reads a BOM-less UTF-8 file as a legacy code page, which turns Cyrillic into mojibake. */
     @Test

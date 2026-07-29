@@ -53,19 +53,19 @@ class GroupFormViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertFalse(vm.state.value.isValid)
+        assertFalse(vm.state.value.canSave)
 
         vm.update { it.copy(name = "11 «А»") }
         advanceUntilIdle()
-        assertFalse("a group with nobody in it can't be booked", vm.state.value.isValid)
+        assertFalse("a group with nobody in it can't be booked", vm.state.value.canSave)
 
         vm.toggleMember(ann, true)
         advanceUntilIdle()
-        assertFalse("a group that doesn't say what it costs can't be billed", vm.state.value.isValid)
+        assertFalse("a group that doesn't say what it costs can't be billed", vm.state.value.canSave)
 
         vm.update { it.copy(price = MoneyField("20")) }
         advanceUntilIdle()
-        assertTrue(vm.state.value.isValid)
+        assertTrue(vm.state.value.canSave)
     }
 
     @Test
@@ -79,12 +79,12 @@ class GroupFormViewModelTest {
         vm.toggleMember(ann, true)
         vm.update { it.copy(price = MoneyField("0")) }
         advanceUntilIdle()
-        assertTrue("a group taught for free still bills — at 0", vm.state.value.isValid)
+        assertTrue("a group taught for free still bills — at 0", vm.state.value.canSave)
         assertEquals(Money.ZERO, vm.state.value.price)
 
         vm.update { it.copy(price = MoneyField("")) }
         advanceUntilIdle()
-        assertFalse(vm.state.value.isValid)
+        assertFalse(vm.state.value.canSave)
     }
 
     @Test
@@ -160,7 +160,7 @@ class GroupFormViewModelTest {
             // 0 means "not set": pre-filling it would invent an amount, so the field stays empty and
             // the form stays invalid until the tutor says what the group costs.
             assertEquals("", vm.state.value.form.price.text)
-            assertFalse(vm.state.value.isValid)
+            assertFalse(vm.state.value.canSave)
         }
 
     /**
@@ -352,7 +352,7 @@ class GroupFormViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertFalse("nobody left who could be billed", vm.state.value.isValid)
+        assertFalse("nobody left who could be billed", vm.state.value.canSave)
         assertEquals(setOf(ann), vm.state.value.strandedMemberIds)
         assertEquals("nothing written, so the roster is untouched", listOf(ann), env.groupRepo.getMemberIds(id))
     }
@@ -443,7 +443,7 @@ class GroupFormViewModelTest {
             vm.setSubject(algebra)
             advanceUntilIdle()
             assertEquals(setOf(ann), vm.state.value.selectedMemberIds)
-            assertTrue(vm.state.value.isValid)
+            assertTrue(vm.state.value.canSave)
 
             var savedId = 0L
             vm.save { savedId = it }
@@ -469,7 +469,7 @@ class GroupFormViewModelTest {
 
             // Nobody is priced for algebra, so there is no roster to book and nothing to save.
             assertFalse(vm.state.value.hasStudents)
-            assertFalse(vm.state.value.isValid)
+            assertFalse(vm.state.value.canSave)
         }
 
     @Test

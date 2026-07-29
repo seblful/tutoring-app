@@ -94,18 +94,20 @@ fun ClassEditScreen(
     var showModeSelector by remember { mutableStateOf(false) }
     var showPriceField by remember { mutableStateOf(false) }
 
-    // Unticking a member whose class already billed deletes that class and the income with it, so the
-    // save asks first — the same warning deleting a completed lesson owes. Held as a count because
-    // that is what the question says; zero means there is nothing to ask about.
-    var confirmingDrops by remember { mutableIntStateOf(0) }
+    // Whether saving needs asking about, and how many billed lessons the question counts, are both
+    // `state.saveIntent`'s — see [SaveIntent]. What is held here is only whether the dialog is up.
+    var confirmingDrops by remember { mutableStateOf<SaveIntent.ConfirmBilledDrops?>(null) }
     fun requestSave() {
-        if (state.billedDrops > 0) confirmingDrops = state.billedDrops else viewModel.save(onBack)
+        when (val intent = state.saveIntent) {
+            is SaveIntent.ConfirmBilledDrops -> confirmingDrops = intent
+            SaveIntent.Save -> viewModel.save(onBack)
+        }
     }
 
     // Back — the arrow or the system gesture — asks before throwing away a half-booked lesson.
     var leaving by remember { mutableStateOf<LeaveIntent?>(null) }
     fun requestLeave() {
-        when (val intent = leaveIntent(dirty = state.isDirty, canSave = state.canSave)) {
+        when (val intent = leaveIntent(state)) {
             LeaveIntent.LEAVE -> onBack()
             else -> leaving = intent
         }
@@ -384,16 +386,16 @@ fun ClassEditScreen(
         )
     }
 
-    if (confirmingDrops > 0) {
+    confirmingDrops?.let { confirm ->
         ConfirmDialog(
             text = pluralStringResource(
                 R.plurals.class_member_drop_billed_confirm,
-                confirmingDrops,
-                confirmingDrops,
+                confirm.billedLessons,
+                confirm.billedLessons,
             ),
             confirmLabel = stringResource(R.string.action_save),
             onConfirm = { viewModel.save(onBack) },
-            onDismiss = { confirmingDrops = 0 },
+            onDismiss = { confirmingDrops = null },
         )
     }
 }

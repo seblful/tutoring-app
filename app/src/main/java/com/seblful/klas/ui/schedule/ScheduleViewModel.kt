@@ -63,6 +63,28 @@ data class ScheduleRow(
     val klass: TutoringClass get() = session.first
     val isGroup: Boolean get() = session.isGroup
     val classes: List<TutoringClass> get() = session.classes
+
+    /** What deleting this lesson has to warn about — see [DeleteWarning]. */
+    val deleteWarning: DeleteWarning get() = DeleteWarning.of(session)
+}
+
+/**
+ * Which of the four warnings deleting a lesson owes, and how many classes go with it.
+ *
+ * Two facts decide it, and both are about the lesson rather than about the screen: whether any of its
+ * classes has **billed**, because deleting a completed lesson takes recognized income with it, and
+ * whether it is a group's, because then it is several students' classes at once. `ScheduleScreen` used
+ * to read both off the session in a composable and pick a string from a four-armed `when` — the picking
+ * being the decision, and the strings being all that actually belongs there.
+ */
+data class DeleteWarning(val billed: Boolean, val group: Boolean, val classes: Int) {
+    companion object {
+        fun of(session: ClassSession): DeleteWarning = DeleteWarning(
+            billed = session.classes.any { it.status == ClassStatus.COMPLETED },
+            group = session.isGroup,
+            classes = session.size,
+        )
+    }
 }
 
 /** One day's section of the week agenda. Only days that actually have classes get one. */
