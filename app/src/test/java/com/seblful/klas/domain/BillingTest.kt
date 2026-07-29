@@ -1,6 +1,6 @@
 package com.seblful.klas.domain
 
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Student
@@ -13,7 +13,7 @@ class BillingTest {
 
     private fun completed(charge: Long) = TutoringClass(
         studentId = 1, subjectId = 1, start = Instant.EPOCH, durationMinutes = 60,
-        status = ClassStatus.COMPLETED, charge = Money(charge),
+        status = LessonStatus.COMPLETED, charge = Money(charge),
     )
 
     private fun payment(amount: Long) = Payment(
@@ -45,9 +45,9 @@ class BillingTest {
         val classes = listOf(
             completed(5000),
             TutoringClass(studentId = 1, subjectId = 1, start = Instant.EPOCH, durationMinutes = 60,
-                status = ClassStatus.CANCELLED, charge = Money.ZERO),
+                status = LessonStatus.CANCELLED, charge = Money.ZERO),
             TutoringClass(studentId = 1, subjectId = 1, start = Instant.EPOCH, durationMinutes = 60,
-                status = ClassStatus.SCHEDULED),
+                status = LessonStatus.SCHEDULED),
         )
         val balance = Billing.balanceOf(1, classes, emptyList())
         assertEquals(Money(5000), balance.balance) // only the completed class counts

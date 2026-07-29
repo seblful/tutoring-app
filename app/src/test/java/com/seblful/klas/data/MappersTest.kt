@@ -1,14 +1,17 @@
 package com.seblful.klas.data
 
-import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.AttendanceEntity
+import com.seblful.klas.data.local.ClassRow
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
@@ -123,34 +126,85 @@ class MappersTest {
         assertEquals(p, p.toEntity().toDomain())
     }
 
+    /**
+     * A class is stored as two rows and read back as one, so its round trip goes out through both mappers
+     * and comes back through the view — which is what [rejoin] stands in for.
+     */
+    private fun TutoringClass.roundTrip(): TutoringClass = rejoin(toLessonEntity(), toAttendanceEntity())
+
+    /** The `classes` view, in Kotlin: the join every read of a class goes through. */
+    private fun rejoin(lesson: LessonEntity, attendance: AttendanceEntity) = ClassRow(
+        id = attendance.id,
+        lessonId = attendance.lessonId,
+        studentId = attendance.studentId,
+        subjectId = lesson.subjectId,
+        startMillis = lesson.startMillis,
+        durationMinutes = lesson.durationMinutes,
+        priceMinor = attendance.priceMinor,
+        status = lesson.status,
+        state = attendance.state,
+        chargeMinor = attendance.chargeMinor,
+        groupId = lesson.groupId,
+        mode = lesson.mode,
+        calendarEventId = attendance.calendarEventId,
+    ).toDomain()
+
     @Test
-    fun `class round-trips all fields including status, charge, mode and event id`() {
+    fun `class round-trips all fields including status, attendance, charge, mode and event id`() {
         val c = TutoringClass(
-            id = 9, studentId = 1, subjectId = 2,
+            id = 9, lessonId = 4, studentId = 1, subjectId = 2,
             start = Instant.ofEpochMilli(1_700_000_000_000),
             durationMinutes = 90, price = Money.ofMajor(30),
-            status = ClassStatus.COMPLETED, charge = Money.ofMajor(45),
+            status = LessonStatus.COMPLETED, attended = Attended.ABSENT_BILLED,
+            charge = Money.ofMajor(45),
             groupId = null, mode = ClassMode.REMOTE, calendarEventId = "evt-1",
         )
-        assertEquals(c, c.toEntity().toDomain())
+        assertEquals(c, c.roundTrip())
+    }
+
+    /** Which row each fact is written to — the split itself, asserted rather than assumed. */
+    @Test
+    fun `the lesson's facts go to the lesson's row and the student's to their own`() {
+        val c = TutoringClass(
+            id = 9, lessonId = 4, studentId = 1, subjectId = 2,
+            start = Instant.ofEpochMilli(1_700_000_000_000),
+            durationMinutes = 90, price = Money.ofMajor(30),
+            status = LessonStatus.COMPLETED, attended = Attended.PRESENT,
+            charge = Money.ofMajor(45), groupId = 5, mode = ClassMode.REMOTE,
+            calendarEventId = "evt-1",
+        )
+
+        val lesson = c.toLessonEntity()
+        assertEquals(4L, lesson.id)
+        assertEquals(LessonStatus.COMPLETED.name, lesson.status)
+        assertEquals(5L, lesson.groupId)
+        assertEquals(90, lesson.durationMinutes)
+
+        val attendance = c.toAttendanceEntity()
+        assertEquals(9L, attendance.id)
+        assertEquals(4L, attendance.lessonId)
+        assertEquals(Attended.PRESENT.name, attendance.state)
+        assertEquals(Money.ofMajor(30).minor, attendance.priceMinor)
+        assertEquals(Money.ofMajor(45).minor, attendance.chargeMinor)
+        assertEquals("evt-1", attendance.calendarEventId)
     }
 
     @Test
     fun `class start instant maps to and from epoch millis`() {
         val c = TutoringClass(studentId = 1, subjectId = 1, start = Instant.parse("2026-06-20T10:00:00Z"), durationMinutes = 60)
-        assertEquals(Instant.parse("2026-06-20T10:00:00Z").toEpochMilli(), c.toEntity().startMillis)
-        assertEquals(c.start, c.toEntity().toDomain().start)
+        assertEquals(Instant.parse("2026-06-20T10:00:00Z").toEpochMilli(), c.toLessonEntity().startMillis)
+        assertEquals(c.start, c.roundTrip().start)
     }
 
     @Test
     fun `a group class keeps its group id`() {
         val c = TutoringClass(
-            id = 11, studentId = 1, subjectId = 2,
+            id = 11, lessonId = 3, studentId = 1, subjectId = 2,
             start = Instant.ofEpochMilli(1_700_000_000_000),
             durationMinutes = 60, price = Money.ofMajor(20), groupId = 5,
         )
-        assertEquals(c, c.toEntity().toDomain())
-        assertEquals(5L, c.toEntity().groupId)
+        assertEquals(c, c.roundTrip())
+        assertEquals(5L, c.toLessonEntity().groupId)
     }
 
     /**
@@ -173,9 +227,11 @@ class MappersTest {
                 "id", "studentId", "subjectId", "groupId", "fromMinor", "toMinor", "atMillis",
             ),
             "PaymentEntity" to setOf("id", "studentId", "dateMillis", "amountMinor"),
-            "ClassEntity" to setOf(
-                "id", "studentId", "subjectId", "startMillis", "durationMinutes",
-                "priceMinor", "status", "chargeMinor", "groupId", "mode", "calendarEventId",
+            "LessonEntity" to setOf(
+                "id", "subjectId", "startMillis", "durationMinutes", "status", "groupId", "mode",
+            ),
+            "AttendanceEntity" to setOf(
+                "id", "lessonId", "studentId", "state", "priceMinor", "chargeMinor", "calendarEventId",
             ),
         )
         val actual = listOf(
@@ -185,7 +241,8 @@ class MappersTest {
             PriceEntity.serializer(),
             RateChangeEntity.serializer(),
             PaymentEntity.serializer(),
-            ClassEntity.serializer(),
+            LessonEntity.serializer(),
+            AttendanceEntity.serializer(),
         ).associate { it.descriptor.serialName.substringAfterLast('.') to it.descriptor.elementNames.toSet() }
 
         assertEquals(
@@ -213,10 +270,10 @@ class MappersTest {
         val group = GroupEntity(1, "11 «А»", defaultMode = "HYBRID").toDomain()
         assertEquals(ClassMode.IN_PERSON, group.defaultMode)
 
-        val klass = ClassEntity(
-            1, 1, 1, 1_900_000_000_000, 60,
-            status = ClassStatus.SCHEDULED.name, mode = "HYBRID",
-        ).toDomain()
+        val klass = rejoin(
+            LessonEntity(1, 1, 1_900_000_000_000, 60, LessonStatus.SCHEDULED.name, mode = "HYBRID"),
+            AttendanceEntity(1, 1, 1, Attended.EXPECTED.name),
+        )
         assertEquals(ClassMode.IN_PERSON, klass.mode)
     }
 
@@ -228,12 +285,30 @@ class MappersTest {
      */
     @Test
     fun `an unreadable status fails the read, naming the class`() {
-        val entity = ClassEntity(42, 1, 1, 1_900_000_000_000, 60, status = "MISSED")
-
-        val failure = runCatching { entity.toDomain() }.exceptionOrNull()
+        val failure = runCatching {
+            rejoin(
+                LessonEntity(7, 1, 1_900_000_000_000, 60, status = "MISSED"),
+                AttendanceEntity(42, 7, 1, Attended.EXPECTED.name),
+            )
+        }.exceptionOrNull()
 
         assertTrue("it fails rather than guessing", failure is IllegalStateException)
         assertTrue("and says which row: ${failure?.message}", failure!!.message!!.contains("42"))
         assertTrue(failure.message!!.contains("MISSED"))
+    }
+
+    /** And so does an attendance, for the same reason: it is the other half of what bills. */
+    @Test
+    fun `an unreadable attendance fails the read, naming the class`() {
+        val failure = runCatching {
+            rejoin(
+                LessonEntity(7, 1, 1_900_000_000_000, 60, LessonStatus.COMPLETED.name),
+                AttendanceEntity(42, 7, 1, state = "PROBABLY"),
+            )
+        }.exceptionOrNull()
+
+        assertTrue("it fails rather than guessing", failure is IllegalStateException)
+        assertTrue("and says which row: ${failure?.message}", failure!!.message!!.contains("42"))
+        assertTrue(failure.message!!.contains("PROBABLY"))
     }
 }

@@ -1,6 +1,6 @@
 package com.seblful.klas.domain
 
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
@@ -21,11 +21,12 @@ class TaughtTest {
         studentId: Long = 1,
         at: Instant = start,
         minutes: Int = 60,
-        status: ClassStatus = ClassStatus.COMPLETED,
+        status: LessonStatus = LessonStatus.COMPLETED,
         charge: Money = Money.ofMajor(30),
         groupId: Long? = null,
     ) = TutoringClass(
         id = id,
+        lessonId = lessonIdFor(groupId, at, id),
         studentId = studentId,
         subjectId = 1,
         start = at,
@@ -36,6 +37,16 @@ class TaughtTest {
         charge = if (status.isBillable) charge else Money.ZERO,
         groupId = groupId,
     )
+
+    private val lessonIds = mutableMapOf<Pair<Long, Any>, Long>()
+
+    /**
+     * The lesson a fixture's class belongs to: one per (group, start) for a group's, its own id for an
+     * individual class. A convention of the test — storage has a column for it — and it has to be stated
+     * because that column is the whole of what makes classes one lesson (`GroupRules.sessions`).
+     */
+    private fun lessonIdFor(groupId: Long?, start: Any, id: Long): Long =
+        if (groupId == null) id else lessonIds.getOrPut(groupId to start) { 1_000L + lessonIds.size }
 
     @Test
     fun `no classes totals to nothing`() {
@@ -49,8 +60,8 @@ class TaughtTest {
             listOf(
                 klass(1, minutes = 60, charge = Money.ofMajor(30)),
                 klass(2, at = start.plusSeconds(86_400), minutes = 90, charge = Money.ofMajor(45)),
-                klass(3, at = start.plusSeconds(172_800), status = ClassStatus.SCHEDULED),
-                klass(4, at = start.plusSeconds(259_200), status = ClassStatus.CANCELLED),
+                klass(3, at = start.plusSeconds(172_800), status = LessonStatus.SCHEDULED),
+                klass(4, at = start.plusSeconds(259_200), status = LessonStatus.CANCELLED),
             )
         )
         assertEquals(2, totals.lessons)
@@ -62,7 +73,7 @@ class TaughtTest {
 
     @Test
     fun `a cancelled lesson earns nothing and adds no hours`() {
-        val totals = Taught.byStudent(listOf(klass(1, status = ClassStatus.CANCELLED)))
+        val totals = Taught.byStudent(listOf(klass(1, status = LessonStatus.CANCELLED)))
         assertEquals(0, totals.lessons)
         assertEquals(0, totals.minutes)
         assertEquals(Money.ZERO, totals.earned)
@@ -111,7 +122,7 @@ class TaughtTest {
         val totals = Taught.byGroup(
             listOf(
                 klass(1, studentId = 1, groupId = 7, charge = Money.ofMajor(20)),
-                klass(2, studentId = 2, groupId = 7, status = ClassStatus.CANCELLED),
+                klass(2, studentId = 2, groupId = 7, status = LessonStatus.CANCELLED),
             )
         )
         assertEquals(1, totals.lessons)
@@ -124,8 +135,8 @@ class TaughtTest {
     fun `a group lesson cancelled for everyone counts as cancelled, not taught`() {
         val totals = Taught.byGroup(
             listOf(
-                klass(1, studentId = 1, groupId = 7, status = ClassStatus.CANCELLED),
-                klass(2, studentId = 2, groupId = 7, status = ClassStatus.CANCELLED),
+                klass(1, studentId = 1, groupId = 7, status = LessonStatus.CANCELLED),
+                klass(2, studentId = 2, groupId = 7, status = LessonStatus.CANCELLED),
             )
         )
         assertEquals(0, totals.lessons)
@@ -137,8 +148,8 @@ class TaughtTest {
     fun `a scheduled group lesson is upcoming, once`() {
         val totals = Taught.byGroup(
             listOf(
-                klass(1, studentId = 1, groupId = 7, status = ClassStatus.SCHEDULED),
-                klass(2, studentId = 2, groupId = 7, status = ClassStatus.SCHEDULED),
+                klass(1, studentId = 1, groupId = 7, status = LessonStatus.SCHEDULED),
+                klass(2, studentId = 2, groupId = 7, status = LessonStatus.SCHEDULED),
             )
         )
         assertEquals(0, totals.lessons)
@@ -203,9 +214,9 @@ class TaughtTest {
     @Test
     fun `bySessions agrees with byGroup over the same classes`() {
         val classes = listOf(
-            klass(1, studentId = 1, groupId = 7, status = ClassStatus.COMPLETED),
-            klass(2, studentId = 2, groupId = 7, status = ClassStatus.CANCELLED),
-            klass(3, studentId = 1, groupId = 7, at = start.plusSeconds(86_400), status = ClassStatus.SCHEDULED),
+            klass(1, studentId = 1, groupId = 7, status = LessonStatus.COMPLETED),
+            klass(2, studentId = 2, groupId = 7, status = LessonStatus.CANCELLED),
+            klass(3, studentId = 1, groupId = 7, at = start.plusSeconds(86_400), status = LessonStatus.SCHEDULED),
         )
 
         assertEquals(Taught.byGroup(classes), Taught.bySessions(GroupRules.sessions(classes)))

@@ -153,26 +153,35 @@ interface RateHistoryDao {
     suspend fun deleteForStudentSubject(studentId: Long, subjectId: Long)
 }
 
+/**
+ * Reads of one student's class — the `classes` **view** over `lessons` and `attendance` (see [ClassRow]).
+ *
+ * Every query here predates the split and is unchanged by it: the view exposes the same columns the old
+ * `classes` table did, so what a rule asks storage for did not have to change because storage stopped
+ * keeping a lesson's facts once per member. Writes are [LessonDao]'s and [AttendanceDao]'s — a view has
+ * no rows of its own to write, which is also the schema refusing to let a caller write a lesson's status
+ * n times.
+ */
 @Dao
 interface ClassDao {
     @Query("SELECT * FROM classes WHERE id = :id")
-    fun observeById(id: Long): Flow<ClassEntity?>
+    fun observeById(id: Long): Flow<ClassRow?>
 
     @Query("SELECT * FROM classes WHERE id = :id")
-    suspend fun getById(id: Long): ClassEntity?
+    suspend fun getById(id: Long): ClassRow?
 
     @Query("SELECT * FROM classes ORDER BY startMillis")
-    fun observeAll(): Flow<List<ClassEntity>>
+    fun observeAll(): Flow<List<ClassRow>>
 
     @Query("SELECT * FROM classes WHERE studentId = :studentId ORDER BY startMillis DESC")
-    fun observeForStudent(studentId: Long): Flow<List<ClassEntity>>
+    fun observeForStudent(studentId: Long): Flow<List<ClassRow>>
 
     /** Every class ever booked as part of [groupId] — the group card's lesson list. */
     @Query("SELECT * FROM classes WHERE groupId = :groupId ORDER BY startMillis DESC")
-    fun observeForGroup(groupId: Long): Flow<List<ClassEntity>>
+    fun observeForGroup(groupId: Long): Flow<List<ClassRow>>
 
     @Query("SELECT * FROM classes WHERE startMillis >= :fromMillis AND startMillis < :toMillis ORDER BY startMillis")
-    fun observeBetween(fromMillis: Long, toMillis: Long): Flow<List<ClassEntity>>
+    fun observeBetween(fromMillis: Long, toMillis: Long): Flow<List<ClassRow>>
 
     /**
      * [observeBetween] as a one-shot read, for the two callers that want a window of the schedule
@@ -186,64 +195,106 @@ interface ClassDao {
      * asked for.
      */
     @Query("SELECT * FROM classes WHERE startMillis >= :fromMillis AND startMillis < :toMillis ORDER BY startMillis")
-    suspend fun getBetween(fromMillis: Long, toMillis: Long): List<ClassEntity>
+    suspend fun getBetween(fromMillis: Long, toMillis: Long): List<ClassRow>
 
     /**
      * The classes that currently mirror a calendar event — the only ones turning sync off has
      * anything to undo. The alternative is reading the whole table and no-opping on most of it.
      */
     @Query("SELECT * FROM classes WHERE calendarEventId IS NOT NULL")
-    suspend fun withCalendarEvent(): List<ClassEntity>
-
-    /** How many classes reference [subjectId] — used to block deleting a subject with history. */
-    @Query("SELECT COUNT(*) FROM classes WHERE subjectId = :subjectId")
-    suspend fun countForSubject(subjectId: Long): Int
+    suspend fun withCalendarEvent(): List<ClassRow>
 
     /**
-     * How many classes a student has for one subject — used to refuse un-enrolling a subject whose
-     * classes (completed ones especially) are billed history that must keep referencing a price.
+     * The classes making up one lesson — its `lessonId`, which is the whole of what makes them one
+     * lesson. It used to be `groupId` **and** `startMillis`: a pair no schema could hold together, so a
+     * member's class moved on its own left the session by definition, and the lesson quietly became two.
      */
-    @Query("SELECT COUNT(*) FROM classes WHERE studentId = :studentId AND subjectId = :subjectId")
-    suspend fun countForStudentSubject(studentId: Long, subjectId: Long): Int
-
-    /** How many classes reference [groupId] — used to block deleting a group with history. */
-    @Query("SELECT COUNT(*) FROM classes WHERE groupId = :groupId")
-    suspend fun countForGroup(groupId: Long): Int
+    @Query("SELECT * FROM classes WHERE lessonId = :lessonId ORDER BY id")
+    suspend fun getSession(lessonId: Long): List<ClassRow>
 
     /**
-     * The classes making up one group lesson: same group, same start. That pair is the session key —
-     * a member's class moved on its own leaves the session by definition (its start no longer matches).
-     */
-    @Query("SELECT * FROM classes WHERE groupId = :groupId AND startMillis = :startMillis ORDER BY id")
-    suspend fun getSession(groupId: Long, startMillis: Long): List<ClassEntity>
-
-    /** Scheduled classes whose end time is at or before [nowMillis] — due for auto-completion. */
-    @Query("SELECT * FROM classes WHERE status = 'SCHEDULED' AND (startMillis + durationMinutes * 60000) <= :nowMillis")
-    suspend fun dueForCompletion(nowMillis: Long): List<ClassEntity>
-
-    /**
-     * One student's classes that are still merely *planned* — whatever their time. What archiving them
-     * has to settle: a scheduled class is one the tutor never confirmed happened, and left behind it
-     * would auto-complete into income that no report shows (see `StudentRepository.setArchived`).
+     * One student's classes in lessons that are still merely *planned* — whatever their time. What
+     * archiving them has to settle: a scheduled lesson is one the tutor never confirmed happened, and
+     * left behind it would auto-complete into income that no report shows (see
+     * `StudentRepository.setArchived`).
      */
     @Query("SELECT * FROM classes WHERE studentId = :studentId AND status = 'SCHEDULED'")
-    suspend fun scheduledForStudent(studentId: Long): List<ClassEntity>
+    suspend fun scheduledForStudent(studentId: Long): List<ClassRow>
 
-    /** The next scheduled class starting after [nowMillis], for the reminder. */
+    /** The next class in a scheduled lesson starting after [nowMillis], for the reminder. */
     @Query("SELECT * FROM classes WHERE status = 'SCHEDULED' AND startMillis > :nowMillis ORDER BY startMillis LIMIT 1")
-    suspend fun nextScheduledAfter(nowMillis: Long): ClassEntity?
+    suspend fun nextScheduledAfter(nowMillis: Long): ClassRow?
 
     @Query("SELECT * FROM classes")
-    suspend fun getAll(): List<ClassEntity>
+    suspend fun getAll(): List<ClassRow>
+}
+
+/**
+ * The lesson itself: its hour, its subject, and whether it happened.
+ *
+ * Small on purpose. A lesson's facts are written **once** here, where the old table wrote them once per
+ * member — which is why a status change to a group lesson is now one row's update rather than *n*, and
+ * why nothing has to keep those *n* copies agreeing.
+ */
+@Dao
+interface LessonDao {
+    @Query("SELECT * FROM lessons WHERE id = :id")
+    suspend fun getById(id: Long): LessonEntity?
+
+    /** Lessons still planned whose end time is at or before [nowMillis] — due for auto-completion. */
+    @Query(
+        "SELECT * FROM lessons WHERE status = 'SCHEDULED' " +
+            "AND (startMillis + durationMinutes * 60000) <= :nowMillis"
+    )
+    suspend fun dueForCompletion(nowMillis: Long): List<LessonEntity>
+
+    /** How many lessons are taught on [subjectId] — used to block deleting a subject with history. */
+    @Query("SELECT COUNT(*) FROM lessons WHERE subjectId = :subjectId")
+    suspend fun countForSubject(subjectId: Long): Int
+
+    /** How many lessons belong to [groupId] — used to block deleting a group with history. */
+    @Query("SELECT COUNT(*) FROM lessons WHERE groupId = :groupId")
+    suspend fun countForGroup(groupId: Long): Int
 
     @Upsert
-    suspend fun upsert(klass: ClassEntity): Long
+    suspend fun upsert(lesson: LessonEntity): Long
 
     @Update
-    suspend fun update(klass: ClassEntity)
+    suspend fun update(lesson: LessonEntity)
 
-    @Delete
-    suspend fun delete(klass: ClassEntity)
+    @Query("DELETE FROM lessons WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    /**
+     * Lessons nobody is in any more. A lesson exists to have students in it, so the last one leaving
+     * takes it with them — the alternative is a row holding an hour of the tutor's time that no card can
+     * show and no report can count. Called after a roster change, inside its transaction.
+     */
+    @Query("DELETE FROM lessons WHERE id NOT IN (SELECT lessonId FROM attendance)")
+    suspend fun deleteEmpty()
+}
+
+/** One student's place in a lesson: their attendance, their rate, their charge, their calendar event. */
+@Dao
+interface AttendanceDao {
+    /**
+     * How many lessons a student has on one subject — used to refuse un-enrolling a subject whose
+     * lessons (taught ones especially) are billed history that must keep referencing a price.
+     */
+    @Query(
+        "SELECT COUNT(*) FROM attendance a JOIN lessons l ON l.id = a.lessonId " +
+            "WHERE a.studentId = :studentId AND l.subjectId = :subjectId"
+    )
+    suspend fun countForStudentSubject(studentId: Long, subjectId: Long): Int
+
+    @Upsert
+    suspend fun upsert(row: AttendanceEntity): Long
+
+    @Update
+    suspend fun update(row: AttendanceEntity)
+
+    @Query("DELETE FROM attendance WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }
 
 @Dao

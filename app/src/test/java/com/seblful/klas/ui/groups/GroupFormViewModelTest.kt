@@ -1,7 +1,6 @@
 package com.seblful.klas.ui.groups
 
 import androidx.lifecycle.SavedStateHandle
-import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
@@ -383,12 +382,10 @@ class GroupFormViewModelTest {
         val (ann, _) = seedStudents()
         val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
         val id = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann)).id
-        env.classDao.upsert(
-            ClassEntity(
+        env.fixtures.storedClass(
                 studentId = ann, subjectId = subject, startMillis = 1, durationMinutes = 60,
                 status = "COMPLETED", groupId = id,
-            ),
-        )
+            )
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()

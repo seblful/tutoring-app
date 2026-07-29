@@ -3,8 +3,11 @@ package com.seblful.klas.di
 import android.content.Context
 import androidx.room.Room
 import com.seblful.klas.data.local.AppDatabase
+import com.seblful.klas.data.local.AttendanceDao
 import com.seblful.klas.data.local.ClassDao
 import com.seblful.klas.data.local.GroupDao
+import com.seblful.klas.data.local.LessonDao
+import com.seblful.klas.data.local.MIGRATION_1_2
 import com.seblful.klas.data.local.PaymentDao
 import com.seblful.klas.data.local.PriceDao
 import com.seblful.klas.data.local.RateHistoryDao
@@ -26,9 +29,12 @@ import javax.inject.Singleton
 object DatabaseModule {
 
     /**
-     * No migrations yet: v1 is the first schema this application id ever ships, so no device can hold
-     * an older one (see [AppDatabase.NAME]). Once v1 is released, every schema change must bump the
-     * version and add a real migration here — `MigrationChainTest` fails the build if it doesn't.
+     * Every schema version this app has ever had, and the way from each to the next
+     * (`MigrationChainTest` fails the build if one is missing).
+     *
+     * v2 — splitting `classes` into `lessons` + `attendance` — is migrated rather than dropped even
+     * though no *released* build holds a v1 database: the ones that exist are on development phones with
+     * real students in them, and "no released baseline" is not the same as "no data".
      *
      * The destructive fallback is **gated on the debug build**, because that is the only case it was
      * ever meant for: a dev device carrying a pre-release schema, which the squash to v1 makes every
@@ -49,6 +55,7 @@ object DatabaseModule {
         @DebugBuild debugBuild: Boolean,
     ): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.NAME)
+            .addMigrations(MIGRATION_1_2)
             .apply { if (debugBuild) fallbackToDestructiveMigration(dropAllTables = true) }
             .build()
 
@@ -58,6 +65,8 @@ object DatabaseModule {
     @Provides fun providePriceDao(db: AppDatabase): PriceDao = db.priceDao()
     @Provides fun provideRateHistoryDao(db: AppDatabase): RateHistoryDao = db.rateHistoryDao()
     @Provides fun provideClassDao(db: AppDatabase): ClassDao = db.classDao()
+    @Provides fun provideLessonDao(db: AppDatabase): LessonDao = db.lessonDao()
+    @Provides fun provideAttendanceDao(db: AppDatabase): AttendanceDao = db.attendanceDao()
     @Provides fun providePaymentDao(db: AppDatabase): PaymentDao = db.paymentDao()
     @Provides fun provideSettingsDao(db: AppDatabase): SettingsDao = db.settingsDao()
     @Provides fun provideSnapshotDao(db: AppDatabase): SnapshotDao = db.snapshotDao()

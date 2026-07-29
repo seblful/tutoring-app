@@ -1,6 +1,6 @@
 package com.seblful.klas.domain
 
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
@@ -53,7 +53,7 @@ class SchedulingTest {
         id: Long,
         start: String,
         minutes: Int = 60,
-        status: ClassStatus = ClassStatus.SCHEDULED,
+        status: LessonStatus = LessonStatus.SCHEDULED,
         studentId: Long = 1,
         groupId: Long? = null,
     ) = TutoringClass(
@@ -97,8 +97,8 @@ class SchedulingTest {
 
     @Test
     fun `a completed lesson still holds its hour but a cancelled one gives it back`() {
-        val completed = klass(1, "2026-09-01T10:00:00Z", status = ClassStatus.COMPLETED)
-        val cancelled = klass(2, "2026-09-01T10:00:00Z", status = ClassStatus.CANCELLED)
+        val completed = klass(1, "2026-09-01T10:00:00Z", status = LessonStatus.COMPLETED)
+        val cancelled = klass(2, "2026-09-01T10:00:00Z", status = LessonStatus.CANCELLED)
 
         assertEquals(listOf(1L), Scheduling.conflicts(tenToEleven, listOf(completed, cancelled)).map { it.first.id })
         assertEquals(emptyList<ClassSession>(), Scheduling.conflicts(tenToEleven, listOf(cancelled)))

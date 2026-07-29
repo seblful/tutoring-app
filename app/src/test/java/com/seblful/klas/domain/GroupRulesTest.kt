@@ -1,7 +1,8 @@
 package com.seblful.klas.domain
 
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.TutoringClass
@@ -23,11 +24,16 @@ class GroupRulesTest {
         studentId: Long,
         start: Instant = t0,
         groupId: Long? = null,
-        status: ClassStatus = ClassStatus.SCHEDULED,
+        status: LessonStatus = LessonStatus.SCHEDULED,
+        attended: Attended = if (status.isBillable) Attended.PRESENT else Attended.EXPECTED,
         price: Money = Money.ofMajor(30),
+        /** Which lesson this class is part of — see [lessonIdFor]. */
+        lessonId: Long = lessonIdFor(groupId, start, id),
     ) = TutoringClass(
         id = id,
+        lessonId = lessonId,
         studentId = studentId,
+        attended = attended,
         subjectId = 1,
         start = start,
         durationMinutes = 60,
@@ -35,6 +41,20 @@ class GroupRulesTest {
         status = status,
         groupId = groupId,
     )
+
+    private val lessonIds = mutableMapOf<Pair<Long, Instant>, Long>()
+
+    /**
+     * The lesson a fixture's class belongs to: one per (group, start) for a group's, and its own id for
+     * an individual class.
+     *
+     * A convention of this test, not of the app — storage has a column for it. It exists because that
+     * column is the whole of what makes classes one lesson, so a fixture leaving them all at 0 would
+     * collapse every class here into a single lesson, and one that numbered them per class would make a
+     * group lesson n lessons.
+     */
+    private fun lessonIdFor(groupId: Long?, start: Instant, id: Long): Long =
+        if (groupId == null) id else lessonIds.getOrPut(groupId to start) { 1_000L + lessonIds.size }
 
     // --- sessions ---
 
@@ -82,15 +102,22 @@ class GroupRulesTest {
         assertEquals(listOf(2, 1), sessions.map { it.size })
     }
 
+    /**
+     * A class belongs to the lesson its `lessonId` names — **not** to whatever else shares its hour.
+     *
+     * The session key used to be `(groupId, start)`, which meant a member's class edited on its own left
+     * the session by definition. That was described as a virtue: no membership flag to go stale. It was
+     * the opposite — two rows of one lesson could disagree about when the lesson was, and then they were
+     * two lessons of the same group in the same hour, each blocking the other's. Here that state is what
+     * the column tells apart, and the start is the lesson's to hold.
+     */
     @Test
-    fun `a member moved on their own leaves the session`() {
-        // The session key is (group, start), so a different start is a different lesson — no stale
-        // membership flag to reconcile.
+    fun `two lessons of one group in the same hour stay two lessons`() {
         val sessions = GroupRules.sessions(
             listOf(
-                klass(1, studentId = 1, groupId = 7, start = t0),
-                klass(2, studentId = 2, groupId = 7, start = t0),
-                klass(3, studentId = 3, groupId = 7, start = t1),
+                klass(1, studentId = 1, groupId = 7, start = t0, lessonId = 500),
+                klass(2, studentId = 2, groupId = 7, start = t0, lessonId = 500),
+                klass(3, studentId = 3, groupId = 7, start = t0, lessonId = 501),
             ),
         )
 
@@ -120,47 +147,38 @@ class GroupRulesTest {
         val completed = ClassSession(
             7,
             listOf(
-                klass(1, 1, groupId = 7, status = ClassStatus.COMPLETED),
-                klass(2, 2, groupId = 7, status = ClassStatus.COMPLETED),
+                klass(1, 1, groupId = 7, status = LessonStatus.COMPLETED),
+                klass(2, 2, groupId = 7, status = LessonStatus.COMPLETED),
             ),
         )
-        assertEquals(ClassStatus.COMPLETED, completed.status)
+        assertEquals(LessonStatus.COMPLETED, completed.status)
     }
 
     /**
-     * And one whose members disagree still answers with a status a class can be in — there is no
-     * fourth. A lesson is on if it is on for anybody, happened if it happened for anybody, and off only
-     * when it is off for everyone; the old answer was null, badged «Разные», which is a fact about the
-     * roster rather than about the lesson.
+     * A lesson taught with somebody missing is **taught**, and the status is not a vote.
+     *
+     * This is where the model earns its keep. The status used to be per student, so this lesson had none
+     * of its own — first answered as null and badged «Разные», then as the strictest status among its
+     * members. Now the hour holds one status and each student holds whether they were in it, so the two
+     * facts can both be true without either being derived from the other.
      */
     @Test
-    fun `a session whose members disagree reads as the most live status among them`() {
-        fun sessionOf(vararg statuses: ClassStatus) = ClassSession(
+    fun `a taught lesson with an absentee is taught, and bills only the ones who were there`() {
+        val session = ClassSession(
             7,
-            statuses.mapIndexed { index, status ->
-                klass(index + 1L, index + 1L, groupId = 7, status = status)
-            },
+            listOf(
+                klass(1, 1, groupId = 7, status = LessonStatus.COMPLETED, attended = Attended.PRESENT),
+                klass(2, 2, groupId = 7, status = LessonStatus.COMPLETED, attended = Attended.ABSENT),
+                klass(3, 3, groupId = 7, status = LessonStatus.COMPLETED, attended = Attended.ABSENT_BILLED),
+            ),
         )
 
+        assertEquals(LessonStatus.COMPLETED, session.status)
+        assertEquals("one of the three was in the room", 1, session.present)
         assertEquals(
-            "taught, bar the absentee who was cancelled on their own",
-            ClassStatus.COMPLETED,
-            sessionOf(ClassStatus.COMPLETED, ClassStatus.CANCELLED).status,
-        )
-        assertEquals(
-            "still to come for the rest, though one has called off",
-            ClassStatus.SCHEDULED,
-            sessionOf(ClassStatus.SCHEDULED, ClassStatus.CANCELLED).status,
-        )
-        assertEquals(
-            "half marked up is still a lesson to finish marking up",
-            ClassStatus.SCHEDULED,
-            sessionOf(ClassStatus.COMPLETED, ClassStatus.SCHEDULED).status,
-        )
-        assertEquals(
-            "off for everyone is off",
-            ClassStatus.CANCELLED,
-            sessionOf(ClassStatus.CANCELLED, ClassStatus.CANCELLED).status,
+            "and two of the three owe for it — the absentee under a late-cancellation policy included",
+            listOf(1L, 3L),
+            session.classes.filter { it.isBillable }.map { it.id },
         )
     }
 
@@ -207,28 +225,35 @@ class GroupRulesTest {
     fun `a scheduled session offers completing and cancelling`() {
         val session = ClassSession(7, listOf(klass(1, 1, groupId = 7), klass(2, 2, groupId = 7)))
         assertEquals(
-            setOf(ClassStatus.COMPLETED, ClassStatus.CANCELLED),
+            setOf(LessonStatus.COMPLETED, LessonStatus.CANCELLED),
             GroupRules.sessionTransitions(session),
         )
     }
 
+    /**
+     * A lesson offers what **its own** status may become, because that is the only status it has.
+     *
+     * This used to be the union over its members, with an `applicableTo` beside it picking out the ones a
+     * change was legal for — machinery for a lesson whose members held different statuses, which is
+     * exactly what the split made unrepresentable. Who was in the room is attendance now, and the members
+     * of one lesson cannot disagree about whether it happened.
+     */
     @Test
-    fun `completing a partly cancelled session applies only to the classes it is legal for`() {
+    fun `a lesson offers the transitions of its own status, whatever its members attended`() {
         val session = ClassSession(
             7,
             listOf(
-                klass(1, 1, groupId = 7, status = ClassStatus.SCHEDULED),
-                klass(2, 2, groupId = 7, status = ClassStatus.CANCELLED),
-                klass(3, 3, groupId = 7, status = ClassStatus.COMPLETED),
+                klass(1, 1, groupId = 7, status = LessonStatus.COMPLETED, attended = Attended.PRESENT),
+                klass(2, 2, groupId = 7, status = LessonStatus.COMPLETED, attended = Attended.ABSENT),
             ),
         )
 
-        val applicable = GroupRules.applicableTo(session, ClassStatus.COMPLETED)
-
-        // The absentee stays cancelled (cancelled -> completed isn't a legal transition) and the
-        // already-completed member is left alone.
-        assertEquals(listOf(1L), applicable.map { it.id })
-        assertFalse(ClassRules.canTransition(ClassStatus.CANCELLED, ClassStatus.COMPLETED))
+        assertEquals(
+            "a taught lesson can be called off, and not un-taught",
+            setOf(LessonStatus.CANCELLED),
+            GroupRules.sessionTransitions(session),
+        )
+        assertFalse(ClassRules.canTransition(LessonStatus.COMPLETED, LessonStatus.SCHEDULED))
     }
 
     // --- editFor ---
@@ -339,7 +364,7 @@ class GroupRulesTest {
 
     private fun groupSession(
         vararg members: Pair<Long, Long>,
-        status: ClassStatus = ClassStatus.SCHEDULED,
+        status: LessonStatus = LessonStatus.SCHEDULED,
     ) = ClassSession(
         7,
         members.map { (id, studentId) -> klass(id, studentId = studentId, groupId = 7, status = status) },
@@ -381,11 +406,11 @@ class GroupRulesTest {
      */
     @Test
     fun `joining a completed lesson joins it completed`() {
-        val session = groupSession(1L to 1L, status = ClassStatus.COMPLETED)
+        val session = groupSession(1L to 1L, status = LessonStatus.COMPLETED)
 
         val change = GroupRules.rosterChange(session, wanted = setOf(1, 5), lessonEdit, t0)
 
-        assertEquals(ClassStatus.COMPLETED, change.joining.single().status)
+        assertEquals(LessonStatus.COMPLETED, change.joining.single().status)
     }
 
     /**
@@ -398,15 +423,15 @@ class GroupRulesTest {
         val session = ClassSession(
             7,
             listOf(
-                klass(1, studentId = 1, groupId = 7, status = ClassStatus.COMPLETED),
-                klass(2, studentId = 2, groupId = 7, status = ClassStatus.CANCELLED),
+                klass(1, studentId = 1, groupId = 7, status = LessonStatus.COMPLETED),
+                klass(2, studentId = 2, groupId = 7, status = LessonStatus.CANCELLED),
             ),
         )
 
         val change = GroupRules.rosterChange(session, wanted = setOf(1, 2, 5), lessonEdit, t0)
 
-        assertEquals(ClassStatus.COMPLETED, session.status)
-        assertEquals(ClassStatus.COMPLETED, change.joining.single().status)
+        assertEquals(LessonStatus.COMPLETED, session.status)
+        assertEquals(LessonStatus.COMPLETED, change.joining.single().status)
     }
 
     @Test
@@ -424,9 +449,9 @@ class GroupRulesTest {
         val session = ClassSession(
             7,
             listOf(
-                klass(1, studentId = 1, groupId = 7, status = ClassStatus.COMPLETED),
-                klass(2, studentId = 2, groupId = 7, status = ClassStatus.SCHEDULED),
-                klass(3, studentId = 3, groupId = 7, status = ClassStatus.COMPLETED),
+                klass(1, studentId = 1, groupId = 7, status = LessonStatus.COMPLETED),
+                klass(2, studentId = 2, groupId = 7, status = LessonStatus.SCHEDULED),
+                klass(3, studentId = 3, groupId = 7, status = LessonStatus.COMPLETED),
             ),
         )
 

@@ -1,6 +1,7 @@
 package com.seblful.klas.data.backup
 
-import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.AttendanceEntity
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.GroupMemberCrossRef
 import com.seblful.klas.data.local.PaymentEntity
@@ -54,16 +55,25 @@ class BackupSerializationTest {
             RateChangeEntity(3, groupId = 7, fromMinor = 1800, toMinor = 2050, atMillis = 1_896_000_000_000),
             RateChangeEntity(4, groupId = 8, toMinor = 0, atMillis = null),
         ),
-        classes = listOf(
-            ClassEntity(
-                id = 1, studentId = 1, subjectId = 1, startMillis = 1_900_000_000_000,
-                durationMinutes = 90, status = "COMPLETED", chargeMinor = 5000,
-                groupId = 7, mode = "REMOTE", calendarEventId = "evt-123",
+        lessons = listOf(
+            LessonEntity(
+                id = 1, subjectId = 1, startMillis = 1_900_000_000_000, durationMinutes = 90,
+                status = "COMPLETED", groupId = 7, mode = "REMOTE",
             ),
-            ClassEntity(
-                id = 2, studentId = 2, subjectId = 1, startMillis = 1_900_100_000_000,
-                durationMinutes = 60, status = "SCHEDULED",
+            LessonEntity(
+                id = 2, subjectId = 1, startMillis = 1_900_100_000_000, durationMinutes = 60,
+                status = "SCHEDULED",
             ),
+        ),
+        attendance = listOf(
+            // The taught lesson, with one of its two members absent — the pair of facts a v5 file could
+            // not carry, and so the pair a round trip most needs to prove survives.
+            AttendanceEntity(
+                id = 1, lessonId = 1, studentId = 1, state = "PRESENT",
+                priceMinor = 2000, chargeMinor = 5000, calendarEventId = "evt-123",
+            ),
+            AttendanceEntity(id = 2, lessonId = 1, studentId = 2, state = "ABSENT", priceMinor = 2000),
+            AttendanceEntity(id = 3, lessonId = 2, studentId = 2, state = "EXPECTED"),
         ),
         payments = listOf(
             PaymentEntity(1, studentId = 1, dateMillis = 1_899_000_000_000, amountMinor = 3000),

@@ -1,12 +1,13 @@
 package com.seblful.klas.data.backup
 
-import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.AttendanceEntity
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.test.runTest
@@ -23,18 +24,23 @@ import org.junit.Test
  * with an unknown status therefore imported cleanly and then broke every screen that lists a lesson —
  * permanently, because the bad row was now the saved data, and silently, because a dead collector
  * draws nothing rather than reporting anything.
+ *
+ * Most of these describe the **v1–v5 flat class** ([LegacyClass]), which is where a file this build has
+ * to refuse is most likely to come from — those files are the ones already written. They are checked
+ * through the same split that would import them, so the two shapes cannot disagree about what is
+ * readable; the v6 rows are checked directly, below.
  */
 class BackupIntegrityTest {
 
-    private val validClass = ClassEntity(
+    private val validClass = LegacyClass(
         id = 1, studentId = 1, subjectId = 1,
         startMillis = 1_900_000_000_000, durationMinutes = 60,
-        priceMinor = 5000, status = ClassStatus.COMPLETED.name, chargeMinor = 5000,
+        priceMinor = 5000, status = LessonStatus.COMPLETED.name, chargeMinor = 5000,
         mode = ClassMode.REMOTE.name,
     )
 
     private fun backup(
-        classes: List<ClassEntity> = listOf(validClass),
+        classes: List<LegacyClass> = listOf(validClass),
         students: List<StudentEntity> = listOf(StudentEntity(1, "Иван")),
         groups: List<GroupEntity> = emptyList(),
         rateHistory: List<RateChangeEntity> = emptyList(),
@@ -67,7 +73,7 @@ class BackupIntegrityTest {
             durationMinutes = 1,
             priceMinor = 0,
             chargeMinor = 0,
-            status = ClassStatus.SCHEDULED.name,
+            status = LessonStatus.SCHEDULED.name,
         )
         BackupIntegrity.check(backup(classes = listOf(odd)))
     }
@@ -109,6 +115,51 @@ class BackupIntegrityTest {
     fun `a lesson of no length is refused`() {
         assertTrue(refusalFor(backup(classes = listOf(validClass.copy(durationMinutes = 0)))) != null)
         assertTrue(refusalFor(backup(classes = listOf(validClass.copy(durationMinutes = -30)))) != null)
+    }
+
+    // --- The v6 rows, checked as themselves --------------------------------------------------------
+
+    @Test
+    fun `an unknown lesson status is refused, naming the lesson`() {
+        val data = BackupData(
+            lessons = listOf(LessonEntity(4, subjectId = 1, startMillis = 1L, durationMinutes = 60, status = "MISSED")),
+        )
+
+        val refusal = refusalFor(data)
+
+        assertTrue("refused", refusal != null)
+        assertTrue("says which row: ${refusal?.reason}", refusal!!.reason.contains("lesson 4"))
+        assertTrue(refusal.reason.contains("MISSED"))
+    }
+
+    /**
+     * The half the old shape could not carry, and so the half a hand-edited v6 file is likeliest to get
+     * wrong: an attendance the app cannot read is a class it cannot decide whether to bill.
+     */
+    @Test
+    fun `an unknown attendance is refused, naming the class`() {
+        val data = BackupData(
+            lessons = listOf(
+                LessonEntity(4, subjectId = 1, startMillis = 1L, durationMinutes = 60, status = "COMPLETED"),
+            ),
+            attendance = listOf(AttendanceEntity(id = 9, lessonId = 4, studentId = 1, state = "PROBABLY")),
+        )
+
+        val refusal = refusalFor(data)
+
+        assertTrue("refused", refusal != null)
+        assertTrue("says which row: ${refusal?.reason}", refusal!!.reason.contains("class 9"))
+        assertTrue(refusal.reason.contains("PROBABLY"))
+    }
+
+    @Test
+    fun `a v6 lesson of no length is refused`() {
+        val data = BackupData(
+            lessons = listOf(
+                LessonEntity(4, subjectId = 1, startMillis = 1L, durationMinutes = 0, status = "SCHEDULED"),
+            ),
+        )
+        assertTrue(refusalFor(data) != null)
     }
 
     @Test
@@ -231,12 +282,12 @@ class BackupIntegrityTest {
 
     @Test
     fun `parsing a stored enum name is total`() {
-        assertEquals(ClassStatus.COMPLETED, ClassStatus.parse("COMPLETED"))
+        assertEquals(LessonStatus.COMPLETED, LessonStatus.parse("COMPLETED"))
         assertEquals(ClassMode.REMOTE, ClassMode.parse("REMOTE"))
         // No throw, unlike valueOf — including for the near misses a hand-edit produces.
-        assertNull(ClassStatus.parse("MISSED"))
-        assertNull(ClassStatus.parse("completed"))
-        assertNull(ClassStatus.parse(""))
+        assertNull(LessonStatus.parse("MISSED"))
+        assertNull(LessonStatus.parse("completed"))
+        assertNull(LessonStatus.parse(""))
         assertNull(ClassMode.parse("IN PERSON"))
     }
 }

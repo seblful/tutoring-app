@@ -1,14 +1,17 @@
 package com.seblful.klas.data
 
-import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.AttendanceEntity
+import com.seblful.klas.data.local.ClassRow
 import com.seblful.klas.data.local.GroupEntity
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
@@ -33,15 +36,19 @@ import java.time.Instant
  * - **A mode does not.** It is a label and the calendar event's location, so an unreadable one falls
  *   back to [ClassMode.IN_PERSON] and the app carries on. One lesson reads «Очно» when it was remote,
  *   which is a wrong word on a screen rather than a screen that will not open.
- * - **A status does.** `isBillable` is what makes a lesson count as income, so guessing would move
- *   money: `SCHEDULED` un-bills a lesson that earned, `COMPLETED` invents one that did not. There is no
- *   safe fallback, so this one fails — loudly and namedly, which is the best available outcome for a
- *   row that should be unreachable.
+ * - **A status does**, and so does an attendance: together they are what makes a lesson count as income
+ *   (`TutoringClass.isBillable`), so guessing would move money — `SCHEDULED` un-bills a lesson that
+ *   earned, `COMPLETED` invents one that did not, `ABSENT` writes off what a student owes. There is no
+ *   safe fallback, so these fail — loudly and namedly, which is the best available outcome for a row that
+ *   should be unreachable.
  */
 private fun modeOf(stored: String): ClassMode = ClassMode.parse(stored) ?: ClassMode.IN_PERSON
 
-private fun statusOf(stored: String, classId: Long): ClassStatus =
-    ClassStatus.parse(stored) ?: error("Class $classId has an unreadable status \"$stored\"")
+private fun statusOf(stored: String, classId: Long): LessonStatus =
+    LessonStatus.parse(stored) ?: error("Class $classId has an unreadable lesson status \"$stored\"")
+
+private fun attendedOf(stored: String, classId: Long): Attended =
+    Attended.parse(stored) ?: error("Class $classId has an unreadable attendance \"$stored\"")
 
 fun SubjectEntity.toDomain() = Subject(id = id, name = name)
 fun Subject.toEntity() = SubjectEntity(id = id, name = name)
@@ -94,30 +101,46 @@ fun PaymentEntity.toDomain() =
 fun Payment.toEntity() =
     PaymentEntity(id = id, studentId = studentId, dateMillis = date.toEpochMilli(), amountMinor = amount.minor)
 
-fun ClassEntity.toDomain() = TutoringClass(
+fun ClassRow.toDomain() = TutoringClass(
     id = id,
+    lessonId = lessonId,
     studentId = studentId,
     subjectId = subjectId,
     start = Instant.ofEpochMilli(startMillis),
     durationMinutes = durationMinutes,
     price = Money(priceMinor),
     status = statusOf(status, id),
+    attended = attendedOf(state, id),
     charge = Money(chargeMinor),
     groupId = groupId,
     mode = modeOf(mode),
     calendarEventId = calendarEventId,
 )
 
-fun TutoringClass.toEntity() = ClassEntity(
-    id = id,
-    studentId = studentId,
+/**
+ * The two rows a class is stored as. Which of them a write is allowed to touch is the model's whole
+ * point, so the two directions are separate functions rather than one `toEntity`:
+ *
+ * - [toLessonEntity] is the **lesson's** facts, written once however many students are in it. Writing it
+ *   per class would put the app back where it was, with *n* copies of one status.
+ * - [toAttendanceEntity] is this student's own: whether they were there, at what rate, for what charge.
+ */
+fun TutoringClass.toLessonEntity() = LessonEntity(
+    id = lessonId,
     subjectId = subjectId,
     startMillis = start.toEpochMilli(),
     durationMinutes = durationMinutes,
-    priceMinor = price.minor,
     status = status.name,
-    chargeMinor = charge.minor,
     groupId = groupId,
     mode = mode.name,
+)
+
+fun TutoringClass.toAttendanceEntity() = AttendanceEntity(
+    id = id,
+    lessonId = lessonId,
+    studentId = studentId,
+    state = attended.name,
+    priceMinor = price.minor,
+    chargeMinor = charge.minor,
     calendarEventId = calendarEventId,
 )

@@ -1,7 +1,7 @@
 package com.seblful.klas.data.local
 
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.testutil.ProjectFiles
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -10,12 +10,12 @@ import org.junit.Test
 /**
  * An enum constant's **name is a persisted value**, and nothing else in the build says so.
  *
- * `classes.status` and the three `mode` columns store `ClassStatus`/`ClassMode` names as text, two DAO
+ * `classes.status` and the three `mode` columns store `LessonStatus`/`ClassMode` names as text, two DAO
  * queries match on `'SCHEDULED'` as a SQL literal, and three entity columns default to `"IN_PERSON"`.
  * So renaming a constant — an ordinary refactor that every IDE offers and every reference in Kotlin
  * follows — is really a schema change, and one that fails **silently in different ways**:
  *
- * - existing rows keep the old text, and reading them stops working (`ClassStatus.parse` returns null,
+ * - existing rows keep the old text, and reading them stops working (`LessonStatus.parse` returns null,
  *   see `data/Mappers.kt`);
  * - the two SQL literals keep the old text and simply stop matching, so nothing auto-completes and no
  *   reminder is ever planned — with no error anywhere, because "no rows due" is a perfectly ordinary
@@ -39,11 +39,11 @@ class StoredEnumNamesTest {
     @Test
     fun `the stored status names are the ones the database holds`() {
         assertEquals(
-            "A ClassStatus constant was renamed, added or removed. Every `classes.status` row holds " +
+            "A LessonStatus constant was renamed, added or removed. Every `classes.status` row holds " +
                 "the old text — write a migration that rewrites them, check the two DAO queries " +
                 "matching on a status literal, then update this list.",
             storedStatuses,
-            ClassStatus.entries.map { it.name }.toSet(),
+            LessonStatus.entries.map { it.name }.toSet(),
         )
     }
 
@@ -84,9 +84,9 @@ class StoredEnumNamesTest {
         assertEquals(
             ClassMode.IN_PERSON,
             ClassMode.parse(
-                ClassEntity(
-                    studentId = 1, subjectId = 1, startMillis = 0, durationMinutes = 60,
-                    status = ClassStatus.SCHEDULED.name,
+                LessonEntity(
+                    subjectId = 1, startMillis = 0, durationMinutes = 60,
+                    status = LessonStatus.SCHEDULED.name,
                 ).mode,
             ),
         )
@@ -111,7 +111,7 @@ class StoredEnumNamesTest {
                 "it must be pointed at wherever they now live.",
             literals.isNotEmpty(),
         )
-        val unknown = literals.filter { ClassStatus.parse(it) == null }.distinct()
+        val unknown = literals.filter { LessonStatus.parse(it) == null }.distinct()
         assertEquals(
             "A DAO query matches on a status that no longer exists, so it will silently match no " +
                 "rows: $unknown",
@@ -129,7 +129,7 @@ class StoredEnumNamesTest {
      * risk: the real queries were caught, the doubles were not, and the JVM suite went on asserting
      * auto-completion and reminder planning that the app had stopped doing.
      *
-     * The fix was to have the fakes read `ClassStatus.SCHEDULED.name`, which a rename follows. This
+     * The fix was to have the fakes read `LessonStatus.SCHEDULED.name`, which a rename follows. This
      * keeps it that way.
      */
     @Test
@@ -142,7 +142,7 @@ class StoredEnumNamesTest {
 
         assertEquals(
             "A fake DAO compares a status against a bare string, which a rename of the constant will " +
-                "not follow. Use `ClassStatus.<NAME>.name` instead: $literals",
+                "not follow. Use `LessonStatus.<NAME>.name` instead: $literals",
             emptyList<String>(),
             literals,
         )

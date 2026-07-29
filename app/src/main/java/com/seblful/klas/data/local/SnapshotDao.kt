@@ -25,7 +25,10 @@ data class DatabaseSnapshot(
     val prices: List<PriceEntity> = emptyList(),
     /** The rate log (`price_history`) — the record of what prices used to be. */
     val rateHistory: List<RateChangeEntity> = emptyList(),
-    val classes: List<ClassEntity> = emptyList(),
+    // A lesson and the students in it are two tables, so a snapshot carries both — and their order
+    // matters twice over: `attendance` points at `lessons`, so lessons go in first and out last.
+    val lessons: List<LessonEntity> = emptyList(),
+    val attendance: List<AttendanceEntity> = emptyList(),
     val payments: List<PaymentEntity> = emptyList(),
 )
 
@@ -62,7 +65,8 @@ abstract class SnapshotDao {
         groupMembers = groupMembers(),
         prices = prices(),
         rateHistory = rateHistory(),
-        classes = classes(),
+        lessons = lessons(),
+        attendance = attendance(),
         payments = payments(),
     )
 
@@ -94,14 +98,16 @@ abstract class SnapshotDao {
         insertGroupMembers(snapshot.groupMembers)
         insertPrices(snapshot.prices)
         insertRateHistory(snapshot.rateHistory)
-        insertClasses(snapshot.classes)
+        insertLessons(snapshot.lessons)
+        insertAttendance(snapshot.attendance)
         insertPayments(snapshot.payments)
     }
 
     /** Empties every table, **children before parents**, so no foreign key is ever left dangling. */
     private suspend fun clear() {
         clearPayments()
-        clearClasses()
+        clearAttendance()
+        clearLessons()
         clearRateHistory()
         clearPrices()
         clearGroupMembers()
@@ -112,10 +118,11 @@ abstract class SnapshotDao {
     }
 
     // ---- Reads -------------------------------------------------------------------------------------
-    // `classes` and `student_groups` are also read whole by a repository, so those two queries exist
-    // twice. That is two interfaces asking the same table for different things, not one interface
-    // saying the same thing twice: a repository reading every class maps it to the domain and applies a
-    // rule, and cannot be handed the wipe that sits beside this one.
+    // `student_groups` is also read whole by a repository, and the two lesson tables are read through the
+    // `classes` view, so some of these queries have a near-twin elsewhere. That is two interfaces asking
+    // the same tables for different things, not one interface saying the same thing twice: a repository
+    // reading every class reads it joined, maps it to the domain and applies a rule, and cannot be handed
+    // the wipe that sits beside this one.
 
     @Query("SELECT * FROM subjects")
     protected abstract suspend fun subjects(): List<SubjectEntity>
@@ -138,8 +145,11 @@ abstract class SnapshotDao {
     @Query("SELECT * FROM price_history")
     protected abstract suspend fun rateHistory(): List<RateChangeEntity>
 
-    @Query("SELECT * FROM classes")
-    protected abstract suspend fun classes(): List<ClassEntity>
+    @Query("SELECT * FROM lessons")
+    protected abstract suspend fun lessons(): List<LessonEntity>
+
+    @Query("SELECT * FROM attendance")
+    protected abstract suspend fun attendance(): List<AttendanceEntity>
 
     @Query("SELECT * FROM payments")
     protected abstract suspend fun payments(): List<PaymentEntity>
@@ -170,7 +180,10 @@ abstract class SnapshotDao {
     protected abstract suspend fun insertRateHistory(rows: List<RateChangeEntity>)
 
     @Insert
-    protected abstract suspend fun insertClasses(rows: List<ClassEntity>)
+    protected abstract suspend fun insertLessons(rows: List<LessonEntity>)
+
+    @Insert
+    protected abstract suspend fun insertAttendance(rows: List<AttendanceEntity>)
 
     @Insert
     protected abstract suspend fun insertPayments(rows: List<PaymentEntity>)
@@ -200,8 +213,11 @@ abstract class SnapshotDao {
     @Query("DELETE FROM price_history")
     protected abstract suspend fun clearRateHistory()
 
-    @Query("DELETE FROM classes")
-    protected abstract suspend fun clearClasses()
+    @Query("DELETE FROM lessons")
+    protected abstract suspend fun clearLessons()
+
+    @Query("DELETE FROM attendance")
+    protected abstract suspend fun clearAttendance()
 
     @Query("DELETE FROM payments")
     protected abstract suspend fun clearPayments()

@@ -1,9 +1,12 @@
 package com.seblful.klas.testutil
 
+import com.seblful.klas.data.local.AttendanceEntity
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import java.time.Instant
@@ -100,7 +103,7 @@ class Fixtures(private val env: TestEnv) {
         rate: Money = Money.ofMajor(30),
         groupId: Long? = null,
     ): List<Long> = lesson(subjectId, students, start, minutes, rate, groupId)
-        .also { ids -> setStatus(ids.first(), ClassStatus.COMPLETED) }
+        .also { ids -> setStatus(ids.first(), LessonStatus.COMPLETED) }
 
     /** A lesson called off, so the hour is free again and nothing is billed. */
     suspend fun cancelledLesson(
@@ -111,12 +114,85 @@ class Fixtures(private val env: TestEnv) {
         rate: Money = Money.ofMajor(30),
         groupId: Long? = null,
     ): List<Long> = lesson(subjectId, students, start, minutes, rate, groupId)
-        .also { ids -> setStatus(ids.first(), ClassStatus.CANCELLED) }
+        .also { ids -> setStatus(ids.first(), LessonStatus.CANCELLED) }
 
     /** Moves the whole lesson class [id] belongs to into [status]. */
-    suspend fun setStatus(id: Long, status: ClassStatus) {
+    suspend fun setStatus(id: Long, status: LessonStatus) {
         val session = env.classRepo.getSessionFor(id) ?: error("No lesson for class $id")
         env.classRepo.setStatus(session, status)
+    }
+
+    /**
+     * Records how one student's class went — the per-member correction that used to be a status change
+     * to a session of one. What "the absentee of a lesson that went ahead" is built with.
+     */
+    suspend fun setAttendance(id: Long, attended: Attended) {
+        val klass = env.classRepo.getById(id) ?: error("No class $id")
+        env.classRepo.setAttendance(klass, attended)
+    }
+
+    /**
+     * Writes a lesson and its students **straight to the tables**, bypassing every rule — for the state
+     * the repositories refuse to produce: a malformed row on a read path, a charge that does not match
+     * its status, a lesson in the past still marked scheduled.
+     *
+     * Takes the flat shape a class used to be stored in, which is what such a test is describing: one
+     * student, one hour, one status. It is here rather than in each test so that the two rows go in
+     * together and point at each other — a lesson with no attendance is not a class, and an attendance
+     * row with no lesson is invisible to every read.
+     *
+     * Returns the new class (attendance) id.
+     */
+    suspend fun storedClass(
+        studentId: Long,
+        subjectId: Long,
+        startMillis: Long,
+        durationMinutes: Int = 60,
+        status: String = LessonStatus.SCHEDULED.name,
+        state: String? = null,
+        priceMinor: Long = 0,
+        chargeMinor: Long = 0,
+        groupId: Long? = null,
+        mode: String = ClassMode.IN_PERSON.name,
+        calendarEventId: String? = null,
+        lessonId: Long = 0,
+    ): Long {
+        // Which rows are one lesson, the flat shape's own way: a group's members share a `(groupId,
+        // startMillis)` pair. That was the *only* answer before the lesson had a row, so a call describing
+        // a second member of an already-seeded group lesson means to join it rather than to hold the same
+        // hour twice. An individual class is always its own lesson.
+        val existing = lessonId.takeIf { it != 0L }
+            ?: groupId?.let { g ->
+                env.lessonDao.items.value
+                    .firstOrNull { it.groupId == g && it.startMillis == startMillis }?.id
+            }
+        val lesson = env.lessonDao.upsert(
+            LessonEntity(
+                id = existing ?: 0,
+                subjectId = subjectId,
+                startMillis = startMillis,
+                durationMinutes = durationMinutes,
+                status = status,
+                groupId = groupId,
+                mode = mode,
+            ),
+        )
+        return env.attendanceDao.upsert(
+            AttendanceEntity(
+                lessonId = lesson,
+                studentId = studentId,
+                // The attendance a status implies, so a test that only cares about the status does not
+                // have to know about attendance at all — and the pair still bills what it should.
+                state = state ?: if (status == LessonStatus.COMPLETED.name) {
+                    Attended.PRESENT.name
+                } else {
+                    Attended.EXPECTED.name
+                },
+                priceMinor = priceMinor,
+                chargeMinor = chargeMinor,
+                calendarEventId = calendarEventId,
+            ),
+        )
     }
 
     /** Calendar mirroring on, which it is not by default. */

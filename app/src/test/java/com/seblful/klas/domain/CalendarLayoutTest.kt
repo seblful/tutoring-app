@@ -1,6 +1,6 @@
 package com.seblful.klas.domain
 
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -22,14 +22,24 @@ class CalendarLayoutTest {
      */
     private fun klass(
         start: String,
-        status: ClassStatus = ClassStatus.SCHEDULED,
+        status: LessonStatus = LessonStatus.SCHEDULED,
         id: Long = nextId++,
         groupId: Long? = null,
         studentId: Long = 1,
     ) = TutoringClass(
-        id = id, studentId = studentId, subjectId = 1, start = Instant.parse(start),
-        durationMinutes = 60, status = status, groupId = groupId,
+        id = id, lessonId = lessonIdFor(groupId, start, id), studentId = studentId, subjectId = 1,
+        start = Instant.parse(start), durationMinutes = 60, status = status, groupId = groupId,
     )
+
+    private val lessonIds = mutableMapOf<Pair<Long, Any>, Long>()
+
+    /**
+     * The lesson a fixture's class belongs to: one per (group, start) for a group's, its own id for an
+     * individual class. A convention of the test — storage has a column for it — and it has to be stated
+     * because that column is the whole of what makes classes one lesson (`GroupRules.sessions`).
+     */
+    private fun lessonIdFor(groupId: Long?, start: Any, id: Long): Long =
+        if (groupId == null) id else lessonIds.getOrPut(groupId to start) { 1_000L + lessonIds.size }
 
     private var nextId = 1L
 
@@ -37,12 +47,12 @@ class CalendarLayoutTest {
     private fun groupLesson(
         start: String,
         size: Int,
-        vararg statuses: ClassStatus,
+        vararg statuses: LessonStatus,
         groupId: Long = 7,
     ) = (0 until size).map { member ->
         klass(
             start = start,
-            status = statuses.getOrElse(member) { statuses.lastOrNull() ?: ClassStatus.SCHEDULED },
+            status = statuses.getOrElse(member) { statuses.lastOrNull() ?: LessonStatus.SCHEDULED },
             groupId = groupId,
             studentId = (member + 1).toLong(),
         )
@@ -179,7 +189,7 @@ class CalendarLayoutTest {
         val load = loads.getValue(LocalDate.of(2026, 7, 15))
 
         assertEquals("two students, one lesson taught", 1, load.total)
-        assertEquals(listOf(CalendarLayout.Tally(ClassStatus.SCHEDULED, 1)), load.tallies)
+        assertEquals(listOf(CalendarLayout.Tally(LessonStatus.SCHEDULED, 1)), load.tallies)
     }
 
     @Test
@@ -205,18 +215,15 @@ class CalendarLayoutTest {
 
     /**
      * A cell counts lessons, in the three statuses a lesson can be in. A group whose absentee was
-     * cancelled on their own used to be counted in a fourth, null bucket and printed as its own
-     * number — a count of «Разные», which is not a status anything can be in.
+     * cancelled on their own used to be counted in a fourth, null bucket and printed as its own number —
+     * a count of «Разные», which is not a status anything can be in. Such a lesson cannot even be
+     * described any more: its members share its status and differ only in whether they were there.
      */
     @Test
-    fun `a group lesson with a cancelled member counts under the lesson's own status`() {
+    fun `a group lesson with an absent member counts under the lesson's own status`() {
         val loads = CalendarLayout.dayLoads(
-            groupLesson(
-                "2026-07-15T07:00:00Z",
-                size = 2,
-                ClassStatus.CANCELLED,
-                ClassStatus.COMPLETED,
-            ) + klass("2026-07-15T10:00:00Z", ClassStatus.COMPLETED),
+            groupLesson("2026-07-15T07:00:00Z", size = 2, LessonStatus.COMPLETED) +
+                klass("2026-07-15T10:00:00Z", LessonStatus.COMPLETED),
             zone,
         )
         val load = loads.getValue(LocalDate.of(2026, 7, 15))
@@ -224,7 +231,7 @@ class CalendarLayoutTest {
         assertEquals(2, load.total)
         assertEquals(
             "two lessons taught, one of them with somebody missing",
-            listOf(CalendarLayout.Tally(ClassStatus.COMPLETED, 2)),
+            listOf(CalendarLayout.Tally(LessonStatus.COMPLETED, 2)),
             load.tallies,
         )
     }
@@ -235,15 +242,15 @@ class CalendarLayoutTest {
             listOf(
                 klass("2026-07-15T07:00:00Z"),
                 klass("2026-07-15T10:00:00Z"),
-                klass("2026-07-15T12:00:00Z", ClassStatus.CANCELLED),
-                klass("2026-07-16T07:00:00Z", ClassStatus.COMPLETED),
+                klass("2026-07-15T12:00:00Z", LessonStatus.CANCELLED),
+                klass("2026-07-16T07:00:00Z", LessonStatus.COMPLETED),
             ),
             zone,
         )
 
         assertEquals(3, loads.getValue(LocalDate.of(2026, 7, 15)).total)
         assertEquals(
-            mapOf(ClassStatus.SCHEDULED to 2, ClassStatus.CANCELLED to 1),
+            mapOf(LessonStatus.SCHEDULED to 2, LessonStatus.CANCELLED to 1),
             loads.getValue(LocalDate.of(2026, 7, 15)).counts,
         )
         assertEquals(1, loads.getValue(LocalDate.of(2026, 7, 16)).total)
@@ -262,17 +269,17 @@ class CalendarLayoutTest {
     fun `tallies read scheduled first, whatever order the counts came in`() {
         val load = CalendarLayout.DayLoad(
             mapOf(
-                ClassStatus.CANCELLED to 1,
-                ClassStatus.COMPLETED to 4,
-                ClassStatus.SCHEDULED to 2,
+                LessonStatus.CANCELLED to 1,
+                LessonStatus.COMPLETED to 4,
+                LessonStatus.SCHEDULED to 2,
             )
         )
 
         assertEquals(
             listOf(
-                CalendarLayout.Tally(ClassStatus.SCHEDULED, 2),
-                CalendarLayout.Tally(ClassStatus.COMPLETED, 4),
-                CalendarLayout.Tally(ClassStatus.CANCELLED, 1),
+                CalendarLayout.Tally(LessonStatus.SCHEDULED, 2),
+                CalendarLayout.Tally(LessonStatus.COMPLETED, 4),
+                CalendarLayout.Tally(LessonStatus.CANCELLED, 1),
             ),
             load.tallies,
         )
@@ -280,16 +287,16 @@ class CalendarLayoutTest {
 
     @Test
     fun `a status the day has none of gets no tally, rather than a zero`() {
-        val load = CalendarLayout.DayLoad(mapOf(ClassStatus.COMPLETED to 3))
+        val load = CalendarLayout.DayLoad(mapOf(LessonStatus.COMPLETED to 3))
 
-        assertEquals(listOf(CalendarLayout.Tally(ClassStatus.COMPLETED, 3)), load.tallies)
+        assertEquals(listOf(CalendarLayout.Tally(LessonStatus.COMPLETED, 3)), load.tallies)
         assertEquals(3, load.total)
     }
 
     @Test
     fun `a busy day never needs more than one tally per status`() {
         val loads = CalendarLayout.dayLoads(
-            List(9) { hour -> klass("2026-07-15T0$hour:00:00Z", ClassStatus.COMPLETED) } +
+            List(9) { hour -> klass("2026-07-15T0$hour:00:00Z", LessonStatus.COMPLETED) } +
                 klass("2026-07-15T18:00:00Z"),
             zone,
         )
@@ -299,8 +306,8 @@ class CalendarLayoutTest {
         assertEquals(
             "however many lessons a day holds, its cell prints one number per status",
             listOf(
-                CalendarLayout.Tally(ClassStatus.SCHEDULED, 1),
-                CalendarLayout.Tally(ClassStatus.COMPLETED, 9),
+                CalendarLayout.Tally(LessonStatus.SCHEDULED, 1),
+                CalendarLayout.Tally(LessonStatus.COMPLETED, 9),
             ),
             load.tallies,
         )

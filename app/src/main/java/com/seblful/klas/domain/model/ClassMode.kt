@@ -13,7 +13,7 @@ enum class ClassMode {
     companion object {
         /**
          * The mode stored as [stored], or **null** when that is not one of these names. Total for the
-         * reason [ClassStatus.parse] gives — this is read from three text columns
+         * reason [LessonStatus.parse] gives — this is read from three text columns
          * (`classes.mode`, `students.defaultMode`, `student_groups.defaultMode`) and from a backup
          * file's copy of each.
          *

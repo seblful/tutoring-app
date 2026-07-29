@@ -99,7 +99,7 @@ object Scheduling {
      * There is one tutor, so a lesson overlapping one they are already teaching describes a time that
      * cannot happen — which is why this is a *rule* rather than a warning. Two things soften it:
      *
-     * - a **cancelled** class gives its slot back (`ClassStatus.occupiesTime`) — the lesson it was is
+     * - a **cancelled** class gives its slot back (`LessonStatus.occupiesTime`) — the lesson it was is
      *   not happening, so that hour is free to re-book;
      * - the classes named in [ignoring] are skipped, which is how the lesson **being edited** avoids
      *   colliding with itself. A group lesson has to pass *every* member's class id, not just the one

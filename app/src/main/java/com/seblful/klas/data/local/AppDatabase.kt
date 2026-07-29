@@ -12,11 +12,13 @@ import androidx.room.RoomDatabase
         GroupMemberCrossRef::class,
         PriceEntity::class,
         RateChangeEntity::class,
-        ClassEntity::class,
+        LessonEntity::class,
+        AttendanceEntity::class,
         PaymentEntity::class,
         SettingsEntity::class,
     ],
-    version = 1,
+    views = [ClassRow::class],
+    version = 2,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -26,6 +28,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun priceDao(): PriceDao
     abstract fun rateHistoryDao(): RateHistoryDao
     abstract fun classDao(): ClassDao
+    abstract fun lessonDao(): LessonDao
+    abstract fun attendanceDao(): AttendanceDao
     abstract fun paymentDao(): PaymentDao
     abstract fun settingsDao(): SettingsDao
 
@@ -35,9 +39,12 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         // Renamed with the app (was "tutoring.db"). Safe only because the application id changed in
         // the same breath: every install is a fresh one, so there is no old file left to look for.
-        // That same fact is why this database starts again at version 1 with no migrations — the
-        // only released builds are `com.seblful.repetit`, a different app Android never upgrades
-        // from. The next release sets the baseline: every schema change after it needs a migration.
+        // That same fact is why this database started again at version 1 — the only released builds are
+        // `com.seblful.repetit`, a different app Android never upgrades from.
+        //
+        // v2 splits `classes` into `lessons` + `attendance` and migrates rather than dropping, even
+        // though no release has to be upgraded from v1: the databases that do exist are the ones on the
+        // author's own phone, holding real students. See [MIGRATION_1_2].
         const val NAME = "klas.db"
     }
 }

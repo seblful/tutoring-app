@@ -1,6 +1,6 @@
 package com.seblful.klas.domain
 
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
@@ -29,13 +29,13 @@ class ClassRulesTest {
 
     @Test
     fun `already-completed class does not auto-complete again`() {
-        val done = scheduled.copy(status = ClassStatus.COMPLETED)
+        val done = scheduled.copy(status = LessonStatus.COMPLETED)
         assertFalse(ClassRules.shouldAutoComplete(done, Instant.parse("2026-06-19T00:00:00Z")))
     }
 
     @Test
     fun `cancelled class never auto-completes`() {
-        val cancelled = scheduled.copy(status = ClassStatus.CANCELLED)
+        val cancelled = scheduled.copy(status = LessonStatus.CANCELLED)
         assertFalse(ClassRules.shouldAutoComplete(cancelled, Instant.parse("2026-06-19T00:00:00Z")))
     }
 
@@ -45,8 +45,8 @@ class ClassRulesTest {
 
     @Test
     fun `completing bills the class's own booked price`() {
-        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
-        assertEquals(ClassStatus.COMPLETED, completed.status)
+        val completed = ClassRules.applyStatus(priced, LessonStatus.COMPLETED)
+        assertEquals(LessonStatus.COMPLETED, completed.status)
         assertEquals(Money.ofMajor(50), completed.charge)
     }
 
@@ -55,8 +55,8 @@ class ClassRulesTest {
         val rate = Money.ofMajor(30) // 30/hour
         val ninetyMin = scheduled.copy(price = rate, durationMinutes = 90)
         val thirtyMin = scheduled.copy(price = rate, durationMinutes = 30)
-        assertEquals(Money.ofMajor(45), ClassRules.applyStatus(ninetyMin, ClassStatus.COMPLETED).charge)
-        assertEquals(Money.ofMajor(15), ClassRules.applyStatus(thirtyMin, ClassStatus.COMPLETED).charge)
+        assertEquals(Money.ofMajor(45), ClassRules.applyStatus(ninetyMin, LessonStatus.COMPLETED).charge)
+        assertEquals(Money.ofMajor(15), ClassRules.applyStatus(thirtyMin, LessonStatus.COMPLETED).charge)
     }
 
     @Test
@@ -88,24 +88,24 @@ class ClassRulesTest {
 
     @Test
     fun `each class bills its own booked price independently`() {
-        val first = ClassRules.applyStatus(scheduled.copy(price = Money.ofMajor(50)), ClassStatus.COMPLETED)
-        val second = ClassRules.applyStatus(scheduled.copy(id = 2, price = Money.ofMajor(80)), ClassStatus.COMPLETED)
+        val first = ClassRules.applyStatus(scheduled.copy(price = Money.ofMajor(50)), LessonStatus.COMPLETED)
+        val second = ClassRules.applyStatus(scheduled.copy(id = 2, price = Money.ofMajor(80)), LessonStatus.COMPLETED)
         assertEquals(Money.ofMajor(50), first.charge)
         assertEquals(Money.ofMajor(80), second.charge)
     }
 
     @Test
     fun `cancelling a scheduled class keeps the charge at zero`() {
-        val cancelled = ClassRules.applyStatus(priced, ClassStatus.CANCELLED)
-        assertEquals(ClassStatus.CANCELLED, cancelled.status)
+        val cancelled = ClassRules.applyStatus(priced, LessonStatus.CANCELLED)
+        assertEquals(LessonStatus.CANCELLED, cancelled.status)
         assertTrue(cancelled.charge.isZero)
     }
 
     @Test
     fun `cancelling an auto-completed class voids the charge it had captured`() {
-        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
-        val cancelled = ClassRules.applyStatus(completed, ClassStatus.CANCELLED)
-        assertEquals(ClassStatus.CANCELLED, cancelled.status)
+        val completed = ClassRules.applyStatus(priced, LessonStatus.COMPLETED)
+        val cancelled = ClassRules.applyStatus(completed, LessonStatus.CANCELLED)
+        assertEquals(LessonStatus.CANCELLED, cancelled.status)
         assertTrue(cancelled.charge.isZero)
     }
 
@@ -113,27 +113,27 @@ class ClassRulesTest {
 
     @Test
     fun `a scheduled class can be completed or cancelled`() {
-        assertTrue(ClassRules.canTransition(ClassStatus.SCHEDULED, ClassStatus.COMPLETED))
-        assertTrue(ClassRules.canTransition(ClassStatus.SCHEDULED, ClassStatus.CANCELLED))
+        assertTrue(ClassRules.canTransition(LessonStatus.SCHEDULED, LessonStatus.COMPLETED))
+        assertTrue(ClassRules.canTransition(LessonStatus.SCHEDULED, LessonStatus.CANCELLED))
     }
 
     @Test
     fun `a completed class can be cancelled but not sent back to scheduled`() {
-        assertTrue(ClassRules.canTransition(ClassStatus.COMPLETED, ClassStatus.CANCELLED))
-        assertFalse(ClassRules.canTransition(ClassStatus.COMPLETED, ClassStatus.SCHEDULED))
+        assertTrue(ClassRules.canTransition(LessonStatus.COMPLETED, LessonStatus.CANCELLED))
+        assertFalse(ClassRules.canTransition(LessonStatus.COMPLETED, LessonStatus.SCHEDULED))
     }
 
     @Test
     fun `a cancelled class can be reinstated but not completed directly`() {
-        assertTrue(ClassRules.canTransition(ClassStatus.CANCELLED, ClassStatus.SCHEDULED))
-        assertFalse(ClassRules.canTransition(ClassStatus.CANCELLED, ClassStatus.COMPLETED))
+        assertTrue(ClassRules.canTransition(LessonStatus.CANCELLED, LessonStatus.SCHEDULED))
+        assertFalse(ClassRules.canTransition(LessonStatus.CANCELLED, LessonStatus.COMPLETED))
     }
 
     @Test
     fun `applying an illegal transition is rejected`() {
-        val cancelled = ClassRules.applyStatus(scheduled, ClassStatus.CANCELLED)
+        val cancelled = ClassRules.applyStatus(scheduled, LessonStatus.CANCELLED)
         assertThrows(IllegalArgumentException::class.java) {
-            ClassRules.applyStatus(cancelled, ClassStatus.COMPLETED)
+            ClassRules.applyStatus(cancelled, LessonStatus.COMPLETED)
         }
     }
 
@@ -142,7 +142,7 @@ class ClassRulesTest {
     @Test
     fun `available transitions never include the current status`() {
         // The actions menu must not offer the status the class is already in.
-        ClassStatus.entries.forEach { status ->
+        LessonStatus.entries.forEach { status ->
             assertFalse(
                 "availableTransitions($status) must exclude $status",
                 status in ClassRules.availableTransitions(status),
@@ -153,22 +153,22 @@ class ClassRulesTest {
     @Test
     fun `available transitions list exactly the legal next statuses`() {
         assertEquals(
-            setOf(ClassStatus.COMPLETED, ClassStatus.CANCELLED),
-            ClassRules.availableTransitions(ClassStatus.SCHEDULED),
+            setOf(LessonStatus.COMPLETED, LessonStatus.CANCELLED),
+            ClassRules.availableTransitions(LessonStatus.SCHEDULED),
         )
         assertEquals(
-            setOf(ClassStatus.CANCELLED),
-            ClassRules.availableTransitions(ClassStatus.COMPLETED),
+            setOf(LessonStatus.CANCELLED),
+            ClassRules.availableTransitions(LessonStatus.COMPLETED),
         )
         assertEquals(
-            setOf(ClassStatus.SCHEDULED),
-            ClassRules.availableTransitions(ClassStatus.CANCELLED),
+            setOf(LessonStatus.SCHEDULED),
+            ClassRules.availableTransitions(LessonStatus.CANCELLED),
         )
     }
 
     @Test
     fun `every offered transition is actually allowed`() {
-        ClassStatus.entries.forEach { from ->
+        LessonStatus.entries.forEach { from ->
             ClassRules.availableTransitions(from).forEach { to ->
                 assertTrue("$from -> $to should be allowed", ClassRules.canTransition(from, to))
             }
@@ -183,24 +183,24 @@ class ClassRulesTest {
         val newStart = Instant.parse("2026-06-20T15:00:00Z")
         val moved = ClassRules.move(scheduled, newStart, now)
         assertEquals(newStart, moved.start)
-        assertEquals(ClassStatus.SCHEDULED, moved.status)
+        assertEquals(LessonStatus.SCHEDULED, moved.status)
     }
 
     @Test
     fun `moving a class to the future re-plans it and voids any captured charge`() {
-        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
+        val completed = ClassRules.applyStatus(priced, LessonStatus.COMPLETED)
         val now = Instant.parse("2026-06-19T00:00:00Z")
         val moved = ClassRules.move(completed, Instant.parse("2026-06-25T10:00:00Z"), now)
-        assertEquals(ClassStatus.SCHEDULED, moved.status)
+        assertEquals(LessonStatus.SCHEDULED, moved.status)
         assertTrue(moved.charge.isZero)
     }
 
     @Test
     fun `moving a class to the past leaves its status and charge unchanged`() {
-        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
+        val completed = ClassRules.applyStatus(priced, LessonStatus.COMPLETED)
         val now = Instant.parse("2026-06-30T00:00:00Z")
         val moved = ClassRules.move(completed, Instant.parse("2026-06-25T10:00:00Z"), now)
-        assertEquals(ClassStatus.COMPLETED, moved.status)
+        assertEquals(LessonStatus.COMPLETED, moved.status)
         assertEquals(Money.ofMajor(50), moved.charge)
     }
 
@@ -209,7 +209,7 @@ class ClassRulesTest {
     @Test
     fun `rebill recomputes a completed class's charge from its current price and duration`() {
         // A completed class booked at 50/h for 60 min, then edited to 30/h for 90 min.
-        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
+        val completed = ClassRules.applyStatus(priced, LessonStatus.COMPLETED)
         val edited = completed.copy(price = Money.ofMajor(30), durationMinutes = 90)
         assertEquals(Money.ofMajor(45), ClassRules.rebill(edited).charge)
     }
@@ -218,7 +218,7 @@ class ClassRulesTest {
     fun `rebill re-attributes a completed class's charge when its owner changes`() {
         // Editing a completed class to a new student and subject derives the charge from the current
         // price rather than carrying the old snapshot — so income credits the new owner correctly.
-        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
+        val completed = ClassRules.applyStatus(priced, LessonStatus.COMPLETED)
         val reassigned = completed.copy(studentId = 2, subjectId = 99, price = Money.ofMajor(40))
         val rebilled = ClassRules.rebill(reassigned)
         assertEquals(Money.ofMajor(40), rebilled.charge)
@@ -228,9 +228,9 @@ class ClassRulesTest {
 
     @Test
     fun `rebill voids the charge for a non-billable class`() {
-        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
-        assertEquals(Money.ZERO, ClassRules.rebill(completed.copy(status = ClassStatus.SCHEDULED)).charge)
-        assertEquals(Money.ZERO, ClassRules.rebill(completed.copy(status = ClassStatus.CANCELLED)).charge)
+        val completed = ClassRules.applyStatus(priced, LessonStatus.COMPLETED)
+        assertEquals(Money.ZERO, ClassRules.rebill(completed.copy(status = LessonStatus.SCHEDULED)).charge)
+        assertEquals(Money.ZERO, ClassRules.rebill(completed.copy(status = LessonStatus.CANCELLED)).charge)
     }
 
     // --- edit: applies field changes and resolves status + charge in one step ---
@@ -238,7 +238,7 @@ class ClassRulesTest {
     @Test
     fun `edit re-bills a completed class kept in the past from its new price and duration`() {
         // Completed at 50/h for 60 min (charge 50), then re-attributed and re-priced to 30/h for 90 min.
-        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
+        val completed = ClassRules.applyStatus(priced, LessonStatus.COMPLETED)
         val now = Instant.parse("2026-06-30T00:00:00Z")
         val pastStart = Instant.parse("2026-06-25T10:00:00Z")
         val resolved = ClassRules.edit(
@@ -246,7 +246,7 @@ class ClassRulesTest {
             ClassEdit(studentId = 2, subjectId = 99, durationMinutes = 90, price = Money.ofMajor(30), mode = completed.mode),
             pastStart, now,
         )
-        assertEquals(ClassStatus.COMPLETED, resolved.status)
+        assertEquals(LessonStatus.COMPLETED, resolved.status)
         assertEquals(Money.ofMajor(45), resolved.charge)
         assertEquals(pastStart, resolved.start)
         assertEquals(2, resolved.studentId)
@@ -255,7 +255,7 @@ class ClassRulesTest {
 
     @Test
     fun `edit moving a completed class to the future re-plans it and voids the charge`() {
-        val completed = ClassRules.applyStatus(priced, ClassStatus.COMPLETED)
+        val completed = ClassRules.applyStatus(priced, LessonStatus.COMPLETED)
         val now = Instant.parse("2026-06-19T00:00:00Z")
         val futureStart = Instant.parse("2026-06-25T10:00:00Z")
         val resolved = ClassRules.edit(
@@ -263,7 +263,7 @@ class ClassRulesTest {
             ClassEdit(studentId = 1, subjectId = 1, durationMinutes = 60, price = Money.ofMajor(30), mode = completed.mode),
             futureStart, now,
         )
-        assertEquals(ClassStatus.SCHEDULED, resolved.status)
+        assertEquals(LessonStatus.SCHEDULED, resolved.status)
         assertTrue(resolved.charge.isZero)
     }
 

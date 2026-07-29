@@ -69,7 +69,7 @@ import androidx.compose.ui.unit.takeOrElse
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.LessonKind
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.DatePickerModal
@@ -188,7 +188,7 @@ fun ScheduleScreen(
                         rows = content.rows,
                         canAddClass = canAddClass,
                         onRowClick = { sheetFor = it },
-                        onComplete = { viewModel.setStatus(it.session, ClassStatus.COMPLETED) },
+                        onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
                         onAddClass = onAddClass,
                         onAddStudent = onAddStudent,
                     )
@@ -227,7 +227,7 @@ fun ScheduleScreen(
                                         row = row,
                                         onClick = { sheetFor = row },
                                         onComplete = {
-                                            viewModel.setStatus(row.session, ClassStatus.COMPLETED)
+                                            viewModel.setStatus(row.session, LessonStatus.COMPLETED)
                                         },
                                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
                                     )
@@ -258,7 +258,7 @@ fun ScheduleScreen(
                             rows = content.rows,
                             canAddClass = canAddClass,
                             onRowClick = { sheetFor = it },
-                            onComplete = { viewModel.setStatus(it.session, ClassStatus.COMPLETED) },
+                            onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
                             onAddClass = onAddClass,
                             onAddStudent = onAddStudent,
                         )
@@ -685,7 +685,7 @@ private fun ClassActionsSheet(
     row: ScheduleRow,
     sheetState: androidx.compose.material3.SheetState,
     onEdit: () -> Unit,
-    onStatus: (ClassStatus) -> Unit,
+    onStatus: (LessonStatus) -> Unit,
     onMove: () -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
@@ -758,7 +758,7 @@ private fun ClassActionsSheet(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun StatusSelector(row: ScheduleRow, onStatus: (ClassStatus) -> Unit) {
+private fun StatusSelector(row: ScheduleRow, onStatus: (LessonStatus) -> Unit) {
     val current = row.session.status
     val allowed = row.statusChoices
     Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
@@ -769,13 +769,13 @@ private fun StatusSelector(row: ScheduleRow, onStatus: (ClassStatus) -> Unit) {
             modifier = Modifier.padding(bottom = 6.dp),
         )
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            ClassStatus.entries.forEachIndexed { index, status ->
+            LessonStatus.entries.forEachIndexed { index, status ->
                 val isCurrent = status == current
                 SegmentedButton(
                     selected = isCurrent,
                     onClick = { if (!isCurrent) onStatus(status) },
                     enabled = isCurrent || status in allowed,
-                    shape = SegmentedButtonDefaults.itemShape(index, ClassStatus.entries.size),
+                    shape = SegmentedButtonDefaults.itemShape(index, LessonStatus.entries.size),
                     // No check mark. Its slot costs ~28dp of a segment that is one third of a phone,
                     // and the selected segment already carries a tinted container — which is
                     // Material's own affordance, and is what the tick was duplicating.

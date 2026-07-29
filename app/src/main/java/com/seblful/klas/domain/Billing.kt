@@ -13,18 +13,20 @@ import com.seblful.klas.domain.model.TutoringClass
 object Billing {
 
     /**
-     * Of [classes], the ones that count as income.
+     * Of [classes], the ones that count as income — the lesson happened **and** this student owes for it
+     * ([TutoringClass.isBillable]).
      *
      * `filter { it.status.isBillable }` was written out at ten sites across four modules and two view
      * models, so "what counts as income" was a convention rather than a definition — and one of the ten
      * (a group lesson's charge on its card) folded the charges without it, relying on cancelling having
-     * zeroed them while the other nine did not trust that.
+     * zeroed them while the other nine did not trust that. Having one definition is also what let the
+     * second half of the question — was this student in the room — be added in one place.
      *
      * A **list**, not a sum, because several callers need to group or count the billable classes before
      * adding anything up: filtering after grouping would invent a zero-earning month for a month whose
      * only lesson was cancelled.
      */
-    fun billable(classes: List<TutoringClass>): List<TutoringClass> = classes.filter { it.status.isBillable }
+    fun billable(classes: List<TutoringClass>): List<TutoringClass> = classes.filter { it.isBillable }
 
     /** What [classes] earned. Idempotent over an already-[billable] list, so callers may group first. */
     fun charged(classes: List<TutoringClass>): Money =

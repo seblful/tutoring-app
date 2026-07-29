@@ -1,11 +1,13 @@
 package com.seblful.klas.data.backup
 
-import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.GroupEntity
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 
 /**
@@ -44,7 +46,15 @@ object BackupIntegrity {
 
     /** @throws MalformedBackupException naming the first row that could not be read back. */
     fun check(data: BackupData) {
-        data.classes.forEach { checkClass(it) }
+        data.lessons.forEach { checkLesson(it) }
+        data.attendance.forEach { checkAttendance(it) }
+        // A v1-v5 file carries its lessons flat, and they are checked as they will be read: through the
+        // split, so one function answers for both shapes rather than a copy of it answering for the old.
+        data.classes.splitIntoLessons().let { (lessons, attendance) ->
+            data.classes.forEach { checkLegacyClass(it) }
+            lessons.forEach { checkLesson(it) }
+            attendance.forEach { checkAttendance(it) }
+        }
         data.students.forEach { checkStudent(it) }
         data.groups.forEach { checkGroup(it) }
         data.prices.forEach { checkAmount(it.amountMinor, "price for student ${it.studentId}") }
@@ -52,20 +62,38 @@ object BackupIntegrity {
         data.rateHistory.forEach { checkRateChange(it) }
     }
 
-    private fun checkClass(c: ClassEntity) {
-        if (ClassStatus.parse(c.status) == null) {
-            refuse("class ${c.id} has status \"${c.status}\"")
+    private fun checkLesson(l: LessonEntity) {
+        if (LessonStatus.parse(l.status) == null) {
+            refuse("lesson ${l.id} has status \"${l.status}\"")
         }
-        if (ClassMode.parse(c.mode) == null) {
-            refuse("class ${c.id} has mode \"${c.mode}\"")
+        if (ClassMode.parse(l.mode) == null) {
+            refuse("lesson ${l.id} has mode \"${l.mode}\"")
         }
         // A non-positive duration makes a lesson end at or before it starts, which silently disables
         // the overlap check that stops two lessons sharing an hour — see `Scheduling.Slot`.
-        if (c.durationMinutes <= 0) {
-            refuse("class ${c.id} lasts ${c.durationMinutes} minutes")
+        if (l.durationMinutes <= 0) {
+            refuse("lesson ${l.id} lasts ${l.durationMinutes} minutes")
         }
-        checkAmount(c.priceMinor, "class ${c.id}'s rate")
-        checkAmount(c.chargeMinor, "class ${c.id}'s charge")
+    }
+
+    private fun checkAttendance(a: AttendanceEntity) {
+        if (Attended.parse(a.state) == null) {
+            refuse("class ${a.id} has attendance \"${a.state}\"")
+        }
+        checkAmount(a.priceMinor, "class ${a.id}'s rate")
+        checkAmount(a.chargeMinor, "class ${a.id}'s charge")
+    }
+
+    /**
+     * The one thing an old flat class is checked for that the split cannot answer: its status has to be
+     * readable *as its own*. The split reads a lesson's status off the members that agree with one of the
+     * three and falls back to scheduled, so a member carrying `"MISSED"` would otherwise pass into a
+     * lesson that looks fine — and arrive as attendance the app cannot explain.
+     */
+    private fun checkLegacyClass(c: LegacyClass) {
+        if (LessonStatus.parse(c.status) == null) {
+            refuse("class ${c.id} has status \"${c.status}\"")
+        }
     }
 
     private fun checkStudent(s: StudentEntity) {

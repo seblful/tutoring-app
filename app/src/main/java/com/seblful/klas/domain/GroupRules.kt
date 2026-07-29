@@ -1,19 +1,22 @@
 package com.seblful.klas.domain
 
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.TutoringClass
 import java.time.Instant
 
 /**
- * One lesson as the tutor thinks of it: either a single student's class, or the several classes of
- * one group lesson (same group, same start).
+ * One lesson and the students in it: one class for an individual lesson, one per member for a group's.
  *
- * A session is **derived, never stored** — the group id and start on each class are the whole truth,
- * like balances being derived from classes and payments. [classes] is never empty and is ordered by
- * class id, so [first] is stable.
+ * The lesson is a **row** now (`lessons`), so a session is that row's classes and nothing else has to be
+ * inferred — [status] is read, not derived. It used to be the classes sharing a `(groupId, start)` pair,
+ * an invariant no schema could hold: moving one member's class on its own left the session by definition,
+ * and one lesson quietly became two competing for the same hour.
+ *
+ * [classes] is never empty and is ordered by class id, so [first] is stable.
  */
 data class ClassSession(
     val groupId: Long?,
@@ -25,28 +28,29 @@ data class ClassSession(
 
     val isGroup: Boolean get() = groupId != null
 
-    /** The representative class — carries the shared time, subject and mode. */
+    /** The representative class — carries the shared time, subject, mode and status. */
     val first: TutoringClass get() = classes.first()
+
+    /** The lesson row these classes belong to. */
+    val lessonId: Long get() = first.lessonId
 
     val start: Instant get() = first.start
 
     val size: Int get() = classes.size
 
     /**
-     * **The lesson's own status**, which is one of the three a class can be in — never a fourth.
+     * **The lesson's own status** — the hour's, held once in its own row and shared by every class of it.
      *
-     * Members can disagree: an absentee's class is cancelled on their own while the rest stay
-     * completed. That used to be answered with null and shown as a «Разные» badge, which made the
-     * badge report on the roster instead of on the lesson, in a word no class can be set to. Who
-     * missed the lesson is the roster's business; a badge answers "what happened to this lesson".
-     *
-     * A lesson is **still on** if it is on for anybody, and **happened** if it happened for anybody;
-     * it is off only when it is off for everyone. So the answer is the first status any member is in,
-     * taken in [ClassStatus]'s own order — scheduled, then completed, then cancelled — which is also
-     * most-actionable first: a lesson half marked up still reads «Запланировано», because it is.
+     * It was a derivation twice over before. First an enum on each student's row answered both "did this
+     * hour happen" and "was this student in it", so a group lesson whose absentee had been cancelled had
+     * *no* status and was badged «Разные» — a fact about the roster, in a word no class can be set to.
+     * Then it was that badge's replacement: the strictest status any member was in. Now who missed the
+     * lesson is [TutoringClass.attended]'s to say, and this is simply read.
      */
-    val status: ClassStatus
-        get() = ClassStatus.entries.first { status -> classes.any { it.status == status } }
+    val status: LessonStatus get() = first.status
+
+    /** How many of the lesson's students were actually in it — what "N of M" counts. */
+    val present: Int get() = classes.count { it.attended.wasThere }
 
     /**
      * The rate every class in the session was booked at, or null when they differ. One lesson now
@@ -59,11 +63,15 @@ data class ClassSession(
 
     companion object {
         /**
-         * Just [klass], as a session of one — the operand for changing a single class, including a
-         * **per-member correction** inside a group lesson (cancel the absentee, leave the lesson
-         * completed). Carries no group id: this is one person's class being changed, not the lesson.
+         * Just [klass], as the lesson it is the only member of — an individual lesson, which is what
+         * every write takes.
+         *
+         * It used to double as the operand for a **per-member correction** inside a group lesson (cancel
+         * the absentee, leave the lesson completed), which is why it drops the group id: that was one
+         * person's class being changed while pretending to be a lesson. Attendance is that correction
+         * now (`ClassRepository.setAttendance`), so this is only ever a lesson of one.
          */
-        fun of(klass: TutoringClass): ClassSession = ClassSession(null, listOf(klass))
+        fun of(klass: TutoringClass): ClassSession = ClassSession(klass.groupId, listOf(klass))
     }
 }
 
@@ -152,15 +160,13 @@ object GroupRules {
      *
      * Who was in a lesson is a fact the tutor may correct afterwards — somebody turned out not to
      * have come, somebody came who was never ticked — so this is expressible for a lesson in any
-     * status, past or future. What it must not do is invent history: a joiner's class carries the
-     * lesson's own subject, time, length, mode and rate ([changes], [newStart]) and takes **the
-     * status the lesson is in** ([ClassSession.status]), so joining a completed lesson owes exactly
-     * what being in it owed, and joining a scheduled one merely puts them on the schedule. Where the
-     * members disagree, the lesson's own status is still the answer — a joiner is not made to start
-     * scheduled in a lesson that has already been taught.
+     * status, past or future. What it must not do is invent history: a joiner joins **the lesson**, so
+     * they get its id and its status, and their attendance follows from it — somebody added to a lesson
+     * that was taught was in it, and owes exactly what being in it owed, while somebody added to one
+     * still to come is merely expected.
      *
-     * A leaver's class is **deleted, not cancelled**: a cancelled class records a lesson somebody
-     * missed, which is a different fact from their never having been in it.
+     * A leaver's row is **deleted, not marked absent**: absent records somebody who missed a lesson they
+     * were in, which is a different fact from their never having been in it.
      */
     fun rosterChange(
         session: ClassSession,
@@ -175,12 +181,14 @@ object GroupRules {
             dropped = session.classes.filterNot { it.studentId in wanted },
             joining = (wanted - booked).map { studentId ->
                 TutoringClass(
+                    lessonId = session.lessonId,
                     studentId = studentId,
                     subjectId = changes.subjectId,
                     start = newStart,
                     durationMinutes = changes.durationMinutes,
                     price = changes.price,
                     status = session.status,
+                    attended = if (session.status.isBillable) Attended.PRESENT else Attended.EXPECTED,
                     groupId = session.groupId,
                     mode = changes.mode,
                 )
@@ -189,19 +197,22 @@ object GroupRules {
     }
 
     /**
-     * Collapses [classes] into sessions: classes sharing a (group, start) pair become one session,
-     * every other class stands alone. Sessions come out ordered by start, then by the id of their
-     * first class, so the schedule's order is stable across re-emissions.
+     * Collapses [classes] into the lessons they belong to — **by `lessonId`**, which is what makes them
+     * one lesson and is now a column rather than a coincidence. Sessions come out ordered by start, then
+     * by the id of their first class, so the schedule's order is stable across re-emissions.
      *
-     * A class whose time is edited on its own therefore leaves its session by construction — there
-     * is no membership flag to go stale, because the session key *is* the time it happens at.
+     * This used to group by `(groupId, start)` and fall back to the class's own id for an individual one.
+     * The key being the *time* meant a class whose time was edited on its own left its session by
+     * construction — described at the time as there being "no membership flag to go stale", which is true
+     * and was the problem: two rows of one lesson could disagree about when it was, and then they were
+     * two lessons, each holding the same hour.
      */
     fun sessions(classes: List<TutoringClass>): List<ClassSession> =
         classes
-            // Individual classes get a per-class key so they can never merge with each other.
-            .groupBy { c -> c.groupId?.let { it to c.start.toEpochMilli() } ?: (null to c.id) }
-            .map { (key, group) ->
-                ClassSession(groupId = key.first, classes = group.sortedBy { it.id })
+            .groupBy { it.lessonId }
+            .map { (_, group) ->
+                val sorted = group.sortedBy { it.id }
+                ClassSession(groupId = sorted.first().groupId, classes = sorted)
             }
             .sortedWith(compareBy({ it.start }, { it.first.id }))
 
@@ -213,18 +224,12 @@ object GroupRules {
     fun bookableMembers(members: List<Student>): List<Student> = members.filterNot { it.archived }
 
     /**
-     * The statuses offered for a whole session: the union of what its classes can move to. A mixed
-     * session (say two completed, one cancelled) can still be sent to either status — [applicableTo]
-     * then picks out the classes the change is legal for, leaving the rest alone.
+     * The statuses offered for a whole lesson — simply what its own status may become.
+     *
+     * It used to be the *union* over its classes, with an `applicableTo` beside it picking out the ones
+     * the change was legal for and leaving the rest alone: machinery for a lesson whose members held
+     * different statuses, which cannot happen now that the status is the lesson's. Both went with it.
      */
-    fun sessionTransitions(session: ClassSession): Set<ClassStatus> =
-        session.classes.flatMap { ClassRules.availableTransitions(it.status) }.toSet()
-
-    /**
-     * The classes in [session] that may legally move to [to] — the others are already there, or the
-     * transition isn't allowed for them. Applying a session-wide status change to exactly these
-     * keeps a partly-corrected group lesson from throwing.
-     */
-    fun applicableTo(session: ClassSession, to: ClassStatus): List<TutoringClass> =
-        session.classes.filter { it.status != to && ClassRules.canTransition(it.status, to) }
+    fun sessionTransitions(session: ClassSession): Set<LessonStatus> =
+        ClassRules.availableTransitions(session.status)
 }

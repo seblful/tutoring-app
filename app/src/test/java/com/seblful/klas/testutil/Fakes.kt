@@ -189,13 +189,18 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
     val groupDao = FakeGroupDao()
     val priceDao = FakePriceDao()
     val rateHistoryDao = FakeRateHistoryDao()
-    val classDao = FakeClassDao()
+
+    /** The two lesson tables, and the `classes` view over them. */
+    val classStore = FakeClassStore()
+    val classDao = FakeClassDao(classStore)
+    val lessonDao = FakeLessonDao(classStore)
+    val attendanceDao = FakeAttendanceDao(classStore)
     val settingsDao = FakeSettingsDao()
     val paymentDao = FakePaymentDao()
 
     /** The same rows again, whole tables at a time — what backup and restore see. */
     val snapshotDao = FakeSnapshotDao(
-        subjectDao, studentDao, groupDao, priceDao, rateHistoryDao, classDao, paymentDao,
+        subjectDao, studentDao, groupDao, priceDao, rateHistoryDao, classStore, paymentDao,
     )
 
     val calendar = FakeCalendarSync()
@@ -204,7 +209,8 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
     val reminders = RecordingReminderScheduler()
 
     val settingsRepo = SettingsRepository(settingsDao)
-    val calendarMirror = CalendarMirror(classDao, studentDao, subjectDao, groupDao, calendar, settingsRepo)
+    val calendarMirror =
+        CalendarMirror(classDao, attendanceDao, studentDao, subjectDao, groupDao, calendar, settingsRepo)
 
     /**
      * The environment's clock, pinned — what the engine's defaulted `now`s read in a test, so the
@@ -219,6 +225,8 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
     // taught somewhere rather than counting rows in the class table themselves.
     val classRepo = ClassRepository(
         dao = classDao,
+        lessons = lessonDao,
+        attendance = attendanceDao,
         calendar = calendarMirror,
         reminderScheduler = reminders,
         transactor = transactor,

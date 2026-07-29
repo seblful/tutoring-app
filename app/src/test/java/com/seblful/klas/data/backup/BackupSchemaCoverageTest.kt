@@ -1,6 +1,7 @@
 package com.seblful.klas.data.backup
 
-import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.AttendanceEntity
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.GroupMemberCrossRef
 import com.seblful.klas.data.local.PaymentEntity
@@ -47,7 +48,8 @@ class BackupSchemaCoverageTest {
         "group_members" to GroupMemberCrossRef.serializer(),
         "prices" to PriceEntity.serializer(),
         "price_history" to RateChangeEntity.serializer(),
-        "classes" to ClassEntity.serializer(),
+        "lessons" to LessonEntity.serializer(),
+        "attendance" to AttendanceEntity.serializer(),
         "payments" to PaymentEntity.serializer(),
     )
 
@@ -91,13 +93,23 @@ class BackupSchemaCoverageTest {
             .map { descriptor.getElementDescriptor(it) }
             .filter { it.kind == StructureKind.LIST }
             .map { it.getElementDescriptor(0).serialName }
-            .toSet()
+            .toSet() - retiredShapes
         assertEquals(
             "BackupData's lists and this test's `carried` map disagree",
             carried.values.map { it.descriptor.serialName }.toSet(),
             inSnapshot,
         )
     }
+
+    /**
+     * Lists a backup **reads** but never writes: the shape an older file carries, kept so those files
+     * still import.
+     *
+     * [LegacyClass] is the v1–v5 flat class, split into a lesson and its attendance on the way in
+     * (`splitIntoLessons`). It answers to no table, which is exactly why it is excluded here rather than
+     * added to [carried] — listing it there would claim a `classes` table the schema no longer has.
+     */
+    private val retiredShapes = setOf(LegacyClass.serializer().descriptor.serialName)
 
     // ---- the exported schema -----------------------------------------------------------------
 

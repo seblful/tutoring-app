@@ -6,7 +6,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.RoomTransactor
-import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.AttendanceEntity
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.GroupMemberCrossRef
@@ -70,9 +71,16 @@ class BackupRoundTripTest {
                     RateChangeEntity(2, studentId = 1, subjectId = 1, fromMinor = 4000, toMinor = 5000, atMillis = 1_895_000_000_000),
                     RateChangeEntity(3, groupId = 7, toMinor = 2000, atMillis = null),
                 ),
-                classes = listOf(
-                    ClassEntity(1, 1, 1, 1_900_000_000_000, 90, priceMinor = 5000, status = "COMPLETED", chargeMinor = 5000, groupId = 7, mode = "REMOTE", calendarEventId = "evt-1"),
-                    ClassEntity(2, 2, 1, 1_900_100_000_000, 60, status = "SCHEDULED"),
+                lessons = listOf(
+                    LessonEntity(1, 1, 1_900_000_000_000, 90, "COMPLETED", groupId = 7, mode = "REMOTE"),
+                    LessonEntity(2, 1, 1_900_100_000_000, 60, "SCHEDULED"),
+                ),
+                // The taught lesson with one of its two members absent: the pair of facts a pre-v6 file
+                // could not carry, and so the pair the round trip most needs to prove survives.
+                attendance = listOf(
+                    AttendanceEntity(1, 1, 1, "PRESENT", priceMinor = 5000, chargeMinor = 5000, calendarEventId = "evt-1"),
+                    AttendanceEntity(2, 1, 2, "ABSENT", priceMinor = 5000),
+                    AttendanceEntity(3, 2, 2, "EXPECTED"),
                 ),
                 payments = listOf(PaymentEntity(1, 1, 1_899_000_000_000, 3000)),
             ),

@@ -9,7 +9,8 @@ import com.seblful.klas.calendar.Guest
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.local.AppDatabase
-import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.AttendanceEntity
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.GroupEntity
@@ -21,7 +22,8 @@ import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.domain.Billing
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.Attended
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Subject
 import kotlinx.coroutines.test.runTest
@@ -73,14 +75,14 @@ class SubjectDeletionCascadeTest {
         // Sync stays off in this fixture, so the mirror is reached and returns immediately: what
         // is under test here is the foreign-key behaviour, not the calendar.
         val mirror = CalendarMirror(
-            db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(),
+            db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(),
             noCalendar, SettingsRepository(db.settingsDao()),
         )
         // The real repositories, because the guards being tested are theirs: "is this subject still
         // taught" is a question about classes and about groups, and each is answered by whoever owns it.
         val transactor = RoomTransactor(db)
         val classes = ClassRepository(
-            db.classDao(), mirror, RecordingReminderScheduler(), transactor,
+            db.classDao(), db.lessonDao(), db.attendanceDao(), mirror, RecordingReminderScheduler(), transactor,
         )
         val rateHistory = RateHistoryRepository(db.rateHistoryDao(), db.groupDao(), db.priceDao(), java.time.Clock.systemDefaultZone())
         val groups = GroupRepository(
@@ -95,11 +97,14 @@ class SubjectDeletionCascadeTest {
         // A completed 50 BYN lesson with a 20 BYN payment -> student owes 30 BYN.
         db.snapshotDao().insert(
             DatabaseSnapshot(
-                classes = listOf(
-                    ClassEntity(
-                        1, 1, 1, Instant.parse("2026-05-10T10:00:00Z").toEpochMilli(), 60,
-                        status = ClassStatus.COMPLETED.name, chargeMinor = 5000,
+                lessons = listOf(
+                    LessonEntity(
+                        1, 1, Instant.parse("2026-05-10T10:00:00Z").toEpochMilli(), 60,
+                        LessonStatus.COMPLETED.name,
                     ),
+                ),
+                attendance = listOf(
+                    AttendanceEntity(1, 1, 1, Attended.PRESENT.name, chargeMinor = 5000),
                 ),
                 payments = listOf(
                     PaymentEntity(1, 1, Instant.parse("2026-05-10T12:00:00Z").toEpochMilli(), amountMinor = 2000),
@@ -111,11 +116,12 @@ class SubjectDeletionCascadeTest {
 
         assertEquals(SubjectRepository.Delete.HasClasses, deleted) // refused, and says why
         val rows = db.snapshotDao().read()
-        assertEquals(1, rows.classes.size) // class (income) preserved
+        assertEquals(1, rows.lessons.size) // the lesson, and the income on it, preserved
+        assertEquals(1, rows.attendance.size)
         assertEquals(
             Money(3000), // student still correctly owes 30 BYN
             Billing.balanceOf(
-                1, rows.classes.map { it.toDomain() }, rows.payments.map { it.toDomain() },
+                1, db.classDao().getAll().map { it.toDomain() }, rows.payments.map { it.toDomain() },
             ).balance,
         )
     }

@@ -1,9 +1,12 @@
 package com.seblful.klas.data.repository
 
+import com.seblful.klas.data.local.AttendanceDao
 import com.seblful.klas.data.local.ClassDao
+import com.seblful.klas.data.local.LessonDao
 import com.seblful.klas.data.local.Transactor
+import com.seblful.klas.data.toAttendanceEntity
 import com.seblful.klas.data.toDomain
-import com.seblful.klas.data.toEntity
+import com.seblful.klas.data.toLessonEntity
 import com.seblful.klas.domain.ClassRules
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.GroupRules
@@ -11,8 +14,9 @@ import com.seblful.klas.domain.ReminderScheduler
 import com.seblful.klas.domain.RosterChange
 import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.SessionEdit
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import kotlinx.coroutines.flow.Flow
@@ -54,6 +58,8 @@ sealed interface LessonWrite<out T> {
 @Singleton
 class ClassRepository @Inject constructor(
     private val dao: ClassDao,
+    private val lessons: LessonDao,
+    private val attendance: AttendanceDao,
     private val calendar: CalendarMirror,
     private val reminderScheduler: ReminderScheduler,
     private val transactor: Transactor,
@@ -144,9 +150,8 @@ class ClassRepository @Inject constructor(
      */
     suspend fun getSessionFor(classId: Long): ClassSession? {
         val klass = dao.getById(classId)?.toDomain() ?: return null
-        val groupId = klass.groupId ?: return ClassSession(null, listOf(klass))
-        val siblings = dao.getSession(groupId, klass.start.toEpochMilli()).map { it.toDomain() }
-        return ClassSession(groupId, siblings.ifEmpty { listOf(klass) })
+        val members = dao.getSession(klass.lessonId).map { it.toDomain() }
+        return ClassSession(klass.groupId, members.ifEmpty { listOf(klass) })
     }
 
     // ---- Referenced-by guards ------------------------------------------------------------------
@@ -161,7 +166,7 @@ class ClassRepository @Inject constructor(
     // `> 0`, and a count is not what any of them wanted.
 
     /** Whether any class is taught on [subjectId] — the guard behind deleting a subject. */
-    suspend fun anyForSubject(subjectId: Long): Boolean = dao.countForSubject(subjectId) > 0
+    suspend fun anyForSubject(subjectId: Long): Boolean = lessons.countForSubject(subjectId) > 0
 
     /**
      * Whether [studentId] has any class for [subjectId] — the guard behind unenrolling them from it.
@@ -169,14 +174,14 @@ class ClassRepository @Inject constructor(
      * it was billed at still exists.
      */
     suspend fun anyForStudentSubject(studentId: Long, subjectId: Long): Boolean =
-        dao.countForStudentSubject(studentId, subjectId) > 0
+        attendance.countForStudentSubject(studentId, subjectId) > 0
 
     /**
      * Whether [groupId] has any lesson — the guard behind deleting a group. `classes.groupId` is
      * `ON DELETE RESTRICT`, so this is the check that turns a foreign-key failure into an offer to
      * archive instead.
      */
-    suspend fun anyForGroup(groupId: Long): Boolean = dao.countForGroup(groupId) > 0
+    suspend fun anyForGroup(groupId: Long): Boolean = lessons.countForGroup(groupId) > 0
 
     // ---- Writes --------------------------------------------------------------------------------
     // Every write below takes a **lesson**, never a bare class. A group lesson is n classes sharing a
@@ -268,17 +273,21 @@ class ClassRepository @Inject constructor(
         // Every member's row in one transaction: a group lesson is either wholly booked or not
         // booked, never a partial roster nobody asked for.
         val ids = write {
+            // The lesson first, once: its hour, subject and status are one fact, and the ids of the rows
+            // below are what tie the students to it.
+            val lesson = TutoringClass(
+                studentId = 0,
+                subjectId = subjectId,
+                start = start,
+                durationMinutes = durationMinutes,
+                price = price,
+                mode = mode,
+                groupId = groupId,
+            )
+            val lessonId = lessons.upsert(lesson.toLessonEntity())
             val booked = studentIds.map { studentId ->
-                val klass = TutoringClass(
-                    studentId = studentId,
-                    subjectId = subjectId,
-                    start = start,
-                    durationMinutes = durationMinutes,
-                    price = price,
-                    mode = mode,
-                    groupId = groupId,
-                )
-                klass.copy(id = dao.upsert(klass.toEntity()))
+                val klass = lesson.copy(lessonId = lessonId, studentId = studentId)
+                klass.copy(id = attendance.upsert(klass.toAttendanceEntity()))
             }
             Committed(booked.map { it.id }, mirror = booked)
         }
@@ -348,31 +357,48 @@ class ClassRepository @Inject constructor(
     }
 
     /**
-     * Applies a status change to a whole lesson, skipping the classes it isn't legal for — so
-     * "mark completed" on a group lesson whose absentee is already cancelled completes the rest and
-     * leaves that correction standing. Returns the classes actually changed.
+     * Marks what became of a whole lesson: it happened, it was called off, or it is planned again.
      *
-     * Returning a lesson **to the schedule** re-occupies its hour, so it is checked like a booking:
-     * a cancelled class gives its slot back on purpose ([ClassStatus.occupiesTime]), and by the time
-     * it is un-cancelled the hour may be somebody else's. That is the one status change that can be
-     * refused — every other transition keeps or frees the time it already had — and it used to be
-     * the one way into an hour that nothing checked.
+     * One status, one row — the lesson's. It used to be a status per member, so this had to pick out the
+     * classes the change was legal for and leave the rest ("mark completed" on a group lesson whose
+     * absentee was cancelled), which is how a lesson came to hold several statuses at once. Who was
+     * actually in it is [setAttendance]'s, and completing carries every still-expected member to present
+     * (see [ClassRules.applyStatus]), so the tutor's one tap still bills the room.
+     *
+     * Returning a lesson **to the schedule** re-occupies its hour, so it is checked like a booking: a
+     * cancelled lesson gives its slot back on purpose ([LessonStatus.occupiesTime]), and by the time it is
+     * un-cancelled the hour may be somebody else's. That is the one status change that can be refused —
+     * every other transition keeps or frees the time it already had.
      */
-    suspend fun setStatus(session: ClassSession, to: ClassStatus): LessonWrite<List<TutoringClass>> {
-        val changing = GroupRules.applicableTo(session, to)
-        if (to.occupiesTime && changing.any { !it.status.occupiesTime }) {
+    suspend fun setStatus(session: ClassSession, to: LessonStatus): LessonWrite<List<TutoringClass>> {
+        if (session.status == to) return LessonWrite.Written(emptyList())
+        if (to.occupiesTime && !session.status.occupiesTime) {
             holdingHour(session.first.start, session.first.durationMinutes, session.classes.map { it.id }.toSet())
                 ?.let { return LessonWrite.HourTaken(it) }
         }
-        return LessonWrite.Written(persist(changing.map { ClassRules.applyStatus(it, to) }))
+        return LessonWrite.Written(persist(session.classes.map { ClassRules.applyStatus(it, to) }))
     }
+
+    /**
+     * Records whether one student was in one lesson — the per-member correction, and the only write that
+     * touches a single row of a lesson rather than the lesson.
+     *
+     * This is what the absentee of a lesson that went ahead used to need a whole fake session for: their
+     * class was *cancelled*, which zeroed their charge, left the lesson itself with no single status, and
+     * could not express a no-show that is billed anyway ([Attended.ABSENT_BILLED]). Rebilling is
+     * [ClassRules.applyAttendance]'s, so the charge follows the fact.
+     */
+    suspend fun setAttendance(klass: TutoringClass, attended: Attended): List<TutoringClass> =
+        persist(listOf(ClassRules.applyAttendance(klass, attended)))
 
     /**
      * Deletes every class of a lesson, with its calendar events. Deleting a completed lesson removes
      * its recognized income, which is derived rather than stored, so it simply stops being counted.
      */
     suspend fun delete(session: ClassSession) = write {
-        session.classes.forEach { dao.delete(it.toEntity()) }
+        // The lesson row, and its students go with it — `attendance.lessonId` is ON DELETE CASCADE, the
+        // lesson being the unit of deletion. Deleting per class was the only way to say this before.
+        lessons.deleteById(session.lessonId)
         Committed(Unit, drop = session.classes)
     }
 
@@ -397,16 +423,23 @@ class ClassRepository @Inject constructor(
         dropped: List<TutoringClass> = emptyList(),
     ): List<TutoringClass> = write {
         // Leavers go first, so the updates below have nobody left to re-bill on their way out.
-        dropped.forEach { dao.delete(it.toEntity()) }
-        resolved.forEach { dao.update(it.toEntity()) }
+        dropped.forEach { attendance.deleteById(it.id) }
+        // The lesson's own row **once**, from any of its classes — they carry the same lesson, and a
+        // caller cannot hand over classes that do not (`ClassSession`). Writing it per class is what
+        // stored a status n times and let the copies drift.
+        resolved.firstOrNull()?.let { lessons.update(it.toLessonEntity()) }
+        resolved.forEach { attendance.update(it.toAttendanceEntity()) }
         val joined = joining.map { ClassRules.rebill(it) }.map { klass ->
-            klass.copy(id = dao.upsert(klass.toEntity()))
+            klass.copy(id = attendance.upsert(klass.toAttendanceEntity()))
         }
+        // A lesson nobody is left in is not a lesson. Only reachable through a roster change, and only
+        // inside this transaction, so a half-emptied lesson is never something another read can see.
+        if (dropped.isNotEmpty()) lessons.deleteEmpty()
         Committed(resolved + joined, mirror = resolved + joined, drop = dropped)
     }
 
     /**
-     * Cancels every class of [studentId]'s that is still [ClassStatus.SCHEDULED], and returns them.
+     * Cancels every class of [studentId]'s that is still [LessonStatus.SCHEDULED], and returns them.
      *
      * This is what archiving a student has to do to the schedule, and it lives here because every side
      * effect of a class change does: the charges are voided, the slots are given back, the calendar
@@ -432,14 +465,20 @@ class ClassRepository @Inject constructor(
      * the lesson goes ahead for everyone else.
      */
     suspend fun cancelScheduledFor(studentId: Long): List<TutoringClass> {
-        val cancelled = dao.scheduledForStudent(studentId)
-            .map { ClassRules.applyStatus(it.toDomain(), ClassStatus.CANCELLED) }
-        if (cancelled.isEmpty()) return emptyList()
+        val theirs = dao.scheduledForStudent(studentId).map { it.toDomain() }
+        if (theirs.isEmpty()) return emptyList()
+        // Their own lessons are called off; a group's is not, because it goes ahead without them. That
+        // distinction is what the split makes expressible: before, both were "cancel their class", which
+        // left the group lesson holding a cancelled member and no status of its own.
+        val (mine, groups) = theirs.partition { it.groupId == null }
+        val cancelled = mine.map { ClassRules.applyStatus(it, LessonStatus.CANCELLED) }
+        val excused = groups.map { ClassRules.applyAttendance(it, Attended.ABSENT) }
         // One transaction for the lot: a half-archived student would have some lessons called off and
         // others still due to bill, which is the state this exists to rule out.
         return write {
-            cancelled.forEach { dao.update(it.toEntity()) }
-            Committed(cancelled, mirror = cancelled)
+            cancelled.forEach { lessons.update(it.toLessonEntity()) }
+            (cancelled + excused).forEach { attendance.update(it.toAttendanceEntity()) }
+            Committed(cancelled + excused, mirror = cancelled + excused)
         }
     }
 
@@ -457,14 +496,21 @@ class ClassRepository @Inject constructor(
      * throw the first one away.
      */
     suspend fun autoCompleteDue(now: Instant): List<TutoringClass> {
-        val due = dao.dueForCompletion(now.toEpochMilli())
-            .map { it.toDomain() }
+        // Asked of the lessons, then read back as classes: a lesson is what finishes, and its members are
+        // who it bills. `dueForCompletion` used to return a row per member of the same finished hour.
+        val dueLessons = lessons.dueForCompletion(now.toEpochMilli()).map { it.id }
+        val due = dueLessons
+            .flatMap { lessonId -> dao.getSession(lessonId).map { it.toDomain() } }
             .filter { ClassRules.shouldAutoComplete(it, now) }
-            .map { ClassRules.applyStatus(it, ClassStatus.COMPLETED) }
+            .map { ClassRules.applyStatus(it, LessonStatus.COMPLETED) }
+        if (due.isEmpty()) return emptyList()
         // One pass, one transaction: an upkeep run that recognized half of an evening's income and
         // then failed would leave a group lesson billing some of its members and not the rest.
         return write(refreshesReminders = false) {
-            due.forEach { dao.update(it.toEntity()) }
+            due.groupBy { it.lessonId }.forEach { (_, members) ->
+                lessons.update(members.first().toLessonEntity())
+                members.forEach { attendance.update(it.toAttendanceEntity()) }
+            }
             Committed(due)
         }
     }

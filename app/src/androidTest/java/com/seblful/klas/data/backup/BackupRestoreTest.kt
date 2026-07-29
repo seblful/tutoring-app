@@ -8,7 +8,8 @@ import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
 import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.RoomTransactor
-import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.AttendanceEntity
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.StudentEntity
@@ -17,7 +18,8 @@ import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.testutil.RecordingReminderScheduler
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.Attended
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -66,7 +68,7 @@ class BackupRestoreTest {
         target = newDb()
         settings = SettingsRepository(target.settingsDao())
         val mirror = CalendarMirror(
-            target.classDao(), target.studentDao(), target.subjectDao(), target.groupDao(),
+            target.classDao(), target.attendanceDao(), target.studentDao(), target.subjectDao(), target.groupDao(),
             noCalendar, settings,
         )
         restore = BackupRestore(
@@ -89,12 +91,13 @@ class BackupRestoreTest {
                 subjects = listOf(SubjectEntity(1, "Математика")),
                 students = listOf(StudentEntity(1, "Иван")),
                 prices = listOf(PriceEntity(1, 1, amountMinor = 5000)),
-                classes = listOf(
-                    ClassEntity(
-                        1, 1, 1, Instant.parse("2026-06-18T10:00:00Z").toEpochMilli(), 60,
-                        priceMinor = 5000, status = ClassStatus.SCHEDULED.name,
+                lessons = listOf(
+                    LessonEntity(
+                        1, 1, Instant.parse("2026-06-18T10:00:00Z").toEpochMilli(), 60,
+                        status = LessonStatus.SCHEDULED.name,
                     ),
                 ),
+                attendance = listOf(AttendanceEntity(1, 1, 1, Attended.EXPECTED.name, priceMinor = 5000)),
             ),
         )
         return managerFor(source).exportJson()
@@ -109,7 +112,8 @@ class BackupRestoreTest {
         val restored = target.snapshotDao().read()
         assertEquals(listOf("Математика"), restored.subjects.map { it.name })
         assertEquals(listOf("Иван"), restored.students.map { it.name })
-        assertEquals(1, restored.classes.size)
+        assertEquals(1, restored.lessons.size)
+        assertEquals(1, restored.attendance.size)
         assertTrue(settings.get().onboardingComplete) // restored data *is* the setup
         assertEquals(1, reminders.refreshCount) // imported classes re-plan reminders
     }

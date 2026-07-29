@@ -49,9 +49,8 @@ data class Group(
 )
 
 /**
- * The current price for one (student, subject) pair. Editing it never alters classes
- * already completed: a completed class captures its charge at completion time (see
- * [TutoringClass.charge]).
+ * The current price for one (student, subject) pair. Editing it never alters lessons already taught:
+ * a class captures the rate it was booked at (see [TutoringClass.price]).
  */
 data class Price(
     val studentId: Long,
@@ -60,33 +59,56 @@ data class Price(
 )
 
 /**
- * A single class occurrence.
+ * One student's class: their place in one lesson, with that lesson's own facts alongside it.
  *
- * @param price the **hourly rate** chosen when the class was booked — defaulted from the student's
- *   [Price] for the subject, or from the [Group]'s own rate when the lesson is a group one, then
- *   editable. The [charge] at completion is this rate scaled by the lesson's duration, so the booked
- *   rate — not a later price edit — is what gets billed.
- * @param charge recognized income: the hourly [price] scaled by [durationMinutes] once the class is
- *   completed (see `ClassRules.chargeFor`), [Money.ZERO] while scheduled or once cancelled.
- * @param groupId the [Group] this class was booked as part of, or null when it is an individual
- *   class. One group lesson is *n* classes sharing this id and [start] — see `GroupRules.sessions`.
- * @param mode in person or remote; pre-filled from the student's default, editable per class.
- * @param calendarEventId id of the mirrored Google Calendar event, if synced.
+ * **A joined read model, not a row.** Storage keeps the lesson once (`lessons`) and the student's part in
+ * it once (`attendance`); this is the two of them together, which is what the app has always meant by "a
+ * class" and what every rule below the UI reads. The `classes` view is where the join happens, so nothing
+ * above storage assembles it by hand.
+ *
+ * @param lessonId the lesson this belongs to. Its members are exactly the classes sharing it — see
+ *   `GroupRules.sessions`, which used to have to group by `(groupId, start)` and could be fooled by a
+ *   member being moved on their own.
+ * @param status the **lesson's** — whether the hour happened. Shared by every class of one lesson,
+ *   because it is one fact about one hour.
+ * @param attended whether *this student* was in it. Independent of [status] on purpose: a lesson can be
+ *   taught with somebody missing, and a missing student can still owe ([Attended.ABSENT_BILLED]).
+ * @param price the **hourly rate** chosen when the lesson was booked — defaulted from the student's
+ *   [Price] for the subject, or from the [Group]'s own rate for a group lesson, then editable. The
+ *   [charge] is this rate scaled by the duration, so the booked rate — not a later price edit — is what
+ *   gets billed.
+ * @param charge recognized income: [Money.ZERO] unless [isBillable].
+ * @param groupId the [Group] whose lesson this is, or null for an individual one.
+ * @param mode in person or remote; pre-filled from the student's default, editable per lesson.
+ * @param calendarEventId id of the mirrored Google Calendar event, if synced. Per student: a group
+ *   lesson mirrors as one event each, so each keeps their own invitation.
  */
 data class TutoringClass(
     val id: Long = 0,
+    val lessonId: Long = 0,
     val studentId: Long,
     val subjectId: Long,
     val start: Instant,
     val durationMinutes: Int,
     val price: Money = Money.ZERO,
-    val status: ClassStatus = ClassStatus.SCHEDULED,
+    val status: LessonStatus = LessonStatus.SCHEDULED,
+    val attended: Attended = Attended.EXPECTED,
     val charge: Money = Money.ZERO,
     val groupId: Long? = null,
     val mode: ClassMode = ClassMode.IN_PERSON,
     val calendarEventId: String? = null,
 ) {
     val end: Instant get() = start.plusSeconds(durationMinutes * 60L)
+
+    /**
+     * Whether this student owes for this lesson: **the lesson happened and they were in it** — or were
+     * not, under a policy that charges anyway ([Attended.ABSENT_BILLED]).
+     *
+     * The two halves are the whole point of the model. It used to be one enum's `isBillable`, so the
+     * only way to record a no-show was to cancel their class, and the only way to charge one was to
+     * record them as present.
+     */
+    val isBillable: Boolean get() = status.isBillable && attended.bills
 }
 
 /** A payment received from a student. Reduces the student's balance. */

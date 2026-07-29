@@ -13,7 +13,7 @@ import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import kotlinx.coroutines.test.runTest
@@ -60,10 +60,10 @@ class ClassCalendarSyncTest {
         val settings = SettingsRepository(db.settingsDao())
         settings.update { it.copy(calendarSyncEnabled = true) } // calendar mirroring is off unless enabled
         val mirror = CalendarMirror(
-            db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(), calendar, settings,
+            db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(), calendar, settings,
         )
         repo = ClassRepository(
-            db.classDao(), mirror, RecordingReminderScheduler(), RoomTransactor(db),
+            db.classDao(), db.lessonDao(), db.attendanceDao(), mirror, RecordingReminderScheduler(), RoomTransactor(db),
         )
     }
 
@@ -96,7 +96,7 @@ class ClassCalendarSyncTest {
         // voided, and its (future) event is re-created/updated.
         val start = Instant.parse("2026-07-01T13:00:00Z")
         val id = book(start, price = Money(5000))
-        repo.setStatus(session(id), ClassStatus.COMPLETED)
+        repo.setStatus(session(id), LessonStatus.COMPLETED)
         calendar.upserts.clear()
 
         val now = Instant.parse("2026-07-05T09:00:00Z")
@@ -104,7 +104,7 @@ class ClassCalendarSyncTest {
         val result = repo.move(session(id), newStart, now).written().single()
 
         assertEquals(newStart, result.start)
-        assertEquals(ClassStatus.SCHEDULED, repo.getById(id)?.status)
+        assertEquals(LessonStatus.SCHEDULED, repo.getById(id)?.status)
         assertTrue(repo.getById(id)?.charge?.isZero == true) // charge voided
         assertEquals(1, calendar.upserts.size) // event re-synced
     }
@@ -112,21 +112,21 @@ class ClassCalendarSyncTest {
     @Test fun movingAClassToThePastKeepsItsStatus() = runTest {
         val start = Instant.parse("2026-07-10T13:00:00Z")
         val id = book(start, price = Money(5000))
-        repo.setStatus(session(id), ClassStatus.COMPLETED)
+        repo.setStatus(session(id), LessonStatus.COMPLETED)
 
         val now = Instant.parse("2026-07-15T09:00:00Z")
         val newStart = Instant.parse("2026-07-12T10:00:00Z") // still in the past relative to now
         repo.move(session(id), newStart, now)
 
         assertEquals(newStart, repo.getById(id)?.start)
-        assertEquals(ClassStatus.COMPLETED, repo.getById(id)?.status) // status unchanged
+        assertEquals(LessonStatus.COMPLETED, repo.getById(id)?.status) // status unchanged
         assertEquals(Money(5000), repo.getById(id)?.charge) // charge kept
     }
 
     @Test fun cancellingClassDeletesItsEvent() = runTest {
         val id = book(Instant.parse("2026-07-01T13:00:00Z"))
 
-        repo.setStatus(session(id), ClassStatus.CANCELLED)
+        repo.setStatus(session(id), LessonStatus.CANCELLED)
 
         assertTrue(calendar.deletes.contains("100"))
         assertNull(repo.getById(id)?.calendarEventId)

@@ -1,6 +1,5 @@
 package com.seblful.klas
 
-import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.data.repository.LessonWrite
@@ -14,7 +13,7 @@ import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.SessionEdit
 import com.seblful.klas.domain.Taught
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Subject
@@ -83,7 +82,7 @@ class EdgeCaseCombinationsTest {
             ).written()
             env.classRepo.setStatus(
                 env.classRepo.getSessionFor(annIds.single())!!,
-                ClassStatus.CANCELLED,
+                LessonStatus.CANCELLED,
             )
 
             // The hour is free again, so this is an ordinary booking that the form allows.
@@ -95,7 +94,7 @@ class EdgeCaseCombinationsTest {
             // «Вернуть в расписание» — the one status change that re-occupies time.
             val outcome = env.classRepo.setStatus(
                 env.classRepo.getSessionFor(annIds.single())!!,
-                ClassStatus.SCHEDULED,
+                LessonStatus.SCHEDULED,
             )
 
             assertTrue(
@@ -255,14 +254,14 @@ class EdgeCaseCombinationsTest {
             classes = listOf(
                 TutoringClass(
                     id = 1, studentId = 1, subjectId = 1, start = at, durationMinutes = 60,
-                    status = ClassStatus.CANCELLED, groupId = 7,
+                    status = LessonStatus.CANCELLED, groupId = 7,
                 ),
             ),
         )
 
         val change = GroupRules.rosterChange(cancelled, setOf(1L, 2L), edit(subjectId = 1), at)
         val joiner = ClassRules.rebill(change.joining.single())
-        assertEquals(ClassStatus.CANCELLED, joiner.status)
+        assertEquals(LessonStatus.CANCELLED, joiner.status)
         assertTrue("a cancelled lesson bills nobody, joiners included", joiner.charge.isZero)
     }
 
@@ -312,7 +311,7 @@ class EdgeCaseCombinationsTest {
         start = at,
         durationMinutes = minutes,
         price = Money.ofMajor(30),
-        status = ClassStatus.COMPLETED,
+        status = LessonStatus.COMPLETED,
         charge = ClassRules.chargeFor(Money.ofMajor(30), minutes),
         groupId = groupId,
     )

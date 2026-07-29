@@ -1,12 +1,13 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.SessionEdit
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.TestEnv
@@ -78,7 +79,7 @@ class ClassRepositoryGroupTest {
         assertEquals(groupRate, session.sharedPrice)
         // Every member's class shares the lesson's time, subject and mode.
         assertTrue(session.classes.all { it.start == start && it.subjectId == algebra })
-        assertTrue(session.classes.all { it.status == ClassStatus.SCHEDULED })
+        assertTrue(session.classes.all { it.status == LessonStatus.SCHEDULED })
     }
 
     @Test
@@ -132,7 +133,7 @@ class ClassRepositoryGroupTest {
         seed()
         val ids = bookSession()
 
-        val updated = repo.setStatus(repo.getSessionFor(ids.first())!!, ClassStatus.COMPLETED).written()
+        val updated = repo.setStatus(repo.getSessionFor(ids.first())!!, LessonStatus.COMPLETED).written()
 
         assertEquals(2, updated.size)
         // One rate, but still a charge each: the group says how much, the students still owe it.
@@ -140,35 +141,65 @@ class ClassRepositoryGroupTest {
         assertEquals(mapOf(ann to groupRate, bob to groupRate), charged)
     }
 
+    /**
+     * The absentee of a lesson that went ahead: **their attendance**, not their own status.
+     *
+     * This used to be `setStatus` on a session fabricated out of one class, which cancelled it — the only
+     * way to stop charging them, and the reason the lesson itself ended up holding two statuses at once.
+     */
     @Test
-    fun `one absentee is cancelled on their own while the lesson stays completed`() = runTest {
+    fun `one absentee is marked absent while the lesson stays taught`() = runTest {
         seed()
         val ids = bookSession()
-        val session = repo.getSessionFor(ids.first())!!
-        repo.setStatus(session, ClassStatus.COMPLETED)
+        repo.setStatus(repo.getSessionFor(ids.first())!!, LessonStatus.COMPLETED)
 
-        // Cancel just Bob's class — one member of a group lesson, as a session of one.
         val bobsClass = repo.getSessionFor(ids.first())!!.classes.single { it.studentId == bob }
-        repo.setStatus(ClassSession.of(bobsClass), ClassStatus.CANCELLED)
+        repo.setAttendance(bobsClass, Attended.ABSENT)
 
         val after = repo.getSessionFor(ids.first())!!
-        assertEquals("the lesson was still taught", ClassStatus.COMPLETED, after.status)
+        assertEquals("the lesson was still taught", LessonStatus.COMPLETED, after.status)
+        assertEquals("and taught to one of the two", 1, after.present)
         assertEquals(Money.ZERO, after.classes.single { it.studentId == bob }.charge)
         assertEquals(groupRate, after.classes.single { it.studentId == ann }.charge)
     }
 
+    /**
+     * The thing the old model could not say at all: absent, and charged for it anyway. A late
+     * cancellation costs the hour it was too late to fill.
+     */
     @Test
-    fun `completing a partly cancelled lesson leaves the correction standing`() = runTest {
+    fun `an absentee can be charged anyway`() = runTest {
+        seed()
+        val ids = bookSession()
+        repo.setStatus(repo.getSessionFor(ids.first())!!, LessonStatus.COMPLETED)
+
+        val bobsClass = repo.getSessionFor(ids.first())!!.classes.single { it.studentId == bob }
+        repo.setAttendance(bobsClass, Attended.ABSENT_BILLED)
+
+        val after = repo.getSessionFor(ids.first())!!
+        assertEquals("he was not there", 1, after.present)
+        assertEquals("but still owes for it", groupRate, after.classes.single { it.studentId == bob }.charge)
+    }
+
+    /**
+     * Completing the lesson afterwards leaves that correction standing: the tutor's tap is about the hour,
+     * and who was in it has already been answered.
+     */
+    @Test
+    fun `completing a lesson with an absentee leaves the absence standing`() = runTest {
         seed()
         val ids = bookSession()
         val bobsClass = repo.getSessionFor(ids.first())!!.classes.single { it.studentId == bob }
-        repo.setStatus(ClassSession.of(bobsClass), ClassStatus.CANCELLED)
+        repo.setAttendance(bobsClass, Attended.ABSENT)
 
-        repo.setStatus(repo.getSessionFor(ids.first())!!, ClassStatus.COMPLETED)
+        repo.setStatus(repo.getSessionFor(ids.first())!!, LessonStatus.COMPLETED)
 
         val after = repo.getSessionFor(ids.first())!!
-        assertEquals(ClassStatus.COMPLETED, after.classes.single { it.studentId == ann }.status)
-        assertEquals(ClassStatus.CANCELLED, after.classes.single { it.studentId == bob }.status)
+        assertEquals(LessonStatus.COMPLETED, after.status)
+        assertEquals(Attended.PRESENT, after.classes.single { it.studentId == ann }.attended)
+        assertEquals(Attended.ABSENT, after.classes.single { it.studentId == bob }.attended)
+        assertEquals("and bills only the one who came", groupRate, after.classes.single { it.studentId == ann }.charge)
+        assertEquals(Money.ZERO, after.classes.single { it.studentId == bob }.charge)
     }
 
     @Test
@@ -189,7 +220,7 @@ class ClassRepositoryGroupTest {
         seed()
         val ids = bookSession()
         val session = repo.getSessionFor(ids.first())!!
-        repo.setStatus(session, ClassStatus.COMPLETED)
+        repo.setStatus(session, LessonStatus.COMPLETED)
 
         // 90 minutes at a new rate of 40/h -> 60 each.
         repo.apply(
@@ -206,7 +237,7 @@ class ClassRepositoryGroupTest {
 
         val after = repo.getSessionFor(ids.first())!!
         assertEquals(2, after.size)
-        assertTrue("the lesson stays completed when it stays in the past", after.classes.all { it.status == ClassStatus.COMPLETED })
+        assertTrue("the lesson stays completed when it stays in the past", after.classes.all { it.status == LessonStatus.COMPLETED })
         assertEquals(
             mapOf(ann to Money.ofMajor(60), bob to Money.ofMajor(60)),
             after.classes.associate { it.studentId to it.charge },
@@ -231,9 +262,15 @@ class ClassRepositoryGroupTest {
             studentIds = listOf(ann),
             price = Money.ofMajor(30),
         ).written()
+        // Борис joins the same lesson at his own rate — a lesson from before groups priced themselves.
         val annRow = env.classDao.getById(annIds.single())!!
-        val ids = annIds + env.classDao.upsert(
-            annRow.copy(id = 0, studentId = bob, priceMinor = Money.ofMajor(25).minor),
+        val ids = annIds + env.attendanceDao.upsert(
+            AttendanceEntity(
+                lessonId = annRow.lessonId,
+                studentId = bob,
+                state = annRow.state,
+                priceMinor = Money.ofMajor(25).minor,
+            ),
         )
         assertNull("members on differing rates have no single lesson rate", repo.getSessionFor(ids.first())!!.sharedPrice)
 
@@ -251,7 +288,7 @@ class ClassRepositoryGroupTest {
     fun `editing a completed group lesson into the future re-plans every member`() = runTest {
         seed()
         val ids = bookSession()
-        repo.setStatus(repo.getSessionFor(ids.first())!!, ClassStatus.COMPLETED)
+        repo.setStatus(repo.getSessionFor(ids.first())!!, LessonStatus.COMPLETED)
 
         val now = Instant.parse("2026-09-01T12:00:00Z")
         repo.apply(
@@ -262,7 +299,7 @@ class ClassRepositoryGroupTest {
         )
 
         val after = repo.getSessionFor(ids.first())!!
-        assertTrue(after.classes.all { it.status == ClassStatus.SCHEDULED })
+        assertTrue(after.classes.all { it.status == LessonStatus.SCHEDULED })
         assertTrue(after.classes.all { it.charge == Money.ZERO })
     }
 
@@ -295,7 +332,7 @@ class ClassRepositoryGroupTest {
     fun `dropping a completed member takes their charge out of the lesson`() = runTest {
         seed()
         val ids = bookSession()
-        repo.setStatus(repo.getSessionFor(ids.first())!!, ClassStatus.COMPLETED)
+        repo.setStatus(repo.getSessionFor(ids.first())!!, LessonStatus.COMPLETED)
 
         repo.apply(
             repo.getSessionFor(ids.first())!!,
@@ -334,7 +371,7 @@ class ClassRepositoryGroupTest {
         assertEquals(90, joined.durationMinutes)
         assertEquals(Money.ofMajor(40), joined.price)
         assertEquals(ClassMode.REMOTE, joined.mode)
-        assertEquals(ClassStatus.SCHEDULED, joined.status)
+        assertEquals(LessonStatus.SCHEDULED, joined.status)
         assertEquals("nothing owed on a lesson that hasn't happened", Money.ZERO, joined.charge)
     }
 
@@ -343,7 +380,7 @@ class ClassRepositoryGroupTest {
     fun `adding a member to a completed lesson bills them like everyone else`() = runTest {
         seed()
         val ids = bookSession(members = listOf(ann))
-        repo.setStatus(repo.getSessionFor(ids.first())!!, ClassStatus.COMPLETED)
+        repo.setStatus(repo.getSessionFor(ids.first())!!, LessonStatus.COMPLETED)
 
         repo.apply(
             repo.getSessionFor(ids.first())!!,
@@ -354,7 +391,7 @@ class ClassRepositoryGroupTest {
         )
 
         val after = repo.getSessionFor(ids.first())!!
-        assertEquals(ClassStatus.COMPLETED, after.status)
+        assertEquals(LessonStatus.COMPLETED, after.status)
         assertEquals(
             "the joiner owes what being in the lesson owed",
             mapOf(ann to groupRate, bob to groupRate),
@@ -423,12 +460,10 @@ class ClassRepositoryGroupTest {
     @Test
     fun `an individual class loads as a one-member session, so the same actions apply`() = runTest {
         seed()
-        val id = env.classDao.upsert(
-            ClassEntity(
+        val id = env.fixtures.storedClass(
                 studentId = ann, subjectId = algebra, startMillis = start.toEpochMilli(),
                 durationMinutes = 60, status = "SCHEDULED",
-            ),
-        )
+            )
 
         val session = repo.getSessionFor(id)!!
 

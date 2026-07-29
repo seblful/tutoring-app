@@ -66,7 +66,7 @@ import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.LessonFilter
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Subject
@@ -711,7 +711,7 @@ private fun LazyListScope.classesTab(
                 }
             },
             trailingContent = {
-                if (row.klass.status == ClassStatus.COMPLETED) Text(row.klass.charge.text())
+                if (row.klass.status == LessonStatus.COMPLETED) Text(row.klass.charge.text())
             },
         )
     }

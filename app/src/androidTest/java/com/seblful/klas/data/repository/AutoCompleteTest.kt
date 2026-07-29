@@ -9,13 +9,15 @@ import com.seblful.klas.calendar.Guest
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.RoomTransactor
-import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.AttendanceEntity
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.Billing
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.Attended
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import kotlinx.coroutines.test.runTest
@@ -51,10 +53,10 @@ class AutoCompleteTest {
         )
         val settings = SettingsRepository(db.settingsDao())
         val mirror = CalendarMirror(
-            db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(), noCalendar, settings,
+            db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(), noCalendar, settings,
         )
         repo = ClassRepository(
-            db.classDao(), mirror, RecordingReminderScheduler(), RoomTransactor(db),
+            db.classDao(), db.lessonDao(), db.attendanceDao(), mirror, RecordingReminderScheduler(), RoomTransactor(db),
         )
     }
 
@@ -65,9 +67,10 @@ class AutoCompleteTest {
         val start = Instant.parse("2026-06-18T10:00:00Z")
         db.snapshotDao().insert(
             DatabaseSnapshot(
-                classes = listOf(
-                    ClassEntity(1, 1, 1, start.toEpochMilli(), 60, priceMinor = 5000, status = ClassStatus.SCHEDULED.name),
+                lessons = listOf(
+                    LessonEntity(1, 1, start.toEpochMilli(), 60, LessonStatus.SCHEDULED.name),
                 ),
+                attendance = listOf(AttendanceEntity(1, 1, 1, Attended.EXPECTED.name, priceMinor = 5000)),
             ),
         )
         val now = start.plusSeconds(2 * 3600)
@@ -76,7 +79,7 @@ class AutoCompleteTest {
 
         assertEquals(1, completed.size)
         val klass = repo.getById(1)!!
-        assertEquals(ClassStatus.COMPLETED, klass.status)
+        assertEquals(LessonStatus.COMPLETED, klass.status)
         assertEquals(Money(5000), klass.charge) // billed its booked price
         // ...and it shows up as the student's debt.
         val balance = Billing.balanceOf(1, repo.getAll(), emptyList()).balance

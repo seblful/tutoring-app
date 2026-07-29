@@ -3,13 +3,14 @@ package com.seblful.klas.data.repository
 import com.seblful.klas.calendar.CalendarEvent
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
+import com.seblful.klas.data.local.AttendanceDao
 import com.seblful.klas.data.local.ClassDao
 import com.seblful.klas.data.local.GroupDao
 import com.seblful.klas.data.local.StudentDao
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectDao
 import com.seblful.klas.data.toDomain
-import com.seblful.klas.data.toEntity
+import com.seblful.klas.data.toAttendanceEntity
 import com.seblful.klas.domain.CalendarSyncPolicy
 import com.seblful.klas.domain.model.TutoringClass
 import javax.inject.Inject
@@ -41,6 +42,11 @@ import javax.inject.Singleton
 @Singleton
 class CalendarMirror @Inject constructor(
     private val classDao: ClassDao,
+    /**
+     * The event id belongs to **one student's** row, a group lesson mirroring as an event each, so the
+     * one thing this writes is an attendance row — never a lesson.
+     */
+    private val attendanceDao: AttendanceDao,
     private val studentDao: StudentDao,
     private val subjectDao: SubjectDao,
     private val groupDao: GroupDao,
@@ -128,7 +134,7 @@ class CalendarMirror @Inject constructor(
     private suspend fun detach(klass: TutoringClass) {
         val eventId = klass.calendarEventId ?: return
         calendarSync.delete(eventId)
-        classDao.update(klass.copy(calendarEventId = null).toEntity())
+        attendanceDao.update(klass.copy(calendarEventId = null).toAttendanceEntity())
     }
 
     /**
@@ -148,7 +154,7 @@ class CalendarMirror @Inject constructor(
                     reminderLeadMinutes = settings.reminderLeadMinutes,
                 )
                 if (eventId != null && eventId != klass.calendarEventId) {
-                    classDao.update(klass.copy(calendarEventId = eventId).toEntity())
+                    attendanceDao.update(klass.copy(calendarEventId = eventId).toAttendanceEntity())
                 }
             }
             CalendarSyncPolicy.Action.DELETE -> detach(klass)

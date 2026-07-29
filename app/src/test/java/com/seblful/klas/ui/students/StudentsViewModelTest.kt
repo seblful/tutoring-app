@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.students
 
-import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.Money
@@ -31,7 +30,7 @@ class StudentsViewModelTest {
         val active = env.studentDao.upsert(StudentEntity(name = "Аня"))
         env.studentDao.upsert(StudentEntity(name = "Старый", archived = true))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        env.classDao.upsert(ClassEntity(studentId = active, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor))
+        env.fixtures.storedClass(studentId = active, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor)
         env.paymentRepo.add(Payment(studentId = active, date = Instant.ofEpochMilli(1), amount = Money.ofMajor(10)))
 
         val vm = vm()

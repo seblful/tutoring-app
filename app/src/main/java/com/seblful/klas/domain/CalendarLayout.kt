@@ -1,6 +1,6 @@
 package com.seblful.klas.domain
 
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -24,22 +24,22 @@ object CalendarLayout {
      * members were corrected apart. There used to be a fourth, null bucket for that lesson, which is
      * how a cell came to print a count of something no class can be.
      */
-    data class Tally(val status: ClassStatus, val count: Int)
+    data class Tally(val status: LessonStatus, val count: Int)
 
     /** What one calendar cell shows about its day: its lessons, counted per status. */
-    data class DayLoad(val counts: Map<ClassStatus, Int>) {
+    data class DayLoad(val counts: Map<LessonStatus, Int>) {
 
         val total: Int get() = counts.values.sum()
 
         /**
-         * The numbers the cell prints, left to right. Ordered by [ClassStatus]'s own declaration
+         * The numbers the cell prints, left to right. Ordered by [LessonStatus]'s own declaration
          * (scheduled → completed → cancelled), so the actionable count reads first, and statuses the
          * day has none of are left out rather than printed as a zero. There are only three statuses,
          * so a cell tops out at three numbers however busy the day is — no marker cap to apply, and
          * nothing about the day left unsaid.
          */
         val tallies: List<Tally>
-            get() = ClassStatus.entries.mapNotNull { status ->
+            get() = LessonStatus.entries.mapNotNull { status ->
                 counts[status]?.let { Tally(status, it) }
             }
     }

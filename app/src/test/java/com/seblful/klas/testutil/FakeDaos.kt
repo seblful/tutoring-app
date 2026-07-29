@@ -1,10 +1,14 @@
 package com.seblful.klas.testutil
 
+import com.seblful.klas.data.local.AttendanceDao
+import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.ClassDao
-import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.data.local.ClassRow
 import com.seblful.klas.data.local.GroupDao
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.GroupMemberCrossRef
+import com.seblful.klas.data.local.LessonDao
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.PaymentDao
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.PriceDao
@@ -20,7 +24,7 @@ import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectDao
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.data.toDomain
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -221,81 +225,176 @@ class FakeRateHistoryDao : RateHistoryDao {
     }
 }
 
-class FakeClassDao : ClassDao {
-    val items = MutableStateFlow<List<ClassEntity>>(emptyList())
-    private var nextId = 1L
+/**
+ * The two lesson tables and the view over them, behind one store — because that is what they are on a
+ * device: `lessons` and `attendance` are written apart and read joined, so a double that let those two
+ * drift would be a double of something the schema cannot do.
+ *
+ * [rows] is the `classes` view, **recomputed after every write**. SQLite keeps a view current for free;
+ * here it has to be maintained by hand, which is the one thing this store does that its original does
+ * not — and is why the join is written out in exactly one place inside it.
+ */
+class FakeClassStore {
+    val lessons = MutableStateFlow<List<LessonEntity>>(emptyList())
+    val attendance = MutableStateFlow<List<AttendanceEntity>>(emptyList())
 
-    /**
-     * When a class ends — from the domain model, not restated.
-     *
-     * This was a third copy of the arithmetic, beside `TutoringClass.end` and the SQL in
-     * `ClassDao.dueForCompletion`. A double that computes the answer its own way can agree with the
-     * production rule today and disagree after one edit, and the disagreement surfaces as a test that
-     * passes about behaviour the app does not have.
-     */
-    private fun endMillis(c: ClassEntity) = c.toDomain().end.toEpochMilli()
+    /** The joined rows, in id order — the `classes` view. */
+    val rows = MutableStateFlow<List<ClassRow>>(emptyList())
 
-    override fun observeById(id: Long): Flow<ClassEntity?> =
+    private var nextLessonId = 1L
+    private var nextAttendanceId = 1L
+
+    fun lessonId(id: Long): Long = if (id == 0L) nextLessonId++ else id
+    fun attendanceId(id: Long): Long = if (id == 0L) nextAttendanceId++ else id
+
+    /** `attendance JOIN lessons`: an attendance row whose lesson is gone simply is not a class. */
+    fun refresh() {
+        val byId = lessons.value.associateBy { it.id }
+        rows.value = attendance.value.mapNotNull { a ->
+            byId[a.lessonId]?.let { l ->
+                ClassRow(
+                    id = a.id,
+                    lessonId = a.lessonId,
+                    studentId = a.studentId,
+                    subjectId = l.subjectId,
+                    startMillis = l.startMillis,
+                    durationMinutes = l.durationMinutes,
+                    priceMinor = a.priceMinor,
+                    status = l.status,
+                    state = a.state,
+                    chargeMinor = a.chargeMinor,
+                    groupId = l.groupId,
+                    mode = l.mode,
+                    calendarEventId = a.calendarEventId,
+                )
+            }
+        }.sortedBy { it.id }
+    }
+}
+
+/**
+ * Reads of the `classes` view. It has no writes, exactly as the real one has none: a view's rows belong
+ * to the tables under it, which is the schema itself refusing to let a lesson's status be written twice.
+ */
+class FakeClassDao(private val store: FakeClassStore) : ClassDao {
+
+    /** The joined rows — what a test asserting on stored classes reads. */
+    val items: MutableStateFlow<List<ClassRow>> get() = store.rows
+
+    override fun observeById(id: Long): Flow<ClassRow?> =
         items.map { list -> list.firstOrNull { it.id == id } }
 
-    override suspend fun getById(id: Long): ClassEntity? = items.value.firstOrNull { it.id == id }
+    override suspend fun getById(id: Long): ClassRow? = items.value.firstOrNull { it.id == id }
 
-    override fun observeAll(): Flow<List<ClassEntity>> = items.map { it.sortedBy { c -> c.startMillis } }
+    override fun observeAll(): Flow<List<ClassRow>> = items.map { it.sortedBy { c -> c.startMillis } }
 
-    override fun observeForStudent(studentId: Long): Flow<List<ClassEntity>> =
+    override fun observeForStudent(studentId: Long): Flow<List<ClassRow>> =
         items.map { list -> list.filter { it.studentId == studentId }.sortedByDescending { it.startMillis } }
 
-    override fun observeForGroup(groupId: Long): Flow<List<ClassEntity>> =
+    override fun observeForGroup(groupId: Long): Flow<List<ClassRow>> =
         items.map { list -> list.filter { it.groupId == groupId }.sortedByDescending { it.startMillis } }
 
-    override fun observeBetween(fromMillis: Long, toMillis: Long): Flow<List<ClassEntity>> =
+    override fun observeBetween(fromMillis: Long, toMillis: Long): Flow<List<ClassRow>> =
         items.map { list ->
             list.filter { it.startMillis in fromMillis until toMillis }.sortedBy { it.startMillis }
         }
 
-    override suspend fun getBetween(fromMillis: Long, toMillis: Long): List<ClassEntity> =
+    override suspend fun getBetween(fromMillis: Long, toMillis: Long): List<ClassRow> =
         items.value.filter { it.startMillis in fromMillis until toMillis }.sortedBy { it.startMillis }
 
-    override suspend fun withCalendarEvent(): List<ClassEntity> =
+    override suspend fun withCalendarEvent(): List<ClassRow> =
         items.value.filter { it.calendarEventId != null }
+
+    override suspend fun scheduledForStudent(studentId: Long): List<ClassRow> =
+        items.value.filter { it.studentId == studentId && it.status == LessonStatus.SCHEDULED.name }
+
+    override suspend fun getSession(lessonId: Long): List<ClassRow> =
+        items.value.filter { it.lessonId == lessonId }.sortedBy { it.id }
+
+    override suspend fun nextScheduledAfter(nowMillis: Long): ClassRow? =
+        items.value.filter { it.status == LessonStatus.SCHEDULED.name && it.startMillis > nowMillis }
+            .minByOrNull { it.startMillis }
+
+    override suspend fun getAll(): List<ClassRow> = items.value
+}
+
+/** Writes of the lesson itself — its hour, and whether it happened. */
+class FakeLessonDao(private val store: FakeClassStore) : LessonDao {
+    val items: MutableStateFlow<List<LessonEntity>> get() = store.lessons
+
+    override suspend fun getById(id: Long): LessonEntity? = items.value.firstOrNull { it.id == id }
+
+    /**
+     * When a lesson ends — the same arithmetic the SQL does, and the same the domain does
+     * (`TutoringClass.end`). A double that computes it its own way can agree with the production rule
+     * today and disagree after one edit, and the disagreement surfaces as a test that passes about
+     * behaviour the app does not have — so this reads the domain model rather than restating it.
+     */
+    private fun endMillis(l: LessonEntity): Long =
+        store.rows.value.firstOrNull { it.lessonId == l.id }?.toDomain()?.end?.toEpochMilli()
+            ?: (l.startMillis + l.durationMinutes * 60_000L)
+
+    override suspend fun dueForCompletion(nowMillis: Long): List<LessonEntity> =
+        items.value.filter { it.status == LessonStatus.SCHEDULED.name && endMillis(it) <= nowMillis }
 
     override suspend fun countForSubject(subjectId: Long): Int =
         items.value.count { it.subjectId == subjectId }
 
-    override suspend fun scheduledForStudent(studentId: Long): List<ClassEntity> =
-        items.value.filter { it.studentId == studentId && it.status == ClassStatus.SCHEDULED.name }
+    override suspend fun countForGroup(groupId: Long): Int = items.value.count { it.groupId == groupId }
 
-    override suspend fun countForStudentSubject(studentId: Long, subjectId: Long): Int =
-        items.value.count { it.studentId == studentId && it.subjectId == subjectId }
-
-    override suspend fun countForGroup(groupId: Long): Int =
-        items.value.count { it.groupId == groupId }
-
-    override suspend fun getSession(groupId: Long, startMillis: Long): List<ClassEntity> =
-        items.value.filter { it.groupId == groupId && it.startMillis == startMillis }.sortedBy { it.id }
-
-    override suspend fun dueForCompletion(nowMillis: Long): List<ClassEntity> =
-        items.value.filter { it.status == ClassStatus.SCHEDULED.name && endMillis(it) <= nowMillis }
-
-    override suspend fun nextScheduledAfter(nowMillis: Long): ClassEntity? =
-        items.value.filter { it.status == ClassStatus.SCHEDULED.name && it.startMillis > nowMillis }
-            .minByOrNull { it.startMillis }
-
-    override suspend fun getAll(): List<ClassEntity> = items.value
-
-    override suspend fun upsert(klass: ClassEntity): Long {
-        val id = if (klass.id == 0L) nextId++ else klass.id
-        val row = klass.copy(id = id)
-        items.value = items.value.filterNot { it.id == id } + row
+    override suspend fun upsert(lesson: LessonEntity): Long {
+        val id = store.lessonId(lesson.id)
+        items.value = items.value.filterNot { it.id == id } + lesson.copy(id = id)
+        store.refresh()
         return id
     }
 
-    override suspend fun update(klass: ClassEntity) {
-        items.value = items.value.map { if (it.id == klass.id) klass else it }
+    override suspend fun update(lesson: LessonEntity) {
+        items.value = items.value.map { if (it.id == lesson.id) lesson else it }
+        store.refresh()
     }
 
-    override suspend fun delete(klass: ClassEntity) {
-        items.value = items.value.filterNot { it.id == klass.id }
+    override suspend fun deleteById(id: Long) {
+        items.value = items.value.filterNot { it.id == id }
+        // ON DELETE CASCADE on attendance.lessonId — the lesson is the unit of deletion.
+        store.attendance.value = store.attendance.value.filterNot { it.lessonId == id }
+        store.refresh()
+    }
+
+    override suspend fun deleteEmpty() {
+        val occupied = store.attendance.value.map { it.lessonId }.toSet()
+        items.value = items.value.filter { it.id in occupied }
+        store.refresh()
+    }
+}
+
+/** Writes of one student's place in a lesson: their attendance, rate, charge and calendar event. */
+class FakeAttendanceDao(private val store: FakeClassStore) : AttendanceDao {
+    val items: MutableStateFlow<List<AttendanceEntity>> get() = store.attendance
+
+    override suspend fun countForStudentSubject(studentId: Long, subjectId: Long): Int {
+        val taught = store.lessons.value.filter { it.subjectId == subjectId }.map { it.id }.toSet()
+        return items.value.count { it.studentId == studentId && it.lessonId in taught }
+    }
+
+    override suspend fun upsert(row: AttendanceEntity): Long {
+        val id = store.attendanceId(row.id)
+        items.value = items.value.filterNot { it.id == id } + row.copy(id = id)
+        store.refresh()
+        return id
+    }
+
+    override suspend fun update(row: AttendanceEntity) {
+        // Room's @Update matches on the primary key and does nothing when no row has it, so a fake
+        // that inserted the missing row would let a test pass against behaviour the real DAO
+        // does not have.
+        items.value = items.value.map { if (it.id == row.id) row else it }
+        store.refresh()
+    }
+
+    override suspend fun deleteById(id: Long) {
+        items.value = items.value.filterNot { it.id == id }
+        store.refresh()
     }
 }
 
@@ -354,7 +453,7 @@ class FakeSnapshotDao(
     private val groupDao: FakeGroupDao,
     private val priceDao: FakePriceDao,
     private val rateHistoryDao: FakeRateHistoryDao,
-    private val classDao: FakeClassDao,
+    private val store: FakeClassStore,
     private val paymentDao: FakePaymentDao,
 ) : SnapshotDao() {
 
@@ -365,7 +464,8 @@ class FakeSnapshotDao(
     override suspend fun groupMembers(): List<GroupMemberCrossRef> = groupDao.members.value
     override suspend fun prices(): List<PriceEntity> = priceDao.items.value
     override suspend fun rateHistory(): List<RateChangeEntity> = rateHistoryDao.items.value
-    override suspend fun classes(): List<ClassEntity> = classDao.items.value
+    override suspend fun lessons(): List<LessonEntity> = store.lessons.value
+    override suspend fun attendance(): List<AttendanceEntity> = store.attendance.value
     override suspend fun payments(): List<PaymentEntity> = paymentDao.items.value
 
     override suspend fun insertSubjects(rows: List<SubjectEntity>) {
@@ -396,8 +496,14 @@ class FakeSnapshotDao(
         rateHistoryDao.items.value += rows
     }
 
-    override suspend fun insertClasses(rows: List<ClassEntity>) {
-        classDao.items.value += rows
+    override suspend fun insertLessons(rows: List<LessonEntity>) {
+        store.lessons.value += rows
+        store.refresh()
+    }
+
+    override suspend fun insertAttendance(rows: List<AttendanceEntity>) {
+        store.attendance.value += rows
+        store.refresh()
     }
 
     override suspend fun insertPayments(rows: List<PaymentEntity>) {
@@ -432,8 +538,14 @@ class FakeSnapshotDao(
         rateHistoryDao.items.value = emptyList()
     }
 
-    override suspend fun clearClasses() {
-        classDao.items.value = emptyList()
+    override suspend fun clearLessons() {
+        store.lessons.value = emptyList()
+        store.refresh()
+    }
+
+    override suspend fun clearAttendance() {
+        store.attendance.value = emptyList()
+        store.refresh()
     }
 
     override suspend fun clearPayments() {

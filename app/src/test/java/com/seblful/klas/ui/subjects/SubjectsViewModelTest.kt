@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.subjects
 
-import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.testutil.MainDispatcherRule
@@ -55,7 +54,7 @@ class SubjectsViewModelTest {
     @Test
     fun `deleting a subject that still has classes is blocked and emits an event`() = runTest(mainRule.dispatcher) {
         val id = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        env.classDao.upsert(ClassEntity(studentId = 1, subjectId = id, startMillis = 1, durationMinutes = 60, status = "COMPLETED"))
+        env.fixtures.storedClass(studentId = 1, subjectId = id, startMillis = 1, durationMinutes = 60, status = "COMPLETED")
         val vm = vm()
         val events = mutableListOf<SubjectsViewModel.Event>()
         observing(vm.subjects)

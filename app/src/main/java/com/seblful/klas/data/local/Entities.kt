@@ -1,6 +1,7 @@
 package com.seblful.klas.data.local
 
 import androidx.room.ColumnInfo
+import androidx.room.DatabaseView
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -45,9 +46,9 @@ data class StudentSubjectCrossRef(
 /**
  * A named set of students taught together, e.g. «11 «А», вечер», at one rate for the whole group.
  *
- * A group **prices** its lessons but does not owe for them: booking one writes one [ClassEntity] per
- * member, each snapshotting [priceMinor], so balances and reports stay strictly per-student. Groups
- * are archive-only once they have classes (see `GroupRepository.delete`), like students.
+ * A group **prices** its lessons but does not owe for them: booking one writes a [LessonEntity] and an
+ * [AttendanceEntity] per member, each snapshotting [priceMinor], so balances and reports stay strictly
+ * per-student. Groups are archive-only once they have lessons (see `GroupRepository.delete`).
  */
 @Serializable
 @Entity(
@@ -133,9 +134,9 @@ data class PriceEntity(
  * `Mappers.kt` is the only place these nullable columns are interpreted.
  *
  * `CASCADE` on all three parents, matching [PriceEntity]: this is a log *about* a price, not income.
- * A subject or group that can still be deleted (one with no classes) takes its rate log with it,
+ * A subject or group that can still be deleted (one with no lessons) takes its rate log with it,
  * rather than leaving rows describing a rate for something that no longer exists. Income is what
- * gets `RESTRICT`, and it lives on [ClassEntity].
+ * gets `RESTRICT`, and it lives on [AttendanceEntity].
  */
 @Serializable
 @Entity(
@@ -166,36 +167,109 @@ data class RateChangeEntity(
     val atMillis: Long? = null,
 )
 
+/**
+ * One lesson: an hour of the tutor's time, for one student or for a group.
+ *
+ * **The lesson is a row.** It used to be a *grouping* — the classes sharing a `(groupId, startMillis)`
+ * pair — which made "these rows are one lesson" an invariant no schema could state and every write path
+ * had to maintain: move one member's row and the lesson silently split in two, each then competing for
+ * the same hour. Here a lesson has an id, [AttendanceEntity] points at it, and moving one is one update.
+ *
+ * **[status] is the lesson's, and only the lesson's.** Whether the hour happened is a fact about the
+ * hour; whether a given student was in it is [AttendanceEntity.state]. One enum answered both before,
+ * which is why a group lesson had no status of its own and had to derive one.
+ *
+ * `RESTRICT` on both parents: a lesson is history, so the schema itself refuses to delete a subject or
+ * a group that still has lessons. The rate is not here — see [AttendanceEntity.priceMinor].
+ */
 @Serializable
 @Entity(
-    tableName = "classes",
-    indices = [
-        Index("studentId"), Index("subjectId"), Index("startMillis"), Index("status"), Index("groupId"),
-    ],
-    // RESTRICT, not CASCADE: a class is recognized income and history. The schema itself must refuse
-    // to delete a student, subject or group that still has classes, so no future code path can
-    // silently erase earned income by removing a parent. Subjects and groups are additionally
-    // guarded at their repositories; students have no delete path at all (archive only).
+    tableName = "lessons",
+    indices = [Index("subjectId"), Index("startMillis"), Index("status"), Index("groupId")],
     foreignKeys = [
-        ForeignKey(StudentEntity::class, ["id"], ["studentId"], onDelete = ForeignKey.RESTRICT),
         ForeignKey(SubjectEntity::class, ["id"], ["subjectId"], onDelete = ForeignKey.RESTRICT),
         ForeignKey(GroupEntity::class, ["id"], ["groupId"], onDelete = ForeignKey.RESTRICT),
     ],
 )
-data class ClassEntity(
+data class LessonEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val subjectId: Long,
+    val startMillis: Long,
+    val durationMinutes: Int,
+    val status: String,
+    /** The group whose lesson this is, or null for one student's. */
+    val groupId: Long? = null,
+    val mode: String = "IN_PERSON",
+)
+
+/**
+ * One student in one lesson: whether they took part, and what it cost them.
+ *
+ * A group lesson has a row of these per member; an individual lesson has exactly one. Both bill per
+ * student — a group decides *how much*, never *who owes it* — which is why [priceMinor] and
+ * [chargeMinor] live here and not on the lesson. Only a lesson restored from a pre-v3 backup can hold
+ * members at differing rates; keeping the rate per student is what lets that history stay true.
+ *
+ * [state] is the attendance: expected, present, absent, or absent-and-billed-anyway. It is what makes a
+ * no-show a fact the app can hold — the previous model could only express it by cancelling the student's
+ * class, which zeroed the charge and, on a group lesson, left the lesson itself with no single status.
+ *
+ * `CASCADE` on the lesson (a lesson's members go with it — the lesson is the unit of deletion) and
+ * `RESTRICT` on the student, who cannot be deleted while any lesson still bills them.
+ */
+@Serializable
+@Entity(
+    tableName = "attendance",
+    indices = [Index("lessonId"), Index("studentId"), Index("state")],
+    foreignKeys = [
+        ForeignKey(LessonEntity::class, ["id"], ["lessonId"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(StudentEntity::class, ["id"], ["studentId"], onDelete = ForeignKey.RESTRICT),
+    ],
+)
+data class AttendanceEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val lessonId: Long,
+    val studentId: Long,
+    val state: String,
+    /** The **hourly rate** this student was booked at, snapshotted so a later re-pricing cannot rewrite it. */
+    val priceMinor: Long = 0,
+    val chargeMinor: Long = 0,
+    val calendarEventId: String? = null,
+)
+
+/**
+ * One student's class: their [AttendanceEntity] row with its lesson's facts alongside it.
+ *
+ * A **view**, so the two tables are joined by SQLite once rather than by every caller. It is what the
+ * app has always meant by "a class", which is why it is named `classes` and why every read query is
+ * unchanged from when that was a table: the columns are the same columns. Writes go to the two tables
+ * (`LessonDao`, `AttendanceDao`) — the point of the split being that each fact has one home.
+ *
+ * **Its SQL is duplicated in `MIGRATION_1_2`**, which has to create it, and Room validates the two are
+ * identical on every upgrade (`schemas/2.json` is the arbiter).
+ */
+@DatabaseView(
+    viewName = "classes",
+    value = "SELECT a.id AS id, a.lessonId AS lessonId, a.studentId AS studentId, " +
+        "a.state AS state, a.priceMinor AS priceMinor, a.chargeMinor AS chargeMinor, " +
+        "a.calendarEventId AS calendarEventId, l.subjectId AS subjectId, " +
+        "l.startMillis AS startMillis, l.durationMinutes AS durationMinutes, " +
+        "l.status AS status, l.groupId AS groupId, l.mode AS mode " +
+        "FROM attendance a JOIN lessons l ON l.id = a.lessonId",
+)
+data class ClassRow(
+    val id: Long = 0,
+    val lessonId: Long = 0,
     val studentId: Long,
     val subjectId: Long,
     val startMillis: Long,
     val durationMinutes: Int,
     val priceMinor: Long = 0,
+    /** The **lesson's** status — see [LessonEntity.status]. */
     val status: String,
+    /** This student's attendance — see [AttendanceEntity.state]. */
+    val state: String = "EXPECTED",
     val chargeMinor: Long = 0,
-    /**
-     * The group this class was booked as part of, or null for an individual class. The members'
-     * classes of one group lesson share this id *and* [startMillis] — that pair is the "session"
-     * the schedule collapses into a single card.
-     */
     val groupId: Long? = null,
     val mode: String = "IN_PERSON",
     val calendarEventId: String? = null,

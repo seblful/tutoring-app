@@ -1,6 +1,6 @@
 package com.seblful.klas.domain
 
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
 import java.time.Duration
 import java.time.Instant
@@ -46,7 +46,7 @@ object Reminders {
     ): List<Plan> {
         val horizonEnd = now.plus(horizon)
         val upcoming = classes
-            .filter { it.status == ClassStatus.SCHEDULED }
+            .filter { it.status == LessonStatus.SCHEDULED }
             .filter { it.start.isAfter(now) && !it.start.isAfter(horizonEnd) }
         return GroupRules.sessions(upcoming).mapNotNull { session ->
             val fireAt = session.start.minus(lead)
@@ -65,7 +65,7 @@ object Reminders {
      */
     fun shouldPost(klass: TutoringClass, notificationsEnabled: Boolean, now: Instant): Boolean =
         notificationsEnabled &&
-            klass.status == ClassStatus.SCHEDULED &&
+            klass.status == LessonStatus.SCHEDULED &&
             klass.end.isAfter(now)
 
     /**

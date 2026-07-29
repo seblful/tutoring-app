@@ -1,6 +1,5 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
@@ -187,12 +186,10 @@ class RateHistoryTest {
         val sid = student()
         val subj = subject()
         env.enrollmentRepo.enroll(sid, subj, Money.ofMajor(30))
-        env.classDao.upsert(
-            ClassEntity(
+        env.fixtures.storedClass(
                 studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60,
                 status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor,
-            ),
-        )
+            )
 
         assertEquals(EnrollmentRepository.Unenroll.HasClasses, env.enrollmentRepo.unenroll(sid, subj))
         assertEquals(1, changesFor(sid, subj).size)

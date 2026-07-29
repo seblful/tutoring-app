@@ -206,9 +206,24 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 - **A lesson lasts a positive number of minutes**, insisted on by `Scheduling.Slot` — a zero-length
   slot made the overlap check fail *open*. Read paths meeting a stored row that breaks it
   (`Scheduling.conflicts`) skip that row rather than throw.
+- **A lesson is a row, and who was in it is another** (`lessons` + `attendance`, joined by the `classes`
+  view — `data/local/Entities.kt`). The lesson holds the hour, the subject and **one status**; each
+  student's row holds their attendance, their rate and their charge. `TutoringClass` is the two of them
+  read together, which is what every rule above storage still speaks in.
+  - One enum used to answer both "did this hour happen" and "was this student in it", once per member. So
+    a group lesson had no status of its own (hence the «Разные» badge, then a derivation), a no-show could
+    only be recorded by cancelling that student's class — which also stopped charging them — and
+    "called off for everyone" was the same rows as "nobody came". `Attended.ABSENT_BILLED` is the case
+    none of it could express: absent, and charged anyway.
+  - Only an **explicit absence** stops a charge. `EXPECTED` means nothing was recorded, and for a lesson
+    marked taught the app has always assumed it happened for everyone in it — it can see the clock, not
+    the room. So «Проведено» still bills the whole room in one tap.
+  - What made rows one lesson used to be a `(groupId, start)` pair no schema could hold: edit one member's
+    time and the lesson silently became two, each blocking the other's hour. It is a foreign key now, and
+    a move is one row's update.
 - **A lesson is the unit of change.** Every write takes a `ClassSession`: a group lesson's *n* classes,
   or one student's class as a session of one. Re-attributing a class is expressible only for a
-  session of one.
+  session of one. The one exception is `setAttendance`, which is about one person rather than the hour.
 - **One tutor, one lesson at a time.** An overlapping slot is refused, not warned about. Back-to-back
   is fine, a cancelled class gives its slot back, and the lesson being edited is excluded by every one
   of its class ids. Booking in the **past is allowed**. The rule is pure (`Scheduling.conflicts`); the
@@ -236,13 +251,9 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   any status. An unticked member has no class at all (not a cancelled one); ticking one writes a class
   at the lesson's own terms and **the status the lesson is in**. Dropping a class that already billed
   asks first. An old lesson offers the group as it is now but ticks only its own members.
-- **A session is derived, never stored**: the classes sharing a `(groupId, start)` pair. Statuses
-  still apply per class, so members can disagree — an absentee cancelled while the lesson stayed
-  completed. **The lesson still has one of the three statuses** (`ClassSession.status`): it is on if it
-  is on for anybody, happened if it happened for anybody, off only when it is off for everyone. It used
-  to answer "no single status" and be badged «Разные», which made every badge, tally and segmented
-  control report on the roster in a word no class can be set to. Who missed a lesson is the roster's
-  business — the attendee count beside the status on a group's lesson list, and the lesson's own ticks.
+- **A session is a lesson's classes**, grouped by its id. Its status is the lesson's, read rather than
+  derived; who missed it is each member's `attended`. Badges, tallies and the sheet's segmented control
+  all show the lesson's own status, and none of them reports on the roster.
 - **A group earns a report line of its own** (`Reports.incomeByGroup`) — the only line that answers
   whether running the group is worth the evening.
 - Groups are **archive-only once they have lessons**. A group lesson mirrors as **one calendar event
@@ -275,17 +286,22 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   Auto Backup would have copied `klas.db` — every student's name, phone and email — to Google's
   servers, without a WAL checkpoint, and restored it without `BackupRestore`. The app's own JSON
   export is how data moves between devices, and the export screen says the file is unencrypted PII.
-- **The database is at v1 and ships no migrations.** The rename changed both the application id and
-  the file name (`tutoring.db` → `klas.db`), and Android never upgrades one application id into
-  another, so no device can hold a pre-v1 `klas.db`.
+- **The database is at v2, and migrates.** The rename changed both the application id and the file name
+  (`tutoring.db` → `klas.db`), and Android never upgrades one application id into another, so no device
+  can hold a pre-v1 `klas.db` — v1 shipped with no migrations for that reason. **v2 splits `classes` into
+  `lessons` + `attendance` and migrates anyway** (`MIGRATION_1_2`), because "no released baseline" is not
+  the same as "no data": the v1 databases that exist are on development phones with real students in
+  them. `MigrationTest` runs it against a real v1 database and asserts every row, rate and charge
+  survives — including that a taught lesson whose absentee was cancelled becomes a taught lesson with an
+  absentee.
 - **The destructive fallback is debug-only.** A release build **refuses to open** a database it cannot
   migrate: a crash leaves every row on disk for the next build, and is recoverable in the way a wipe
   is not.
-- **Once v1 is released the "no migrations" part stops being true**: every schema change must then bump
-  the version and ship a real migration, with an entity's `defaultValue` and the migration's `DEFAULT`
-  kept in step. `MigrationChainTest` makes that a rule rather than a habit. Until then,
-  **`BackupData.version` (currently 5) is the only cross-build compatibility story the app has** — and
-  the only bridge out of `com.seblful.repetit`.
+- **Every schema change bumps the version and ships a migration**, with an entity's `defaultValue` and
+  the migration's `DEFAULT` kept in step; `MigrationChainTest` makes that a rule rather than a habit.
+  **`BackupData.version` (currently 6) is the other half of the compatibility story** — the only bridge
+  out of `com.seblful.repetit`, and the reason v6 still reads a v1–v5 file's flat `classes` list and
+  splits it on the way in, by the same rule the migration applies to the table.
 - **Backup = full DB snapshot → JSON via SAF.** Ids preserved, import is one transaction. The format
   is versioned: an **older** file still imports (missing tables come back empty, missing columns take
   their default), a **newer** one is refused. A restored file is reproduced as given.

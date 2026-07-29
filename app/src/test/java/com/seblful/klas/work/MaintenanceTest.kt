@@ -1,10 +1,9 @@
 package com.seblful.klas.work
 
-import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.Reminders
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
@@ -41,12 +40,12 @@ class MaintenanceTest {
      * written, not what this test remembered to fill in. It used to set `priceMinor` and omit
      * `chargeMinor`, one of three disagreeing hand-built versions of the same row (see [Fixtures]).
      */
-    private suspend fun seedClass(start: Instant, status: ClassStatus = ClassStatus.SCHEDULED): Long {
+    private suspend fun seedClass(start: Instant, status: LessonStatus = LessonStatus.SCHEDULED): Long {
         val subjectId = env.fixtures.subject("Математика")
         val studentId = env.fixtures.pricedStudent(subjectId = subjectId, rate = Money.ofMajor(30))
         return env.fixtures.lesson(subjectId = subjectId, students = listOf(studentId), start = start)
             .single()
-            .also { if (status != ClassStatus.SCHEDULED) env.fixtures.setStatus(it, status) }
+            .also { if (status != LessonStatus.SCHEDULED) env.fixtures.setStatus(it, status) }
     }
 
     @Test
@@ -56,7 +55,7 @@ class MaintenanceTest {
 
         maintenance().run(now)
 
-        assertEquals(ClassStatus.COMPLETED, env.classRepo.getById(id)?.status)
+        assertEquals(LessonStatus.COMPLETED, env.classRepo.getById(id)?.status)
     }
 
     @Test
@@ -67,7 +66,7 @@ class MaintenanceTest {
 
         maintenance().run(now)
 
-        assertEquals(ClassStatus.SCHEDULED, env.classRepo.getById(id)?.status)
+        assertEquals(LessonStatus.SCHEDULED, env.classRepo.getById(id)?.status)
     }
 
     @Test

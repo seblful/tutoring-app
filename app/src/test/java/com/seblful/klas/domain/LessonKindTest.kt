@@ -1,6 +1,6 @@
 package com.seblful.klas.domain
 
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
@@ -22,10 +22,11 @@ class LessonKindTest {
     private fun klass(
         id: Long,
         groupId: Long? = null,
-        status: ClassStatus = ClassStatus.COMPLETED,
+        status: LessonStatus = LessonStatus.COMPLETED,
         charge: Money = Money.ofMajor(30),
     ) = TutoringClass(
         id = id,
+        lessonId = lessonIdFor(groupId, start, id),
         studentId = id,
         subjectId = 1,
         start = start,
@@ -35,6 +36,16 @@ class LessonKindTest {
         groupId = groupId,
     )
 
+    private val lessonIds = mutableMapOf<Pair<Long, Any>, Long>()
+
+    /**
+     * The lesson a fixture's class belongs to: one per (group, start) for a group's, its own id for an
+     * individual class. A convention of the test — storage has a column for it — and it has to be stated
+     * because that column is the whole of what makes classes one lesson (`GroupRules.sessions`).
+     */
+    private fun lessonIdFor(groupId: Long?, start: Any, id: Long): Long =
+        if (groupId == null) id else lessonIds.getOrPut(groupId to start) { 1_000L + lessonIds.size }
+
     @Test
     fun `a class naming a group is a group lesson, and one that doesn't is individual`() {
         assertEquals(LessonKind.GROUP, LessonKind.of(klass(1, groupId = 7)))
@@ -42,18 +53,20 @@ class LessonKindTest {
     }
 
     /**
-     * `ClassSession.of` makes a session of one out of a single member's class so that "this one didn't
-     * come" stays expressible, and such a session deliberately carries **no** group id. Reading the
-     * kind off the session there would call a group lesson individual, which is why the kind reads the
-     * class instead.
+     * The kind is read off the **class**, not off the session it is in.
+     *
+     * `ClassSession.of` used to drop the group id, because it doubled as the operand for changing one
+     * member of a group lesson — so a session of one was a lie about what the lesson was, and reading the
+     * kind from it called a group lesson individual. Attendance is that correction now, so a session of
+     * one is simply an individual lesson and keeps whatever group it belongs to; the kind still comes off
+     * the class, which is the level the fact lives at.
      */
     @Test
-    fun `one member's class of a group lesson is still a group lesson`() {
+    fun `the kind of a group lesson's class is group, whether or not a session names it`() {
         val member = klass(3, groupId = 7)
-        val asSessionOfOne = ClassSession.of(member)
 
-        assertFalse("a session of one carries no group id", asSessionOfOne.isGroup)
-        assertEquals(LessonKind.GROUP, LessonKind.of(asSessionOfOne.first))
+        assertEquals(LessonKind.GROUP, LessonKind.of(member))
+        assertEquals(LessonKind.GROUP, LessonKind.of(ClassSession.of(member).first))
     }
 
     @Test

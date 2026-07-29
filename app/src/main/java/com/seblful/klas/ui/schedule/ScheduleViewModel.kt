@@ -11,7 +11,7 @@ import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.CalendarLayout
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.GroupRules
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
@@ -73,7 +73,7 @@ data class ScheduleRow(
      * a test can reach it; it used to be asked by two composables, so the rule gating the product's
      * highest-frequency gesture could be exercised only by swiping a card on a phone.
      */
-    val statusChoices: Set<ClassStatus> get() = GroupRules.sessionTransitions(session)
+    val statusChoices: Set<LessonStatus> get() = GroupRules.sessionTransitions(session)
 
     /**
      * Whether the swipe-to-complete gesture is offered at all: completing must be legal for some
@@ -85,7 +85,7 @@ data class ScheduleRow(
      * was cancelled afterwards — offers no swipe, because reinstating that member is a correction to
      * their class and not a thing done to the whole lesson.
      */
-    val canSwipeComplete: Boolean get() = ClassStatus.COMPLETED in statusChoices
+    val canSwipeComplete: Boolean get() = LessonStatus.COMPLETED in statusChoices
 
     /**
      * Whether the card recedes — dimmed, its time struck through. A cancelled lesson is a record,
@@ -93,7 +93,7 @@ data class ScheduleRow(
      * every class was called off gave its hour back. One whose members disagree keeps full strength,
      * because some of it did happen — which is exactly what [ClassSession.status] answers.
      */
-    val recedes: Boolean get() = session.status == ClassStatus.CANCELLED
+    val recedes: Boolean get() = session.status == LessonStatus.CANCELLED
 }
 
 /**
@@ -108,7 +108,7 @@ data class ScheduleRow(
 data class DeleteWarning(val billed: Boolean, val group: Boolean, val classes: Int) {
     companion object {
         fun of(session: ClassSession): DeleteWarning = DeleteWarning(
-            billed = session.classes.any { it.status == ClassStatus.COMPLETED },
+            billed = session.classes.any { it.status == LessonStatus.COMPLETED },
             group = session.isGroup,
             classes = session.size,
         )
@@ -373,14 +373,14 @@ class ScheduleViewModel @Inject constructor(
      * Changes a whole lesson's status.
      *
      * Returning one **to the schedule** can be refused: it is the one status change that re-*occupies*
-     * time. A cancelled class gives its slot back on purpose ([ClassStatus.occupiesTime]) — that is
+     * time. A cancelled class gives its slot back on purpose ([LessonStatus.occupiesTime]) — that is
      * what lets the tutor re-book the freed hour for somebody else — so by the time they un-cancel,
      * the hour may be held by that somebody. The *check* is the repository's, made by every way into
      * an hour ([LessonWrite]); what this screen owns is the wording, and the clash arrives as data for
      * [reportHourTaken] — through the same [timeConflict] a refused move uses, since it is the same
      * fact: this hour is taken, by that lesson.
      */
-    fun setStatus(session: ClassSession, status: ClassStatus) {
+    fun setStatus(session: ClassSession, status: LessonStatus) {
         write {
             when (val changed = classes.setStatus(session, status)) {
                 is LessonWrite.HourTaken -> reportHourTaken(changed.clash)

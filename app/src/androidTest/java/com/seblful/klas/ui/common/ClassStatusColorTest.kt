@@ -3,7 +3,7 @@ package com.seblful.klas.ui.common
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -22,12 +22,12 @@ import org.junit.Test
  * Resolved inside [KlasTheme], since these are theme slots rather than fixed values: the assertion is
  * about which slot each status draws from, which is the whole of the decision.
  */
-class ClassStatusColorTest {
+class LessonStatusColorTest {
 
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val statuses = mutableMapOf<ClassStatus, Color>()
+    private val statuses = mutableMapOf<LessonStatus, Color>()
     private var error = Color.Unspecified
     private var neutral = Color.Unspecified
 
@@ -35,17 +35,17 @@ class ClassStatusColorTest {
     fun cancelledIsTheErrorRedAndNoStatusIsGrey() {
         composeRule.setContent {
             KlasTheme {
-                ClassStatus.entries.forEach { statuses[it] = classStatusColor(it) }
+                LessonStatus.entries.forEach { statuses[it] = classStatusColor(it) }
                 error = MaterialTheme.colorScheme.error
                 neutral = MaterialTheme.colorScheme.onSurfaceVariant
             }
         }
         composeRule.waitForIdle()
 
-        assertEquals("a cancelled lesson is not the error red", error, statuses[ClassStatus.CANCELLED])
+        assertEquals("a cancelled lesson is not the error red", error, statuses[LessonStatus.CANCELLED])
         assertEquals(
             "the three statuses do not read as three colours: $statuses",
-            ClassStatus.entries.size,
+            LessonStatus.entries.size,
             statuses.values.distinct().size,
         )
         statuses.forEach { (status, color) ->

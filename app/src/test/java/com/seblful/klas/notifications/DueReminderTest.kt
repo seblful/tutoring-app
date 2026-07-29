@@ -1,6 +1,5 @@
 package com.seblful.klas.notifications
 
-import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
@@ -47,16 +46,14 @@ class DueReminderTest {
         status: String = "SCHEDULED",
         groupId: Long? = null,
         durationMinutes: Int = 60,
-    ) = env.classDao.upsert(
-        ClassEntity(
+    ) = env.fixtures.storedClass(
             studentId = studentId,
             subjectId = subjectId,
             startMillis = start.toEpochMilli(),
             durationMinutes = durationMinutes,
             status = status,
             groupId = groupId,
-        ),
-    )
+        )
 
     @Test
     fun `an upcoming class is announced by the student, subject and time`() = runTest {

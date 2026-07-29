@@ -1,6 +1,6 @@
 package com.seblful.klas.domain
 
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 
@@ -50,8 +50,8 @@ object Taught {
         val completed = Billing.billable(classes)
         return Totals(
             lessons = completed.size,
-            upcoming = classes.count { it.status == ClassStatus.SCHEDULED },
-            cancelled = classes.count { it.status == ClassStatus.CANCELLED },
+            upcoming = classes.count { it.status == LessonStatus.SCHEDULED },
+            cancelled = classes.count { it.status == LessonStatus.CANCELLED },
             minutes = completed.sumOf { it.durationMinutes },
             earned = Billing.charged(classes),
         )
@@ -102,9 +102,9 @@ object Taught {
         return Totals(
             lessons = taught.size,
             upcoming = sessions.count { s ->
-                Billing.billable(s.classes).isEmpty() && s.classes.any { it.status == ClassStatus.SCHEDULED }
+                Billing.billable(s.classes).isEmpty() && s.classes.any { it.status == LessonStatus.SCHEDULED }
             },
-            cancelled = sessions.count { s -> s.classes.all { it.status == ClassStatus.CANCELLED } },
+            cancelled = sessions.count { s -> s.classes.all { it.status == LessonStatus.CANCELLED } },
             minutes = taught.sumOf { it.first.durationMinutes },
             earned = Billing.charged(sessions.flatMap { it.classes }),
         )

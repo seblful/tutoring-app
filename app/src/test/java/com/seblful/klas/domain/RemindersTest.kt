@@ -1,6 +1,6 @@
 package com.seblful.klas.domain
 
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -17,10 +17,11 @@ class RemindersTest {
     private fun klass(
         id: Long,
         start: Instant,
-        status: ClassStatus = ClassStatus.SCHEDULED,
+        status: LessonStatus = LessonStatus.SCHEDULED,
         groupId: Long? = null,
     ) = TutoringClass(
         id = id,
+        lessonId = lessonIdFor(groupId, start, id),
         // Each member of a group lesson is a different student; irrelevant for individual classes.
         studentId = id,
         subjectId = 1,
@@ -29,6 +30,16 @@ class RemindersTest {
         status = status,
         groupId = groupId,
     )
+
+    private val lessonIds = mutableMapOf<Pair<Long, Any>, Long>()
+
+    /**
+     * The lesson a fixture's class belongs to: one per (group, start) for a group's, its own id for an
+     * individual class. A convention of the test — storage has a column for it — and it has to be stated
+     * because that column is the whole of what makes classes one lesson (`GroupRules.sessions`).
+     */
+    private fun lessonIdFor(groupId: Long?, start: Any, id: Long): Long =
+        if (groupId == null) id else lessonIds.getOrPut(groupId to start) { 1_000L + lessonIds.size }
 
     @Test
     fun `reminder fires one lead before a scheduled class`() {
@@ -78,8 +89,8 @@ class RemindersTest {
     fun `non-scheduled classes get no reminder`() {
         val start = now.plus(Duration.ofHours(3))
         val classes = listOf(
-            klass(1, start, ClassStatus.CANCELLED),
-            klass(2, start, ClassStatus.COMPLETED),
+            klass(1, start, LessonStatus.CANCELLED),
+            klass(2, start, LessonStatus.COMPLETED),
         )
         assertTrue(Reminders.plan(now, classes, lead, horizon).isEmpty())
     }
@@ -131,7 +142,7 @@ class RemindersTest {
         val start = now.plus(Duration.ofHours(3))
         val classes = listOf(
             // The lowest-id member has been cancelled (didn't come); the lesson still happens.
-            klass(1, start, ClassStatus.CANCELLED, groupId = 7),
+            klass(1, start, LessonStatus.CANCELLED, groupId = 7),
             klass(2, start, groupId = 7),
         )
         assertEquals(listOf(2L), Reminders.plan(now, classes, lead, horizon).map { it.classId })

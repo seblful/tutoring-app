@@ -1,9 +1,9 @@
 package com.seblful.klas.ui.schedule
 
-import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.Attended
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
@@ -77,9 +77,9 @@ class ScheduleViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val today = LocalDate.now(zone)
         // Two classes today (out of order) and one tomorrow.
-        env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(15, 0)), durationMinutes = 60, status = "SCHEDULED"))
-        env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED"))
-        env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = startMillisOn(today.plusDays(1), LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED"))
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(15, 0)), durationMinutes = 60, status = "SCHEDULED")
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED")
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = startMillisOn(today.plusDays(1), LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED")
 
         val vm = vm()
         observing(vm.content)
@@ -275,12 +275,10 @@ class ScheduleViewModelTest {
             Triple(thursday, LocalTime.of(11, 0), sid),
             Triple(nextWeek, LocalTime.of(9, 0), sid),
         ).forEach { (day, time, student) ->
-            env.classDao.upsert(
-                ClassEntity(
+            env.fixtures.storedClass(
                     studentId = student, subjectId = subj, startMillis = startMillisOn(day, time),
                     durationMinutes = 60, status = "SCHEDULED",
                 )
-            )
         }
 
         val vm = vm()
@@ -304,12 +302,10 @@ class ScheduleViewModelTest {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val nextWeek = LocalDate.of(2026, 7, 20)
-        env.classDao.upsert(
-            ClassEntity(
+        env.fixtures.storedClass(
                 studentId = sid, subjectId = subj, startMillis = startMillisOn(nextWeek, LocalTime.of(9, 0)),
                 durationMinutes = 60, status = "SCHEDULED",
             )
-        )
 
         val vm = vm()
         observing(vm.content)
@@ -333,21 +329,17 @@ class ScheduleViewModelTest {
         // than as startOfWeek + 6: on the last day of the week that *is* today, and both lessons
         // would land on the selected day — failing for the calendar, not for the behaviour.
         val otherDay = CalendarLayout.week(CalendarLayout.startOfWeek(today)).first { it != today }
-        env.classDao.upsert(
-            ClassEntity(
+        env.fixtures.storedClass(
                 studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)),
                 durationMinutes = 60, status = "SCHEDULED",
-            ),
-        )
-        env.classDao.upsert(
-            ClassEntity(
+            )
+        env.fixtures.storedClass(
                 studentId = sid,
                 subjectId = subj,
                 startMillis = startMillisOn(otherDay, LocalTime.of(9, 0)),
                 durationMinutes = 60,
                 status = "SCHEDULED",
-            ),
-        )
+            )
 
         val vm = vm()
         observing(vm.content)
@@ -374,12 +366,10 @@ class ScheduleViewModelTest {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val day = LocalDate.of(2026, 7, 15)
-        env.classDao.upsert(
-            ClassEntity(
+        env.fixtures.storedClass(
                 studentId = sid, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(9, 0)),
                 durationMinutes = 60, status = "SCHEDULED",
             )
-        )
 
         val vm = vm()
         observing(vm.dayLoads)
@@ -413,19 +403,15 @@ class ScheduleViewModelTest {
         val otherMonth = LocalDate.of(2026, 9, 1)
         listOf(padding to LocalTime.of(9, 0), inMonth to LocalTime.of(9, 0), inMonth to LocalTime.of(15, 0))
             .forEach { (day, time) ->
-                env.classDao.upsert(
-                    ClassEntity(
+                env.fixtures.storedClass(
                         studentId = sid, subjectId = subj, startMillis = startMillisOn(day, time),
                         durationMinutes = 60, status = "SCHEDULED",
                     )
-                )
             }
-        env.classDao.upsert(
-            ClassEntity(
+        env.fixtures.storedClass(
                 studentId = sid, subjectId = subj, startMillis = startMillisOn(otherMonth, LocalTime.of(9, 0)),
                 durationMinutes = 60, status = "CANCELLED",
             )
-        )
 
         val vm = vm()
         observing(vm.dayLoads)
@@ -444,12 +430,10 @@ class ScheduleViewModelTest {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val august = LocalDate.of(2026, 8, 12)
-        env.classDao.upsert(
-            ClassEntity(
+        env.fixtures.storedClass(
                 studentId = sid, subjectId = subj, startMillis = startMillisOn(august, LocalTime.of(9, 0)),
                 durationMinutes = 60, status = "COMPLETED",
             )
-        )
 
         val vm = vm()
         observing(vm.dayLoads)
@@ -463,7 +447,7 @@ class ScheduleViewModelTest {
 
         assertEquals(1, vm.dayLoads.value.getValue(august).total)
         assertEquals(
-            mapOf(ClassStatus.COMPLETED to 1),
+            mapOf(LessonStatus.COMPLETED to 1),
             vm.dayLoads.value.getValue(august).counts,
         )
     }
@@ -472,10 +456,10 @@ class ScheduleViewModelTest {
     fun `setStatus completes a class and captures its charge`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val id = env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 90, priceMinor = Money.ofMajor(30).minor, status = "SCHEDULED"))
+        val id = env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 90, priceMinor = Money.ofMajor(30).minor, status = "SCHEDULED")
 
         val vm = vm()
-        vm.setStatus(env.classRepo.getSessionFor(id)!!, ClassStatus.COMPLETED)
+        vm.setStatus(env.classRepo.getSessionFor(id)!!, LessonStatus.COMPLETED)
         advanceUntilIdle()
 
         val saved = env.classDao.items.value.single { it.id == id }
@@ -491,12 +475,8 @@ class ScheduleViewModelTest {
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val day = LocalDate.of(2026, 7, 15)
-        val moving = env.classDao.upsert(
-            ClassEntity(studentId = ann, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED"),
-        )
-        env.classDao.upsert(
-            ClassEntity(studentId = bob, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(15, 0)), durationMinutes = 60, status = "SCHEDULED"),
-        )
+        val moving = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED")
+        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(15, 0)), durationMinutes = 60, status = "SCHEDULED")
 
         val vm = vm()
         val target = day.atTime(15, 30).atZone(zone).toInstant()
@@ -526,16 +506,12 @@ class ScheduleViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val day = LocalDate.of(2026, 7, 15)
         val at = startMillisOn(day, LocalTime.of(10, 0))
-        val cancelled = env.classDao.upsert(
-            ClassEntity(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "CANCELLED"),
-        )
+        val cancelled = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "CANCELLED")
         // The freed hour, re-booked for somebody else.
-        env.classDao.upsert(
-            ClassEntity(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED"),
-        )
+        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED")
 
         val vm = vm()
-        vm.setStatus(env.classRepo.getSessionFor(cancelled)!!, ClassStatus.SCHEDULED)
+        vm.setStatus(env.classRepo.getSessionFor(cancelled)!!, LessonStatus.SCHEDULED)
         advanceUntilIdle()
 
         assertEquals("Борис", vm.timeConflict.value?.who)
@@ -551,16 +527,14 @@ class ScheduleViewModelTest {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val day = LocalDate.of(2026, 7, 15)
-        val cancelled = env.classDao.upsert(
-            ClassEntity(
+        val cancelled = env.fixtures.storedClass(
                 studentId = ann, subjectId = subj,
                 startMillis = startMillisOn(day, LocalTime.of(10, 0)),
                 durationMinutes = 60, status = "CANCELLED",
-            ),
-        )
+            )
 
         val vm = vm()
-        vm.setStatus(env.classRepo.getSessionFor(cancelled)!!, ClassStatus.SCHEDULED)
+        vm.setStatus(env.classRepo.getSessionFor(cancelled)!!, LessonStatus.SCHEDULED)
         advanceUntilIdle()
 
         assertNull("nothing holds the hour, so nothing to refuse", vm.timeConflict.value)
@@ -581,13 +555,11 @@ class ScheduleViewModelTest {
         val env = TestEnv()
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val id = env.classDao.upsert(
-            ClassEntity(
+        val id = env.fixtures.storedClass(
                 studentId = ann, subjectId = subj,
                 startMillis = startMillisOn(LocalDate.of(2026, 7, 15), LocalTime.of(10, 0)),
                 durationMinutes = 60, status = "SCHEDULED",
-            ),
-        )
+            )
         val vm = ScheduleViewModel(
             env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, mainRule.appScope,
             mainRule.dispatcher, Clock.systemDefaultZone(),
@@ -596,7 +568,7 @@ class ScheduleViewModelTest {
         backgroundScope.launch { vm.events.stream.collect { seen += it } }
 
         env.transactor.failAt = env.transactor.count + 1
-        vm.setStatus(env.classRepo.getSessionFor(id)!!, ClassStatus.COMPLETED)
+        vm.setStatus(env.classRepo.getSessionFor(id)!!, LessonStatus.COMPLETED)
         advanceUntilIdle()
 
         assertEquals(listOf(ScheduleViewModel.Event.ACTION_FAILED), seen)
@@ -607,13 +579,11 @@ class ScheduleViewModelTest {
         val env = TestEnv()
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val id = env.classDao.upsert(
-            ClassEntity(
+        val id = env.fixtures.storedClass(
                 studentId = ann, subjectId = subj,
                 startMillis = startMillisOn(LocalDate.of(2026, 7, 15), LocalTime.of(10, 0)),
                 durationMinutes = 60, status = "SCHEDULED",
-            ),
-        )
+            )
         val vm = ScheduleViewModel(
             env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, mainRule.appScope,
             mainRule.dispatcher, Clock.systemDefaultZone(),
@@ -632,13 +602,11 @@ class ScheduleViewModelTest {
     fun `a write that succeeds reports nothing`() = runTest(mainRule.dispatcher) {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val id = env.classDao.upsert(
-            ClassEntity(
+        val id = env.fixtures.storedClass(
                 studentId = ann, subjectId = subj,
                 startMillis = startMillisOn(LocalDate.of(2026, 7, 15), LocalTime.of(10, 0)),
                 durationMinutes = 60, status = "SCHEDULED",
-            ),
-        )
+            )
         val vm = vm()
         val seen = mutableListOf<ScheduleViewModel.Event>()
         backgroundScope.launch { vm.events.stream.collect { seen += it } }
@@ -654,16 +622,14 @@ class ScheduleViewModelTest {
     fun `marking a lesson completed is never refused`() = runTest(mainRule.dispatcher) {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val id = env.classDao.upsert(
-            ClassEntity(
+        val id = env.fixtures.storedClass(
                 studentId = ann, subjectId = subj,
                 startMillis = startMillisOn(LocalDate.of(2026, 7, 15), LocalTime.of(10, 0)),
                 durationMinutes = 60, status = "SCHEDULED", priceMinor = 3000,
-            ),
-        )
+            )
 
         val vm = vm()
-        vm.setStatus(env.classRepo.getSessionFor(id)!!, ClassStatus.COMPLETED)
+        vm.setStatus(env.classRepo.getSessionFor(id)!!, LessonStatus.COMPLETED)
         advanceUntilIdle()
 
         assertNull(vm.timeConflict.value)
@@ -675,9 +641,7 @@ class ScheduleViewModelTest {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val day = LocalDate.of(2026, 7, 15)
-        val id = env.classDao.upsert(
-            ClassEntity(studentId = ann, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED"),
-        )
+        val id = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED")
 
         val vm = vm()
         // Ten minutes later overlaps where it currently is — it must not block itself.
@@ -699,8 +663,8 @@ class ScheduleViewModelTest {
         val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
         val day = LocalDate.of(2026, 7, 15)
         val at = startMillisOn(day, LocalTime.of(12, 0))
-        val first = env.classDao.upsert(ClassEntity(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
-        env.classDao.upsert(ClassEntity(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
+        val first = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId)
+        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId)
 
         val vm = vm()
         val target = day.atTime(12, 30).atZone(zone).toInstant()
@@ -723,8 +687,8 @@ class ScheduleViewModelTest {
         val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
         val wednesday = LocalDate.of(2026, 7, 15)
         val at = startMillisOn(wednesday, LocalTime.of(12, 0))
-        env.classDao.upsert(ClassEntity(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
-        env.classDao.upsert(ClassEntity(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
+        env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId)
+        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId)
 
         val vm = vm()
         observing(vm.content)
@@ -748,10 +712,10 @@ class ScheduleViewModelTest {
         val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
         val today = LocalDate.now(zone)
         val at = startMillisOn(today, LocalTime.of(12, 0))
-        env.classDao.upsert(ClassEntity(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
-        env.classDao.upsert(ClassEntity(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
+        env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId)
+        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId)
         // Plus an unrelated individual class earlier the same day.
-        env.classDao.upsert(ClassEntity(studentId = ann, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED"))
+        env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED")
 
         val vm = vm()
         observing(vm.content)
@@ -778,13 +742,13 @@ class ScheduleViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
         val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
         val at = startMillisOn(LocalDate.now(zone), LocalTime.of(12, 0))
-        env.classDao.upsert(ClassEntity(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = "SCHEDULED", groupId = groupId))
-        env.classDao.upsert(ClassEntity(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, priceMinor = Money.ofMajor(20).minor, status = "SCHEDULED", groupId = groupId))
+        env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = "SCHEDULED", groupId = groupId)
+        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, priceMinor = Money.ofMajor(20).minor, status = "SCHEDULED", groupId = groupId)
 
         val vm = vm()
         observing(vm.content)
         advanceUntilIdle()
-        vm.setStatus(vm.content.value.rows.single().session, ClassStatus.COMPLETED)
+        vm.setStatus(vm.content.value.rows.single().session, LessonStatus.COMPLETED)
         advanceUntilIdle()
 
         val saved = env.classDao.items.value
@@ -800,7 +764,7 @@ class ScheduleViewModelTest {
     fun `delete removes the class`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val id = env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "CANCELLED"))
+        val id = env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "CANCELLED")
 
         val vm = vm()
         vm.delete(env.classRepo.getSessionFor(id)!!)
@@ -862,33 +826,33 @@ class ScheduleViewModelTest {
             val scheduled = env.fixtures.lesson(subject, listOf(anya), at(9))
             val completed = env.fixtures.completedLesson(subject, listOf(anya), at(10))
             val cancelled = env.fixtures.cancelledLesson(subject, listOf(anya), at(11))
-            // A planned group lesson whose absentee was corrected to cancelled — the lesson still
-            // reads «Запланировано», because it is still to come for the member who is coming.
+            // A planned group lesson one of whose members has already said they cannot come — the lesson
+            // still reads «Запланировано», because it is still to come for the one who can.
             val mixed = env.fixtures.lesson(subject, listOf(anya, boris), at(12), groupId = group)
             val borisClass = env.classRepo.getSessionFor(mixed.first())!!
                 .classes.single { it.studentId == boris }
-            env.classRepo.setStatus(com.seblful.klas.domain.ClassSession.of(borisClass), ClassStatus.CANCELLED)
+            env.classRepo.setAttendance(borisClass, Attended.ABSENT)
 
             suspend fun rowFor(ids: List<Long>) =
                 ScheduleRow(session = env.classRepo.getSessionFor(ids.first())!!, title = "", subjectName = "")
 
             val plain = rowFor(scheduled)
             assertTrue("a scheduled lesson can be swiped done", plain.canSwipeComplete)
-            assertEquals(setOf(ClassStatus.COMPLETED, ClassStatus.CANCELLED), plain.statusChoices)
+            assertEquals(setOf(LessonStatus.COMPLETED, LessonStatus.CANCELLED), plain.statusChoices)
             assertFalse(plain.recedes)
 
             val done = rowFor(completed)
             assertFalse("nothing to complete twice", done.canSwipeComplete)
-            assertEquals(setOf(ClassStatus.CANCELLED), done.statusChoices)
+            assertEquals(setOf(LessonStatus.CANCELLED), done.statusChoices)
             assertFalse(done.recedes)
 
             val off = rowFor(cancelled)
             assertFalse(off.canSwipeComplete)
-            assertEquals(setOf(ClassStatus.SCHEDULED), off.statusChoices)
+            assertEquals(setOf(LessonStatus.SCHEDULED), off.statusChoices)
             assertTrue("a called-off lesson recedes — its hour was given back", off.recedes)
 
             val corrected = rowFor(mixed)
-            assertEquals(ClassStatus.SCHEDULED, corrected.session.status)
+            assertEquals(LessonStatus.SCHEDULED, corrected.session.status)
             assertTrue(
                 "a lesson still to come for somebody can be swiped done",
                 corrected.canSwipeComplete,
@@ -897,16 +861,17 @@ class ScheduleViewModelTest {
         }
 
     /**
-     * The swipe and the badge cannot contradict each other, and nothing has to enforce that.
+     * The swipe and the badge cannot contradict each other, and nothing has to enforce it.
      *
-     * Now that a lesson always has one of the three statuses, the worry is a card badged «Проведено»
-     * that still invites completing — a taught group lesson whose absentee was cancelled afterwards has
-     * a member who is not completed, and `statusChoices` is the union over members. It does not happen:
-     * completing is legal only from *scheduled*, and a scheduled member would make the lesson read
-     * «Запланировано». Pinned because the alternative was a redundant guard in `canSwipeComplete`.
+     * The worry is a card badged «Проведено» that still invites completing. It used to be a real
+     * possibility: the status was per member, so a taught lesson could hold a cancelled one, and
+     * `statusChoices` was the *union* over the members — which offered «Проведено» for that member on a
+     * card that already said the lesson was taught. Both halves of that are gone. The lesson has one
+     * status, its choices are that status's own, and who was in the room is attendance — so an absentee
+     * is a fact about them that cannot re-open the lesson.
      */
     @Test
-    fun `a taught lesson with a cancelled member offers no swipe`() = runTest(mainRule.dispatcher) {
+    fun `a taught lesson with an absentee offers no swipe`() = runTest(mainRule.dispatcher) {
         val subject = env.fixtures.subject("Математика")
         val anya = env.fixtures.pricedStudent("Аня", subject)
         val boris = env.fixtures.pricedStudent("Борис", subject)
@@ -915,7 +880,7 @@ class ScheduleViewModelTest {
         val ids = env.fixtures.completedLesson(subject, listOf(anya, boris), at(12), groupId = group)
         val borisClass = env.classRepo.getSessionFor(ids.first())!!
             .classes.single { it.studentId == boris }
-        env.classRepo.setStatus(com.seblful.klas.domain.ClassSession.of(borisClass), ClassStatus.CANCELLED)
+        env.classRepo.setAttendance(borisClass, Attended.ABSENT)
 
         val row = ScheduleRow(
             session = env.classRepo.getSessionFor(ids.first())!!,
@@ -923,10 +888,11 @@ class ScheduleViewModelTest {
             subjectName = "",
         )
 
-        assertEquals(ClassStatus.COMPLETED, row.session.status)
+        assertEquals(LessonStatus.COMPLETED, row.session.status)
+        assertEquals("one of the two was in the room", 1, row.session.present)
         assertEquals(
-            "the absentee can be put back on the schedule, but not straight to completed",
-            setOf(ClassStatus.SCHEDULED, ClassStatus.CANCELLED),
+            "a taught lesson can only be called off — an absence does not un-teach it",
+            setOf(LessonStatus.CANCELLED),
             row.statusChoices,
         )
         assertFalse("so a lesson that reads as taught offers no swipe", row.canSwipeComplete)

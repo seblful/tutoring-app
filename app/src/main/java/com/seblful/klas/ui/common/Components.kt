@@ -63,7 +63,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.seblful.klas.R
 import com.seblful.klas.domain.AvatarPalette
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 
@@ -307,11 +307,11 @@ fun balanceColor(balance: Money): Color = when {
 }
 
 @Composable
-fun classStatusLabel(status: ClassStatus): String = stringResource(
+fun classStatusLabel(status: LessonStatus): String = stringResource(
     when (status) {
-        ClassStatus.SCHEDULED -> R.string.class_status_scheduled
-        ClassStatus.COMPLETED -> R.string.class_status_completed
-        ClassStatus.CANCELLED -> R.string.class_status_cancelled
+        LessonStatus.SCHEDULED -> R.string.class_status_scheduled
+        LessonStatus.COMPLETED -> R.string.class_status_completed
+        LessonStatus.CANCELLED -> R.string.class_status_cancelled
     }
 )
 
@@ -327,10 +327,10 @@ fun classStatusLabel(status: ClassStatus): String = stringResource(
  * quiet in a list of lessons while remaining findable in it.
  */
 @Composable
-fun classStatusColor(status: ClassStatus): Color = when (status) {
-    ClassStatus.SCHEDULED -> MaterialTheme.colorScheme.primary
-    ClassStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary
-    ClassStatus.CANCELLED -> MaterialTheme.colorScheme.error
+fun classStatusColor(status: LessonStatus): Color = when (status) {
+    LessonStatus.SCHEDULED -> MaterialTheme.colorScheme.primary
+    LessonStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary
+    LessonStatus.CANCELLED -> MaterialTheme.colorScheme.error
 }
 
 /** Localized label for a class mode: «Очно» / «Удалённо». */

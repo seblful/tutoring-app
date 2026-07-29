@@ -1,11 +1,10 @@
 package com.seblful.klas.data.repository
 
 import com.seblful.klas.calendar.Guest
-import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.domain.SessionEdit
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -133,7 +132,7 @@ class ClassRepositoryTest {
         val id = book()
         val eventId = repo.getById(id)!!.calendarEventId!!
 
-        repo.setStatus(session(id), ClassStatus.CANCELLED)
+        repo.setStatus(session(id), LessonStatus.CANCELLED)
 
         assertEquals(listOf(eventId), env.calendar.deletes)
         assertNull(repo.getById(id)!!.calendarEventId)
@@ -145,7 +144,7 @@ class ClassRepositoryTest {
         val id = book() // 1 upsert so far
         env.calendar.calls.clear()
 
-        val completed = repo.setStatus(session(id), ClassStatus.COMPLETED).written().single()
+        val completed = repo.setStatus(session(id), LessonStatus.COMPLETED).written().single()
 
         assertEquals(Money.ofMajor(30), completed.charge)
         assertTrue("a completed (past) class's event is history, not re-written", env.calendar.upserts.isEmpty())
@@ -157,7 +156,7 @@ class ClassRepositoryTest {
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         val id = book()
         // Completing keeps the (past) event; its id stays on the class.
-        repo.setStatus(session(id), ClassStatus.COMPLETED)
+        repo.setStatus(session(id), LessonStatus.COMPLETED)
         val eventId = repo.getById(id)!!.calendarEventId!!
         env.calendar.deletes.clear()
 
@@ -170,11 +169,11 @@ class ClassRepositoryTest {
     @Test
     fun `moving a class to the future re-plans it back to scheduled with no charge`() = runTest {
         val id = book(now.minusSeconds(3600))
-        repo.setStatus(session(id), ClassStatus.COMPLETED)
+        repo.setStatus(session(id), LessonStatus.COMPLETED)
 
         val moved = repo.move(session(id), now.plusSeconds(86_400), now = now).written().single()
 
-        assertEquals(ClassStatus.SCHEDULED, moved.status)
+        assertEquals(LessonStatus.SCHEDULED, moved.status)
         assertTrue(moved.charge.isZero)
     }
 
@@ -182,14 +181,14 @@ class ClassRepositoryTest {
     fun `an edit re-bills a completed class instead of keeping its old charge`() = runTest {
         val past = now.minusSeconds(7200)
         val id = book(past)
-        repo.setStatus(session(id), ClassStatus.COMPLETED)
+        repo.setStatus(session(id), LessonStatus.COMPLETED)
         assertEquals(Money.ofMajor(30), repo.getById(id)!!.charge)
 
         // Same (past) start, new rate: the class stays completed and its income follows the edit.
         repo.apply(session(id), edit(price = Money.ofMajor(50)), newStart = past, now = now)
 
         val after = repo.getById(id)!!
-        assertEquals(ClassStatus.COMPLETED, after.status)
+        assertEquals(LessonStatus.COMPLETED, after.status)
         assertEquals(Money.ofMajor(50), after.charge)
     }
 
@@ -234,8 +233,8 @@ class ClassRepositoryTest {
         val completed = repo.autoCompleteDue(now)
 
         assertEquals(listOf(due), completed.map { it.id })
-        assertEquals(ClassStatus.COMPLETED, repo.getById(due)?.status)
-        assertEquals(ClassStatus.SCHEDULED, repo.getById(future)?.status)
+        assertEquals(LessonStatus.COMPLETED, repo.getById(due)?.status)
+        assertEquals(LessonStatus.SCHEDULED, repo.getById(future)?.status)
         assertEquals(Money.ofMajor(30), repo.getById(due)?.charge)
     }
 
@@ -243,7 +242,7 @@ class ClassRepositoryTest {
     fun `every write asks for a reminder refresh, exactly once`() = runTest {
         val id = book()                                                       // 1
         repo.apply(session(id), edit(), newStart = defaultStart, now = now)    // 2
-        repo.setStatus(session(id), ClassStatus.CANCELLED)                     // 3
+        repo.setStatus(session(id), LessonStatus.CANCELLED)                     // 3
         repo.move(session(id), now.plusSeconds(3600), now = now)               // 4
         repo.delete(session(id))                                              // 5
         assertEquals(5, env.reminders.refreshCount)
@@ -314,20 +313,18 @@ class ClassRepositoryTest {
      */
     @Test
     fun `a status change on a zero-length stored row is an answer, not a crash`() = runTest {
-        val id = env.classDao.upsert(
-            ClassEntity(
+        val id = env.fixtures.storedClass(
                 studentId = STUDENT,
                 subjectId = 1,
                 startMillis = defaultStart.toEpochMilli(),
                 durationMinutes = 0,
-                status = ClassStatus.CANCELLED.name,
-            ),
-        )
+                status = LessonStatus.CANCELLED.name,
+            )
 
-        val outcome = repo.setStatus(session(id), ClassStatus.SCHEDULED)
+        val outcome = repo.setStatus(session(id), LessonStatus.SCHEDULED)
 
         assertTrue("answered, not thrown", outcome is LessonWrite.Written<*>)
-        assertEquals(ClassStatus.SCHEDULED, repo.getById(id)?.status)
+        assertEquals(LessonStatus.SCHEDULED, repo.getById(id)?.status)
     }
 
     private companion object {

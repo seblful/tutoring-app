@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.reports
 
-import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.StudentEntity
@@ -62,12 +61,10 @@ class ReportsViewModelTest {
         millis: Long,
         major: Long,
         groupId: Long? = null,
-    ) = env.classDao.upsert(
-        ClassEntity(
+    ) = env.fixtures.storedClass(
             studentId = studentId, subjectId = subjectId, startMillis = millis, durationMinutes = 60,
             status = "COMPLETED", chargeMinor = Money.ofMajor(major).minor, groupId = groupId,
         )
-    )
 
     @Test
     fun `the screen opens on the year in progress`() = runTest(mainRule.dispatcher) {

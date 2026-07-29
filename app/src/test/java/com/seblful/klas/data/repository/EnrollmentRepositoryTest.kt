@@ -1,6 +1,5 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.testutil.TestEnv
@@ -16,9 +15,9 @@ class EnrollmentRepositoryTest {
     private val env = TestEnv()
     private val repo = env.enrollmentRepo
 
-    private fun seedClass(studentId: Long, subjectId: Long) {
-        env.classDao.items.value = env.classDao.items.value + ClassEntity(
-            id = 1, studentId = studentId, subjectId = subjectId,
+    private suspend fun seedClass(studentId: Long, subjectId: Long) {
+        env.fixtures.storedClass(
+            studentId = studentId, subjectId = subjectId,
             startMillis = 0, durationMinutes = 60, status = "COMPLETED",
         )
     }

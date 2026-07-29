@@ -1,6 +1,6 @@
 package com.seblful.klas.domain
 
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.GroupId
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
@@ -28,12 +28,26 @@ class ReportsTest {
         subjectId: Long,
         start: String,
         charge: Long,
-        status: ClassStatus = ClassStatus.COMPLETED,
+        status: LessonStatus = LessonStatus.COMPLETED,
         groupId: Long? = null,
     ) = TutoringClass(
+        id = nextId,
+        lessonId = lessonIdFor(groupId, start, nextId++),
         studentId = studentId, subjectId = subjectId, start = Instant.parse(start),
         durationMinutes = 60, status = status, charge = Money(charge), groupId = groupId,
     )
+
+    private var nextId = 1L
+
+    private val lessonIds = mutableMapOf<Pair<Long, Any>, Long>()
+
+    /**
+     * The lesson a fixture's class belongs to: one per (group, start) for a group's, its own id for an
+     * individual class. A convention of the test — storage has a column for it — and it has to be stated
+     * because that column is the whole of what makes classes one lesson (`GroupRules.sessions`).
+     */
+    private fun lessonIdFor(groupId: Long?, start: Any, id: Long): Long =
+        if (groupId == null) id else lessonIds.getOrPut(groupId to start) { 1_000L + lessonIds.size }
 
     /** A whole report of [classes], with one student who is never archived and no payments. */
     private fun reportOf(classes: List<TutoringClass>, period: ReportPeriod) = Reports.of(
@@ -80,8 +94,8 @@ class ReportsTest {
     fun `total income counts only completed charges`() {
         val classes = listOf(
             klass(1, 1, "2026-05-10T10:00:00Z", 5000),
-            klass(1, 1, "2026-05-11T10:00:00Z", 5000, ClassStatus.CANCELLED),
-            klass(1, 1, "2026-05-12T10:00:00Z", 5000, ClassStatus.SCHEDULED),
+            klass(1, 1, "2026-05-11T10:00:00Z", 5000, LessonStatus.CANCELLED),
+            klass(1, 1, "2026-05-12T10:00:00Z", 5000, LessonStatus.SCHEDULED),
         )
         assertEquals(Money(5000), Reports.totalIncome(classes))
     }
@@ -125,7 +139,7 @@ class ReportsTest {
             now = Instant.parse("2026-05-20T10:00:00Z"),
         )
 
-        assertEquals(ClassStatus.SCHEDULED, moved.status)
+        assertEquals(LessonStatus.SCHEDULED, moved.status)
         assertEquals(
             "neither May nor June recognizes a lesson that has not happened yet",
             emptyList<Reports.MonthlyIncome>(),
@@ -154,8 +168,8 @@ class ReportsTest {
             klass(3, 10, "2026-05-11T18:00:00Z", 2000, groupId = 7),
             klass(4, 10, "2026-05-11T18:00:00Z", 2000, groupId = 7),
             // Neither of these was billed, so neither kind may count it.
-            klass(1, 10, "2026-05-12T10:00:00Z", 5000, ClassStatus.CANCELLED),
-            klass(2, 10, "2026-05-12T18:00:00Z", 2000, ClassStatus.SCHEDULED, groupId = 7),
+            klass(1, 10, "2026-05-12T10:00:00Z", 5000, LessonStatus.CANCELLED),
+            klass(2, 10, "2026-05-12T18:00:00Z", 2000, LessonStatus.SCHEDULED, groupId = 7),
         )
 
         val lines = Reports.incomeByKind(classes)
@@ -173,7 +187,7 @@ class ReportsTest {
     fun `a kind that earned nothing is left out rather than printed as zero`() {
         val onlyIndividual = listOf(
             klass(1, 10, "2026-05-10T10:00:00Z", 5000),
-            klass(2, 10, "2026-05-11T18:00:00Z", 2000, ClassStatus.CANCELLED, groupId = 7),
+            klass(2, 10, "2026-05-11T18:00:00Z", 2000, LessonStatus.CANCELLED, groupId = 7),
         )
 
         assertEquals(
@@ -190,7 +204,7 @@ class ReportsTest {
             klass(2, 10, "2026-05-11T18:00:00Z", 2000, groupId = 7),
             klass(3, 10, "2026-05-11T18:00:00Z", 2000, groupId = 7),
             klass(4, 10, "2026-05-12T18:00:00Z", 3000, groupId = 8),
-            klass(5, 10, "2026-05-13T18:00:00Z", 9000, ClassStatus.CANCELLED, groupId = 8),
+            klass(5, 10, "2026-05-13T18:00:00Z", 9000, LessonStatus.CANCELLED, groupId = 8),
         )
 
         val byGroup = Reports.incomeByGroup(classes)
@@ -294,7 +308,7 @@ class ReportsTest {
 
     @Test
     fun `a period that earned nothing has no chart, however many buckets it spans`() {
-        val classes = listOf(klass(1, 10, "2026-05-10T10:00:00Z", 5000, ClassStatus.CANCELLED))
+        val classes = listOf(klass(1, 10, "2026-05-10T10:00:00Z", 5000, LessonStatus.CANCELLED))
         val trend = Reports.trend(classes, ReportPeriod(ReportPeriod.Kind.YEAR, YearMonth.of(2026, 5)), zone)
 
         assertEquals(12, trend.bars.size)

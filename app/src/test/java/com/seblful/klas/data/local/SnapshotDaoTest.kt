@@ -51,7 +51,8 @@ class SnapshotDaoTest {
         val after = env.snapshotDao.read()
         assertEquals(listOf("Алгебра"), after.subjects.map { it.name })
         assertEquals(listOf("Аня"), after.students.map { it.name })
-        assertEquals("one lesson, not two", 1, after.classes.size)
+        assertEquals("one lesson, not two", 1, after.lessons.size)
+        assertEquals(1, after.attendance.size)
     }
 
     /** And a table the snapshot has nothing for comes back empty, not left as it was. */
@@ -64,7 +65,8 @@ class SnapshotDaoTest {
         val after = env.snapshotDao.read()
         assertEquals(emptyList<SubjectEntity>(), after.subjects)
         assertEquals(emptyList<StudentEntity>(), after.students)
-        assertEquals(emptyList<ClassEntity>(), after.classes)
+        assertEquals(emptyList<LessonEntity>(), after.lessons)
+        assertEquals(emptyList<AttendanceEntity>(), after.attendance)
         assertEquals(emptyList<PriceEntity>(), after.prices)
         assertEquals(emptyList<RateChangeEntity>(), after.rateHistory)
     }
@@ -89,7 +91,8 @@ class SnapshotDaoTest {
         assertEquals("the roster", 1, snapshot.groupMembers.size)
         assertEquals(1, snapshot.prices.size)
         assertEquals("the student's rate, and the group's", 2, snapshot.rateHistory.size)
-        assertEquals(1, snapshot.classes.size)
+        assertEquals(1, snapshot.lessons.size)
+        assertEquals("the student in it", 1, snapshot.attendance.size)
         assertEquals(1, snapshot.payments.size)
     }
 }

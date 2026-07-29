@@ -1,6 +1,5 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
@@ -138,12 +137,10 @@ class GroupRepositoryTest {
         val (ann) = students("Аня")
         val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
         val id = repo.save(Group(name = "11 «А»"), setOf(ann)).id
-        env.classDao.upsert(
-            ClassEntity(
+        env.fixtures.storedClass(
                 studentId = ann, subjectId = subject, startMillis = 1, durationMinutes = 60,
                 status = "COMPLETED", groupId = id,
-            ),
-        )
+            )
 
         assertFalse(repo.delete(repo.getById(id)!!))
         assertEquals("11 «А»", repo.getById(id)?.name)

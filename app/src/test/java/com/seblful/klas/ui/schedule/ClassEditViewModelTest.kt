@@ -1,15 +1,15 @@
 package com.seblful.klas.ui.schedule
 
 import androidx.lifecycle.SavedStateHandle
-import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.Scheduling
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
@@ -368,13 +368,11 @@ class ClassEditViewModelTest {
         runTest(mainRule.dispatcher) {
             val (studentId, subjectId) = seedStudentWithPricedSubject()
             val start = LocalDate.of(2026, 6, 22).atTime(10, 0).atZone(zone).toInstant()
-            val classId = env.classDao.upsert(
-                ClassEntity(
+            val classId = env.fixtures.storedClass(
                     studentId = studentId, subjectId = subjectId,
                     startMillis = start.toEpochMilli(), durationMinutes = 60,
-                    priceMinor = Money.ofMajor(30).minor, status = ClassStatus.SCHEDULED.name,
+                    priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED.name,
                 )
-            )
 
             val vm = vm(id = classId)
             observing(vm.state)
@@ -517,12 +515,10 @@ class ClassEditViewModelTest {
     fun `editing opens the pickers on the lesson's own time, not the current one`() = runTest(mainRule.dispatcher) {
         val (studentId, subjectId) = seedStudentWithPricedSubject()
         val start = Instant.parse("2026-06-15T07:00:00Z")
-        val id = env.classDao.upsert(
-            ClassEntity(
+        val id = env.fixtures.storedClass(
                 studentId = studentId, subjectId = subjectId, startMillis = start.toEpochMilli(),
                 durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = "SCHEDULED",
-            ),
-        )
+            )
         val vm = vm(id)
         advanceUntilIdle()
 
@@ -705,7 +701,7 @@ class ClassEditViewModelTest {
     fun `a cancelled lesson frees its hour`() = runTest(mainRule.dispatcher) {
         val date = LocalDate.now(zone).plusDays(3)
         val (_, bookedId) = seedLesson(date, LocalTime.of(10, 0))
-        env.classRepo.setStatus(env.classRepo.getSessionFor(bookedId)!!, ClassStatus.CANCELLED)
+        env.classRepo.setStatus(env.classRepo.getSessionFor(bookedId)!!, LessonStatus.CANCELLED)
         val (annId, subjectId) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
 
         val vm = vm()
@@ -903,12 +899,10 @@ class ClassEditViewModelTest {
     fun `editing loads the existing class into the form`() = runTest(mainRule.dispatcher) {
         val (studentId, subjectId) = seedStudentWithPricedSubject()
         val start = Instant.parse("2026-06-15T07:00:00Z")
-        val id = env.classDao.upsert(
-            ClassEntity(
+        val id = env.fixtures.storedClass(
                 studentId = studentId, subjectId = subjectId, startMillis = start.toEpochMilli(),
                 durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = "SCHEDULED",
-            ),
-        )
+            )
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()
@@ -925,13 +919,11 @@ class ClassEditViewModelTest {
         // A fixed 10:00 so the status assertion cannot turn on the clock the suite runs at — and, back
         // when the form kept an end time, on that end having wrapped past midnight.
         val past = LocalDate.now(zone).minusDays(1).atTime(10, 0).atZone(zone).toInstant()
-        val id = env.classDao.upsert(
-            ClassEntity(
+        val id = env.fixtures.storedClass(
                 studentId = studentId, subjectId = subjectId, startMillis = past.toEpochMilli(),
                 durationMinutes = 60, priceMinor = Money.ofMajor(30).minor,
                 status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor,
-            ),
-        )
+            )
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()
@@ -1325,11 +1317,11 @@ class ClassEditViewModelTest {
             studentIds = listOf(ann, bob),
             price = groupRate,
         ).written()
-        // Only Ann's class has billed; Bob's was corrected to cancelled.
+        // Only Ann's class has billed; Bob was not there, so his was not charged.
         val session = env.classRepo.getSessionFor(ids.first())!!
-        env.classRepo.setStatus(session, ClassStatus.COMPLETED)
+        env.classRepo.setStatus(session, LessonStatus.COMPLETED)
         val bobsClass = env.classRepo.getSessionFor(ids.first())!!.classes.single { it.studentId == bob }
-        env.classRepo.setStatus(ClassSession.of(bobsClass), ClassStatus.CANCELLED)
+        env.classRepo.setAttendance(bobsClass, Attended.ABSENT)
 
         val vm = vm(id = ids.first())
         observing(vm.state)
@@ -1340,7 +1332,7 @@ class ClassEditViewModelTest {
 
         vm.change(BookingIntent.IncludeMember(bob, false))
         advanceUntilIdle()
-        assertEquals("a cancelled class earned nothing to lose", 0, vm.state.value.billedDrops)
+        assertEquals("an absent member earned nothing to lose", 0, vm.state.value.billedDrops)
         assertEquals(SaveIntent.Save, vm.state.value.saveIntent)
 
         vm.change(BookingIntent.IncludeMember(ann, false))
@@ -1376,13 +1368,11 @@ class ClassEditViewModelTest {
         // which — while the form held an end time — pushed it past midnight on an evening run and made
         // the charge assertion fail for the time of day rather than for the rule.
         val past = LocalDate.now(zone).minusDays(7).atTime(10, 0).atZone(zone).toInstant()
-        val id = env.classDao.upsert(
-            ClassEntity(
+        val id = env.fixtures.storedClass(
                 studentId = studentId, subjectId = subjectId, startMillis = past.toEpochMilli(),
                 durationMinutes = 60, priceMinor = Money.ofMajor(30).minor,
                 status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor,
-            ),
-        )
+            )
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()

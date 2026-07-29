@@ -7,7 +7,7 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.SessionEdit
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.ClassStatus
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.TestEnv
@@ -170,7 +170,7 @@ class ClassRepositoryAtomicityTest {
         f.env.calendar.deletes.clear()
         transactor.failAt = transactor.count + 1
 
-        val failure = runCatching { f.env.classRepo.setStatus(session, ClassStatus.CANCELLED) }
+        val failure = runCatching { f.env.classRepo.setStatus(session, LessonStatus.CANCELLED) }
 
         assertTrue(failure.isFailure)
         // Cancelling mirrors as a *delete*, so neither kind of calendar write may have happened.
@@ -207,9 +207,12 @@ class ClassRepositoryAtomicityTest {
             }
         }
         val mirror = CalendarMirror(
-            env.classDao, env.studentDao, env.subjectDao, env.groupDao, spying, env.settingsRepo,
+            env.classDao, env.attendanceDao, env.studentDao, env.subjectDao, env.groupDao, spying,
+            env.settingsRepo,
         )
-        val repo = ClassRepository(env.classDao, mirror, env.reminders, env.transactor)
+        val repo = ClassRepository(
+            env.classDao, env.lessonDao, env.attendanceDao, mirror, env.reminders, env.transactor,
+        )
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         env.studentDao.upsert(StudentEntity(id = 1, name = "Аня"))
         env.subjectDao.upsert(SubjectEntity(id = 1, name = "Алгебра"))
@@ -224,7 +227,7 @@ class ClassRepositoryAtomicityTest {
             price = Money.ofMajor(30),
         ).written().single()
         val session = repo.getSessionFor(id)!!
-        repo.setStatus(session, ClassStatus.CANCELLED)
+        repo.setStatus(session, LessonStatus.CANCELLED)
         repo.delete(repo.getSessionFor(id) ?: session)
 
         assertTrue("no calendar write was observed at all", depths.isNotEmpty())
