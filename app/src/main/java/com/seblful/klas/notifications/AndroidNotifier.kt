@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.text.format.DateFormat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.seblful.klas.MainActivity
@@ -44,7 +45,11 @@ class AndroidNotifier @Inject constructor(
         if (!permission.isGranted()) return
         ensureChannel()
 
-        val time = klass.start.formatTime()
+        // 12- or 24-hour from the phone, like every other time the tutor is shown. A reminder is read
+        // *on* the phone — it is only "not a screen" in the sense that this class draws it, and the
+        // first pass at following the system clock drew the line there and missed this. A lesson booked
+        // at 9:00 PM was announced as «21:00»: one clock to set it on and another to be reminded of it.
+        val time = klass.start.formatTime(hour12 = !DateFormat.is24HourFormat(context))
         val title = context.getString(R.string.reminder_title)
         val headline = listOf(time, subjectName, whoName)
             .filter { it.isNotBlank() }

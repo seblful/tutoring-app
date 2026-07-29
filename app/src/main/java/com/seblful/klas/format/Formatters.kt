@@ -59,14 +59,20 @@ fun Instant.toLocalTime(): LocalTime = atZone(zone).toLocalTime()
 fun Instant.formatDate(): String = atZone(zone).format(dateFmt)
 fun Instant.formatDay(): String = atZone(zone).format(dayFmt).replaceFirstChar { it.uppercase() }
 
-// A clock is the one format the *phone* has an opinion about, so these take it as an argument. The
-// default is the app's 24-hour face, which keeps every caller that has no phone to ask — a notification,
-// a report, an export — printing what it always did. UI goes through `ui/common/timeText` instead of
-// passing the flag itself.
-fun Instant.formatTime(hour12: Boolean = false): String =
+/**
+ * A clock is the one format the *phone* has an opinion about, so these take it as an argument — and
+ * **deliberately have no default**, because a default is how the wrong clock got picked twice: screens
+ * printed 21:00 for a lesson set at 9:00 PM, and the reminder for it did the same.
+ *
+ * The line is whether the text is read **on the phone** or away from it. A screen goes through
+ * `ui/common/timeText`, which asks; anything else shown on the phone asks the same way
+ * (`notifications/AndroidNotifier`). A report, an export or a backup passes `false`: it is read
+ * somewhere else, so it keeps `HH:mm` whatever this phone is set to.
+ */
+fun Instant.formatTime(hour12: Boolean): String =
     atZone(zone).format(if (hour12) time12Fmt else timeFmt)
 
-fun Instant.formatDateTime(hour12: Boolean = false): String =
+fun Instant.formatDateTime(hour12: Boolean): String =
     atZone(zone).format(if (hour12) dateTime12Fmt else dateTimeFmt)
 
 // The same formats for callers already holding a local date or time. Before these existed, five
@@ -75,7 +81,7 @@ fun Instant.formatDateTime(hour12: Boolean = false): String =
 // "%02d:%02d" for lesson times, a second spelling of [timeFmt].
 fun LocalDate.formatDate(): String = format(dateFmt)
 fun LocalDate.formatDay(): String = format(dayFmt).replaceFirstChar { it.uppercase() }
-fun LocalTime.formatTime(hour12: Boolean = false): String = format(if (hour12) time12Fmt else timeFmt)
+fun LocalTime.formatTime(hour12: Boolean): String = format(if (hour12) time12Fmt else timeFmt)
 
 /**
  * Parses a user-entered amount in rubles (comma or dot decimals) into [Money], or null.

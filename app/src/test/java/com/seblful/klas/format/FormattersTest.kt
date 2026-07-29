@@ -98,12 +98,12 @@ class FormattersTest {
         }
     }
 
-    /** The face a 24-hour phone gets, and every non-screen caller: zero-padded, no marker. */
+    /** The face a 24-hour phone gets, and the one a report keeps: zero-padded, no marker. */
     @Test
-    fun `the 24-hour clock is the default face`() {
-        assertEquals("21:00", LocalTime.of(21, 0).formatTime())
-        assertEquals("09:05", LocalTime.of(9, 5).formatTime())
-        assertEquals("00:30", LocalTime.of(0, 30).formatTime())
+    fun `the 24-hour clock is zero-padded and markerless`() {
+        assertEquals("21:00", LocalTime.of(21, 0).formatTime(hour12 = false))
+        assertEquals("09:05", LocalTime.of(9, 5).formatTime(hour12 = false))
+        assertEquals("00:30", LocalTime.of(0, 30).formatTime(hour12 = false))
     }
 
     /**
@@ -131,7 +131,7 @@ class FormattersTest {
 
         assertTrue("«$label» says neither AM nor PM", label.endsWith("AM") || label.endsWith("PM"))
         assertTrue("«$label» has lost its date", label.contains("июл"))
-        assertNotEquals("the two faces are the same label", at.formatDateTime(), label)
+        assertNotEquals("the two faces are the same label", at.formatDateTime(hour12 = false), label)
     }
 
     @Test

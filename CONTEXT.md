@@ -352,10 +352,11 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 - **12- or 24-hour is the phone's answer, on the dial and in the text** (`ClockFormatTest`).
   `TimePickerModal` leaves `is24Hour` out; screens print times through `ui/common/timeText` /
   `dateTimeText`, composables that ask `DateFormat.is24HourFormat` and pick one of the two faces
-  `format/Formatters` owns — the same division as `Money.text` and the currency. **Everything that is not
-  a screen keeps `HH:mm`**: `formatTime()` with no argument, for a notification, a report or an export,
-  which is read away from the phone that made it. The 12-hour marker is a pinned "AM"/"PM", since `ru`
-  CLDR renders it «ДП»/«ПП» on some Androids and not others.
+  `format/Formatters` owns — the same division as `Money.text` and the currency. The reminder asks the same
+  question directly, having no composition to ask it in. The line is **read on this phone or away from it**,
+  not screen or not-a-screen: what keeps `HH:mm` is a report, an export, a backup. `hour12` has **no
+  default**, so no surface can pick a clock by saying nothing. The 12-hour marker is a pinned "AM"/"PM",
+  since `ru` CLDR renders it «ДП»/«ПП» on some Androids and not others.
 
 ### UI — navigation and lists
 

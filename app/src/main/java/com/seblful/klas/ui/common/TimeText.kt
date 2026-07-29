@@ -18,9 +18,11 @@ import java.time.LocalTime
  * it is asked in composition. `format/` stays context-free, which is what lets a notification, a report
  * and a view model keep using it.
  *
- * Everything outside the UI keeps the 24-hour face (`formatTime()` with no argument): a report is read
- * long after the phone that produced it, and `HH:mm` sorts and never needs a marker. `ClockFormatTest`
- * keeps a screen from reaching past these three to the raw formatter.
+ * The line is **read on the phone or away from it**, not screen or not-a-screen: a reminder is drawn by
+ * `notifications/AndroidNotifier` rather than by a composable, and it asks the same question this does.
+ * What keeps `HH:mm` is a report, an export, a backup — read long after the phone that produced it, where
+ * a marker means nothing and `HH:mm` sorts. `ClockFormatTest` keeps a screen from reaching past these
+ * three to the raw formatter, and keeps the reminder asking.
  */
 @Composable
 @ReadOnlyComposable
