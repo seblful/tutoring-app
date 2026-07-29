@@ -141,7 +141,8 @@ class GroupDetailViewModelTest {
         val lessons = vm.state.value.lessons
         assertEquals("four classes are two lessons", 2, lessons.size)
         assertEquals("newest first", at(2_000), lessons.first().session.start)
-        assertEquals(2, lessons.first().attendees)
+        assertEquals(2, lessons.first().members)
+        assertEquals("and both were in it, nobody having been marked absent", 2, lessons.first().present)
         assertEquals("both members' charges", Money.ofMajor(40), lessons.first().charge)
     }
 

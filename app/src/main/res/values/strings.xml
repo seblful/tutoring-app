@@ -309,6 +309,9 @@
     <string name="group_no_subject">Предмет не выбран</string>
     <string name="group_member_open">Открыть карточку ученика</string>
     <!-- %1$d: how many of the group's members were in this lesson -->
+    <!-- %1$d of %2$d: how many of a group lesson's students were actually in it. Only shown when
+         somebody was not, so it never says «3 из 3». -->
+    <string name="group_lesson_present">Пришли: %1$d из %2$d</string>
     <plurals name="group_lesson_attended">
         <item quantity="one">%1$d участник</item>
         <item quantity="few">%1$d участника</item>

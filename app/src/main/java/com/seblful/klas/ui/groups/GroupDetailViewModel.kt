@@ -42,10 +42,18 @@ data class GroupMemberRow(val student: Student, val attended: Int)
 /**
  * One of the group's lessons: the classes of a single session, plus what it came to.
  *
+ * @param members how many students the lesson is for.
+ * @param present how many of them were actually in it — equal to [members] unless somebody was marked
+ *   absent. Only worth saying for a lesson that happened; before then everybody is merely expected.
  * @param charge the whole lesson's recognized income — the sum over its members, since each of them
  *   is billed the group's rate separately (see `Group.price`).
  */
-data class GroupLessonRow(val session: ClassSession, val attendees: Int, val charge: Money)
+data class GroupLessonRow(
+    val session: ClassSession,
+    val members: Int,
+    val present: Int,
+    val charge: Money,
+)
 
 data class GroupDetailState(
     val group: Group? = null,
@@ -109,7 +117,8 @@ class GroupDetailViewModel @Inject constructor(
             lessons = sessions.map { session ->
                 GroupLessonRow(
                     session = session,
-                    attendees = session.size,
+                    members = session.size,
+                    present = session.present,
                     charge = Billing.charged(session.classes),
                 )
             },

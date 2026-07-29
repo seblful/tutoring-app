@@ -289,8 +289,15 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
                         text = classStatusLabel(status),
                         color = classStatusColor(status),
                     )
+                    // How many of the group were in it — the part that speaks for the members, and the
+                    // only place their attendance is visible. Said as "who came" only for a lesson that
+                    // happened: until then everybody is expected, and a count of that is just the roster.
                     Text(
-                        pluralStringResource(R.plurals.group_lesson_attended, row.attendees, row.attendees),
+                        if (status.isBillable && row.present < row.members) {
+                            stringResource(R.string.group_lesson_present, row.present, row.members)
+                        } else {
+                            pluralStringResource(R.plurals.group_lesson_attended, row.members, row.members)
+                        },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
