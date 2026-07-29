@@ -81,12 +81,11 @@ import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.classModeLabel
+import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.rememberConfirmFeedback
 import com.seblful.klas.ui.common.rememberMessages
-import com.seblful.klas.ui.common.sessionStatusColor
-import com.seblful.klas.ui.common.sessionStatusLabel
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.formatMonth
@@ -543,13 +542,13 @@ private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit, modifier: Modifi
 }
 
 /**
- * A session's status: the one its classes share, or «разные» when a member has been corrected on
- * their own (an absentee cancelled while the rest were completed).
+ * The lesson's status — one of the three, whatever its members have been corrected to individually.
+ * Which of them missed it is the lesson's own roster to say, not this badge's.
  */
 @Composable
 private fun SessionStatusBadge(row: ScheduleRow) {
-    val common = row.session.commonStatus
-    StatusBadge(text = sessionStatusLabel(common), color = sessionStatusColor(common))
+    val status = row.session.status
+    StatusBadge(text = classStatusLabel(status), color = classStatusColor(status))
 }
 
 @Composable
@@ -750,8 +749,9 @@ private fun ClassActionsSheet(
  * The lesson's status as a segmented control.
  *
  * Shows all three, with the lesson's own selected — so the sheet states the fact as well as offering
- * the change. A session in **mixed** states matches no segment and correctly shows none selected:
- * «разные» is not a status a lesson can be set to, only one it can be found in.
+ * the change. There is always one selected, [ClassSession.status] being one of the three even for a
+ * lesson whose members were corrected apart; the segments it *enables* are still the union of what
+ * those members can each move to ([GroupRules.sessionTransitions]).
  *
  * **The current status is enabled and does nothing.** [ClassRules.availableTransitions] excludes the
  * status a lesson is already in — quite rightly, it drove a menu of *actions* — so gating `enabled`
@@ -763,7 +763,7 @@ private fun ClassActionsSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StatusSelector(row: ScheduleRow, onStatus: (ClassStatus) -> Unit) {
-    val current = row.session.commonStatus
+    val current = row.session.status
     val allowed = row.statusChoices
     Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
         Text(

@@ -112,10 +112,11 @@ class GroupRulesTest {
         assertTrue(GroupRules.sessions(emptyList()).isEmpty())
     }
 
-    // --- commonStatus ---
+    // --- status ---
 
+    /** A session of members who agree has their status, and only ever one of the three. */
     @Test
-    fun `a session shares a status until a member is corrected on their own`() {
+    fun `a session in one status has that status`() {
         val completed = ClassSession(
             7,
             listOf(
@@ -123,16 +124,44 @@ class GroupRulesTest {
                 klass(2, 2, groupId = 7, status = ClassStatus.COMPLETED),
             ),
         )
-        assertEquals(ClassStatus.COMPLETED, completed.commonStatus)
+        assertEquals(ClassStatus.COMPLETED, completed.status)
+    }
 
-        val oneAbsent = ClassSession(
+    /**
+     * And one whose members disagree still answers with a status a class can be in — there is no
+     * fourth. A lesson is on if it is on for anybody, happened if it happened for anybody, and off only
+     * when it is off for everyone; the old answer was null, badged «Разные», which is a fact about the
+     * roster rather than about the lesson.
+     */
+    @Test
+    fun `a session whose members disagree reads as the most live status among them`() {
+        fun sessionOf(vararg statuses: ClassStatus) = ClassSession(
             7,
-            listOf(
-                klass(1, 1, groupId = 7, status = ClassStatus.COMPLETED),
-                klass(2, 2, groupId = 7, status = ClassStatus.CANCELLED),
-            ),
+            statuses.mapIndexed { index, status ->
+                klass(index + 1L, index + 1L, groupId = 7, status = status)
+            },
         )
-        assertNull("a mixed session has no single status", oneAbsent.commonStatus)
+
+        assertEquals(
+            "taught, bar the absentee who was cancelled on their own",
+            ClassStatus.COMPLETED,
+            sessionOf(ClassStatus.COMPLETED, ClassStatus.CANCELLED).status,
+        )
+        assertEquals(
+            "still to come for the rest, though one has called off",
+            ClassStatus.SCHEDULED,
+            sessionOf(ClassStatus.SCHEDULED, ClassStatus.CANCELLED).status,
+        )
+        assertEquals(
+            "half marked up is still a lesson to finish marking up",
+            ClassStatus.SCHEDULED,
+            sessionOf(ClassStatus.COMPLETED, ClassStatus.SCHEDULED).status,
+        )
+        assertEquals(
+            "off for everyone is off",
+            ClassStatus.CANCELLED,
+            sessionOf(ClassStatus.CANCELLED, ClassStatus.CANCELLED).status,
+        )
     }
 
     // --- bookableMembers ---
@@ -359,8 +388,13 @@ class GroupRulesTest {
         assertEquals(ClassStatus.COMPLETED, change.joining.single().status)
     }
 
+    /**
+     * A joiner takes the lesson's status even where the members disagree — this lesson was taught, so
+     * somebody added to it was in a lesson that was taught, and owes for it. They used to start
+     * scheduled, which recorded a group lesson as still to come for one person after the fact.
+     */
     @Test
-    fun `joining a lesson whose members disagree starts scheduled`() {
+    fun `joining a lesson whose members disagree takes the lesson's own status`() {
         val session = ClassSession(
             7,
             listOf(
@@ -371,8 +405,8 @@ class GroupRulesTest {
 
         val change = GroupRules.rosterChange(session, wanted = setOf(1, 2, 5), lessonEdit, t0)
 
-        assertNull("no one status to join", session.commonStatus)
-        assertEquals(ClassStatus.SCHEDULED, change.joining.single().status)
+        assertEquals(ClassStatus.COMPLETED, session.status)
+        assertEquals(ClassStatus.COMPLETED, change.joining.single().status)
     }
 
     @Test

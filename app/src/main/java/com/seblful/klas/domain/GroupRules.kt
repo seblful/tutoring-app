@@ -33,10 +33,20 @@ data class ClassSession(
     val size: Int get() = classes.size
 
     /**
-     * The status every class in the session shares, or null when they differ — which happens on
-     * purpose: one absentee's class is cancelled while the rest stay completed.
+     * **The lesson's own status**, which is one of the three a class can be in — never a fourth.
+     *
+     * Members can disagree: an absentee's class is cancelled on their own while the rest stay
+     * completed. That used to be answered with null and shown as a «Разные» badge, which made the
+     * badge report on the roster instead of on the lesson, in a word no class can be set to. Who
+     * missed the lesson is the roster's business; a badge answers "what happened to this lesson".
+     *
+     * A lesson is **still on** if it is on for anybody, and **happened** if it happened for anybody;
+     * it is off only when it is off for everyone. So the answer is the first status any member is in,
+     * taken in [ClassStatus]'s own order — scheduled, then completed, then cancelled — which is also
+     * most-actionable first: a lesson half marked up still reads «Запланировано», because it is.
      */
-    val commonStatus: ClassStatus? get() = classes.map { it.status }.distinct().singleOrNull()
+    val status: ClassStatus
+        get() = ClassStatus.entries.first { status -> classes.any { it.status == status } }
 
     /**
      * The rate every class in the session was booked at, or null when they differ. One lesson now
@@ -144,10 +154,10 @@ object GroupRules {
      * have come, somebody came who was never ticked — so this is expressible for a lesson in any
      * status, past or future. What it must not do is invent history: a joiner's class carries the
      * lesson's own subject, time, length, mode and rate ([changes], [newStart]) and takes **the
-     * status the lesson is in**, so joining a completed lesson owes exactly what being in it owed,
-     * and joining a scheduled one merely puts them on the schedule. A lesson whose members already
-     * disagree about their status has no one status to join, so a joiner starts scheduled and is
-     * marked with the rest.
+     * status the lesson is in** ([ClassSession.status]), so joining a completed lesson owes exactly
+     * what being in it owed, and joining a scheduled one merely puts them on the schedule. Where the
+     * members disagree, the lesson's own status is still the answer — a joiner is not made to start
+     * scheduled in a lesson that has already been taught.
      *
      * A leaver's class is **deleted, not cancelled**: a cancelled class records a lesson somebody
      * missed, which is a different fact from their never having been in it.
@@ -170,7 +180,7 @@ object GroupRules {
                     start = newStart,
                     durationMinutes = changes.durationMinutes,
                     price = changes.price,
-                    status = session.commonStatus ?: ClassStatus.SCHEDULED,
+                    status = session.status,
                     groupId = session.groupId,
                     mode = changes.mode,
                 )

@@ -76,20 +76,24 @@ data class ScheduleRow(
     val statusChoices: Set<ClassStatus> get() = GroupRules.sessionTransitions(session)
 
     /**
-     * Whether the swipe-to-complete gesture is offered at all: completing must be legal for the
-     * whole session, so the gesture can never do what the sheet's menu would refuse. A lesson
-     * already completed — or a group lesson in mixed states, which reads «Разные» — gets a plain
-     * card instead.
+     * Whether the swipe-to-complete gesture is offered at all: completing must be legal for some
+     * member, so the gesture can never do what the sheet's menu would refuse.
+     *
+     * It cannot contradict the card's badge, which is worth knowing rather than guarding: only a
+     * *scheduled* class may be completed, and a lesson with a scheduled member reads «Запланировано»
+     * ([ClassSession.status]). So a lesson badged «Проведено» — including a taught one whose absentee
+     * was cancelled afterwards — offers no swipe, because reinstating that member is a correction to
+     * their class and not a thing done to the whole lesson.
      */
     val canSwipeComplete: Boolean get() = ClassStatus.COMPLETED in statusChoices
 
     /**
      * Whether the card recedes — dimmed, its time struck through. A cancelled lesson is a record,
      * not a plan, and the question a glance at the day answers is "how full is it": a lesson whose
-     * every class was called off gave its hour back. A mixed-status session keeps full strength,
-     * because some of it did happen.
+     * every class was called off gave its hour back. One whose members disagree keeps full strength,
+     * because some of it did happen — which is exactly what [ClassSession.status] answers.
      */
-    val recedes: Boolean get() = session.commonStatus == ClassStatus.CANCELLED
+    val recedes: Boolean get() = session.status == ClassStatus.CANCELLED
 }
 
 /**

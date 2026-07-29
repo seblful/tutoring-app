@@ -139,7 +139,6 @@
     </plurals>
     <string name="class_subject_from_group">Предмет задан группой</string>
     <string name="class_group_price_label">Цена за час с ученика</string>
-    <string name="class_status_mixed">Разные</string>
     <!-- The swipe gesture on a schedule card, and its accessibility label. -->
     <string name="class_mark_completed">Отметить проведённым</string>
 

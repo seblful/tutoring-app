@@ -152,7 +152,7 @@ class ClassRepositoryGroupTest {
         repo.setStatus(ClassSession.of(bobsClass), ClassStatus.CANCELLED)
 
         val after = repo.getSessionFor(ids.first())!!
-        assertNull("a corrected lesson has no single status", after.commonStatus)
+        assertEquals("the lesson was still taught", ClassStatus.COMPLETED, after.status)
         assertEquals(Money.ZERO, after.classes.single { it.studentId == bob }.charge)
         assertEquals(groupRate, after.classes.single { it.studentId == ann }.charge)
     }
@@ -354,7 +354,7 @@ class ClassRepositoryGroupTest {
         )
 
         val after = repo.getSessionFor(ids.first())!!
-        assertEquals(ClassStatus.COMPLETED, after.commonStatus)
+        assertEquals(ClassStatus.COMPLETED, after.status)
         assertEquals(
             "the joiner owes what being in the lesson owed",
             mapOf(ann to groupRate, bob to groupRate),

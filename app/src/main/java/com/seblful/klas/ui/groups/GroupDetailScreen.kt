@@ -53,8 +53,8 @@ import com.seblful.klas.ui.common.StatRow
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.lessonsStat
-import com.seblful.klas.ui.common.sessionStatusColor
-import com.seblful.klas.ui.common.sessionStatusLabel
+import com.seblful.klas.ui.common.classStatusColor
+import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.text
 
 /**
@@ -278,16 +278,16 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
         return
     }
     items(state.lessons, key = { GroupDetailKeys.lesson(it.session.first.id) }) { row ->
-        val status = row.session.commonStatus
+        val status = row.session.status
         ListItem(
             headlineContent = { Text(row.session.start.dateTimeText()) },
             supportingContent = {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        // A mixed lesson (one absentee cancelled, the rest completed) says «Разные»
-                        // rather than picking one of its members' statuses to speak for the room.
-                        text = sessionStatusLabel(status),
-                        color = sessionStatusColor(status),
+                        // What happened to the lesson. How many of the group were in it is the count
+                        // beside this, which is the part that speaks for the members.
+                        text = classStatusLabel(status),
+                        color = classStatusColor(status),
                     )
                     Text(
                         pluralStringResource(R.plurals.group_lesson_attended, row.attendees, row.attendees),

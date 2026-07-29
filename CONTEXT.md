@@ -237,7 +237,12 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   at the lesson's own terms and **the status the lesson is in**. Dropping a class that already billed
   asks first. An old lesson offers the group as it is now but ticks only its own members.
 - **A session is derived, never stored**: the classes sharing a `(groupId, start)` pair. Statuses
-  still apply per class, so a hand-corrected lesson can read «Разные».
+  still apply per class, so members can disagree — an absentee cancelled while the lesson stayed
+  completed. **The lesson still has one of the three statuses** (`ClassSession.status`): it is on if it
+  is on for anybody, happened if it happened for anybody, off only when it is off for everyone. It used
+  to answer "no single status" and be badged «Разные», which made every badge, tally and segmented
+  control report on the roster in a word no class can be set to. Who missed a lesson is the roster's
+  business — the attendee count beside the status on a group's lesson list, and the lesson's own ticks.
 - **A group earns a report line of its own** (`Reports.incomeByGroup`) — the only line that answers
   whether running the group is worth the evening.
 - Groups are **archive-only once they have lessons**. A group lesson mirrors as **one calendar event
@@ -399,7 +404,7 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   are queried for the **active view's range only**.
 - **A cancelled lesson recedes** — dimmed, time struck through — because the question a glance answers
   is "how full is this day". Its **badge is the error red**, so it is quiet without being lost; grey is
-  left to mean only «Разные» (`ui/common/classStatusColor`).
+  now nobody's status at all (`ui/common/classStatusColor`).
 - **Marking a lesson completed is one swipe**, offered only where completing is legal
   (`GroupRules.sessionTransitions`); the row springs back, and the status badge is the confirmation.
 - **A lesson is booked by its length, not its end time — and *held* as one.** «Длительность» as chips

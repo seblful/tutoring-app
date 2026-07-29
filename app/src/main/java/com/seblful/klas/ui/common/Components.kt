@@ -321,9 +321,10 @@ fun classStatusLabel(status: ClassStatus): String = stringResource(
  * red meaning "look here" in both places.
  *
  * Cancelled was `onSurfaceVariant` before, which left grey saying two different things: "cancelled" and
- * «Разные» ([sessionStatusColor]). It now says only the second. The lesson *card* still recedes — dimmed,
- * its time struck through — so a cancellation stays quiet in a list of lessons while remaining findable
- * in it.
+ * the «Разные» badge a group lesson got when its members' statuses disagreed. That badge is gone — a
+ * lesson now answers with one of these three ([ClassSession.status]) — so grey is nobody's status. The
+ * lesson *card* still recedes when it is off — dimmed, its time struck through — so a cancellation stays
+ * quiet in a list of lessons while remaining findable in it.
  */
 @Composable
 fun classStatusColor(status: ClassStatus): Color = when (status) {
@@ -331,24 +332,6 @@ fun classStatusColor(status: ClassStatus): Color = when (status) {
     ClassStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary
     ClassStatus.CANCELLED -> MaterialTheme.colorScheme.error
 }
-
-/**
- * A **lesson's** status: the one its classes share, or «Разные» when they don't — a group whose
- * absentee was cancelled while the rest stayed completed.
- *
- * Nullable, because that is how a lesson answers the question (`ClassSession.commonStatus`), and three
- * surfaces ask it: the schedule's badge, a group's lesson list, and a calendar cell's tally. Each had
- * its own copy of the fallback, which is one place too many for a rule about what an unanswerable
- * status looks like.
- */
-@Composable
-fun sessionStatusLabel(status: ClassStatus?): String =
-    status?.let { classStatusLabel(it) } ?: stringResource(R.string.class_status_mixed)
-
-/** The tint for [sessionStatusLabel] — neutral for mixed, having no one status to be coloured by. */
-@Composable
-fun sessionStatusColor(status: ClassStatus?): Color =
-    status?.let { classStatusColor(it) } ?: MaterialTheme.colorScheme.onSurfaceVariant
 
 /** Localized label for a class mode: «Очно» / «Удалённо». */
 @Composable

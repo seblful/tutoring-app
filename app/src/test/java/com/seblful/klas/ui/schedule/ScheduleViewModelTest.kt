@@ -848,8 +848,8 @@ class ScheduleViewModelTest {
      * `deleteWarning`'s three siblings: what the sheet's segments enable, whether the swipe gesture
      * is offered, and whether the card recedes. All were decided inside `ScheduleScreen`, so the rule
      * gating the product's highest-frequency gesture could be exercised only by swiping on a phone —
-     * the mixed-status «Разные» case in particular, which must offer the swipe (its cancelled member
-     * stays a correction) while matching no segment.
+     * the group lesson whose absentee was cancelled in particular, which must still offer the swipe
+     * (the members who are coming have not been taught yet) and must not recede.
      */
     @Test
     fun `the row answers what is legal — segments, the swipe, and receding`() =
@@ -862,8 +862,8 @@ class ScheduleViewModelTest {
             val scheduled = env.fixtures.lesson(subject, listOf(anya), at(9))
             val completed = env.fixtures.completedLesson(subject, listOf(anya), at(10))
             val cancelled = env.fixtures.cancelledLesson(subject, listOf(anya), at(11))
-            // A planned group lesson whose absentee was corrected to cancelled — the session reads
-            // «Разные», and completing it is still legal for the member who is coming.
+            // A planned group lesson whose absentee was corrected to cancelled — the lesson still
+            // reads «Запланировано», because it is still to come for the member who is coming.
             val mixed = env.fixtures.lesson(subject, listOf(anya, boris), at(12), groupId = group)
             val borisClass = env.classRepo.getSessionFor(mixed.first())!!
                 .classes.single { it.studentId == boris }
@@ -888,10 +888,47 @@ class ScheduleViewModelTest {
             assertTrue("a called-off lesson recedes — its hour was given back", off.recedes)
 
             val corrected = rowFor(mixed)
+            assertEquals(ClassStatus.SCHEDULED, corrected.session.status)
             assertTrue(
-                "«Разные» still offers the union of its members' moves",
+                "a lesson still to come for somebody can be swiped done",
                 corrected.canSwipeComplete,
             )
-            assertFalse("but does not recede — some of it happened", corrected.recedes)
+            assertFalse("and does not recede — it is not off", corrected.recedes)
         }
+
+    /**
+     * The swipe and the badge cannot contradict each other, and nothing has to enforce that.
+     *
+     * Now that a lesson always has one of the three statuses, the worry is a card badged «Проведено»
+     * that still invites completing — a taught group lesson whose absentee was cancelled afterwards has
+     * a member who is not completed, and `statusChoices` is the union over members. It does not happen:
+     * completing is legal only from *scheduled*, and a scheduled member would make the lesson read
+     * «Запланировано». Pinned because the alternative was a redundant guard in `canSwipeComplete`.
+     */
+    @Test
+    fun `a taught lesson with a cancelled member offers no swipe`() = runTest(mainRule.dispatcher) {
+        val subject = env.fixtures.subject("Математика")
+        val anya = env.fixtures.pricedStudent("Аня", subject)
+        val boris = env.fixtures.pricedStudent("Борис", subject)
+        val group = env.fixtures.group("11 «А»", subjectId = subject, members = setOf(anya, boris))
+
+        val ids = env.fixtures.completedLesson(subject, listOf(anya, boris), at(12), groupId = group)
+        val borisClass = env.classRepo.getSessionFor(ids.first())!!
+            .classes.single { it.studentId == boris }
+        env.classRepo.setStatus(com.seblful.klas.domain.ClassSession.of(borisClass), ClassStatus.CANCELLED)
+
+        val row = ScheduleRow(
+            session = env.classRepo.getSessionFor(ids.first())!!,
+            title = "",
+            subjectName = "",
+        )
+
+        assertEquals(ClassStatus.COMPLETED, row.session.status)
+        assertEquals(
+            "the absentee can be put back on the schedule, but not straight to completed",
+            setOf(ClassStatus.SCHEDULED, ClassStatus.CANCELLED),
+            row.statusChoices,
+        )
+        assertFalse("so a lesson that reads as taught offers no swipe", row.canSwipeComplete)
+    }
 }

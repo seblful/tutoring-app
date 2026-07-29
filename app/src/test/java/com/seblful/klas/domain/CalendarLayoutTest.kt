@@ -203,8 +203,13 @@ class CalendarLayoutTest {
         assertEquals(2, loads.getValue(LocalDate.of(2026, 7, 15)).total)
     }
 
+    /**
+     * A cell counts lessons, in the three statuses a lesson can be in. A group whose absentee was
+     * cancelled on their own used to be counted in a fourth, null bucket and printed as its own
+     * number — a count of «Разные», which is not a status anything can be in.
+     */
     @Test
-    fun `a mixed group lesson counts once, under no status of its own`() {
+    fun `a group lesson with a cancelled member counts under the lesson's own status`() {
         val loads = CalendarLayout.dayLoads(
             groupLesson(
                 "2026-07-15T07:00:00Z",
@@ -218,11 +223,8 @@ class CalendarLayoutTest {
 
         assertEquals(2, load.total)
         assertEquals(
-            "the corrected lesson is neither completed nor cancelled, and reads last",
-            listOf(
-                CalendarLayout.Tally(ClassStatus.COMPLETED, 1),
-                CalendarLayout.Tally(null, 1),
-            ),
+            "two lessons taught, one of them with somebody missing",
+            listOf(CalendarLayout.Tally(ClassStatus.COMPLETED, 2)),
             load.tallies,
         )
     }
