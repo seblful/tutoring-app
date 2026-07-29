@@ -84,43 +84,61 @@ class ClassEditViewModelTest {
             studentId = 1, subjectId = 1,
             date = LocalDate.of(2026, 6, 20),
             timeFrom = LocalTime.of(10, 0),
-            timeTo = LocalTime.of(11, 0),
+            durationMinutes = 60,
             price = MoneyField("30"),
         )
         assertTrue(full.isValid)
-        assertEquals(60, full.durationMinutes)
+        assertEquals(LocalTime.of(11, 0), full.ends?.time)
     }
 
+    /**
+     * A length of zero is a lesson that does not happen, and the form treats it as not filled in rather
+     * than passing it to [Scheduling.Slot], which would throw. Nothing in the app produces one — the
+     * chips are positive and «Другая» will not confirm at zero — so this is the guard, not a path.
+     */
     @Test
-    fun `a non-positive time range yields a null duration and an invalid form`() {
-        val backwards = ClassForm(
+    fun `a lesson of no length is not a lesson`() {
+        val empty = ClassForm(
             studentId = 1, subjectId = 1,
             date = LocalDate.of(2026, 6, 20),
             timeFrom = LocalTime.of(11, 0),
-            timeTo = LocalTime.of(10, 0),
+            durationMinutes = 0,
             price = MoneyField("30"),
         )
-        assertNull(backwards.durationMinutes)
-        assertFalse(backwards.isValid)
-
-        val zeroLength = backwards.copy(timeTo = LocalTime.of(11, 0))
-        assertNull(zeroLength.durationMinutes)
-        assertFalse(zeroLength.isValid)
+        assertFalse(empty.isValid)
+        assertNull(empty.ends)
+        assertNull(empty.slot(ZoneId.of("Europe/Minsk")))
     }
 
+    /**
+     * The end is arithmetic on the start *instant*, so a late lesson simply finishes tomorrow. It used to
+     * be a second wall clock on the same date, which made 23:00 + 1 ч read as a negative range: see
+     * `EdgeCaseCombinationsTest`, where the limitation this replaced was pinned.
+     */
     @Test
-    fun `a class cannot be booked across midnight (known single-day limitation)`() {
-        // timeFrom/timeTo are wall-clock LocalTimes on one date, so 23:00 -> 00:30 is a negative
-        // range and the form rejects it. This pins the current single-day behaviour.
-        val crossingMidnight = ClassForm(
+    fun `a lesson that runs past midnight ends the next day`() {
+        val late = ClassForm(
             studentId = 1, subjectId = 1,
             date = LocalDate.of(2026, 6, 20),
             timeFrom = LocalTime.of(23, 0),
-            timeTo = LocalTime.of(0, 30),
+            durationMinutes = 90,
             price = MoneyField("30"),
         )
-        assertNull(crossingMidnight.durationMinutes)
-        assertFalse(crossingMidnight.isValid)
+        assertTrue(late.isValid)
+        assertEquals(LocalTime.of(0, 30), late.ends?.time)
+        assertEquals(true, late.ends?.nextDay)
+    }
+
+    /** The flag is about passing midnight, not about the clock reading less than the start. */
+    @Test
+    fun `a lesson ending exactly at midnight is the next day, one ending before it is not`() {
+        val toMidnight = ClassForm(timeFrom = LocalTime.of(23, 0), durationMinutes = 60)
+        assertEquals(LocalTime.MIDNIGHT, toMidnight.ends?.time)
+        assertEquals(true, toMidnight.ends?.nextDay)
+
+        val justBefore = ClassForm(timeFrom = LocalTime.of(23, 0), durationMinutes = 59)
+        assertEquals(LocalTime.of(23, 59), justBefore.ends?.time)
+        assertEquals(false, justBefore.ends?.nextDay)
     }
 
     // --- Decisions the screen used to make for itself ---
@@ -145,7 +163,7 @@ class ClassEditViewModelTest {
         studentId = 1, subjectId = 1,
         date = LocalDate.of(2026, 6, 20),
         timeFrom = LocalTime.of(10, 0),
-        timeTo = LocalTime.of(11, 0),
+        durationMinutes = 60,
         price = MoneyField("30"),
     )
 
@@ -154,32 +172,26 @@ class ClassEditViewModelTest {
         who = "Борис",
     )
 
+    /**
+     * A clash is now the only thing that can be wrong about a chosen time, so it is also the only thing
+     * that can stop a save. There used to be a `TimeProblem` deciding which of two complaints to show.
+     */
     @Test
-    fun `an impossible time range is reported ahead of a clash`() {
-        // Both are wrong at once. The tutor's own backwards range is the one they can fix here, so
-        // it wins; reporting the clash would send them looking at somebody else's lesson.
-        val state = stateWith(
-            form = validForm.copy(timeFrom = LocalTime.of(11, 0), timeTo = LocalTime.of(10, 0)),
-            conflict = someoneElse,
-        )
-        assertEquals(TimeProblem.RangeInvalid, state.timeProblem)
-    }
-
-    @Test
-    fun `a clash is reported once the range itself is fine`() {
+    fun `a taken slot stops the save even though the form itself is complete`() {
         val state = stateWith(form = validForm, conflict = someoneElse)
-        assertEquals(TimeProblem.Taken(someoneElse), state.timeProblem)
+
+        assertTrue(state.form.isValid)
+        assertFalse(state.canSave)
+        assertTrue(stateWith(form = validForm).canSave)
     }
 
     @Test
-    fun `a workable time reports no problem`() {
-        assertNull(stateWith(form = validForm).timeProblem)
-    }
+    fun `a half-filled time is incomplete rather than wrong`() {
+        // Only a start picked: nothing to complain about, and nothing to save either.
+        val state = stateWith(form = ClassForm(timeFrom = LocalTime.of(10, 0)))
 
-    @Test
-    fun `a half-filled time reports no problem yet`() {
-        // Only a start picked: incomplete, not wrong.
-        assertNull(stateWith(form = ClassForm(timeFrom = LocalTime.of(10, 0))).timeProblem)
+        assertNull(state.conflict)
+        assertFalse(state.canSave)
     }
 
     @Test
@@ -435,7 +447,7 @@ class ClassEditViewModelTest {
     }
 
     @Test
-    fun `picking a start time defaults the end one default-lesson later`() = runTest(mainRule.dispatcher) {
+    fun `picking a start time gives the lesson the default length`() = runTest(mainRule.dispatcher) {
         env.settingsRepo.update { it.copy(defaultLessonMinutes = 90) }
         val vm = vm()
         observing(vm.state)
@@ -443,49 +455,49 @@ class ClassEditViewModelTest {
 
         vm.change(BookingIntent.StartAt(LocalTime.of(10, 0)))
         advanceUntilIdle()
-        assertEquals(LocalTime.of(11, 30), vm.state.value.form.timeTo)
+        assertEquals(90, vm.state.value.form.durationMinutes)
+        assertEquals(LocalTime.of(11, 30), vm.state.value.form.ends?.time)
     }
 
     @Test
-    fun `changing the start time shifts the end to keep the lesson length`() = runTest(mainRule.dispatcher) {
+    fun `changing the start time keeps the lesson length`() = runTest(mainRule.dispatcher) {
         val vm = vm()
         observing(vm.state)
         advanceUntilIdle()
 
         // A 90-minute lesson, 10:00–11:30.
         vm.change(BookingIntent.StartAt(LocalTime.of(10, 0)))
-        vm.change(BookingIntent.EndAt(LocalTime.of(11, 30)))
+        vm.change(BookingIntent.LastsFor(90))
 
-        // Moving the start later moves the end with it, so it stays 90 minutes (not stale at 11:30).
+        // Moving the start later leaves it 90 minutes long, now 14:00–15:30.
         vm.change(BookingIntent.StartAt(LocalTime.of(14, 0)))
-        assertEquals(LocalTime.of(15, 30), vm.state.value.form.timeTo)
         assertEquals(90, vm.state.value.form.durationMinutes)
+        assertEquals(LocalTime.of(15, 30), vm.state.value.form.ends?.time)
     }
 
     @Test
-    fun `the time pickers open on the current time while nothing is chosen`() = runTest(mainRule.dispatcher) {
-        env.settingsRepo.update { it.copy(defaultLessonMinutes = 90) }
-        val vm = vm()
-        advanceUntilIdle()
+    fun `the pickers open on the current time and the default length while nothing is chosen`() =
+        runTest(mainRule.dispatcher) {
+            env.settingsRepo.update { it.copy(defaultLessonMinutes = 90) }
+            val vm = vm()
+            advanceUntilIdle()
 
-        // A lesson is normally written down as it is being arranged, so an empty form offers the
-        // current time — to the minute — and one default lesson after it.
-        val now = LocalTime.of(14, 37, 42)
-        assertEquals(LocalTime.of(14, 37), vm.startPickerDefault(now))
-        assertEquals(LocalTime.of(16, 7), vm.endPickerDefault(now))
-    }
+            // A lesson is normally written down as it is being arranged, so an empty form offers the
+            // current time — to the minute — and the tutor's own lesson length.
+            assertEquals(LocalTime.of(14, 37), vm.startPickerDefault(LocalTime.of(14, 37, 42)))
+            assertEquals(90, vm.durationPickerDefault())
+        }
 
     @Test
-    fun `the time pickers reopen on the times already chosen`() = runTest(mainRule.dispatcher) {
+    fun `the pickers reopen on what was already chosen`() = runTest(mainRule.dispatcher) {
         val vm = vm()
         advanceUntilIdle()
 
         vm.change(BookingIntent.StartAt(LocalTime.of(10, 0)))
-        vm.change(BookingIntent.EndAt(LocalTime.of(11, 30)))
+        vm.change(BookingIntent.LastsFor(50))
 
-        val now = LocalTime.of(14, 37)
-        assertEquals(LocalTime.of(10, 0), vm.startPickerDefault(now))
-        assertEquals(LocalTime.of(11, 30), vm.endPickerDefault(now))
+        assertEquals(LocalTime.of(10, 0), vm.startPickerDefault(LocalTime.of(14, 37)))
+        assertEquals(50, vm.durationPickerDefault())
     }
 
     /** The last picker default the platform used to answer from inside a composable. */
@@ -516,7 +528,29 @@ class ClassEditViewModelTest {
 
         val from = start.atZone(zone).toLocalTime()
         assertEquals(from, vm.startPickerDefault(LocalTime.of(14, 37)))
-        assertEquals(from.plusMinutes(60), vm.endPickerDefault(LocalTime.of(14, 37)))
+        assertEquals(60, vm.durationPickerDefault())
+    }
+
+    /**
+     * The disagreement the form's second wall clock caused, pinned from the other end: «Перенести» moves a
+     * lesson to any time it likes, so a 23:00 lesson can be sitting in the database, and opening one used
+     * to reconstruct `timeTo = 00:00` and refuse to save the lesson it had just loaded — its price could
+     * not be corrected without shortening it first.
+     */
+    @Test
+    fun `a lesson that starts at 23 00 opens ready to save`() = runTest(mainRule.dispatcher) {
+        // Booked through the repository, which has never had anything against a late lesson — the
+        // refusal was the form's alone. «Перенести» reaches the same state by moving one there.
+        val (_, id) = seedLesson(LocalDate.now(zone).plusDays(3), LocalTime.of(23, 0))
+        val vm = vm(id)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        val state = vm.state.value
+        assertEquals(60, state.form.durationMinutes)
+        assertEquals(LocalTime.MIDNIGHT, state.form.ends?.time)
+        assertEquals(true, state.form.ends?.nextDay)
+        assertTrue("a lesson already in the schedule is one the form can save", state.canSave)
     }
 
     // --- Save: create ---
@@ -532,7 +566,7 @@ class ClassEditViewModelTest {
         vm.change(BookingIntent.Edit {
             it.copy(
                 studentId = studentId, subjectId = subjectId, date = date,
-                timeFrom = LocalTime.of(10, 0), timeTo = LocalTime.of(11, 30),
+                timeFrom = LocalTime.of(10, 0), durationMinutes = 90,
                 price = MoneyField("30"), mode = ClassMode.REMOTE,
             )
         })
@@ -569,7 +603,7 @@ class ClassEditViewModelTest {
         vm.change(BookingIntent.Edit {
             it.copy(
                 studentId = studentId, subjectId = subjectId, date = LocalDate.now(zone).plusDays(3),
-                timeFrom = LocalTime.of(10, 0), timeTo = LocalTime.of(11, 0), price = MoneyField("30"),
+                timeFrom = LocalTime.of(10, 0), durationMinutes = 60, price = MoneyField("30"),
             )
         })
         mainRule.appScope.cancel()
@@ -603,18 +637,18 @@ class ClassEditViewModelTest {
         return studentId to id
     }
 
-    /** Fills the form for a lesson for [studentId] on [date] from [from] to [to]. */
+    /** Fills the form for a lesson for [studentId] on [date], starting at [from] and lasting [minutes]. */
     private fun ClassEditViewModel.fillFor(
         studentId: Long,
         subjectId: Long,
         date: LocalDate,
         from: LocalTime,
-        to: LocalTime,
+        minutes: Int,
     ) = change(
         BookingIntent.Edit {
             it.copy(
                 studentId = studentId, subjectId = subjectId, date = date,
-                timeFrom = from, timeTo = to, price = MoneyField("30"),
+                timeFrom = from, durationMinutes = minutes, price = MoneyField("30"),
             )
         },
     )
@@ -630,7 +664,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         // Аня at 10:30 would overlap Борис's lesson — the tutor cannot teach both.
-        vm.fillFor(annId, subjectId, date, LocalTime.of(10, 30), LocalTime.of(11, 30))
+        vm.fillFor(annId, subjectId, date, LocalTime.of(10, 30), minutes = 60)
         advanceUntilIdle()
 
         val clash = vm.state.value.conflict
@@ -655,7 +689,7 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        vm.fillFor(annId, subjectId, date, LocalTime.of(11, 0), LocalTime.of(12, 0))
+        vm.fillFor(annId, subjectId, date, LocalTime.of(11, 0), minutes = 60)
         advanceUntilIdle()
         assertNull(vm.state.value.conflict)
 
@@ -678,7 +712,7 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        vm.fillFor(annId, subjectId, date, LocalTime.of(10, 0), LocalTime.of(11, 0))
+        vm.fillFor(annId, subjectId, date, LocalTime.of(10, 0), minutes = 60)
         advanceUntilIdle()
 
         assertNull("a cancelled lesson is not happening, so the slot is free", vm.state.value.conflict)
@@ -699,7 +733,7 @@ class ClassEditViewModelTest {
         assertNull("its own hour is not a conflict", vm.state.value.conflict)
 
         // Lengthen it in place — the overlap with its own old span must not block the save.
-        vm.change(BookingIntent.Edit { it.copy(timeTo = LocalTime.of(11, 30)) })
+        vm.change(BookingIntent.Edit { it.copy(durationMinutes = 90) })
         advanceUntilIdle()
         assertNull(vm.state.value.conflict)
 
@@ -714,10 +748,9 @@ class ClassEditViewModelTest {
     @Test
     fun `a group lesson does not clash with its own members when re-saved`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
-        // A fixed 10:00, not `Instant.now()` plus three days: loading the lesson pre-fills timeTo as
-        // timeFrom + 60min, which wraps past midnight when the suite runs late enough in the evening.
-        // The form then reads that as a negative range, the save does nothing, and this fails for the
-        // time of day rather than for the behaviour (see the cross-midnight test above).
+        // A fixed 10:00 rather than the current time, so nothing here turns on when the suite runs.
+        // It used to be load-bearing: loading a lesson rebuilt an end time from its length, so a run
+        // after 23:00 opened this one as a negative range and the save quietly did nothing.
         val start = LocalDate.now(zone).plusDays(3).atTime(10, 0).atZone(zone).toInstant()
         val ids = env.classRepo.book(
             groupId = groupId, subjectId = env.subjectDao.items.value.first().id, start = start,
@@ -757,7 +790,7 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        vm.fillFor(carl, physics, date, LocalTime.of(10, 30), LocalTime.of(11, 30))
+        vm.fillFor(carl, physics, date, LocalTime.of(10, 30), minutes = 60)
         advanceUntilIdle()
 
         assertEquals("11 «А»", vm.state.value.conflict?.who)
@@ -782,7 +815,7 @@ class ClassEditViewModelTest {
             advanceUntilIdle()
             // Fill the form *without* collecting `conflict`, mimicking the race the button can't
             // catch: the slot was free when the form opened and is taken by the time save runs.
-            vm.fillFor(carl, physics, date, LocalTime.of(10, 0), LocalTime.of(11, 0))
+            vm.fillFor(carl, physics, date, LocalTime.of(10, 0), minutes = 60)
             advanceUntilIdle()
 
             var done = false
@@ -810,7 +843,7 @@ class ClassEditViewModelTest {
             val (ann, subject) = seedStudentWithPricedSubject()
             val vm = vm()
             advanceUntilIdle()
-            vm.fillFor(ann, subject, LocalDate.now(zone).plusDays(2), LocalTime.of(10, 0), LocalTime.of(11, 0))
+            vm.fillFor(ann, subject, LocalDate.now(zone).plusDays(2), LocalTime.of(10, 0), minutes = 60)
             advanceUntilIdle()
 
             env.transactor.failAt = env.transactor.count + 1
@@ -837,7 +870,7 @@ class ClassEditViewModelTest {
             vm.change(BookingIntent.IncludeMember(bob, included = false))
             val date = LocalDate.now(zone).plusDays(3)
             vm.change(BookingIntent.Edit {
-                it.copy(date = date, timeFrom = LocalTime.of(10, 0), timeTo = LocalTime.of(11, 0))
+                it.copy(date = date, timeFrom = LocalTime.of(10, 0), durationMinutes = 60)
             })
             advanceUntilIdle()
 
@@ -889,9 +922,8 @@ class ClassEditViewModelTest {
     @Test
     fun `editing a completed class into the future re-plans it back to scheduled and voids the charge`() = runTest(mainRule.dispatcher) {
         val (studentId, subjectId) = seedStudentWithPricedSubject()
-        // A fixed 10:00, for the same reason as the rebill test below: `Instant.now()` minus a day
-        // puts timeTo past midnight when the suite runs late, which the form rejects as a negative
-        // range, so the save is skipped and the status assertion fails for the clock, not the rule.
+        // A fixed 10:00 so the status assertion cannot turn on the clock the suite runs at — and, back
+        // when the form kept an end time, on that end having wrapped past midnight.
         val past = LocalDate.now(zone).minusDays(1).atTime(10, 0).atZone(zone).toInstant()
         val id = env.classDao.upsert(
             ClassEntity(
@@ -1012,7 +1044,7 @@ class ClassEditViewModelTest {
         assertEquals(listOf(ann), vm.state.value.members.map { it.id })
 
         val date = LocalDate.now(zone).plusDays(2)
-        vm.change(BookingIntent.Edit { it.copy(date = date, timeFrom = LocalTime.of(10, 0), timeTo = LocalTime.of(11, 0)) })
+        vm.change(BookingIntent.Edit { it.copy(date = date, timeFrom = LocalTime.of(10, 0), durationMinutes = 60) })
         vm.save { }
         advanceUntilIdle()
 
@@ -1026,7 +1058,7 @@ class ClassEditViewModelTest {
             groupId = 7, subjectId = 1,
             date = LocalDate.of(2026, 9, 1),
             timeFrom = LocalTime.of(10, 0),
-            timeTo = LocalTime.of(11, 0),
+            durationMinutes = 60,
         )
         assertFalse("nothing said about the money", base.isValid)
         assertFalse(base.copy(price = MoneyField("abc")).isValid)
@@ -1042,7 +1074,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         val date = LocalDate.now(zone).plusDays(2)
-        vm.change(BookingIntent.Edit { it.copy(date = date, timeFrom = LocalTime.of(10, 0), timeTo = LocalTime.of(11, 30)) })
+        vm.change(BookingIntent.Edit { it.copy(date = date, timeFrom = LocalTime.of(10, 0), durationMinutes = 90) })
         var done = false
         vm.save { done = true }
         advanceUntilIdle()
@@ -1067,7 +1099,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         val date = LocalDate.now(zone).plusDays(2)
-        vm.change(BookingIntent.Edit { it.copy(date = date, timeFrom = LocalTime.of(10, 0), timeTo = LocalTime.of(11, 0)) })
+        vm.change(BookingIntent.Edit { it.copy(date = date, timeFrom = LocalTime.of(10, 0), durationMinutes = 60) })
         // Bob is away this week. He stays on the roster; he just isn't at this lesson.
         vm.change(BookingIntent.IncludeMember(bob, false))
         advanceUntilIdle()
@@ -1093,7 +1125,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         val date = LocalDate.now(zone).plusDays(2)
-        vm.change(BookingIntent.Edit { it.copy(date = date, timeFrom = LocalTime.of(10, 0), timeTo = LocalTime.of(11, 0)) })
+        vm.change(BookingIntent.Edit { it.copy(date = date, timeFrom = LocalTime.of(10, 0), durationMinutes = 60) })
         vm.change(BookingIntent.IncludeMember(ann, false))
         vm.change(BookingIntent.IncludeMember(bob, false))
         advanceUntilIdle()
@@ -1163,7 +1195,7 @@ class ClassEditViewModelTest {
         assertEquals(listOf(ann, bob), vm.state.value.members.map { it.id })
 
         // Re-price the lesson and lengthen it; both members' classes must be updated in place.
-        vm.change(BookingIntent.Edit { it.copy(price = MoneyField("28"), timeTo = it.timeFrom!!.plusMinutes(90)) })
+        vm.change(BookingIntent.Edit { it.copy(price = MoneyField("28"), durationMinutes = 90) })
         vm.save { }
         advanceUntilIdle()
 
@@ -1340,10 +1372,9 @@ class ClassEditViewModelTest {
     @Test
     fun `editing a completed class in the past rebills it from the new price and duration`() = runTest(mainRule.dispatcher) {
         val (studentId, subjectId) = seedStudentWithPricedSubject()
-        // A fixed 10:00 rather than `Instant.now()` minus a week: the test extends the lesson by 90
-        // minutes, and run late enough in the evening that pushed timeTo past midnight, which the
-        // form rejects as a negative range (see the cross-midnight test above). The save then did
-        // nothing and the charge assertion failed — for the time of day, not for the behaviour.
+        // A fixed 10:00 rather than a week ago exactly: this test lengthens the lesson to 90 minutes,
+        // which — while the form held an end time — pushed it past midnight on an evening run and made
+        // the charge assertion fail for the time of day rather than for the rule.
         val past = LocalDate.now(zone).minusDays(7).atTime(10, 0).atZone(zone).toInstant()
         val id = env.classDao.upsert(
             ClassEntity(
@@ -1360,7 +1391,7 @@ class ClassEditViewModelTest {
         val pastDate = past.atZone(zone).toLocalDate()
         val from = past.atZone(zone).toLocalTime()
         vm.change(BookingIntent.Edit {
-            it.copy(date = pastDate, timeFrom = from, timeTo = from.plusMinutes(90), price = MoneyField("40"))
+            it.copy(date = pastDate, timeFrom = from, durationMinutes = 90, price = MoneyField("40"))
         })
         vm.save { }
         advanceUntilIdle()

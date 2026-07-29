@@ -10,8 +10,8 @@ import java.time.LocalTime
 /**
  * Matches `AppSettings.defaultLessonMinutes`, for the window before settings have loaded.
  *
- * Here rather than on the view model because it is the length [BookingForm] applies when the start time
- * moves and no end has been set — a rule of the form, not of the screen holding it.
+ * Here rather than on the view model because it is the length [BookingForm] gives a lesson that has a
+ * start but no length yet — a rule of the form, not of the screen holding it.
  */
 const val DEFAULT_LESSON_MINUTES = 60
 
@@ -59,9 +59,11 @@ sealed interface BookingIntent {
 
     data class StartAt(val time: LocalTime) : BookingIntent
 
-    data class EndAt(val time: LocalTime) : BookingIntent
-
-    /** How long the lesson runs — the end time follows from it. */
+    /**
+     * How long the lesson runs — from a chip or from «Другая», which is the only way the form takes a
+     * length. There is no `EndAt`: an end time was a second way of saying this, and the way that could
+     * say something impossible.
+     */
     data class LastsFor(val minutes: Int) : BookingIntent
 
     /** Anything the form edits directly: the date, the mode, the typed rate. */
@@ -141,9 +143,9 @@ data class Applied(val form: BookingForm, val lookups: List<Lookup> = emptyList(
  * The booking form: what has been filled in, and whether the tutor filled it in.
  *
  * **Pure.** Every rule about how the form moves lives here — the target/student/group/subject cascade
- * that clears what belonged to the previous choice, the start-time-moves-the-end derivation, the roster
- * ticks, and the three staleness checks that keep a slow answer from landing on a form that has moved
- * on. None of it needs a dispatcher, a `SavedStateHandle` or six repositories to exercise.
+ * that clears what belonged to the previous choice, the default length a start brings with it, the
+ * roster ticks, and the three staleness checks that keep a slow answer from landing on a form that has
+ * moved on. None of it needs a dispatcher, a `SavedStateHandle` or six repositories to exercise.
  *
  * It was spread across eleven mutators on a thousand-line view model, half of them inside
  * `viewModelScope.launch` blocks. The rules were the same rules; they were simply somewhere a test could
@@ -167,8 +169,8 @@ data class BookingForm(
     fun change(intent: BookingIntent, context: BookingContext): Applied {
         val moved = transform(intent, context)
         // The tutor's edit marks the form unsaved — but only when it moved something. An intent that
-        // changes nothing (a length with no start to add it to, re-picking the target already chosen)
-        // leaves the form exactly as it was, and back must not then ask about work nobody did.
+        // changes nothing (re-picking the target already chosen, the length it already has) leaves the
+        // form exactly as it was, and back must not then ask about work nobody did.
         //
         // The old mutators disagreed with each other here: `setDuration` checked for a start *before*
         // marking, while `setTarget` marked and only then found it had nothing to do. `touched` never
@@ -185,8 +187,7 @@ data class BookingForm(
         is BookingIntent.ChooseSubject -> chooseSubject(intent.subjectId)
         is BookingIntent.IncludeMember -> includeMember(intent.studentId, intent.included)
         is BookingIntent.StartAt -> startAt(intent.time, context)
-        is BookingIntent.EndAt -> settled(form.copy(timeTo = intent.time))
-        is BookingIntent.LastsFor -> lastsFor(intent.minutes)
+        is BookingIntent.LastsFor -> settled(form.copy(durationMinutes = intent.minutes))
         is BookingIntent.Edit -> settled(intent.transform(form))
         is BookingIntent.Load -> settled(intent.form)
         is BookingIntent.GroupLoaded -> groupLoaded(intent.group)
@@ -321,28 +322,17 @@ data class BookingForm(
     )
 
     /**
-     * Picking or changing the start moves the end with it so the lesson keeps its length: the current
-     * duration if an end was already set, otherwise the default lesson length. This stops the end from
-     * going stale — and the duration from breaking — when the start is edited.
+     * Picking or changing the start keeps whatever length the lesson has, and gives a lesson that has
+     * none yet the tutor's default. Moving the start no longer has to move anything else — the end is
+     * derived from the length ([ClassForm.ends]) — so this cannot leave the two disagreeing, which is
+     * what it existed to prevent.
      */
-    private fun startAt(time: LocalTime, context: BookingContext): Applied {
-        val minutes = form.durationMinutes?.toLong() ?: context.defaultLessonMinutes.toLong()
-        return settled(form.copy(timeFrom = time, timeTo = time.plusMinutes(minutes)))
-    }
-
-    /**
-     * Sets how long the lesson runs, which is how the form asks about it — the end time is stored and
-     * still editable, but derived from a length rather than picked on a clock face.
-     *
-     * **Does nothing before a start is chosen**: there is nothing to add [minutes] to, and a duration
-     * with no start describes no lesson. That is an ordering constraint the signature cannot state, so it
-     * is stated here and pinned by a test; the screen never offers the duration chips before a start
-     * exists, but a caller could.
-     */
-    private fun lastsFor(minutes: Int): Applied {
-        val from = form.timeFrom ?: return Applied(this)
-        return settled(form.copy(timeTo = from.plusMinutes(minutes.toLong())))
-    }
+    private fun startAt(time: LocalTime, context: BookingContext): Applied = settled(
+        form.copy(
+            timeFrom = time,
+            durationMinutes = form.durationMinutes ?: context.defaultLessonMinutes,
+        ),
+    )
 }
 
 /** [this], applied as setup rather than as the tutor's edit — see [BookingIntent.AsSetup]. */

@@ -28,12 +28,12 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
@@ -153,23 +153,34 @@ class EdgeCaseCombinationsTest {
     // ---- Decided behaviour, pinned ------------------------------------------------------------
 
     /**
-     * A lesson's times are wall-clock on one date, so 23:30 → 00:30 reads as a negative range and the
-     * form says so (`TimeProblem.RangeInvalid`). Picking a late start *creates* that state, since the
-     * end follows the start by the lesson's length — so a lesson crossing midnight cannot be booked
-     * at all, only shortened to end by 23:59. Documented in `ClassForm`; pinned here because it is
-     * the first thing that looks like a bug.
+     * A late lesson is an ordinary lesson. It was not always: the form held the end as a second
+     * wall clock on the lesson's date, so 23:30 + 60 min wrapped to 00:30 and read as *minus* twenty-three
+     * hours — the form refused a booking it had made itself (`TimeProblem.RangeInvalid`), and the only way
+     * out was a lesson short enough to finish by 23:59.
+     *
+     * Now the form holds the length the database row holds, and the end is arithmetic on the start
+     * *instant*. Pinned here because it is where the old limitation was pinned, and because the lesson
+     * ending on the following day is the part that has to keep working.
      */
     @Test
-    fun `a lesson cannot cross midnight`() {
+    fun `a lesson may cross midnight`() {
         val form = ClassForm(
             studentId = 1, subjectId = 1,
             date = LocalDate.of(2026, 3, 2),
             timeFrom = LocalTime.of(23, 30),
-            timeTo = LocalTime.of(23, 30).plusMinutes(60),
+            durationMinutes = 60,
             price = MoneyField(text = "30"),
         )
-        assertNull("23:30 + 60 min wraps to 00:30, which is not a range", form.durationMinutes)
-        assertFalse(form.isValid)
+        assertTrue(form.isValid)
+        assertEquals(LocalTime.of(0, 30), form.ends?.time)
+        assertEquals(true, form.ends?.nextDay)
+
+        val slot = form.slot(ZoneId.of("Europe/Minsk"))!!
+        assertEquals(
+            "the lesson ends on the 3rd, an hour after it started on the 2nd",
+            LocalDateTime.of(2026, 3, 3, 0, 30),
+            LocalDateTime.ofInstant(slot.end, ZoneId.of("Europe/Minsk")),
+        )
     }
 
     /**

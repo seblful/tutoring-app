@@ -91,16 +91,19 @@
     <string name="class_no_subjects_for_student">У ученика нет предметов с ценой. Укажите цену в карточке ученика.</string>
     <string name="class_date_label">Дата</string>
     <string name="class_time_from_label">Начало</string>
-    <string name="class_time_to_label">Окончание</string>
-    <string name="class_time_range_invalid">Окончание должно быть позже начала</string>
     <!--
       Length, chosen as a duration rather than as an end time. A tutor arranges "an hour and a half",
       not "ends at 15:30" — the end time is arithmetic they were being asked to do in their head, and
-      through a clock dial. The chips carry the common answers; «Другое» keeps the picker for the rest.
+      through a clock dial. The chips carry the common answers; «Другая» asks for the rest in hours and
+      minutes. There is no "end must be later than the start" message any more: a length cannot say it.
     -->
     <string name="class_duration_label">Длительность</string>
     <string name="class_duration_custom">Другая</string>
     <string name="class_duration_ends_at">до %1$s</string>
+    <!-- The same, for a lesson that runs past midnight: «до 00:00 (след. день)». -->
+    <string name="class_duration_ends_next_day">до %1$s (след. день)</string>
+    <string name="duration_hours_label">Часы</string>
+    <string name="duration_minutes_label">Минуты</string>
     <string name="class_pick_date">Выберите дату</string>
     <string name="class_pick_time">Выберите время</string>
     <!-- %1$s: ученик или группа, %2$s: время занятия, которое уже стоит в расписании -->

@@ -72,10 +72,19 @@ data class SubjectKey(val target: ClassTarget, val studentId: Long?, val groupId
 
 /**
  * The class-booking form. Date and times start **empty** — the user must choose them (the pickers
- * open on today and on the current time, see [ClassEditViewModel.startPickerDefault]). Duration is
- * expressed as a time range: [timeTo] follows
- * [timeFrom] — keeping the lesson's length (the default lesson when none is set yet) whenever the
- * start changes — and stays independently editable.
+ * open on today and on the current time, see [ClassEditViewModel.startPickerDefault]).
+ *
+ * **A lesson is a start and a length**, which is what the database row is ([TutoringClass.start] and
+ * [TutoringClass.durationMinutes]) and what [Scheduling.Slot] is. The end is derived for display
+ * ([ends]) and stored nowhere, so it cannot go stale when the start moves, and a lesson running past
+ * midnight is an ordinary lesson rather than a special case.
+ *
+ * This form used to hold the end as a second wall clock (`timeTo`) on one date, and paid for it: a
+ * 23:00 start plus the default hour wrapped to 00:00, which read as *minus* twenty-three hours, so the
+ * form refused a booking it had made itself and offered no way out but a shorter lesson. Worse, it
+ * refused ones already in the database — «Перенести» moves a lesson to any date and time it likes, and
+ * opening one it had moved to 23:00 showed a red error over a perfectly good lesson. There is no
+ * negative length to detect here now; `Scheduling.Slot` keeps the `> 0` backstop.
  *
  * The form covers both kinds of booking, and differs between them only in *who* the lesson is for:
  * one student, or a whole group. Everything else — subject, date, time, mode and the single
@@ -89,7 +98,8 @@ data class ClassForm(
     val subjectId: Long? = null,
     val date: LocalDate? = null,
     val timeFrom: LocalTime? = null,
-    val timeTo: LocalTime? = null,
+    /** How long the lesson runs. Null until the tutor has said — see [ends] for where it ends up. */
+    val durationMinutes: Int? = null,
     val price: MoneyField = MoneyField(kind = MoneyField.Kind.RATE),
     val mode: ClassMode = ClassMode.IN_PERSON,
     /**
@@ -104,16 +114,28 @@ data class ClassForm(
      */
     val excludedMemberIds: Set<Long> = emptySet(),
 ) {
-    /** Minutes between [timeFrom] and [timeTo], or null when the range isn't a positive duration. */
-    val durationMinutes: Int?
+    /**
+     * Where the lesson ends — for the form to show, not for it to keep. Null until there is a start and
+     * a length to add to it.
+     *
+     * Carries [Ending.nextDay] rather than only a clock time because "до 00:00" on its own is the one
+     * end a tutor could misread as the start of the day they are booking.
+     */
+    val ends: Ending?
         get() {
-            if (timeFrom == null || timeTo == null) return null
-            val minutes = Duration.between(timeFrom, timeTo).toMinutes()
-            return if (minutes > 0) minutes.toInt() else null
+            val from = timeFrom ?: return null
+            val minutes = durationMinutes?.takeIf { it > 0 } ?: return null
+            return Ending(
+                time = from.plusMinutes(minutes.toLong()),
+                nextDay = from.toSecondOfDay() + minutes * 60L >= Duration.ofDays(1).seconds,
+            )
         }
 
+    /** A lesson's end as a wall clock, and whether reaching it means passing midnight. */
+    data class Ending(val time: LocalTime, val nextDay: Boolean)
+
     private val timingValid: Boolean
-        get() = date != null && timeFrom != null && timeTo != null && (durationMinutes ?: 0) > 0
+        get() = date != null && timeFrom != null && (durationMinutes ?: 0) > 0
 
     val isValid: Boolean
         get() = subjectId != null && timingValid && price.isValid && when (target) {
@@ -132,11 +154,14 @@ data class ClassForm(
      * The stretch of time this form describes, or null while the date and times are incomplete. The
      * one place the form's wall-clock values become an instant, so the conflict check and the save
      * can never disagree about when the lesson is.
+     *
+     * A length of zero or less is treated as unset rather than passed on: [Scheduling.Slot] would throw,
+     * and "not filled in yet" is what it means from a form.
      */
     fun slot(zone: ZoneId): Scheduling.Slot? {
         val day = date ?: return null
         val from = timeFrom ?: return null
-        val minutes = durationMinutes ?: return null
+        val minutes = durationMinutes?.takeIf { it > 0 } ?: return null
         return Scheduling.Slot(day.atTime(from).atZone(zone).toInstant(), minutes)
     }
 }
@@ -209,23 +234,6 @@ data class TimeConflict(val slot: Scheduling.Slot, val who: String) {
     }
 }
 
-/**
- * Why the chosen time won't do. Which problem wins is decided here, not by the order two `if`s
- * happen to sit in a composable: an impossible range is the tutor's own typing and is worth saying
- * first, while a clash is about somebody else's lesson.
- */
-sealed interface TimeProblem {
-
-    /**
-     * The end is at or before the start. A lesson that would cross midnight lands here too — the
-     * times are wall-clock on one date, so 23:00 → 00:30 reads as a negative range.
-     */
-    data object RangeInvalid : TimeProblem
-
-    /** Another lesson already holds this slot; [conflict] names it. */
-    data class Taken(val conflict: TimeConflict) : TimeProblem
-}
-
 /** What, if anything, to say under the subject picker. */
 enum class SubjectNotice {
     /** The group is taught one subject, so there is nothing to pick per lesson. */
@@ -241,10 +249,10 @@ enum class SubjectNotice {
 /**
  * Everything the booking screen draws, with every decision already made.
  *
- * The screen used to receive seven separate flows and work out the answers itself — which time
- * error wins, whether the subject picker is live, whether everyone has been unticked, whether the
- * save may proceed. Those are rules about booking a lesson, not about drawing one, and none of them
- * could be tested where they were. Here they are ordinary properties over ordinary data.
+ * The screen used to receive seven separate flows and work out the answers itself — whether the
+ * subject picker is live, whether everyone has been unticked, whether the save may proceed. Those are
+ * rules about booking a lesson, not about drawing one, and none of them could be tested where they
+ * were. Here they are ordinary properties over ordinary data.
  */
 data class ClassFormState(
     val form: ClassForm = ClassForm(),
@@ -259,15 +267,23 @@ data class ClassFormState(
      * unticking somebody would cost (see [billedDrops]) rather than only what it would do.
      */
     val booked: List<TutoringClass> = emptyList(),
+    /**
+     * The lesson already sitting where this one wants to be, and the only thing that can now be wrong
+     * about a chosen time: a start and a length cannot describe an impossible one.
+     *
+     * There used to be a `TimeProblem` here deciding which of two complaints won — an at-or-before-start
+     * end beat a clash, since the tutor could fix their own typing but not somebody else's lesson. The
+     * first of those stopped existing when the form started holding a length ([ClassForm]).
+     */
     val conflict: TimeConflict? = null,
     /**
      * Whether the tutor has changed anything — what leaving without saving would throw away.
      *
      * This form tracks having been *touched* rather than differing from a snapshot, unlike the group
      * form: it fills itself in as it goes (the only student, the only subject, the group's rate, the
-     * end time following the start), each arriving asynchronously after the screen is up, so there is
-     * no one moment when "as it was opened" is settled. The cost is that typing something and undoing
-     * it still counts as a change; back then asks a question whose answer is harmless either way.
+     * default length once a start is picked), each arriving asynchronously after the screen is up, so
+     * there is no one moment when "as it was opened" is settled. The cost is that typing something and
+     * undoing it still counts as a change; back then asks a question whose answer is harmless either way.
      */
     override val isDirty: Boolean = false,
 ) : LeavableForm {
@@ -290,15 +306,6 @@ data class ClassFormState(
             !targetChosen || subjects.isNotEmpty() -> null
             form.target == ClassTarget.GROUP -> SubjectNotice.NONE_FOR_GROUP
             else -> SubjectNotice.NONE_FOR_STUDENT
-        }
-
-    val timeProblem: TimeProblem?
-        get() = when {
-            form.timeFrom != null && form.timeTo != null && form.durationMinutes == null ->
-                TimeProblem.RangeInvalid
-
-            conflict != null -> TimeProblem.Taken(conflict)
-            else -> null
         }
 
     /** Every member unticked: the lesson would be written for nobody and bill no one. */
@@ -383,9 +390,6 @@ class ClassEditViewModel @Inject constructor(
      * a screen reading it once would draw the wrong set and never correct itself.
      */
     private val defaultMinutes = MutableStateFlow(DEFAULT_LESSON_MINUTES)
-
-    /** Pre-fills the end time when a start is picked. */
-    private val defaultLessonMinutes: Long get() = defaultMinutes.value.toLong()
 
     /**
      * The lengths offered as chips, shortest first.
@@ -644,7 +648,9 @@ class ClassEditViewModel @Inject constructor(
             subjectId = c.subjectId,
             date = local.toLocalDate(),
             timeFrom = from,
-            timeTo = from.plusMinutes(c.durationMinutes.toLong()),
+            // Straight across: the row keeps a length and so does the form. Reconstructing an end time
+            // here is what made a lesson «Перенести» had put at 23:00 open as an error.
+            durationMinutes = c.durationMinutes,
             // The rate the lesson was booked at. A group lesson from before groups had a rate of their
             // own can have members on differing rates, and no single number is the truth about it —
             // the group's current rate is then offered instead of picking one member's arbitrarily.
@@ -742,11 +748,10 @@ class ClassEditViewModel @Inject constructor(
         currentForm.timeFrom ?: now.truncatedTo(ChronoUnit.MINUTES)
 
     /**
-     * What the end-time picker opens on: the end already chosen, otherwise one default lesson after
-     * the start the form would offer — the same length a start-time change would have applied.
+     * What «Другая» opens on: the length already chosen, otherwise the tutor's default lesson — the same
+     * length picking a start would have applied, so the dialog starts where the chips left off.
      */
-    fun endPickerDefault(now: LocalTime = LocalTime.now(clock)): LocalTime =
-        currentForm.timeTo ?: startPickerDefault(now).plusMinutes(defaultLessonMinutes)
+    fun durationPickerDefault(): Int = currentForm.durationMinutes ?: defaultMinutes.value
 
     /**
      * Saves the form as one lesson. Booking a student and booking a group differ only in **who** the

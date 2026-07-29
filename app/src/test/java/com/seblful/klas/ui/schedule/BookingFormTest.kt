@@ -216,41 +216,62 @@ class BookingFormTest {
     // ---- Time ---------------------------------------------------------------------------------------
 
     @Test
-    fun `a start with no end takes the default lesson length`() {
+    fun `a start with no length yet takes the default lesson`() {
         val started = BookingForm().change(
             BookingIntent.StartAt(LocalTime.of(10, 0)),
             BookingContext(defaultLessonMinutes = 90),
         ).form
 
-        assertEquals(LocalTime.of(11, 30), started.form.timeTo)
+        assertEquals(90, started.form.durationMinutes)
+        assertEquals(LocalTime.of(11, 30), started.form.ends?.time)
     }
 
     @Test
-    fun `moving the start keeps the length rather than leaving the end behind`() {
+    fun `moving the start keeps the length`() {
         val lesson = BookingForm().after(
             BookingIntent.StartAt(LocalTime.of(10, 0)),
-            BookingIntent.EndAt(LocalTime.of(11, 30)),
+            BookingIntent.LastsFor(90),
             BookingIntent.StartAt(LocalTime.of(14, 0)),
         )
 
-        assertEquals(LocalTime.of(15, 30), lesson.form.timeTo)
         assertEquals(90, lesson.form.durationMinutes)
+        assertEquals(LocalTime.of(15, 30), lesson.form.ends?.time)
     }
 
     /**
-     * The one ordering constraint the signature cannot state: a length needs a start to be added to.
-     * The screen never offers the duration chips before a start exists, but a caller could, and the
-     * answer has to be "nothing happens" rather than an end time in a lesson with no beginning.
+     * A length is an answer on its own — it does not need a start to be added to, which is what it needed
+     * back when setting it meant writing an end time. So the two can be answered in either order and the
+     * form ends up the same, and the screen no longer has to disable the chips until a start exists.
      */
     @Test
-    fun `a duration before a start is chosen does nothing`() {
-        val nothing = BookingForm().after(BookingIntent.LastsFor(90))
+    fun `a length may be chosen before the start`() {
+        val early = BookingForm().after(BookingIntent.LastsFor(90))
 
-        assertNull(nothing.form.timeTo)
-        assertFalse("and it is not an edit worth asking about on the way out", nothing.touched)
+        assertEquals(90, early.form.durationMinutes)
+        assertTrue("and it is the tutor's work, so the form is unsaved", early.touched)
+        assertNull("with nowhere to end until there is a start", early.form.ends)
 
-        val after = nothing.after(BookingIntent.StartAt(LocalTime.of(9, 0)), BookingIntent.LastsFor(90))
-        assertEquals(LocalTime.of(10, 30), after.form.timeTo)
+        assertEquals(
+            "either order, same lesson",
+            early.after(BookingIntent.StartAt(LocalTime.of(9, 0))).form,
+            BookingForm().after(
+                BookingIntent.StartAt(LocalTime.of(9, 0)),
+                BookingIntent.LastsFor(90),
+            ).form,
+        )
+    }
+
+    /** A lesson that runs into the next day is an ordinary lesson: 23:00 for an hour ends at 00:00. */
+    @Test
+    fun `a length that runs past midnight is kept as a length`() {
+        val late = BookingForm().after(
+            BookingIntent.StartAt(LocalTime.of(23, 0)),
+            BookingIntent.LastsFor(60),
+        )
+
+        assertEquals(60, late.form.durationMinutes)
+        assertEquals(LocalTime.MIDNIGHT, late.form.ends?.time)
+        assertEquals(true, late.form.ends?.nextDay)
     }
 
     // ---- Whose work it was --------------------------------------------------------------------------
@@ -258,7 +279,7 @@ class BookingFormTest {
     @Test
     fun `the tutor's choices make the form unsaved`() {
         assertTrue(BookingForm().after(BookingIntent.ChooseStudent(anya.id)).touched)
-        assertTrue(BookingForm().after(BookingIntent.EndAt(LocalTime.NOON)).touched)
+        assertTrue(BookingForm().after(BookingIntent.StartAt(LocalTime.NOON)).touched)
         assertTrue(BookingForm().after(BookingIntent.IncludeMember(boris.id, false)).touched)
     }
 

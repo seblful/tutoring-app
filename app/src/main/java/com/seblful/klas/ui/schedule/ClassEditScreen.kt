@@ -43,6 +43,7 @@ import com.seblful.klas.R
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.DatePickerModal
+import com.seblful.klas.ui.common.DurationPickerModal
 import com.seblful.klas.ui.common.MemberPickRow
 import com.seblful.klas.ui.common.ModeSelector
 import com.seblful.klas.ui.common.PickerField
@@ -84,7 +85,7 @@ fun ClassEditScreen(
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showFromPicker by remember { mutableStateOf(false) }
-    var showToPicker by remember { mutableStateOf(false) }
+    var showDurationPicker by remember { mutableStateOf(false) }
     var showModeSelector by remember { mutableStateOf(false) }
     var showPriceField by remember { mutableStateOf(false) }
 
@@ -215,30 +216,25 @@ fun ClassEditScreen(
                 )
             }
 
-            // How long, not when it ends. The end time is still what gets stored and is still
-            // editable through «Другая» — but the question the form asks is the one the tutor
-            // already has an answer to.
+            // How long, not when it ends — a length is what the lesson is stored as, and the question
+            // the tutor already has an answer to. The end is shown beside the label as a consequence.
             DurationPicker(
                 options = durations,
                 selected = form.durationMinutes,
-                endsAt = form.timeTo?.timeText(),
-                enabled = form.timeFrom != null,
+                ends = form.ends,
                 onSelect = { minutes -> viewModel.change(BookingIntent.LastsFor(minutes)) },
-                onCustom = { showToPicker = true },
+                onCustom = { showDurationPicker = true },
             )
 
-            // Why the time won't do — said here rather than left to a greyed-out save button.
-            state.timeProblem?.let { problem ->
+            // Whose lesson is in the way — said here rather than left to a greyed-out save button. The
+            // only thing that can be wrong about a time now: a start and a length cannot be impossible.
+            state.conflict?.let { conflict ->
                 Text(
-                    when (problem) {
-                        TimeProblem.RangeInvalid -> stringResource(R.string.class_time_range_invalid)
-                        is TimeProblem.Taken -> stringResource(
-                            R.string.class_time_conflict,
-                            problem.conflict.who,
-                            "${problem.conflict.slot.start.timeText()} – " +
-                                problem.conflict.slot.end.timeText(),
-                        )
-                    },
+                    stringResource(
+                        R.string.class_time_conflict,
+                        conflict.who,
+                        "${conflict.slot.start.timeText()} – ${conflict.slot.end.timeText()}",
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -357,14 +353,14 @@ fun ClassEditScreen(
             onDismiss = { showFromPicker = false },
         )
     }
-    if (showToPicker) {
-        TimePickerModal(
-            initial = viewModel.endPickerDefault(),
-            onConfirm = { time ->
-                viewModel.change(BookingIntent.EndAt(time))
-                showToPicker = false
+    if (showDurationPicker) {
+        DurationPickerModal(
+            initialMinutes = viewModel.durationPickerDefault(),
+            onConfirm = { minutes ->
+                viewModel.change(BookingIntent.LastsFor(minutes))
+                showDurationPicker = false
             },
-            onDismiss = { showToPicker = false },
+            onDismiss = { showDurationPicker = false },
         )
     }
 
@@ -409,20 +405,20 @@ private fun TargetSelector(selected: ClassTarget, onSelect: (ClassTarget) -> Uni
 /**
  * How long the lesson runs, as chips.
  *
- * The chips are the primary answer and «Другая» keeps the clock picker for the rest — a 50-minute
- * lesson is unusual, not impossible. The end time is shown beside the label rather than as a field of
- * its own: it is now a *consequence* of the choice, worth confirming and not worth a picker.
+ * The chips are the primary answer and «Другая» asks for the rest in hours and minutes — a 50-minute
+ * lesson is unusual, not impossible. The end is shown beside the label rather than as a field of its
+ * own: it is a *consequence* of the choice, worth confirming and not worth a picker.
  *
- * Disabled until a start is chosen, because a duration with nothing to count from means nothing. The
- * label carries the state; the chips simply stop responding.
+ * Always live. The chips used to be disabled until a start was chosen, because the end they set was
+ * `start + minutes` and there was nothing to add to; a length stands on its own, so «1,5 ч» can be
+ * answered before «Начало» like every other field on this form. [ends] is what waits for a start.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DurationPicker(
     options: List<Int>,
     selected: Int?,
-    endsAt: String?,
-    enabled: Boolean,
+    ends: ClassForm.Ending?,
     onSelect: (Int) -> Unit,
     onCustom: () -> Unit,
 ) {
@@ -431,12 +427,10 @@ private fun DurationPicker(
             Text(
                 stringResource(R.string.class_duration_label),
                 style = MaterialTheme.typography.labelLarge,
-                color = if (enabled) MaterialTheme.colorScheme.onSurface
-                else MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (enabled && endsAt != null) {
+            if (ends != null) {
                 Text(
-                    " · " + stringResource(R.string.class_duration_ends_at, endsAt),
+                    " · " + endsAtText(ends),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -445,21 +439,35 @@ private fun DurationPicker(
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             options.forEach { minutes ->
                 FilterChip(
-                    selected = enabled && minutes == selected,
+                    selected = minutes == selected,
                     onClick = { onSelect(minutes) },
-                    enabled = enabled,
                     label = { Text(durationLabel(minutes)) },
                 )
             }
             // Selected when the chosen length is not one of the offered ones — otherwise editing a
             // lesson booked at 50 minutes would show no chip lit and look like nothing was set.
             FilterChip(
-                selected = enabled && selected != null && selected !in options,
+                selected = selected != null && selected !in options,
                 onClick = onCustom,
-                enabled = enabled,
                 label = { Text(stringResource(R.string.class_duration_custom)) },
             )
         }
+    }
+}
+
+/**
+ * «до 20:00», and «до 00:00 (след. день)» for a lesson that runs past midnight.
+ *
+ * The marker is the whole reason [ClassForm.Ending] carries a flag: a bare «до 00:00» under a date of
+ * «29 июль» is the one end that could be read as the start of the day being booked rather than its end.
+ */
+@Composable
+private fun endsAtText(ends: ClassForm.Ending): String {
+    val time = ends.time.timeText()
+    return if (ends.nextDay) {
+        stringResource(R.string.class_duration_ends_next_day, time)
+    } else {
+        stringResource(R.string.class_duration_ends_at, time)
     }
 }
 

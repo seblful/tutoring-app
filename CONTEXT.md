@@ -122,8 +122,8 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 
 - **`BookingForm.change(intent, context)` is the whole mutable surface** of the booking form
   (`ui/schedule/BookingForm.kt`). Every rule about how the form moves lives there: the
-  target/student/group/subject cascade that clears what belonged to the previous choice, the
-  start-moves-the-end derivation, the roster ticks. It needs no dispatcher, no `SavedStateHandle` and no
+  target/student/group/subject cascade that clears what belonged to the previous choice, the default
+  length a start brings with it, the roster ticks. It needs no dispatcher, no `SavedStateHandle` and no
   repository, so `BookingFormTest` exercises it directly.
 - **A change returns the reads it wants, as data** (`Lookup`), and the answers come back through the same
   `change` as their own intents. The view model runs the lookups and decides nothing. That is what puts
@@ -402,8 +402,14 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   left to mean only «Разные» (`ui/common/classStatusColor`).
 - **Marking a lesson completed is one swipe**, offered only where completing is legal
   (`GroupRules.sessionTransitions`); the row springs back, and the status badge is the confirmation.
-- **A lesson is booked by its length, not its end time.** «Длительность» as chips seeded from the
-  tutor's default, «Другая» keeping the clock picker; the end time is stored and shown as a consequence.
+- **A lesson is booked by its length, not its end time — and *held* as one.** «Длительность» as chips
+  seeded from the tutor's default, «Другая» asking for hours and minutes; the end is derived from the
+  start **instant** and only shown («до 00:00 (след. день)» when it crosses midnight). The form once kept
+  the end as a second wall clock on the lesson's date, and a 23:00 lesson then read as *minus* twenty-three
+  hours: it refused a booking it had made itself, and refused ones «Перенести» had already written. Nothing
+  now needs a ceiling on how long a lesson may be to tell a late one from a reversed range, because a
+  reversed range cannot be expressed — the picker asks for a length, and `Scheduling.Slot` keeps the `> 0`
+  backstop.
 - **One place answers "who was in this lesson"** — the lesson's own form, where the answer can be
   changed. The schedule's action sheet acts on the whole lesson and deliberately lists no members.
 - **Anything hidden behind a tap is drawn as a field** (`ui/common/PickerField`) — a `Surface`, not a
