@@ -107,6 +107,26 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   rule at a time; `ReportsSurfaceTest` stops the app reaching past `of` to reassemble a report itself.
   The screen supplies only the subject and group **names**, keyed by the typed ids of `model/Ids.kt`.
 
+### The booking form is a pure module
+
+- **`BookingForm.change(intent, context)` is the whole mutable surface** of the booking form
+  (`ui/schedule/BookingForm.kt`). Every rule about how the form moves lives there: the
+  target/student/group/subject cascade that clears what belonged to the previous choice, the
+  start-moves-the-end derivation, the roster ticks. It needs no dispatcher, no `SavedStateHandle` and no
+  repository, so `BookingFormTest` exercises it directly.
+- **A change returns the reads it wants, as data** (`Lookup`), and the answers come back through the same
+  `change` as their own intents. The view model runs the lookups and decides nothing. That is what puts
+  the **three staleness checks** — a group's rate arriving after the tutor picked another group, a price
+  after the subject changed, the only-subject answer after the target moved — in the module with the rules
+  they protect. They were `if` guards inside `viewModelScope.launch` before, which is to say untested.
+- **Whether a change is the tutor's work is a property of the intent** (`BookingIntent.isEdit`, and
+  `AsSetup` for what the app does on their behalf). Four `selectX`/`applyX` pairs used to encode it by
+  existing twice and differing in one line. An intent that moves nothing no longer marks the form
+  unsaved — the old pair disagreed about that, and re-picking the target already chosen made back ask
+  about work nobody did.
+- Named `change`, not `apply`: every type already has `apply` from the standard library, and
+  `form.apply { … }` would silently be the scope function.
+
 ### The view-model tail, named once
 
 - **`derive` and `hold` end every screen flow** (`ui/common/ScreenState.kt`). Twenty-six flows across

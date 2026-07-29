@@ -151,7 +151,7 @@ fun ClassEditScreen(
             // kind or the other, and turning a student's class into a group lesson (or back) would
             // silently create or destroy other students' billed classes.
             if (viewModel.isNew) {
-                TargetSelector(selected = form.target, onSelect = { viewModel.setTarget(it) })
+                TargetSelector(selected = form.target, onSelect = { viewModel.change(BookingIntent.ChooseTarget(it)) })
             }
 
             when (form.target) {
@@ -159,7 +159,7 @@ fun ClassEditScreen(
                     label = stringResource(R.string.class_student_label),
                     selectedText = state.students.firstOrNull { it.id == form.studentId }?.name ?: "",
                     options = state.students.map { it.id to it.name },
-                    onSelect = { id -> viewModel.selectStudent(id) },
+                    onSelect = { id -> viewModel.change(BookingIntent.ChooseStudent(id)) },
                 )
 
                 ClassTarget.GROUP -> {
@@ -167,7 +167,7 @@ fun ClassEditScreen(
                         label = stringResource(R.string.class_group_label),
                         selectedText = state.groups.firstOrNull { it.id == form.groupId }?.name ?: "",
                         options = state.groups.map { it.id to it.name },
-                        onSelect = { id -> viewModel.selectGroup(id) },
+                        onSelect = { id -> viewModel.change(BookingIntent.ChooseGroup(id)) },
                         // A booked lesson can't be handed to another group: its members' classes are
                         // billed history, and the other group is a different set of people.
                         enabled = viewModel.isNew,
@@ -186,7 +186,7 @@ fun ClassEditScreen(
                 label = stringResource(R.string.class_subject_label),
                 selectedText = state.subjects.firstOrNull { it.id == form.subjectId }?.name ?: "",
                 options = state.subjects.map { it.id to it.name },
-                onSelect = { id -> viewModel.selectSubject(id) },
+                onSelect = { id -> viewModel.change(BookingIntent.ChooseSubject(id)) },
                 enabled = state.subjectPickerEnabled,
             )
             state.subjectNotice?.let { notice ->
@@ -234,7 +234,7 @@ fun ClassEditScreen(
                 selected = form.durationMinutes,
                 endsAt = form.timeTo?.formatHm(),
                 enabled = form.timeFrom != null,
-                onSelect = viewModel::setDuration,
+                onSelect = { minutes -> viewModel.change(BookingIntent.LastsFor(minutes)) },
                 onCustom = { showToPicker = true },
             )
 
@@ -282,7 +282,7 @@ fun ClassEditScreen(
                         MemberPickRow(
                             student = student,
                             selected = student.id !in form.excludedMemberIds,
-                            onToggle = { on -> viewModel.setMemberIncluded(student.id, on) },
+                            onToggle = { on -> viewModel.change(BookingIntent.IncludeMember(student.id, on)) },
                         )
                     }
                     if (state.allMembersExcluded) {
@@ -297,7 +297,9 @@ fun ClassEditScreen(
                 // plainly rather than behind a tap: for a group lesson it is *n* students' money.
                 OutlinedTextField(
                     value = form.price.text,
-                    onValueChange = { text -> viewModel.update { it.copy(price = it.price.typed(text)) } },
+                    onValueChange = { text ->
+                        viewModel.change(BookingIntent.Edit { it.copy(price = it.price.typed(text)) })
+                    },
                     label = { Text(stringResource(R.string.class_group_price_label)) },
                     isError = form.price.isError,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -311,7 +313,9 @@ fun ClassEditScreen(
                 // drawn three different ways on one form: an ordinary field, a picker, and a label.
                 OutlinedTextField(
                     value = form.price.text,
-                    onValueChange = { text -> viewModel.update { it.copy(price = it.price.typed(text)) } },
+                    onValueChange = { text ->
+                        viewModel.change(BookingIntent.Edit { it.copy(price = it.price.typed(text)) })
+                    },
                     label = { Text(stringResource(R.string.price_label)) },
                     isError = form.price.isError,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -331,7 +335,7 @@ fun ClassEditScreen(
                 Text(stringResource(R.string.class_location_label), style = MaterialTheme.typography.labelLarge)
                 ModeSelector(
                     selected = form.mode,
-                    onSelect = { selected -> viewModel.update { it.copy(mode = selected) } },
+                    onSelect = { selected -> viewModel.change(BookingIntent.Edit { it.copy(mode = selected) }) },
                 )
             } else {
                 // Folded away like the price, and now drawn like it too.
@@ -348,7 +352,7 @@ fun ClassEditScreen(
         DatePickerModal(
             initial = form.date ?: LocalDate.now(ZoneId.systemDefault()),
             onConfirm = { date ->
-                viewModel.update { it.copy(date = date) }
+                viewModel.change(BookingIntent.Edit { it.copy(date = date) })
                 showDatePicker = false
             },
             onDismiss = { showDatePicker = false },
@@ -358,7 +362,7 @@ fun ClassEditScreen(
         TimePickerModal(
             initial = viewModel.startPickerDefault(),
             onConfirm = { time ->
-                viewModel.setTimeFrom(time)
+                viewModel.change(BookingIntent.StartAt(time))
                 showFromPicker = false
             },
             onDismiss = { showFromPicker = false },
@@ -368,7 +372,7 @@ fun ClassEditScreen(
         TimePickerModal(
             initial = viewModel.endPickerDefault(),
             onConfirm = { time ->
-                viewModel.setTimeTo(time)
+                viewModel.change(BookingIntent.EndAt(time))
                 showToPicker = false
             },
             onDismiss = { showToPicker = false },

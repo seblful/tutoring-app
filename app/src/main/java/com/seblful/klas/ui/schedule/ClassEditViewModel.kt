@@ -55,6 +55,20 @@ import javax.inject.Inject
 enum class ClassTarget { STUDENT, GROUP }
 
 /**
+ * Which subjects the form may offer: whose they are.
+ *
+ * A value rather than three parameters because it is also what an in-flight lookup is *about* — asking
+ * "does this target have exactly one subject" and then applying the answer are separated by a database
+ * round trip, and the tutor can pick twice inside one. Comparing the key is how a stale answer is
+ * recognised (see `BookingForm`).
+ */
+data class SubjectKey(val target: ClassTarget, val studentId: Long?, val groupId: Long?) {
+    companion object {
+        fun of(form: ClassForm): SubjectKey = SubjectKey(form.target, form.studentId, form.groupId)
+    }
+}
+
+/**
  * The class-booking form. Date and times start **empty** — the user must choose them (the pickers
  * open on today and on the current time, see [ClassEditViewModel.startPickerDefault]). Duration is
  * expressed as a time range: [timeTo] follows
@@ -101,6 +115,13 @@ data class ClassForm(
 
     val isValid: Boolean
         get() = subjectId != null && timingValid && price.isValid && when (target) {
+            ClassTarget.STUDENT -> studentId != null
+            ClassTarget.GROUP -> groupId != null
+        }
+
+    /** Whether the lesson yet has somebody to be for — a student chosen, or a group. */
+    val hasTarget: Boolean
+        get() = when (target) {
             ClassTarget.STUDENT -> studentId != null
             ClassTarget.GROUP -> groupId != null
         }
@@ -392,24 +413,22 @@ class ClassEditViewModel @Inject constructor(
     private val students: StateFlow<List<Student>> = studentsRepo.observeActive()
         .derive(this, computation, emptyList())
 
-    private val _form = MutableStateFlow(ClassForm())
+    /**
+     * The form and every rule about how it moves — see [BookingForm], which is pure. This class holds
+     * it, feeds it the picker contents it needs, and runs the lookups it asks for; it decides nothing
+     * about the form itself.
+     */
+    private val booking = MutableStateFlow(BookingForm())
 
     /**
-     * The form as it stands. Read-only from outside: every change goes through [update] or one of the
-     * `selectX` mutators, which is what keeps [touched] in step with it. A writable handle here would
-     * let a caller move the form without marking it unsaved — exactly the mistake [touched] documents
-     * — and there is no legitimate use for one, the screen reading the form through [state] instead.
+     * The form as it stands, for the flows below to narrow. A plain `Flow` on purpose: a `stateIn` here
+     * would hold the *initial* form until something subscribed, and the synchronous reads want the
+     * current one — see [currentForm].
      */
-    val form: StateFlow<ClassForm> = _form.asStateFlow()
+    private val form: Flow<ClassForm> = booking.map { it.form }
 
-    /**
-     * Set by the mutators the **screen** calls, and by none of the ones this view model calls on its
-     * own — which is why every user-facing `selectX` below is a one-liner over a private `applyX` that
-     * the auto-selection in `init` uses instead. Loading a lesson to edit, pre-selecting the group the
-     * form was opened from, filling in the only student or the only subject: none of those is the
-     * tutor's work, so none of them may make the form look unsaved.
-     */
-    private val touched = MutableStateFlow(false)
+    /** The form right now, without waiting for a collector. */
+    private val currentForm: ClassForm get() = booking.value.form
 
     /**
      * The groups offered in the picker: the active ones, plus the group of the lesson being edited so
@@ -461,7 +480,7 @@ class ClassEditViewModel @Inject constructor(
      * them, because nothing on the group says otherwise.
      */
     private val subjects: StateFlow<List<Subject>> =
-        form.map { SubjectKey(it.target, it.studentId, it.groupId) }.distinctUntilChanged()
+        form.map { SubjectKey.of(it) }.distinctUntilChanged()
             .flatMapLatest { subjectsFor(it) }
             .derive(this, computation, emptyList())
 
@@ -503,7 +522,6 @@ class ClassEditViewModel @Inject constructor(
             }
             .derive(this, computation, false)
 
-    private data class SubjectKey(val target: ClassTarget, val studentId: Long?, val groupId: Long?)
 
     /**
      * The lesson already booked at the time the form points at, or null when that time is free. Live,
@@ -548,11 +566,12 @@ class ClassEditViewModel @Inject constructor(
     val state: StateFlow<ClassFormState> =
         combine(
             combine(students, groups, members, subjects, subjectFixedByGroup, ::Pickers),
-            form,
+            booking,
             conflict,
-            touched,
             session,
-        ) { pickers, f, clash, isTouched, booked ->
+        ) { pickers, held, clash, booked ->
+            val f = held.form
+            val isTouched = held.touched
             ClassFormState(
                 form = f,
                 isNew = isNew,
@@ -580,8 +599,9 @@ class ClassEditViewModel @Inject constructor(
         if (!isNew) {
             viewModelScope.launch { loadExisting() }
         } else if (preselectedGroupId != 0L) {
-            applyTarget(ClassTarget.GROUP)
-            applyGroup(preselectedGroupId)
+            // Not the tutor's work, so neither marks the form unsaved — see [BookingIntent.isEdit].
+            change(BookingIntent.ChooseTarget(ClassTarget.GROUP).asSetup())
+            change(BookingIntent.ChooseGroup(preselectedGroupId).asSetup())
         }
         viewModelScope.launch { defaultMinutes.value = settingsRepo.get().defaultLessonMinutes }
         // Auto-select the only student there is (a new class, before any choice). With several
@@ -593,33 +613,15 @@ class ClassEditViewModel @Inject constructor(
                 // student there is" cannot become true while it is open, and a standing collector
                 // would only serve to defeat that flow's `WhileSubscribed`.
                 val only = studentsRepo.observeActive().first().singleOrNull() ?: return@launch
-                val f = form.value
+                val f = currentForm
                 if (f.target == ClassTarget.STUDENT && f.studentId == null) {
                     // Pass the student along: [students] may not have emitted yet, and their default
                     // class mode is read from it.
-                    applyStudent(only.id, known = only)
+                    change(BookingIntent.ChooseStudent(only.id, known = only).asSetup())
                 }
             }
-            autoSelectOnlySubject()
-        }
-    }
-
-    /**
-     * Fills in the only subject the current target can be booked for, and its price — one shot, per
-     * choice of target, because that is when the answer changes. With several subjects the user picks;
-     * we don't guess.
-     *
-     * Called from the target mutators rather than run as a standing collector for the reason
-     * [subjectsFor] gives. It re-reads the target from [form] after suspending and gives up if it has
-     * moved on, so a fast second choice cannot have the first one's subject land on it.
-     */
-    private fun autoSelectOnlySubject() {
-        viewModelScope.launch {
-            val key = SubjectKey(form.value.target, form.value.studentId, form.value.groupId)
-            val only = subjectsFor(key).first().singleOrNull() ?: return@launch
-            val f = form.value
-            if (SubjectKey(f.target, f.studentId, f.groupId) != key) return@launch
-            if (hasTarget() && f.subjectId == null) applySubject(only.id)
+            // The only subject the starting target offers, if it offers exactly one.
+            run(Lookup.OnlySubjectFor(SubjectKey.of(currentForm)))
         }
     }
 
@@ -632,7 +634,7 @@ class ClassEditViewModel @Inject constructor(
         // The session's own group, taken once. `isGroup` *is* this being non-null, so branching on it
         // directly lets the roster lookup below use it without an assertion.
         val group = loaded.groupId
-        _form.value = ClassForm(
+        val loadedForm = ClassForm(
             target = if (group != null) ClassTarget.GROUP else ClassTarget.STUDENT,
             studentId = c.studentId.takeIf { group == null },
             groupId = c.groupId,
@@ -654,6 +656,7 @@ class ClassEditViewModel @Inject constructor(
                 emptySet()
             },
         )
+        change(BookingIntent.Load(loadedForm))
     }
 
     private suspend fun groupRate(groupId: Long?): Money? =
@@ -666,180 +669,57 @@ class ClassEditViewModel @Inject constructor(
             GroupRules.bookableMembers(all.filter { it.id in memberIds })
         }
 
-    private fun hasTarget(): Boolean = with(form.value) {
-        when (target) {
-            ClassTarget.STUDENT -> studentId != null
-            ClassTarget.GROUP -> groupId != null
-        }
-    }
-
-    fun update(transform: (ClassForm) -> ClassForm) {
-        touched.value = true
-        _form.value = transform(form.value)
-    }
+    // ---- The one way the form changes ----------------------------------------------------------
 
     /**
-     * Switches between booking for a student and for a group. The subject and the price are cleared
-     * because they belonged to the other target — a group's rate and a student's price for a subject
-     * have nothing to do with each other.
-     */
-    fun setTarget(target: ClassTarget) {
-        touched.value = true
-        applyTarget(target)
-    }
-
-    private fun applyTarget(target: ClassTarget) {
-        if (form.value.target == target) return
-        _form.value = _form.value.copy(
-            target = target,
-            studentId = null,
-            groupId = null,
-            subjectId = null,
-            price = MoneyField(kind = MoneyField.Kind.RATE),
-        )
-        // Auto-select the only group there is, mirroring the single-student case.
-        if (target == ClassTarget.GROUP) {
-            val only = groups.value.singleOrNull()
-            if (only != null) {
-                applyGroup(only.id)
-                return
-            }
-        }
-        // Switching target cleared the subject, so whatever the new target offers may be a single
-        // choice that needs no picking.
-        autoSelectOnlySubject()
-    }
-
-    /**
-     * Choosing a (different) student clears the subject and price (they belonged to the previous
-     * student) and pre-fills the class mode from the new student's default.
-     */
-    fun selectStudent(studentId: Long) {
-        touched.value = true
-        applyStudent(studentId)
-    }
-
-    /**
-     * [known] is the student when the caller already has the row — the auto-selection reads it from
-     * the repository, at a point where the shared [students] flow may not have emitted yet, and their
-     * default class mode has to come from somewhere.
-     */
-    private fun applyStudent(studentId: Long, known: Student? = null) {
-        if (form.value.studentId == studentId) return
-        val student = known ?: students.value.firstOrNull { it.id == studentId }
-        _form.value = _form.value.copy(
-            studentId = studentId,
-            subjectId = null,
-            price = MoneyField(kind = MoneyField.Kind.RATE),
-            mode = student?.defaultMode ?: ClassMode.IN_PERSON,
-        )
-        // A different student prices different subjects; theirs may be a single one.
-        autoSelectOnlySubject()
-    }
-
-    /**
-     * Choosing a (different) group clears the subject, then pre-fills the lesson's rate and mode from
-     * the group's own. The rate comes from the *group*, not from the subject, so unlike a student's it
-     * is known as soon as the group is — there is nothing left to wait for.
-     */
-    fun selectGroup(groupId: Long) {
-        touched.value = true
-        applyGroup(groupId)
-    }
-
-    private fun applyGroup(groupId: Long) {
-        if (form.value.groupId == groupId) return
-        // A different group is a different set of people, so last group's exclusions mean nothing.
-        _form.value = _form.value.copy(
-            groupId = groupId,
-            subjectId = null,
-            price = MoneyField(kind = MoneyField.Kind.RATE),
-            excludedMemberIds = emptySet(),
-        )
-        // Read the group from the repository, not from `groups`: the form can be opened already
-        // pointed at a group (from that group's screen), before that flow has emitted.
-        viewModelScope.launch {
-            val group = groupsRepo.getById(groupId) ?: return@launch
-            if (form.value.groupId != groupId) return@launch
-            _form.value = _form.value.copy(
-                mode = group.defaultMode,
-                // Never clobber an amount the tutor has already typed for this lesson.
-                price = form.value.price.prefilledWith(group.price),
-                // A group that has a subject decides it — there is nothing to pick per lesson.
-                subjectId = group.subjectId ?: form.value.subjectId,
-            )
-            // A group with no subject of its own offers all of them — and if there is only one, it
-            // needs no picking either.
-            if (group.subjectId == null) autoSelectOnlySubject()
-        }
-    }
-
-    /**
-     * Includes or excludes one member for the lesson being booked. Excluding writes no class for them
-     * at all, which is different from booking and then cancelling: there is no cancelled lesson in
-     * their history, because the lesson was never theirs.
-     */
-    fun setMemberIncluded(studentId: Long, included: Boolean) {
-        touched.value = true
-        val excluded = form.value.excludedMemberIds
-        _form.value = _form.value.copy(
-            excludedMemberIds = if (included) excluded - studentId else excluded + studentId,
-        )
-    }
-
-    /**
-     * Selecting a subject pre-fills the rate from the student's price for it. A group lesson's rate is
-     * the group's and does not depend on the subject, so there is nothing to pre-fill there.
-     */
-    fun selectSubject(subjectId: Long) {
-        touched.value = true
-        applySubject(subjectId)
-    }
-
-    private fun applySubject(subjectId: Long) {
-        _form.value = _form.value.copy(subjectId = subjectId)
-        if (form.value.target == ClassTarget.STUDENT) prefillStudentPrice(subjectId)
-    }
-
-    private fun prefillStudentPrice(subjectId: Long) {
-        val studentId = form.value.studentId ?: return
-        viewModelScope.launch {
-            val price = enrollment.priceFor(studentId, subjectId)?.amount
-            // Only auto-fill an empty field — never clobber a price the user already typed.
-            if (form.value.subjectId == subjectId) {
-                _form.value = _form.value.copy(price = form.value.price.prefilledWith(price))
-            }
-        }
-    }
-
-    /**
-     * Picking or changing the start time moves the end with it so the lesson keeps its length:
-     * the current duration if an end was already set, otherwise the default lesson length. This
-     * stops the end from going stale (and the duration from breaking) when the start is edited.
-     */
-    fun setTimeFrom(time: LocalTime) {
-        touched.value = true
-        val f = form.value
-        val minutes = f.durationMinutes?.toLong() ?: defaultLessonMinutes
-        _form.value = f.copy(timeFrom = time, timeTo = time.plusMinutes(minutes))
-    }
-
-    fun setTimeTo(time: LocalTime) {
-        touched.value = true
-        _form.value = _form.value.copy(timeTo = time)
-    }
-
-    /**
-     * Sets how long the lesson runs, which is how the form asks about it now — the end time is stored
-     * and still editable, but it is derived from a length rather than picked on a clock face.
+     * Applies one change to the form, and goes to look up whatever the change asks for.
      *
-     * Does nothing before a start is chosen: there is nothing to add [minutes] to, and a duration with
-     * no start describes no lesson.
+     * This is the whole mutable surface. There used to be eleven mutators, four of them `selectX`
+     * one-liners over a private `applyX` that differed only in marking the form unsaved, and half of the
+     * rules ran inside `viewModelScope.launch` blocks with staleness guards no test could reach. All of
+     * that is [BookingForm] now: it returns the new form *and* the reads it wants, and answers come back
+     * through this same function as their own intents — so the staleness checks are in the pure module
+     * with the rules they protect.
      */
-    fun setDuration(minutes: Int) {
-        val from = form.value.timeFrom ?: return
-        touched.value = true
-        _form.value = _form.value.copy(timeTo = from.plusMinutes(minutes.toLong()))
+    fun change(intent: BookingIntent) {
+        val applied = booking.value.change(intent, bookingContext())
+        booking.value = applied.form
+        applied.lookups.forEach { run(it) }
+    }
+
+    private fun bookingContext() = BookingContext(
+        students = students.value,
+        groups = groups.value,
+        defaultLessonMinutes = defaultMinutes.value,
+    )
+
+    /**
+     * Answers one [Lookup] and feeds the answer back through [apply].
+     *
+     * Nothing here decides anything: whether an answer still applies is [BookingForm]'s, which is why
+     * each intent carries what it was asked about. A lookup with no answer — a target with several
+     * subjects, a student with no price — simply sends nothing.
+     */
+    private fun run(lookup: Lookup) {
+        viewModelScope.launch {
+            when (lookup) {
+                is Lookup.GroupOf ->
+                    groupsRepo.getById(lookup.groupId)?.let { change(BookingIntent.GroupLoaded(it)) }
+
+                is Lookup.PriceOf -> change(
+                    BookingIntent.PriceLoaded(
+                        subjectId = lookup.subjectId,
+                        amount = enrollment.priceFor(lookup.studentId, lookup.subjectId)?.amount,
+                    ),
+                )
+
+                // Read once rather than collected: the form offers no way to add a subject, so "the only
+                // subject there is" cannot become true while it is open, and a standing collector would
+                // only defeat that flow's `WhileSubscribed`.
+                is Lookup.OnlySubjectFor -> subjectsFor(lookup.askedFor).first().singleOrNull()
+                    ?.let { change(BookingIntent.OnlySubject(lookup.askedFor, it.id)) }
+            }
+        }
     }
 
     /**
@@ -848,14 +728,14 @@ class ClassEditViewModel @Inject constructor(
      * [now] is a parameter so the rule can be tested without depending on the wall clock.
      */
     fun startPickerDefault(now: LocalTime = LocalTime.now(zone)): LocalTime =
-        form.value.timeFrom ?: now.truncatedTo(ChronoUnit.MINUTES)
+        currentForm.timeFrom ?: now.truncatedTo(ChronoUnit.MINUTES)
 
     /**
      * What the end-time picker opens on: the end already chosen, otherwise one default lesson after
-     * the start the form would offer — the same length [setTimeFrom] would have applied.
+     * the start the form would offer — the same length a start-time change would have applied.
      */
     fun endPickerDefault(now: LocalTime = LocalTime.now(zone)): LocalTime =
-        form.value.timeTo ?: startPickerDefault(now).plusMinutes(defaultLessonMinutes)
+        currentForm.timeTo ?: startPickerDefault(now).plusMinutes(defaultLessonMinutes)
 
     /**
      * Saves the form as one lesson. Booking a student and booking a group differ only in **who** the
@@ -892,7 +772,7 @@ class ClassEditViewModel @Inject constructor(
     }
 
     fun save(onDone: () -> Unit) {
-        val valid = ValidForm.of(form.value, zone) ?: return
+        val valid = ValidForm.of(currentForm, zone) ?: return
 
         viewModelScope.launch {
             // The write runs in the application scope, not this one: going back the instant after
@@ -911,7 +791,7 @@ class ClassEditViewModel @Inject constructor(
                 is SaveOutcome.Refused -> events.send(settled.reason)
                 SaveOutcome.Saved -> {
                     // Nothing is unsaved any more, so leaving must not ask about it.
-                    touched.value = false
+                    booking.value = booking.value.copy(touched = false)
                     onDone()
                 }
             }
@@ -1007,9 +887,6 @@ class ClassEditViewModel @Inject constructor(
     }
 
     private companion object {
-        /** Matches `AppSettings.defaultLessonMinutes`, for the window before settings have loaded. */
-        const val DEFAULT_LESSON_MINUTES = 60
-
         /** The lengths a tutoring lesson usually runs to — 45 minutes to two hours. */
         val COMMON_DURATIONS = listOf(45, 60, 90, 120)
     }
