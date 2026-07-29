@@ -26,15 +26,15 @@ import com.seblful.klas.format.MoneyField
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.LeavableForm
 import com.seblful.klas.ui.common.UiEvents
+import com.seblful.klas.ui.common.derive
+import com.seblful.klas.ui.common.hold
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -43,7 +43,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.LocalDate
@@ -378,11 +377,7 @@ class ClassEditViewModel @Inject constructor(
      */
     val durationOptions: StateFlow<List<Int>> = defaultMinutes
         .map { (COMMON_DURATIONS + it).distinct().sorted() }
-        .stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5_000),
-            (COMMON_DURATIONS + DEFAULT_LESSON_MINUTES).distinct().sorted(),
-        )
+        .hold(this, (COMMON_DURATIONS + DEFAULT_LESSON_MINUTES).distinct().sorted())
 
     /**
      * The lesson being edited, if any. A group lesson is loaded as the whole session (every member's
@@ -395,8 +390,7 @@ class ClassEditViewModel @Inject constructor(
     private val session = MutableStateFlow<ClassSession?>(null)
 
     private val students: StateFlow<List<Student>> = studentsRepo.observeActive()
-        .flowOn(computation)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        .derive(this, computation, emptyList())
 
     private val _form = MutableStateFlow(ClassForm())
 
@@ -425,8 +419,7 @@ class ClassEditViewModel @Inject constructor(
         combine(groupsRepo.observeAll(), form.map { it.groupId }.distinctUntilChanged()) { all, selected ->
             all.filter { !it.archived || it.id == selected }
         }
-            .flowOn(computation)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            .derive(this, computation, emptyList())
 
     /**
      * Who the lesson may cover, listed under the group with a tick each. While **booking**, the
@@ -456,8 +449,7 @@ class ClassEditViewModel @Inject constructor(
                     else -> membersOf(key.groupId)
                 }
             }
-            .flowOn(computation)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            .derive(this, computation, emptyList())
 
     /** [bookedIds] is null while booking something new, and the lesson's members while editing one. */
     private data class MembersKey(val groupId: Long?, val bookedIds: Set<Long>?)
@@ -471,8 +463,7 @@ class ClassEditViewModel @Inject constructor(
     private val subjects: StateFlow<List<Subject>> =
         form.map { SubjectKey(it.target, it.studentId, it.groupId) }.distinctUntilChanged()
             .flatMapLatest { subjectsFor(it) }
-            .flowOn(computation)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            .derive(this, computation, emptyList())
 
     /**
      * The bookable subjects for one target, as a flow. Extracted so the shared [subjects] and the
@@ -510,8 +501,7 @@ class ClassEditViewModel @Inject constructor(
                 if (groupId == null) flowOf(false)
                 else groupsRepo.observeById(groupId).map { it?.subjectId != null }
             }
-            .flowOn(computation)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+            .derive(this, computation, false)
 
     private data class SubjectKey(val target: ClassTarget, val studentId: Long?, val groupId: Long?)
 
@@ -541,8 +531,7 @@ class ClassEditViewModel @Inject constructor(
                     }
                 }
             }
-            .flowOn(computation)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+            .derive(this, computation, null)
 
     /**
      * The whole form, as one value. Assembled in two stages only because `combine` takes at most
@@ -577,12 +566,7 @@ class ClassEditViewModel @Inject constructor(
                 isDirty = isTouched,
             )
         }
-            .flowOn(computation)
-            .stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5_000),
-            ClassFormState(isNew = isNew),
-        )
+            .derive(this, computation, ClassFormState(isNew = isNew))
 
     /** Archived students and groups are looked up too — a past lesson still occupied that hour. */
     private fun describe(clash: ClassSession, students: List<Student>, groups: List<Group>): TimeConflict =

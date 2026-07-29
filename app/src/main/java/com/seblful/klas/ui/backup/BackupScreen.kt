@@ -16,7 +16,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -33,6 +32,8 @@ import com.seblful.klas.R
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.ShowMessagesFor
+import com.seblful.klas.ui.common.rememberMessages
 
 /**
  * The types a backup file can arrive as: plenty of file managers hand a `.json` over as
@@ -47,7 +48,7 @@ fun BackupScreen(
     onBack: () -> Unit,
     viewModel: BackupViewModel = hiltViewModel(),
 ) {
-    val snackbarHost = remember { SnackbarHostState() }
+    val messages = rememberMessages()
     var confirmImportUri by remember { mutableStateOf<android.net.Uri?>(null) }
 
     val exportSuccess = stringResource(R.string.backup_export_success)
@@ -55,14 +56,11 @@ fun BackupScreen(
     val backupFilename = stringResource(R.string.backup_filename)
     val context = LocalContext.current
 
-    LaunchedEffect(Unit) {
-        viewModel.events.stream.collect { result ->
-            val message = when (result) {
-                BackupResult.ExportOk -> exportSuccess
-                BackupResult.ImportOk -> importSuccess
-                is BackupResult.Failed -> result.failure.messageIn(context)
-            }
-            snackbarHost.showSnackbar(message)
+    ShowMessagesFor(viewModel.events, messages) { result ->
+        when (result) {
+            BackupResult.ExportOk -> exportSuccess
+            BackupResult.ImportOk -> importSuccess
+            is BackupResult.Failed -> result.failure.messageIn(context)
         }
     }
 
@@ -85,7 +83,7 @@ fun BackupScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHost) },
+        snackbarHost = { SnackbarHost(messages.hostState) },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).constrainedContent()) {
             ListItem(

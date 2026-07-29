@@ -4,10 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.klas.data.repository.AppSettings
 import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.ui.common.hold
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 /**
@@ -58,7 +57,7 @@ class RootViewModel @Inject constructor(
     settings: SettingsRepository,
 ) : ViewModel() {
     val settings: StateFlow<AppSettings?> = settings.observe()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        .hold(this, null)
 
     /** What to show for [settings], whatever state they are in. */
     fun routeFor(settings: AppSettings?): RootRoute = when {

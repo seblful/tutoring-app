@@ -107,6 +107,21 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   rule at a time; `ReportsSurfaceTest` stops the app reaching past `of` to reassemble a report itself.
   The screen supplies only the subject and group **names**, keyed by the typed ids of `model/Ids.kt`.
 
+### The view-model tail, named once
+
+- **`derive` and `hold` end every screen flow** (`ui/common/ScreenState.kt`). Twenty-six flows across
+  thirteen view models spelled the same `flowOn(computation).stateIn(viewModelScope,
+  WhileSubscribed(5_000), initial)`, so the grace period — which decides whether rotating the device
+  recomputes every class against every payment — was a bare literal in twenty-six places. Two functions
+  rather than one with an optional dispatcher, so which one a flow uses says whether it computes
+  anything.
+- **`ShowMessagesFor` ends every screen's one-shot events**, and `rememberMessages` is the only thing
+  that builds a `SnackbarHostState`. Three of eleven screens had drifted onto a raw host and lost the
+  dismiss-what-is-up rule that keeps a second failure from arriving after the tutor has moved on. A
+  screen that does more per event than show a string (an undo action, a navigation) keeps its own
+  collector.
+- `ScreenStateSurfaceTest` pins both: neither tail can be written out by hand again.
+
 ### A screen draws, it does not decide
 
 - **Every branch a screen takes is a value the module behind it returned.** `ArchiveIntent`,
@@ -403,9 +418,10 @@ save between its committed rows and the mirroring that follows. `ClassEditViewMo
 for its `onDone`; the schedule's status/move/delete actions just launch it.
 
 **Deriving state happens off the main thread**: every screen is
-`combine(…repository flows…) { … }.flowOn(computation).stateIn(viewModelScope, …)`. Room's own
-`flowOn` governs only what is upstream of *it*. The dispatcher is injected (`@Computation`) so tests
-keep one scheduler; `ReportsViewModelTest` has a tripwire that fails if the `flowOn` is deleted.
+`combine(…repository flows…) { … }.derive(this, computation, initial)` — see *The view-model tail, named
+once*. `flowOn` governs only what is upstream of *it*, which is why `derive` applies it at the end of the
+chain. The dispatcher is injected (`@Computation`) so tests keep one scheduler; `ReportsViewModelTest`
+has a tripwire that fails if `derive` stops moving the work.
 
 **A failed write is reported, not fatal.** `@ApplicationScope` carries a `CoroutineExceptionHandler`
 into the crash log, since `SupervisorJob` scopes *cancellation*, not failure. Where a screen can say
@@ -452,17 +468,18 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
   with it. Reaching for a DAO to build what the repositories deliberately refuse is still legitimate —
   lowering the cap by hand is how such a call gets acknowledged rather than absorbed.
 - **Fixtures pin the clock, not `now()`.** Seed a fixed hour and pick days by excluding today.
-- Six tests are **tripwires against silent drift**, all deriving expectations from a real artifact
+- Seven tests are **tripwires against silent drift**, all deriving expectations from a real artifact
   rather than restating them: `BackupSchemaCoverageTest` (a new table must be carried or named
   device-local), `MappersTest` (a new column must be mapped), `StoredEnumNamesTest` (a renamed enum
   constant is a migration — it reads the DAO source, since `@Query` is not retained at runtime, *and*
   `FakeDaos.kt`, which had restated three of the same predicates as bare strings and so sat outside the
   very scan built for the risk), `WholeTableWritesTest` (a whole-table delete belongs to `SnapshotDao`,
   and every table it reads it must also empty), `ReportsSurfaceTest` (the app asks `Reports` one
-  question) and
+  question), `ScreenStateSurfaceTest` (the sharing policy and the snackbar host each live in one place)
+  and
   `MigrationChainTest` (a bumped schema version must ship a migration for every step from v1 *and* wire
   it into the builder, and the destructive fallback must stay debug-only — it reads `AppDatabase.kt`,
-  since `@Database` is `BINARY`-retained). The first five are acknowledgement lists; the last is the
+  since `@Database` is `BINARY`-retained). The first six are acknowledgement lists; the last is the
   upgrade path, and it sits in the **unit** suite precisely because instrumented tests need a device CI
   does not have. Two more guard structure: one asserts the booking form leaves **no query open** once
   nothing collects it, one asserts a save is launched into the application scope.

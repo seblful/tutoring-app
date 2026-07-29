@@ -11,17 +11,15 @@ import com.seblful.klas.domain.Billing
 import com.seblful.klas.domain.PeopleSearch
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
+import com.seblful.klas.ui.common.derive
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 data class StudentRow(val student: Student, val balance: Money)
@@ -78,8 +76,7 @@ class StudentsViewModel @Inject constructor(
                     .sortedWith(sort.comparator)
             }
         }
-            .flowOn(computation)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            .derive(this, computation, emptyList())
 
     /**
      * Debt first, then by name.

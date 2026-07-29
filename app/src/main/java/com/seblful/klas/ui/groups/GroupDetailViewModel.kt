@@ -18,13 +18,11 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.RateChange
 import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.domain.model.Student
+import com.seblful.klas.ui.common.derive
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 /**
@@ -119,6 +117,5 @@ class GroupDetailViewModel @Inject constructor(
     }.combine(rateHistory.observeFor(RateOwner.GroupRate(groupId))) { state, changes ->
         state.copy(rateHistory = changes)
     }
-        .flowOn(computation)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GroupDetailState())
+        .derive(this, computation, GroupDetailState())
 }

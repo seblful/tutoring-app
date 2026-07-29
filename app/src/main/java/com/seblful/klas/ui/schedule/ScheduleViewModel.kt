@@ -19,14 +19,14 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.UiEvents
+import com.seblful.klas.ui.common.derive
+import com.seblful.klas.ui.common.hold
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -34,7 +34,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.Duration
@@ -159,7 +158,7 @@ class ScheduleViewModel @Inject constructor(
             // At least a tick, so a clock already past midnight cannot spin on a zero-length sleep.
             delay(Duration.between(clock.instant(), nextMidnight).toMillis().coerceAtLeast(1))
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LocalDate.now(clock))
+    }.hold(this, LocalDate.now(clock))
 
     /**
      * The month the calendar page shows. Kept separate from [selectedDate] so paging through months
@@ -203,27 +202,16 @@ class ScheduleViewModel @Inject constructor(
         combine(students.observeActive(), subjects.observeAll()) { studentList, subjectList ->
             studentList.isNotEmpty() && subjectList.isNotEmpty()
         }
-            .flowOn(computation)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+            .derive(this, computation, false)
 
     val monthGrid: StateFlow<CalendarLayout.MonthGrid> =
         _visibleMonth.map { CalendarLayout.monthGrid(it) }
-            .flowOn(computation)
-            .stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(5_000),
-                CalendarLayout.monthGrid(_visibleMonth.value),
-            )
+            .derive(this, computation, CalendarLayout.monthGrid(_visibleMonth.value))
 
     /** The seven days the week strip shows. */
     val weekDays: StateFlow<List<LocalDate>> =
         _visibleWeek.map { CalendarLayout.week(it) }
-            .flowOn(computation)
-            .stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(5_000),
-                CalendarLayout.week(_visibleWeek.value),
-            )
+            .derive(this, computation, CalendarLayout.week(_visibleWeek.value))
 
     /**
      * Per-day markers for the cells the active view is showing — the month page (including the
@@ -249,8 +237,7 @@ class ScheduleViewModel @Inject constructor(
                     ).map { CalendarLayout.dayLoads(it, zone) }
                 }
             }
-                .flowOn(computation)
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+                .derive(this, computation, emptyMap())
 
     /**
      * The lessons the **active view** needs, and no others.
@@ -302,8 +289,7 @@ class ScheduleViewModel @Inject constructor(
                     }
                 }
             }
-                .flowOn(computation)
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ScheduleContent.Day(emptyList()))
+                .derive(this, computation, ScheduleContent.Day(emptyList()))
 
     /**
      * Switches view. Opening a calendar view on a page that doesn't contain the selected day would

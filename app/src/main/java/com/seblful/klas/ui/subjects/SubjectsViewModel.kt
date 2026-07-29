@@ -8,14 +8,12 @@ import com.seblful.klas.domain.PeopleSearch
 import com.seblful.klas.domain.model.Subject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.seblful.klas.ui.common.UiEvents
+import com.seblful.klas.ui.common.derive
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -46,8 +44,7 @@ class SubjectsViewModel @Inject constructor(
         combine(repository.observeAll(), _query) { all, query ->
             PeopleSearch.filter(all, query) { it.name }
         }
-            .flowOn(computation)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            .derive(this, computation, emptyList())
 
     fun setQuery(query: String) {
         _query.value = query

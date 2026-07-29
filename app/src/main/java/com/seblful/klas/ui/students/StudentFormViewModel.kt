@@ -13,16 +13,14 @@ import com.seblful.klas.format.MoneyField
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.LeavableForm
 import com.seblful.klas.ui.common.UiEvents
+import com.seblful.klas.ui.common.derive
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -78,8 +76,7 @@ class StudentFormViewModel @Inject constructor(
         form,
         subjectsRepo.observeAll(),
     ) { f, subjects -> UiState(f, subjects) }
-        .flowOn(computation)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState())
+        .derive(this, computation, UiState())
 
     fun update(transform: (Form) -> Form) {
         form.value = transform(form.value)

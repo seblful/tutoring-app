@@ -23,7 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -42,6 +41,8 @@ import com.seblful.klas.R
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.ShowMessagesFor
+import com.seblful.klas.ui.common.rememberMessages
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,21 +51,17 @@ fun DiagnosticsScreen(
     viewModel: DiagnosticsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    val snackbarHost = remember { SnackbarHostState() }
+    val messages = rememberMessages()
     var confirmingClear by remember { mutableStateOf(false) }
 
     val exportOk = stringResource(R.string.diagnostics_export_success)
     val error = stringResource(R.string.diagnostics_error)
     val exportFilename = stringResource(R.string.diagnostics_filename)
 
-    LaunchedEffect(Unit) {
-        viewModel.events.stream.collect { event ->
-            snackbarHost.showSnackbar(
-                when (event) {
-                    DiagnosticsEvent.EXPORT_OK -> exportOk
-                    DiagnosticsEvent.ERROR -> error
-                },
-            )
+    ShowMessagesFor(viewModel.events, messages) { event ->
+        when (event) {
+            DiagnosticsEvent.EXPORT_OK -> exportOk
+            DiagnosticsEvent.ERROR -> error
         }
     }
 
@@ -83,7 +80,7 @@ fun DiagnosticsScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHost) },
+        snackbarHost = { SnackbarHost(messages.hostState) },
     ) { padding ->
         Column(
             Modifier.fillMaxSize().padding(padding).constrainedContent().padding(16.dp),

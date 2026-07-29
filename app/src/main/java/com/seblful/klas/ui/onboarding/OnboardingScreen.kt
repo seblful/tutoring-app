@@ -29,7 +29,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -62,6 +61,7 @@ import com.seblful.klas.ui.common.TextFieldDialog
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.students.StudentFormContent
 import com.seblful.klas.ui.students.StudentFormViewModel
+import com.seblful.klas.ui.common.rememberMessages
 
 /**
  * The first run, as a sequence.
@@ -101,16 +101,14 @@ fun OnboardingScreen(
     val subjects by viewModel.subjects.collectAsState()
     var addingSubject by remember { mutableStateOf(false) }
     var confirmRestoreUri by remember { mutableStateOf<Uri?>(null) }
-    val snackbarHost = remember { SnackbarHostState() }
+    val messages = rememberMessages()
 
     val context = LocalContext.current
-    LaunchedEffect(Unit) {
-        // Only a failure needs saying — a successful restore leaves this screen behind. It says which
-        // failure: someone restoring on a fresh install has the least context for a bare «Не удалось».
+    // Only a failure needs saying — a successful restore leaves this screen behind. It says which
+    // failure: someone restoring on a fresh install has the least context for a bare «Не удалось».
+    LaunchedEffect(backupViewModel, messages) {
         backupViewModel.events.stream.collect { result ->
-            if (result is BackupResult.Failed) {
-                snackbarHost.showSnackbar(result.failure.messageIn(context))
-            }
+            if (result is BackupResult.Failed) messages.show(result.failure.messageIn(context))
         }
     }
 
@@ -153,7 +151,7 @@ fun OnboardingScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHost) },
+        snackbarHost = { SnackbarHost(messages.hostState) },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).constrainedContent()) {
             // Which step, and how many are left. Without it the setup was a sequence of screens with

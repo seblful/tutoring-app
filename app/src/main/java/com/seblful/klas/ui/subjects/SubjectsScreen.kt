@@ -41,6 +41,7 @@ import com.seblful.klas.ui.common.SearchField
 import com.seblful.klas.ui.common.TextFieldDialog
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.ShowMessagesFor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,13 +59,10 @@ fun SubjectsScreen(
     val messages = rememberMessages()
     val deleteBlockedMsg = stringResource(R.string.subject_delete_blocked)
     val taughtToGroupMsg = stringResource(R.string.subject_delete_blocked_group)
-    LaunchedEffect(Unit) {
-        viewModel.events.stream.collect { event ->
-            val message = when (event) {
-                SubjectsViewModel.Event.DELETE_BLOCKED_HAS_CLASSES -> deleteBlockedMsg
-                SubjectsViewModel.Event.DELETE_BLOCKED_TAUGHT_TO_GROUP -> taughtToGroupMsg
-            }
-            messages.show(message)
+    ShowMessagesFor(viewModel.events, messages) { event ->
+        when (event) {
+            SubjectsViewModel.Event.DELETE_BLOCKED_HAS_CLASSES -> deleteBlockedMsg
+            SubjectsViewModel.Event.DELETE_BLOCKED_TAUGHT_TO_GROUP -> taughtToGroupMsg
         }
     }
 

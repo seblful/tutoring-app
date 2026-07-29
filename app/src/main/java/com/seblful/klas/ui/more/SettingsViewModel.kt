@@ -7,12 +7,11 @@ import com.seblful.klas.data.repository.AppSettings
 import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.notifications.NotificationPermission
+import com.seblful.klas.ui.common.hold
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -32,7 +31,7 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     val state: StateFlow<AppSettings> = settings.observe()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppSettings())
+        .hold(this, AppSettings())
 
     /** Bumped by [refreshPermissions] to re-ask the platform; a permission is not observable. */
     private val permissionChecks = MutableStateFlow(0)
@@ -51,7 +50,7 @@ class SettingsViewModel @Inject constructor(
      */
     val notificationsPermitted: StateFlow<Boolean> = permissionChecks
         .map { notificationPermission.isGranted() }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+        .hold(this, true)
 
     /** What to request when [notificationsPermitted] is false; empty where there is nothing to ask. */
     val notificationPermissionsRequired: Array<String> get() = notificationPermission.required

@@ -22,15 +22,13 @@ import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentStore
 import com.seblful.klas.ui.common.UiEvents
+import com.seblful.klas.ui.common.derive
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -72,8 +70,7 @@ class ReportsViewModel @Inject constructor(
     ).combine(_period) { sources, period -> sources.report(period) }
         // The heaviest derivation in the app — every class against every payment and every student,
         // re-run on each write anywhere — and it used to run on the main thread. See [Computation].
-        .flowOn(computation)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Reports.Report(_period.value))
+        .derive(this, computation, Reports.Report(_period.value))
 
     /** Reads the same period at another width, keeping where the tutor was looking. */
     fun setKind(kind: ReportPeriod.Kind) = _period.update { it.withKind(kind) }

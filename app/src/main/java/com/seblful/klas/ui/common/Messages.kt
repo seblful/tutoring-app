@@ -4,6 +4,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.CoroutineScope
@@ -71,4 +72,26 @@ fun rememberMessages(): Messages {
     val hostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     return remember(hostState, scope) { Messages(hostState, scope) }
+}
+
+/**
+ * Shows every one-shot event of [events] as a message, in [words].
+ *
+ * The six-line tail this replaces — a `LaunchedEffect(Unit)`, a `collect`, a `when` mapping the event
+ * to an already-resolved string, and a `show` — appeared on eleven screens, and three of them had
+ * drifted onto a raw `SnackbarHostState` instead: no dismissing of the message already up, so two
+ * failures in a row queued and the second arrived after the tutor had moved on.
+ *
+ * [words] is an ordinary lambda, not a `@Composable` one, because a `stringResource` cannot be read
+ * from inside the collector's coroutine. Resolve the strings above the call — which is what every screen
+ * already did.
+ *
+ * A screen that does more than show a string per event (an undo action, a navigation) keeps its own
+ * collector; this is for the eight that do not.
+ */
+@Composable
+fun <T> ShowMessagesFor(events: UiEvents<T>, messages: Messages, words: (T) -> String) {
+    LaunchedEffect(events, messages) {
+        events.stream.collect { messages.show(words(it)) }
+    }
 }

@@ -28,14 +28,12 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.runCatchingCancellable
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.seblful.klas.ui.common.UiEvents
+import com.seblful.klas.ui.common.derive
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.Instant
@@ -254,8 +252,7 @@ class StudentDetailViewModel @Inject constructor(
             lessonKinds = LessonKind.tally(partial.classes),
         )
     }
-        .flowOn(computation)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StudentDetailState())
+        .derive(this, computation, StudentDetailState())
 
     private data class Partial(
         val student: Student?,

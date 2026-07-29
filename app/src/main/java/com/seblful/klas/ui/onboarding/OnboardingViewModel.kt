@@ -6,12 +6,10 @@ import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.model.Subject
+import com.seblful.klas.ui.common.derive
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -33,8 +31,7 @@ class OnboardingViewModel @Inject constructor(
 ) : ViewModel() {
 
     val subjects: StateFlow<List<Subject>> = subjectsRepo.observeAll()
-        .flowOn(computation)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        .derive(this, computation, emptyList())
 
     /**
      * Whether restoring a backup here would destroy something, and so has to be confirmed.

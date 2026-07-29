@@ -9,17 +9,15 @@ import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.format.NameOrder
 import com.seblful.klas.domain.PeopleSearch
 import com.seblful.klas.domain.model.Group
+import com.seblful.klas.ui.common.derive
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 /**
@@ -94,8 +92,7 @@ class GroupsViewModel @Inject constructor(
                     .filter { PeopleSearch.matches(it.group.name, query) }
             }
         }
-            .flowOn(computation)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            .derive(this, computation, emptyList())
 
     fun toggleArchived() {
         _showArchived.value = !_showArchived.value

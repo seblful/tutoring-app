@@ -48,6 +48,7 @@ import com.seblful.klas.ui.common.UnsavedChangesDialog
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.leaveIntent
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.ShowMessagesFor
 
 /** Full-screen "add student" with required subjects + prices. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,9 +62,7 @@ fun StudentFormScreen(
     // A save that failed must not look like one that went through: the form stays open and says so.
     val messages = rememberMessages()
     val saveFailedMsg = stringResource(R.string.save_failed)
-    LaunchedEffect(Unit) {
-        viewModel.events.stream.collect { messages.show(saveFailedMsg) }
-    }
+    ShowMessagesFor(viewModel.events, messages) { saveFailedMsg }
 
     // Back — the arrow or the system gesture — asks before throwing a filled-in form away.
     var leaving by remember { mutableStateOf<LeaveIntent?>(null) }

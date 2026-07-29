@@ -49,6 +49,7 @@ import com.seblful.klas.ui.common.UnsavedChangesDialog
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.leaveIntent
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.ShowMessagesFor
 
 /**
  * Create or edit one group: **subject**, name, note, hourly rate, default mode and roster — plus, for
@@ -81,13 +82,10 @@ fun GroupFormScreen(
     val messages = rememberMessages()
     val deleteBlockedMsg = stringResource(R.string.group_delete_blocked)
     val notPricedMsg = stringResource(R.string.group_members_not_priced)
-    LaunchedEffect(Unit) {
-        viewModel.events.stream.collect { event ->
-            val message = when (event) {
-                GroupFormViewModel.Event.DELETE_BLOCKED_HAS_LESSONS -> deleteBlockedMsg
-                GroupFormViewModel.Event.MEMBERS_NOT_PRICED_FOR_SUBJECT -> notPricedMsg
-            }
-            messages.show(message)
+    ShowMessagesFor(viewModel.events, messages) { event ->
+        when (event) {
+            GroupFormViewModel.Event.DELETE_BLOCKED_HAS_LESSONS -> deleteBlockedMsg
+            GroupFormViewModel.Event.MEMBERS_NOT_PRICED_FOR_SUBJECT -> notPricedMsg
         }
     }
 
