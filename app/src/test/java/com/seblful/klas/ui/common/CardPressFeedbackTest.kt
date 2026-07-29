@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.common
 
 import com.seblful.klas.testutil.ProjectFiles
+import com.seblful.klas.testutil.SourceText.argumentLists
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -48,32 +49,5 @@ class CardPressFeedbackTest {
         val cards = uiSources().sumOf { argumentLists(it.readText(), "Card(").size }
 
         assertTrue("Found no `Card(` argument lists at all — has the scan stopped matching?", cards >= 5)
-    }
-
-    /**
-     * Every `callee(…)` argument list in [code], by paren depth — which stops at the closing paren, so
-     * a trailing lambda is left out. Matches on the suffix, so `OutlinedCard(` and this app's own
-     * `ContentCard(`/`SectionCard(` call sites are scanned too: a `clickable` handed to a wrapper is
-     * unclipped for the same reason as one handed to the card inside it.
-     */
-    private fun argumentLists(code: String, callee: String): List<String> {
-        val lists = mutableListOf<String>()
-        var from = code.indexOf(callee)
-        while (from >= 0) {
-            val open = from + callee.length - 1
-            var depth = 0
-            var i = open
-            while (i < code.length) {
-                if (code[i] == '(') depth++
-                if (code[i] == ')') {
-                    depth--
-                    if (depth == 0) break
-                }
-                i++
-            }
-            lists += code.substring(open + 1, i.coerceAtMost(code.length))
-            from = code.indexOf(callee, i)
-        }
-        return lists
     }
 }
