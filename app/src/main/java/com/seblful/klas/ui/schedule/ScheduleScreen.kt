@@ -81,10 +81,11 @@ import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.classModeLabel
-import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.sessionStatusColor
+import com.seblful.klas.ui.common.sessionStatusLabel
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatTime
@@ -541,14 +542,7 @@ private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit, modifier: Modifi
 @Composable
 private fun SessionStatusBadge(row: ScheduleRow) {
     val common = row.session.commonStatus
-    if (common != null) {
-        StatusBadge(text = classStatusLabel(common), color = classStatusColor(common))
-    } else {
-        StatusBadge(
-            text = stringResource(R.string.class_status_mixed),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+    StatusBadge(text = sessionStatusLabel(common), color = sessionStatusColor(common))
 }
 
 @Composable

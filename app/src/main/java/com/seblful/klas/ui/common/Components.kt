@@ -322,6 +322,24 @@ fun classStatusColor(status: ClassStatus): Color = when (status) {
     ClassStatus.CANCELLED -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
+/**
+ * A **lesson's** status: the one its classes share, or «Разные» when they don't — a group whose
+ * absentee was cancelled while the rest stayed completed.
+ *
+ * Nullable, because that is how a lesson answers the question (`ClassSession.commonStatus`), and three
+ * surfaces ask it: the schedule's badge, a group's lesson list, and a calendar cell's tally. Each had
+ * its own copy of the fallback, which is one place too many for a rule about what an unanswerable
+ * status looks like.
+ */
+@Composable
+fun sessionStatusLabel(status: ClassStatus?): String =
+    status?.let { classStatusLabel(it) } ?: stringResource(R.string.class_status_mixed)
+
+/** The tint for [sessionStatusLabel] — neutral for mixed, having no one status to be coloured by. */
+@Composable
+fun sessionStatusColor(status: ClassStatus?): Color =
+    status?.let { classStatusColor(it) } ?: MaterialTheme.colorScheme.onSurfaceVariant
+
 /** Localized label for a class mode: «Очно» / «Удалённо». */
 @Composable
 fun classModeLabel(mode: ClassMode): String = stringResource(

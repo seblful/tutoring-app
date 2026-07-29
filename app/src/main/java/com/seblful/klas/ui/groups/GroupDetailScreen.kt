@@ -51,10 +51,10 @@ import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.RateHistoryList
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatRow
-import com.seblful.klas.ui.common.classStatusColor
-import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.lessonsStat
+import com.seblful.klas.ui.common.sessionStatusColor
+import com.seblful.klas.ui.common.sessionStatusLabel
 import com.seblful.klas.ui.common.text
 
 /**
@@ -286,10 +286,8 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
                     Text(
                         // A mixed lesson (one absentee cancelled, the rest completed) says «Разные»
                         // rather than picking one of its members' statuses to speak for the room.
-                        text = status?.let { classStatusLabel(it) }
-                            ?: stringResource(R.string.class_status_mixed),
-                        color = status?.let { classStatusColor(it) }
-                            ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = sessionStatusLabel(status),
+                        color = sessionStatusColor(status),
                     )
                     Text(
                         pluralStringResource(R.plurals.group_lesson_attended, row.attendees, row.attendees),

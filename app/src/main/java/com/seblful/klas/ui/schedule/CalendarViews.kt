@@ -32,8 +32,8 @@ import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.CalendarLayout
 import com.seblful.klas.format.shortName
-import com.seblful.klas.ui.common.classStatusColor
-import com.seblful.klas.ui.common.classStatusLabel
+import com.seblful.klas.ui.common.sessionStatusColor
+import com.seblful.klas.ui.common.sessionStatusLabel
 import java.time.DayOfWeek
 import java.time.LocalDate
 
@@ -148,7 +148,7 @@ private fun DayCell(
     // visually through colour alone, which a screen reader cannot convey, so it must be said.
     val cellDescription = load?.let { dayLoad ->
         val total = pluralStringResource(R.plurals.lessons_count, dayLoad.total, dayLoad.total)
-        val breakdown = dayLoad.tallies.map { "${it.count} ${classStatusLabel(it.status)}" }
+        val breakdown = dayLoad.tallies.map { "${it.count} ${sessionStatusLabel(it.status)}" }
         (listOf(date.dayOfMonth.toString(), total) + breakdown).joinToString(", ")
     }
 
@@ -197,7 +197,7 @@ private fun DayCell(
 }
 
 /**
- * How many classes the day holds, split into one number per status and tinted with that status's
+ * How many lessons the day holds, split into one number per status and tinted with that status's
  * colour, so a mixed day states its makeup instead of collapsing to a single dominant hue. Sitting
  * *below* the day-number disc rather than inside it is what keeps those colours readable on the
  * selected day and leaves room for a two-digit count. Always reserves its row's height so day
@@ -215,7 +215,7 @@ private fun DayTallies(load: CalendarLayout.DayLoad?) {
                 text = tally.count.toString(),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = classStatusColor(tally.status),
+                color = sessionStatusColor(tally.status),
                 maxLines = 1,
             )
         }

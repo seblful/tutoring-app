@@ -405,7 +405,9 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   belongs to the schedule, the one place that knows what else the hour holds.
 - **A stat row counts lessons, not classes — for a group** (`domain/Taught`): a lesson taught to three
   is *one* lesson of the tutor's, while the money sums the members' charges. A session counts as taught
-  when **any** of its classes completed. A student's debt tile flips to «Переплата» rather than printing
+  when **any** of its classes completed. A **calendar cell's tally** counts the same way
+  (`CalendarLayout.dayLoads`, through the same `GroupRules.sessions` the schedule's list uses), so the
+  cell and the list under it agree; a mixed lesson is tallied under no status of its own. A student's debt tile flips to «Переплата» rather than printing
   a negative, and a student's row holds **three** tiles, not four — four are unreadable on a 360dp phone.
 - **A detail screen's list keys are namespaced** (`ui/students/StudentDetailKeys`): a subject id, a
   class id and a payment id all start at 1, and a duplicate key crashes composition.

@@ -16,10 +16,37 @@ class CalendarLayoutTest {
 
     private val zone = ZoneId.of("Europe/Minsk")
 
-    private fun klass(start: String, status: ClassStatus = ClassStatus.SCHEDULED) = TutoringClass(
-        studentId = 1, subjectId = 1, start = Instant.parse(start),
-        durationMinutes = 60, status = status,
+    /**
+     * A class of its own — distinct [id], no group. Ids matter here: sessions key an individual class
+     * by its id, so a fixture leaving them all at 0 would collapse a day's classes into one lesson.
+     */
+    private fun klass(
+        start: String,
+        status: ClassStatus = ClassStatus.SCHEDULED,
+        id: Long = nextId++,
+        groupId: Long? = null,
+        studentId: Long = 1,
+    ) = TutoringClass(
+        id = id, studentId = studentId, subjectId = 1, start = Instant.parse(start),
+        durationMinutes = 60, status = status, groupId = groupId,
     )
+
+    private var nextId = 1L
+
+    /** The [size] classes one group lesson is stored as: same group, same start, one per member. */
+    private fun groupLesson(
+        start: String,
+        size: Int,
+        vararg statuses: ClassStatus,
+        groupId: Long = 7,
+    ) = (0 until size).map { member ->
+        klass(
+            start = start,
+            status = statuses.getOrElse(member) { statuses.lastOrNull() ?: ClassStatus.SCHEDULED },
+            groupId = groupId,
+            studentId = (member + 1).toLong(),
+        )
+    }
 
     @Test
     fun `every week row is a full week starting on Monday`() {
@@ -136,6 +163,60 @@ class CalendarLayoutTest {
     }
 
     @Test
+    fun `a group lesson counts once, however many members it has`() {
+        val loads = CalendarLayout.dayLoads(groupLesson("2026-07-15T07:00:00Z", size = 2), zone)
+        val load = loads.getValue(LocalDate.of(2026, 7, 15))
+
+        assertEquals("two students, one lesson taught", 1, load.total)
+        assertEquals(listOf(CalendarLayout.Tally(ClassStatus.SCHEDULED, 1)), load.tallies)
+    }
+
+    @Test
+    fun `a lesson is a lesson, group or individual`() {
+        val loads = CalendarLayout.dayLoads(
+            groupLesson("2026-07-15T07:00:00Z", size = 3) + klass("2026-07-15T10:00:00Z"),
+            zone,
+        )
+
+        assertEquals(2, loads.getValue(LocalDate.of(2026, 7, 15)).total)
+    }
+
+    @Test
+    fun `two group lessons at different times stay two lessons`() {
+        val loads = CalendarLayout.dayLoads(
+            groupLesson("2026-07-15T07:00:00Z", size = 2) +
+                groupLesson("2026-07-15T10:00:00Z", size = 2),
+            zone,
+        )
+
+        assertEquals(2, loads.getValue(LocalDate.of(2026, 7, 15)).total)
+    }
+
+    @Test
+    fun `a mixed group lesson counts once, under no status of its own`() {
+        val loads = CalendarLayout.dayLoads(
+            groupLesson(
+                "2026-07-15T07:00:00Z",
+                size = 2,
+                ClassStatus.CANCELLED,
+                ClassStatus.COMPLETED,
+            ) + klass("2026-07-15T10:00:00Z", ClassStatus.COMPLETED),
+            zone,
+        )
+        val load = loads.getValue(LocalDate.of(2026, 7, 15))
+
+        assertEquals(2, load.total)
+        assertEquals(
+            "the corrected lesson is neither completed nor cancelled, and reads last",
+            listOf(
+                CalendarLayout.Tally(ClassStatus.COMPLETED, 1),
+                CalendarLayout.Tally(null, 1),
+            ),
+            load.tallies,
+        )
+    }
+
+    @Test
     fun `day loads count a day's classes per status`() {
         val loads = CalendarLayout.dayLoads(
             listOf(
@@ -195,7 +276,7 @@ class CalendarLayoutTest {
     @Test
     fun `a busy day never needs more than one tally per status`() {
         val loads = CalendarLayout.dayLoads(
-            List(9) { klass("2026-07-15T07:00:00Z", ClassStatus.COMPLETED) } +
+            List(9) { hour -> klass("2026-07-15T0$hour:00:00Z", ClassStatus.COMPLETED) } +
                 klass("2026-07-15T18:00:00Z"),
             zone,
         )
@@ -203,7 +284,7 @@ class CalendarLayoutTest {
 
         assertEquals(10, load.total)
         assertEquals(
-            "however many classes a day holds, its cell prints one number per status",
+            "however many lessons a day holds, its cell prints one number per status",
             listOf(
                 CalendarLayout.Tally(ClassStatus.SCHEDULED, 1),
                 CalendarLayout.Tally(ClassStatus.COMPLETED, 9),

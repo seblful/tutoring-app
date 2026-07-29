@@ -17,23 +17,29 @@ object CalendarLayout {
 
     const val DAYS_IN_WEEK = 7
 
-    /** How many of a day's classes sit in one status — one tinted number in its calendar cell. */
-    data class Tally(val status: ClassStatus, val count: Int)
+    /**
+     * How many of a day's lessons sit in one status — one tinted number in its calendar cell.
+     *
+     * A null [status] is the **mixed** lesson, exactly as [ClassSession.commonStatus] answers it: a
+     * group whose members were corrected apart (the absentee cancelled, the rest completed) is under
+     * no one status, and still has to be counted — a day holding one is not an empty day.
+     */
+    data class Tally(val status: ClassStatus?, val count: Int)
 
-    /** What one calendar cell shows about its day: its classes, counted per status. */
-    data class DayLoad(val counts: Map<ClassStatus, Int>) {
+    /** What one calendar cell shows about its day: its lessons, counted per status. */
+    data class DayLoad(val counts: Map<ClassStatus?, Int>) {
 
         val total: Int get() = counts.values.sum()
 
         /**
          * The numbers the cell prints, left to right. Ordered by [ClassStatus]'s own declaration
-         * (scheduled → completed → cancelled) so the actionable count reads first, and statuses the
-         * day has none of are left out rather than printed as a zero. There are only three statuses,
-         * so a cell tops out at three numbers however busy the day is — no marker cap to apply, and
-         * nothing about the day left unsaid.
+         * (scheduled → completed → cancelled) with the mixed lesson last, so the actionable count
+         * reads first, and statuses the day has none of are left out rather than printed as a zero.
+         * There are only three statuses and mixed, so a cell tops out at four numbers however busy
+         * the day is — no marker cap to apply, and nothing about the day left unsaid.
          */
         val tallies: List<Tally>
-            get() = ClassStatus.entries.mapNotNull { status ->
+            get() = (ClassStatus.entries + null).mapNotNull { status ->
                 counts[status]?.let { Tally(status, it) }
             }
     }
@@ -88,10 +94,16 @@ object CalendarLayout {
     /**
      * Collapses [classes] into one [DayLoad] per day they start on, in [zone]. Days without a class
      * are absent from the map, so a cell can just look itself up.
+     *
+     * Counted in **lessons**, not classes: a group lesson is stored as one class per member, so a
+     * group of two used to print «2» in its cell — two of something the tutor teaches once. The cell
+     * has to agree with the list under it, which has always shown one row per lesson, so both collapse
+     * through the same [GroupRules.sessions].
      */
     fun dayLoads(classes: List<TutoringClass>, zone: ZoneId): Map<LocalDate, DayLoad> =
-        classes.groupBy { it.start.atZone(zone).toLocalDate() }
-            .mapValues { (_, dayClasses) ->
-                DayLoad(dayClasses.groupingBy { it.status }.eachCount())
+        GroupRules.sessions(classes)
+            .groupBy { it.start.atZone(zone).toLocalDate() }
+            .mapValues { (_, daySessions) ->
+                DayLoad(daySessions.groupingBy { it.commonStatus }.eachCount())
             }
 }
