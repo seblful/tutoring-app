@@ -315,11 +315,21 @@ fun classStatusLabel(status: ClassStatus): String = stringResource(
     }
 )
 
+/**
+ * The tint a status is said in: the brand colour for a lesson still to come, tertiary for one taught,
+ * **the theme's error red for a cancelled one** — the same red a debt is written in ([balanceColor]),
+ * red meaning "look here" in both places.
+ *
+ * Cancelled was `onSurfaceVariant` before, which left grey saying two different things: "cancelled" and
+ * «Разные» ([sessionStatusColor]). It now says only the second. The lesson *card* still recedes — dimmed,
+ * its time struck through — so a cancellation stays quiet in a list of lessons while remaining findable
+ * in it.
+ */
 @Composable
 fun classStatusColor(status: ClassStatus): Color = when (status) {
     ClassStatus.SCHEDULED -> MaterialTheme.colorScheme.primary
     ClassStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary
-    ClassStatus.CANCELLED -> MaterialTheme.colorScheme.onSurfaceVariant
+    ClassStatus.CANCELLED -> MaterialTheme.colorScheme.error
 }
 
 /**

@@ -386,7 +386,8 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   never moves the selection. A calendar cell shows **one count per status**. Both markers and lessons
   are queried for the **active view's range only**.
 - **A cancelled lesson recedes** — dimmed, time struck through — because the question a glance answers
-  is "how full is this day".
+  is "how full is this day". Its **badge is the error red**, so it is quiet without being lost; grey is
+  left to mean only «Разные» (`ui/common/classStatusColor`).
 - **Marking a lesson completed is one swipe**, offered only where completing is legal
   (`GroupRules.sessionTransitions`); the row springs back, and the status badge is the confirmation.
 - **A lesson is booked by its length, not its end time.** «Длительность» as chips seeded from the
