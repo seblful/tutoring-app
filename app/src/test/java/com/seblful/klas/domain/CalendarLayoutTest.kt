@@ -155,11 +155,22 @@ class CalendarLayoutTest {
         grid.weeks.forEach { row -> assertEquals(row, CalendarLayout.week(row.first())) }
     }
 
+    /**
+     * There is no separate list of weekday headers to keep in step: the header row reads its names off the
+     * grid's first week (`ui/schedule/WeekdayHeader`), so this is the only place a week start is decided.
+     */
     @Test
-    fun `weekday headers follow the first day of the week`() {
-        assertEquals(DayOfWeek.MONDAY, CalendarLayout.weekdays().first())
-        assertEquals(DayOfWeek.SUNDAY, CalendarLayout.weekdays().last())
-        assertEquals(DayOfWeek.SUNDAY, CalendarLayout.weekdays(DayOfWeek.SUNDAY).first())
+    fun `a Sunday-first month grid is laid out Sunday to Saturday`() {
+        val grid = CalendarLayout.monthGrid(YearMonth.of(2026, 7), DayOfWeek.SUNDAY)
+
+        assertEquals(DayOfWeek.SUNDAY, grid.firstDate.dayOfWeek)
+        grid.weeks.forEach { row ->
+            assertEquals(DayOfWeek.SUNDAY, row.first().dayOfWeek)
+            assertEquals(DayOfWeek.SATURDAY, row.last().dayOfWeek)
+        }
+        // Every day of July still has a cell — a different week start pads the page, it never drops a day.
+        val cells = grid.weeks.flatten()
+        assertTrue(cells.containsAll((1..31).map { LocalDate.of(2026, 7, it) }))
     }
 
     @Test

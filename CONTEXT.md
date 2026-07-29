@@ -357,6 +357,14 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   not screen or not-a-screen: what keeps `HH:mm` is a report, an export, a backup. `hour12` has **no
   default**, so no surface can pick a clock by saying nothing. The 12-hour marker is a pinned "AM"/"PM",
   since `ru` CLDR renders it «ДП»/«ПП» on some Androids and not others.
+- **Where the week starts is the phone's answer too, where the phone has one** — the `fw` regional
+  preference (Android 14+), read off the device's locales (`WeekStart.kt`) and injected as
+  `di.FirstDayOfWeek`. The month grid, the week strip and the header row all take it from there, and the
+  header reads its Пн…Вс off the week it labels so the two cannot drift. **Absent a preference: Monday.**
+  The locale's own convention is not consulted — it would start an `en-US` phone's week on Sunday while the
+  app speaks Russian to a tutor in Minsk. Material's `DatePicker` cannot be made to follow: it reads
+  `WeekFields.of(locale)`, which ignores the keyword here (`WeekStartKeywordTest` pins this), so its own
+  little month stays Monday-first.
 
 ### UI — navigation and lists
 

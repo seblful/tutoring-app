@@ -23,6 +23,7 @@ import org.junit.Test
 import com.seblful.klas.domain.CalendarLayout
 import com.seblful.klas.testutil.observing
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -38,10 +39,13 @@ class ScheduleViewModelTest {
     private val env = TestEnv()
     private val zone: ZoneId = ZoneId.systemDefault()
 
-    private fun vm(clock: Clock = Clock.systemDefaultZone()) =
+    private fun vm(
+        clock: Clock = Clock.systemDefaultZone(),
+        weekStart: DayOfWeek = DayOfWeek.MONDAY,
+    ) =
         ScheduleViewModel(
             env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, mainRule.appScope,
-            mainRule.dispatcher, clock,
+            mainRule.dispatcher, clock, weekStart,
         )
 
     private fun startMillisOn(date: LocalDate, time: LocalTime): Long =
@@ -235,6 +239,25 @@ class ScheduleViewModelTest {
         assertEquals(7, days.size)
         assertEquals(LocalDate.of(2026, 7, 13), days.first())
         assertEquals(LocalDate.of(2026, 7, 19), days.last())
+    }
+
+    /**
+     * A phone set to start the week on Sunday moves **every** page, not just the strip: the week the agenda
+     * opens on, the seven days in it, and the month grid's first cell. They are three readers of one
+     * answer, which is what the calendar looked wrong in three different ways for when it was hardcoded.
+     */
+    @Test
+    fun `a week that starts on Sunday anchors every calendar page on Sunday`() = runTest(mainRule.dispatcher) {
+        val vm = vm(weekStart = DayOfWeek.SUNDAY)
+        observing(vm.weekDays)
+        observing(vm.monthGrid)
+        vm.selectDate(LocalDate.of(2026, 7, 15)) // a Wednesday
+        advanceUntilIdle()
+
+        assertEquals("the Sunday before, not the Monday", LocalDate.of(2026, 7, 12), vm.visibleWeek.value)
+        assertEquals(LocalDate.of(2026, 7, 12), vm.weekDays.value.first())
+        assertEquals(LocalDate.of(2026, 7, 18), vm.weekDays.value.last())
+        assertEquals(DayOfWeek.SUNDAY, vm.monthGrid.value.firstDate.dayOfWeek)
     }
 
     @Test

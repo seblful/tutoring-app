@@ -60,8 +60,12 @@ object CalendarLayout {
     }
 
     /**
-     * Builds the calendar page for [month]. [firstDayOfWeek] defaults to Monday, which is the
-     * Russian convention (and the app is `ru`-only), so weeks read Пн…Вс.
+     * Builds the calendar page for [month].
+     *
+     * [firstDayOfWeek] defaults to Monday — the `ru`/`be` convention, and what a layout test wants to say
+     * once at the top rather than at every call. **The app passes the phone's own answer**
+     * (`com.seblful.klas.deviceFirstDayOfWeek`, injected as `di.FirstDayOfWeek`), so a tutor who moved
+     * their week to Sunday in regional preferences gets Вс…Сб here and in the week strip.
      */
     fun monthGrid(month: YearMonth, firstDayOfWeek: DayOfWeek = DayOfWeek.MONDAY): MonthGrid {
         val first = month.atDay(1)
@@ -86,10 +90,6 @@ object CalendarLayout {
     /** The [firstDayOfWeek] on or before [date] — the anchor a week is identified by. */
     fun startOfWeek(date: LocalDate, firstDayOfWeek: DayOfWeek = DayOfWeek.MONDAY): LocalDate =
         date.minusDays(Math.floorMod(date.dayOfWeek.value - firstDayOfWeek.value, DAYS_IN_WEEK).toLong())
-
-    /** The weekday headers for a grid built with [firstDayOfWeek], left to right. */
-    fun weekdays(firstDayOfWeek: DayOfWeek = DayOfWeek.MONDAY): List<DayOfWeek> =
-        (0 until DAYS_IN_WEEK).map { firstDayOfWeek.plus(it.toLong()) }
 
     /**
      * Collapses [classes] into one [DayLoad] per day they start on, in [zone]. Days without a class

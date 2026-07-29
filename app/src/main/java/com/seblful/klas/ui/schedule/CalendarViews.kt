@@ -60,7 +60,7 @@ fun MonthCalendar(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
-        WeekdayHeader()
+        WeekdayHeader(grid.weeks.first())
         grid.weeks.forEach { week ->
             Row(Modifier.fillMaxWidth()) {
                 week.forEach { date ->
@@ -93,7 +93,7 @@ fun WeekStrip(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
-        WeekdayHeader()
+        WeekdayHeader(days)
         Row(Modifier.fillMaxWidth()) {
             days.forEach { date ->
                 DayCell(
@@ -110,16 +110,22 @@ fun WeekStrip(
     }
 }
 
+/**
+ * The Пн…Вс above the cells, **read off the week it labels** rather than assembled from a week start of
+ * its own. The row and the grid under it are then the same seven days by construction, so a tutor whose
+ * phone starts the week on Sunday cannot be shown Sunday's lessons under «Пн» — which is what a second
+ * copy of "where does a week start" would eventually do.
+ */
 @Composable
-private fun WeekdayHeader() {
+private fun WeekdayHeader(week: List<LocalDate>) {
     Row(Modifier.fillMaxWidth()) {
-        CalendarLayout.weekdays().forEach { day ->
+        week.forEach { date ->
             Text(
-                text = day.shortName(),
+                text = date.dayOfWeek.shortName(),
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.labelMedium,
-                color = weekdayColor(day),
+                color = weekdayColor(date.dayOfWeek),
             )
         }
     }

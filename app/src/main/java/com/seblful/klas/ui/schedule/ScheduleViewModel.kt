@@ -2,6 +2,7 @@ package com.seblful.klas.ui.schedule
 
 import androidx.lifecycle.ViewModel
 import com.seblful.klas.di.Computation
+import com.seblful.klas.di.FirstDayOfWeek
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.LessonWrite
@@ -35,6 +36,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -148,6 +150,8 @@ class ScheduleViewModel @Inject constructor(
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: Clock,
+    /** The phone's own — see [FirstDayOfWeek]. Everything the calendar lays out is anchored on it. */
+    @param:FirstDayOfWeek private val weekStart: DayOfWeek = DayOfWeek.MONDAY,
 ) : ViewModel() {
 
     // From the clock, so the one thing that watches the date can be moved in a test. See TimeModule.
@@ -190,8 +194,11 @@ class ScheduleViewModel @Inject constructor(
     private val _visibleMonth = MutableStateFlow(YearMonth.from(_selectedDate.value))
     val visibleMonth: StateFlow<YearMonth> = _visibleMonth.asStateFlow()
 
-    /** The Monday of the week the agenda shows. Browses independently of [selectedDate], as above. */
-    private val _visibleWeek = MutableStateFlow(CalendarLayout.startOfWeek(_selectedDate.value))
+    /**
+     * The first day of the week the agenda shows — [weekStart], not necessarily a Monday. Browses
+     * independently of [selectedDate], as above.
+     */
+    private val _visibleWeek = MutableStateFlow(CalendarLayout.startOfWeek(_selectedDate.value, weekStart))
     val visibleWeek: StateFlow<LocalDate> = _visibleWeek.asStateFlow()
 
     private val _viewMode = MutableStateFlow(ScheduleViewMode.DAY)
@@ -228,13 +235,13 @@ class ScheduleViewModel @Inject constructor(
             .derive(this, computation, false)
 
     val monthGrid: StateFlow<CalendarLayout.MonthGrid> =
-        _visibleMonth.map { CalendarLayout.monthGrid(it) }
-            .derive(this, computation, CalendarLayout.monthGrid(_visibleMonth.value))
+        _visibleMonth.map { CalendarLayout.monthGrid(it, weekStart) }
+            .derive(this, computation, CalendarLayout.monthGrid(_visibleMonth.value, weekStart))
 
     /** The seven days the week strip shows. */
     val weekDays: StateFlow<List<LocalDate>> =
-        _visibleWeek.map { CalendarLayout.week(it) }
-            .derive(this, computation, CalendarLayout.week(_visibleWeek.value))
+        _visibleWeek.map { CalendarLayout.week(it, weekStart) }
+            .derive(this, computation, CalendarLayout.week(_visibleWeek.value, weekStart))
 
     /**
      * Per-day markers for the cells the active view is showing — the month page (including the
@@ -249,7 +256,7 @@ class ScheduleViewModel @Inject constructor(
                     ScheduleViewMode.DAY -> null
                     ScheduleViewMode.WEEK -> week to week.plusDays(DAYS_IN_WEEK)
                     ScheduleViewMode.MONTH ->
-                        CalendarLayout.monthGrid(month).let { it.firstDate to it.endExclusive }
+                        CalendarLayout.monthGrid(month, weekStart).let { it.firstDate to it.endExclusive }
                 }
                 if (range == null) {
                     flowOf(emptyMap())
@@ -437,7 +444,7 @@ class ScheduleViewModel @Inject constructor(
     /** Points both calendar pages at [date], so whichever view opens next contains it. */
     private fun showPagesFor(date: LocalDate) {
         _visibleMonth.value = YearMonth.from(date)
-        _visibleWeek.value = CalendarLayout.startOfWeek(date)
+        _visibleWeek.value = CalendarLayout.startOfWeek(date, weekStart)
     }
 
     /**
