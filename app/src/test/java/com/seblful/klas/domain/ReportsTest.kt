@@ -3,6 +3,7 @@ package com.seblful.klas.domain
 import com.seblful.klas.domain.model.ClassStatus
 import com.seblful.klas.domain.model.GroupId
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.StudentBalance
 import com.seblful.klas.domain.model.StudentId
 import com.seblful.klas.domain.model.SubjectId
@@ -33,6 +34,47 @@ class ReportsTest {
         studentId = studentId, subjectId = subjectId, start = Instant.parse(start),
         durationMinutes = 60, status = status, charge = Money(charge), groupId = groupId,
     )
+
+    /** A whole report of [classes], with one student who is never archived and no payments. */
+    private fun reportOf(classes: List<TutoringClass>, period: ReportPeriod) = Reports.of(
+        period = period,
+        classes = classes,
+        students = classes.map { it.studentId }.distinct().map { Student(id = it, name = "S$it") },
+        payments = emptyList(),
+        subjectNames = classes.associate { SubjectId(it.subjectId) to "П${it.subjectId}" },
+        groupNames = classes.mapNotNull { it.groupId }.associate { GroupId(it) to "Г$it" },
+        zone = zone,
+    )
+
+    /**
+     * The kind split is only a section when there is a split to see. A tutor who teaches one way would
+     * otherwise get a heading over a single line repeating the total right above it — and the line would
+     * be «100 %», which says nothing at all.
+     *
+     * This rule used to sit at the call site in `ReportsViewModel`, where nothing tested it.
+     */
+    @Test
+    fun `one kind of teaching is not a section`() {
+        val period = ReportPeriod(ReportPeriod.Kind.YEAR, YearMonth.of(2026, 5))
+        val individualOnly = listOf(
+            klass(1, 10, "2026-05-10T10:00:00Z", 5000),
+            klass(2, 10, "2026-05-11T10:00:00Z", 3000),
+        )
+
+        assertEquals(
+            "a heading over one line saying what the total already says",
+            emptyList<Reports.KindLine>(),
+            reportOf(individualOnly, period).byKind,
+        )
+
+        val bothKinds = individualOnly + klass(3, 10, "2026-05-12T10:00:00Z", 2000, groupId = 7)
+        val split = reportOf(bothKinds, period).byKind
+        assertEquals("both kinds earned, so the split is worth showing", 2, split.size)
+        assertEquals("largest first", LessonKind.INDIVIDUAL, split.first().kind)
+        assertEquals(Money(8000), split.first().amount)
+        assertEquals(80, split.first().percent)
+        assertEquals(20, split.last().percent)
+    }
 
     @Test
     fun `total income counts only completed charges`() {
@@ -201,6 +243,29 @@ class ReportsTest {
         assertEquals(Money.ZERO, trend.bars[2].total) // March, taught nothing
         assertEquals(Money(3000), trend.bars[10].total) // November
         assertEquals(keyOf(2026, 2), trend.peak?.key)
+    }
+
+    /**
+     * The chart and the list read the same buckets in opposite directions, and both are the trend's own
+     * statement. This half used to be a `filterNot` in a composable — so the rule that a fallow month is
+     * a gap in the chart was tested and the rule that it is *not* a row in the list was not.
+     */
+    @Test
+    fun `the rows are newest first and skip the months that earned nothing`() {
+        val classes = listOf(
+            klass(1, 10, "2026-02-10T10:00:00Z", 5000),
+            klass(1, 10, "2026-11-10T10:00:00Z", 3000),
+        )
+        val period = ReportPeriod(ReportPeriod.Kind.YEAR, YearMonth.of(2026, 7))
+
+        val trend = Reports.trend(classes, period, zone)
+
+        assertEquals("twelve bars in the chart", 12, trend.bars.size)
+        assertEquals(
+            "two rows in the list, November before February",
+            listOf(keyOf(2026, 11) to Money(3000), keyOf(2026, 2) to Money(5000)),
+            trend.rows.map { it.key to it.total },
+        )
     }
 
     @Test

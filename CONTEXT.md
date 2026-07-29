@@ -99,6 +99,13 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 - **A report is read inside a period** (`domain/ReportPeriod`): a month, a year, or all time, opening
   on the **year in progress**. **Debts are the deliberate exception** — a balance spans a student's
   whole history, and clipping charges to a year while payments stay whole would invent credit.
+- **`Reports.of` is the only way in.** It takes the database's lists and a period and returns the whole
+  `Report`: which classes count (active students, then the period), how each breakdown is ordered, and
+  which sections are worth showing — a single kind of teaching is not a split, an empty month is a gap in
+  the chart but not a row in the list. Those decisions used to be spread across the view model and a
+  composable, none of them where a report is tested. The aggregations stay public and stay tested one
+  rule at a time; `ReportsSurfaceTest` stops the app reaching past `of` to reassemble a report itself.
+  The screen supplies only the subject and group **names**, keyed by the typed ids of `model/Ids.kt`.
 
 ### Two interfaces onto the same tables
 
@@ -431,16 +438,17 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
   with it. Reaching for a DAO to build what the repositories deliberately refuse is still legitimate —
   lowering the cap by hand is how such a call gets acknowledged rather than absorbed.
 - **Fixtures pin the clock, not `now()`.** Seed a fixed hour and pick days by excluding today.
-- Five tests are **tripwires against silent drift**, all deriving expectations from a real artifact
+- Six tests are **tripwires against silent drift**, all deriving expectations from a real artifact
   rather than restating them: `BackupSchemaCoverageTest` (a new table must be carried or named
   device-local), `MappersTest` (a new column must be mapped), `StoredEnumNamesTest` (a renamed enum
   constant is a migration — it reads the DAO source, since `@Query` is not retained at runtime, *and*
   `FakeDaos.kt`, which had restated three of the same predicates as bare strings and so sat outside the
   very scan built for the risk), `WholeTableWritesTest` (a whole-table delete belongs to `SnapshotDao`,
-  and every table it reads it must also empty) and
+  and every table it reads it must also empty), `ReportsSurfaceTest` (the app asks `Reports` one
+  question) and
   `MigrationChainTest` (a bumped schema version must ship a migration for every step from v1 *and* wire
   it into the builder, and the destructive fallback must stay debug-only — it reads `AppDatabase.kt`,
-  since `@Database` is `BINARY`-retained). The first four are acknowledgement lists; the last is the
+  since `@Database` is `BINARY`-retained). The first five are acknowledgement lists; the last is the
   upgrade path, and it sits in the **unit** suite precisely because instrumented tests need a device CI
   does not have. Two more guard structure: one asserts the booking form leaves **no query open** once
   nothing collects it, one asserts a save is launched into the application scope.

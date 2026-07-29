@@ -48,6 +48,13 @@ object ProjectFiles {
     fun sourceFile(relative: String): File = sourceFileOrNull(relative)
         ?: error("Could not find `$SOURCE_ROOT/$relative` from ${System.getProperty("user.dir")}")
 
+    /** Every `.kt` file under [SOURCE_ROOT] — for a test asserting something about the app's own shape. */
+    fun sources(): List<File> {
+        val root = moduleFileOrNull(SOURCE_ROOT)
+            ?: error("Could not find `$SOURCE_ROOT` from ${System.getProperty("user.dir")}")
+        return root.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
+    }
+
     /** Where the package's unit-test sources live, relative to the module. */
     const val TEST_SOURCE_ROOT = "src/test/java/com/seblful/klas"
 

@@ -198,7 +198,7 @@ private const val CSV_MIME_TYPE = "text/csv"
  * possible. Its heading says so, as the card on screen does.
  */
 @Composable
-private fun csvLinesFor(state: ReportsState): List<ReportCsv.Line> {
+private fun csvLinesFor(state: Reports.Report): List<ReportCsv.Line> {
     val totalTitle = stringResource(R.string.reports_total_income)
     val byGroupTitle = stringResource(R.string.reports_by_group)
     val bySubjectTitle = stringResource(R.string.reports_by_subject)
@@ -209,7 +209,7 @@ private fun csvLinesFor(state: ReportsState): List<ReportCsv.Line> {
 
     return buildList {
         add(ReportCsv.Line(totalTitle, periodName, state.totalIncome))
-        fun section(title: String, lines: List<LabeledAmount>) {
+        fun section(title: String, lines: List<Reports.Line>) {
             lines.forEach { add(ReportCsv.Line(title, it.label, it.amount)) }
         }
         section(byGroupTitle, state.byGroup)
@@ -224,7 +224,7 @@ private fun csvLinesFor(state: ReportsState): List<ReportCsv.Line> {
 
 @Composable
 private fun ReportBody(
-    state: ReportsState,
+    state: Reports.Report,
     onStudentClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -264,7 +264,7 @@ private fun ReportBody(
     }
 }
 
-private fun LazyListScope.rankedSection(title: String, lines: List<LabeledAmount>) {
+private fun LazyListScope.rankedSection(title: String, lines: List<Reports.Line>) {
     if (lines.isEmpty()) return
     item { RankedCard(title, lines) }
 }
@@ -346,7 +346,7 @@ private fun hoursStat(minutes: Int): Stat =
  * period it is measured against, is the cheapest thing that closes the gap.
  */
 @Composable
-private fun IncomeCard(state: ReportsState) {
+private fun IncomeCard(state: Reports.Report) {
     Card(
         Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -365,7 +365,7 @@ private fun IncomeCard(state: ReportsState) {
 
 /** «+12 % к периоду "Июнь 2026"», or a note that there is nothing to compare against. */
 @Composable
-private fun ColumnScope.ComparisonLine(state: ReportsState) {
+private fun ColumnScope.ComparisonLine(state: Reports.Report) {
     val change = state.change ?: return
     val previous = state.previousPeriod ?: return
     val previousName = periodTitle(previous)
@@ -425,9 +425,9 @@ private fun TrendCard(trend: Reports.Trend) {
     ReportCard(stringResource(if (isMonths) R.string.reports_by_month else R.string.reports_by_year)) {
         IncomeTrendChart(trend) { key -> if (isMonths) months[key % 12] else key.toString() }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        // Newest first, matching every other list in the app; empty buckets are a gap in the chart
-        // above and would only be a row of zeros here.
-        trend.bars.asReversed().filterNot { it.total.isZero }.forEach { bar ->
+        // `rows`, not `bars`: newest first and without the empty buckets, which are a gap in the chart
+        // above and would only be a row of zeros here. Both halves of that are stated on [Reports.Trend].
+        trend.rows.forEach { bar ->
             AmountRow(
                 label = if (isMonths) formatMonthName(bar.key) else bar.key.toString(),
                 amount = bar.total.text(),
@@ -484,7 +484,7 @@ private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Int) -> String) {
  * "63 %" and "38 %" of something the eye is left to reconstruct.
  */
 @Composable
-private fun KindSplitCard(lines: List<KindAmount>) {
+private fun KindSplitCard(lines: List<Reports.KindLine>) {
     ReportCard(stringResource(R.string.reports_by_kind)) {
         Row(Modifier.fillMaxWidth().height(12.dp).clip(CircleShape)) {
             lines.forEach { line ->
@@ -526,7 +526,7 @@ private fun KindSplitCard(lines: List<KindAmount>) {
  * against, and a bar filled to the brim would only assert that the only row is the biggest one.
  */
 @Composable
-private fun RankedCard(title: String, lines: List<LabeledAmount>) {
+private fun RankedCard(title: String, lines: List<Reports.Line>) {
     val top = lines.first().amount.minor.coerceAtLeast(1)
     ReportCard(title) {
         lines.forEach { line ->
@@ -576,7 +576,7 @@ private fun RankedBar(fraction: Float, modifier: Modifier = Modifier) {
  * would dress up the thing to act on as a statistic.
  */
 @Composable
-private fun DebtsCard(state: ReportsState, onStudentClick: (Long) -> Unit) {
+private fun DebtsCard(state: Reports.Report, onStudentClick: (Long) -> Unit) {
     ReportCard(stringResource(R.string.reports_debts)) {
         Text(
             stringResource(R.string.reports_debts_all_time),
