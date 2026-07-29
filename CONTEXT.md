@@ -365,6 +365,9 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   app speaks Russian to a tutor in Minsk. Material's `DatePicker` cannot be made to follow: it reads
   `WeekFields.of(locale)`, which ignores the keyword here (`WeekStartKeywordTest` pins this), so its own
   little month stays Monday-first.
+- **A gesture confirms with the phone's haptics** (`ui/common/Haptics`, `HapticFeedbackTest`): swipe-to-
+  complete performs `HapticFeedbackType.Confirm` through `LocalHapticFeedback`, which honours the system
+  touch-feedback setting. No `Vibrator`, no `VIBRATE` permission, and the effect is chosen in one place.
 
 ### UI — navigation and lists
 

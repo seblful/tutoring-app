@@ -83,6 +83,7 @@ import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.rememberConfirmFeedback
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.sessionStatusColor
 import com.seblful.klas.ui.common.sessionStatusLabel
@@ -430,11 +431,17 @@ private fun LazyItemScope.SwipeToCompleteCard(
         ScheduleCard(row, onClick, modifier.animateItem())
         return
     }
+    // The card springs back rather than staying dismissed, so the gesture's own confirmation is a buzz
+    // and the badge flipping to «Проведено». Through the phone's haptics — see [rememberConfirmFeedback].
+    val confirm = rememberConfirmFeedback()
     val state = rememberSwipeToDismissBoxState(
         // Returning false is what makes the row spring back: the action has already been fired, and
         // the settled "dismissed" state would leave a card that is still in the list drawn as gone.
         confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.StartToEnd) onComplete()
+            if (value == SwipeToDismissBoxValue.StartToEnd) {
+                confirm()
+                onComplete()
+            }
             false
         },
         // Past a third of the width. The default (half) is a long drag for something done this often.
