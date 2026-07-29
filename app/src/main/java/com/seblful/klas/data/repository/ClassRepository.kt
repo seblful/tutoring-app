@@ -300,7 +300,6 @@ class ClassRepository @Inject constructor(
         Written(Unit, drop = session.classes)
     }
 
-
     /**
      * The one place an existing lesson is written: every class in [resolved] is updated **in place**,
      * so an edit can't double-count income; then the whole lesson is mirrored and reminders refreshed

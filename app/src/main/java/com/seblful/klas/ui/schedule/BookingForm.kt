@@ -262,7 +262,6 @@ data class BookingForm(
      */
     private fun groupLoaded(group: Group): Applied {
         if (form.groupId != group.id) return Applied(this)
-        
         val next = form.copy(
             mode = group.defaultMode,
             // Never clobber an amount the tutor has already typed for this lesson.
@@ -294,7 +293,6 @@ data class BookingForm(
     /** Only auto-fills an empty field, and only while the subject it was asked about is still chosen. */
     private fun priceLoaded(subjectId: Long, amount: Money?): Applied {
         if (form.subjectId != subjectId) return Applied(this)
-        
         return settled(form.copy(price = form.price.prefilledWith(amount)))
     }
 
@@ -306,7 +304,6 @@ data class BookingForm(
      */
     private fun onlySubject(askedFor: SubjectKey, subjectId: Long): Applied {
         if (SubjectKey.of(form) != askedFor) return Applied(this)
-        
         if (!form.hasTarget || form.subjectId != null) return Applied(this)
         return chooseSubject(subjectId)
     }
