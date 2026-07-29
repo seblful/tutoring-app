@@ -38,7 +38,11 @@ class DiagnosticsViewModelTest {
 
     private val store = FakeCrashLogStore()
     private val documents = FakeDocumentStore()
-    private val crashLogger = CrashLogger(store, DeviceInfo("1.0", 34, "Pixel"))
+    private val crashLogger = CrashLogger(
+        store,
+        DeviceInfo("1.0", 34, "Pixel"),
+        com.seblful.klas.testutil.MutableClock(java.time.Instant.parse("2026-01-01T00:00:00Z")),
+    )
     private val target = DocumentRef("content://downloads/crash.txt")
 
     private fun vm(isDebugBuild: Boolean = false) =

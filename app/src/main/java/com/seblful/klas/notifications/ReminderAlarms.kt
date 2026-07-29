@@ -60,8 +60,8 @@ class ReminderAlarms @Inject constructor(
      */
     fun set(plans: List<Reminders.Plan>) {
         armedIds.forEach { cancel(it) }
-        val now = System.currentTimeMillis()
-        plans.forEach { plan -> arm(plan.classId, at = now + plan.delayMillis) }
+        // The plan carries the firing instant itself — nothing here reads a clock or decides.
+        plans.forEach { plan -> arm(plan.classId, at = plan.fireAt.toEpochMilli()) }
         prefs().edit { putStringSet(KEY_ARMED, plans.map { it.classId.toString() }.toSet()) }
     }
 

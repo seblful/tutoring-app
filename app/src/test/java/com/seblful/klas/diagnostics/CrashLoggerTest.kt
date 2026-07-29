@@ -1,6 +1,7 @@
 package com.seblful.klas.diagnostics
 
 import com.seblful.klas.domain.Diagnostics
+import com.seblful.klas.testutil.MutableClock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -40,7 +41,7 @@ class CrashLoggerTest {
 
     private val store = FakeCrashLogStore()
     private val device = DeviceInfo(appVersion = "1.2.3", androidSdk = 34, device = "Pixel 8")
-    private val logger = CrashLogger(store, device)
+    private val logger = CrashLogger(store, device, MutableClock(Instant.parse("2026-01-01T00:00:00Z")))
     private val at = Instant.parse("2026-06-15T09:30:00Z")
 
     @Test

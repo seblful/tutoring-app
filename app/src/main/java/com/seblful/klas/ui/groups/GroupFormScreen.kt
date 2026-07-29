@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.groups
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -42,12 +41,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
-import com.seblful.klas.ui.common.LeaveIntent
 import com.seblful.klas.ui.common.MemberPickRow
 import com.seblful.klas.ui.common.ModeSelector
-import com.seblful.klas.ui.common.UnsavedChangesDialog
 import com.seblful.klas.ui.common.constrainedContent
-import com.seblful.klas.ui.common.leaveIntent
+import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.ShowMessagesFor
 
@@ -70,14 +67,7 @@ fun GroupFormScreen(
     var confirmingDelete by remember { mutableStateOf(false) }
 
     // Back — the arrow or the system gesture — asks before throwing away edits to a group.
-    var leaving by remember { mutableStateOf<LeaveIntent?>(null) }
-    fun requestLeave() {
-        when (val intent = leaveIntent(state)) {
-            LeaveIntent.LEAVE -> onBack()
-            else -> leaving = intent
-        }
-    }
-    BackHandler(enabled = state.isDirty) { requestLeave() }
+    val requestLeave = leaveGuard(form = state, onLeave = onBack, onSave = { viewModel.save { onBack() } })
 
     val messages = rememberMessages()
     val deleteBlockedMsg = stringResource(R.string.group_delete_blocked)
@@ -101,7 +91,7 @@ fun GroupFormScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = ::requestLeave) {
+                    IconButton(onClick = requestLeave) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
@@ -258,14 +248,6 @@ fun GroupFormScreen(
         )
     }
 
-    leaving?.let { intent ->
-        UnsavedChangesDialog(
-            intent = intent,
-            onSave = { viewModel.save { onBack() } },
-            onDiscard = { leaving = null; onBack() },
-            onKeepEditing = { leaving = null },
-        )
-    }
 }
 
 // The member picker's row is `MemberPickRow` in ui/common/Components.kt now — the booking form picks

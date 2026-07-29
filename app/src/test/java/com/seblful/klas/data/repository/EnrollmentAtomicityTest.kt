@@ -149,7 +149,7 @@ class EnrollmentAtomicityTest {
         val bob = f.env.studentDao.upsert(StudentEntity(name = "Борис"))
         val before = f.env.transactor.count
 
-        val id = f.env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann, bob))
+        val id = f.env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann, bob)).id
 
         assertEquals("the group, its rate log and both links", 1, f.env.transactor.count - before)
         assertEquals("no nesting", 1, f.env.transactor.maxDepth)
@@ -168,7 +168,7 @@ class EnrollmentAtomicityTest {
         val ann = f.env.studentDao.upsert(StudentEntity(name = "Аня"))
         val bob = f.env.studentDao.upsert(StudentEntity(name = "Борис"))
         val cleo = f.env.studentDao.upsert(StudentEntity(name = "Вера"))
-        val id = f.env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann, bob))
+        val id = f.env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann, bob)).id
         val before = f.env.transactor.count
 
         f.env.groupRepo.save(
@@ -184,7 +184,7 @@ class EnrollmentAtomicityTest {
     fun `a group's rate and its log entry are one write`() = runTest {
         val f = Fixture()
         f.seed()
-        val id = f.env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), emptySet())
+        val id = f.env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), emptySet()).id
         val before = f.env.transactor.count
 
         f.env.groupRepo.save(Group(id = id, name = "11 «А»", price = Money.ofMajor(25)), emptySet())

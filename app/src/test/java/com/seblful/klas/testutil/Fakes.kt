@@ -205,7 +205,14 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
 
     val settingsRepo = SettingsRepository(settingsDao)
     val calendarMirror = CalendarMirror(classDao, studentDao, subjectDao, groupDao, calendar, settingsRepo)
-    val rateHistoryRepo = RateHistoryRepository(rateHistoryDao, groupDao, priceDao)
+
+    /**
+     * The environment's clock, pinned — what the engine's defaulted `now`s read in a test, so the
+     * shipped default path is the one being exercised. Move it when a test needs time to pass.
+     */
+    val clock = MutableClock(java.time.Instant.parse("2026-06-01T12:00:00Z"), java.time.ZoneId.of("Europe/Minsk"))
+
+    val rateHistoryRepo = RateHistoryRepository(rateHistoryDao, groupDao, priceDao, clock)
     val paymentRepo = PaymentRepository(paymentDao)
 
     // Declared before the four repositories below it, all of which ask it whether anything is still
@@ -214,7 +221,6 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
         dao = classDao,
         calendar = calendarMirror,
         reminderScheduler = reminders,
-        settings = settingsRepo,
         transactor = transactor,
     )
 

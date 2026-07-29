@@ -26,7 +26,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -42,11 +41,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.format.MoneyField
-import com.seblful.klas.ui.common.LeaveIntent
 import com.seblful.klas.ui.common.ModeSelector
-import com.seblful.klas.ui.common.UnsavedChangesDialog
 import com.seblful.klas.ui.common.constrainedContent
-import com.seblful.klas.ui.common.leaveIntent
+import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.ShowMessagesFor
 
@@ -65,14 +62,7 @@ fun StudentFormScreen(
     ShowMessagesFor(viewModel.events, messages) { saveFailedMsg }
 
     // Back — the arrow or the system gesture — asks before throwing a filled-in form away.
-    var leaving by remember { mutableStateOf<LeaveIntent?>(null) }
-    fun requestLeave() {
-        when (val intent = leaveIntent(state)) {
-            LeaveIntent.LEAVE -> onBack()
-            else -> leaving = intent
-        }
-    }
-    BackHandler(enabled = state.isDirty) { requestLeave() }
+    val requestLeave = leaveGuard(form = state, onLeave = onBack, onSave = { viewModel.save(onBack) })
 
     Scaffold(
         snackbarHost = { SnackbarHost(messages.hostState) },
@@ -80,7 +70,7 @@ fun StudentFormScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.student_add_title)) },
                 navigationIcon = {
-                    IconButton(onClick = ::requestLeave) {
+                    IconButton(onClick = requestLeave) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
@@ -96,15 +86,6 @@ fun StudentFormScreen(
             state = state,
             viewModel = viewModel,
             modifier = Modifier.fillMaxSize().padding(padding),
-        )
-    }
-
-    leaving?.let { intent ->
-        UnsavedChangesDialog(
-            intent = intent,
-            onSave = { viewModel.save(onBack) },
-            onDiscard = { leaving = null; onBack() },
-            onKeepEditing = { leaving = null },
         )
     }
 }

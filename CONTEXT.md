@@ -36,8 +36,8 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, calendar layout, `CalendarSyncPolicy`, reminders, reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught`, `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, models (incl. the report-only id types, `model/Ids.kt`), and the `ReminderScheduler` port. All JVM-tested. |
-| `data/local/` | Room entities, DAOs, `AppDatabase`, and the `Transactor` port. Entities are also `@Serializable`, for the backup. `SnapshotDao` is the **separate** whole-table seam (see *Two interfaces onto the same tables*). |
+| `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, calendar layout, `CalendarSyncPolicy`, reminders, reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught`, `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, models (incl. `Currency` and the report-only id types, `model/Ids.kt`), and the `ReminderScheduler` port. All JVM-tested. |
+| `data/local/` | Room entities, DAOs, `AppDatabase`, the `Transactor` port, and `upsertedId` — the one statement of `@Upsert`'s -1-on-update sentinel (the fakes reproduce it, so the fallback branch runs on the JVM too). Entities are also `@Serializable`, for the backup. `SnapshotDao` is the **separate** whole-table seam (see *Two interfaces onto the same tables*). |
 | `data/Mappers.kt` | Entities ⇄ domain models. Where a stored enum is parsed back. |
 | `data/repository/` | One invariant each, end to end, written in one transaction (see *Ownership*). Display **name ordering** is applied here. |
 | `data/backup/` | The **file format**: export, transactional replace-all import, `BackupIntegrity` (what a file must be readable as before any of it is written), `BackupFailure` (which refusal it was) and `BackupRestore` (everything a *restore* means beyond the rows). What tables exist and the order they may be emptied and filled in is `SnapshotDao`'s. |
@@ -46,23 +46,32 @@ flowchart TB
 | `work/` | WorkManager's half: the periodic `MaintenanceWorker`, `WorkScheduler`, `BootReceiver` (alarms die on reboot), and `Maintenance` — what an upkeep pass decides, kept out of the worker. |
 | `diagnostics/` | `CrashLogger` over `CrashLogStore`/`DeviceInfo` ports; the pure half is `domain/Diagnostics`. Viewed and exported from `ui/diagnostics`. |
 | `storage/` | `DocumentStore` port + SAF adapter over an opaque `DocumentRef`, so no view model touches a `Uri` or a `Context`. |
-| `format/` | `ru`-locale date/time/money formatting, `MoneyField` (what a money input is), `MoneyInput` (rate vs payment), `NameOrder` (the one definition of how names are listed). |
+| `format/` | `ru`-locale date/time/money formatting (with `LocalDate`/`LocalTime` faces, so no caller restates the zone), `MoneyField` (what a money input is — each `Kind` carries its own zero rule), `NameOrder` (the one definition of how names are listed). |
 | `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` atoms, `onboarding/`, and `RootViewModel` gating onboarding vs. the tabs. **Settings and About live in `ui/more/`.** |
-| `di/` | The database module, the `@DebugBuild` flag, `@ApplicationScope`/`@Computation` (`CoroutinesModule`) and the `Clock` (`TimeModule`). Other Hilt modules live beside their adapters. |
+| `di/` | The database module, the `@DebugBuild` flag, `@ApplicationScope`/`@Computation` (`CoroutinesModule`) and the `Clock` (`TimeModule`) — which every defaulted `now` in the engine reads (`Maintenance`, `DueReminder`, `RateHistoryRepository`, `CrashLogger`), so the tested path is the shipped one. Other Hilt modules live beside their adapters. |
 
 ### Ownership (one invariant, one place)
 
-- `ClassRepository` — **all** side effects of a class change (calendar mirror + reminder refresh).
-  Every write takes a whole **lesson** (`ClassSession`), so there is no single-class path to drift.
+- `ClassRepository` — **all** side effects of a class change (calendar mirror + reminder refresh),
+  and the **one-tutor-one-lesson refusal itself**: every write that would (re)occupy time checks the
+  hour and returns `LessonWrite.Written | HourTaken(clash)` rather than trusting its callers to have
+  asked (three used to, each with its own ignoring set; the fourth way in shipped as a double
+  booking). Every write takes a whole **lesson** (`ClassSession`), so there is no single-class path
+  to drift.
 - `CalendarMirror` — what a mirrored event *shows*, and every table that decides it. A title is built
   from the student's, subject's and group's name and the guest from the student's email, so **four**
   tables can invalidate an event, not just `classes`; a caller that changes one of them asks for a
   refresh instead of knowing which table it touched. Also owns the sync on/off backfill and withdrawal.
 - `EnrollmentRepository` — the subject⇄price invariant, and where prices are read.
-- `GroupRepository` — the only writer of group membership; a group is saved with its exact roster.
+- `GroupRepository` — the only writer of group membership; a group is saved with its exact roster,
+  and `save` hands back `Saved(id, dropped)` — who the subject rule left out — so the form reports
+  what the write did instead of predicting it with a second intersection.
 - `PaymentRepository` — a payment's own date, and correcting one in place.
 - `RateHistoryRepository` — what a *rate change* is, since two repositories set rates.
-- `SettingsRepository` — one `update { it.copy(...) }` rather than a setter per field, serialized.
+- `SettingsRepository` — one `update { it.copy(...) }` rather than a setter per field, serialized —
+  returning `SettingsChange`, which classifies what the move owes the world (calendar re-earned,
+  reminder plan re-derived); the settings screen's one mutator discharges it, so no setting can lose
+  its tail by lacking a named method (the reminder lead once did, leaving mirrored events stale).
 - `StudentRepository` — the whole act of **archiving**, which is more than a flag: a retired student's
   still-planned lessons are called off first, through `ClassRepository`.
 - `SubjectRepository` — a subject is deletable only while nothing references it.
@@ -86,9 +95,11 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 - **Money is integer minor units** (kopecks) — no floating point — and **bounded** by `Money.MAX`
   (1 000 000,00), because the arithmetic downstream multiplies. Enforced at both ways in: the typed
   input gate (`parseMoneyOrNull`) and a restored file (`BackupIntegrity`).
-- **Currency is a display setting, not a fact about the data**: BYN or RUB, chosen in Settings,
-  provided through `LocalCurrency` and printed by `Money.text()`. Changing it **re-labels** stored
-  amounts rather than converting them, so the switch confirms first.
+- **Currency is a display setting, not a fact about the data**: the `Currency` enum (BYN or RUB),
+  chosen in Settings, provided through `LocalCurrency` and printed by `Money.text()`. Changing it
+  **re-labels** stored amounts rather than converting them, so the switch confirms first. The stored
+  word is parsed totally (`Currency.parse`, falling back to BYN — a label carries no money) and sits
+  in `StoredEnumNamesTest` like every other persisted constant name.
 - **Price is an hourly rate booked per class**, pre-filled from the student's rate for the subject
   (or the group's own), editable per lesson. `charge = booked rate × duration`, so later re-pricing
   never touches existing classes.
@@ -140,14 +151,20 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   dismiss-what-is-up rule that keeps a second failure from arriving after the tutor has moved on. A
   screen that does more per event than show a string (an undo action, a navigation) keeps its own
   collector.
+- **The guarded-write tail is named `write`** where a screen's actions outlive it:
+  `ScheduleViewModel.write` and `StudentDetailViewModel.write` (application scope +
+  `runCatchingCancellable` + one failure report, with the success outcome as a parameter). The
+  student card had nine hand-spelled copies, and none of the money path's had a failure test.
 - `ScreenStateSurfaceTest` pins both: neither tail can be written out by hand again.
 
 ### A screen draws, it does not decide
 
 - **Every branch a screen takes is a value the module behind it returned.** `ArchiveIntent`,
   `SaveIntent`, `DeleteWarning`, `NotificationsIntent`, `RootRoute`, `ThemeChoice`,
-  `OnboardingViewModel.restoreNeedsConfirming`, `ReportCsv.linesFor` and `PaymentDate.instantFor` are
-  the named answers; the screen holds only the words and the layout. A `@Composable` can be exercised
+  `OnboardingViewModel.restoreNeedsConfirming`, `ReportCsv.linesFor`, `PaymentDate.instantFor` (and
+  `.today`), `ScheduleRow.statusChoices`/`canSwipeComplete`/`recedes`, `Reports.Line.share`,
+  `Trend.shareOf` and the three picker defaults on `ClassEditViewModel` are the named answers; the
+  screen holds only the words and the layout. A `@Composable` can be exercised
   only on a device, so a decision that lives in one is a decision with no test — and the eight sites
   these replaced included which rows the CSV export contains and what instant a payment is stored at.
 - **`PaymentDate` was the app's one exception to the injected `Clock`.** It called `LocalDate.now()`
@@ -194,10 +211,11 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   session of one.
 - **One tutor, one lesson at a time.** An overlapping slot is refused, not warned about. Back-to-back
   is fine, a cancelled class gives its slot back, and the lesson being edited is excluded by every one
-  of its class ids. Booking in the **past is allowed**. The rule is pure; the *refusal* lives in the
-  view models, which name the lesson in the way. **Every way back into an hour is checked**, including
-  «вернуть в расписание» (`ScheduleViewModel.setStatus`), through the same `timeConflict` a refused
-  move reports.
+  of its class ids. Booking in the **past is allowed**. The rule is pure (`Scheduling.conflicts`); the
+  **enforcement is the repository's** — `book`/`apply`/`move`/`setStatus` return
+  `LessonWrite.HourTaken(clash)` for a taken hour, so every way in is checked by the module that
+  writes, un-cancelling included. The view models own only the *wording*: the clash arrives as data
+  and is reported through `timeConflict` (schedule) or `SAVE_REFUSED_TIME_TAKEN` (form).
 - **Editing is allowed in any status and the charge is recomputed** in place, so income cannot be
   double-counted. Deleting is allowed in any status; deleting a completed lesson removes its income
   and the UI warns. Classes are **one-off only** — no recurring series.
@@ -211,7 +229,8 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 - **A lesson has one rate.** Only a lesson restored from a pre-v3 `BackupData` can hold differing
   member rates; the form then offers the group's current rate.
 - **A group is taught one subject, fixed on the group.** Only students priced for it can be members —
-  the roster is intersected on save. The column is **nullable** for a group restored from a pre-v4
+  the roster is intersected on save, and the save **says who it dropped** (`GroupRepository.Saved`),
+  so the form's «not priced» notice reports the write instead of predicting it. The column is **nullable** for a group restored from a pre-v4
   backup, and until the tutor picks one; such a group keeps the looser per-lesson behaviour.
 - **Who attends one lesson is separate from who is on the roster**, and is correctable afterwards, in
   any status. An unticked member has no class at all (not a cancelled one); ticking one writes a class
@@ -295,6 +314,9 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 - **A reminder only fires *ahead* of a lesson, never on booking.** The plan is re-derived from scratch
   on every change — over the **horizon**, not the whole history; `Maintenance` names that horizon once
   and uses it both to fetch the window and to filter it. `MaintenanceTest` pins the boundary lesson.
+- **A reminder's plan carries its firing instant** (`Reminders.Plan.fireAt`), not a delay: the delay
+  was WorkManager's shape, and it made the alarm adapter re-derive the instant against a second clock
+  read. `ReminderAlarms` arms what it is handed and decides nothing.
 - **A reminder is an alarm; upkeep is a worker** — split by whether being late is acceptable.
   Reminders ride `AlarmManager` (`ReminderAlarms`): exact where `SCHEDULE_EXACT_ALARM` allows,
   `setAndAllowWhileIdle` where it does not, never prompting for the permission. Armed ids are kept in
@@ -303,7 +325,9 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 - **Upkeep also runs in process at startup** (`KlasApp`), not only as an enqueued worker, because
   auto-completion is what *bills* a finished lesson.
 - **The notification permission is asked for where reminders are**, in settings, never over a first
-  launch — and the row shows the **platform's** answer beside the tutor's intent. Deliberately *not*
+  launch — and the row shows the **platform's** answer beside the tutor's intent. «May a reminder be
+  shown» has one definition, the port's: `AndroidNotifier` asks `NotificationPermission` too, instead
+  of a weaker private copy that ignored the app-wide system switch. Deliberately *not*
   the calendar's rule: that flag gates a mirror, this one is only a preference, so it is never refused.
 - **Crash diagnostics are local + Play, no backend**: chains to the platform handler (so Android Vitals
   still reports) and appends to a size-capped file (`Diagnostics.appendBounded`, 64 000 chars, trimmed
@@ -330,7 +354,9 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 
 - **The bottom bar reads who → when → money**: «Люди», «Расписание», «Отчёты», «Ещё»; the app opens on
   the schedule. **Students and groups are one tab** with a segmented control (`ui/people/PeopleScreen`)
-  — a group *is* students seen as a roster. (The `showGroupsTab` **column** survives in `SettingsEntity`
+  — a group *is* students seen as a roster. The shared app bar works one `PeopleSide` (search, its
+  close-clears-it rule, the archive toggle); both view models are its adapters, and the screen picks
+  the side on top once instead of per button. (The `showGroupsTab` **column** survives in `SettingsEntity`
   written-but-unread: SQLite gained `DROP COLUMN` only in 3.35 / Android 12 and this app supports API
   24. `AppSettings` has dropped it, so nothing above the DAO can reach it.) Labels shrink a step at a
   time rather than wrapping.
@@ -362,8 +388,10 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   changed. The schedule's action sheet acts on the whole lesson and deliberately lists no members.
 - **Anything hidden behind a tap is drawn as a field** (`ui/common/PickerField`) — a `Surface`, not a
   disabled `OutlinedTextField` with its colours painted back in, which would cost the ripple.
-- **Leaving a filled-in form asks first** (`ui/common/UnsavedChanges`). `leaveIntent(dirty, canSave)`
-  picks the question. What counts as *dirty* differs per form on purpose — a snapshot where the
+- **Leaving a filled-in form asks first** (`ui/common/UnsavedChanges`). `leaveIntent` picks the
+  question, and `leaveGuard` is the **whole wiring** — the back handler, the dialog, and what each
+  answer does; three screens spelled it by hand and two answered «Сохранить» without closing the
+  dialog, trapping a refused save behind it. `UnsavedChangesTest` pins that only the guard asks. What counts as *dirty* differs per form on purpose — a snapshot where the
   baseline settles (student, group), "was touched" where the form keeps filling itself in (booking).
   Dialogs get no question, only `dismissOnClickOutside = false`.
 

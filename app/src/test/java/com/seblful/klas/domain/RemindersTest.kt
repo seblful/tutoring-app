@@ -35,8 +35,8 @@ class RemindersTest {
         val start = now.plus(Duration.ofHours(3)) // 13:00
         val plans = Reminders.plan(now, listOf(klass(1, start)), lead, horizon)
         assertEquals(1, plans.size)
-        // fire at 12:00 -> 2 hours from now
-        assertEquals(Duration.ofHours(2).toMillis(), plans.first().delayMillis)
+        // fires at 12:00 — one lead before the 13:00 start
+        assertEquals(now.plus(Duration.ofHours(2)), plans.first().fireAt)
     }
 
     @Test
@@ -51,10 +51,10 @@ class RemindersTest {
     fun `re-planning after a reminder has come due does not plan it again`() {
         val klass = klass(1, now.plus(Duration.ofMinutes(70)))
 
-        // Planned 10 minutes out...
+        // Planned for 10 minutes out...
         assertEquals(
-            Duration.ofMinutes(10).toMillis(),
-            Reminders.plan(now, listOf(klass), lead, horizon).single().delayMillis,
+            now.plus(Duration.ofMinutes(10)),
+            Reminders.plan(now, listOf(klass), lead, horizon).single().fireAt,
         )
         // ...and once that moment has passed (a later class change re-plans everything), gone.
         val later = now.plus(Duration.ofMinutes(15))
@@ -65,7 +65,7 @@ class RemindersTest {
     fun `a reminder still due is planned for the remaining time, not immediately`() {
         val start = now.plus(lead).plus(Duration.ofSeconds(30))
         val plans = Reminders.plan(now, listOf(klass(1, start)), lead, horizon)
-        assertEquals(Duration.ofSeconds(30).toMillis(), plans.single().delayMillis)
+        assertEquals(now.plus(Duration.ofSeconds(30)), plans.single().fireAt)
     }
 
     @Test
@@ -113,7 +113,7 @@ class RemindersTest {
 
         assertEquals(1, plans.size)
         assertEquals(1L, plans.single().classId)
-        assertEquals(Duration.ofHours(2).toMillis(), plans.single().delayMillis)
+        assertEquals(now.plus(Duration.ofHours(2)), plans.single().fireAt)
     }
 
     @Test

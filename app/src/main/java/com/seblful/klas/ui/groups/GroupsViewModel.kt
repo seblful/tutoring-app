@@ -10,6 +10,7 @@ import com.seblful.klas.format.NameOrder
 import com.seblful.klas.domain.PeopleSearch
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.ui.common.derive
+import com.seblful.klas.ui.people.PeopleSide
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -49,15 +50,15 @@ class GroupsViewModel @Inject constructor(
     students: StudentRepository,
     subjects: SubjectRepository,
     @param:Computation private val computation: CoroutineDispatcher,
-) : ViewModel() {
+) : ViewModel(), PeopleSide {
 
     private val _showArchived = MutableStateFlow(false)
 
     /** Whether archived groups are listed too. Changed through [toggleArchived], not written to. */
-    val showArchived: StateFlow<Boolean> = _showArchived.asStateFlow()
+    override val showArchived: StateFlow<Boolean> = _showArchived.asStateFlow()
 
     private val _query = MutableStateFlow("")
-    val query: StateFlow<String> = _query.asStateFlow()
+    override val query: StateFlow<String> = _query.asStateFlow()
 
     val rows: StateFlow<List<GroupRow>> =
         _showArchived.flatMapLatest { archived ->
@@ -94,11 +95,11 @@ class GroupsViewModel @Inject constructor(
         }
             .derive(this, computation, emptyList())
 
-    fun toggleArchived() {
+    override fun toggleArchived() {
         _showArchived.value = !_showArchived.value
     }
 
-    fun setQuery(query: String) {
+    override fun setQuery(query: String) {
         _query.value = query
     }
 }

@@ -22,12 +22,40 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * What a lesson write settled on: [Written], carrying what the caller asked for, or [HourTaken] —
+ * the hour is already another lesson's, and nothing was written.
+ *
+ * One tutor cannot teach two lessons at once, and this is the invariant's home: every write that
+ * would (re)occupy time makes the check itself, so no way into an hour — booking, editing, moving,
+ * or «вернуть в расписание» — depends on its caller remembering to ask first. The callers used to
+ * remember for it, three of them, each with its own copy of the ignoring set, and the way in that
+ * was forgotten shipped as a double booking. The clash comes back as **data**: wording the refusal
+ * is the screen's job, but what it names is the lesson in the way.
+ */
+sealed interface LessonWrite<out T> {
+
+    /** The rows went in; [value] is what the write was asked for. */
+    data class Written<T>(val value: T) : LessonWrite<T>
+
+    /** Refused: [clash] already holds the hour. Nothing was written. */
+    data class HourTaken(val clash: ClassSession) : LessonWrite<Nothing>
+
+    /**
+     * The written value, insisting the hour was free — for a caller that has already made a clash
+     * impossible (a fixture booking into an empty hour), never for the app, which words the refusal.
+     */
+    fun written(): T = when (this) {
+        is Written -> value
+        is HourTaken -> error("The hour at ${clash.first.start} is already taken")
+    }
+}
+
 @Singleton
 class ClassRepository @Inject constructor(
     private val dao: ClassDao,
     private val calendar: CalendarMirror,
     private val reminderScheduler: ReminderScheduler,
-    private val settings: SettingsRepository,
     private val transactor: Transactor,
 ) {
     fun observeById(id: Long): Flow<TutoringClass?> = dao.observeById(id).map { it?.toDomain() }
@@ -52,8 +80,9 @@ class ClassRepository @Inject constructor(
      * booking form can show the clash as the tutor picks a time. [ignoring] names the classes of the
      * lesson being edited, which must not collide with itself.
      *
-     * This is a **read**: refusing the write is the view model's job (like the calendar-permission
-     * rule), because a refusal has to name the lesson in the way rather than merely throw.
+     * This is a **read**, for saying the clash out loud while the form is still open. The writes
+     * below make the same check again themselves and refuse ([LessonWrite.HourTaken]) — the form's
+     * live answer can be stale by the time save is tapped, and the invariant cannot hang on it.
      */
     fun observeConflicts(slot: Scheduling.Slot, ignoring: Set<Long> = emptySet()): Flow<List<ClassSession>> {
         val window = Scheduling.windowFor(slot)
@@ -61,7 +90,8 @@ class ClassRepository @Inject constructor(
     }
 
     /**
-     * [observeConflicts] as a one-shot read — the check a save makes against the database it writes.
+     * [observeConflicts] as a one-shot read — the check every (re)occupying write below makes
+     * against the database it is about to write.
      *
      * A `suspend` query rather than `observeConflicts(...).first()`: collecting a Room `Flow` for a
      * single value registers an invalidation observer and opens a channel only to close both again,
@@ -71,6 +101,22 @@ class ClassRepository @Inject constructor(
         val window = Scheduling.windowFor(slot)
         return Scheduling.conflicts(slot, getBetween(window.from, window.toExclusive), ignoring)
     }
+
+    /**
+     * The lesson already holding the hour at [start] for [minutes], if any — asked by every write
+     * that would (re)occupy time, before its transaction (a read that only decides whether to write
+     * stays outside it). [ignoring] names the lesson's own classes, which cannot stand in their own
+     * way.
+     *
+     * A non-positive [minutes] answers "nobody" rather than asking: such a row occupies no time by
+     * its own arithmetic — `Scheduling.Slot` refuses to exist for it, and [Scheduling.conflicts]
+     * skips such rows on the read path for the same reason. A stored row like that should not exist
+     * (`BackupIntegrity` refuses a backup carrying one), but a status change on it has to come back
+     * as an answer, not a crash.
+     */
+    private suspend fun holdingHour(start: Instant, minutes: Int, ignoring: Set<Long>): ClassSession? =
+        if (minutes <= 0) null
+        else conflictsWith(Scheduling.Slot(start, minutes), ignoring).firstOrNull()
 
     /**
      * The classes starting within [horizon] of [now] — what a reminder plan is derived from, rather
@@ -148,7 +194,7 @@ class ClassRepository @Inject constructor(
      * rather than as two more statements at the end of each write, which is what lets [write] run them
      * in the one order they may happen in.
      */
-    private class Written<T>(
+    private class Committed<T>(
         val value: T,
         val mirror: List<TutoringClass> = emptyList(),
         val drop: List<TutoringClass> = emptyList(),
@@ -180,7 +226,7 @@ class ClassRepository @Inject constructor(
      */
     private suspend fun <T> write(
         refreshesReminders: Boolean = true,
-        rows: suspend () -> Written<T>,
+        rows: suspend () -> Committed<T>,
     ): T {
         val written = transactor.transaction { rows() }
         // Leavers' events go before the survivors are mirrored, mirroring the row order inside (2).
@@ -201,9 +247,11 @@ class ClassRepository @Inject constructor(
      * than a list of classes is what makes a lesson whose members disagree about their start, subject
      * or price unrepresentable.
      *
+     * Refuses an hour another lesson already holds — [LessonWrite.HourTaken] names it.
      * Refuses an empty roster: a lesson with nobody in it would be an invisible row that bills no one.
      * Refuses a non-positive length for the reason `Scheduling.Slot` gives — such a lesson would occupy
-     * no time, and so would stand in no other lesson's way.
+     * no time, and so would stand in no other lesson's way. The last two throw rather than return,
+     * because no form can submit them: they are a caller's bug, not a schedule that moved.
      */
     suspend fun book(
         subjectId: Long,
@@ -213,12 +261,13 @@ class ClassRepository @Inject constructor(
         studentIds: Collection<Long>,
         price: Money,
         groupId: Long? = null,
-    ): List<Long> {
+    ): LessonWrite<List<Long>> {
         require(studentIds.isNotEmpty()) { "A lesson needs at least one student" }
         require(durationMinutes > 0) { "A lesson lasts a positive number of minutes, not $durationMinutes" }
+        holdingHour(start, durationMinutes, ignoring = emptySet())?.let { return LessonWrite.HourTaken(it) }
         // Every member's row in one transaction: a group lesson is either wholly booked or not
         // booked, never a partial roster nobody asked for.
-        return write {
+        val ids = write {
             val booked = studentIds.map { studentId ->
                 val klass = TutoringClass(
                     studentId = studentId,
@@ -231,8 +280,9 @@ class ClassRepository @Inject constructor(
                 )
                 klass.copy(id = dao.upsert(klass.toEntity()))
             }
-            Written(booked.map { it.id }, mirror = booked)
+            Committed(booked.map { it.id }, mirror = booked)
         }
+        return LessonWrite.Written(ids)
     }
 
     /**
@@ -250,46 +300,72 @@ class ClassRepository @Inject constructor(
      * changing the lesson's own fields is **one transaction**, so a save can neither bill a member on
      * their way out nor leave a joiner behind at the old time — and a failure partway through leaves
      * the lesson exactly as it was rather than half-reconciled.
+     *
+     * [now] is the caller's clock, required rather than defaulted: whether a move re-plans the lesson
+     * is decided against it, and a default read here would make the tested path and the shipped path
+     * two different paths.
      */
     suspend fun apply(
         session: ClassSession,
         changes: SessionEdit,
         newStart: Instant,
-        now: Instant = Instant.now(),
+        now: Instant,
         roster: Set<Long>? = null,
-    ): List<TutoringClass> {
+    ): LessonWrite<List<TutoringClass>> {
+        holdingHour(newStart, changes.durationMinutes, session.classes.map { it.id }.toSet())
+            ?.let { return LessonWrite.HourTaken(it) }
         val change = roster?.let { GroupRules.rosterChange(session, it, changes, newStart) } ?: RosterChange()
         val leaving = change.dropped.map { it.id }.toSet()
-        return persist(
-            // editsFor runs over the whole session, so its refusal to re-attribute a group lesson is
-            // decided by what the lesson *is* rather than by whoever happens to be staying in it.
-            resolved = GroupRules.editsFor(session, changes)
-                .filterNot { (c, _) -> c.id in leaving }
-                .map { (c, edit) -> ClassRules.edit(c, edit, newStart, now) },
-            joining = change.joining,
-            // Leavers are dropped inside the same transaction as the edit, which is what stops a
-            // member being billed on their way out: the delete and the re-bill cannot half-happen.
-            dropped = change.dropped,
+        return LessonWrite.Written(
+            persist(
+                // editsFor runs over the whole session, so its refusal to re-attribute a group lesson is
+                // decided by what the lesson *is* rather than by whoever happens to be staying in it.
+                resolved = GroupRules.editsFor(session, changes)
+                    .filterNot { (c, _) -> c.id in leaving }
+                    .map { (c, edit) -> ClassRules.edit(c, edit, newStart, now) },
+                joining = change.joining,
+                // Leavers are dropped inside the same transaction as the edit, which is what stops a
+                // member being billed on their way out: the delete and the re-bill cannot half-happen.
+                dropped = change.dropped,
+            ),
         )
     }
 
     /**
-     * Reschedules a whole lesson, keeping its members together in one session. Moving it to the
-     * future re-plans each class (scheduled, charge voided); moving it to the past keeps each status.
+     * Reschedules a whole lesson, keeping its members together in one session, unless the hour is
+     * another lesson's ([LessonWrite.HourTaken]) — the lesson's own classes never stand in their own
+     * way. Moving it to the future re-plans each class (scheduled, charge voided); moving it to the
+     * past keeps each status. [now] is required for the reason [apply] gives.
      */
     suspend fun move(
         session: ClassSession,
         newStart: Instant,
-        now: Instant = Instant.now(),
-    ): List<TutoringClass> = persist(session.classes.map { ClassRules.move(it, newStart, now) })
+        now: Instant,
+    ): LessonWrite<List<TutoringClass>> {
+        holdingHour(newStart, session.first.durationMinutes, session.classes.map { it.id }.toSet())
+            ?.let { return LessonWrite.HourTaken(it) }
+        return LessonWrite.Written(persist(session.classes.map { ClassRules.move(it, newStart, now) }))
+    }
 
     /**
      * Applies a status change to a whole lesson, skipping the classes it isn't legal for — so
      * "mark completed" on a group lesson whose absentee is already cancelled completes the rest and
      * leaves that correction standing. Returns the classes actually changed.
+     *
+     * Returning a lesson **to the schedule** re-occupies its hour, so it is checked like a booking:
+     * a cancelled class gives its slot back on purpose ([ClassStatus.occupiesTime]), and by the time
+     * it is un-cancelled the hour may be somebody else's. That is the one status change that can be
+     * refused — every other transition keeps or frees the time it already had — and it used to be
+     * the one way into an hour that nothing checked.
      */
-    suspend fun setStatus(session: ClassSession, to: ClassStatus): List<TutoringClass> =
-        persist(GroupRules.applicableTo(session, to).map { ClassRules.applyStatus(it, to) })
+    suspend fun setStatus(session: ClassSession, to: ClassStatus): LessonWrite<List<TutoringClass>> {
+        val changing = GroupRules.applicableTo(session, to)
+        if (to.occupiesTime && changing.any { !it.status.occupiesTime }) {
+            holdingHour(session.first.start, session.first.durationMinutes, session.classes.map { it.id }.toSet())
+                ?.let { return LessonWrite.HourTaken(it) }
+        }
+        return LessonWrite.Written(persist(changing.map { ClassRules.applyStatus(it, to) }))
+    }
 
     /**
      * Deletes every class of a lesson, with its calendar events. Deleting a completed lesson removes
@@ -297,7 +373,7 @@ class ClassRepository @Inject constructor(
      */
     suspend fun delete(session: ClassSession) = write {
         session.classes.forEach { dao.delete(it.toEntity()) }
-        Written(Unit, drop = session.classes)
+        Committed(Unit, drop = session.classes)
     }
 
     /**
@@ -326,7 +402,7 @@ class ClassRepository @Inject constructor(
         val joined = joining.map { ClassRules.rebill(it) }.map { klass ->
             klass.copy(id = dao.upsert(klass.toEntity()))
         }
-        Written(resolved + joined, mirror = resolved + joined, drop = dropped)
+        Committed(resolved + joined, mirror = resolved + joined, drop = dropped)
     }
 
     /**
@@ -363,7 +439,7 @@ class ClassRepository @Inject constructor(
         // others still due to bill, which is the state this exists to rule out.
         return write {
             cancelled.forEach { dao.update(it.toEntity()) }
-            Written(cancelled, mirror = cancelled)
+            Committed(cancelled, mirror = cancelled)
         }
     }
 
@@ -389,7 +465,7 @@ class ClassRepository @Inject constructor(
         // then failed would leave a group lesson billing some of its members and not the rest.
         return write(refreshesReminders = false) {
             due.forEach { dao.update(it.toEntity()) }
-            Written(due)
+            Committed(due)
         }
     }
 }

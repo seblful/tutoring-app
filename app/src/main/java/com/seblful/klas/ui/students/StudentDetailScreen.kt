@@ -93,9 +93,7 @@ import com.seblful.klas.format.formatHours
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.toAmountInput
 import com.seblful.klas.format.toLocalDate
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 
 /**
  * The three things a student's card is *about*, each its own tab.
@@ -300,7 +298,7 @@ fun StudentDetailScreen(
         PaymentDialog(
             title = stringResource(R.string.payment_add_title),
             initialAmount = null,
-            initialDate = LocalDate.now(),
+            initialDate = viewModel.paymentDay(),
             onConfirm = { amount, date -> viewModel.addPayment(amount, date) },
             onDismiss = { addingPayment = false },
         )
@@ -634,7 +632,7 @@ private fun PaymentDialog(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 PickerField(
-                    value = date.atStartOfDay(ZoneId.systemDefault()).toInstant().formatDate(),
+                    value = date.formatDate(),
                     label = stringResource(R.string.payment_date_label),
                     onClick = { picking = true },
                 )

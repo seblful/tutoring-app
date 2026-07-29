@@ -116,7 +116,7 @@ class GroupFormViewModelTest {
     fun `editing loads the group's rate and roster, and re-saving replaces them`() =
         runTest(mainRule.dispatcher) {
             val (ann, bob) = seedStudents()
-            val id = env.groupRepo.save(Group(name = "Группа", price = Money.ofMajor(20)), setOf(ann))
+            val id = env.groupRepo.save(Group(name = "Группа", price = Money.ofMajor(20)), setOf(ann)).id
 
             val vm = vm(id)
             observing(vm.state)
@@ -139,7 +139,7 @@ class GroupFormViewModelTest {
     @Test
     fun `a new group starts on the tutor's default rate`() = runTest(mainRule.dispatcher) {
         seedStudents()
-        env.settingsRepo.update { it.copy(defaultGroupPriceMinor = Money.ofMajor(15).minor) }
+        env.settingsRepo.update { it.copy(defaultGroupPrice = Money.ofMajor(15)) }
 
         val vm = vm()
         observing(vm.state)
@@ -171,7 +171,7 @@ class GroupFormViewModelTest {
     @Test
     fun `a prefilled default rate is not unsaved work`() = runTest(mainRule.dispatcher) {
         seedStudents()
-        env.settingsRepo.update { it.copy(defaultGroupPriceMinor = Money.ofMajor(15).minor) }
+        env.settingsRepo.update { it.copy(defaultGroupPrice = Money.ofMajor(15)) }
 
         val vm = vm()
         observing(vm.state)
@@ -185,7 +185,7 @@ class GroupFormViewModelTest {
     @Test
     fun `a rate typed before the default arrives stays, and stays dirty`() = runTest(mainRule.dispatcher) {
         seedStudents()
-        env.settingsRepo.update { it.copy(defaultGroupPriceMinor = Money.ofMajor(15).minor) }
+        env.settingsRepo.update { it.copy(defaultGroupPrice = Money.ofMajor(15)) }
 
         val vm = vm()
         observing(vm.state)
@@ -199,7 +199,7 @@ class GroupFormViewModelTest {
     @Test
     fun `an edited group is clean until changed, and clean again once saved`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
-        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann))
+        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann)).id
 
         val vm = vm(id)
         observing(vm.state)
@@ -228,7 +228,7 @@ class GroupFormViewModelTest {
     @Test
     fun `archiving does not leave the form looking unsaved`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
-        val id = env.groupRepo.save(Group(name = "Выпускники", price = Money.ofMajor(20)), setOf(ann))
+        val id = env.groupRepo.save(Group(name = "Выпускники", price = Money.ofMajor(20)), setOf(ann)).id
 
         val vm = vm(id)
         observing(vm.state)
@@ -244,8 +244,8 @@ class GroupFormViewModelTest {
     @Test
     fun `the default never overwrites the rate of a group being edited`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
-        env.settingsRepo.update { it.copy(defaultGroupPriceMinor = Money.ofMajor(15).minor) }
-        val id = env.groupRepo.save(Group(name = "Группа", price = Money.ofMajor(40)), setOf(ann))
+        env.settingsRepo.update { it.copy(defaultGroupPrice = Money.ofMajor(15)) }
+        val id = env.groupRepo.save(Group(name = "Группа", price = Money.ofMajor(40)), setOf(ann)).id
 
         val vm = vm(id)
         observing(vm.state)
@@ -284,7 +284,7 @@ class GroupFormViewModelTest {
     @Test
     fun `archiving a group keeps it and its roster`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
-        val id = env.groupRepo.save(Group(name = "Выпускники"), setOf(ann))
+        val id = env.groupRepo.save(Group(name = "Выпускники"), setOf(ann)).id
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()
@@ -312,7 +312,7 @@ class GroupFormViewModelTest {
         val id = env.groupRepo.save(
             Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)),
             setOf(ann, bob),
-        )
+        ).id
         // The tutor stops teaching Аня Химия one-to-one; the group still teaches it, and Борис is
         // still priced, so the form stays saveable — which is what makes the drop silent.
         env.enrollmentRepo.unenroll(ann, chem)
@@ -345,7 +345,7 @@ class GroupFormViewModelTest {
         val id = env.groupRepo.save(
             Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)),
             setOf(ann),
-        )
+        ).id
         env.enrollmentRepo.unenroll(ann, chem)
 
         val vm = vm(id)
@@ -362,7 +362,7 @@ class GroupFormViewModelTest {
         val (ann, _) = seedStudents()
         val chem = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
         env.enrollmentRepo.enroll(ann, chem, Money.ofMajor(25))
-        val id = env.groupRepo.save(Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)), setOf(ann))
+        val id = env.groupRepo.save(Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)), setOf(ann)).id
 
         val vm = vm(id)
         observing(vm.state)
@@ -382,7 +382,7 @@ class GroupFormViewModelTest {
     fun `deleting is refused while the group has lessons`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
         val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val id = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann))
+        val id = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann)).id
         env.classDao.upsert(
             ClassEntity(
                 studentId = ann, subjectId = subject, startMillis = 1, durationMinutes = 60,
@@ -475,7 +475,7 @@ class GroupFormViewModelTest {
     @Test
     fun `an unused group can be deleted`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
-        val id = env.groupRepo.save(Group(name = "Ошибка"), setOf(ann))
+        val id = env.groupRepo.save(Group(name = "Ошибка"), setOf(ann)).id
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()

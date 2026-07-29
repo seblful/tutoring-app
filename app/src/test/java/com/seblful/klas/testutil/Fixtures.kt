@@ -63,7 +63,7 @@ class Fixtures(private val env: TestEnv) {
         subjectId: Long? = null,
         members: Set<Long> = emptySet(),
         rate: Money = Money.ofMajor(20),
-    ): Long = env.groupRepo.save(Group(name = name, subjectId = subjectId, price = rate), members)
+    ): Long = env.groupRepo.save(Group(name = name, subjectId = subjectId, price = rate), members).id
 
     /**
      * One booked lesson — a class per member, all at [rate], as `ClassRepository.book` writes it.
@@ -85,7 +85,7 @@ class Fixtures(private val env: TestEnv) {
         studentIds = students,
         price = rate,
         groupId = groupId,
-    )
+    ).written()
 
     /**
      * A lesson that has been taught: booked, then completed through the same status change the tutor

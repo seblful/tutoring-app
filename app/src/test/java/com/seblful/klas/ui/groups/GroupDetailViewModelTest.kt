@@ -37,7 +37,12 @@ class GroupDetailViewModelTest {
         computation = mainRule.dispatcher,
     )
 
-    private fun at(millis: Long): Instant = Instant.ofEpochMilli(millis)
+    /**
+     * Key *n* gets its own two-hour block. These tests are about counting, not scheduling, but they
+     * seed through the repository — which holds one lesson at a time, so back-to-back keys must not
+     * contest an hour.
+     */
+    private fun at(key: Long): Instant = Instant.ofEpochMilli(key * 7_200)
 
     @Test
     fun `the card names the group's subject and rate`() = runTest(mainRule.dispatcher) {
@@ -135,7 +140,7 @@ class GroupDetailViewModelTest {
 
         val lessons = vm.state.value.lessons
         assertEquals("four classes are two lessons", 2, lessons.size)
-        assertEquals("newest first", 2_000L, lessons.first().session.start.toEpochMilli())
+        assertEquals("newest first", at(2_000), lessons.first().session.start)
         assertEquals(2, lessons.first().attendees)
         assertEquals("both members' charges", Money.ofMajor(40), lessons.first().charge)
     }

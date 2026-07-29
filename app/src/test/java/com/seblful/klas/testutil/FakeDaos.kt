@@ -47,9 +47,12 @@ class FakeSubjectDao : SubjectDao {
 
     override suspend fun upsert(subject: SubjectEntity): Long {
         val id = if (subject.id == 0L) nextId++ else subject.id
-        val row = subject.copy(id = id)
-        items.value = items.value.filterNot { it.id == id } + row
-        return id
+        val existed = items.value.any { it.id == id }
+        items.value = items.value.filterNot { it.id == id } + subject.copy(id = id)
+        // Room's @Upsert only returns a rowid when it inserts; an update returns -1. Returning the
+        // real id here kept `upsertedId`'s fallback off every JVM path — the branch production takes
+        // on every edit was exercised nowhere.
+        return if (existed) -1L else id
     }
 
     override suspend fun delete(subject: SubjectEntity) {
@@ -74,9 +77,10 @@ class FakeStudentDao : StudentDao {
 
     override suspend fun upsert(student: StudentEntity): Long {
         val id = if (student.id == 0L) nextId++ else student.id
-        val row = student.copy(id = id)
-        items.value = items.value.filterNot { it.id == id } + row
-        return id
+        val existed = items.value.any { it.id == id }
+        items.value = items.value.filterNot { it.id == id } + student.copy(id = id)
+        // -1 on update, like Room — see FakeSubjectDao.upsert.
+        return if (existed) -1L else id
     }
 
     override suspend fun getSubjectIds(studentId: Long): List<Long> =
@@ -121,12 +125,13 @@ class FakeGroupDao : GroupDao {
         items.value.count { it.subjectId == subjectId }
 
     override suspend fun upsert(group: GroupEntity): Long {
-        val inserting = group.id == 0L
-        val id = if (inserting) nextId++ else group.id
+        val id = if (group.id == 0L) nextId++ else group.id
+        val existed = items.value.any { it.id == id }
         items.value = items.value.filterNot { it.id == id } + group.copy(id = id)
         // Room's @Upsert only returns a rowid when it inserts; an update returns -1. Returning the
-        // real id here used to hide a crash that only the device saw.
-        return if (inserting) id else -1L
+        // real id here used to hide a crash that only the device saw. `existed`, not `id != 0`:
+        // seeding a fresh row under an explicit id is still an insert, and Room answers its rowid.
+        return if (existed) -1L else id
     }
 
     override suspend fun delete(group: GroupEntity) {

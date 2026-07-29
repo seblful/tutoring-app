@@ -7,6 +7,7 @@ import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.EnrollmentRepository
 import com.seblful.klas.data.repository.GroupRepository
+import com.seblful.klas.data.repository.LessonWrite
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
@@ -44,6 +45,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.time.Clock
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
@@ -364,9 +366,10 @@ class ClassEditViewModel @Inject constructor(
     private val settingsRepo: SettingsRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
+    private val clock: Clock,
 ) : ViewModel() {
 
-    private val zone: ZoneId = ZoneId.systemDefault()
+    private val zone: ZoneId = clock.zone
     private val classId: Long = savedStateHandle["id"] ?: 0L
 
     /** Non-zero when the form was opened from a group, to book that group straight away. */
@@ -723,18 +726,26 @@ class ClassEditViewModel @Inject constructor(
     }
 
     /**
+     * What the date picker opens on: the date already chosen, or today — by the injected clock, like
+     * the two time defaults below it. This was the one picker default left reading the platform in a
+     * composable.
+     */
+    fun datePickerDefault(today: LocalDate = LocalDate.now(clock)): LocalDate =
+        currentForm.date ?: today
+
+    /**
      * What the start-time picker opens on: the start already chosen, or — for a lesson whose time is
      * still empty — the current time, since a booking is normally written down as it is arranged.
      * [now] is a parameter so the rule can be tested without depending on the wall clock.
      */
-    fun startPickerDefault(now: LocalTime = LocalTime.now(zone)): LocalTime =
+    fun startPickerDefault(now: LocalTime = LocalTime.now(clock)): LocalTime =
         currentForm.timeFrom ?: now.truncatedTo(ChronoUnit.MINUTES)
 
     /**
      * What the end-time picker opens on: the end already chosen, otherwise one default lesson after
      * the start the form would offer — the same length a start-time change would have applied.
      */
-    fun endPickerDefault(now: LocalTime = LocalTime.now(zone)): LocalTime =
+    fun endPickerDefault(now: LocalTime = LocalTime.now(clock)): LocalTime =
         currentForm.timeTo ?: startPickerDefault(now).plusMinutes(defaultLessonMinutes)
 
     /**
@@ -805,16 +816,7 @@ class ClassEditViewModel @Inject constructor(
      */
     private suspend fun write(valid: ValidForm): SaveOutcome {
         val existing = session.value
-        // Re-checked here against the database, not against [conflict]: the save button is already
-        // disabled on a clash, but the lesson in the way may have been booked — or moved here —
-        // since this form was opened, and two lessons at one hour cannot both happen.
-        val ignoring = existing?.classes?.map { it.id }?.toSet().orEmpty()
-        if (classes.conflictsWith(valid.slot, ignoring).isNotEmpty()) {
-            // Say so rather than doing nothing: the button was enabled, so from the tutor's side
-            // a silent no-op looks like the app dropped their lesson.
-            return SaveOutcome.Refused(Event.SAVE_REFUSED_TIME_TAKEN)
-        }
-        if (existing != null) {
+        val written = if (existing != null) {
             // Who the lesson covers afterwards, so one write settles both its fields and its
             // roster. Null for an individual lesson, which has no roster to reconcile.
             val roster = (valid.target as? ValidForm.Target.Group)
@@ -835,6 +837,7 @@ class ClassEditViewModel @Inject constructor(
                     studentId = valid.studentId,
                 ),
                 newStart = valid.slot.start,
+                now = clock.instant(),
                 roster = roster,
             )
         } else {
@@ -857,7 +860,14 @@ class ClassEditViewModel @Inject constructor(
                 groupId = valid.groupId,
             )
         }
-        return SaveOutcome.Saved
+        return when (written) {
+            // The repository re-checks the hour against the database, not against [conflict]: the
+            // save button is already disabled on a clash, but the lesson in the way may have been
+            // booked — or moved here — since this form was opened. Said out loud rather than dropped:
+            // the button was enabled, so a silent no-op looks like the app lost the lesson.
+            is LessonWrite.HourTaken -> SaveOutcome.Refused(Event.SAVE_REFUSED_TIME_TAKEN)
+            is LessonWrite.Written<*> -> SaveOutcome.Saved
+        }
     }
 
     /**

@@ -63,7 +63,7 @@ class ClassCalendarSyncTest {
             db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(), calendar, settings,
         )
         repo = ClassRepository(
-            db.classDao(), mirror, RecordingReminderScheduler(), settings, RoomTransactor(db),
+            db.classDao(), mirror, RecordingReminderScheduler(), RoomTransactor(db),
         )
     }
 
@@ -101,7 +101,7 @@ class ClassCalendarSyncTest {
 
         val now = Instant.parse("2026-07-05T09:00:00Z")
         val newStart = Instant.parse("2026-07-10T10:00:00Z")
-        val result = repo.move(session(id), newStart, now).single()
+        val result = repo.move(session(id), newStart, now).written().single()
 
         assertEquals(newStart, result.start)
         assertEquals(ClassStatus.SCHEDULED, repo.getById(id)?.status)
@@ -140,7 +140,7 @@ class ClassCalendarSyncTest {
         mode = ClassMode.IN_PERSON,
         studentIds = listOf(1L),
         price = price,
-    ).single()
+    ).written().single()
 
     /** The lesson class [id] belongs to. */
     private suspend fun session(id: Long) = repo.getSessionFor(id)!!

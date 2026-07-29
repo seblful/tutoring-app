@@ -1,6 +1,7 @@
 package com.seblful.klas.data.repository
 
 import com.seblful.klas.calendar.Guest
+import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.domain.SessionEdit
 import com.seblful.klas.domain.model.ClassMode
@@ -50,7 +51,7 @@ class ClassRepositoryTest {
         mode = ClassMode.IN_PERSON,
         studentIds = listOf(STUDENT),
         price = Money.ofMajor(30),
-    ).single()
+    ).written().single()
 
     /** The lesson class [id] belongs to — a session of one, for an individual class. */
     private suspend fun session(id: Long) = repo.getSessionFor(id)!!
@@ -144,7 +145,7 @@ class ClassRepositoryTest {
         val id = book() // 1 upsert so far
         env.calendar.calls.clear()
 
-        val completed = repo.setStatus(session(id), ClassStatus.COMPLETED).single()
+        val completed = repo.setStatus(session(id), ClassStatus.COMPLETED).written().single()
 
         assertEquals(Money.ofMajor(30), completed.charge)
         assertTrue("a completed (past) class's event is history, not re-written", env.calendar.upserts.isEmpty())
@@ -171,7 +172,7 @@ class ClassRepositoryTest {
         val id = book(now.minusSeconds(3600))
         repo.setStatus(session(id), ClassStatus.COMPLETED)
 
-        val moved = repo.move(session(id), now.plusSeconds(86_400), now = now).single()
+        val moved = repo.move(session(id), now.plusSeconds(86_400), now = now).written().single()
 
         assertEquals(ClassStatus.SCHEDULED, moved.status)
         assertTrue(moved.charge.isZero)
@@ -246,6 +247,87 @@ class ClassRepositoryTest {
         repo.move(session(id), now.plusSeconds(3600), now = now)               // 4
         repo.delete(session(id))                                              // 5
         assertEquals(5, env.reminders.refreshCount)
+    }
+
+    // --- One tutor, one lesson at a time: the writes refuse a taken hour themselves -----------
+
+    @Test
+    fun `booking over a lesson that is already there is refused, with the clash named`() = runTest {
+        val first = book()
+
+        val outcome = repo.book(
+            subjectId = 1,
+            start = defaultStart.plusSeconds(30 * 60),
+            durationMinutes = 60,
+            mode = ClassMode.IN_PERSON,
+            studentIds = listOf(STUDENT),
+            price = Money.ofMajor(30),
+        )
+
+        assertTrue(outcome is LessonWrite.HourTaken)
+        assertEquals(
+            "the clash is the lesson in the way, as data",
+            first,
+            (outcome as LessonWrite.HourTaken).clash.first.id,
+        )
+        assertEquals("nothing was written", 1, env.classDao.items.value.size)
+    }
+
+    @Test
+    fun `moving a lesson onto an occupied hour is refused and moves nothing`() = runTest {
+        val standing = book()
+        val moving = book(defaultStart.plusSeconds(2 * 3600))
+
+        val outcome = repo.move(session(moving), defaultStart.plusSeconds(15 * 60), now = now)
+
+        assertTrue(outcome is LessonWrite.HourTaken)
+        assertEquals(standing, (outcome as LessonWrite.HourTaken).clash.first.id)
+        assertEquals("the lesson stayed put", defaultStart.plusSeconds(2 * 3600), repo.getById(moving)?.start)
+    }
+
+    @Test
+    fun `an edit is refused when its new time is another lesson's`() = runTest {
+        book() // holds 10:00–11:00
+        val edited = book(defaultStart.plusSeconds(2 * 3600))
+
+        val outcome = repo.apply(session(edited), edit(), newStart = defaultStart, now = now)
+
+        assertTrue(outcome is LessonWrite.HourTaken)
+        assertEquals(defaultStart.plusSeconds(2 * 3600), repo.getById(edited)?.start)
+    }
+
+    @Test
+    fun `a lesson never stands in its own way`() = runTest {
+        val id = book()
+
+        val outcome = repo.move(session(id), defaultStart.plusSeconds(10 * 60), now = now)
+
+        assertTrue("overlapping its own old span is not a clash", outcome is LessonWrite.Written<*>)
+        assertEquals(defaultStart.plusSeconds(10 * 60), repo.getById(id)?.start)
+    }
+
+    /**
+     * A stored class with no positive duration occupies no time by its own arithmetic, so it can
+     * stand in nobody's way — and `Scheduling.Slot` refuses to exist for it, so asking would throw.
+     * Only a hand-made row can hold one (the backup gate refuses them), which is why it is seeded
+     * through the DAO: the repositories cannot create the state this guards against.
+     */
+    @Test
+    fun `a status change on a zero-length stored row is an answer, not a crash`() = runTest {
+        val id = env.classDao.upsert(
+            ClassEntity(
+                studentId = STUDENT,
+                subjectId = 1,
+                startMillis = defaultStart.toEpochMilli(),
+                durationMinutes = 0,
+                status = ClassStatus.CANCELLED.name,
+            ),
+        )
+
+        val outcome = repo.setStatus(session(id), ClassStatus.SCHEDULED)
+
+        assertTrue("answered, not thrown", outcome is LessonWrite.Written<*>)
+        assertEquals(ClassStatus.SCHEDULED, repo.getById(id)?.status)
     }
 
     private companion object {

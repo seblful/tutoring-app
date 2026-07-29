@@ -40,7 +40,7 @@ class ClassRepositoryGroupTest {
         bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
         // The group's own rate — 20, below either student's individual rate — is what its lessons bill.
-        groupId = env.groupRepo.save(Group(name = "11 «А»", price = groupRate), setOf(ann, bob))
+        groupId = env.groupRepo.save(Group(name = "11 «А»", price = groupRate), setOf(ann, bob)).id
     }
 
     private val groupRate = Money.ofMajor(20)
@@ -57,7 +57,7 @@ class ClassRepositoryGroupTest {
         mode = ClassMode.IN_PERSON,
         studentIds = members,
         price = price,
-    )
+    ).written()
 
     @Test
     fun `booking a group lesson writes one class per member, all at the group's rate`() = runTest {
@@ -132,7 +132,7 @@ class ClassRepositoryGroupTest {
         seed()
         val ids = bookSession()
 
-        val updated = repo.setStatus(repo.getSessionFor(ids.first())!!, ClassStatus.COMPLETED)
+        val updated = repo.setStatus(repo.getSessionFor(ids.first())!!, ClassStatus.COMPLETED).written()
 
         assertEquals(2, updated.size)
         // One rate, but still a charge each: the group says how much, the students still owe it.
@@ -219,8 +219,10 @@ class ClassRepositoryGroupTest {
     @Test
     fun `re-pricing a legacy lesson brings its members onto one rate`() = runTest {
         seed()
-        // A lesson from before groups had a rate: each member billed their own.
-        val ids = repo.book(
+        // A lesson from before groups had a rate: each member billed their own. The repository can
+        // no longer write one — a second booking into a held hour is refused — so Bob's row is
+        // seeded through the DAO, the documented way to a state only a pre-v3 backup can reach.
+        val annIds = repo.book(
             groupId = groupId,
             subjectId = algebra,
             start = start,
@@ -228,14 +230,10 @@ class ClassRepositoryGroupTest {
             mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann),
             price = Money.ofMajor(30),
-        ) + repo.book(
-            groupId = groupId,
-            subjectId = algebra,
-            start = start,
-            durationMinutes = 60,
-            mode = ClassMode.IN_PERSON,
-            studentIds = listOf(bob),
-            price = Money.ofMajor(25),
+        ).written()
+        val annRow = env.classDao.getById(annIds.single())!!
+        val ids = annIds + env.classDao.upsert(
+            annRow.copy(id = 0, studentId = bob, priceMinor = Money.ofMajor(25).minor),
         )
         assertNull("members on differing rates have no single lesson rate", repo.getSessionFor(ids.first())!!.sharedPrice)
 
@@ -381,7 +379,7 @@ class ClassRepositoryGroupTest {
             newStart = start,
             now = start,
             roster = setOf(bob),
-        )
+        ).written()
 
         assertEquals(listOf(bob), written.map { it.studentId })
         assertEquals("Ann's class went, Bob's arrived", 1, env.classDao.items.value.size)

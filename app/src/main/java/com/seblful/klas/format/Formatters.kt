@@ -37,6 +37,14 @@ fun Instant.formatDay(): String = atZone(zone).format(dayFmt).replaceFirstChar {
 fun Instant.formatTime(): String = atZone(zone).format(timeFmt)
 fun Instant.formatDateTime(): String = atZone(zone).format(dateTimeFmt)
 
+// The same formats for callers already holding a local date or time. Before these existed, five
+// screens spelled `atStartOfDay(ZoneId.systemDefault()).toInstant()` to reach the Instant overloads
+// — the zone convention this module owns, restated at every call — and the booking form grew its own
+// "%02d:%02d" for lesson times, a second spelling of [timeFmt].
+fun LocalDate.formatDate(): String = format(dateFmt)
+fun LocalDate.formatDay(): String = format(dayFmt).replaceFirstChar { it.uppercase() }
+fun LocalTime.formatTime(): String = format(timeFmt)
+
 /**
  * Parses a user-entered amount in rubles (comma or dot decimals) into [Money], or null.
  * Uses [BigDecimal] — not floating point — so it matches the integer-kopeck money model exactly,

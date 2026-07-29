@@ -1,6 +1,7 @@
 package com.seblful.klas.data.repository
 
 import com.seblful.klas.data.local.SubjectDao
+import com.seblful.klas.data.local.upsertedId
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
 import com.seblful.klas.domain.model.Subject
@@ -26,8 +27,7 @@ class SubjectRepository @Inject constructor(
 
     /** Saves [subject] and refreshes the event titles carrying its name (see [StudentRepository.upsert]). */
     suspend fun upsert(subject: Subject): Long {
-        val id = dao.upsert(subject.toEntity())
-        val saved = if (id == -1L) subject.id else id
+        val saved = upsertedId(dao.upsert(subject.toEntity()), subject.id)
         calendar.refreshForSubject(saved)
         return saved
     }

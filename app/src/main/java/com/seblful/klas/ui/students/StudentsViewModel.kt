@@ -12,6 +12,7 @@ import com.seblful.klas.domain.PeopleSearch
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.ui.common.derive
+import com.seblful.klas.ui.people.PeopleSide
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -40,17 +41,17 @@ class StudentsViewModel @Inject constructor(
     classes: ClassRepository,
     payments: PaymentRepository,
     @param:Computation private val computation: CoroutineDispatcher,
-) : ViewModel() {
+) : ViewModel(), PeopleSide {
 
     private val _showArchived = MutableStateFlow(false)
 
     /** Whether archived students are listed too. Changed through [toggleArchived], not written to. */
-    val showArchived: StateFlow<Boolean> = _showArchived.asStateFlow()
+    override val showArchived: StateFlow<Boolean> = _showArchived.asStateFlow()
 
     private val _query = MutableStateFlow("")
 
     /** What the tutor is searching for; empty means the list is unfiltered. See [setQuery]. */
-    val query: StateFlow<String> = _query.asStateFlow()
+    override val query: StateFlow<String> = _query.asStateFlow()
 
     private val _sort = MutableStateFlow(StudentSort.NAME)
     val sort: StateFlow<StudentSort> = _sort.asStateFlow()
@@ -94,11 +95,11 @@ class StudentsViewModel @Inject constructor(
     /** The app's one name order, over a row — not a second spelling of it. See [NameOrder.by]. */
     private val byName: Comparator<StudentRow> = NameOrder.by { it.student.name }
 
-    fun toggleArchived() {
+    override fun toggleArchived() {
         _showArchived.value = !_showArchived.value
     }
 
-    fun setQuery(query: String) {
+    override fun setQuery(query: String) {
         _query.value = query
     }
 

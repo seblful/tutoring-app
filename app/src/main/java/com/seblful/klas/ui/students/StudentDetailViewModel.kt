@@ -159,6 +159,9 @@ sealed interface ArchiveIntent {
  *
  * A write that fails says so through [Event.WRITE_FAILED] rather than only reaching the scope's
  * crash log — a payment that silently did not record is the one failure the tutor must not miss.
+ * Every mutator goes through [write], so neither the scope nor the report can be forgotten by the
+ * ninth copy of a tail; they were spelled out per mutator once, and none of the money path's had a
+ * test.
  */
 @HiltViewModel
 class StudentDetailViewModel @Inject constructor(
@@ -261,22 +264,35 @@ class StudentDetailViewModel @Inject constructor(
         val classes: List<TutoringClass>,
     )
 
+    /**
+     * Runs one write in the application scope, reporting a failure as [Event.WRITE_FAILED] — the
+     * same tail `ScheduleViewModel.write` names, spelled once here instead of once per mutator. The
+     * copies were not quite copies: two of them also answered something on success, which is what
+     * [onWritten] carries — a refusal or a count coming back from the write is an event of its own,
+     * and only a database error may reach [Event.WRITE_FAILED].
+     */
+    private fun <T> write(onWritten: suspend (T) -> Unit = {}, block: suspend () -> T) {
+        appScope.launch {
+            runCatchingCancellable { block() }
+                .onSuccess { onWritten(it) }
+                .onFailure { events.send(Event.WRITE_FAILED) }
+        }
+    }
+
     fun editStudent(name: String, phone: String, email: String, note: String, mode: ClassMode) {
         val current = state.value.student ?: return
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
-        appScope.launch {
-            runCatchingCancellable {
-                students.upsert(
-                    current.copy(
-                        name = trimmed,
-                        phone = phone.trim(),
-                        email = email.trim(),
-                        note = note.trim(),
-                        defaultMode = mode,
-                    )
+        write {
+            students.upsert(
+                current.copy(
+                    name = trimmed,
+                    phone = phone.trim(),
+                    email = email.trim(),
+                    note = note.trim(),
+                    defaultMode = mode,
                 )
-            }.onFailure { events.send(Event.WRITE_FAILED) }
+            )
         }
     }
 
@@ -287,19 +303,14 @@ class StudentDetailViewModel @Inject constructor(
      */
     fun setArchived(archived: Boolean) {
         val current = state.value.student ?: return
-        appScope.launch {
-            runCatchingCancellable { students.setArchived(current, archived) }
-                .onSuccess { cancelled -> if (cancelled > 0) events.send(Event.ARCHIVE_CANCELLED_LESSONS) }
-                .onFailure { events.send(Event.WRITE_FAILED) }
+        write(onWritten = { cancelled -> if (cancelled > 0) events.send(Event.ARCHIVE_CANCELLED_LESSONS) }) {
+            students.setArchived(current, archived)
         }
     }
 
     /** Adds a subject to the student with a price — [EnrollmentRepository] keeps link and price in step. */
     fun addSubject(subjectId: Long, amount: Money) {
-        appScope.launch {
-            runCatchingCancellable { enrollment.enroll(studentId, subjectId, amount) }
-                .onFailure { events.send(Event.WRITE_FAILED) }
-        }
+        write { enrollment.enroll(studentId, subjectId, amount) }
     }
 
     /**
@@ -311,25 +322,20 @@ class StudentDetailViewModel @Inject constructor(
      * error reaches [Event.WRITE_FAILED].
      */
     fun removeSubject(subjectId: Long) {
-        appScope.launch {
-            runCatchingCancellable { enrollment.unenroll(studentId, subjectId) }
-                .onSuccess { outcome ->
-                    when (outcome) {
-                        EnrollmentRepository.Unenroll.HasClasses ->
-                            events.send(Event.REMOVE_BLOCKED_HAS_CLASSES)
-                        EnrollmentRepository.Unenroll.Ok -> Unit
-                    }
+        write(
+            onWritten = { outcome ->
+                when (outcome) {
+                    EnrollmentRepository.Unenroll.HasClasses ->
+                        events.send(Event.REMOVE_BLOCKED_HAS_CLASSES)
+                    EnrollmentRepository.Unenroll.Ok -> Unit
                 }
-                .onFailure { events.send(Event.WRITE_FAILED) }
-        }
+            },
+        ) { enrollment.unenroll(studentId, subjectId) }
     }
 
     /** Re-prices a subject. The change is logged by [EnrollmentRepository], not asked for here. */
     fun setPrice(subjectId: Long, amount: Money) {
-        appScope.launch {
-            runCatchingCancellable { enrollment.reprice(studentId, subjectId, amount) }
-                .onFailure { events.send(Event.WRITE_FAILED) }
-        }
+        write { enrollment.reprice(studentId, subjectId, amount) }
     }
 
     /**
@@ -343,12 +349,11 @@ class StudentDetailViewModel @Inject constructor(
     fun addPayment(amount: Money, day: LocalDate) {
         if (amount.isZero) return
         val date = PaymentDate.instantFor(day, clock)
-        appScope.launch {
-            runCatchingCancellable {
-                payments.add(Payment(studentId = studentId, date = date, amount = amount))
-            }.onFailure { events.send(Event.WRITE_FAILED) }
-        }
+        write { payments.add(Payment(studentId = studentId, date = date, amount = amount)) }
     }
+
+    /** The day the payment dialog opens on — [PaymentDate.today], off the clock that stamps the save. */
+    fun paymentDay(): LocalDate = PaymentDate.today(clock)
 
     /**
      * Corrects a payment already recorded, keeping its id.
@@ -362,17 +367,11 @@ class StudentDetailViewModel @Inject constructor(
         // Re-derived from the day, as recording one is: a correction that leaves the date alone still
         // re-stamps the hour, which is only visible as two payments of the same day swapping places.
         val date = PaymentDate.instantFor(day, clock)
-        appScope.launch {
-            runCatchingCancellable { payments.update(payment.copy(amount = amount, date = date)) }
-                .onFailure { events.send(Event.WRITE_FAILED) }
-        }
+        write { payments.update(payment.copy(amount = amount, date = date)) }
     }
 
     fun deletePayment(payment: Payment) {
-        appScope.launch {
-            runCatchingCancellable { payments.delete(payment) }
-                .onFailure { events.send(Event.WRITE_FAILED) }
-        }
+        write { payments.delete(payment) }
     }
 
     /**
@@ -382,9 +381,6 @@ class StudentDetailViewModel @Inject constructor(
      * all: the undo is offered by a snackbar, so it is tapped *while* the tutor may be leaving the card.
      */
     fun restorePayment(payment: Payment) {
-        appScope.launch {
-            runCatchingCancellable { payments.add(payment) }
-                .onFailure { events.send(Event.WRITE_FAILED) }
-        }
+        write { payments.add(payment) }
     }
 }

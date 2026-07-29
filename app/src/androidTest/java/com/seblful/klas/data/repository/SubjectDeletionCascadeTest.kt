@@ -78,12 +78,11 @@ class SubjectDeletionCascadeTest {
         )
         // The real repositories, because the guards being tested are theirs: "is this subject still
         // taught" is a question about classes and about groups, and each is answered by whoever owns it.
-        val settings = SettingsRepository(db.settingsDao())
         val transactor = RoomTransactor(db)
         val classes = ClassRepository(
-            db.classDao(), mirror, RecordingReminderScheduler(), settings, transactor,
+            db.classDao(), mirror, RecordingReminderScheduler(), transactor,
         )
-        val rateHistory = RateHistoryRepository(db.rateHistoryDao(), db.groupDao(), db.priceDao())
+        val rateHistory = RateHistoryRepository(db.rateHistoryDao(), db.groupDao(), db.priceDao(), java.time.Clock.systemDefaultZone())
         val groups = GroupRepository(
             db.groupDao(), classes, db.studentDao(), rateHistory, transactor, mirror,
         )

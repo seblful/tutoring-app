@@ -18,6 +18,7 @@ import com.seblful.klas.format.MoneyField
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -56,6 +57,7 @@ class ClassEditViewModelTest {
         settingsRepo = env.settingsRepo,
         appScope = mainRule.appScope,
         computation = mainRule.dispatcher,
+        clock = Clock.systemDefaultZone(),
     )
 
     private suspend fun seedStudentWithPricedSubject(
@@ -337,7 +339,7 @@ class ClassEditViewModelTest {
         val groupId = env.groupRepo.save(
             Group(name = "11 «А»", price = Money.ofMajor(20), subjectId = subjectId),
             setOf(studentId),
-        )
+        ).id
 
         val vm = vm(groupId = groupId)
         observing(vm.state)
@@ -486,6 +488,19 @@ class ClassEditViewModelTest {
         assertEquals(LocalTime.of(11, 30), vm.endPickerDefault(now))
     }
 
+    /** The last picker default the platform used to answer from inside a composable. */
+    @Test
+    fun `the date picker opens on the chosen date, or today`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        advanceUntilIdle()
+
+        val today = LocalDate.of(2026, 7, 1)
+        assertEquals(today, vm.datePickerDefault(today = today))
+
+        vm.change(BookingIntent.Edit { it.copy(date = LocalDate.of(2026, 8, 9)) })
+        assertEquals(LocalDate.of(2026, 8, 9), vm.datePickerDefault(today = today))
+    }
+
     @Test
     fun `editing opens the pickers on the lesson's own time, not the current one`() = runTest(mainRule.dispatcher) {
         val (studentId, subjectId) = seedStudentWithPricedSubject()
@@ -584,7 +599,7 @@ class ClassEditViewModelTest {
             mode = ClassMode.IN_PERSON,
             studentIds = listOf(studentId),
             price = Money.ofMajor(30),
-        ).single()
+        ).written().single()
         return studentId to id
     }
 
@@ -709,7 +724,7 @@ class ClassEditViewModelTest {
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
             price = groupRate,
-        )
+        ).written()
 
         val vm = vm(id = ids.first())
         observing(vm.state)
@@ -735,7 +750,7 @@ class ClassEditViewModelTest {
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
             price = groupRate,
-        )
+        ).written()
         val (carl, physics) = seedStudentWithPricedSubject(studentName = "Вова", subjectName = "Физика")
 
         val vm = vm()
@@ -923,7 +938,7 @@ class ClassEditViewModelTest {
         val groupId = env.groupRepo.save(
             Group(name = "11 «А»", price = price, defaultMode = ClassMode.REMOTE),
             setOf(ann, bob),
-        )
+        ).id
         return Triple(groupId, ann, bob)
     }
 
@@ -1100,7 +1115,7 @@ class ClassEditViewModelTest {
         val groupId = env.groupRepo.save(
             Group(name = "11 «А»", price = groupRate, subjectId = algebra),
             setOf(ann),
-        )
+        ).id
 
         val vm = vm(groupId = groupId)
         observing(vm.state)
@@ -1136,7 +1151,7 @@ class ClassEditViewModelTest {
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
             price = groupRate,
-        )
+        ).written()
 
         // Opening it by *one* member's class must still edit the whole lesson.
         val vm = vm(id = ids.first())
@@ -1172,7 +1187,7 @@ class ClassEditViewModelTest {
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
             price = groupRate,
-        )
+        ).written()
         // Bob leaves the group and a new student joins, *after* the lesson was booked.
         val carl = env.studentDao.upsert(StudentEntity(name = "Вова"))
         env.priceDao.upsert(PriceEntity(carl, algebra, Money.ofMajor(20).minor))
@@ -1204,7 +1219,7 @@ class ClassEditViewModelTest {
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
             price = groupRate,
-        )
+        ).written()
 
         val vm = vm(id = ids.first())
         observing(vm.state)
@@ -1226,7 +1241,7 @@ class ClassEditViewModelTest {
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann),
             price = groupRate,
-        )
+        ).written()
 
         val vm = vm(id = ids.first())
         observing(vm.state)
@@ -1252,7 +1267,7 @@ class ClassEditViewModelTest {
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
             price = groupRate,
-        )
+        ).written()
 
         val vm = vm(id = ids.first())
         observing(vm.state)
@@ -1277,7 +1292,7 @@ class ClassEditViewModelTest {
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
             price = groupRate,
-        )
+        ).written()
         // Only Ann's class has billed; Bob's was corrected to cancelled.
         val session = env.classRepo.getSessionFor(ids.first())!!
         env.classRepo.setStatus(session, ClassStatus.COMPLETED)

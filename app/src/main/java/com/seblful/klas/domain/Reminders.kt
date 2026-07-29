@@ -8,8 +8,15 @@ import java.time.Instant
 /** Decides which upcoming classes deserve a reminder notification and when it should fire. */
 object Reminders {
 
-    /** A planned reminder: which class, and how long after [now] it should fire. */
-    data class Plan(val classId: Long, val delayMillis: Long)
+    /**
+     * A planned reminder: which class, and the **instant** it fires.
+     *
+     * An absolute instant, not a delay. The delay was WorkManager's shape (`setInitialDelay`), kept
+     * after reminders became alarms — and it made the only adapter reconstruct the firing time
+     * against a second clock read of its own, some moments after the one the plan was derived from.
+     * When a reminder fires is this module's decision; an adapter arms what it is handed.
+     */
+    data class Plan(val classId: Long, val fireAt: Instant)
 
     val DEFAULT_LEAD: Duration = Duration.ofMinutes(60)
     val DEFAULT_HORIZON: Duration = Duration.ofDays(7)
@@ -44,7 +51,7 @@ object Reminders {
         return GroupRules.sessions(upcoming).mapNotNull { session ->
             val fireAt = session.start.minus(lead)
             if (!fireAt.isAfter(now)) return@mapNotNull null
-            Plan(session.first.id, Duration.between(now, fireAt).toMillis())
+            Plan(session.first.id, fireAt)
         }
     }
 

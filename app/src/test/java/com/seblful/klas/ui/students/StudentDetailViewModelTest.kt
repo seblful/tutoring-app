@@ -643,4 +643,60 @@ class StudentDetailViewModelTest {
 
         assertTrue("and the undo needed that scope to be alive", env.paymentDao.items.value.isEmpty())
     }
+
+    // --- The write tail: one failure report for every mutator -----------------------------------
+
+    /**
+     * Every mutator on the card shares one tail ([StudentDetailViewModel.write]), so a commit that
+     * fails comes back as [StudentDetailViewModel.Event.WRITE_FAILED] — a price or payment that
+     * silently did not record is the one failure the tutor must not miss, and until the tail was
+     * named this path had no test at all. Driven through `failAt`, so the failure is the
+     * transaction's, not a rule's refusal.
+     */
+    @Test
+    fun `a write that fails to commit is reported, not swallowed`() = runTest(mainRule.dispatcher) {
+        val subj = env.fixtures.subject("Математика")
+        val sid = env.fixtures.student("Аня")
+        val vm = vm(sid)
+        observing(vm.state)
+        advanceUntilIdle()
+        val events = mutableListOf<StudentDetailViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+        env.transactor.failAt = env.transactor.count + 1
+
+        vm.addSubject(subj, Money.ofMajor(30))
+        advanceUntilIdle()
+
+        // Only the report is asserted: the fake DAOs cannot roll back, so what a failed transaction
+        // leaves behind is Room's to prove (see `ClassRepositoryAtomicityTest`'s note).
+        assertEquals(listOf(StudentDetailViewModel.Event.WRITE_FAILED), events)
+    }
+
+    @Test
+    fun `a write that succeeds reports nothing`() = runTest(mainRule.dispatcher) {
+        val sid = env.fixtures.student("Аня")
+        val vm = vm(sid)
+        observing(vm.state)
+        advanceUntilIdle()
+        val events = mutableListOf<StudentDetailViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+
+        vm.addPayment(Money.ofMajor(50), today)
+        advanceUntilIdle()
+
+        assertTrue("nothing to report about a payment that recorded", events.isEmpty())
+        assertEquals(1, env.paymentDao.items.value.size)
+    }
+
+    /**
+     * The dialog's opening day and the stored instant are two halves of one decision, and both must
+     * read the same clock — the dialog used to ask the platform (`LocalDate.now()` in a composable),
+     * where this pinned clock could never reach.
+     */
+    @Test
+    fun `the payment dialog opens on today by the injected clock`() = runTest(mainRule.dispatcher) {
+        val sid = env.fixtures.student("Аня")
+
+        assertEquals(today, vm(sid).paymentDay())
+    }
 }

@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.seblful.klas.calendar.CalendarPermission
 import com.seblful.klas.data.repository.AppSettings
 import com.seblful.klas.data.repository.CalendarMirror
+import com.seblful.klas.data.repository.SettingsChange
 import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.domain.ReminderScheduler
 import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.ui.common.hold
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,14 +20,19 @@ import javax.inject.Inject
 /**
  * The settings screen.
  *
- * Most settings are just stored, so they go through one [update] instead of a wrapper each — the
- * wrappers only ever wrapped a `launch`. The two below have their own methods because changing them
- * does something *besides* storing a value, and that obligation must not be left to the screen.
+ * Every setting goes through one [update], and what a change owes besides being stored — the
+ * calendar re-earned, the reminder plan re-derived — is discharged there, from the classification
+ * the store hands back ([SettingsChange]). Two settings used to have named methods carrying their
+ * tails by hand, and the third that owed one rode the generic path in silence: changing the
+ * reminder lead left every already-mirrored event at the old lead until that lesson happened to be
+ * edited. The one method left with a name, [setCalendarSyncEnabled], exists for its *refusal* — the
+ * permission gate — not for its tail.
  */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settings: SettingsRepository,
     private val calendar: CalendarMirror,
+    private val reminders: ReminderScheduler,
     private val calendarPermission: CalendarPermission,
     private val notificationPermission: NotificationPermission,
 ) : ViewModel() {
@@ -83,42 +90,37 @@ class SettingsViewModel @Inject constructor(
      */
     val calendarPermissionsRequired: Array<String> get() = calendarPermission.required
 
-    /** Stores a changed setting, e.g. `update { it.copy(currency = "RUB") }`. */
-    fun update(transform: (AppSettings) -> AppSettings) {
-        viewModelScope.launch { settings.update(transform) }
-    }
-
     /**
-     * Toggles inviting students to their class events by email, then re-mirrors so the change
-     * reaches the lessons already in the calendar — turning it off **withdraws** the invitations
-     * already sent, rather than only sparing future lessons.
-     *
-     * Needs no permission check of its own: the resync no-ops unless calendar sync is on, and
-     * enabling *that* is what the permission gates.
+     * Stores a changed setting, e.g. `update { it.copy(currency = Currency.RUB) }` — and discharges
+     * whatever the change owes the world outside the row. Which changes owe what is decided by
+     * [SettingsChange], beside the fields themselves, so a setting cannot lose its tail by lacking
+     * a named method here: turning invites off withdraws the invitations already sent, moving the
+     * reminder lead re-mirrors the events carrying the old one and re-derives the alarm plan.
      */
-    fun setEmailInvitesEnabled(enabled: Boolean) {
+    fun update(transform: (AppSettings) -> AppSettings) {
         viewModelScope.launch {
-            settings.update { it.copy(emailInvitesEnabled = enabled) }
-            calendar.resyncAll()
+            val change = settings.update(transform)
+            when (change.calendarWork) {
+                SettingsChange.CalendarWork.RESYNC -> calendar.resyncAll()
+                SettingsChange.CalendarWork.WITHDRAW -> calendar.clear()
+                SettingsChange.CalendarWork.NONE -> Unit
+            }
+            if (change.replansReminders) reminders.refreshNow()
         }
     }
 
     /**
-     * Toggles calendar sync. Enabling backfills events for existing classes; disabling removes the
-     * events we created.
-     *
-     * Enabling is **refused** unless the calendar permission is already held — checked here rather
-     * than trusted to the caller, because this flag is what the whole mirror keys off and a screen
-     * that forgot the check would leave sync switched on with nothing able to write. A caller that
-     * gets [CalendarSyncToggle.PERMISSION_NEEDED] should request the permission and call again.
+     * Toggles calendar sync. The backfill on enabling and the withdrawal on disabling are [update]'s
+     * to discharge, like every other consequence of a settings change; what this method owns is the
+     * **refusal**. Enabling is refused unless the calendar permission is already held — checked here
+     * rather than trusted to the caller, because this flag is what the whole mirror keys off and a
+     * screen that forgot the check would leave sync switched on with nothing able to write. A caller
+     * that gets [CalendarSyncToggle.PERMISSION_NEEDED] should request the permission and call again.
      * Disabling never needs permission — clearing up after ourselves must always be possible.
      */
     fun setCalendarSyncEnabled(enabled: Boolean): CalendarSyncToggle {
         if (enabled && !calendarPermission.isGranted()) return CalendarSyncToggle.PERMISSION_NEEDED
-        viewModelScope.launch {
-            settings.update { it.copy(calendarSyncEnabled = enabled) }
-            if (enabled) calendar.resyncAll() else calendar.clear()
-        }
+        update { it.copy(calendarSyncEnabled = enabled) }
         return CalendarSyncToggle.APPLIED
     }
 }

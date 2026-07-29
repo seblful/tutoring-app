@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.schedule
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -44,22 +43,17 @@ import com.seblful.klas.R
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.DatePickerModal
-import com.seblful.klas.ui.common.LeaveIntent
 import com.seblful.klas.ui.common.MemberPickRow
 import com.seblful.klas.ui.common.ModeSelector
 import com.seblful.klas.ui.common.PickerField
 import com.seblful.klas.ui.common.TimePickerModal
-import com.seblful.klas.ui.common.UnsavedChangesDialog
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.constrainedContent
-import com.seblful.klas.ui.common.leaveIntent
+import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.formatTime
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,14 +99,9 @@ fun ClassEditScreen(
     }
 
     // Back — the arrow or the system gesture — asks before throwing away a half-booked lesson.
-    var leaving by remember { mutableStateOf<LeaveIntent?>(null) }
-    fun requestLeave() {
-        when (val intent = leaveIntent(state)) {
-            LeaveIntent.LEAVE -> onBack()
-            else -> leaving = intent
-        }
-    }
-    BackHandler(enabled = state.isDirty) { requestLeave() }
+    // Saving on the way out owes the same billed-drops warning as the save button, so the guard
+    // answers «Сохранить» through the same request.
+    val requestLeave = leaveGuard(form = state, onLeave = onBack, onSave = ::requestSave)
 
     Scaffold(
         snackbarHost = { SnackbarHost(messages.hostState) },
@@ -122,7 +111,7 @@ fun ClassEditScreen(
                     Text(stringResource(if (viewModel.isNew) R.string.class_add_title else R.string.class_edit_title))
                 },
                 navigationIcon = {
-                    IconButton(onClick = ::requestLeave) {
+                    IconButton(onClick = requestLeave) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
@@ -210,7 +199,7 @@ fun ClassEditScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 PickerField(
                     value = form.date?.let {
-                        it.atStartOfDay(ZoneId.systemDefault()).toInstant().formatDate()
+                        it.formatDate()
                     } ?: "",
                     label = stringResource(R.string.class_date_label),
                     placeholder = stringResource(R.string.class_pick_date),
@@ -218,7 +207,7 @@ fun ClassEditScreen(
                     modifier = Modifier.weight(1.4f),
                 )
                 PickerField(
-                    value = form.timeFrom?.formatHm() ?: "",
+                    value = form.timeFrom?.formatTime() ?: "",
                     label = stringResource(R.string.class_time_from_label),
                     placeholder = stringResource(R.string.class_pick_time),
                     onClick = { showFromPicker = true },
@@ -232,7 +221,7 @@ fun ClassEditScreen(
             DurationPicker(
                 options = durations,
                 selected = form.durationMinutes,
-                endsAt = form.timeTo?.formatHm(),
+                endsAt = form.timeTo?.formatTime(),
                 enabled = form.timeFrom != null,
                 onSelect = { minutes -> viewModel.change(BookingIntent.LastsFor(minutes)) },
                 onCustom = { showToPicker = true },
@@ -350,7 +339,7 @@ fun ClassEditScreen(
 
     if (showDatePicker) {
         DatePickerModal(
-            initial = form.date ?: LocalDate.now(ZoneId.systemDefault()),
+            initial = viewModel.datePickerDefault(),
             onConfirm = { date ->
                 viewModel.change(BookingIntent.Edit { it.copy(date = date) })
                 showDatePicker = false
@@ -379,17 +368,6 @@ fun ClassEditScreen(
         )
     }
 
-    leaving?.let { intent ->
-        UnsavedChangesDialog(
-            intent = intent,
-            // Saving on the way out owes the same warning as saving from the button, so it goes
-            // through the same request — the leave question closes to make room for it.
-            onSave = { leaving = null; requestSave() },
-            onDiscard = { leaving = null; onBack() },
-            onKeepEditing = { leaving = null },
-        )
-    }
-
     confirmingDrops?.let { confirm ->
         ConfirmDialog(
             text = pluralStringResource(
@@ -404,7 +382,6 @@ fun ClassEditScreen(
     }
 }
 
-private fun LocalTime.formatHm(): String = "%02d:%02d".format(hour, minute)
 
 /** Student-or-group chooser for a new booking. */
 @Composable

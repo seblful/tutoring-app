@@ -54,7 +54,7 @@ class AutoCompleteTest {
             db.classDao(), db.studentDao(), db.subjectDao(), db.groupDao(), noCalendar, settings,
         )
         repo = ClassRepository(
-            db.classDao(), mirror, RecordingReminderScheduler(), settings, RoomTransactor(db),
+            db.classDao(), mirror, RecordingReminderScheduler(), RoomTransactor(db),
         )
     }
 

@@ -30,7 +30,7 @@ value class Money(val minor: Long) : Comparable<Money> {
         }
 
     /** Formats as a localized amount in [currency], e.g. `1500 BYN` or `1500,50 RUB`. */
-    fun format(currency: String = "BYN"): String = "$amountText $currency"
+    fun format(currency: Currency = Currency.BYN): String = "$amountText ${currency.name}"
 
     companion object {
         val ZERO = Money(0)

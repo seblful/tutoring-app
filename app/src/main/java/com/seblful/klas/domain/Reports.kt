@@ -55,10 +55,21 @@ object Reports {
          * @param key a month key (`year * 12 + monthIndex`) when the bucket is [Bucket.MONTHS], a
          *   plain year when it is [Bucket.YEARS].
          */
-        data class Bar(val key: Int, val total: Money)
+        data class Bar(val key: Int, val total: Money) {
+            /** The month this bar covers (0–11) — the key's encoding is this module's to unpack. */
+            val monthIndex: Int get() = key % 12
+        }
 
         /** The best bucket — what every bar's height is a fraction of, and the one worth naming. */
         val peak: Bar? get() = bars.maxByOrNull { it.total.minor }?.takeUnless { it.total.isZero }
+
+        /**
+         * [bar]'s height as a fraction of [peak] — the chart is about *relative* size, which is what
+         * lets it need no value axis. A statement about the report rather than about drawing, so it
+         * lives here with [rows] and [peak] instead of in the composable; zero when nothing earned.
+         */
+        fun shareOf(bar: Bar): Float =
+            peak?.let { bar.total.minor.toFloat() / it.total.minor } ?: 0f
 
         /** Nothing a chart could show: no income at all, or a single bucket to compare with itself. */
         val isEmpty: Boolean get() = bars.size < 2 || peak == null
@@ -87,12 +98,18 @@ object Reports {
      *   the income (groups) or that measures something else entirely (debts) are not parts of one whole.
      * @param studentId set only where the line **is** a person the app can open: the debts. It is the
      *   most action-shaped list on the screen ("who owes me") and was the one that went nowhere.
+     * @param share the line's ranking bar, as a fraction of its **section's largest** line — the bar
+     *   pictures the ranking the rows are already in, where scaling to the total would leave a long
+     *   tail of near-empty tracks. Null for a section of one: there is nothing to rank it against,
+     *   and a bar filled to the brim would only assert that the only row is the biggest. Both rules
+     *   used to be decided in the composable drawing the bar, i.e. nowhere a report test could see.
      */
     data class Line(
         val label: String,
         val amount: Money,
         val percent: Int? = null,
         val studentId: Long? = null,
+        val share: Float? = null,
     )
 
     /**
@@ -226,17 +243,21 @@ object Reports {
      * @param whole what these lines are parts of, or null when they are not parts of anything — see
      *   [Line.percent].
      */
-    private fun <K> Map<K, Money>.ranked(whole: Money?, nameOf: (K) -> String?): List<Line> =
-        entries
+    private fun <K> Map<K, Money>.ranked(whole: Money?, nameOf: (K) -> String?): List<Line> {
+        val rows = entries
             .filter { it.value.minor > 0 }
             .sortedByDescending { it.value.minor }
-            .map {
-                Line(
-                    label = nameOf(it.key).orEmpty(),
-                    amount = it.value,
-                    percent = whole?.let { w -> percentOf(it.value, w) },
-                )
-            }
+        // The largest row is what every bar is a fraction of — see [Line.share].
+        val top = rows.firstOrNull()?.value?.minor?.coerceAtLeast(1)
+        return rows.map {
+            Line(
+                label = nameOf(it.key).orEmpty(),
+                amount = it.value,
+                percent = whole?.let { w -> percentOf(it.value, w) },
+                share = top?.let { t -> it.value.minor.toFloat() / t }.takeIf { rows.size > 1 },
+            )
+        }
+    }
 
     fun totalIncome(classes: List<TutoringClass>): Money =
         Billing.charged(classes)

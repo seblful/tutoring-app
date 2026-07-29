@@ -44,7 +44,7 @@ import javax.inject.Inject
  * old behaviour — any active student may join and the subject is chosen when booking — until the
  * tutor sets one here.
  *
- * A new group's rate is pre-filled from `AppSettings.defaultGroupPriceMinor` when the tutor has set
+ * A new group's rate is pre-filled from `AppSettings.defaultGroupPrice` when the tutor has set
  * one, so the common case is one less thing to type.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -209,13 +209,11 @@ class GroupFormViewModel @Inject constructor(
                 }
             }
         } else {
-            // Pre-fill the tutor's usual group rate. Only when they have set one (0 means "not set")
-            // and only into an untouched field, so an amount already typed is never clobbered by a
-            // setting that arrives a moment later.
+            // Pre-fill the tutor's usual group rate, when they have set one — and only into an
+            // untouched field, so an amount already typed is never clobbered by a setting that
+            // arrives a moment later (prefilledWith's rule).
             viewModelScope.launch {
-                val default = settings.get().defaultGroupPriceMinor
-                // 0 means "not set"; prefilledWith leaves an amount already typed alone.
-                val suggested = Money(default).takeIf { default != 0L }
+                val suggested = settings.get().defaultGroupPrice
                 form.value = form.value.copy(price = form.value.price.prefilledWith(suggested))
                 // The baseline takes the suggestion too, so a prefilled rate is not "unsaved work".
                 // Applied to each separately on purpose: if the tutor typed an amount before this
@@ -271,16 +269,17 @@ class GroupFormViewModel @Inject constructor(
             defaultMode = f.mode,
             archived = archived.value,
         )
-        // Read from the form, not the repository: what is being left out is the difference between
-        // what the tutor has ticked and what the save will keep, and only the form knows the former.
-        val leftOut = s.strandedMemberIds
         viewModelScope.launch {
-            val id = groups.save(group, s.selectedMemberIds)
+            // The whole ticked set goes down, stranded members included: which of them a
+            // subject-bound group may keep is the save's own rule, and who was left out comes back
+            // as data ([GroupRepository.Saved]) instead of being predicted here from a second copy
+            // of the intersection — the report and the write can no longer disagree.
+            val saved = groups.save(group, f.memberIds)
             // Saved is the new baseline, so a save that leaves the screen open (or a slow navigation)
             // cannot be followed by "you have unsaved changes".
             pristine.value = f
-            if (leftOut.isNotEmpty()) events.send(Event.MEMBERS_NOT_PRICED_FOR_SUBJECT)
-            onSaved(id)
+            if (saved.dropped.isNotEmpty()) events.send(Event.MEMBERS_NOT_PRICED_FOR_SUBJECT)
+            onSaved(saved.id)
         }
     }
 

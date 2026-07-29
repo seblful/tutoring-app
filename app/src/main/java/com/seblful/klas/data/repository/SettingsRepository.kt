@@ -2,6 +2,8 @@ package com.seblful.klas.data.repository
 
 import com.seblful.klas.data.local.SettingsDao
 import com.seblful.klas.data.local.SettingsEntity
+import com.seblful.klas.domain.model.Currency
+import com.seblful.klas.domain.model.Money
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
@@ -19,10 +21,54 @@ data class AppSettings(
     val autoCompleteEnabled: Boolean = false,
     val themeMode: String = "SYSTEM",
     val defaultLessonMinutes: Int = 60,
-    /** Pre-fills a new group's hourly rate, in minor units; 0 means "not set". */
-    val defaultGroupPriceMinor: Long = 0,
-    val currency: String = "BYN",
+    /** Pre-fills a new group's hourly rate. Null while the tutor has not set one. */
+    val defaultGroupPrice: Money? = null,
+    val currency: Currency = Currency.BYN,
 )
+
+/**
+ * The move one [SettingsRepository.update] made — the row as it was and as it is now — with what
+ * the move **owes the world outside the row** classified here, beside the fields it is about.
+ *
+ * Two settings used to have named view-model methods whose bodies were the store plus its tail,
+ * and the rest rode a generic path with no tail at all. Which settings owe something was recorded
+ * only in which methods happened to exist — and the one that was missed left every already-mirrored
+ * calendar event carrying a stale reminder lead indefinitely. A classification handed back by the
+ * store itself cannot be forgotten per setting; the discharging stays with the caller, because the
+ * mirror this row gates reads the row (`CalendarMirror` depends on [SettingsRepository]).
+ */
+data class SettingsChange(val before: AppSettings, val after: AppSettings) {
+
+    /** What the calendar mirror is owed. */
+    enum class CalendarWork { NONE, RESYNC, WITHDRAW }
+
+    /**
+     * The calendar work this change owes. The mirror is a best-effort copy of local truth filtered
+     * through these settings, so moving one the mirror bakes into every event — sync itself, whether
+     * the student is invited, how far ahead the event's email reminder fires — means re-earning the
+     * copy. Switching sync **off** withdraws the events instead; with sync off nothing the mirror
+     * would read is observable, and there is nothing to re-earn.
+     */
+    val calendarWork: CalendarWork
+        get() = when {
+            moved { it.calendarSyncEnabled } && !after.calendarSyncEnabled -> CalendarWork.WITHDRAW
+            after.calendarSyncEnabled &&
+                (
+                    moved { it.calendarSyncEnabled } ||
+                        moved { it.emailInvitesEnabled } ||
+                        moved { it.reminderLeadMinutes }
+                    ) -> CalendarWork.RESYNC
+            else -> CalendarWork.NONE
+        }
+
+    /**
+     * Whether the in-app reminder plan must be re-derived: every armed alarm's firing instant was
+     * computed under the old lead. Independent of calendar sync — the alarms are the app's own.
+     */
+    val replansReminders: Boolean get() = moved { it.reminderLeadMinutes }
+
+    private fun <T> moved(field: (AppSettings) -> T): Boolean = field(before) != field(after)
+}
 
 /**
  * The single settings row.
@@ -44,7 +90,7 @@ class SettingsRepository @Inject constructor(
 
     /**
      * Applies [transform] to the current settings and stores the result. Read-modify-write against
-     * the single row, so a caller changes one field with `update { it.copy(currency = "RUB") }`
+     * the single row, so a caller changes one field with `update { it.copy(currency = Currency.RUB) }`
      * and leaves the rest alone.
      *
      * **Serialized, because the row is written whole.** The read and the write are two suspension
@@ -58,10 +104,16 @@ class SettingsRepository @Inject constructor(
      * The lock is the repository's own, and this is the only writer of the row, so it is the whole
      * story rather than half of one. A `Mutex` rather than a Room `@Transaction`: what needs to be
      * atomic is `transform` — Kotlin the caller passed in — and not merely the two queries.
+     *
+     * Returns the move it made, with its obligations classified — see [SettingsChange].
      */
-    suspend fun update(transform: (AppSettings) -> AppSettings) {
-        writeLock.withLock { dao.upsert(transform(get()).toEntity()) }
-    }
+    suspend fun update(transform: (AppSettings) -> AppSettings): SettingsChange =
+        writeLock.withLock {
+            val before = get()
+            val after = transform(before)
+            dao.upsert(after.toEntity())
+            SettingsChange(before, after)
+        }
 
     private val writeLock = Mutex()
 
@@ -76,8 +128,10 @@ class SettingsRepository @Inject constructor(
             autoCompleteEnabled = autoCompleteEnabled,
             themeMode = themeMode,
             defaultLessonMinutes = defaultLessonMinutes,
-            defaultGroupPriceMinor = defaultGroupPriceMinor,
-            currency = currency,
+            // The column's 0-means-not-set sentinel is spelled here, at the row's edge, once —
+            // it used to be restated by every reader of the raw minor units.
+            defaultGroupPrice = Money(defaultGroupPriceMinor).takeIf { defaultGroupPriceMinor != 0L },
+            currency = Currency.parse(currency),
         )
 
     /**
@@ -94,8 +148,8 @@ class SettingsRepository @Inject constructor(
         autoCompleteEnabled = autoCompleteEnabled,
         themeMode = themeMode,
         defaultLessonMinutes = defaultLessonMinutes,
-        defaultGroupPriceMinor = defaultGroupPriceMinor,
-        currency = currency,
+        defaultGroupPriceMinor = defaultGroupPrice?.minor ?: 0,
+        currency = currency.name,
         // `SettingsEntity.showGroupsTab` is deliberately not set: nothing reads it any more (groups
         // and students share one tab now), and the column stays only because dropping it would mean
         // a table rebuild — SQLite before 3.35 has no `DROP COLUMN`, and minSdk 24 reaches back well

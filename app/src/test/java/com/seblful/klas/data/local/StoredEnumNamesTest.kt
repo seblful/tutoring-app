@@ -34,6 +34,7 @@ class StoredEnumNamesTest {
      */
     private val storedStatuses = setOf("SCHEDULED", "COMPLETED", "CANCELLED")
     private val storedModes = setOf("IN_PERSON", "REMOTE")
+    private val storedCurrencies = setOf("BYN", "RUB")
 
     @Test
     fun `the stored status names are the ones the database holds`() {
@@ -53,6 +54,22 @@ class StoredEnumNamesTest {
                 "default to one of these values — write a migration, then update this list.",
             storedModes,
             ClassMode.entries.map { it.name }.toSet(),
+        )
+    }
+
+    /**
+     * The one stored word that is *not* money-bearing: an unrecognized value falls back to BYN
+     * (`Currency.parse`), so a rename loses only a label — but it still loses one silently, on every
+     * device that stored the old text, which is exactly the drift this list exists to interrupt.
+     */
+    @Test
+    fun `the stored currency names are the ones the settings row holds`() {
+        assertEquals(
+            "A Currency constant was renamed, added or removed. The `settings.currency` column " +
+                "stores these names — devices holding the old text will silently fall back to BYN. " +
+                "Migrate the column (or accept the fallback deliberately), then update this list.",
+            storedCurrencies,
+            com.seblful.klas.domain.model.Currency.entries.map { it.name }.toSet(),
         )
     }
 

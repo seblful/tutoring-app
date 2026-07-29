@@ -3,6 +3,7 @@ package com.seblful.klas
 import com.seblful.klas.data.local.ClassEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.repository.LessonWrite
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.ClassRules
 import com.seblful.klas.domain.ClassSession
@@ -22,9 +23,7 @@ import com.seblful.klas.format.MoneyField
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.ui.schedule.ClassForm
-import com.seblful.klas.ui.schedule.ScheduleViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -65,21 +64,23 @@ class EdgeCaseCombinationsTest {
     /**
      * Cancel Аня's lesson, re-book the freed hour for Борис, then put Аня's lesson back on the
      * schedule. A cancelled class gives its slot back on purpose, so the re-booking is legitimate —
-     * which makes un-cancelling the one way back into an hour somebody else now holds. Booking,
-     * editing and moving all check for a clash; a status change does not.
+     * which makes un-cancelling the one way back into an hour somebody else now holds. The refusal
+     * is the **repository's own** ([LessonWrite]): every way into an hour is checked by the module
+     * that writes it, so this case no longer depends on any caller remembering it — un-cancelling
+     * was exactly the way in that once was forgotten.
      */
     @Test
     fun `restoring a cancelled lesson into an hour taken since does not double-book the tutor`() =
         runTest(mainRule.dispatcher) {
-            val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-            val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
-            val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+            val ann = env.fixtures.student("Аня")
+            val bob = env.fixtures.student("Борис")
+            val subj = env.fixtures.subject("Математика")
             val at = LocalDate.now(zone).plusDays(1).atTime(10, 0).atZone(zone).toInstant()
 
             val annIds = env.classRepo.book(
                 subjectId = subj, start = at, durationMinutes = 60,
                 mode = ClassMode.IN_PERSON, studentIds = listOf(ann), price = Money.ofMajor(30),
-            )
+            ).written()
             env.classRepo.setStatus(
                 env.classRepo.getSessionFor(annIds.single())!!,
                 ClassStatus.CANCELLED,
@@ -89,16 +90,18 @@ class EdgeCaseCombinationsTest {
             env.classRepo.book(
                 subjectId = subj, start = at, durationMinutes = 60,
                 mode = ClassMode.IN_PERSON, studentIds = listOf(bob), price = Money.ofMajor(30),
+            ).written()
+
+            // «Вернуть в расписание» — the one status change that re-occupies time.
+            val outcome = env.classRepo.setStatus(
+                env.classRepo.getSessionFor(annIds.single())!!,
+                ClassStatus.SCHEDULED,
             )
 
-            // «Вернуть в расписание» — one tap in the lesson's action sheet.
-            val vm = ScheduleViewModel(
-                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, mainRule.appScope,
-                mainRule.dispatcher, java.time.Clock.systemDefaultZone(),
+            assertTrue(
+                "the repository itself refuses the way back into a taken hour",
+                outcome is LessonWrite.HourTaken,
             )
-            vm.setStatus(env.classRepo.getSessionFor(annIds.single())!!, ClassStatus.SCHEDULED)
-            advanceUntilIdle()
-
             val occupying = Scheduling.conflicts(Scheduling.Slot(at, 60), env.classRepo.getAll())
             assertEquals(
                 "the tutor is one person: only one lesson may occupy 10:00",
@@ -185,7 +188,7 @@ class EdgeCaseCombinationsTest {
             val groupId = env.groupRepo.save(
                 Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)),
                 setOf(max),
-            )
+            ).id
             env.enrollmentRepo.unenroll(max, chem)
 
             val group = env.groupRepo.getById(groupId)!!
@@ -261,12 +264,12 @@ class EdgeCaseCombinationsTest {
         runTest(mainRule.dispatcher) {
             val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
             val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-            val groupId = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann))
+            val groupId = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann)).id
             val at = Instant.parse("2026-03-02T09:00:00Z")
             val ids = env.classRepo.book(
                 subjectId = subj, start = at, durationMinutes = 60, mode = ClassMode.IN_PERSON,
                 studentIds = listOf(ann), price = Money.ofMajor(20), groupId = groupId,
-            )
+            ).written()
             val session = env.classRepo.getSessionFor(ids.single())!!
 
             // What the form's save reaches with every tick cleared — refused before the repository.

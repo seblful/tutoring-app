@@ -2,6 +2,8 @@ package com.seblful.klas.ui.more
 
 import com.seblful.klas.calendar.Guest
 import com.seblful.klas.data.local.ClassEntity
+import com.seblful.klas.domain.model.Currency
+import com.seblful.klas.domain.model.Money
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.testutil.MainDispatcherRule
@@ -12,6 +14,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -24,7 +27,9 @@ class SettingsViewModelTest {
 
     private val env = TestEnv()
 
-    private fun vm() = SettingsViewModel(env.settingsRepo, env.calendarMirror, env.calendarPermission, env.notificationPermission)
+    private fun vm() = SettingsViewModel(
+        env.settingsRepo, env.calendarMirror, env.reminders, env.calendarPermission, env.notificationPermission,
+    )
 
     /**
      * Turning reminders on has three possible consequences, and telling the last two apart is the point:
@@ -69,8 +74,8 @@ class SettingsViewModelTest {
         vm.update { it.copy(autoCompleteEnabled = true) }
         vm.update { it.copy(themeMode = "DARK") }
         vm.update { it.copy(defaultLessonMinutes = 45) }
-        vm.update { it.copy(currency = "RUB") }
-        vm.update { it.copy(defaultGroupPriceMinor = 2000) }
+        vm.update { it.copy(currency = Currency.RUB) }
+        vm.update { it.copy(defaultGroupPrice = Money(2000)) }
         vm.update { it.copy(notificationsEnabled = false) }
         advanceUntilIdle()
 
@@ -79,8 +84,8 @@ class SettingsViewModelTest {
         assertTrue(s.autoCompleteEnabled)
         assertEquals("DARK", s.themeMode)
         assertEquals(45, s.defaultLessonMinutes)
-        assertEquals("RUB", s.currency)
-        assertEquals(2000L, s.defaultGroupPriceMinor)
+        assertEquals(Currency.RUB, s.currency)
+        assertEquals(Money(2000), s.defaultGroupPrice)
         assertFalse(s.notificationsEnabled)
     }
 
@@ -90,15 +95,15 @@ class SettingsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        // 0 is "not set", so a new group's rate is left blank rather than pre-filled with a guess.
-        assertEquals(0L, vm.state.value.defaultGroupPriceMinor)
+        // Null is "not set", so a new group's rate is left blank rather than pre-filled with a guess.
+        assertNull(vm.state.value.defaultGroupPrice)
 
-        // And clearing it again is expressible — the settings row writes 0 for an empty field.
-        vm.update { it.copy(defaultGroupPriceMinor = 2000) }
+        // And clearing it again is expressible.
+        vm.update { it.copy(defaultGroupPrice = Money(2000)) }
         advanceUntilIdle()
-        vm.update { it.copy(defaultGroupPriceMinor = 0) }
+        vm.update { it.copy(defaultGroupPrice = null) }
         advanceUntilIdle()
-        assertEquals(0L, env.settingsRepo.get().defaultGroupPriceMinor)
+        assertNull(env.settingsRepo.get().defaultGroupPrice)
     }
 
     @Test
@@ -117,7 +122,7 @@ class SettingsViewModelTest {
             env.settingsRepo.update { it.copy(emailInvitesEnabled = true) }
 
             val vm = vm()
-            vm.setEmailInvitesEnabled(false)
+            vm.update { it.copy(emailInvitesEnabled = false) }
             advanceUntilIdle()
 
             assertFalse(env.settingsRepo.get().emailInvitesEnabled)
@@ -136,7 +141,7 @@ class SettingsViewModelTest {
             env.settingsRepo.update { it.copy(emailInvitesEnabled = false) }
 
             val vm = vm()
-            vm.setEmailInvitesEnabled(true)
+            vm.update { it.copy(emailInvitesEnabled = true) }
             advanceUntilIdle()
 
             assertTrue(env.settingsRepo.get().emailInvitesEnabled)
@@ -151,7 +156,7 @@ class SettingsViewModelTest {
             env.classDao.upsert(ClassEntity(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "SCHEDULED"))
 
             val vm = vm()
-            vm.setEmailInvitesEnabled(false)
+            vm.update { it.copy(emailInvitesEnabled = false) }
             advanceUntilIdle()
 
             // The preference is remembered for when sync is switched on, but there are no events to
@@ -159,6 +164,43 @@ class SettingsViewModelTest {
             assertFalse(env.settingsRepo.get().emailInvitesEnabled)
             assertTrue(env.calendar.calls.isEmpty())
         }
+
+    /**
+     * The setting the generic path used to drop: the lead is baked into every mirrored event's
+     * email reminder and into every armed alarm, so changing it owes both a refresh. Until this
+     * went through [SettingsChange] the mirror kept the old lead indefinitely — the tail existed
+     * only for the two settings that happened to have named methods.
+     */
+    @Test
+    fun `changing the reminder lead re-mirrors the calendar and re-plans the reminders`() =
+        runTest(mainRule.dispatcher) {
+            val subj = env.fixtures.subject("Математика")
+            val sid = env.fixtures.student("Аня", email = "anya@example.com")
+            env.fixtures.withCalendarSync()
+            env.fixtures.lesson(subj, listOf(sid), start = java.time.Instant.parse("2026-03-02T09:00:00Z"))
+            env.calendar.calls.clear()
+            val refreshesBefore = env.reminders.refreshCount
+
+            val vm = vm()
+            vm.update { it.copy(reminderLeadMinutes = 24 * 60) }
+            advanceUntilIdle()
+
+            assertEquals("the event is re-mirrored under the new lead", 1, env.calendar.upserts.size)
+            assertEquals("and the alarm plan is re-derived", refreshesBefore + 1, env.reminders.refreshCount)
+        }
+
+    @Test
+    fun `a setting that owes the world nothing discharges nothing`() = runTest(mainRule.dispatcher) {
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
+        val refreshesBefore = env.reminders.refreshCount
+
+        val vm = vm()
+        vm.update { it.copy(themeMode = "DARK") }
+        advanceUntilIdle()
+
+        assertTrue("no calendar work for a theme change", env.calendar.calls.isEmpty())
+        assertEquals(refreshesBefore, env.reminders.refreshCount)
+    }
 
     @Test
     fun `enabling calendar sync backfills events for existing classes`() = runTest(mainRule.dispatcher) {

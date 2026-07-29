@@ -6,6 +6,7 @@ import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.Reminders
+import java.time.Clock
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -28,12 +29,14 @@ class DueReminder @Inject constructor(
     private val groups: GroupRepository,
     private val notifier: Notifier,
     private val settings: SettingsRepository,
+    private val clock: Clock,
 ) {
     /**
      * Posts the reminder for [classId] if it is still owed at [now], and reports whether it did.
      * A class that has since been deleted, cancelled, completed or moved is simply not announced.
+     * [now] defaults to the injected clock, so the shipped path is the one a test can move.
      */
-    suspend fun post(classId: Long, now: Instant = Instant.now()): Boolean {
+    suspend fun post(classId: Long, now: Instant = clock.instant()): Boolean {
         val klass = classes.getById(classId) ?: return false
         if (!Reminders.shouldPost(klass, settings.get().notificationsEnabled, now)) return false
 

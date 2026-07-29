@@ -40,12 +40,15 @@ data class MoneyField(
         OPTIONAL_RATE,
     }
 
-    /** The amount, or null while the text isn't a valid one of this [kind]. */
+    /**
+     * The amount, or null while the text isn't a valid one of this [kind] — each kind's rule is
+     * its constant's KDoc, and this is the one place they are applied.
+     */
     val amount: Money?
         get() = when (kind) {
-            Kind.RATE -> MoneyInput.rate(text)
-            Kind.PAYMENT -> MoneyInput.payment(text)
-            Kind.OPTIONAL_RATE -> if (text.isBlank()) Money.ZERO else MoneyInput.rate(text)
+            Kind.RATE -> parseMoneyOrNull(text)
+            Kind.PAYMENT -> parseMoneyOrNull(text)?.takeUnless { it.isZero }
+            Kind.OPTIONAL_RATE -> if (text.isBlank()) Money.ZERO else parseMoneyOrNull(text)
         }
 
     /** Whether the field holds a usable amount. */
@@ -73,9 +76,5 @@ data class MoneyField(
         /** A field already showing [amount]. */
         fun of(amount: Money, kind: Kind = Kind.RATE): MoneyField =
             MoneyField(amount.toAmountInput(), kind)
-
-        /** A field showing [amount], or empty when it is null. */
-        fun ofOrEmpty(amount: Money?, kind: Kind = Kind.RATE): MoneyField =
-            if (amount == null) MoneyField(kind = kind) else of(amount, kind)
     }
 }

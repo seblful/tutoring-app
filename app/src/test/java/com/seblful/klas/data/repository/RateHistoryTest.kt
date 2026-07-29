@@ -217,7 +217,7 @@ class RateHistoryTest {
     @Test
     fun `creating a group logs the rate it was created at`() = runTest {
         val sid = student()
-        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(25)), setOf(sid))
+        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(25)), setOf(sid)).id
 
         val change = history.observeFor(RateOwner.GroupRate(id)).first().single()
         assertTrue(change.isInitial)
@@ -227,7 +227,7 @@ class RateHistoryTest {
     @Test
     fun `re-pricing a group logs the change`() = runTest {
         val sid = student()
-        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(25)), setOf(sid))
+        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(25)), setOf(sid)).id
         env.groupRepo.save(Group(id = id, name = "11 «А»", price = Money.ofMajor(30)), setOf(sid))
 
         val changes = history.observeFor(RateOwner.GroupRate(id)).first()
@@ -244,7 +244,7 @@ class RateHistoryTest {
     fun `renaming or re-staffing a group logs nothing`() = runTest {
         val anya = student("Аня")
         val boris = student("Борис")
-        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(25)), setOf(anya))
+        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(25)), setOf(anya)).id
 
         env.groupRepo.save(Group(id = id, name = "11 «Б»", price = Money.ofMajor(25)), setOf(anya))
         env.groupRepo.save(Group(id = id, name = "11 «Б»", price = Money.ofMajor(25)), setOf(anya, boris))
@@ -255,7 +255,7 @@ class RateHistoryTest {
     @Test
     fun `archiving a group logs nothing`() = runTest {
         val sid = student()
-        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(25)), setOf(sid))
+        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(25)), setOf(sid)).id
         env.groupRepo.setArchived(env.groupRepo.getById(id)!!, true)
 
         assertEquals(1, history.observeFor(RateOwner.GroupRate(id)).first().size)
@@ -271,7 +271,7 @@ class RateHistoryTest {
     @Test
     fun `currentRate reads a group's rate from the group row`() = runTest {
         val sid = student()
-        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(25)), setOf(sid))
+        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(25)), setOf(sid)).id
 
         assertEquals(Money.ofMajor(25), history.currentRate(RateOwner.GroupRate(id)))
     }

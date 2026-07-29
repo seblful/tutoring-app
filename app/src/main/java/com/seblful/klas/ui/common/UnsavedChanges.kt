@@ -1,9 +1,14 @@
 package com.seblful.klas.ui.common
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 
@@ -66,14 +71,53 @@ fun leaveIntent(form: LeavableForm): LeaveIntent = when {
 }
 
 /**
+ * The whole leave flow of a form screen — the system back gesture, the question, and what each
+ * answer does — returning the request the toolbar's own back arrow should call.
+ *
+ * One wiring rather than one per screen, because three copies had drifted on the one line that
+ * matters: two of them answered «Сохранить» without putting the dialog away, so a save the view
+ * model refused — reported through the screen's snackbar — left the dialog standing on top of the
+ * report, offering only the two ways out that discard the work it exists to protect. Here every
+ * answer closes the question first; a refused save then leaves an ordinary dirty form behind, and
+ * the next back simply asks again.
+ *
+ * Lower-case although it emits UI, by the convention for composables that return a value; what it
+ * emits is a handler and a dialog that is mostly not there.
+ *
+ * @param onSave what «Сохранить» means for this form — the same request as its save button, so a
+ *   save that owes a question of its own (billed drops) asks it from here too.
+ */
+@Composable
+fun leaveGuard(form: LeavableForm, onLeave: () -> Unit, onSave: () -> Unit): () -> Unit {
+    var leaving by remember { mutableStateOf<LeaveIntent?>(null) }
+    val requestLeave = {
+        when (val intent = leaveIntent(form)) {
+            LeaveIntent.LEAVE -> onLeave()
+            else -> leaving = intent
+        }
+    }
+    BackHandler(enabled = form.isDirty) { requestLeave() }
+    leaving?.let { intent ->
+        UnsavedChangesDialog(
+            intent = intent,
+            onSave = { leaving = null; onSave() },
+            onDiscard = { leaving = null; onLeave() },
+            onKeepEditing = { leaving = null },
+        )
+    }
+    return requestLeave
+}
+
+/**
  * Asks before unsaved work is lost. Show it for either asking [LeaveIntent]; [LeaveIntent.LEAVE]
- * means there was nothing to ask about and no dialog belongs on screen.
+ * means there was nothing to ask about and no dialog belongs on screen. Private: the answers'
+ * bookkeeping is [leaveGuard]'s, and reaching past it is how the screens once drifted.
  *
  * @param onKeepEditing also what a back press or a tap outside does — staying is the safe answer, so
  *   it is the one an accidental dismissal lands on.
  */
 @Composable
-fun UnsavedChangesDialog(
+private fun UnsavedChangesDialog(
     intent: LeaveIntent,
     onSave: () -> Unit,
     onDiscard: () -> Unit,

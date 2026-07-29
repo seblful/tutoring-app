@@ -48,7 +48,7 @@ class CalendarMirrorTest {
             studentIds = listOf(STUDENT),
             price = Money.ofMajor(30),
             groupId = groupId,
-        ).single()
+        ).written().single()
     }
 
     private val lastTitle: String get() = env.calendar.calls.last().title

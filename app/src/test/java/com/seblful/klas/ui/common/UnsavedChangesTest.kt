@@ -37,4 +37,26 @@ class UnsavedChangesTest {
     fun `an incomplete form only asks about losing the work`() {
         assertEquals(LeaveIntent.ASK_DISCARD, intentFor(dirty = true, canSave = false))
     }
+
+    /**
+     * The wiring around the question is `leaveGuard`'s, once. Three screens used to spell it by
+     * hand, and two of them answered «Сохранить» without putting the dialog away — so a refused
+     * save left the dialog standing over its own snackbar, offering only the answers that discard
+     * the work. A screen asking [leaveIntent] itself is a screen about to re-make that wiring.
+     */
+    @Test
+    fun `only the guard asks the leave question`() {
+        val offenders = com.seblful.klas.testutil.ProjectFiles.sources()
+            .filter { "ui" in it.path.split(java.io.File.separator) }
+            .filterNot { it.name == "UnsavedChanges.kt" }
+            .filter { it.readText().contains("leaveIntent(") }
+            .map { it.name }
+
+        assertEquals(
+            "A screen calls `leaveIntent` directly instead of going through `leaveGuard`, which is " +
+                "how the three copies drifted apart the first time: $offenders",
+            emptyList<String>(),
+            offenders,
+        )
+    }
 }

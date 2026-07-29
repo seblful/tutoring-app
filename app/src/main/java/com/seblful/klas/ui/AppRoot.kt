@@ -19,6 +19,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.compose.runtime.CompositionLocalProvider
+import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.theme.KlasTheme
 import com.seblful.klas.ui.backup.BackupScreen
@@ -56,7 +57,7 @@ fun AppRoot(rootViewModel: RootViewModel = hiltViewModel()) {
     }
 
     KlasTheme(darkTheme = darkTheme) {
-        CompositionLocalProvider(LocalCurrency provides (settings?.currency ?: "BYN")) {
+        CompositionLocalProvider(LocalCurrency provides (settings?.currency ?: Currency.BYN)) {
             when (rootViewModel.routeFor(settings)) {
                 RootRoute.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()

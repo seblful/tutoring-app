@@ -64,7 +64,8 @@ private enum class PeopleTab(val labelRes: Int) {
  *
  * The state that differs per tab (what is being searched for, whether the archive is shown) lives in
  * the two view models, which is what lets switching tabs preserve each side's search rather than
- * clearing both.
+ * clearing both. The bar reaches them through one seam — [PeopleSide], which both implement — so the
+ * side on top is picked **once**, instead of once per button in dispatch branches no test can flip.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,26 +81,16 @@ fun PeopleScreen(
     var searching by rememberSaveable { mutableStateOf(false) }
 
     val studentRows by studentsViewModel.rows.collectAsState()
-    val studentQuery by studentsViewModel.query.collectAsState()
     val studentSort by studentsViewModel.sort.collectAsState()
-    val studentsArchived by studentsViewModel.showArchived.collectAsState()
-
     val groupRows by groupsViewModel.rows.collectAsState()
-    val groupQuery by groupsViewModel.query.collectAsState()
-    val groupsArchived by groupsViewModel.showArchived.collectAsState()
 
     // Whichever side is on top answers the bar's buttons; the other keeps its own state untouched.
-    val query = if (tab == PeopleTab.STUDENTS) studentQuery else groupQuery
-    val archived = if (tab == PeopleTab.STUDENTS) studentsArchived else groupsArchived
-    fun setQuery(text: String) = when (tab) {
-        PeopleTab.STUDENTS -> studentsViewModel.setQuery(text)
-        PeopleTab.GROUPS -> groupsViewModel.setQuery(text)
+    val side: PeopleSide = when (tab) {
+        PeopleTab.STUDENTS -> studentsViewModel
+        PeopleTab.GROUPS -> groupsViewModel
     }
-
-    fun toggleArchived() = when (tab) {
-        PeopleTab.STUDENTS -> studentsViewModel.toggleArchived()
-        PeopleTab.GROUPS -> groupsViewModel.toggleArchived()
-    }
+    val query by side.query.collectAsState()
+    val archived by side.showArchived.collectAsState()
 
     Scaffold(
         topBar = {
@@ -108,7 +99,7 @@ fun PeopleScreen(
                     if (searching) {
                         SearchField(
                             query = query,
-                            onQueryChange = ::setQuery,
+                            onQueryChange = side::setQuery,
                             placeholder = stringResource(
                                 if (tab == PeopleTab.STUDENTS) R.string.students_search_hint
                                 else R.string.groups_search_hint
@@ -122,7 +113,7 @@ fun PeopleScreen(
                     if (searching) {
                         // Closing search clears it: a filter left applied behind a closed box is a
                         // list missing rows for no visible reason.
-                        IconButton(onClick = { searching = false; setQuery("") }) {
+                        IconButton(onClick = { searching = false; side.setQuery("") }) {
                             Icon(Icons.Filled.SearchOff, stringResource(R.string.search_clear))
                         }
                     } else {
@@ -133,7 +124,7 @@ fun PeopleScreen(
                         if (tab == PeopleTab.STUDENTS) {
                             SortMenu(selected = studentSort, onSelect = studentsViewModel::setSort)
                         }
-                        IconButton(onClick = ::toggleArchived) {
+                        IconButton(onClick = side::toggleArchived) {
                             Icon(
                                 Icons.Filled.Inventory2,
                                 stringResource(R.string.students_show_archived),
@@ -169,17 +160,19 @@ fun PeopleScreen(
                 }
             }
             Box(Modifier.fillMaxSize()) {
+                // `query` is the visible side's, so either list's "empty because nothing matched"
+                // reads the same search its rows were filtered by.
                 when (tab) {
                     PeopleTab.STUDENTS -> StudentsList(
                         rows = studentRows,
-                        searching = studentQuery.isNotBlank(),
+                        searching = query.isNotBlank(),
                         onStudentClick = onStudentClick,
                         onAddStudent = onAddStudent,
                     )
 
                     PeopleTab.GROUPS -> GroupsList(
                         rows = groupRows,
-                        searching = groupQuery.isNotBlank(),
+                        searching = query.isNotBlank(),
                         onGroupClick = onGroupClick,
                         onAddGroup = onAddGroup,
                     )

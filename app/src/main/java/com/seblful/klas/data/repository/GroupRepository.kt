@@ -4,6 +4,7 @@ import com.seblful.klas.data.local.GroupDao
 import com.seblful.klas.data.local.GroupMemberCrossRef
 import com.seblful.klas.data.local.StudentDao
 import com.seblful.klas.data.local.Transactor
+import com.seblful.klas.data.local.upsertedId
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
 import com.seblful.klas.domain.model.Group
@@ -78,8 +79,27 @@ class GroupRepository @Inject constructor(
         }
 
     /**
-     * Creates or updates [group] and makes its roster exactly [memberIds] — links the new members
-     * and drops the ones no longer listed. Returns the group's id (assigned on insert).
+     * What [save] did: the group's [id] (assigned on insert), and the members it **left out** —
+     * asked for, but not priced for the group's subject.
+     *
+     * [dropped] comes back as data because the fact is the save's own. The form used to predict it
+     * with an intersection of its own over a different query, which is two modules holding one rule
+     * — the report and the write could disagree, and only the write was real.
+     */
+    data class Saved(val id: Long, val dropped: Set<Long>)
+
+    /**
+     * Creates or updates [group] and makes its roster exactly the eligible part of [memberIds] —
+     * links the new members and drops the ones no longer listed. Returns [Saved]: the group's id,
+     * and who was left out.
+     *
+     * A group with a subject only teaches that subject, so a member not priced for it could never be
+     * billed for one of its lessons — [save] keeps only the priced ones. That is enforced here, not
+     * just offered in the form, because this is the only writer of membership: a caller that skipped
+     * the UI could otherwise seed a roster no lesson could bill. It is also not a hypothetical way to
+     * lose someone: un-enrolling a student from the subject one-to-one is allowed (while the group
+     * has taught no lesson), and the next save of the group — **a rename is enough**, every save
+     * re-intersects — is what drops them. [Saved.dropped] is what keeps that from happening silently.
      *
      * Dropping a member only stops *future* bookings from including them; their past classes keep
      * their group id, so a group lesson someone left still reads as the group lesson it was.
@@ -89,17 +109,15 @@ class GroupRepository @Inject constructor(
      * writer of membership; a save that stopped between the two would leave the half-roster nobody
      * asked for, and it is the members' classes that get billed.
      */
-    suspend fun save(group: Group, memberIds: Set<Long>): Long {
+    suspend fun save(group: Group, memberIds: Set<Long>): Saved {
         // Both reads sit outside the transaction: neither depends on anything written inside it, and
         // the eligibility read in particular hits another table for a decision, not for a row to write.
         val previousRate = rateHistory.currentRate(RateOwner.GroupRate(group.id))
         val wanted = eligible(group, memberIds)
-        return transactor.transaction {
-            // Room's @Upsert returns the new rowid when it inserts, but -1 when it updated an existing
-            // row instead. Trusting it blindly on an edit made every member insert reference group -1
-            // and fail the group_members foreign key, so fall back to the id we were handed.
-            val rowId = dao.upsert(group.toEntity())
-            val id = if (rowId == -1L) group.id else rowId
+        val id = transactor.transaction {
+            // An edit answers -1 (see [upsertedId]); trusting it blindly once pointed every member
+            // insert at group -1 and failed the group_members foreign key.
+            val id = upsertedId(dao.upsert(group.toEntity()), group.id)
             // Logged after the upsert, so the row the log's foreign key points at already exists — and
             // only when the amount moved, since a rename or a roster edit comes through here too
             // (RateHistoryRepository.record drops the no-op).
@@ -108,45 +126,23 @@ class GroupRepository @Inject constructor(
             (wanted - current).forEach { dao.addMember(GroupMemberCrossRef(id, it)) }
             (current - wanted).forEach { dao.removeMember(id, it) }
             id
-        }.also {
-            // Phase 3, outside the transaction like every other calendar write: a group's name is what
-            // makes n overlapping events read as one lesson, so a rename makes every mirrored event of
-            // its lessons wrong. See [CalendarMirror].
-            calendar.refreshForGroup(it)
         }
+        // Phase 3, outside the transaction like every other calendar write: a group's name is what
+        // makes n overlapping events read as one lesson, so a rename makes every mirrored event of
+        // its lessons wrong. See [CalendarMirror].
+        calendar.refreshForGroup(id)
+        return Saved(id, dropped = memberIds - wanted)
     }
 
     /**
-     * Narrows [memberIds] to the students a subject-bound group may actually contain.
-     *
-     * A group with a subject only teaches that subject, so a member who is not priced for it could
-     * never be billed for one of its lessons — such a member is dropped here rather than kept as a
-     * roster entry that silently fails at booking time. A group with no subject (one restored from
-     * an older backup, or not yet given one) is left exactly as asked.
-     *
-     * This is enforced in the repository, not just the form, because [save] is the only writer of
-     * membership: a caller that skipped the UI could otherwise seed an unbillable roster.
+     * Narrows [memberIds] to the students a subject-bound group may actually contain — see [save].
+     * A group with no subject (one restored from an older backup, or not yet given one) is left
+     * exactly as asked.
      */
-    private suspend fun eligible(group: Group, memberIds: Set<Long>): Set<Long> =
-        memberIds - notPricedFor(group, memberIds)
-
-    /**
-     * Which of [memberIds] [save] would leave out — the ones not priced for the group's subject.
-     *
-     * The narrowing is right and stays in [save], but doing it *silently* was not: a member vanished
-     * from the roster with nothing said. It is not a hypothetical, either. Un-enrolling a student from
-     * the subject one-to-one is allowed (while the group has taught no lesson), and the next save of
-     * that group — **a rename is enough**, since every save re-intersects — quietly drops them.
-     *
-     * Exposed as a read so the form can say who and why before or after saving, which is where a
-     * refusal belongs: it has to name people, and only a screen can do that. The repository keeps
-     * enforcing it regardless, because [save] is the only writer of membership and a caller that
-     * skipped the UI could otherwise seed a roster no lesson could bill.
-     */
-    suspend fun notPricedFor(group: Group, memberIds: Set<Long>): Set<Long> {
-        val subjectId = group.subjectId ?: return emptySet()
+    private suspend fun eligible(group: Group, memberIds: Set<Long>): Set<Long> {
+        val subjectId = group.subjectId ?: return memberIds
         val priced = studentDao.getStudentIdsForSubject(subjectId).toSet()
-        return memberIds - priced
+        return memberIds intersect priced
     }
 
     suspend fun setArchived(group: Group, archived: Boolean) {

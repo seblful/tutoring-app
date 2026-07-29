@@ -1,16 +1,15 @@
 package com.seblful.klas.ui.schedule
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.GroupRepository
+import com.seblful.klas.data.repository.LessonWrite
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.CalendarLayout
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.GroupRules
-import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.model.ClassStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Student
@@ -65,6 +64,30 @@ data class ScheduleRow(
 
     /** What deleting this lesson has to warn about — see [DeleteWarning]. */
     val deleteWarning: DeleteWarning get() = DeleteWarning.of(session)
+
+    /**
+     * The statuses this lesson may be moved to — what the sheet's segmented control enables, and
+     * what [canSwipeComplete] is gated on. [GroupRules.sessionTransitions] asked once, here, where
+     * a test can reach it; it used to be asked by two composables, so the rule gating the product's
+     * highest-frequency gesture could be exercised only by swiping a card on a phone.
+     */
+    val statusChoices: Set<ClassStatus> get() = GroupRules.sessionTransitions(session)
+
+    /**
+     * Whether the swipe-to-complete gesture is offered at all: completing must be legal for the
+     * whole session, so the gesture can never do what the sheet's menu would refuse. A lesson
+     * already completed — or a group lesson in mixed states, which reads «Разные» — gets a plain
+     * card instead.
+     */
+    val canSwipeComplete: Boolean get() = ClassStatus.COMPLETED in statusChoices
+
+    /**
+     * Whether the card recedes — dimmed, its time struck through. A cancelled lesson is a record,
+     * not a plan, and the question a glance at the day answers is "how full is it": a lesson whose
+     * every class was called off gave its hour back. A mixed-status session keeps full strength,
+     * because some of it did happen.
+     */
+    val recedes: Boolean get() = session.commonStatus == ClassStatus.CANCELLED
 }
 
 /**
@@ -338,67 +361,49 @@ class ScheduleViewModel @Inject constructor(
     /**
      * Changes a whole lesson's status.
      *
-     * Returning one **to the schedule** is checked against the hour first, because it is the one
-     * status change that re-*occupies* time. A cancelled class gives its slot back on purpose
-     * ([ClassStatus.occupiesTime]) — that is what lets the tutor re-book the freed hour for somebody
-     * else — so by the time they un-cancel, the hour may be held by that somebody. Without this the
-     * one-tutor-one-lesson rule that [move] and booking both enforce had a way in behind it: the
-     * schedule simply drew two lessons at 10:00, and neither the form nor the sheet had said no.
-     *
-     * The refusal is reported through the same [timeConflict] a refused move uses, since it is the
-     * same fact — this hour is taken, by that lesson. Every other status change occupies no new time
-     * and goes straight to the write.
+     * Returning one **to the schedule** can be refused: it is the one status change that re-*occupies*
+     * time. A cancelled class gives its slot back on purpose ([ClassStatus.occupiesTime]) — that is
+     * what lets the tutor re-book the freed hour for somebody else — so by the time they un-cancel,
+     * the hour may be held by that somebody. The *check* is the repository's, made by every way into
+     * an hour ([LessonWrite]); what this screen owns is the wording, and the clash arrives as data for
+     * [reportHourTaken] — through the same [timeConflict] a refused move uses, since it is the same
+     * fact: this hour is taken, by that lesson.
      */
     fun setStatus(session: ClassSession, status: ClassStatus) {
-        if (status != ClassStatus.SCHEDULED) {
-            write { classes.setStatus(session, status) }
-            return
-        }
-        viewModelScope.launch {
-            if (refuseIfTaken(session, session.start)) return@launch
-            write { classes.setStatus(session, status) }
+        write {
+            when (val changed = classes.setStatus(session, status)) {
+                is LessonWrite.HourTaken -> reportHourTaken(changed.clash)
+                is LessonWrite.Written -> Unit
+            }
         }
     }
 
     /**
      * Reschedules a whole lesson, unless that hour is already taken — one tutor cannot teach two
-     * lessons at once, so a move onto an occupied slot is refused and reported through [timeConflict]
-     * rather than silently doing nothing. The lesson's **own** classes are ignored, so nudging it by
-     * ten minutes doesn't clash with where it currently is.
+     * lessons at once, so the repository refuses a move onto an occupied slot ([LessonWrite]) rather
+     * than silently doing nothing, and the refusal is reported through [timeConflict]. The lesson's
+     * **own** classes never stand in their own way, so nudging it by ten minutes is fine.
      */
     fun move(session: ClassSession, newStart: Instant) {
-        viewModelScope.launch {
-            // The refusal is this screen's to report — [_timeConflict] is state the dialog reads — so
-            // the check stays here and only the move itself is handed to the scope that outlives it.
-            if (refuseIfTaken(session, newStart)) return@launch
-            write { classes.move(session, newStart) }
+        write {
+            when (val moved = classes.move(session, newStart, now = clock.instant())) {
+                is LessonWrite.HourTaken -> reportHourTaken(moved.clash)
+                is LessonWrite.Written -> Unit
+            }
         }
     }
 
     /**
-     * Whether [session] starting at [start] would collide with another lesson — and, when it would,
-     * records which one in [timeConflict] for the dialog to read.
-     *
-     * The lesson's **own** classes are excluded by id, so a lesson never stands in its own way.
-     *
-     * A session whose stored duration is not positive is reported as free rather than asked about.
-     * Such a row should not exist (`BackupIntegrity` refuses one), but `Scheduling.Slot` *requires* a
-     * positive length, so constructing one here would throw — inside a `launch`, which is a crash
-     * rather than a refusal. It occupies no time by its own arithmetic anyway, so nothing can be in
-     * its way; the read path takes the same view (`Scheduling.conflicts` skips such rows).
+     * Words a refused write for the dialog: [clash] holds the hour, and the tutor is told *which*
+     * lesson that is — its group's name, or its student's. The naming stays here because it is this
+     * screen's job; the refusal itself is no longer its to make.
      */
-    private suspend fun refuseIfTaken(session: ClassSession, start: Instant): Boolean {
-        val minutes = session.first.durationMinutes
-        if (minutes <= 0) return false
-        val slot = Scheduling.Slot(start, minutes)
-        val clash = classes.conflictsWith(slot, session.classes.map { it.id }.toSet()).firstOrNull()
-            ?: return false
+    private suspend fun reportHourTaken(clash: ClassSession) {
         _timeConflict.value = TimeConflict.of(
             clash = clash,
             groupName = clash.groupId?.let { groups.getById(it)?.name },
             studentName = students.getById(clash.first.studentId)?.name,
         )
-        return true
     }
 
     /** Acknowledges the refusal message, so the dialog closes. */

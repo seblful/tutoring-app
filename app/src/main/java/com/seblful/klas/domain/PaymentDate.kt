@@ -27,5 +27,15 @@ object PaymentDate {
      * it: there is no hour to know, and inventing one would be a precision the tutor never supplied.
      */
     fun instantFor(day: LocalDate, clock: Clock): Instant =
-        if (day == LocalDate.now(clock)) clock.instant() else day.atStartOfDay(clock.zone).toInstant()
+        if (day == today(clock)) clock.instant() else day.atStartOfDay(clock.zone).toInstant()
+
+    /**
+     * The day a fresh payment dialog opens on — today, by the **same clock** [instantFor] will
+     * compare the answer against. The dialog used to ask the platform directly (`LocalDate.now()` in
+     * a composable), so the two halves of one decision read two clocks: whenever they disagree, a
+     * payment entered as "today" lands at `atStartOfDay` and loses its entry order — exactly the
+     * shuffle [instantFor] exists to prevent — and no test could reach the composable's default to
+     * say so.
+     */
+    fun today(clock: Clock): LocalDate = LocalDate.now(clock)
 }

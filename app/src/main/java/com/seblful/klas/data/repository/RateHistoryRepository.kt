@@ -10,6 +10,7 @@ import com.seblful.klas.domain.model.RateChange
 import com.seblful.klas.domain.model.RateOwner
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.Clock
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -36,6 +37,7 @@ class RateHistoryRepository @Inject constructor(
      */
     private val groupDao: GroupDao,
     private val priceDao: PriceDao,
+    private val clock: Clock,
 ) {
     /** Every recorded change to [owner]'s rate, newest first. */
     fun observeFor(owner: RateOwner): Flow<List<RateChange>> = when (owner) {
@@ -85,7 +87,7 @@ class RateHistoryRepository @Inject constructor(
      * difference to report: it means the rate is being set for the first time, which is the start of
      * the history rather than a change to it.
      */
-    suspend fun record(owner: RateOwner, from: Money?, to: Money, at: Instant = Instant.now()): Boolean {
+    suspend fun record(owner: RateOwner, from: Money?, to: Money, at: Instant = clock.instant()): Boolean {
         if (from == to) return false
         dao.insert(RateChange(owner = owner, from = from, to = to, at = at).toEntity())
         return true

@@ -71,7 +71,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.takeOrElse
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
-import com.seblful.klas.domain.GroupRules
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.domain.model.ClassStatus
 import com.seblful.klas.ui.common.ConfirmDialog
@@ -412,7 +411,7 @@ private fun viewModeLabel(mode: ScheduleViewMode): Int = when (mode) {
  *
  * Two deliberate limits:
  * - **Only where completing is legal.** A lesson already completed, or one whose members are in mixed
- *   states, gets a plain card: [GroupRules.sessionTransitions] decides, the same rule the sheet's
+ *   states, gets a plain card: [ScheduleRow.canSwipeComplete] decides, from the same rule the sheet's
  *   actions are built from, so the gesture can never do something the menu would refuse.
  * - **One direction, and it never sticks.** The row springs back rather than staying dismissed —
  *   nothing is being removed, and the status badge flipping to «Проведено» is the confirmation. A box
@@ -426,8 +425,7 @@ private fun LazyItemScope.SwipeToCompleteCard(
     onComplete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val canComplete = ClassStatus.COMPLETED in GroupRules.sessionTransitions(row.session)
-    if (!canComplete) {
+    if (!row.canSwipeComplete) {
         ScheduleCard(row, onClick, modifier.animateItem())
         return
     }
@@ -476,10 +474,9 @@ private fun LazyItemScope.SwipeToCompleteCard(
 
 @Composable
 private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    // A cancelled lesson is a record, not a plan. It used to render at full strength with only its
-    // badge differing, so a day with four lessons and three cancellations looked like a full day —
-    // the one question a glance at the schedule is meant to answer.
-    val cancelled = row.session.commonStatus == ClassStatus.CANCELLED
+    // Whether the card recedes is the row's own answer — see [ScheduleRow.recedes]: a day with
+    // four lessons and three cancellations must not look like a full day.
+    val cancelled = row.recedes
     ContentCard(onClick = onClick, modifier = modifier, dimmed = cancelled) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -562,7 +559,7 @@ private fun DayNavigator(
     onToday: () -> Unit,
 ) {
     PageNavigator(
-        title = date.atStartOfDay(ZoneId.systemDefault()).toInstant().formatDay(),
+        title = date.formatDay(),
         previousDescription = stringResource(R.string.schedule_previous_day),
         nextDescription = stringResource(R.string.schedule_next_day),
         onPrevious = onPrevious,
@@ -649,7 +646,7 @@ private fun PageNavigator(
 @Composable
 private fun SelectedDayHeader(date: LocalDate) {
     Text(
-        text = date.atStartOfDay(ZoneId.systemDefault()).toInstant().formatDay(),
+        text = date.formatDay(),
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
@@ -663,7 +660,7 @@ private fun SelectedDayHeader(date: LocalDate) {
 @Composable
 private fun DaySectionHeader(date: LocalDate, isSelected: Boolean) {
     Text(
-        text = date.atStartOfDay(ZoneId.systemDefault()).toInstant().formatDay(),
+        text = date.formatDay(),
         style = MaterialTheme.typography.titleSmall,
         color = if (isSelected) {
             MaterialTheme.colorScheme.primary
@@ -766,7 +763,7 @@ private fun ClassActionsSheet(
 @Composable
 private fun StatusSelector(row: ScheduleRow, onStatus: (ClassStatus) -> Unit) {
     val current = row.session.commonStatus
-    val allowed = GroupRules.sessionTransitions(row.session)
+    val allowed = row.statusChoices
     Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
         Text(
             stringResource(R.string.class_status_label),

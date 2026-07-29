@@ -1,6 +1,7 @@
 package com.seblful.klas.data.repository
 
 import com.seblful.klas.data.local.StudentDao
+import com.seblful.klas.data.local.upsertedId
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
 import com.seblful.klas.domain.model.Student
@@ -47,10 +48,9 @@ class StudentRepository @Inject constructor(
      * rather than an unsaved student.
      */
     suspend fun upsert(student: Student): Long {
-        val id = dao.upsert(student.toEntity())
-        // @Upsert returns -1 when it updated rather than inserted — an edit, which is the case that
-        // needs the refresh at all.
-        val saved = if (id == -1L) student.id else id
+        // An edit answers -1 (see [upsertedId]) — and an edit is exactly the case that needs the
+        // refresh at all.
+        val saved = upsertedId(dao.upsert(student.toEntity()), student.id)
         calendar.refreshForStudent(saved)
         return saved
     }

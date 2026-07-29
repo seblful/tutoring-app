@@ -1,6 +1,7 @@
 package com.seblful.klas.diagnostics
 
 import com.seblful.klas.domain.Diagnostics
+import java.time.Clock
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,6 +21,7 @@ import javax.inject.Singleton
 class CrashLogger @Inject constructor(
     private val store: CrashLogStore,
     private val device: DeviceInfo,
+    private val clock: Clock,
 ) {
     /**
      * Wraps any existing handler. Call once, early, from `Application.onCreate`.
@@ -38,9 +40,9 @@ class CrashLogger @Inject constructor(
         return handler
     }
 
-    /** Appends one crash to the log, trimming the oldest entries past the cap. */
+    /** Appends one crash to the log, trimming the oldest entries past the cap. [now] is the injected clock's, so a test can pin the stamp. */
     @Synchronized
-    fun record(throwable: Throwable, now: Instant = Instant.now()) {
+    fun record(throwable: Throwable, now: Instant = clock.instant()) {
         val entry = Diagnostics.formatEntry(
             time = now,
             appVersion = device.appVersion,

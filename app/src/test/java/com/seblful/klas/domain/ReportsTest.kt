@@ -332,4 +332,49 @@ class ReportsTest {
         assertEquals(Money(9000), debts[0].amount)
         assertEquals(Money(12000), Reports.totalOutstanding(balances)) // 3000 + 9000, credit excluded
     }
+
+    /**
+     * The ranked bar's two rules — scaled to the section's largest line, dropped for a section of
+     * one — used to be decided by the composable that drew the bar. They are the report's own, so
+     * they arrive on the line ([Reports.Line.share]).
+     */
+    @Test
+    fun `a ranked line carries its bar as a fraction of the section's largest`() {
+        val classes = listOf(
+            klass(1, 10, "2026-06-10T10:00:00Z", 4000),
+            klass(1, 20, "2026-06-11T10:00:00Z", 1000),
+        )
+        val period = ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth.of(2026, 6))
+
+        val report = reportOf(classes, period)
+
+        assertEquals(listOf(1.0f, 0.25f), report.bySubject.map { it.share })
+    }
+
+    @Test
+    fun `a section of one line offers no bar — nothing to rank it against`() {
+        val classes = listOf(klass(1, 10, "2026-06-10T10:00:00Z", 4000))
+        val period = ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth.of(2026, 6))
+
+        val report = reportOf(classes, period)
+
+        assertNull(report.bySubject.single().share)
+    }
+
+    /** The chart's bar heights are the trend's own statement, like [Reports.Trend.rows]. */
+    @Test
+    fun `a bar's height is its fraction of the peak`() {
+        val classes = listOf(
+            klass(1, 10, "2026-02-10T10:00:00Z", 6000),
+            klass(1, 10, "2026-11-10T10:00:00Z", 3000),
+        )
+        val period = ReportPeriod(ReportPeriod.Kind.YEAR, YearMonth.of(2026, 7))
+
+        val trend = Reports.trend(classes, period, zone)
+
+        assertEquals(1.0f, trend.shareOf(trend.bars[1]))
+        assertEquals(0.5f, trend.shareOf(trend.bars[10]))
+        assertEquals("a quiet month is an empty track", 0f, trend.shareOf(trend.bars[2]))
+        assertEquals("the key's encoding is the module's to unpack", 1, trend.bars[1].monthIndex)
+    }
 }

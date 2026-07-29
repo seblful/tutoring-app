@@ -1,16 +1,13 @@
 package com.seblful.klas.notifications
 
-import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.TutoringClass
@@ -23,6 +20,13 @@ import javax.inject.Singleton
 @Singleton
 class AndroidNotifier @Inject constructor(
     @param:ApplicationContext private val context: Context,
+    /**
+     * "May a reminder be shown" has one definition, and it is the port's — this class used to keep a
+     * private copy that checked the runtime permission only, so with notifications switched off for
+     * the whole app in system settings it went on building and posting notifications that could never
+     * appear, while the settings row correctly said they were blocked.
+     */
+    private val permission: NotificationPermission,
 ) : Notifier {
 
     override fun ensureChannel() {
@@ -37,7 +41,7 @@ class AndroidNotifier @Inject constructor(
 
     /** No-ops silently if notification permission is missing. */
     override fun showClassReminder(klass: TutoringClass, whoName: String, subjectName: String) {
-        if (!hasPermission()) return
+        if (!permission.isGranted()) return
         ensureChannel()
 
         val time = klass.start.formatTime()
@@ -66,18 +70,13 @@ class AndroidNotifier @Inject constructor(
             .setContentIntent(openApp)
             .build()
 
-        // Guarded by hasPermission() above; still defend against revocation between check and post.
+        // Guarded above; still defend against revocation between check and post.
         try {
             NotificationManagerCompat.from(context).notify(klass.id.toInt(), notification)
         } catch (_: SecurityException) {
             // Notification permission was revoked — nothing to show.
         }
     }
-
-    private fun hasPermission(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
-            PackageManager.PERMISSION_GRANTED
 
     companion object {
         const val CHANNEL_REMINDERS = "class_reminders"

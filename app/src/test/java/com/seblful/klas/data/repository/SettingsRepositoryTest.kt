@@ -1,5 +1,7 @@
 package com.seblful.klas.data.repository
 
+import com.seblful.klas.domain.model.Currency
+import com.seblful.klas.domain.model.Money
 import com.seblful.klas.data.local.SettingsDao
 import com.seblful.klas.data.local.SettingsEntity
 import com.seblful.klas.testutil.FakeSettingsDao
@@ -11,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -35,17 +38,17 @@ class SettingsRepositoryTest {
         assertFalse("calendar sync default off", settings.calendarSyncEnabled)
         assertFalse("email invites default off — mailing students is a deliberate opt-in", settings.emailInvitesEnabled)
         assertFalse("auto-complete default off — never bill unconfirmed", settings.autoCompleteEnabled)
-        assertEquals(0L, settings.defaultGroupPriceMinor) // 0 means "not set"
-        assertEquals("BYN", settings.currency)
+        assertNull(settings.defaultGroupPrice) // not set until the tutor sets one
+        assertEquals(Currency.BYN, settings.currency)
     }
 
     @Test
     fun `updating one setting leaves the others untouched`() = runTest {
-        repo.update { it.copy(currency = "RUB") }
+        repo.update { it.copy(currency = Currency.RUB) }
         repo.update { it.copy(reminderLeadMinutes = 30) }
 
         val settings = repo.get()
-        assertEquals("RUB", settings.currency)
+        assertEquals(Currency.RUB, settings.currency)
         assertEquals(30, settings.reminderLeadMinutes)
         // Everything else still reads as it did.
         assertEquals(AppSettings().notificationsEnabled, settings.notificationsEnabled)
@@ -64,8 +67,8 @@ class SettingsRepositoryTest {
             autoCompleteEnabled = true,
             themeMode = "DARK",
             defaultLessonMinutes = 45,
-            defaultGroupPriceMinor = 2_500,
-            currency = "RUB",
+            defaultGroupPrice = Money(2_500),
+            currency = Currency.RUB,
         )
 
         repo.update { wanted }
@@ -77,12 +80,12 @@ class SettingsRepositoryTest {
 
     @Test
     fun `observe emits the stored settings`() = runTest {
-        repo.update { it.copy(themeMode = "DARK", currency = "RUB") }
+        repo.update { it.copy(themeMode = "DARK", currency = Currency.RUB) }
 
         val observed = repo.observe().first()
 
         assertEquals("DARK", observed.themeMode)
-        assertEquals("RUB", observed.currency)
+        assertEquals(Currency.RUB, observed.currency)
     }
 
     @Test
@@ -127,13 +130,13 @@ class SettingsRepositoryTest {
         val repo = SettingsRepository(dao)
 
         // Interleaved at the read: both are in flight before either writes.
-        val first = launch { repo.update { it.copy(currency = "RUB") } }
+        val first = launch { repo.update { it.copy(currency = Currency.RUB) } }
         val second = launch { repo.update { it.copy(reminderLeadMinutes = 30) } }
         first.join()
         second.join()
 
         val settings = repo.get()
-        assertEquals("RUB", settings.currency)
+        assertEquals(Currency.RUB, settings.currency)
         assertEquals(30, settings.reminderLeadMinutes)
     }
 

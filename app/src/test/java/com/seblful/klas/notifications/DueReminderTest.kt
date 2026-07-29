@@ -29,6 +29,7 @@ class DueReminderTest {
         groups = env.groupRepo,
         notifier = notifier,
         settings = env.settingsRepo,
+        clock = env.clock,
     )
 
     private val now: Instant = Instant.parse("2026-07-25T10:00:00Z")

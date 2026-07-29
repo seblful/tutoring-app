@@ -21,13 +21,17 @@ class SnapshotDaoTest {
 
     private val env = TestEnv()
 
-    private suspend fun seedALesson(subject: String, student: String) {
+    private suspend fun seedALesson(
+        subject: String,
+        student: String,
+        start: Instant = Instant.parse("2026-05-04T10:00:00Z"),
+    ) {
         val subjectId = env.fixtures.subject(subject)
         val studentId = env.fixtures.pricedStudent(student, subjectId)
         env.fixtures.completedLesson(
             subjectId = subjectId,
             students = listOf(studentId),
-            start = Instant.parse("2026-05-04T10:00:00Z"),
+            start = start,
             rate = Money.ofMajor(30),
         )
     }
@@ -36,10 +40,11 @@ class SnapshotDaoTest {
     fun `replace throws away what was there rather than merging into it`() = runTest {
         seedALesson("Алгебра", "Аня")
         val taken = env.snapshotDao.read()
-        // A different database entirely: same shape, none of the same rows.
+        // A different database entirely: same shape, none of the same rows. Its lesson takes its
+        // own hour — the repository seeding goes through holds one lesson at a time.
         env.subjectDao.items.value = emptyList()
         env.studentDao.items.value = emptyList()
-        seedALesson("Физика", "Борис")
+        seedALesson("Физика", "Борис", start = Instant.parse("2026-05-04T13:00:00Z"))
 
         env.snapshotDao.replace(taken)
 

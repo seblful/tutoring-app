@@ -151,12 +151,6 @@ class MoneyFieldTest {
     }
 
     @Test
-    fun `ofOrEmpty leaves the field empty when there is no amount`() {
-        assertEquals("", MoneyField.ofOrEmpty(null).text)
-        assertEquals("30", MoneyField.ofOrEmpty(Money.ofMajor(30)).text)
-    }
-
-    @Test
     fun `typed replaces the text and keeps the kind`() {
         val field = payment("10").typed("20")
         assertEquals("20", field.text)

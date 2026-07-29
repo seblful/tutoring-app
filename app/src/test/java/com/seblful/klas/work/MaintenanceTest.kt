@@ -33,6 +33,7 @@ class MaintenanceTest {
         classes = env.classRepo,
         settings = env.settingsRepo,
         scheduler = env.reminders,
+        clock = env.clock,
     )
 
     /**

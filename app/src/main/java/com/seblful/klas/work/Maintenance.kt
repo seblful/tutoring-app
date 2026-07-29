@@ -4,6 +4,7 @@ import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.domain.ReminderScheduler
 import com.seblful.klas.domain.Reminders
+import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
@@ -27,9 +28,14 @@ class Maintenance @Inject constructor(
     private val classes: ClassRepository,
     private val settings: SettingsRepository,
     private val scheduler: ReminderScheduler,
+    private val clock: Clock,
 ) {
-    /** Runs one upkeep pass. [now] is a parameter so a test needn't depend on the wall clock. */
-    suspend fun run(now: Instant = Instant.now()) {
+    /**
+     * Runs one upkeep pass. [now] defaults to the **injected** clock, never the wall clock: the
+     * default is the path production takes, and a default a test cannot move makes the tested path
+     * and the shipped path two different paths.
+     */
+    suspend fun run(now: Instant = clock.instant()) {
         val s = settings.get()
         // Auto-completion (and therefore auto-billing) is opt-in; when off, the tutor confirms each
         // lesson by marking it completed.

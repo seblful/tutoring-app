@@ -134,7 +134,10 @@ fun ReportsScreen(
         stringResource(R.string.reports_csv_label),
         stringResource(R.string.reports_csv_amount),
     )
-    val csvLines = ReportCsv.linesFor(state, csvHeadings(state.period))
+    // Remembered: this walks every group, subject, student and debt row, and recomposition is not
+    // a new report. Rebuilt only when the report itself changes.
+    val csvHeadings = csvHeadings(state.period)
+    val csvLines = remember(state, csvHeadings) { ReportCsv.linesFor(state, csvHeadings) }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument(CSV_MIME_TYPE),
     ) { uri ->
@@ -406,7 +409,7 @@ private fun TrendCard(trend: Reports.Trend) {
     val months = stringArrayResource(R.array.month_short_names)
     val isMonths = trend.bucket == Reports.Trend.Bucket.MONTHS
     ReportCard(stringResource(if (isMonths) R.string.reports_by_month else R.string.reports_by_year)) {
-        IncomeTrendChart(trend) { key -> if (isMonths) months[key % 12] else key.toString() }
+        IncomeTrendChart(trend) { bar -> if (isMonths) months[bar.monthIndex] else bar.key.toString() }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         // `rows`, not `bars`: newest first and without the empty buckets, which are a gap in the chart
         // above and would only be a row of zeros here. Both halves of that are stated on [Reports.Trend].
@@ -426,7 +429,7 @@ private fun TrendCard(trend: Reports.Trend) {
  * neighbouring bars close over. The best bucket is the solid one.
  */
 @Composable
-private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Int) -> String) {
+private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) -> String) {
     val peak = trend.peak ?: return
     val filled = MaterialTheme.colorScheme.primary
     val track = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
@@ -441,13 +444,13 @@ private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Int) -> String) {
                     Box(
                         Modifier
                             .fillMaxWidth()
-                            .fillMaxHeight(bar.total.minor.toFloat() / peak.total.minor)
+                            .fillMaxHeight(trend.shareOf(bar))
                             .clip(BarShape)
                             .background(if (bar.key == peak.key) filled else filled.copy(alpha = 0.45f)),
                     )
                 }
                 Text(
-                    labelOf(bar.key),
+                    labelOf(bar),
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = AxisFontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -503,21 +506,20 @@ private fun KindSplitCard(lines: List<Reports.KindLine>) {
 }
 
 /**
- * A ranked breakdown. The bar is drawn against the **largest** line rather than the total, so it
- * pictures the ranking the rows are already in — scaled to the total, a long tail of students would be
- * a column of near-empty tracks saying nothing. One line alone gets no bar: there is nothing to rank it
- * against, and a bar filled to the brim would only assert that the only row is the biggest one.
+ * A ranked breakdown. Each bar's fraction — against the section's largest line, absent for a
+ * section of one — arrives on the line itself ([Reports.Line.share]): both rules are statements
+ * about a report, and they are decided and tested where the report is.
  */
 @Composable
 private fun RankedCard(title: String, lines: List<Reports.Line>) {
-    val top = lines.first().amount.minor.coerceAtLeast(1)
     ReportCard(title) {
         lines.forEach { line ->
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 AmountRow(line.label, line.amount.text(), color = MaterialTheme.colorScheme.primary)
-                if (lines.size > 1) {
+                // The fraction and the single-line rule are the report's own — see [Reports.Line.share].
+                line.share?.let { share ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        RankedBar(line.amount.minor.toFloat() / top, Modifier.weight(1f))
+                        RankedBar(share, Modifier.weight(1f))
                         // A percentage only where the rows genuinely partition the income.
                         line.percent?.let {
                             Spacer(Modifier.width(8.dp))

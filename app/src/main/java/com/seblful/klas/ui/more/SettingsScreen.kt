@@ -48,11 +48,13 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
+import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.toAmountInput
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.currencyLabel
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.text
 
@@ -94,7 +96,7 @@ fun SettingsScreen(
 
     // The currency the tutor picked but has not yet confirmed — null while nothing is being asked.
     // Held rather than applied, because switching it re-labels every amount already recorded.
-    var pendingCurrency by remember { mutableStateOf<String?>(null) }
+    var pendingCurrency by remember { mutableStateOf<Currency?>(null) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(messages.hostState) },
@@ -168,7 +170,7 @@ fun SettingsScreen(
                 // anything while sync is on — shown dimmed rather than hidden, so the tutor can see
                 // that syncing alone mails nobody, and where to opt in if they want it to.
                 enabled = settings.calendarSyncEnabled,
-                onCheckedChange = { viewModel.setEmailInvitesEnabled(it) },
+                onCheckedChange = { on -> viewModel.update { it.copy(emailInvitesEnabled = on) } },
             )
 
             SectionHeader(stringResource(R.string.settings_section_classes))
@@ -199,20 +201,21 @@ fun SettingsScreen(
             // loud before every stored amount changes meaning.
             ChoiceRow(
                 title = stringResource(R.string.settings_currency),
-                options = listOf(
-                    "BYN" to stringResource(R.string.currency_byn),
-                    "RUB" to stringResource(R.string.currency_rub),
-                ),
-                selected = settings.currency,
-                onSelect = { code -> if (code != settings.currency) pendingCurrency = code },
+                // The legal set is [Currency]'s, not this screen's — the row only words it.
+                options = Currency.entries.map { it.name to currencyLabel(it) },
+                selected = settings.currency.name,
+                onSelect = { code ->
+                    val picked = Currency.parse(code)
+                    if (picked != settings.currency) pendingCurrency = picked
+                },
             )
             // Free text rather than a segmented control: unlike a lesson length or a currency, there
             // is no shortlist of plausible amounts to offer.
             MoneyRow(
                 title = stringResource(R.string.settings_default_group_price),
                 description = stringResource(R.string.settings_default_group_price_desc),
-                minor = settings.defaultGroupPriceMinor,
-                onSet = { minor -> viewModel.update { it.copy(defaultGroupPriceMinor = minor) } },
+                amount = settings.defaultGroupPrice,
+                onSet = { price -> viewModel.update { it.copy(defaultGroupPrice = price) } },
             )
 
             SectionHeader(stringResource(R.string.settings_section_appearance))
@@ -242,7 +245,7 @@ fun SettingsScreen(
 
     pendingCurrency?.let { code ->
         ConfirmDialog(
-            text = stringResource(R.string.settings_currency_change_confirm, code),
+            text = stringResource(R.string.settings_currency_change_confirm, code.name),
             confirmLabel = stringResource(R.string.settings_currency_change),
             onConfirm = { viewModel.update { it.copy(currency = code) } },
             onDismiss = { pendingCurrency = null },
@@ -286,7 +289,7 @@ private const val DISABLED_ALPHA = 0.38f
  * A titled row holding one money amount, edited in a dialog. Shows the amount itself as the value, so
  * the row reads as a statement of the setting rather than as a link to go and look.
  *
- * **Clearing the field unsets it** (0, «Не задана»), which is why the dialog's save stays enabled on
+ * **Clearing the field unsets it** (null, «Не задана»), which is why the dialog's save stays enabled on
  * an empty field: one control both sets and removes the default, instead of an amount the tutor can
  * never take back once typed.
  */
@@ -294,8 +297,8 @@ private const val DISABLED_ALPHA = 0.38f
 private fun MoneyRow(
     title: String,
     description: String,
-    minor: Long,
-    onSet: (Long) -> Unit,
+    amount: Money?,
+    onSet: (Money?) -> Unit,
 ) {
     var editing by remember { mutableStateOf(false) }
     ListItem(
@@ -303,7 +306,7 @@ private fun MoneyRow(
         supportingContent = { Text(description) },
         trailingContent = {
             Text(
-                if (minor == 0L) stringResource(R.string.settings_not_set) else Money(minor).text(),
+                amount?.text() ?: stringResource(R.string.settings_not_set),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -316,7 +319,7 @@ private fun MoneyRow(
         var field by remember {
             mutableStateOf(
                 MoneyField(
-                    text = if (minor == 0L) "" else Money(minor).toAmountInput(),
+                    text = amount?.toAmountInput() ?: "",
                     kind = MoneyField.Kind.OPTIONAL_RATE,
                 ),
             )
@@ -342,7 +345,8 @@ private fun MoneyRow(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        field.amount?.let { onSet(it.minor) }
+                        // A blank OPTIONAL_RATE parses as zero, and zero is "not set".
+                        onSet(field.amount?.takeUnless { it.isZero })
                         editing = false
                     },
                     enabled = field.isValid,

@@ -41,8 +41,8 @@ class GroupsViewModelTest {
     @Test
     fun `archived groups appear only when the archive is shown`() = runTest(mainRule.dispatcher) {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val active = env.groupRepo.save(Group(name = "Активная"), setOf(ann))
-        val retired = env.groupRepo.save(Group(name = "Прошлый год"), setOf(ann))
+        val active = env.groupRepo.save(Group(name = "Активная"), setOf(ann)).id
+        val retired = env.groupRepo.save(Group(name = "Прошлый год"), setOf(ann)).id
         env.groupRepo.setArchived(env.groupRepo.getById(retired)!!, true)
 
         val vm = vm()

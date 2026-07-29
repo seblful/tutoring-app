@@ -4,6 +4,7 @@ import com.seblful.klas.data.local.PriceDao
 import com.seblful.klas.data.local.StudentDao
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.Transactor
+import com.seblful.klas.data.local.upsertedId
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
 import com.seblful.klas.domain.model.Money
@@ -82,10 +83,9 @@ class EnrollmentRepository @Inject constructor(
      */
     suspend fun createStudent(student: Student, pricedSubjects: Map<Long, Money>): Long =
         transactor.transaction {
-            // Room's @Upsert returns the new rowid on insert and -1 on update; this is a creation, so
-            // it inserts — the fallback mirrors `GroupRepository.save` rather than trusting that.
-            val rowId = studentDao.upsert(student.toEntity())
-            val id = if (rowId == -1L) student.id else rowId
+            // This is a creation, so the upsert inserts — but the -1 sentinel is handled all the
+            // same (see [upsertedId]) rather than trusted not to occur.
+            val id = upsertedId(studentDao.upsert(student.toEntity()), student.id)
             pricedSubjects.forEach { (subjectId, price) ->
                 studentDao.addSubjectLink(StudentSubjectCrossRef(id, subjectId))
                 record(id, subjectId, price)

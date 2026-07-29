@@ -47,7 +47,7 @@ class ClassRepositoryAtomicityTest {
             bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
             cleo = env.studentDao.upsert(StudentEntity(name = "Вера"))
             algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-            groupId = env.groupRepo.save(Group(name = "11 «А»", price = rate), setOf(ann, bob, cleo))
+            groupId = env.groupRepo.save(Group(name = "11 «А»", price = rate), setOf(ann, bob, cleo)).id
         }
     }
 
@@ -60,7 +60,7 @@ class ClassRepositoryAtomicityTest {
             mode = ClassMode.IN_PERSON,
             studentIds = members,
             price = groupRate,
-        )
+        ).written()
 
     @Test
     fun `booking a group lesson writes every member's row in one transaction`() = runTest {
@@ -99,6 +99,7 @@ class ClassRepositoryAtomicityTest {
                 price = groupRate,
             ),
             newStart = start,
+            now = start,
             roster = setOf(f.bob, f.cleo),
         )
 
@@ -208,7 +209,7 @@ class ClassRepositoryAtomicityTest {
         val mirror = CalendarMirror(
             env.classDao, env.studentDao, env.subjectDao, env.groupDao, spying, env.settingsRepo,
         )
-        val repo = ClassRepository(env.classDao, mirror, env.reminders, env.settingsRepo, env.transactor)
+        val repo = ClassRepository(env.classDao, mirror, env.reminders, env.transactor)
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         env.studentDao.upsert(StudentEntity(id = 1, name = "Аня"))
         env.subjectDao.upsert(SubjectEntity(id = 1, name = "Алгебра"))
@@ -221,7 +222,7 @@ class ClassRepositoryAtomicityTest {
             mode = ClassMode.IN_PERSON,
             studentIds = listOf(1L),
             price = Money.ofMajor(30),
-        ).single()
+        ).written().single()
         val session = repo.getSessionFor(id)!!
         repo.setStatus(session, ClassStatus.CANCELLED)
         repo.delete(repo.getSessionFor(id) ?: session)

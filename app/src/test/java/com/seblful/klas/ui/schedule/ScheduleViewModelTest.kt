@@ -673,7 +673,7 @@ class ScheduleViewModelTest {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
+        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
         val day = LocalDate.of(2026, 7, 15)
         val at = startMillisOn(day, LocalTime.of(12, 0))
         val first = env.classDao.upsert(ClassEntity(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
@@ -697,7 +697,7 @@ class ScheduleViewModelTest {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
+        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
         val wednesday = LocalDate.of(2026, 7, 15)
         val at = startMillisOn(wednesday, LocalTime.of(12, 0))
         env.classDao.upsert(ClassEntity(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
@@ -722,7 +722,7 @@ class ScheduleViewModelTest {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
+        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
         val today = LocalDate.now(zone)
         val at = startMillisOn(today, LocalTime.of(12, 0))
         env.classDao.upsert(ClassEntity(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId))
@@ -753,7 +753,7 @@ class ScheduleViewModelTest {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
+        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
         val at = startMillisOn(LocalDate.now(zone), LocalTime.of(12, 0))
         env.classDao.upsert(ClassEntity(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = "SCHEDULED", groupId = groupId))
         env.classDao.upsert(ClassEntity(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, priceMinor = Money.ofMajor(20).minor, status = "SCHEDULED", groupId = groupId))
@@ -819,5 +819,56 @@ class ScheduleViewModelTest {
                 DeleteWarning(billed = true, group = true, classes = 2),
                 warningFor(groupCompleted),
             )
+        }
+
+    /**
+     * `deleteWarning`'s three siblings: what the sheet's segments enable, whether the swipe gesture
+     * is offered, and whether the card recedes. All were decided inside `ScheduleScreen`, so the rule
+     * gating the product's highest-frequency gesture could be exercised only by swiping on a phone —
+     * the mixed-status «Разные» case in particular, which must offer the swipe (its cancelled member
+     * stays a correction) while matching no segment.
+     */
+    @Test
+    fun `the row answers what is legal — segments, the swipe, and receding`() =
+        runTest(mainRule.dispatcher) {
+            val subject = env.fixtures.subject("Математика")
+            val anya = env.fixtures.pricedStudent("Аня", subject)
+            val boris = env.fixtures.pricedStudent("Борис", subject)
+            val group = env.fixtures.group("11 «А»", subjectId = subject, members = setOf(anya, boris))
+
+            val scheduled = env.fixtures.lesson(subject, listOf(anya), at(9))
+            val completed = env.fixtures.completedLesson(subject, listOf(anya), at(10))
+            val cancelled = env.fixtures.cancelledLesson(subject, listOf(anya), at(11))
+            // A planned group lesson whose absentee was corrected to cancelled — the session reads
+            // «Разные», and completing it is still legal for the member who is coming.
+            val mixed = env.fixtures.lesson(subject, listOf(anya, boris), at(12), groupId = group)
+            val borisClass = env.classRepo.getSessionFor(mixed.first())!!
+                .classes.single { it.studentId == boris }
+            env.classRepo.setStatus(com.seblful.klas.domain.ClassSession.of(borisClass), ClassStatus.CANCELLED)
+
+            suspend fun rowFor(ids: List<Long>) =
+                ScheduleRow(session = env.classRepo.getSessionFor(ids.first())!!, title = "", subjectName = "")
+
+            val plain = rowFor(scheduled)
+            assertTrue("a scheduled lesson can be swiped done", plain.canSwipeComplete)
+            assertEquals(setOf(ClassStatus.COMPLETED, ClassStatus.CANCELLED), plain.statusChoices)
+            assertFalse(plain.recedes)
+
+            val done = rowFor(completed)
+            assertFalse("nothing to complete twice", done.canSwipeComplete)
+            assertEquals(setOf(ClassStatus.CANCELLED), done.statusChoices)
+            assertFalse(done.recedes)
+
+            val off = rowFor(cancelled)
+            assertFalse(off.canSwipeComplete)
+            assertEquals(setOf(ClassStatus.SCHEDULED), off.statusChoices)
+            assertTrue("a called-off lesson recedes — its hour was given back", off.recedes)
+
+            val corrected = rowFor(mixed)
+            assertTrue(
+                "«Разные» still offers the union of its members' moves",
+                corrected.canSwipeComplete,
+            )
+            assertFalse("but does not recede — some of it happened", corrected.recedes)
         }
 }
