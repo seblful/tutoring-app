@@ -414,6 +414,12 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   undoes the whole thing in silence. `swipeArmed` is the only copy of "would letting go act?", so the tick
   and the release cannot disagree; it is pure, and `SwipeToConfirmTest` asks it on the JVM while
   `SwipeToConfirmBoxTest` pins the wiring on a device, list-scroll arbitration included.
+- **A moment that is felt is also seen** (`ui/common/Pop`), because haptics can be switched off on the phone
+  and a thumb sits on the row: `armedPop` holds the ✓ enlarged for as long as letting go would act — drawn
+  from the same flag as the tick, so neither can appear without the other — and `popsOnChange` pops the
+  status badge when the status actually flips, by swipe or from the sheet. Both go through `graphicsLayer`,
+  so a pop costs a redraw and never a re-layout; `popsOnChange` is **silent on arrival**, or every row
+  scrolled into view would announce itself.
   **Deliberately not `SwipeToDismissBox`**: its release also has a *velocity* path (a flick commits from
   anywhere) and its live `targetValue` is half the width, so the mark, the tick and the action were three
   different places. Here a flick that travels nowhere does nothing — marking a lesson taught is what bills

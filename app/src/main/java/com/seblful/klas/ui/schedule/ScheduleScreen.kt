@@ -78,10 +78,12 @@ import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.SwipeToConfirmBox
 import com.seblful.klas.ui.common.TimePickerModal
+import com.seblful.klas.ui.common.armedPop
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.popsOnChange
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.format.formatDay
@@ -432,7 +434,7 @@ private fun LazyItemScope.SwipeToCompleteCard(
     SwipeToConfirmBox(
         onConfirm = onComplete,
         modifier = modifier.animateItem(),
-        reveal = {
+        reveal = { armed ->
             Row(
                 Modifier
                     .fillMaxSize()
@@ -443,10 +445,13 @@ private fun LazyItemScope.SwipeToCompleteCard(
                     .padding(horizontal = 24.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // The tick's visible half: the check grows at the mark and stays grown while letting go
+                // would act. It sits at the leading edge, which the thumb has already moved off.
                 Icon(
                     Icons.Filled.CheckCircle,
                     contentDescription = stringResource(R.string.class_mark_completed),
                     tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.armedPop(armed),
                 )
                 Spacer(Modifier.width(12.dp))
                 Text(
@@ -526,11 +531,20 @@ private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit, modifier: Modifi
 /**
  * The lesson's status — one of the three, whatever its members have been corrected to individually.
  * Which of them missed it is the lesson's own roster to say, not this badge's.
+ *
+ * **It pops when it changes**, because it is the answer to a swipe the tutor has just let go of — the row
+ * springs home under their thumb and the badge is where the outcome lands, a moment later and 200dp away
+ * (see [popsOnChange], which is silent for a badge that merely scrolled into view). It pops for a status
+ * corrected from the sheet too: the same fact changed under them, by a different route.
  */
 @Composable
 private fun SessionStatusBadge(row: ScheduleRow) {
     val status = row.session.status
-    StatusBadge(text = classStatusLabel(status), color = classStatusColor(status))
+    StatusBadge(
+        text = classStatusLabel(status),
+        color = classStatusColor(status),
+        modifier = Modifier.popsOnChange(status),
+    )
 }
 
 @Composable

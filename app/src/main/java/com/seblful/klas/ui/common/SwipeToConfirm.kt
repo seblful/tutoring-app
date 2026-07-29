@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -28,11 +29,17 @@ import kotlin.math.roundToInt
  * and taking the action back if the finger slides home again.
  *
  * The gesture is a promise made and then kept, so it is three moments rather than one:
- * - **the mark** — [swipeArmed] becomes true, the phone ticks ([rememberArmedFeedback]), and from here
- *   letting go will act;
+ * - **the mark** — [swipeArmed] becomes true, the phone ticks ([rememberArmedFeedback]), the [reveal] is
+ *   told so, and from here letting go will act;
  * - **the way back** — dragging under the mark again disarms it, in silence, and the row is just a row;
  * - **the lift** — the answer at that instant is the one that counts: confirm buzz plus [onConfirm], or
  *   nothing at all.
+ *
+ * **The mark is felt and seen, off one flag.** A buzz alone is deniable — a thumb rests on the row, the
+ * phone may have haptics turned off, and the tutor is left guessing whether the promise was made. So
+ * `armed` is handed to the [reveal], which draws it with [armedPop]; both the tick and the pop read the one
+ * flag, so no phone setting can leave the gesture saying nothing, and nothing can pop where the release
+ * would decline.
  *
  * The row always springs home, so the [reveal] behind it is a promise of what will happen and never the
  * aftermath of it: nothing is being removed from the list, and the caller's own state — a status badge —
@@ -51,7 +58,7 @@ import kotlin.math.roundToInt
 @Composable
 fun SwipeToConfirmBox(
     onConfirm: () -> Unit,
-    reveal: @Composable () -> Unit,
+    reveal: @Composable (armed: Boolean) -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -65,12 +72,16 @@ fun SwipeToConfirmBox(
     var width by remember { mutableFloatStateOf(0f) }
     var goingHome by remember { mutableStateOf<Job?>(null) }
 
-    // Observed rather than read in composition: the offset changes every frame of a drag, and only its
-    // *answer* changing is an event. `snapshotFlow` emits on change, which is what makes the tick one per
-    // crossing rather than one per frame.
+    // **Derived, not computed in the body.** The offset changes every frame of a drag, so reading it here
+    // directly would recompose the row sixty times a second to answer the same yes or no; a `derivedStateOf`
+    // notifies only when the *answer* flips, which is twice per gesture at most.
+    val armed by remember { derivedStateOf { swipeArmed(dragged, width) } }
+
+    // One flag, two ways of saying it: the pop is drawn from `armed` below, the tick fires on its edge.
+    // `snapshotFlow` emits on change, which is what makes the tick one per crossing rather than one per
+    // frame — and silence on the way back, where nothing has happened to announce.
     LaunchedEffect(Unit) {
-        snapshotFlow { swipeArmed(dragged, width) }
-            .collect { armed -> if (armed) armedFeedback() }
+        snapshotFlow { armed }.collect { if (it) armedFeedback() }
     }
 
     fun springHome() {
@@ -105,7 +116,7 @@ fun SwipeToConfirmBox(
             },
         propagateMinConstraints = true,
     ) {
-        Box(Modifier.matchParentSize()) { reveal() }
+        Box(Modifier.matchParentSize()) { reveal(armed) }
         // Offset in the layout phase, not by recomposing: the row is moved, not rebuilt, sixty times a
         // second.
         Box(Modifier.offset { IntOffset(dragged.roundToInt(), 0) }) { content() }

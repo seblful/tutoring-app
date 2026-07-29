@@ -20,6 +20,8 @@ import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -52,6 +54,13 @@ class SwipeToConfirmBoxTest {
     private val recorder = Recorder()
     private var confirmed = 0
 
+    /**
+     * What the reveal was last told, which is what the pop is drawn from (`ui/common/Pop`). Asserted beside
+     * the haptics so the felt half and the seen half are pinned to the same flag: a `graphicsLayer` scale
+     * cannot be read back from a semantics tree, but *being told* can.
+     */
+    private var armedNow = false
+
     /** A row as wide as the screen, so a third of it is a real drag, and tall enough for a thumb. */
     private fun row() {
         rule.setContent {
@@ -59,7 +68,10 @@ class SwipeToConfirmBoxTest {
                 CompositionLocalProvider(LocalHapticFeedback provides recorder) {
                     SwipeToConfirmBox(
                         onConfirm = { confirmed++ },
-                        reveal = { Text("Проведено") },
+                        reveal = { armed ->
+                            armedNow = armed
+                            Text("Проведено")
+                        },
                         modifier = Modifier.testTag(ROW).fillMaxWidth().height(72.dp),
                     ) {
                         Text("занятие")
@@ -78,7 +90,10 @@ class SwipeToConfirmBoxTest {
                         items(20) { index ->
                             SwipeToConfirmBox(
                                 onConfirm = { confirmed++ },
-                                reveal = { Text("Проведено") },
+                                reveal = { armed ->
+                                    if (armed) armedNow = true
+                                    Text("Проведено")
+                                },
                                 modifier = Modifier.testTag(rowTag(index)).fillMaxWidth().height(72.dp),
                             ) {
                                 Text("занятие $index")
@@ -113,6 +128,7 @@ class SwipeToConfirmBoxTest {
             listOf(HapticFeedbackType.GestureThresholdActivate),
             recorder.performed,
         )
+        assertTrue("the reveal was not told, so nothing pops for a phone with haptics off", armedNow)
         assertEquals("nothing is done until the finger lifts", 0, confirmed)
     }
 
@@ -133,6 +149,7 @@ class SwipeToConfirmBoxTest {
             listOf(HapticFeedbackType.GestureThresholdActivate),
             recorder.performed,
         )
+        assertFalse("the check is still held large over a row that will not be marked", armedNow)
     }
 
     @Test
@@ -149,6 +166,9 @@ class SwipeToConfirmBoxTest {
             listOf(HapticFeedbackType.GestureThresholdActivate, HapticFeedbackType.Confirm),
             recorder.performed,
         )
+        // The row is home again, so the promise is over: what says «done» from here is the caller's badge,
+        // which pops on its own (`Modifier.popsOnChange`).
+        assertFalse("the reveal is still armed after the row came home", armedNow)
     }
 
     /**
