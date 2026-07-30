@@ -1,64 +1,65 @@
 package com.seblful.klas.ui.groups
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.EventBusy
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
-import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.format.formatHours
 import com.seblful.klas.ui.common.Avatar
+import com.seblful.klas.ui.common.ConfirmDialog
+import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.LoadingDetailScreen
-import com.seblful.klas.ui.common.MinTouchTarget
-import com.seblful.klas.ui.common.RateHistoryList
+import com.seblful.klas.ui.common.ShowMessagesFor
+import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatRow
-import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.StickyTabRow
+import com.seblful.klas.ui.common.TitleSize
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
+import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.text
 
 /**
@@ -97,7 +98,8 @@ fun GroupDetailScreen(
     // wait is its own screen instead of a card claiming no members and no lessons. See [Loadable].
     when (val screenState = viewModel.state.collectAsState().value) {
         Loadable.Loading -> LoadingDetailScreen(onBack)
-        is Loadable.Ready -> GroupCard(screenState.value, onBack, onEdit, onMemberClick, onLessonClick)
+        is Loadable.Ready ->
+            GroupCard(screenState.value, viewModel, onBack, onEdit, onMemberClick, onLessonClick)
     }
 }
 
@@ -105,6 +107,7 @@ fun GroupDetailScreen(
 @Composable
 private fun GroupCard(
     state: GroupDetailState,
+    viewModel: GroupDetailViewModel,
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onMemberClick: (Long) -> Unit,
@@ -113,56 +116,65 @@ private fun GroupCard(
     val group = state.group
 
     var tab by rememberSaveable { mutableStateOf(GroupTab.STUDENTS) }
-    var historyExpanded by rememberSaveable { mutableStateOf(false) }
+    var confirmingDelete by remember { mutableStateOf(false) }
+
+    val messages = rememberMessages()
+    val deleteBlockedMsg = stringResource(R.string.group_delete_blocked)
+    ShowMessagesFor(viewModel.events, messages) { deleteBlockedMsg }
 
     // The group's name is the subject of the screen, as a student's is on theirs — the same large,
     // collapsing title, so the two cards read as one pattern.
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            LargeTopAppBar(
-                scrollBehavior = scrollBehavior,
-                title = { Text(group?.name ?: "", maxLines = 2) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onEdit) {
-                        Icon(Icons.Filled.Edit, stringResource(R.string.action_edit))
-                    }
-                },
-            )
+    KlasScreen(
+        title = group?.name,
+        onBack = onBack,
+        titleSize = TitleSize.Large,
+        messages = messages,
+        actions = {
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Filled.Edit, stringResource(R.string.action_edit))
+            }
+            // Retiring and removing the group, behind the overflow — where a student's already were.
+            // They used to be a pair of outlined buttons under a «danger zone» heading at the foot of
+            // the group's *form*, so the same lifecycle verb lived on the card for one entity and on
+            // the form for the other, and reaching the group's meant scrolling past its whole roster.
+            if (group != null) {
+                GroupOverflowMenu(
+                    archived = group.archived,
+                    onArchive = { viewModel.setArchived(!group.archived) },
+                    onDelete = { confirmingDelete = true },
+                )
+            }
         },
-    ) { padding ->
+    ) { modifier ->
         LazyColumn(
-            modifier = Modifier.fillMaxWidth().padding(padding).constrainedContent(),
-            contentPadding = PaddingValues(bottom = 24.dp),
+            modifier = modifier,
+            contentPadding = PaddingValues(bottom = Spacing.sectionGap),
         ) {
+            // Identity, then the numbers, then the tabs — the same three in the same order as the
+            // student's card. The two used to disagree: the student led with the stat row and put the
+            // "what is this" block second.
             item(key = GroupDetailKeys.HEADER) {
                 GroupHeader(
                     state = state,
-                    historyExpanded = historyExpanded,
-                    onToggleHistory = { historyExpanded = !historyExpanded },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(
+                        horizontal = Spacing.gutter,
+                        vertical = Spacing.inline,
+                    ),
                 )
             }
 
             item(key = GroupDetailKeys.STATS) {
                 StatRow(
                     stats = groupStats(state),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(
+                        horizontal = Spacing.gutter,
+                        vertical = Spacing.inline,
+                    ),
                 )
             }
 
             stickyHeader(key = GroupDetailKeys.TABS) {
-                SecondaryTabRow(
-                    selectedTabIndex = tab.ordinal,
-                    modifier = Modifier.background(MaterialTheme.colorScheme.surface),
-                ) {
+                StickyTabRow(selectedTabIndex = tab.ordinal) {
                     GroupTab.entries.forEach { entry ->
                         Tab(
                             selected = tab == entry,
@@ -174,28 +186,37 @@ private fun GroupCard(
             }
 
             when (tab) {
-                GroupTab.STUDENTS -> studentsTab(state, onMemberClick)
+                GroupTab.STUDENTS -> studentsTab(state, onMemberClick, onEditMembers = onEdit)
                 GroupTab.LESSONS -> lessonsTab(state, onLessonClick)
             }
         }
     }
+
+    if (confirmingDelete) {
+        ConfirmDialog(
+            text = stringResource(R.string.group_delete_confirm),
+            onConfirm = { viewModel.delete(onDeleted = onBack) },
+            onDismiss = { confirmingDelete = false },
+        )
+    }
 }
 
 /**
- * What the group is: its subject, its rate — and, behind one tap, what that rate used to be.
+ * What the group is: its subject, whether it is retired, its note and its rate.
  *
  * A group with no subject says so rather than showing an empty line: groups made before the subject
  * was fixed on the group genuinely have none, and «Предмет не выбран» is the prompt to set one.
+ *
+ * **The rate's history is not here any more.** It was an «История цены ⌄» expander under the rate — a
+ * 28 dp toggle held up to the touch minimum, on the one screen that cannot change the number it was
+ * annotating. History is context for the number being *typed*, which is the argument the student's
+ * reprice dialog already made in its own KDoc; the group's rate is typed on the group's form, so that
+ * is where the log went.
  */
 @Composable
-private fun GroupHeader(
-    state: GroupDetailState,
-    historyExpanded: Boolean,
-    onToggleHistory: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun GroupHeader(state: GroupDetailState, modifier: Modifier = Modifier) {
     val group = state.group ?: return
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 state.subjectName ?: stringResource(R.string.group_no_subject),
@@ -209,37 +230,63 @@ private fun GroupHeader(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontStyle = FontStyle.Italic,
-                    modifier = Modifier.padding(start = 12.dp),
+                    modifier = Modifier.padding(start = Spacing.itemGap),
                 )
             }
         }
         if (group.note.isNotBlank()) {
             Text(group.note, style = MaterialTheme.typography.bodyMedium)
         }
-        // Held to the 48dp floor: this measured about 28dp, which is under the minimum for anything
-        // tappable — and it is the only control in the header.
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clip(MaterialTheme.shapes.small)
-                .clickable(onClick = onToggleHistory)
-                .heightIn(min = MinTouchTarget)
-                .padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                stringResource(R.string.price_per_hour, group.price.text()),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Icon(
-                if (historyExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                contentDescription = stringResource(R.string.rate_history_expand),
-                tint = MaterialTheme.colorScheme.primary,
-            )
+        Text(
+            stringResource(R.string.price_per_hour, group.price.text()),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
+
+/**
+ * Retiring or removing the group — the same overflow the student's card carries, in the same place.
+ *
+ * Delete is tinted with the error colour and sits below archive, because archiving is the one the app
+ * pushes you towards: a group with lessons cannot be deleted at all (its classes must keep naming it),
+ * and the refusal says so.
+ */
+@Composable
+private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(Icons.Filled.MoreVert, stringResource(R.string.action_more))
         }
-        AnimatedVisibility(historyExpanded) {
-            RateHistoryList(state.rateHistory, Modifier.padding(bottom = 8.dp))
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(
+                            if (archived) R.string.action_unarchive else R.string.action_archive
+                        )
+                    )
+                },
+                leadingIcon = { Icon(Icons.Filled.Inventory2, contentDescription = null) },
+                onClick = { expanded = false; onArchive() },
+            )
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(R.string.action_delete),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                },
+                onClick = { expanded = false; onDelete() },
+            )
         }
     }
 }
@@ -263,10 +310,24 @@ private fun groupStats(state: GroupDetailState): List<Stat> {
  * The roster, each member with how many of the group's lessons they were actually in — which a list
  * of names alone does not say, since someone left out week after week is still a member.
  */
-private fun LazyListScope.studentsTab(state: GroupDetailState, onMemberClick: (Long) -> Unit) {
+private fun LazyListScope.studentsTab(
+    state: GroupDetailState,
+    onMemberClick: (Long) -> Unit,
+    onEditMembers: () -> Unit,
+) {
     if (state.members.isEmpty()) {
         item(key = GroupDetailKeys.STUDENTS_EMPTY) {
-            TabEmptyState(stringResource(R.string.group_no_members))
+            // With the way out. This tab named its emptiness and offered nothing, while the student
+            // card's subjects tab offered «Добавить предмет» — the asymmetry was which file `AddRow`
+            // happened to live in, not a decision. A roster is changed on the group's form, so that is
+            // where this leads.
+            EmptyState(
+                title = stringResource(R.string.group_no_members),
+                icon = Icons.Outlined.Groups,
+                actionLabel = stringResource(R.string.group_edit_members),
+                onAction = onEditMembers,
+                compact = true,
+            )
         }
         return
     }
@@ -298,7 +359,13 @@ private fun LazyListScope.studentsTab(state: GroupDetailState, onMemberClick: (L
 private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Long) -> Unit) {
     if (state.lessons.isEmpty()) {
         item(key = GroupDetailKeys.LESSONS_EMPTY) {
-            TabEmptyState(stringResource(R.string.group_lessons_empty))
+            // No action, for the same reason the student card's lessons tab has none: a lesson is
+            // booked from the schedule.
+            EmptyState(
+                title = stringResource(R.string.group_lessons_empty),
+                icon = Icons.Outlined.EventBusy,
+                compact = true,
+            )
         }
         return
     }
@@ -307,7 +374,7 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
         ListItem(
             headlineContent = { Text(row.session.start.dateTimeText()) },
             supportingContent = {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
                     Text(
                         // What happened to the lesson. How many of the group were in it is the count
                         // beside this, which is the part that speaks for the members.
@@ -331,16 +398,6 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
             modifier = Modifier.clickable { onLessonClick(row.session.first.id) }.animateItem(),
         )
     }
-}
-
-@Composable
-private fun TabEmptyState(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
-    )
 }
 
 /**

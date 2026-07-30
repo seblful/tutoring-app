@@ -21,12 +21,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneOffset
+
+/*
+ * All three modals in this file confirm with «Готово» (`action_done`), never «Сохранить». A picker
+ * hands a value back to the form that opened it and writes nothing; the form's own «Сохранить» is
+ * what commits. They all said «Сохранить» once, which put two of them in a row on the booking
+ * form — see the note at `action_done` in `strings.xml`.
+ */
 
 /**
  * Date picker. [onConfirm] reports the chosen date and [onDismiss] reports a cancel; the two are
@@ -51,7 +57,7 @@ fun DatePickerModal(
                 state.selectedDateMillis?.let {
                     onConfirm(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate())
                 }
-            }) { Text(stringResource(R.string.action_save)) }
+            }) { Text(stringResource(R.string.action_done)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     ) {
@@ -86,7 +92,7 @@ fun TimePickerModal(
         confirmButton = {
             TextButton(onClick = {
                 onConfirm(LocalTime.of(state.hour, state.minute))
-            }) { Text(stringResource(R.string.action_save)) }
+            }) { Text(stringResource(R.string.action_done)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
         text = { TimePicker(state = state) },
@@ -121,7 +127,7 @@ fun DurationPickerModal(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.class_duration_label)) },
         text = {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
                 CountField(
                     value = hours,
                     onValue = { hours = it },
@@ -142,7 +148,7 @@ fun DurationPickerModal(
             TextButton(
                 onClick = { onConfirm(total) },
                 enabled = total > 0,
-            ) { Text(stringResource(R.string.action_save)) }
+            ) { Text(stringResource(R.string.action_done)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )

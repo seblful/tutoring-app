@@ -9,8 +9,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.RateChange
 import com.seblful.klas.format.formatDate
@@ -21,10 +21,17 @@ import com.seblful.klas.format.formatDate
  *
  * An empty log is stated rather than left blank: a price that has never moved is a fact about it, and
  * a silently missing section reads as something failing to load.
+ *
+ * **Bounded.** The group form shows this inline, in the middle of a scrolling form whose main business
+ * is the roster below it — so a rate that has moved twenty times must not push the roster twenty rows
+ * down. The recent changes are the ones that answer "what did this cost before?"; the rest are archaeology
+ * and the count says they exist.
+ *
+ * @param max how many rows to draw before collapsing the remainder into a count.
  */
 @Composable
-fun RateHistoryList(changes: List<RateChange>, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+fun RateHistoryList(changes: List<RateChange>, modifier: Modifier = Modifier, max: Int = MaxRateRows) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
         if (changes.isEmpty()) {
             Text(
                 stringResource(R.string.rate_history_empty),
@@ -32,10 +39,21 @@ fun RateHistoryList(changes: List<RateChange>, modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            changes.forEach { RateChangeRow(it) }
+            changes.take(max).forEach { RateChangeRow(it) }
+            val older = changes.size - max
+            if (older > 0) {
+                Text(
+                    pluralStringResource(R.plurals.rate_history_older, older, older),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
+
+/** Enough to see the last few moves without the log becoming the page. */
+private const val MaxRateRows = 5
 
 /**
  * One line of the log: what the rate became, and when.
@@ -66,7 +84,7 @@ private fun RateChangeRow(change: RateChange) {
             text = change.at?.formatDate() ?: stringResource(R.string.rate_history_unknown_date),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 8.dp),
+            modifier = Modifier.padding(start = Spacing.inline),
         )
     }
 }

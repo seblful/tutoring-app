@@ -17,6 +17,7 @@ package com.seblful.klas.ui.students
  * underneath it.
  */
 internal object StudentDetailKeys {
+    const val BALANCE = "balance"
     const val STATS = "stats"
     const val CONTACTS = "contacts"
     const val TABS = "tabs"

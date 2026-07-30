@@ -31,7 +31,7 @@ class DirectSeedingRatchetTest {
      * Lower this when you migrate a file to [Fixtures]. Never raise it: if a change needs a direct
      * write, say why in the test that needs it and take the number down somewhere else first.
      */
-    private val cap = 254
+    private val cap = 253
 
     /**
      * Writes through a fake DAO. Matches the field name loosely (`classDao`, `rateHistoryDao`) so a new

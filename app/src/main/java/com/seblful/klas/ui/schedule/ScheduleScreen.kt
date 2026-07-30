@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
@@ -26,27 +25,19 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditCalendar
-import androidx.compose.material.icons.filled.EventBusy
-import androidx.compose.material.icons.filled.PersonAddAlt
 import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.outlined.EventBusy
+import androidx.compose.material.icons.outlined.PersonAddAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,7 +49,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -66,19 +56,25 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.takeOrElse
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.format.formatDay
+import com.seblful.klas.format.formatMonth
+import com.seblful.klas.format.formatWeekRange
+import com.seblful.klas.format.toLocalDate
+import com.seblful.klas.format.toLocalTime
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.SegmentedChoice
+import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.SwipeToConfirmBox
 import com.seblful.klas.ui.common.TimePickerModal
@@ -86,17 +82,11 @@ import com.seblful.klas.ui.common.armedPop
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
-import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.map
 import com.seblful.klas.ui.common.popsOnChange
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.common.valueOrNull
-import com.seblful.klas.format.formatDay
-import com.seblful.klas.format.formatMonth
-import com.seblful.klas.format.formatWeekRange
-import com.seblful.klas.format.toLocalDate
-import com.seblful.klas.format.toLocalTime
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
@@ -136,17 +126,9 @@ fun ScheduleScreen(
         viewModel.events.stream.collect { messages.show(actionFailedMsg) }
     }
 
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        snackbarHost = { SnackbarHost(messages.hostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.schedule_title)) },
-                scrollBehavior = scrollBehavior,
-            )
-        },
+    KlasScreen(
+        title = stringResource(R.string.schedule_title),
+        messages = messages,
         floatingActionButton = {
             // Hidden rather than shown-and-refusing. It used to be always present: with no students
             // it looked enabled, popped a toast naming what was missing, and left the tutor to go and
@@ -158,8 +140,8 @@ fun ScheduleScreen(
                 }
             }
         },
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).constrainedContent()) {
+    ) { modifier ->
+        Column(modifier) {
             // Which view, said out loud. It used to hide behind an unlabelled calendar icon that
             // opened a menu — two taps to switch, and the icon never told you which of the three you
             // were in. A segmented control is one tap and is its own label; the app already picks
@@ -175,7 +157,10 @@ fun ScheduleScreen(
                         onNext = viewModel::goToNextDay,
                         onToday = viewModel::goToToday,
                     )
-                    HorizontalDivider()
+                    // Inset to the gutter, like the week and month dividers — those sit inside the list
+                    // below and so pick it up from its `contentPadding`. This one is outside the list,
+                    // so it has to say so, or switching view mode changes the divider's width.
+                    HorizontalDivider(Modifier.padding(horizontal = Spacing.gutter))
                 }
                 ScheduleViewMode.WEEK -> WeekNavigator(
                     days = week,
@@ -194,7 +179,16 @@ fun ScheduleScreen(
             // a full day of classes doesn't fit a landscape phone.
             LazyColumn(
                 Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 11.dp, bottom = 88.dp),
+                // The gutter is the list's, not each row's — see [Spacing]. The calendar items in here
+                // are laid out inside it too, which is why `MonthCalendar` and `WeekStrip` no longer
+                // carry a narrower one of their own.
+                contentPadding = PaddingValues(
+                    start = Spacing.gutter,
+                    end = Spacing.gutter,
+                    top = Spacing.gutter,
+                    bottom = FabClearance,
+                ),
+                verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
             ) {
                 when (viewMode) {
                     // The day list stands alone under its stepper.
@@ -219,7 +213,7 @@ fun ScheduleScreen(
                                     today = today,
                                     onSelect = viewModel::selectDate,
                                 )
-                                Spacer(Modifier.height(12.dp))
+                                Spacer(Modifier.height(Spacing.itemGap))
                                 HorizontalDivider()
                             }
                         }
@@ -230,7 +224,7 @@ fun ScheduleScreen(
                             item(key = "empty") {
                                 EmptyState(
                                     title = stringResource(R.string.schedule_week_empty),
-                                    icon = Icons.Filled.EventBusy,
+                                    icon = Icons.Outlined.EventBusy,
                                     modifier = Modifier.heightIn(min = 200.dp),
                                 )
                             }
@@ -246,7 +240,6 @@ fun ScheduleScreen(
                                         onComplete = {
                                             viewModel.setStatus(row.session, LessonStatus.COMPLETED)
                                         },
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
                                     )
                                 }
                             }
@@ -265,10 +258,9 @@ fun ScheduleScreen(
                                     today = today,
                                     onSelect = viewModel::selectDate,
                                 )
-                                Spacer(Modifier.height(12.dp))
+                                Spacer(Modifier.height(Spacing.itemGap))
                                 SelectedDayHeader(date)
                                 HorizontalDivider()
-                                Spacer(Modifier.height(11.dp))
                             }
                         }
                         dayList(
@@ -378,7 +370,7 @@ private fun LazyListScope.dayList(
                 EmptyState(
                     title = stringResource(R.string.schedule_empty),
                     detail = stringResource(R.string.schedule_empty_detail),
-                    icon = Icons.Filled.EventBusy,
+                    icon = Icons.Outlined.EventBusy,
                     actionLabel = stringResource(R.string.schedule_add_class),
                     onAction = onAddClass,
                     modifier = Modifier.heightIn(min = 260.dp),
@@ -387,7 +379,7 @@ private fun LazyListScope.dayList(
                 EmptyState(
                     title = stringResource(R.string.schedule_empty_no_setup),
                     detail = stringResource(R.string.schedule_empty_no_setup_detail),
-                    icon = Icons.Filled.PersonAddAlt,
+                    icon = Icons.Outlined.PersonAddAlt,
                     actionLabel = stringResource(R.string.schedule_add_student),
                     onAction = onAddStudent,
                     modifier = Modifier.heightIn(min = 260.dp),
@@ -400,7 +392,6 @@ private fun LazyListScope.dayList(
                 row = row,
                 onClick = { onRowClick(row) },
                 onComplete = { onComplete(row) },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
             )
         }
     }
@@ -412,27 +403,20 @@ private fun LazyListScope.dayList(
  */
 @Composable
 private fun LessonsSkeleton() {
-    ListSkeleton(
-        rows = 3,
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 5.dp),
-    )
+    ListSkeleton(rows = 3, contentPadding = PaddingValues(0.dp))
 }
 
 /** Chooses between the day, week and month views. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ViewModeSelector(selected: ScheduleViewMode, onSelect: (ScheduleViewMode) -> Unit) {
-    SingleChoiceSegmentedButtonRow(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-    ) {
-        ScheduleViewMode.entries.forEachIndexed { index, mode ->
-            SegmentedButton(
-                selected = mode == selected,
-                onClick = { onSelect(mode) },
-                shape = SegmentedButtonDefaults.itemShape(index, ScheduleViewMode.entries.size),
-            ) { Text(stringResource(viewModeLabel(mode))) }
-        }
-    }
+    SegmentedChoice(
+        options = ScheduleViewMode.entries,
+        selected = selected,
+        onSelect = onSelect,
+        modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.tight),
+        label = { mode -> stringResource(viewModeLabel(mode)) },
+    )
 }
 
 private fun viewModeLabel(mode: ScheduleViewMode): Int = when (mode) {
@@ -481,7 +465,7 @@ private fun LazyItemScope.SwipeToCompleteCard(
                         MaterialTheme.colorScheme.tertiaryContainer,
                         MaterialTheme.shapes.medium,
                     )
-                    .padding(horizontal = 24.dp),
+                    .padding(horizontal = SheetGutter),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // The tick's visible half: the check grows at the mark and stays grown while letting go
@@ -492,7 +476,7 @@ private fun LazyItemScope.SwipeToCompleteCard(
                     tint = MaterialTheme.colorScheme.onTertiaryContainer,
                     modifier = Modifier.armedPop(armed),
                 )
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(Spacing.inline))
                 Text(
                     stringResource(R.string.class_status_completed),
                     style = MaterialTheme.typography.labelLarge,
@@ -520,15 +504,16 @@ private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit, modifier: Modifi
                 // Struck through, so the hour reads as one that was given back.
                 textDecoration = if (cancelled) TextDecoration.LineThrough else null,
             )
-            // 12dp rather than 16. Every dp between the time and the badge is width the lesson's own
-            // name does not get, and that name is the one thing on the card that can run long.
-            Spacer(Modifier.width(12.dp))
+            // [Spacing.itemGap] rather than [Spacing.leading]: the time and the body are two peers
+            // in the row, and every dp between them is width the lesson's own name does not get —
+            // that name being the one thing on the card that can run long.
+            Spacer(Modifier.width(Spacing.itemGap))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // Both kinds are marked, not just the group ones: an icon that appears only
                     // sometimes reads as "this lesson has something extra", which leaves an individual
                     // lesson looking like a lesson with a missing icon rather than an individual one.
-                    LessonKindIcon(LessonKind.of(row.klass), Modifier.padding(end = 6.dp))
+                    LessonKindIcon(LessonKind.of(row.klass), Modifier.padding(end = Spacing.inline))
                     // **One line.** A name long enough to wrap — «Группа Биология» — used to break
                     // across two, and because the time on the left is centred against the whole card
                     // it then sat beside the *second* line with a hole above it. Rows also stopped
@@ -561,7 +546,7 @@ private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit, modifier: Modifi
                     )
                 }
             }
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(Spacing.inline))
             SessionStatusBadge(row)
         }
     }
@@ -648,7 +633,7 @@ private fun PageNavigator(
     onToday: () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+        Modifier.fillMaxWidth().padding(horizontal = Spacing.inline),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -684,7 +669,7 @@ private fun SelectedDayHeader(date: LocalDate) {
         text = date.formatDay(),
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.tight),
     )
 }
 
@@ -702,7 +687,10 @@ private fun DaySectionHeader(date: LocalDate, isSelected: Boolean) {
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         },
-        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 2.dp),
+        // One extra [Spacing.itemGap] above, so the gap that opens *before* a header is a section
+        // break while the header still sits close to the day it names. The list's uniform `spacedBy`
+        // cannot say that on its own.
+        modifier = Modifier.fillMaxWidth().padding(top = Spacing.itemGap),
     )
 }
 
@@ -731,13 +719,13 @@ private fun ClassActionsSheet(
 ) {
     val klass = row.klass
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+        Column(Modifier.fillMaxWidth().padding(bottom = SheetGutter)) {
             // Header: which lesson these actions apply to.
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
+                Modifier.fillMaxWidth().padding(horizontal = SheetGutter, vertical = Spacing.tight),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                LessonKindIcon(LessonKind.of(klass), Modifier.padding(end = 10.dp))
+                LessonKindIcon(LessonKind.of(klass), Modifier.padding(end = Spacing.inline))
                 Column(Modifier.weight(1f)) {
                     Text(
                         "${klass.start.timeText()} · ${row.title}",
@@ -757,7 +745,7 @@ private fun ClassActionsSheet(
             // said what the lesson *is* — the tutor had to infer it from which verbs were absent.
             StatusSelector(row = row, onStatus = onStatus)
 
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(Modifier.padding(vertical = Spacing.inline))
 
             // Editing details (student/subject/price) is allowed in any status; saving a completed
             // class re-bills it so its recognized income tracks the edit (see ClassRules.rebill).
@@ -769,7 +757,7 @@ private fun ClassActionsSheet(
             // Delete is offered for any status. Deleting a completed class removes its recognized
             // income (the confirm dialog warns about this); the repository deletes the calendar
             // event and refreshes reminders regardless of status.
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(Modifier.padding(vertical = Spacing.inline))
             SheetAction(
                 stringResource(R.string.action_delete),
                 Icons.Filled.DeleteOutline,
@@ -800,58 +788,34 @@ private fun ClassActionsSheet(
 private fun StatusSelector(row: ScheduleRow, onStatus: (LessonStatus) -> Unit) {
     val current = row.session.status
     val allowed = row.statusChoices
-    Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
+    Column(Modifier.padding(horizontal = SheetGutter, vertical = Spacing.inline)) {
         Text(
             stringResource(R.string.class_status_label),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 6.dp),
+            modifier = Modifier.padding(bottom = Spacing.inline),
         )
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            LessonStatus.entries.forEachIndexed { index, status ->
-                val isCurrent = status == current
-                SegmentedButton(
-                    selected = isCurrent,
-                    onClick = { if (!isCurrent) onStatus(status) },
-                    enabled = isCurrent || status in allowed,
-                    shape = SegmentedButtonDefaults.itemShape(index, LessonStatus.entries.size),
-                    // No check mark. Its slot costs ~28dp of a segment that is one third of a phone,
-                    // and the selected segment already carries a tinted container — which is
-                    // Material's own affordance, and is what the tick was duplicating.
-                    icon = {},
-                ) { SegmentLabel(classStatusLabel(status)) }
-            }
-        }
+        SegmentedChoice(
+            options = LessonStatus.entries,
+            selected = current,
+            onSelect = onStatus,
+            // Which statuses this lesson may move to is `GroupRules.sessionTransitions`', arriving as
+            // `row.statusChoices` — the same rule the swipe is offered from.
+            enabled = { status -> status in allowed },
+            label = { status -> classStatusLabel(status) },
+        )
     }
 }
 
 /**
- * A segment's label on **one line**, shrinking a step at a time rather than wrapping.
- *
- * The same rule and mechanism as the bottom bar's tab labels: a segment is a fixed fraction of the
- * screen, so on a narrow phone or at a large font scale the longest word genuinely does not fit — and
- * a wrapped label makes the row uneven, which is worse than a slightly smaller one. Capped at the
- * inherited size so a label with room to spare is drawn untouched.
+ * How much empty list is left under the last lesson, so the add button never covers one. A size, not a
+ * gap — it is measured against the FAB rather than set to the app's rhythm, which is why it is here and
+ * not in `Spacing`.
  */
-@Composable
-private fun SegmentLabel(text: String) {
-    Text(
-        text = text,
-        maxLines = 1,
-        // Only reachable if even the minimum overflows; wrapping is what we are avoiding, so cut the
-        // word rather than add a line.
-        overflow = TextOverflow.Ellipsis,
-        autoSize = TextAutoSize.StepBased(
-            minFontSize = MinSegmentFontSize,
-            maxFontSize = LocalTextStyle.current.fontSize.takeOrElse { FallbackSegmentFontSize },
-        ),
-    )
-}
+private val FabClearance = 88.dp
 
-private val MinSegmentFontSize = 10.sp
-
-/** Material's label size for a segmented button; used only if the style leaves the size unspecified. */
-private val FallbackSegmentFontSize = 14.sp
+/** A bottom sheet's own gutter, wider than the screen's: Material insets sheet content further in. */
+private val SheetGutter = 24.dp
 
 @Composable
 private fun SheetAction(
@@ -862,11 +826,14 @@ private fun SheetAction(
 ) {
     val color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
     Row(
-        Modifier.fillMaxWidth().clickable { onClick() }.padding(horizontal = 24.dp, vertical = 14.dp),
+        Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = SheetGutter, vertical = Spacing.itemGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, contentDescription = null, tint = color)
-        Spacer(Modifier.width(20.dp))
+        Spacer(Modifier.width(Spacing.leading))
         Text(label, color = color, style = MaterialTheme.typography.bodyLarge)
     }
 }

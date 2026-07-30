@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +46,14 @@ private val NumberDiscSize = 28.dp
 private val TallyRowHeight = 16.dp
 
 /**
+ * Two hairline distances inside a cell, deliberately off the app's `Spacing` scale: seven cells share
+ * a phone's width, so these are measured against the glyphs either side of them rather than set to the
+ * app's rhythm. 4 dp between three tally digits would cost a two-digit count its room.
+ */
+private val TallySpacing = 3.dp
+private val DiscToTally = 1.dp
+
+/**
  * A month page: weekday headers over rows of day cells, each marked with a per-status count of its
  * classes. Tapping a cell selects that day; the class list below shows it.
  */
@@ -59,7 +66,7 @@ fun MonthCalendar(
     onSelect: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+    Column(modifier.fillMaxWidth()) {
         WeekdayHeader(grid.weeks.first())
         grid.weeks.forEach { week ->
             Row(Modifier.fillMaxWidth()) {
@@ -92,7 +99,7 @@ fun WeekStrip(
     onSelect: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+    Column(modifier.fillMaxWidth()) {
         WeekdayHeader(days)
         Row(Modifier.fillMaxWidth()) {
             days.forEach { date ->
@@ -171,7 +178,7 @@ private fun DayCell(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(1.dp),
+            verticalArrangement = Arrangement.spacedBy(DiscToTally),
         ) {
             Box(
                 Modifier
@@ -212,8 +219,12 @@ private fun DayCell(
 @Composable
 private fun DayTallies(load: CalendarLayout.DayLoad?) {
     Row(
-        Modifier.height(TallyRowHeight),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        // `fillMaxWidth` bounds the row to its **cell**, which a wrap-content row is not: three
+        // two-digit tallies at a large font scale measured wider than a seventh of a phone and drew
+        // over the neighbouring day. Centred within the cell, so a one-tally day still sits under its
+        // own number.
+        Modifier.fillMaxWidth().height(TallyRowHeight),
+        horizontalArrangement = Arrangement.spacedBy(TallySpacing, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         load?.tallies?.forEach { tally ->

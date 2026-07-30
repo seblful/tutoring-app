@@ -54,12 +54,35 @@ data class MoneyField(
     /** Whether the field holds a usable amount. */
     val isValid: Boolean get() = amount != null
 
+    /** What is wrong with what was typed. The wording is the screen's; which case it is, is not. */
+    enum class Error {
+        /** Not a number this app can read — letters, two separators, an empty minus. */
+        UNREADABLE,
+
+        /** Readable, and zero, in a field where zero moves no money ([Kind.PAYMENT]). */
+        ZERO_PAYMENT,
+    }
+
     /**
-     * Whether to mark the field as wrong. An **empty** field is incomplete, not wrong — nobody
-     * should be shown an error for a box they haven't reached yet — so this is true only once
-     * something unusable has actually been typed.
+     * Which rule the typed text breaks, or null while there is nothing to say.
+     *
+     * The field knew it was wrong (`isError`) long before it could say *why*, so every money input in
+     * the app turned red and explained nothing — leaving a tutor with a disabled «Сохранить» to work
+     * out which of six boxes it meant. The two cases are genuinely different advice: one is "that is
+     * not a number", the other is "a payment of nothing is not a payment".
+     *
+     * An **empty** field is incomplete, not wrong: nobody should be shown an error for a box they have
+     * not reached yet.
      */
-    val isError: Boolean get() = text.isNotBlank() && amount == null
+    val error: Error?
+        get() {
+            if (text.isBlank()) return null
+            val parsed = parseMoneyOrNull(text) ?: return Error.UNREADABLE
+            return if (kind == Kind.PAYMENT && parsed.isZero) Error.ZERO_PAYMENT else null
+        }
+
+    /** Whether to mark the field as wrong — the same question [error] answers, as a boolean. */
+    val isError: Boolean get() = error != null
 
     /** The same field with [newText] typed into it. */
     fun typed(newText: String): MoneyField = copy(text = newText)

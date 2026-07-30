@@ -3,7 +3,6 @@ package com.seblful.klas.ui.students
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.imePadding
@@ -13,42 +12,32 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.format.MoneyField
+import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ModeField
-import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.SaveAction
+import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.leaveGuard
+import com.seblful.klas.ui.common.moneyErrorText
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.ShowMessagesFor
+import com.seblful.klas.ui.common.supportingTextOf
 
 /** Full-screen "add student" with required subjects + prices. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,35 +56,17 @@ fun StudentFormScreen(
     // Back — the arrow or the system gesture — asks before throwing a filled-in form away.
     val requestLeave = leaveGuard(form = state, onLeave = onBack, onSave = { viewModel.save(onBack) })
 
-    // The bar takes on its scrolled colour once content has moved under it — M3's own signal that
-    // the two are separate surfaces. Pinned, because this bar carries actions that must stay put.
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        snackbarHost = { SnackbarHost(messages.hostState) },
-        topBar = {
-            TopAppBar(
-                scrollBehavior = scrollBehavior,
-                title = { Text(stringResource(R.string.student_add_title)) },
-                navigationIcon = {
-                    IconButton(onClick = requestLeave) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
-                    }
-                },
-                actions = {
-                    TextButton(onClick = { viewModel.save(onBack) }, enabled = state.canSave) {
-                        Text(stringResource(R.string.action_save))
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        StudentFormContent(
-            state = state,
-            viewModel = viewModel,
-            modifier = Modifier.fillMaxSize().padding(padding),
-        )
+    KlasScreen(
+        title = stringResource(R.string.student_add_title),
+        onBack = requestLeave,
+        messages = messages,
+        // The per-subject price fields sit at the foot of the form. The shell owns the rule, as it does
+        // for the group and booking forms; `StudentFormContent` keeps its own `imePadding()` only
+        // because onboarding embeds it — and that one is a no-op here, the inset already consumed.
+        imeAware = true,
+        actions = { SaveAction(enabled = state.canSave, onSave = { viewModel.save(onBack) }) },
+    ) { modifier ->
+        StudentFormContent(state = state, viewModel = viewModel, modifier = modifier)
     }
 }
 
@@ -110,13 +81,13 @@ fun StudentFormContent(
     Column(
         modifier
             // Before the scroll, so the keyboard shrinks the viewport instead of covering the
-            // per-subject price fields at the foot of the form. See `ClassEditScreen`. Consumed here, so
-            // a host that has already applied it (onboarding) is not padded twice.
+            // per-subject price fields at the foot of the form. Both hosts (`KlasScreen(imeAware = true)`
+            // and onboarding) have already applied this, which consumes the inset — so this is the
+            // belt-and-braces copy for an embedding that has not, and a no-op for the two that have.
             .imePadding()
-            .constrainedContent()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(Spacing.gutter),
+        verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         OutlinedTextField(
             value = form.name,
@@ -153,7 +124,7 @@ fun StudentFormContent(
             onSelect = { m -> viewModel.update { it.copy(mode = m) } },
         )
 
-        HorizontalDivider(Modifier.padding(vertical = 4.dp))
+        HorizontalDivider(Modifier.padding(vertical = Spacing.tight))
         Text(
             stringResource(R.string.student_form_subjects_title),
             style = MaterialTheme.typography.titleMedium,
@@ -187,18 +158,20 @@ fun StudentFormContent(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Checkbox(checked = selected, onCheckedChange = null)
-                        Text(subject.name, Modifier.padding(start = 8.dp))
+                        Text(subject.name, Modifier.padding(start = Spacing.inline))
                     }
                     if (selected) {
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(Spacing.inline))
                         OutlinedTextField(
                             value = price.text,
                             onValueChange = { viewModel.setPriceText(subject.id, it) },
                             label = { Text(stringResource(R.string.price_label)) },
                             isError = price.isError,
+                            // Short enough to fit this box — see the note at `money_error_unreadable`.
+                            supportingText = supportingTextOf(moneyErrorText(price)),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.width(140.dp),
+                            modifier = Modifier.width(PriceFieldWidth),
                         )
                     }
                 }
@@ -206,3 +179,9 @@ fun StudentFormContent(
         }
     }
 }
+
+/**
+ * Wide enough for «1 250,50 BYN» and narrow enough to leave a subject name its room, in a row that
+ * holds a checkbox, a name and this. A measurement, not a gap — see `Spacing`.
+ */
+private val PriceFieldWidth = 140.dp

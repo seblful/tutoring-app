@@ -56,7 +56,7 @@ fun StatRow(stats: List<Stat>, modifier: Modifier = Modifier) {
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(vertical = 12.dp),
+            Modifier.fillMaxWidth().padding(vertical = Spacing.itemGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             stats.forEachIndexed { index, stat ->
@@ -75,9 +75,9 @@ fun StatRow(stats: List<Stat>, modifier: Modifier = Modifier) {
 @Composable
 private fun StatTile(stat: Stat, modifier: Modifier = Modifier) {
     Column(
-        modifier.padding(horizontal = 6.dp),
+        modifier.padding(horizontal = TileInsetX),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(1.dp),
+        verticalArrangement = Arrangement.spacedBy(ValueToLabel),
     ) {
         Text(
             text = stat.value,
@@ -112,5 +112,14 @@ private fun StatTile(stat: Stat, modifier: Modifier = Modifier) {
         }
     }
 }
+
+/**
+ * Two distances measured against the tile rather than taken from `Spacing`: a tile is a fixed
+ * *fraction* of the screen (a phone's quarter, at four stats), so the inset is what is left after the
+ * value has the room it needs to avoid shrinking, and the value, its label and its hint are one
+ * statement on three lines rather than three things in a list.
+ */
+private val TileInsetX = 6.dp
+private val ValueToLabel = 1.dp
 
 private val MinValueFontSize = 11.sp

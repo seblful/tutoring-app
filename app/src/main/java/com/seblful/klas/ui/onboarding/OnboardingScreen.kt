@@ -6,33 +6,26 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.PhonelinkLock
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.PhonelinkLock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -51,18 +44,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
-import com.seblful.klas.ui.backup.BACKUP_MIME_TYPES
 import com.seblful.klas.storage.DocumentRef
+import com.seblful.klas.ui.backup.BACKUP_MIME_TYPES
 import com.seblful.klas.ui.backup.BackupResult
-import com.seblful.klas.ui.backup.messageIn
 import com.seblful.klas.ui.backup.BackupViewModel
+import com.seblful.klas.ui.backup.messageIn
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TextFieldDialog
-import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.students.StudentFormContent
 import com.seblful.klas.ui.students.StudentFormViewModel
-import com.seblful.klas.ui.common.rememberMessages
 
 /**
  * The first run, as a sequence.
@@ -124,39 +118,29 @@ fun OnboardingScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    // The welcome screen names the app in its own body, under the mark — repeating it
-                    // in the bar would be the same word twice on a screen with three lines of text.
-                    when (step) {
-                        Step.WELCOME -> Unit
-                        Step.SUBJECTS -> Text(stringResource(R.string.onboarding_subjects_title))
-                        Step.STUDENT -> Text(stringResource(R.string.onboarding_student_title))
-                    }
-                },
-                navigationIcon = {
-                    // Every step but the first goes back one, so the welcome step's choices
-                    // (restore, skip) stay reachable after starting the setup.
-                    val back = when (step) {
-                        Step.WELCOME -> null
-                        Step.SUBJECTS -> Step.WELCOME
-                        Step.STUDENT -> Step.SUBJECTS
-                    }
-                    if (back != null) {
-                        IconButton(onClick = { step = back }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
-                        }
-                    }
-                },
-            )
+    // Every step but the first goes back one, so the welcome step's choices (restore, skip) stay
+    // reachable after starting the setup.
+    val previousStep = when (step) {
+        Step.WELCOME -> null
+        Step.SUBJECTS -> Step.WELCOME
+        Step.STUDENT -> Step.SUBJECTS
+    }
+
+    KlasScreen(
+        // The welcome screen names the app in its own body, under the mark — repeating it in the bar
+        // would be the same word twice on a screen with three lines of text.
+        title = when (step) {
+            Step.WELCOME -> null
+            Step.SUBJECTS -> stringResource(R.string.onboarding_subjects_title)
+            Step.STUDENT -> stringResource(R.string.onboarding_student_title)
         },
-        snackbarHost = { SnackbarHost(messages.hostState) },
-    ) { padding ->
-        // imePadding here rather than only inside the embedded student form: the step's «Готово» button
-        // sits below the form, so without it the keyboard covers the one control that finishes setup.
-        Column(Modifier.fillMaxSize().padding(padding).imePadding().constrainedContent()) {
+        onBack = previousStep?.let { back -> { step = back } },
+        messages = messages,
+        // Not only inside the embedded student form: the step's «Готово» button sits *below* the form,
+        // so without this the keyboard covers the one control that finishes setup.
+        imeAware = true,
+    ) { modifier ->
+        Column(modifier) {
             // Which step, and how many are left. Without it the setup was a sequence of screens with
             // no visible end, which is the difference between "this takes a minute" as a claim and as
             // something the tutor can see.
@@ -165,7 +149,7 @@ fun OnboardingScreen(
                     stringResource(R.string.onboarding_step, step.number, Step.total),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 16.dp, top = 8.dp),
+                    modifier = Modifier.padding(start = Spacing.gutter, top = Spacing.inline),
                 )
             }
             when (step) {
@@ -175,9 +159,9 @@ fun OnboardingScreen(
                     // explaining its setup before saying what it was. The mark and three lines of
                     // value proposition come first now; the setup is offered underneath them.
                     Column(
-                        Modifier.fillMaxWidth().weight(1f).padding(horizontal = 24.dp),
+                        Modifier.fillMaxWidth().weight(1f).padding(horizontal = Spacing.sectionGap),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.itemGap, Alignment.CenterVertically),
                     ) {
                         Icon(
                             painterResource(R.drawable.ic_logo),
@@ -194,16 +178,16 @@ fun OnboardingScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = 8.dp),
+                            modifier = Modifier.padding(bottom = Spacing.inline),
                         )
-                        ValueLine(Icons.Filled.CalendarMonth, stringResource(R.string.onboarding_value_schedule))
-                        ValueLine(Icons.Filled.Payments, stringResource(R.string.onboarding_value_money))
-                        ValueLine(Icons.Filled.PhonelinkLock, stringResource(R.string.onboarding_value_offline))
+                        ValueLine(Icons.Outlined.CalendarMonth, stringResource(R.string.onboarding_value_schedule))
+                        ValueLine(Icons.Outlined.Payments, stringResource(R.string.onboarding_value_money))
+                        ValueLine(Icons.Outlined.PhonelinkLock, stringResource(R.string.onboarding_value_offline))
                     }
                     Column(
-                        Modifier.fillMaxWidth().padding(16.dp),
+                        Modifier.fillMaxWidth().padding(Spacing.gutter),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.inline),
                     ) {
                         Button(
                             onClick = { step = Step.SUBJECTS },
@@ -218,7 +202,7 @@ fun OnboardingScreen(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Icon(Icons.Filled.Download, null)
-                            Text(stringResource(R.string.onboarding_restore), Modifier.padding(start = 8.dp))
+                            Text(stringResource(R.string.onboarding_restore), Modifier.padding(start = Spacing.inline))
                         }
                         Caption(stringResource(R.string.onboarding_restore_desc))
                         TextButton(
@@ -234,19 +218,19 @@ fun OnboardingScreen(
                         stringResource(R.string.onboarding_subjects_desc),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(Spacing.gutter),
                     )
                     OutlinedButton(
                         onClick = { addingSubject = true },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter),
                     ) {
                         Icon(Icons.Filled.Add, null)
-                        Text(stringResource(R.string.subject_add_title), Modifier.padding(start = 8.dp))
+                        Text(stringResource(R.string.subject_add_title), Modifier.padding(start = Spacing.inline))
                     }
                     if (subjects.isEmpty()) {
                         EmptyState(
                             title = stringResource(R.string.subjects_empty),
-                            icon = Icons.AutoMirrored.Filled.MenuBook,
+                            icon = Icons.AutoMirrored.Outlined.MenuBook,
                             modifier = Modifier.weight(1f),
                         )
                     } else {
@@ -259,7 +243,7 @@ fun OnboardingScreen(
                     Button(
                         onClick = { step = Step.STUDENT },
                         enabled = subjects.isNotEmpty(),
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(Spacing.gutter),
                     ) { Text(stringResource(R.string.onboarding_continue)) }
                 }
 
@@ -274,7 +258,7 @@ fun OnboardingScreen(
                     Button(
                         onClick = { studentVm.save { viewModel.complete(); onFinished() } },
                         enabled = studentState.canSave,
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(Spacing.gutter),
                     ) { Text(stringResource(R.string.onboarding_finish)) }
                 }
             }
@@ -318,7 +302,7 @@ private fun ValueLine(icon: ImageVector, text: String) {
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         Icon(
             icon,

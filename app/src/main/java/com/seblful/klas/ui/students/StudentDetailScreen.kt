@@ -1,7 +1,6 @@
 package com.seblful.klas.ui.students
 
 import android.content.Intent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,15 +15,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.outlined.EventBusy
+import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -32,18 +32,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Tab
-import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -51,12 +46,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -72,7 +66,11 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Subject
+import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.DatePickerModal
+import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.HeroCard
+import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LessonFilterChips
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.Loadable
@@ -80,17 +78,21 @@ import com.seblful.klas.ui.common.LoadingDetailScreen
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.PickerField
 import com.seblful.klas.ui.common.RateHistoryList
+import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatRow
+import com.seblful.klas.ui.common.StickyTabRow
 import com.seblful.klas.ui.common.StudentEditDialog
+import com.seblful.klas.ui.common.TitleSize
 import com.seblful.klas.ui.common.balanceDescription
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
-import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.dateTimeText
+import com.seblful.klas.ui.common.moneyErrorText
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.supportingTextOf
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.formatHours
@@ -188,59 +190,45 @@ private fun StudentCard(
 
     // A student's name is what this screen is *about*, so it gets the large title Material designed for
     // exactly that — collapsing into an ordinary bar as the list scrolls, instead of being a 16sp string
-    // ellipsised between a back arrow and two actions.
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        snackbarHost = { SnackbarHost(messages.hostState) },
-        topBar = {
-            LargeTopAppBar(
-                scrollBehavior = scrollBehavior,
-                title = { Text(student?.name ?: "", maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { editing = true }) {
-                        Icon(Icons.Filled.Edit, stringResource(R.string.action_edit))
-                    }
-                    // Archiving is behind the overflow now. It used to be a bare text button in the
-                    // bar — «Имя [✎] [В архив]» — which put the most consequential thing on the
-                    // screen beside the pencil, at the width of a word, next to a name that has to
-                    // ellipsize to make room for it.
-                    if (student != null) {
-                        OverflowMenu(
-                            archived = student.archived,
-                            // Whether archiving is worth asking about, and what the question would have
-                            // to say, are both `state.archiveIntent`'s — see [ArchiveIntent].
-                            onArchive = {
-                                when (state.archiveIntent) {
-                                    is ArchiveIntent.Confirm -> confirmingArchive = true
-                                    ArchiveIntent.Archive -> viewModel.setArchived(true)
-                                    ArchiveIntent.Restore -> viewModel.setArchived(false)
-                                    ArchiveIntent.Nothing -> Unit
-                                }
-                            },
-                        )
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth().padding(padding).constrainedContent(),
-            contentPadding = PaddingValues(bottom = 24.dp),
-        ) {
-            item(key = StudentDetailKeys.STATS) {
-                StatRow(
-                    stats = studentStats(state),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+    // ellipsised between a back arrow and two actions. [TitleSize.Large] is that, and the scroll
+    // behaviour it needs, said once.
+    KlasScreen(
+        title = student?.name,
+        onBack = onBack,
+        titleSize = TitleSize.Large,
+        messages = messages,
+        actions = {
+            IconButton(onClick = { editing = true }) {
+                Icon(Icons.Filled.Edit, stringResource(R.string.action_edit))
+            }
+            // Archiving is behind the overflow now. It used to be a bare text button in the
+            // bar — «Имя [✎] [В архив]» — which put the most consequential thing on the
+            // screen beside the pencil, at the width of a word, next to a name that has to
+            // ellipsize to make room for it.
+            if (student != null) {
+                OverflowMenu(
+                    archived = student.archived,
+                    // Whether archiving is worth asking about, and what the question would have
+                    // to say, are both `state.archiveIntent`'s — see [ArchiveIntent].
+                    onArchive = {
+                        when (state.archiveIntent) {
+                            is ArchiveIntent.Confirm -> confirmingArchive = true
+                            ArchiveIntent.Archive -> viewModel.setArchived(true)
+                            ArchiveIntent.Restore -> viewModel.setArchived(false)
+                            ArchiveIntent.Nothing -> Unit
+                        }
+                    },
                 )
             }
-
+        },
+    ) { modifier ->
+        LazyColumn(
+            modifier = modifier,
+            contentPadding = PaddingValues(bottom = Spacing.sectionGap),
+        ) {
+            // Identity, then the numbers, then the tabs — the same three in the same order as the
+            // group's card. This one used to lead with the stat row and put the contacts second, so the
+            // two cards disagreed about their own structure.
             item(key = StudentDetailKeys.CONTACTS) {
                 student?.let {
                     ContactBlock(
@@ -250,17 +238,38 @@ private fun StudentCard(
                         onTelegram = { phone ->
                             launchContact(context, telegramIntent(phone), noAppMsg, messages)
                         },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(
+                            horizontal = Spacing.gutter,
+                            vertical = Spacing.tight,
+                        ),
                     )
                 }
             }
 
+            // The one number the card exists to answer, ahead of the two that qualify it.
+            item(key = StudentDetailKeys.BALANCE) {
+                BalanceHero(
+                    state = state,
+                    modifier = Modifier.padding(
+                        horizontal = Spacing.gutter,
+                        vertical = Spacing.inline,
+                    ),
+                )
+            }
+
+            item(key = StudentDetailKeys.STATS) {
+                StatRow(
+                    stats = studentStats(state),
+                    modifier = Modifier.padding(
+                        horizontal = Spacing.gutter,
+                        vertical = Spacing.tight,
+                    ),
+                )
+            }
+
             // Pinned, so the tab bar stays reachable however long the list under it runs.
             stickyHeader(key = StudentDetailKeys.TABS) {
-                SecondaryTabRow(
-                    selectedTabIndex = tab.ordinal,
-                    modifier = Modifier.background(MaterialTheme.colorScheme.surface),
-                ) {
+                StickyTabRow(selectedTabIndex = tab.ordinal) {
                     StudentTab.entries.forEach { entry ->
                         Tab(
                             selected = tab == entry,
@@ -370,37 +379,22 @@ private fun StudentCard(
 }
 
 /**
- * The three numbers the card leads with: what is owed, what has been taught, what it earned.
+ * The two numbers that **qualify** the balance above them: what has been taught, and what it earned.
  *
- * **Three, not four.** On a 360dp phone four tiles leave about 80dp each, and the value text is
- * allowed to shrink to 11sp to fit — at which point «1 250,50 BYN» under «Заработано» is present but
- * not readable, which is the worst of both. Hours were the tile to lose: they are the one number
- * derivable from the other two at a glance, and they now ride along as the lesson tile's hint rather
- * than costing a quarter of the row.
+ * **Two, because the money left.** It was the first of three tiles, and it is the thing the card exists
+ * to answer — so it is a [HeroCard] now (see [BalanceHero]) and the row keeps what supports it. Two
+ * tiles also gives each of them half a phone instead of a third: on a 360dp screen four tiles left about
+ * 80dp each, at which point the value text shrank to 11sp and «1 250,50 BYN» was present but not
+ * readable, which is the worst of both.
  *
- * The money tile flips between debt and credit rather than printing a negative: «Долг −50» is a
- * puzzle, «Переплата 50» is the fact. A settled balance still shows as «Долг 0», because the tile's
- * job in a fixed row is to always occupy the same place with the same meaning.
+ * Hours ride along as the lesson tile's **hint** rather than taking a tile: they are the one number
+ * derivable from the other two at a glance. `lessonsStat` prefers «впереди N» where there are lessons
+ * still to come — that is something to act on, and it outranks a total.
  */
 @Composable
 private fun studentStats(state: StudentDetailState): List<Stat> {
-    val balance = state.balance
     val totals = state.totals
     return listOf(
-        if (balance.isNegative) {
-            Stat(
-                label = stringResource(R.string.stat_credit),
-                value = (Money.ZERO - balance).text(),
-                color = MaterialTheme.colorScheme.primary,
-            )
-        } else {
-            Stat(
-                label = stringResource(R.string.stat_debt),
-                value = balance.text(),
-                color = if (balance.isZero) MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.error,
-            )
-        },
         // Hours as the hint, in place of the tile they used to have. `lessonsStat` prefers «впереди N»
         // when there are lessons still to come — that is something to act on and outranks a total.
         lessonsStat(totals).let { stat ->
@@ -408,6 +402,38 @@ private fun studentStats(state: StudentDetailState): List<Stat> {
         },
         Stat(label = stringResource(R.string.stat_earned), value = totals.earned.text()),
     )
+}
+
+/**
+ * What the student owes, as the card's **hero**.
+ *
+ * It was the first of three stat tiles: red text in a grey row, at whatever size «1 250,50 BYN» had to
+ * shrink to in a third of a phone. That is the number the card exists to answer — the tutor opens a
+ * student to find out where they stand — and the report's total, its exact counterpart, has had a filled
+ * accent card to itself all along. Two uses is a system; one was an accident. See [HeroCard].
+ *
+ * **Tonal, not the primary fill.** «Долг 240» in the app's happiest colour would be congratulating the
+ * tutor on money they have not been paid; the report's income earns that colour and this does not.
+ *
+ * Debt and credit swap label rather than printing a negative: «Долг −50» is a puzzle, «Переплата 50» is
+ * the fact. A settled balance still reads «Долг 0» — the card always answers the same question in the
+ * same place, and «0» is an answer.
+ */
+@Composable
+private fun BalanceHero(state: StudentDetailState, modifier: Modifier = Modifier) {
+    val balance = state.balance
+    HeroCard(
+        label = stringResource(
+            if (balance.isNegative) R.string.stat_credit else R.string.stat_debt
+        ),
+        value = if (balance.isNegative) (Money.ZERO - balance).text() else balance.text(),
+        modifier = modifier,
+        tonal = true,
+    ) {
+        // The same sentence the students list uses for the same number, so a balance reads identically
+        // wherever it is met.
+        Text(balanceDescription(balance), style = MaterialTheme.typography.bodySmall)
+    }
 }
 
 /**
@@ -426,12 +452,12 @@ private fun ContactBlock(
     onTelegram: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
         if (student.note.isNotBlank()) {
             Text(
                 student.note,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = 4.dp),
+                modifier = Modifier.padding(bottom = Spacing.tight),
             )
         }
         if (student.phone.isNotBlank()) {
@@ -460,7 +486,7 @@ private fun ContactBlock(
         Text(
             "${stringResource(R.string.student_mode_label)}: ${classModeLabel(student.defaultMode)}",
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 4.dp),
+            modifier = Modifier.padding(top = Spacing.tight),
         )
     }
 }
@@ -479,7 +505,7 @@ private fun ContactRow(
             .clip(MaterialTheme.shapes.small)
             .clickable(onClick = onClick)
             .heightIn(min = MinTouchTarget)
-            .padding(horizontal = 4.dp),
+            .padding(horizontal = Spacing.tight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -494,7 +520,7 @@ private fun ContactRow(
             color = MaterialTheme.colorScheme.primary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f).padding(start = 10.dp),
+            modifier = Modifier.weight(1f).padding(start = Spacing.leading),
         )
         trailing?.invoke()
     }
@@ -540,13 +566,19 @@ private fun LazyListScope.subjectsTab(
     onReprice: (Long) -> Unit,
     onRemove: (Long) -> Unit,
 ) {
-    item(key = StudentDetailKeys.SUBJECTS_ADD) { AddRow(stringResource(R.string.student_add_subject), onAdd) }
     if (state.subjects.isEmpty()) {
         item(key = StudentDetailKeys.SUBJECTS_EMPTY) {
-            TabEmptyState(stringResource(R.string.student_no_subjects))
+            EmptyState(
+                title = stringResource(R.string.student_no_subjects),
+                icon = Icons.AutoMirrored.Outlined.MenuBook,
+                actionLabel = stringResource(R.string.student_add_subject),
+                onAction = onAdd,
+                compact = true,
+            )
         }
         return
     }
+    item(key = StudentDetailKeys.SUBJECTS_ADD) { AddRow(stringResource(R.string.student_add_subject), onAdd) }
     items(state.subjects, key = { StudentDetailKeys.subject(it.subject.id) }) { sp ->
         ListItem(
             headlineContent = { Text(sp.subject.name) },
@@ -593,12 +625,15 @@ private fun RepriceDialog(
         properties = DialogProperties(dismissOnClickOutside = false),
         title = { Text(subjectPrice.subject.name) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
                 OutlinedTextField(
                     value = field.text,
                     onValueChange = { field = field.typed(it) },
                     label = { Text(stringResource(R.string.price_label)) },
                     isError = field.isError,
+                    // The red outline used to be the whole message. `MoneyField` knows which rule
+                    // failed; this is it saying so.
+                    supportingText = supportingTextOf(moneyErrorText(field)),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
@@ -650,12 +685,13 @@ private fun PaymentDialog(
         properties = DialogProperties(dismissOnClickOutside = false),
         title = { Text(title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
                 OutlinedTextField(
                     value = field.text,
                     onValueChange = { field = field.typed(it) },
                     label = { Text(stringResource(R.string.payment_amount_label)) },
                     isError = field.isError,
+                    supportingText = supportingTextOf(moneyErrorText(field)),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
@@ -709,7 +745,7 @@ private fun LazyListScope.classesTab(
                 selected = filter,
                 tally = state.lessonKinds,
                 onSelect = onFilter,
-                modifier = Modifier.padding(vertical = 8.dp),
+                modifier = Modifier.padding(vertical = Spacing.inline),
             )
         }
     }
@@ -720,7 +756,13 @@ private fun LazyListScope.classesTab(
     val rows = if (state.hasBothKinds) filter.accepted(state.classes) { it.kind } else state.classes
     if (rows.isEmpty()) {
         item(key = StudentDetailKeys.CLASSES_EMPTY) {
-            TabEmptyState(stringResource(R.string.schedule_empty))
+            // No action: booking belongs to the schedule, which is the one place that knows what else
+            // the hour holds. See the card's KDoc.
+            EmptyState(
+                title = stringResource(R.string.schedule_empty),
+                icon = Icons.Outlined.EventBusy,
+                compact = true,
+            )
         }
         return
     }
@@ -729,7 +771,7 @@ private fun LazyListScope.classesTab(
             leadingContent = { LessonKindIcon(row.kind) },
             headlineContent = { Text("${row.subjectName} · ${row.klass.start.dateTimeText()}") },
             supportingContent = {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
                     Text(classStatusLabel(row.klass.status), color = classStatusColor(row.klass.status))
                     // The group's name for a group lesson, since *which* group is the useful half of
                     // "not individual" — a student in two groups is billed a different rate by each.
@@ -756,13 +798,19 @@ private fun LazyListScope.paymentsTab(
     onEdit: (Payment) -> Unit,
     onDelete: (Payment) -> Unit,
 ) {
-    item(key = StudentDetailKeys.PAYMENTS_ADD) { AddRow(stringResource(R.string.add_payment), onAdd) }
     if (state.payments.isEmpty()) {
         item(key = StudentDetailKeys.PAYMENTS_EMPTY) {
-            TabEmptyState(stringResource(R.string.payments_empty))
+            EmptyState(
+                title = stringResource(R.string.payments_empty),
+                icon = Icons.Outlined.Payments,
+                actionLabel = stringResource(R.string.add_payment),
+                onAction = onAdd,
+                compact = true,
+            )
         }
         return
     }
+    item(key = StudentDetailKeys.PAYMENTS_ADD) { AddRow(stringResource(R.string.add_payment), onAdd) }
     items(state.payments, key = { StudentDetailKeys.payment(it.id) }) { payment ->
         ListItem(
             headlineContent = { Text(payment.amount.text()) },
@@ -777,33 +825,6 @@ private fun LazyListScope.paymentsTab(
             modifier = Modifier.clickable { onEdit(payment) }.animateItem(),
         )
     }
-}
-
-/**
- * The one way to add to a tab's list, sitting at its top where a section header's action used to.
- *
- * Held to the 48dp minimum: a bare `TextButton` measures to its text, which on these rows came out
- * around 36dp — under the floor, on the only control that adds anything to the tab.
- */
-@Composable
-private fun AddRow(label: String, onClick: () -> Unit) {
-    TextButton(
-        onClick = onClick,
-        modifier = Modifier.padding(start = 8.dp).heightIn(min = MinTouchTarget),
-    ) {
-        Icon(Icons.Filled.Add, contentDescription = null)
-        Text(label, Modifier.padding(start = 8.dp))
-    }
-}
-
-@Composable
-private fun TabEmptyState(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
-    )
 }
 
 /**
@@ -871,11 +892,11 @@ private fun AddSubjectPriceDialog(
                             Modifier
                                 .fillMaxWidth()
                                 .clickable { selectedId = subject.id }
-                                .padding(vertical = 4.dp),
+                                .padding(vertical = Spacing.tight),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             RadioButton(selected = selectedId == subject.id, onClick = { selectedId = subject.id })
-                            Text(subject.name, Modifier.padding(start = 8.dp))
+                            Text(subject.name, Modifier.padding(start = Spacing.inline))
                         }
                     }
                     OutlinedTextField(
@@ -883,9 +904,10 @@ private fun AddSubjectPriceDialog(
                         onValueChange = { price = price.typed(it) },
                         label = { Text(stringResource(R.string.price_label)) },
                         isError = price.isError,
+                        supportingText = supportingTextOf(moneyErrorText(price)),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = Spacing.inline),
                     )
                 }
             }

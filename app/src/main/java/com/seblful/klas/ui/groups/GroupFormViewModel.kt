@@ -5,12 +5,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.GroupRepository
+import com.seblful.klas.data.repository.RateHistoryRepository
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.RateChange
+import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
@@ -55,6 +58,7 @@ class GroupFormViewModel @Inject constructor(
     private val settings: SettingsRepository,
     students: StudentRepository,
     subjects: SubjectRepository,
+    rateHistory: RateHistoryRepository,
     @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
 
@@ -83,6 +87,21 @@ class GroupFormViewModel @Inject constructor(
         val candidates: List<Student> = emptyList(),
         /** Everything the tutor could teach this group, for the subject picker. */
         val subjects: List<Subject> = emptyList(),
+        /**
+         * Every recorded change to this group's hourly rate, newest first.
+         *
+         * Here rather than on the card, which is where it used to be: an inline «История цены ⌄»
+         * expander under the rate, on a screen that only *reads* the rate. History is context for the
+         * number being **typed** — the argument the student's reprice dialog already made — and the
+         * number is typed here.
+         */
+        val rateHistory: List<RateChange> = emptyList(),
+        /**
+         * Whether the group is retired. Read-only now: archiving and deleting a group moved to its
+         * **card**, where a student's already were (see [GroupDetailViewModel]). It is still held here
+         * because a save writes the whole `Group` row, and a form that dropped the flag would silently
+         * un-retire a group on rename.
+         */
         val archived: Boolean = false,
         /**
          * Whether the form differs from the group as it was loaded (or, for a new one, from the
@@ -130,10 +149,8 @@ class GroupFormViewModel @Inject constructor(
             get() = form.name.isNotBlank() && price != null && selectedMemberIds.isNotEmpty()
     }
 
-    /** One-shot UI signals, e.g. a deletion blocked because the group already has lessons. */
+    /** One-shot UI signals. */
     enum class Event {
-        DELETE_BLOCKED_HAS_LESSONS,
-
         /**
          * The save kept only the members priced for the group's subject, and left somebody out. Said
          * out loud because the alternative is a roster that quietly shrank — and because the tutor may
@@ -190,6 +207,12 @@ class GroupFormViewModel @Inject constructor(
             isDirty = dirty,
         )
     }
+        // A sixth source, appended rather than folded in: `combine` takes five, and a new group has no
+        // history to observe at all.
+        .combine(if (isNew) flowOf(emptyList()) else rateHistory.observeFor(RateOwner.GroupRate(groupId))) {
+            state, changes ->
+            state.copy(rateHistory = changes)
+        }
         .derive(this, computation, UiState())
 
     init {
@@ -283,29 +306,4 @@ class GroupFormViewModel @Inject constructor(
         }
     }
 
-    fun setArchived(value: Boolean) {
-        if (isNew) return
-        viewModelScope.launch {
-            groups.getById(groupId)?.let {
-                groups.setArchived(it, value)
-                archived.value = value
-            }
-        }
-    }
-
-    /**
-     * Deletes the group and leaves, or reports [Event.DELETE_BLOCKED_HAS_LESSONS] — a group with
-     * lessons is refused (its classes must keep naming it) and the screen offers archiving instead.
-     *
-     * Reported through [events] rather than a `(Boolean) -> Unit`, so a refusal here reaches the
-     * tutor the same way every other refusal in the app does.
-     */
-    fun delete(onDeleted: () -> Unit) {
-        if (isNew) return
-        viewModelScope.launch {
-            val group = groups.getById(groupId)
-            if (group != null && groups.delete(group)) onDeleted()
-            else events.send(Event.DELETE_BLOCKED_HAS_LESSONS)
-        }
-    }
 }

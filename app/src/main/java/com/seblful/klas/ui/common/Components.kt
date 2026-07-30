@@ -35,6 +35,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -67,6 +68,7 @@ import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
+import com.seblful.klas.format.MoneyField
 
 /**
  * The widest a single column of content should grow. On phones (always narrower than this) it's a
@@ -117,7 +119,7 @@ fun ContentCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = CardInsetY),
             content = content,
         )
     }
@@ -160,7 +162,7 @@ fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
         modifier
             .clip(MaterialTheme.shapes.small)
             .background(color.copy(alpha = 0.15f))
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = Spacing.inline, vertical = Spacing.tight),
     ) {
         Text(
             text,
@@ -242,6 +244,13 @@ private fun avatarColors(studentId: Long): Pair<Color, Color> {
  * @param detail an optional second line, for when *why* it is empty is not obvious from the title.
  * @param icon a glyph for the thing that is missing. Decorative — the title carries the meaning.
  * @param actionLabel with [onAction], the primary way out of the empty state.
+ * @param compact for an empty state **inside** something — a detail card's tab — rather than one owning
+ *   the screen. Smaller icon, no `fillMaxSize`, a quieter line, an outlined action.
+ *
+ *   The tabs used to draw a bare grey `Text` instead, through a private `TabEmptyState` that was
+ *   defined **twice, identically**, in the two card files. So a tutor met a designed empty state on five
+ *   screens and an unstyled sentence on five tabs — and the sentence had nowhere to put an action, which
+ *   is the part of this component that matters.
  */
 @Composable
 fun EmptyState(
@@ -251,25 +260,40 @@ fun EmptyState(
     icon: ImageVector? = null,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
+    compact: Boolean = false,
 ) {
     Column(
-        modifier = modifier.fillMaxSize().padding(32.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+        modifier = modifier
+            // A compact one is a block inside a list, so it takes the height it needs. A full one owns
+            // the screen and centres in it.
+            .then(if (compact) Modifier.fillMaxWidth() else Modifier.fillMaxSize())
+            .padding(if (compact) Spacing.sectionGap else EmptyStateInset),
+        verticalArrangement = Arrangement.spacedBy(Spacing.itemGap, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         if (icon != null) {
             Icon(
                 icon,
                 contentDescription = null,
-                modifier = Modifier.size(EmptyStateIconSize),
+                modifier = Modifier.size(if (compact) CompactIconSize else EmptyStateIconSize),
                 // Faint: it is scenery for the sentence, not a thing to look at.
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
             )
         }
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            // A tab's empty state sits under a heading that already says what the tab is, so its own
+            // line is a statement rather than a headline.
+            style = if (compact) {
+                MaterialTheme.typography.bodyMedium
+            } else {
+                MaterialTheme.typography.titleMedium
+            },
+            color = if (compact) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
             textAlign = TextAlign.Center,
         )
         if (detail != null) {
@@ -281,15 +305,92 @@ fun EmptyState(
             )
         }
         if (actionLabel != null && onAction != null) {
-            Button(onClick = onAction, modifier = Modifier.padding(top = 4.dp)) {
-                Icon(Icons.Filled.Add, contentDescription = null)
-                Text(actionLabel, Modifier.padding(start = 8.dp))
+            // Outlined inside a tab: a filled button is the primary action *of a screen*, and a tab's
+            // way out is not competing with the card's own pencil for that role.
+            if (compact) {
+                OutlinedButton(onClick = onAction) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Text(actionLabel, Modifier.padding(start = Spacing.inline))
+                }
+            } else {
+                Button(onClick = onAction, modifier = Modifier.padding(top = Spacing.tight)) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Text(actionLabel, Modifier.padding(start = Spacing.inline))
+                }
             }
         }
     }
 }
 
+/**
+ * The one way to add to a tab's list, sitting at its top where a section header's action used to.
+ *
+ * Held to the [MinTouchTarget] floor: a bare `TextButton` measures to its text, which on these rows
+ * came out around 36 dp — under the minimum, on the only control that adds anything to the tab.
+ *
+ * In `ui/common/` rather than private to the student's card, because it was private to the student's
+ * card and that is what made the two cards disagree: a student's subjects tab offered «Добавить
+ * предмет» and the group's roster tab named its emptiness and offered nothing. The group's way out
+ * turned out to belong in its **empty state** instead (a roster is changed on the form, not appended to
+ * from here), so both callers are still the student's — but the next tab that needs a top-of-list add
+ * no longer has to reach into another screen's file for one.
+ */
+@Composable
+fun AddRow(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    TextButton(
+        onClick = onClick,
+        modifier = modifier.padding(start = Spacing.inline).heightIn(min = MinTouchTarget),
+    ) {
+        Icon(Icons.Filled.Add, contentDescription = null)
+        Text(label, Modifier.padding(start = Spacing.inline))
+    }
+}
+
 private val EmptyStateIconSize = 56.dp
+
+/** Inside a tab there is a card's worth of chrome above already, so the glyph is scenery at half size. */
+private val CompactIconSize = 32.dp
+
+/**
+ * An empty state is deliberately inset further than the app's gutter: it is one centred sentence on an
+ * otherwise blank screen, and the extra margin is what stops the line running the full width.
+ */
+private val EmptyStateInset = 32.dp
+
+/**
+ * A [ContentCard]'s own vertical inset, a little tighter than [Spacing.gutter] because a card's text
+ * already carries line spacing above and below it — 16 all round measures as too airy on a list row.
+ */
+private val CardInsetY = 12.dp
+
+/**
+ * What a money field says when what was typed will not do — the wording for [MoneyField.Error].
+ *
+ * The classification is `MoneyField`'s and is unit-tested; only the sentence is here. Returns null when
+ * there is nothing wrong, which is exactly what an `OutlinedTextField`'s `supportingText` wants: use it
+ * with [fieldSupport] so a field that is merely *required* still has something to say.
+ */
+@Composable
+fun moneyErrorText(field: MoneyField): String? = field.error?.let { error ->
+    stringResource(
+        when (error) {
+            MoneyField.Error.UNREADABLE -> R.string.money_error_unreadable
+            MoneyField.Error.ZERO_PAYMENT -> R.string.money_error_zero_payment
+        }
+    )
+}
+
+/**
+ * A field's supporting line: the reason it is **wrong** if it is, otherwise its ordinary hint.
+ *
+ * One slot, one line, and **the error wins** — that ordering is the whole point. A field that shows its
+ * hint while red is telling the tutor how it works instead of what to fix.
+ *
+ * Returns null when there is nothing to say, so a field with neither reserves no line — which is why it
+ * hands back the whole `supportingText` slot rather than a string.
+ */
+fun supportingTextOf(error: String? = null, hint: String? = null): (@Composable () -> Unit)? =
+    (error ?: hint)?.let { text -> { Text(text) } }
 
 /** Human-readable balance line: debt, credit, or settled. */
 @Composable
@@ -421,7 +522,7 @@ fun StudentEditDialog(
             // an `AlertDialog`'s text slot having no scroll of its own.
             Column(
                 Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(Spacing.inline),
             ) {
                 OutlinedTextField(
                     value = name,
@@ -529,8 +630,16 @@ fun DropdownField(
     options: List<Pair<Long, String>>,
     onSelect: (Long) -> Unit,
     enabled: Boolean = true,
+    supportingText: String? = null,
+    isError: Boolean = false,
 ) {
-    MenuField(label = label, selectedText = selectedText, enabled = enabled) { dismiss ->
+    MenuField(
+        label = label,
+        selectedText = selectedText,
+        enabled = enabled,
+        supportingText = supportingText,
+        isError = isError,
+    ) { dismiss ->
         options.forEach { (id, name) ->
             DropdownMenuItem(
                 text = { Text(name) },
@@ -561,8 +670,16 @@ fun <T> ChoiceField(
     optionLabel: @Composable (T) -> String,
     onSelect: (T) -> Unit,
     enabled: Boolean = true,
+    supportingText: String? = null,
+    isError: Boolean = false,
 ) {
-    MenuField(label = label, selectedText = optionLabel(selected), enabled = enabled) { dismiss ->
+    MenuField(
+        label = label,
+        selectedText = optionLabel(selected),
+        enabled = enabled,
+        supportingText = supportingText,
+        isError = isError,
+    ) { dismiss ->
         options.forEach { option ->
             DropdownMenuItem(
                 text = { Text(optionLabel(option)) },
@@ -582,6 +699,13 @@ fun <T> ChoiceField(
  *
  * @param items the menu's contents, given the [dismiss] that closes it — a menu item that selects
  *   without closing would leave the tutor tapping outside to get rid of it.
+ * @param supportingText what qualifies the choice, in the field's own slot. The group form used to put
+ *   this in a standalone `Text` under the subject picker while the rate field beside it used its own
+ *   `supportingText` — 20 dp apart, indented differently, on the same form.
+ * @param isError whether that supporting line is a **refusal** rather than a note. It has to be
+ *   separable: the booking form's subject picker says either «Предмет задан группой» (a fact) or «У
+ *   ученика нет предметов с ценой» (the reason nothing can be saved), and folding those two into one
+ *   grey line is how the second one stopped being visible.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -589,6 +713,8 @@ private fun MenuField(
     label: String,
     selectedText: String,
     enabled: Boolean,
+    supportingText: String? = null,
+    isError: Boolean = false,
     items: @Composable ColumnScope.(dismiss: () -> Unit) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -602,7 +728,9 @@ private fun MenuField(
             onValueChange = {},
             readOnly = true,
             enabled = enabled,
+            isError = isError,
             label = { Text(label) },
+            supportingText = supportingText?.let { text -> { Text(text) } },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = open) },
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
@@ -635,40 +763,72 @@ fun PickerField(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     placeholder: String = "",
+    supportingText: String? = null,
+    isError: Boolean = false,
 ) {
-    val border = if (enabled) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outlineVariant
+    val border = when {
+        isError -> MaterialTheme.colorScheme.error
+        enabled -> MaterialTheme.colorScheme.outline
+        else -> MaterialTheme.colorScheme.outlineVariant
+    }
     val contentAlpha = if (enabled) 1f else DISABLED_ALPHA
-    Surface(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.fillMaxWidth().heightIn(min = PickerFieldHeight),
-        shape = MaterialTheme.shapes.extraSmall,
-        color = Color.Transparent,
-        border = BorderStroke(1.dp, border),
-    ) {
-        Column(
-            Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.Center,
+    Column(modifier.fillMaxWidth()) {
+        Surface(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth().heightIn(min = PickerFieldHeight),
+            shape = MaterialTheme.shapes.extraSmall,
+            color = Color.Transparent,
+            border = BorderStroke(1.dp, border),
         ) {
+            Column(
+                Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
+                )
+                Text(
+                    value.ifEmpty { placeholder },
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = if (value.isEmpty()) {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha)
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
+                    },
+                )
+            }
+        }
+        // Positioned and styled to match an `OutlinedTextField`'s own supporting line, so a form mixing
+        // the two has one place a field explains itself rather than two that look different.
+        if (supportingText != null) {
             Text(
-                label,
+                supportingText,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
-            )
-            Text(
-                value.ifEmpty { placeholder },
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = if (value.isEmpty()) {
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha)
+                color = if (isError) {
+                    MaterialTheme.colorScheme.error
                 } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
+                    MaterialTheme.colorScheme.onSurfaceVariant
                 },
+                modifier = Modifier.padding(
+                    start = Spacing.gutter,
+                    end = Spacing.gutter,
+                    top = Spacing.tight,
+                ),
             )
         }
     }
 }
+
+/**
+ * The hairline of page colour that keeps overlapping monograms separable in an [AvatarStack]. A stroke
+ * width, not a gap, which is why it is not on the `Spacing` scale.
+ */
+private val AvatarRing = 1.dp
 
 /** Matches an `OutlinedTextField`'s height, so a row mixing the two lines up. */
 private val PickerFieldHeight = 56.dp
@@ -731,7 +891,7 @@ fun AvatarStack(
                     .clip(CircleShape)
                     // A ring in the page's colour is what keeps overlapping faces separable.
                     .background(MaterialTheme.colorScheme.surface)
-                    .padding(1.dp),
+                    .padding(AvatarRing),
             ) {
                 Avatar(name, ids.getOrElse(index) { index.toLong() }, size = size - 2.dp)
             }
@@ -742,7 +902,7 @@ fun AvatarStack(
                     .size(size)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surface)
-                    .padding(1.dp),
+                    .padding(AvatarRing),
             ) {
                 Box(
                     Modifier
@@ -791,14 +951,14 @@ fun MemberPickRow(
             )
             .toggleable(value = selected, onValueChange = onToggle)
             .heightIn(min = MinTouchTarget)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .padding(horizontal = Spacing.inline, vertical = Spacing.tight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Avatar(student.name, student.id)
         Text(
             student.name,
             style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f).padding(start = 12.dp),
+            modifier = Modifier.weight(1f).padding(start = Spacing.leading),
         )
         Checkbox(checked = selected, onCheckedChange = null)
     }

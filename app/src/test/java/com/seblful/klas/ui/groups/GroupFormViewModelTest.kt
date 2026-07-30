@@ -17,7 +17,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -36,6 +35,7 @@ class GroupFormViewModelTest {
         settings = env.settingsRepo,
         students = env.studentRepo,
         subjects = env.subjectRepo,
+        rateHistory = env.rateHistoryRepo,
         computation = mainRule.dispatcher,
     )
 
@@ -223,23 +223,6 @@ class GroupFormViewModelTest {
         assertFalse("saved is the new baseline", vm.state.value.isDirty)
     }
 
-    /** Archiving writes to the database immediately, so it is never pending work. */
-    @Test
-    fun `archiving does not leave the form looking unsaved`() = runTest(mainRule.dispatcher) {
-        val (ann, _) = seedStudents()
-        val id = env.groupRepo.save(Group(name = "Выпускники", price = Money.ofMajor(20)), setOf(ann)).id
-
-        val vm = vm(id)
-        observing(vm.state)
-        advanceUntilIdle()
-
-        vm.setArchived(true)
-        advanceUntilIdle()
-
-        assertTrue(vm.state.value.archived)
-        assertFalse(vm.state.value.isDirty)
-    }
-
     @Test
     fun `the default never overwrites the rate of a group being edited`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
@@ -278,22 +261,6 @@ class GroupFormViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(ann), vm.state.value.candidates.map { it.id })
-    }
-
-    @Test
-    fun `archiving a group keeps it and its roster`() = runTest(mainRule.dispatcher) {
-        val (ann, _) = seedStudents()
-        val id = env.groupRepo.save(Group(name = "Выпускники"), setOf(ann)).id
-        val vm = vm(id)
-        observing(vm.state)
-        advanceUntilIdle()
-
-        vm.setArchived(true)
-        advanceUntilIdle()
-
-        assertTrue(vm.state.value.archived)
-        assertTrue(env.groupRepo.getById(id)!!.archived)
-        assertEquals(listOf(ann), env.groupRepo.getMemberIds(id))
     }
 
     /**
@@ -378,30 +345,6 @@ class GroupFormViewModelTest {
     }
 
     @Test
-    fun `deleting is refused while the group has lessons`() = runTest(mainRule.dispatcher) {
-        val (ann, _) = seedStudents()
-        val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val id = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann)).id
-        env.fixtures.storedClass(
-                studentId = ann, subjectId = subject, startMillis = 1, durationMinutes = 60,
-                status = "COMPLETED", groupId = id,
-            )
-        val vm = vm(id)
-        observing(vm.state)
-        advanceUntilIdle()
-
-        var deleted = false
-        val events = mutableListOf<GroupFormViewModel.Event>()
-        backgroundScope.launch { vm.events.stream.collect { events += it } }
-        vm.delete { deleted = true }
-        advanceUntilIdle()
-
-        assertFalse(deleted)
-        assertEquals(listOf(GroupFormViewModel.Event.DELETE_BLOCKED_HAS_LESSONS), events)
-        assertNotNull("the group survives so its lessons still name it", env.groupRepo.getById(id))
-    }
-
-    @Test
     fun `picking a subject narrows the candidates to the students priced for it`() =
         runTest(mainRule.dispatcher) {
             val (ann, bob) = seedStudents()
@@ -469,19 +412,68 @@ class GroupFormViewModelTest {
             assertFalse(vm.state.value.canSave)
         }
 
+    /**
+     * **The rate's log belongs beside the box the rate is typed into**, which is here.
+     *
+     * It used to be an expander on the group's *card* — the one screen that cannot change the number it
+     * was annotating. The student's reprice dialog already made the argument in its own KDoc: history is
+     * the context for the decision being made, «было 25, стало 30» while a new number is being typed.
+     */
     @Test
-    fun `an unused group can be deleted`() = runTest(mainRule.dispatcher) {
+    fun `the form carries the group's rate history, newest first`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
-        val id = env.groupRepo.save(Group(name = "Ошибка"), setOf(ann)).id
+        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann)).id
+        env.groupRepo.save(env.groupRepo.getById(id)!!.copy(price = Money.ofMajor(25)), setOf(ann))
+
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()
 
-        var deleted = false
-        vm.delete { deleted = true }
+        val changes = vm.state.value.rateHistory
+        assertEquals(2, changes.size)
+        assertEquals(Money.ofMajor(25), changes.first().to)
+        assertTrue("the oldest row is where the rate started", changes.last().isInitial)
+    }
+
+    /** A group that does not exist yet has no rate to have a history of. */
+    @Test
+    fun `a new group's form shows no rate history`() = runTest(mainRule.dispatcher) {
+        seedStudents()
+
+        val vm = vm()
+        observing(vm.state)
         advanceUntilIdle()
 
-        assertTrue(deleted)
-        assertEquals(null, env.groupRepo.getById(id))
+        assertTrue(vm.state.value.rateHistory.isEmpty())
+    }
+
+    /**
+     * **A rename must not un-retire the group.**
+     *
+     * Archiving moved to the card, so the form no longer sets the flag — but it still *writes* it, because
+     * a save writes the whole `Group` row. A form that dropped it would quietly bring a retired group back
+     * the next time its name was corrected, which is silent data loss with no error and no undo. The test
+     * that used to cover this territory (`archiving does not leave the form looking unsaved`) went to
+     * `GroupDetailViewModelTest` with the behaviour, and left this uncovered.
+     */
+    @Test
+    fun `saving the form keeps the group retired`() = runTest(mainRule.dispatcher) {
+        val (ann, _) = seedStudents()
+        val id = env.groupRepo.save(Group(name = "Выпускники", price = Money.ofMajor(20)), setOf(ann)).id
+        // Retired from the card, which is the only place that can do it now.
+        env.groupRepo.setArchived(env.groupRepo.getById(id)!!, true)
+
+        val vm = vm(id)
+        observing(vm.state)
+        advanceUntilIdle()
+        assertTrue("the form loaded the flag", vm.state.value.archived)
+
+        vm.update { it.copy(name = "Выпускники 2024") }
+        vm.save { }
+        advanceUntilIdle()
+
+        val saved = env.groupRepo.getById(id)
+        assertEquals("Выпускники 2024", saved?.name)
+        assertTrue("a rename is not an un-archive", saved?.archived == true)
     }
 }

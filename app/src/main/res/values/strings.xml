@@ -18,20 +18,55 @@
     <string name="action_edit">Изменить</string>
     <string name="action_delete">Удалить</string>
     <string name="action_save">Сохранить</string>
+    <!--
+      «Готово» closes a picker; «Сохранить» writes. All three modals — date, time, duration — used to
+      confirm with «Сохранить», so booking a lesson asked the tutor to save twice in a row and the
+      first one plausibly read as having committed the booking. Picking a date saves nothing.
+    -->
+    <string name="action_done">Готово</string>
     <string name="action_cancel">Отмена</string>
     <string name="action_ok">Понятно</string>
     <string name="action_back">Назад</string>
     <string name="action_archive">В архив</string>
     <string name="action_unarchive">Из архива</string>
     <string name="action_enable">Включить</string>
-    <string name="action_undo">Отменить</string>
+    <!--
+      Undo is «Вернуть», not «Отменить» — this is an app where «Отменено» is a *lesson status*. On the
+      snackbar that follows deleting a payment, «Отменить» read as "cancel something" at least as
+      readily as "put the payment back", which is the one thing the button does. «Отмена» stays on
+      dialogs, where dismissing is all it can mean.
+    -->
+    <string name="action_undo">Вернуть</string>
     <!-- The action a snackbar carries when the message names something to go and look at. -->
     <string name="action_show">Показать</string>
     <string name="action_more">Ещё действия</string>
 
+    <!--
+      What a field says when it is wrong, and when it is merely required.
+
+      A form gates its «Сохранить» on `canSave` and used to say nothing else, so a tutor looking at a
+      disabled button had to work out which of six boxes was the problem. The money fields were worse than
+      silent: they drew a red outline with no message at all — fixed everywhere, since the classification
+      is `MoneyField.error`'s and every money input goes through it. `field_required` is only on the group
+      form so far; the student and booking forms still name no required field.
+    -->
+    <string name="field_required">Обязательное поле</string>
+    <!--
+      Short on purpose: the narrowest field that shows it is the student form's per-subject price box, at
+      140dp beside a checkbox. An example says more than «Неверная сумма» in the same room.
+    -->
+    <string name="money_error_unreadable">Например: 25 или 25,50</string>
+    <string name="money_error_zero_payment">Платёж не может быть нулевым</string>
+
     <!-- Search, shared by the three list screens -->
     <string name="action_search">Поиск</string>
+    <!--
+      Two different buttons, and they can be in the bar at the same time: the ✕ inside the field empties
+      it, the crossed-out magnifier in the actions closes search altogether. They read as one thing to a
+      screen reader while they shared a description.
+    -->
     <string name="search_clear">Очистить</string>
+    <string name="search_close">Закрыть поиск</string>
     <string name="search_no_results">Ничего не найдено</string>
     <string name="search_no_results_detail">Попробуйте изменить запрос</string>
     <string name="students_search_hint">Имя ученика</string>
@@ -225,12 +260,21 @@
     <!-- Rate history -->
     <string name="rate_history_title">История цены</string>
     <string name="rate_history_empty">Цена не менялась</string>
+    <!--
+      The tail of a long log, collapsed. The group form shows the history inline above its roster, so a
+      rate that has moved a dozen times must not push the roster off the screen.
+    -->
+    <plurals name="rate_history_older">
+        <item quantity="one">и ещё %1$d изменение</item>
+        <item quantity="few">и ещё %1$d изменения</item>
+        <item quantity="many">и ещё %1$d изменений</item>
+        <item quantity="other">и ещё %1$d изменения</item>
+    </plurals>
     <!-- %1$s: the amount the rate started at -->
     <string name="rate_history_initial">Назначена %1$s</string>
     <!-- %1$s: old rate, %2$s: new rate -->
     <string name="rate_history_change">%1$s → %2$s</string>
     <string name="rate_history_unknown_date">дата неизвестна</string>
-    <string name="rate_history_expand">Показать историю цены</string>
 
     <!-- Balance -->
     <string name="balance_settled">Нет задолженности</string>
@@ -281,8 +325,6 @@
     <string name="groups_empty_detail">Группа — это несколько учеников с общей ценой. Одно занятие записывается сразу на всех.</string>
     <string name="groups_add">Создать группу</string>
     <string name="groups_show_archived">Показать архив</string>
-    <!-- Danger zone at the foot of the group form, so it reads as a section and not as the next field. -->
-    <string name="group_danger_title">Управление группой</string>
     <string name="group_add_title">Новая группа</string>
     <string name="group_edit_title">Изменить группу</string>
     <string name="group_name_label">Название</string>
@@ -308,6 +350,11 @@
     <string name="group_lessons_title">Занятия</string>
     <string name="group_lessons_empty">У группы пока нет занятий</string>
     <string name="group_no_subject">Предмет не выбран</string>
+    <!--
+      The way out of an empty roster tab, which used to name the problem and offer nothing. It leads to
+      the group's form, since that is the only place a roster changes.
+    -->
+    <string name="group_edit_members">Изменить состав</string>
     <string name="group_member_open">Открыть карточку ученика</string>
     <!-- %1$d: how many of the group's members were in this lesson -->
     <!-- %1$d of %2$d: how many of a group lesson's students were actually in it. Only shown when

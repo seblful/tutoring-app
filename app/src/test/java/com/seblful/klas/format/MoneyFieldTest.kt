@@ -118,6 +118,54 @@ class MoneyFieldTest {
         assertFalse(optional("25,50").isError)
     }
 
+    // --- error: which rule broke, not merely that one did ---------------------------------------
+
+    /**
+     * The field knew it was wrong long before it could say *why*, so every money input in the app
+     * turned red and explained nothing — and a tutor facing a disabled «Сохранить» had to work out
+     * which of six boxes it meant. The screen holds the wording; the classification is here, where a
+     * JVM test can ask it.
+     */
+    @Test
+    fun `unreadable text says so, whatever the field is for`() {
+        assertEquals(MoneyField.Error.UNREADABLE, rate("abc").error)
+        assertEquals(MoneyField.Error.UNREADABLE, payment("2,5,5").error)
+        assertEquals(MoneyField.Error.UNREADABLE, optional("-").error)
+    }
+
+    /** The two cases are different advice: "that is not a number" versus "that is not a payment". */
+    @Test
+    fun `a zero payment is its own complaint, and only for a payment`() {
+        assertEquals(MoneyField.Error.ZERO_PAYMENT, payment("0").error)
+        assertNull("a free lesson is a real rate", rate("0").error)
+        assertNull("blank optional means «not set», which is zero and fine", optional("").error)
+    }
+
+    @Test
+    fun `an empty or valid field has nothing to say`() {
+        assertNull(rate("").error)
+        assertNull(payment("").error)
+        assertNull(rate("25,50").error)
+        assertNull(payment("25,50").error)
+    }
+
+    /**
+     * `isError` is now derived from [MoneyField.error], so the red outline and the message can never
+     * disagree — a field cannot go red with nothing to explain, or explain something while looking fine.
+     */
+    @Test
+    fun `the outline and the message are the same answer`() {
+        val fields = listOf(rate(""), rate("0"), rate("abc"), payment(""), payment("0"), payment("25"), optional(""), optional("x"))
+
+        fields.forEach { field ->
+            assertEquals(
+                "`isError` disagreed with `error` for ${field.kind} «${field.text}»",
+                field.error != null,
+                field.isError,
+            )
+        }
+    }
+
     // --- Prefill --------------------------------------------------------------------------------
 
     @Test

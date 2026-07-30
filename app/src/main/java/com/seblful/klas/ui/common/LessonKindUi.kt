@@ -143,8 +143,8 @@ fun LessonFilterChips(
 ) {
     val total = tally.values.sum()
     Row(
-        modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = Spacing.gutter),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.inline),
     ) {
         KindChip(
             label = stringResource(R.string.lesson_kind_all),

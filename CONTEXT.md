@@ -47,7 +47,7 @@ flowchart TB
 | `diagnostics/` | `CrashLogger` over `CrashLogStore`/`DeviceInfo` ports; the pure half is `domain/Diagnostics`. Viewed and exported from `ui/diagnostics`. |
 | `storage/` | `DocumentStore` port + SAF adapter over an opaque `DocumentRef`, so no view model touches a `Uri` or a `Context`. |
 | `format/` | `ru`-locale date/time/money formatting (with `LocalDate`/`LocalTime` faces, so no caller restates the zone), `MoneyField` (what a money input is — each `Kind` carries its own zero rule), `NameOrder` (the one definition of how names are listed). |
-| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/` (routes, tab items, screen transitions), shared `common/` atoms (incl. `Loadable`/`Skeleton` — the loaded-yet distinction), `onboarding/`, and `RootViewModel` gating onboarding vs. the tabs. **Settings and About live in `ui/more/`.** |
+| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/` (routes, tab items, screen transitions), shared `common/` atoms — the screen shell (`KlasScreen`), the spacing scale (`Spacing`), `Loadable`/`Skeleton` (the loaded-yet distinction), `SegmentedChoice`, `HeroCard`, `StickyTabRow` — plus `onboarding/` and `RootViewModel` gating onboarding vs. the tabs. **Settings and About live in `ui/more/`.** |
 | `di/` | The database module, the `@DebugBuild` flag, `@ApplicationScope`/`@Computation` (`CoroutinesModule`) and the `Clock` (`TimeModule`) — which every defaulted `now` in the engine reads (`Maintenance`, `DueReminder`, `RateHistoryRepository`, `CrashLogger`), so the tested path is the shipped one. Other Hilt modules live beside their adapters. |
 
 ### Ownership (one invariant, one place)
@@ -563,13 +563,84 @@ Android, and each was a default rather than a decision.
   what a tutor goes looking for — Diagnostics is folded into the foot of Settings, and About states the
   version and the offline promise.
 
+### UI — one shell, one scale, one control per question
+
+The layer above the platform edge. Everything here held because the author was careful, not because
+the code prevented drift — so each of these is a **named thing that makes the careless version
+impossible**, and three of them carry a tripwire.
+
+- **Every screen is a `KlasScreen`** (`ui/common/KlasScreen.kt`), and it owns the `Scaffold`, the
+  insets, the width cap, the snackbar host, the back arrow, the search toggle and the scroll
+  behaviour. Fifteen screens hand-spelled that — eight back arrows, four save buttons
+  (`SaveAction` now), two near-identical search toggles — and two of the fifteen (`MoreScreen`,
+  `BackupScreen`) had already drifted off the scroll behaviour every other screen had.
+  **The content lambda is handed a `Modifier`, not a `PaddingValues`**: that is what lets the shell
+  compose `padding(insets)`, `imePadding()` and `constrainedContent()` *in the right order*, so
+  "`imePadding()` before the scroll" is a rule in one place instead of a habit in fifteen.
+  `KlasScreenSurfaceTest` pins it three ways — no `Scaffold(`, no `ArrowBack`, no `SnackbarHost(`
+  outside it — plus a fourth assertion that the shell is really used, so the first three cannot pass by
+  there being no screens left. It matches **code with comments stripped**, or documenting the rule would
+  fail the test that enforces it.
+- **`Spacing` is the app's rhythm** — `tight` 4, `inline` 8, `itemGap` 12, `gutter` 16, `leading` 16,
+  `sectionGap` 24. Fourteen distinct gap values existed, four of them off Material's 4 dp grid, and
+  the same pattern ("cards in a scrolling list") was drawn four ways. **The list owns the gutter**, via
+  `contentPadding`, never the item — the schedule did it the other way and paid for it in two places
+  `contentPadding` exists for. A gap that is deliberately *not* on the scale is a named local with the
+  reason next to it (`TallySpacing` in a calendar cell, `TileInsetX` in a stat tile, `FabClearance`).
+- **A card, or a row, by nesting depth.** A **top-level browsable** list uses `ContentCard`; a list
+  *inside* a card or a settings surface uses `ListItem`. The old rule was by screen genre ("settings-style
+  lists stay plain") and decided neither of the two cases that were actually wrong: Subjects was a
+  browsable list of rows, and a lesson was a card in the schedule and a row on a student's card.
+- **Both detail cards are the same three blocks in the same order**: identity → `StatRow` → sticky
+  tabs. They disagreed, and the student's balance and the group's rate history were each in the wrong
+  one of the two.
+- **Lifecycle actions live on the entity's card**, behind the overflow — archive and delete, for a
+  student and now for a group too (`GroupDetailViewModel`). The group's used to be a "danger zone" at
+  the foot of its *form*, so the same verb was reached two different ways depending on the entity. The
+  row bin stays for **subjects**, which have no card, and the sheet stays for a **lesson**.
+- **A rate's history sits where the rate is typed** — the student's in the reprice dialog, the group's
+  on the group form. It is context for the number being entered, which is an argument that applies to
+  both and was being made on only one.
+- **One control per kind of question.** A choice between a fixed, mutually exclusive few is
+  `SegmentedChoice` (`ui/common/Segments.kt`) — seven places already were, and the booking form's
+  student-or-group was a pair of chips. `SegmentLabel`'s one-line shrink rule came with it, so the
+  settings rows get it too. **Chips stay for a shortlist with an escape hatch**, which is what the
+  duration chips are.
+- **One empty-state language** (`EmptyState`, with `compact` for inside a tab). The detail tabs drew a
+  bare grey `Text` through a private `TabEmptyState` defined **twice, identically**, in the two card
+  files — so five screens met a designed empty state and five tabs met an unstyled sentence with
+  nowhere to put an action. `AddRow` moved to `ui/common/` for the same reason: the group's roster tab
+  named its emptiness and offered nothing because the composable lived in the other file.
+- **`HeroCard` is "the one number this screen exists to answer"**, and there are exactly **two**: the
+  report's total and the student's balance. A filled accent surface earns its volume by being rare —
+  the report's was the app's only one, and its counterpart was red text in a grey tile. The balance
+  uses the tonal variant, because «Долг 240» in the app's happiest colour would be congratulating the
+  tutor on money they have not been paid.
+- **A field says why it is wrong, in its own supporting slot.** `MoneyField.error` classifies which
+  rule broke (unreadable, or a zero payment) and the screen holds only the wording; required fields say
+  so instead of leaving a greyed-out «Сохранить» to be decoded. **Everything that qualifies a field goes
+  in that field's `supportingText`** — `PickerField` and `DropdownField` gained the parameter so the
+  standalone hint `Text`s had somewhere to go, the group form having had two hint mechanisms 20 dp apart.
+- **Filled for actions and selected states, outlined for art and inactive glyphs.** Empty-state
+  pictures, decorative glyphs beside a line of text and settings leading icons are `Icons.Outlined`;
+  buttons, menu items, chevrons and the selected tab stay filled. The two **lesson-kind** icons are
+  deliberately exempt — they are a matched pair pinned on *ink height* by `LessonKindIconTest`, and
+  swapping the set would change what that test measures.
+- **A pinned tab row is a fixed header, so it looks like one** (`StickyTabRow`): `surfaceContainer`
+  and a divider, not the page's own `surface`, which is what made rows appear to slide out from behind
+  nothing.
+- **«Готово» closes a picker; «Сохранить» writes; «Вернуть» undoes.** All three modals confirmed with
+  «Сохранить», so booking a lesson asked for a save twice in a row — and the undo action was «Отменить»
+  in an app where «Отменено» is a lesson *status*.
+
 ### UI — design system
 
 - **`ui/theme/`**: curated Material 3 palette (indigo + teal), light/dark with a SYSTEM/LIGHT/DARK
   setting, dynamic colour off for a consistent brand.
 - **The tonal ladder is stated**, not left to Material's defaults: an *item* sits on
   `surfaceContainerLow` (`ContentCard`), the *section* holding items on `surfaceContainer`
-  (`SectionCard`, `StatRow`, a report card). Settings-style lists stay plain `ListItem`s.
+  (`SectionCard`, `StatRow`, a report card, a pinned `StickyTabRow`). Which of the two a list uses is
+  decided by **nesting depth** — see *one shell, one scale, one control per question* above.
 - **The type scale states every style**, including the ones matching the default. `AppFontFamily` is
   one constant, so a Cyrillic-first face is a one-line swap.
 - **Avatar colours key off the student's id, not their name** (`domain/AvatarPalette`), so a rename
@@ -578,8 +649,9 @@ Android, and each was a default rather than a decision.
   colour, matched on **ink height** rather than nominal size.
 - **Anything tappable clears 48dp** (`ui/common/MinTouchTarget`), and the main lists carry
   `Modifier.animateItem()`.
-- **Responsive width**: every top-level scrollable applies `Modifier.constrainedContent()` (~600.dp cap,
-  centred on wide screens, full-width on phones). Vertical fit comes from every screen scrolling.
+- **Responsive width**: `constrainedContent()` (~600.dp cap, centred on wide screens, full-width on
+  phones) is applied **once, by `KlasScreen`**, to the modifier it hands its content — so no screen body
+  applies it again. Vertical fit comes from every screen scrolling.
 
 ---
 
@@ -649,18 +721,20 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
   with it. Reaching for a DAO to build what the repositories deliberately refuse is still legitimate —
   lowering the cap by hand is how such a call gets acknowledged rather than absorbed.
 - **Fixtures pin the clock, not `now()`.** Seed a fixed hour and pick days by excluding today.
-- Seven tests are **tripwires against silent drift**, all deriving expectations from a real artifact
+- Eight tests are **tripwires against silent drift**, all deriving expectations from a real artifact
   rather than restating them: `BackupSchemaCoverageTest` (a new table must be carried or named
   device-local), `MappersTest` (a new column must be mapped), `StoredEnumNamesTest` (a renamed enum
   constant is a migration — it reads the DAO source, since `@Query` is not retained at runtime, *and*
   `FakeDaos.kt`, which had restated three of the same predicates as bare strings and so sat outside the
   very scan built for the risk), `WholeTableWritesTest` (a whole-table delete belongs to `SnapshotDao`,
   and every table it reads it must also empty), `ReportsSurfaceTest` (the app asks `Reports` one
-  question), `ScreenStateSurfaceTest` (the sharing policy and the snackbar host each live in one place)
-  and
+  question), `ScreenStateSurfaceTest` (the sharing policy and the snackbar host each live in one place),
+  `KlasScreenSurfaceTest` (the screen shell does too — no `Scaffold(`, no back arrow and no
+  `SnackbarHost(` outside `KlasScreen.kt`; the `Scaffold(` match is word-bounded so `AppRoot`'s
+  `NavigationSuiteScaffold` does not count) and
   `MigrationChainTest` (a bumped schema version must ship a migration for every step from v1 *and* wire
   it into the builder, and the destructive fallback must stay debug-only — it reads `AppDatabase.kt`,
-  since `@Database` is `BINARY`-retained). The first six are acknowledgement lists; the last is the
+  since `@Database` is `BINARY`-retained). The first seven are acknowledgement lists; the last is the
   upgrade path, and it sits in the **unit** suite precisely because instrumented tests need a device CI
   does not have. Two more guard structure: one asserts the booking form leaves **no query open** once
   nothing collects it, one asserts a save is launched into the application scope.

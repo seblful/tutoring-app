@@ -5,57 +5,48 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.DurationPickerModal
+import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.MemberPickRow
 import com.seblful.klas.ui.common.ModeField
 import com.seblful.klas.ui.common.PickerField
+import com.seblful.klas.ui.common.SaveAction
+import com.seblful.klas.ui.common.SegmentedChoice
+import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TimePickerModal
-import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.leaveGuard
+import com.seblful.klas.ui.common.moneyErrorText
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRevealedFocus
+import com.seblful.klas.ui.common.supportingTextOf
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.format.formatDate
@@ -107,50 +98,21 @@ fun ClassEditScreen(
     // answers «Сохранить» through the same request.
     val requestLeave = leaveGuard(form = state, onLeave = onBack, onSave = ::requestSave)
 
-    // The bar takes on its scrolled colour once content has moved under it — M3's own signal that
-    // the two are separate surfaces. Pinned, because this bar carries actions that must stay put.
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        snackbarHost = { SnackbarHost(messages.hostState) },
-        topBar = {
-            TopAppBar(
-                scrollBehavior = scrollBehavior,
-                title = {
-                    Text(stringResource(if (viewModel.isNew) R.string.class_add_title else R.string.class_edit_title))
-                },
-                navigationIcon = {
-                    IconButton(onClick = requestLeave) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
-                    }
-                },
-                actions = {
-                    // A taken time is as disqualifying as a missing field: the lesson could not happen.
-                    TextButton(
-                        onClick = ::requestSave,
-                        enabled = state.canSave,
-                    ) {
-                        Text(stringResource(R.string.action_save))
-                    }
-                },
-            )
-        },
-    ) { padding ->
+    KlasScreen(
+        title = stringResource(if (viewModel.isNew) R.string.class_add_title else R.string.class_edit_title),
+        onBack = requestLeave,
+        messages = messages,
+        // The keyboard shrinks the viewport rather than covering it; the shell composes that in ahead
+        // of the scroll below. A taken time is as disqualifying as a missing field, and `canSave`
+        // already says so — the lesson could not happen.
+        imeAware = true,
+        actions = { SaveAction(enabled = state.canSave, onSave = ::requestSave) },
+    ) { modifier ->
         Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                // Before the scroll, so the keyboard *shrinks the viewport* rather than covering it.
-                // The app is edge-to-edge, which means the IME arrives as a window inset and does not
-                // resize the window — and M3's default scaffold insets leave it out. Without this the
-                // duration chips, the roster and the price sat under the keyboard with no way to scroll
-                // them up, because as far as the scroll was concerned they were already in view.
-                .imePadding()
-                .constrainedContent()
-                .padding(16.dp)
+            modifier
+                .padding(Spacing.gutter)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.gutter),
         ) {
             // Who the lesson is for. Only offered while booking: an existing lesson already is one
             // kind or the other, and turning a student's class into a group lesson (or back) would
@@ -167,24 +129,22 @@ fun ClassEditScreen(
                     onSelect = { id -> viewModel.change(BookingIntent.ChooseStudent(id)) },
                 )
 
-                ClassTarget.GROUP -> {
-                    DropdownField(
-                        label = stringResource(R.string.class_group_label),
-                        selectedText = state.groups.firstOrNull { it.id == form.groupId }?.name ?: "",
-                        options = state.groups.map { it.id to it.name },
-                        onSelect = { id -> viewModel.change(BookingIntent.ChooseGroup(id)) },
-                        // A booked lesson can't be handed to another group: its members' classes are
-                        // billed history, and the other group is a different set of people.
-                        enabled = viewModel.isNew,
-                    )
-                    if (state.hasNoGroups) {
-                        Text(
-                            stringResource(R.string.class_no_groups),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                }
+                // Anything that qualifies a field goes in that field's own `supportingText` — this
+                // notice was a standalone `Text` under it, which put two hint mechanisms on one form.
+                // `isError` because it is a refusal, not a note: nothing can be booked until there is
+                // a group, and a grey line saying so reads as advice.
+                ClassTarget.GROUP -> DropdownField(
+                    label = stringResource(R.string.class_group_label),
+                    selectedText = state.groups.firstOrNull { it.id == form.groupId }?.name ?: "",
+                    options = state.groups.map { it.id to it.name },
+                    onSelect = { id -> viewModel.change(BookingIntent.ChooseGroup(id)) },
+                    // A booked lesson can't be handed to another group: its members' classes are
+                    // billed history, and the other group is a different set of people.
+                    enabled = viewModel.isNew,
+                    supportingText = stringResource(R.string.class_no_groups)
+                        .takeIf { state.hasNoGroups },
+                    isError = state.hasNoGroups,
+                )
             }
 
             DropdownField(
@@ -193,26 +153,23 @@ fun ClassEditScreen(
                 options = state.subjects.map { it.id to it.name },
                 onSelect = { id -> viewModel.change(BookingIntent.ChooseSubject(id)) },
                 enabled = state.subjectPickerEnabled,
-            )
-            state.subjectNotice?.let { notice ->
-                Text(
+                supportingText = state.subjectNotice?.let { notice ->
                     stringResource(
                         when (notice) {
                             SubjectNotice.FIXED_BY_GROUP -> R.string.class_subject_from_group
                             SubjectNotice.NONE_FOR_GROUP -> R.string.class_no_subjects_for_group
                             SubjectNotice.NONE_FOR_STUDENT -> R.string.class_no_subjects_for_student
                         },
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (notice == SubjectNotice.FIXED_BY_GROUP) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.error
-                    },
-                )
-            }
+                    )
+                },
+                // «Предмет задан группой» is a fact about how this form works; the other two are the
+                // reason nothing can be booked. Only the second kind is red — one grey line for both is
+                // how the blocking one stopped being visible.
+                isError = state.subjectNotice != null &&
+                    state.subjectNotice != SubjectNotice.FIXED_BY_GROUP,
+            )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.gutter)) {
                 PickerField(
                     value = form.date?.let {
                         it.formatDate()
@@ -222,12 +179,29 @@ fun ClassEditScreen(
                     onClick = { showDatePicker = true },
                     modifier = Modifier.weight(1.4f),
                 )
+                // Marked as the field that is wrong — it is the only thing that *can* be wrong about a
+                // time now, since a start and a length cannot be impossible. The sentence itself is
+                // **not** in this field's supporting slot: the field is `weight(1f)` of a 1.4 : 1 row,
+                // which is about 98dp of text width on a 360dp phone, and «Занято: Мария Петрова
+                // 14:00 – 15:30» wraps to five lines in that. It goes full-width under the row instead.
                 PickerField(
                     value = form.timeFrom?.timeText() ?: "",
                     label = stringResource(R.string.class_time_from_label),
                     placeholder = stringResource(R.string.class_pick_time),
                     onClick = { showFromPicker = true },
                     modifier = Modifier.weight(1f),
+                    isError = state.conflict != null,
+                )
+            }
+            state.conflict?.let { conflict ->
+                Text(
+                    stringResource(
+                        R.string.class_time_conflict,
+                        conflict.who,
+                        "${conflict.slot.start.timeText()} – ${conflict.slot.end.timeText()}",
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
                 )
             }
 
@@ -240,20 +214,6 @@ fun ClassEditScreen(
                 onSelect = { minutes -> viewModel.change(BookingIntent.LastsFor(minutes)) },
                 onCustom = { showDurationPicker = true },
             )
-
-            // Whose lesson is in the way — said here rather than left to a greyed-out save button. The
-            // only thing that can be wrong about a time now: a start and a length cannot be impossible.
-            state.conflict?.let { conflict ->
-                Text(
-                    stringResource(
-                        R.string.class_time_conflict,
-                        conflict.who,
-                        "${conflict.slot.start.timeText()} – ${conflict.slot.end.timeText()}",
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
 
             if (form.target == ClassTarget.GROUP) {
                 // Who the lesson covers — ticked one by one, and the same list whether it is being
@@ -302,6 +262,7 @@ fun ClassEditScreen(
                     },
                     label = { Text(stringResource(R.string.class_group_price_label)) },
                     isError = form.price.isError,
+                    supportingText = supportingTextOf(moneyErrorText(form.price)),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -322,6 +283,7 @@ fun ClassEditScreen(
                     },
                     label = { Text(stringResource(R.string.price_label)) },
                     isError = form.price.isError,
+                    supportingText = supportingTextOf(moneyErrorText(form.price)),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().focusRequester(rememberRevealedFocus()),
@@ -395,24 +357,23 @@ fun ClassEditScreen(
 /** Student-or-group chooser for a new booking. */
 @Composable
 private fun TargetSelector(selected: ClassTarget, onSelect: (ClassTarget) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ClassTarget.entries.forEach { target ->
-            FilterChip(
-                selected = selected == target,
-                onClick = { onSelect(target) },
-                label = {
-                    Text(
-                        stringResource(
-                            when (target) {
-                                ClassTarget.STUDENT -> R.string.class_target_student
-                                ClassTarget.GROUP -> R.string.class_target_group
-                            }
-                        )
-                    )
-                },
+    // Segments, not chips. Every other mutually-exclusive choice in the app is a segmented row — the
+    // schedule's view mode, the lesson status, People's two sides, four settings rows — and this one sat
+    // at the top of the most-used form looking like the duration chips below it, which are chips for a
+    // reason (a shortlist with an escape hatch). See [SegmentedChoice].
+    SegmentedChoice(
+        options = ClassTarget.entries,
+        selected = selected,
+        onSelect = onSelect,
+        label = { target ->
+            stringResource(
+                when (target) {
+                    ClassTarget.STUDENT -> R.string.class_target_student
+                    ClassTarget.GROUP -> R.string.class_target_group
+                }
             )
-        }
-    }
+        },
+    )
 }
 
 /**
@@ -435,7 +396,7 @@ private fun DurationPicker(
     onSelect: (Int) -> Unit,
     onCustom: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 stringResource(R.string.class_duration_label),
@@ -449,7 +410,7 @@ private fun DurationPicker(
                 )
             }
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
             options.forEach { minutes ->
                 FilterChip(
                     selected = minutes == selected,

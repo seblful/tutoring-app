@@ -13,14 +13,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -28,11 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.seblful.klas.R
 
 /**
  * What a screen draws while its state is [Loadable.Loading].
@@ -50,14 +41,14 @@ fun ListSkeleton(
     modifier: Modifier = Modifier,
     rows: Int = 5,
     rowHeight: Dp = SkeletonRowHeight,
-    contentPadding: PaddingValues = PaddingValues(16.dp),
+    contentPadding: PaddingValues = PaddingValues(Spacing.gutter),
 ) {
     Column(
         modifier
             .fillMaxWidth()
             .clearAndSetSemantics { }
             .padding(contentPadding),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         repeat(rows) { SkeletonBlock(rowHeight) }
     }
@@ -129,33 +120,17 @@ private fun placeholderAlpha(): Float {
  * @param onBack the back arrow stays live throughout. A screen that cannot be left until it has loaded
  *   is a screen that traps the tutor if the load is slow.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoadingDetailScreen(onBack: () -> Unit) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                // No title: the title is the name of the thing being loaded, and inventing a placeholder
-                // for it would be the one piece of this screen that lies rather than waits.
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            stringResource(R.string.action_back),
-                        )
-                    }
-                },
-            )
-        },
-    ) { padding ->
+    KlasScreen(
+        // No title: the title is the name of the thing being loaded, and inventing a placeholder for it
+        // would be the one piece of this screen that lies rather than waits.
+        title = null,
+        onBack = onBack,
+    ) { modifier ->
         Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(padding)
-                .constrainedContent()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.itemGap),
+            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
             SkeletonBlock(StatRowHeight)
             SkeletonBlock(TabRowHeight, shape = MaterialTheme.shapes.extraSmall)

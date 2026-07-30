@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PersonOutline
-import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,16 +19,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.balanceColor
 import com.seblful.klas.ui.common.balanceDescription
-import com.seblful.klas.ui.common.constrainedContent
 
 /**
  * The students list — a **body**, without a scaffold of its own.
@@ -59,7 +58,7 @@ fun StudentsList(
 ) {
     val rows = when (state) {
         Loadable.Loading -> {
-            ListSkeleton(modifier.constrainedContent())
+            ListSkeleton(modifier)
             return
         }
         is Loadable.Ready -> state.value
@@ -71,14 +70,14 @@ fun StudentsList(
             EmptyState(
                 title = stringResource(R.string.search_no_results),
                 detail = stringResource(R.string.search_no_results_detail),
-                icon = Icons.Filled.SearchOff,
+                icon = Icons.Outlined.SearchOff,
                 modifier = modifier,
             )
         } else {
             EmptyState(
                 title = stringResource(R.string.students_empty),
                 detail = stringResource(R.string.students_empty_detail),
-                icon = Icons.Filled.PersonOutline,
+                icon = Icons.Outlined.Person,
                 actionLabel = stringResource(R.string.students_add),
                 onAction = onAddStudent,
                 modifier = modifier,
@@ -87,9 +86,9 @@ fun StudentsList(
         return
     }
     LazyColumn(
-        modifier.fillMaxSize().constrainedContent(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier.fillMaxSize(),
+        contentPadding = PaddingValues(Spacing.gutter),
+        verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         items(rows, key = { it.student.id }) { row ->
             ContentCard(
@@ -100,7 +99,7 @@ fun StudentsList(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Avatar(row.student.name, row.student.id)
-                    Spacer(Modifier.width(16.dp))
+                    Spacer(Modifier.width(Spacing.leading))
                     Column(Modifier.weight(1f)) {
                         Text(row.student.name, style = MaterialTheme.typography.titleMedium)
                         Text(
@@ -110,7 +109,7 @@ fun StudentsList(
                         )
                     }
                     if (row.student.archived) {
-                        Spacer(Modifier.width(12.dp))
+                        Spacer(Modifier.width(Spacing.itemGap))
                         Text(
                             stringResource(R.string.student_archived_badge),
                             style = MaterialTheme.typography.labelMedium,

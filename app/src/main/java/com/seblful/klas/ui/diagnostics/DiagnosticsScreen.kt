@@ -7,42 +7,31 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.ConfirmDialog
-import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.rememberMessages
 
@@ -71,28 +60,14 @@ fun DiagnosticsScreen(
         ActivityResultContracts.CreateDocument("text/plain"),
     ) { uri -> uri?.let { viewModel.export(DocumentRef(it.toString())) } }
 
-    // The bar takes on its scrolled colour once content has moved under it — M3's own signal that
-    // the two are separate surfaces. Pinned, because this bar carries actions that must stay put.
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            TopAppBar(
-                scrollBehavior = scrollBehavior,
-                title = { Text(stringResource(R.string.diagnostics_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
-                    }
-                },
-            )
-        },
-        snackbarHost = { SnackbarHost(messages.hostState) },
-    ) { padding ->
+    KlasScreen(
+        title = stringResource(R.string.diagnostics_title),
+        onBack = onBack,
+        messages = messages,
+    ) { modifier ->
         Column(
-            Modifier.fillMaxSize().padding(padding).constrainedContent().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier.padding(Spacing.gutter),
+            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
             Text(
                 stringResource(R.string.diagnostics_desc),
@@ -103,7 +78,7 @@ fun DiagnosticsScreen(
             if (!state.hasLog) {
                 Text(stringResource(R.string.diagnostics_empty))
             } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
                     OutlinedButton(onClick = { exportLauncher.launch(exportFilename) }) {
                         Text(stringResource(R.string.diagnostics_export))
                     }
@@ -118,7 +93,7 @@ fun DiagnosticsScreen(
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState())
                             .horizontalScroll(rememberScrollState())
-                            .padding(12.dp),
+                            .padding(Spacing.itemGap),
                         style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                     )
                 }

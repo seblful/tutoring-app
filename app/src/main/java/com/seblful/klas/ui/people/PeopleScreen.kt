@@ -3,15 +3,12 @@ package com.seblful.klas.ui.people
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -20,13 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -35,13 +26,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
-import com.seblful.klas.ui.common.SearchField
-import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.ScreenSearch
+import com.seblful.klas.ui.common.SegmentedChoice
+import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.groups.GroupsList
 import com.seblful.klas.ui.groups.GroupsViewModel
 import com.seblful.klas.ui.students.StudentSort
@@ -80,7 +71,6 @@ fun PeopleScreen(
     groupsViewModel: GroupsViewModel = hiltViewModel(),
 ) {
     var tab by rememberSaveable { mutableStateOf(PeopleTab.STUDENTS) }
-    var searching by rememberSaveable { mutableStateOf(false) }
 
     val studentRows by studentsViewModel.rows.collectAsState()
     val studentSort by studentsViewModel.sort.collectAsState()
@@ -94,56 +84,34 @@ fun PeopleScreen(
     val query by side.query.collectAsState()
     val archived by side.showArchived.collectAsState()
 
-    // The bar takes on its scrolled colour once a list has moved under it. Pinned rather than
-    // enter-always: the segmented control below it is how the tutor switches side, and a title that
-    // hid on scroll would take that with it.
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            TopAppBar(
-                scrollBehavior = scrollBehavior,
-                title = {
-                    if (searching) {
-                        SearchField(
-                            query = query,
-                            onQueryChange = side::setQuery,
-                            placeholder = stringResource(
-                                if (tab == PeopleTab.STUDENTS) R.string.students_search_hint
-                                else R.string.groups_search_hint
-                            ),
-                        )
-                    } else {
-                        Text(stringResource(R.string.nav_people))
-                    }
-                },
-                actions = {
-                    if (searching) {
-                        // Closing search clears it: a filter left applied behind a closed box is a
-                        // list missing rows for no visible reason.
-                        IconButton(onClick = { searching = false; side.setQuery("") }) {
-                            Icon(Icons.Filled.SearchOff, stringResource(R.string.search_clear))
-                        }
-                    } else {
-                        IconButton(onClick = { searching = true }) {
-                            Icon(Icons.Filled.Search, stringResource(R.string.action_search))
-                        }
-                        // Sorting by debt is a students question; a group carries no balance.
-                        if (tab == PeopleTab.STUDENTS) {
-                            SortMenu(selected = studentSort, onSelect = studentsViewModel::setSort)
-                        }
-                        IconButton(onClick = side::toggleArchived) {
-                            Icon(
-                                Icons.Filled.Inventory2,
-                                stringResource(R.string.students_show_archived),
-                                tint = if (archived) MaterialTheme.colorScheme.primary
-                                else LocalContentColor.current,
-                            )
-                        }
-                    }
-                },
-            )
+    KlasScreen(
+        title = stringResource(R.string.nav_people),
+        // One search box for two lists. Typing goes to whichever side is on top, so switching tab keeps
+        // each side's own search — but **closing clears both**, because the shut box can only speak for
+        // one of them: searching «ан» on Students, switching to Groups and closing used to leave the
+        // students list filtered with nothing on screen to say why, or to undo it.
+        search = ScreenSearch(
+            query = query,
+            placeholder = stringResource(
+                if (tab == PeopleTab.STUDENTS) R.string.students_search_hint
+                else R.string.groups_search_hint
+            ),
+            onQueryChange = side::setQuery,
+            onClose = { studentsViewModel.setQuery(""); groupsViewModel.setQuery("") },
+        ),
+        actions = {
+            // Sorting by debt is a students question; a group carries no balance.
+            if (tab == PeopleTab.STUDENTS) {
+                SortMenu(selected = studentSort, onSelect = studentsViewModel::setSort)
+            }
+            IconButton(onClick = side::toggleArchived) {
+                Icon(
+                    Icons.Filled.Inventory2,
+                    stringResource(R.string.students_show_archived),
+                    tint = if (archived) MaterialTheme.colorScheme.primary
+                    else LocalContentColor.current,
+                )
+            }
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -152,22 +120,15 @@ fun PeopleScreen(
                 Icon(Icons.Filled.Add, stringResource(R.string.action_add))
             }
         },
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            SingleChoiceSegmentedButtonRow(
-                Modifier
-                    .fillMaxWidth()
-                    .constrainedContent()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            ) {
-                PeopleTab.entries.forEachIndexed { index, entry ->
-                    SegmentedButton(
-                        selected = tab == entry,
-                        onClick = { tab = entry },
-                        shape = SegmentedButtonDefaults.itemShape(index, PeopleTab.entries.size),
-                    ) { Text(stringResource(entry.labelRes)) }
-                }
-            }
+    ) { modifier ->
+        Column(modifier) {
+            SegmentedChoice(
+                options = PeopleTab.entries,
+                selected = tab,
+                onSelect = { tab = it },
+                modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
+                label = { entry -> stringResource(entry.labelRes) },
+            )
             Box(Modifier.fillMaxSize()) {
                 // `query` is the visible side's, so either list's "empty because nothing matched"
                 // reads the same search its rows were filtered by.

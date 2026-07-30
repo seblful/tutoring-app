@@ -31,9 +31,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filled.QueryStats
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.outlined.QueryStats
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,12 +39,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -58,7 +52,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -76,13 +69,15 @@ import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatMonthName
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.HeroCard
+import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.SectionCard
+import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatRow
-import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.valueOrNull
 import com.seblful.klas.ui.common.lessonKindFill
@@ -156,51 +151,41 @@ fun ReportsScreen(
     }
     val exportFilename = stringResource(R.string.reports_export_filename)
 
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        snackbarHost = { SnackbarHost(messages.hostState) },
-        topBar = {
-            TopAppBar(
-                scrollBehavior = scrollBehavior,
-                title = { Text(stringResource(R.string.reports_title)) },
-                actions = {
-                    // A backup is JSON meant to be read back by this app. What a tutor totalling
-                    // their year — or an accountant — needs is a file that opens in a spreadsheet,
-                    // and there was nothing here that produced one.
-                    if (report?.hasData == true) {
-                        IconButton(onClick = { exportLauncher.launch(exportFilename) }) {
-                            Icon(
-                                Icons.Filled.FileDownload,
-                                stringResource(R.string.reports_export),
-                            )
-                        }
-                    }
-                },
-            )
+    KlasScreen(
+        title = stringResource(R.string.reports_title),
+        messages = messages,
+        actions = {
+            // A backup is JSON meant to be read back by this app. What a tutor totalling their
+            // year — or an accountant — needs is a file that opens in a spreadsheet, and there was
+            // nothing here that produced one.
+            if (report?.hasData == true) {
+                IconButton(onClick = { exportLauncher.launch(exportFilename) }) {
+                    Icon(
+                        Icons.Filled.FileDownload,
+                        stringResource(R.string.reports_export),
+                    )
+                }
+            }
         },
-    ) { padding ->
+    ) { modifier ->
         // «Нет данных» says the tutor has earned nothing, which is a claim about their year — so it
         // waits for the report to actually arrive. Before [Loadable] the initial value was an empty
         // report, and every cold open of this screen made that claim for a frame or two.
         if (report == null) {
-            Column(Modifier.fillMaxSize().padding(padding).constrainedContent()) {
-                ReportsSkeleton()
-            }
-            return@Scaffold
+            Column(modifier) { ReportsSkeleton() }
+            return@KlasScreen
         }
         if (!report.hasData) {
             EmptyState(
                 title = stringResource(R.string.reports_empty),
                 detail = stringResource(R.string.reports_empty_detail),
-                icon = Icons.Filled.QueryStats,
-                modifier = Modifier.padding(padding),
+                icon = Icons.Outlined.QueryStats,
+                modifier = modifier,
             )
-            return@Scaffold
+            return@KlasScreen
         }
 
-        Column(Modifier.fillMaxSize().padding(padding).constrainedContent()) {
+        Column(modifier) {
             // Pinned rather than scrolled away with the first card: the period is what everything
             // below means, and changing it is the main thing this screen is driven by.
             PeriodNavigator(
@@ -225,8 +210,8 @@ fun ReportsScreen(
 @Composable
 private fun ReportsSkeleton() {
     Column(
-        Modifier.fillMaxWidth().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        Modifier.fillMaxWidth().padding(Spacing.gutter),
+        verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         com.seblful.klas.ui.common.SkeletonBlock(IncomeCardHeight)
         ListSkeleton(rows = 3, rowHeight = SectionCardHeight, contentPadding = PaddingValues(0.dp))
@@ -269,8 +254,8 @@ private fun ReportBody(
 
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(Spacing.gutter),
+        verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         item { IncomeCard(state) }
 
@@ -317,7 +302,7 @@ private fun PeriodNavigator(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+        Modifier.fillMaxWidth().padding(horizontal = Spacing.inline),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onPrevious, enabled = period.isNavigable) {
@@ -378,22 +363,17 @@ private fun hoursStat(minutes: Int): Stat =
  * "how am I doing", and «45 000 BYN» on its own does not address it: without a baseline the biggest
  * figure on the screen is a fact the tutor still has to interpret. One signed percentage, naming the
  * period it is measured against, is the cheapest thing that closes the gap.
+ *
+ * Drawn as a [HeroCard], which is what makes the filled accent surface a device the system owns rather
+ * than a flourish on one screen. Its only sibling is the student card's balance.
  */
 @Composable
 private fun IncomeCard(state: Reports.Report) {
-    Card(
-        Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    HeroCard(
+        label = stringResource(R.string.reports_total_income),
+        value = state.totalIncome.text(),
     ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(stringResource(R.string.reports_total_income), style = MaterialTheme.typography.labelMedium)
-            Text(state.totalIncome.text(), style = MaterialTheme.typography.headlineMedium)
-            ComparisonLine(state)
-        }
+        ComparisonLine(state)
     }
 }
 
@@ -411,7 +391,7 @@ private fun ColumnScope.ComparisonLine(state: Reports.Report) {
             previousName,
         )
     }
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = Spacing.tight)) {
         // An arrow only where there is a direction: "the previous period earned nothing" has none,
         // and an upward arrow beside it would be asserting growth the app just declined to measure.
         if (change is Reports.Change.Percent && change.value != 0) {
@@ -426,7 +406,7 @@ private fun ColumnScope.ComparisonLine(state: Reports.Report) {
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
             )
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.width(Spacing.tight))
         }
         Text(
             text,
@@ -489,7 +469,7 @@ private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) 
     val track = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     Row(
         Modifier.fillMaxWidth().height(ChartHeight),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(BarGap),
     ) {
         trend.bars.forEach { bar ->
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -511,7 +491,7 @@ private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) 
                     maxLines = 1,
                     softWrap = false,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 4.dp),
+                    modifier = Modifier.padding(top = Spacing.tight),
                 )
             }
         }
@@ -540,7 +520,7 @@ private fun KindSplitCard(lines: List<Reports.KindLine>) {
         lines.forEach { line ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(10.dp).clip(CircleShape).background(lessonKindFill(line.kind)))
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(Spacing.inline))
                 Text(
                     lessonKindLabel(line.kind),
                     style = MaterialTheme.typography.bodyMedium,
@@ -548,7 +528,7 @@ private fun KindSplitCard(lines: List<Reports.KindLine>) {
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(Spacing.itemGap))
                 Text(
                     stringResource(R.string.reports_amount_share, line.amount.text(), line.percent),
                     style = MaterialTheme.typography.bodyMedium,
@@ -568,7 +548,7 @@ private fun KindSplitCard(lines: List<Reports.KindLine>) {
 private fun RankedCard(title: String, lines: List<Reports.Line>) {
     ReportCard(title) {
         lines.forEach { line ->
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(BarGap)) {
                 AmountRow(line.label, line.amount.text(), color = MaterialTheme.colorScheme.primary)
                 // The fraction and the single-line rule are the report's own — see [Reports.Line.share].
                 line.share?.let { share ->
@@ -576,7 +556,7 @@ private fun RankedCard(title: String, lines: List<Reports.Line>) {
                         RankedBar(share, Modifier.weight(1f))
                         // A percentage only where the rows genuinely partition the income.
                         line.percent?.let {
-                            Spacer(Modifier.width(8.dp))
+                            Spacer(Modifier.width(Spacing.inline))
                             Text(
                                 stringResource(R.string.reports_percent, it),
                                 style = MaterialTheme.typography.labelSmall,
@@ -660,8 +640,8 @@ private fun DebtsCard(state: Reports.Report, onStudentClick: (Long) -> Unit) {
 private fun ReportCard(title: String, content: @Composable ColumnScope.() -> Unit) {
     SectionCard {
         Column(
-            Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            Modifier.fillMaxWidth().padding(Spacing.gutter),
+            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             content()
@@ -693,7 +673,7 @@ private fun AmountRow(
                         .clip(MaterialTheme.shapes.small)
                         .clickable(onClick = onClick)
                         .heightIn(min = MinTouchTarget)
-                        .padding(horizontal = 4.dp)
+                        .padding(horizontal = Spacing.tight)
                 } else {
                     Modifier
                 }
@@ -707,7 +687,7 @@ private fun AmountRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(Spacing.itemGap))
         Text(
             amount,
             style = MaterialTheme.typography.bodyMedium,
@@ -724,6 +704,13 @@ private fun AmountRow(
         }
     }
 }
+
+/**
+ * The hairline between a stacked bar's segments and between a ranked bar's rows — off the `Spacing`
+ * scale on purpose: the gap is there so the bar still reads as **one shape**, and 4 dp between twelve
+ * month columns would take a quarter of the chart's width.
+ */
+private val BarGap = 3.dp
 
 /** Tall enough to tell a busy month from a quiet one, short enough to leave the list in view. */
 private val ChartHeight = 116.dp

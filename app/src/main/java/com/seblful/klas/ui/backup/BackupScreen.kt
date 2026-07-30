@@ -4,20 +4,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Upload
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,11 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.compose.runtime.LaunchedEffect
 import com.seblful.klas.R
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.ConfirmDialog
-import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.rememberMessages
 
@@ -42,7 +33,6 @@ import com.seblful.klas.ui.common.rememberMessages
  */
 internal val BACKUP_MIME_TYPES = arrayOf("application/json", "application/octet-stream", "text/plain")
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BackupScreen(
     onBack: () -> Unit,
@@ -72,28 +62,20 @@ fun BackupScreen(
         ActivityResultContracts.OpenDocument(),
     ) { uri -> confirmImportUri = uri } // confirm before replacing everything
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.backup_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
-                    }
-                },
-            )
-        },
-        snackbarHost = { SnackbarHost(messages.hostState) },
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).constrainedContent()) {
+    KlasScreen(
+        title = stringResource(R.string.backup_title),
+        onBack = onBack,
+        messages = messages,
+    ) { modifier ->
+        Column(modifier) {
             ListItem(
-                leadingContent = { Icon(Icons.Filled.Upload, null) },
+                leadingContent = { Icon(Icons.Outlined.Upload, null) },
                 headlineContent = { Text(stringResource(R.string.backup_export)) },
                 supportingContent = { Text(stringResource(R.string.backup_export_desc)) },
                 modifier = Modifier.clickable { exportLauncher.launch(backupFilename) },
             )
             ListItem(
-                leadingContent = { Icon(Icons.Filled.Download, null) },
+                leadingContent = { Icon(Icons.Outlined.Download, null) },
                 headlineContent = { Text(stringResource(R.string.backup_import)) },
                 supportingContent = { Text(stringResource(R.string.backup_import_desc)) },
                 modifier = Modifier.clickable { importLauncher.launch(BACKUP_MIME_TYPES) },

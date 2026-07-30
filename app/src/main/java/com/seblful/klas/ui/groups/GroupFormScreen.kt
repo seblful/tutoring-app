@@ -1,55 +1,39 @@
 package com.seblful.klas.ui.groups
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
-import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
+import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.MemberPickRow
 import com.seblful.klas.ui.common.ModeField
-import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.RateHistoryList
+import com.seblful.klas.ui.common.SaveAction
+import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.leaveGuard
+import com.seblful.klas.ui.common.moneyErrorText
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.ShowMessagesFor
+import com.seblful.klas.ui.common.supportingTextOf
 
 /**
  * Create or edit one group: **subject**, name, note, hourly rate, default mode and roster — plus, for
@@ -67,73 +51,52 @@ fun GroupFormScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val form = state.form
-    var confirmingDelete by remember { mutableStateOf(false) }
 
     // Back — the arrow or the system gesture — asks before throwing away edits to a group.
     val requestLeave = leaveGuard(form = state, onLeave = onBack, onSave = { viewModel.save { onBack() } })
 
     val messages = rememberMessages()
-    val deleteBlockedMsg = stringResource(R.string.group_delete_blocked)
     val notPricedMsg = stringResource(R.string.group_members_not_priced)
-    ShowMessagesFor(viewModel.events, messages) { event ->
-        when (event) {
-            GroupFormViewModel.Event.DELETE_BLOCKED_HAS_LESSONS -> deleteBlockedMsg
-            GroupFormViewModel.Event.MEMBERS_NOT_PRICED_FOR_SUBJECT -> notPricedMsg
-        }
-    }
+    ShowMessagesFor(viewModel.events, messages) { notPricedMsg }
 
-    // The bar takes on its scrolled colour once content has moved under it — M3's own signal that
-    // the two are separate surfaces. Pinned, because this bar carries actions that must stay put.
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        snackbarHost = { SnackbarHost(messages.hostState) },
-        topBar = {
-            TopAppBar(
-                scrollBehavior = scrollBehavior,
-                title = {
-                    Text(
-                        stringResource(
-                            if (viewModel.isNew) R.string.group_add_title else R.string.group_edit_title
-                        )
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = requestLeave) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
-                    }
-                },
-                actions = {
-                    TextButton(onClick = { viewModel.save { onBack() } }, enabled = state.canSave) {
-                        Text(stringResource(R.string.action_save))
-                    }
-                },
-            )
-        },
-    ) { padding ->
+    KlasScreen(
+        title = stringResource(
+            if (viewModel.isNew) R.string.group_add_title else R.string.group_edit_title
+        ),
+        onBack = requestLeave,
+        messages = messages,
+        // The rate field and the roster are at the bottom of a long form, and under edge-to-edge the
+        // IME is an inset rather than a resize — the shell composes it in ahead of the scroll.
+        imeAware = true,
+        actions = { SaveAction(enabled = state.canSave, onSave = { viewModel.save { onBack() } }) },
+    ) { modifier ->
         Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                // Before the scroll: the rate field and the roster are at the bottom of a long form, and
-                // the IME is an inset rather than a resize under edge-to-edge. See `ClassEditScreen`.
-                .imePadding()
-                .constrainedContent()
+            modifier
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(Spacing.gutter),
+            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
+            // A name is required, and says so — as a **hint, not an error**. `canSave` knew it and only
+            // greyed out the save button, which left the tutor to work out which of six fields it meant;
+            // but a blank box on a form that has just opened is incomplete, not wrong, and marking it red
+            // before it has been reached is the thing `MoneyField.error`'s KDoc argues against.
             OutlinedTextField(
                 value = form.name,
                 onValueChange = { v -> viewModel.update { it.copy(name = v) } },
                 label = { Text(stringResource(R.string.group_name_label)) },
+                supportingText = supportingTextOf(
+                    hint = stringResource(R.string.field_required).takeIf { form.name.isBlank() },
+                ),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             // Subject first: it decides who may be in the group. 0 is the "not chosen" row — a real
             // option rather than a hidden state, because a group legitimately has none and the
             // tutor needs to see that rather than guess.
+            //
+            // Its hint is the field's own `supportingText`. It was a standalone `Text` 20 dp below,
+            // indented differently from the rate field's hint directly underneath it — two hint
+            // mechanisms, one after the other, on the same form.
             DropdownField(
                 label = stringResource(R.string.group_subject_label),
                 selectedText = state.subjects.firstOrNull { it.id == form.subjectId }?.name
@@ -141,14 +104,10 @@ fun GroupFormScreen(
                 options = listOf(0L to stringResource(R.string.group_subject_none)) +
                     state.subjects.map { it.id to it.name },
                 onSelect = { id -> viewModel.setSubject(id.takeIf { it != 0L }) },
-            )
-            Text(
-                stringResource(
+                supportingText = stringResource(
                     if (form.subjectId == null) R.string.group_subject_none_hint
                     else R.string.group_subject_hint
                 ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             OutlinedTextField(
                 value = form.note,
@@ -163,19 +122,40 @@ fun GroupFormScreen(
                 value = form.price.text,
                 onValueChange = { v -> viewModel.update { it.copy(price = it.price.typed(v)) } },
                 label = { Text(stringResource(R.string.group_price_label)) },
+                // Red only for something unusable that was actually typed — `MoneyField.isError`'s rule.
+                // Blank is required-and-unfilled, which the supporting line says without shouting.
                 isError = form.price.isError,
-                supportingText = { Text(stringResource(R.string.group_price_hint)) },
+                // The reason it is wrong, else the reason it exists — one slot, error first.
+                supportingText = supportingTextOf(
+                    error = moneyErrorText(form.price),
+                    hint = if (form.price.text.isBlank()) {
+                        stringResource(R.string.field_required)
+                    } else {
+                        stringResource(R.string.group_price_hint)
+                    },
+                ),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
+            // What the rate used to be, where the rate is typed — the argument the student's reprice
+            // dialog makes in its own KDoc. It was an expander on the group's *card*, which is the one
+            // screen that cannot change the number it was annotating.
+            if (!viewModel.isNew) {
+                Text(
+                    stringResource(R.string.rate_history_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                RateHistoryList(state.rateHistory)
+            }
             ModeField(
                 label = stringResource(R.string.student_mode_label),
                 selected = form.mode,
                 onSelect = { m -> viewModel.update { it.copy(mode = m) } },
             )
 
-            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+            HorizontalDivider(Modifier.padding(vertical = Spacing.tight))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     stringResource(R.string.group_members_title),
@@ -217,52 +197,11 @@ fun GroupFormScreen(
                 )
             }
 
-            if (!viewModel.isNew) {
-                // Under its own heading rather than dangling off the end of the roster. Archiving or
-                // deleting a group are not the last two entries in a list of students, and reaching
-                // them meant scrolling past every candidate — fifteen of them for a large group.
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                Text(
-                    stringResource(R.string.group_danger_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(
-                        onClick = { viewModel.setArchived(!state.archived) },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(
-                            stringResource(
-                                if (state.archived) R.string.action_unarchive else R.string.action_archive
-                            )
-                        )
-                    }
-                    OutlinedButton(
-                        onClick = { confirmingDelete = true },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error,
-                        ),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
-                    ) {
-                        Text(stringResource(R.string.action_delete))
-                    }
-                }
-            }
+            // No "danger zone" any more: archiving and deleting the group are lifecycle actions and
+            // they live on the group's **card**, behind the overflow, where a student's already did.
+            // See [GroupDetailViewModel].
         }
     }
-
-    if (confirmingDelete) {
-        ConfirmDialog(
-            text = stringResource(R.string.group_delete_confirm),
-            onConfirm = {
-                viewModel.delete(onDeleted = onBack)
-            },
-            onDismiss = { confirmingDelete = false },
-        )
-    }
-
 }
 
 // The member picker's row is `MemberPickRow` in ui/common/Components.kt now — the booking form picks

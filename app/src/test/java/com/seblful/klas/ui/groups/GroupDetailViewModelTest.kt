@@ -7,9 +7,12 @@ import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -34,7 +37,6 @@ class GroupDetailViewModelTest {
         students = env.studentRepo,
         subjects = env.subjectRepo,
         classes = env.classRepo,
-        rateHistory = env.rateHistoryRepo,
         computation = mainRule.dispatcher,
     )
 
@@ -196,25 +198,6 @@ class GroupDetailViewModelTest {
     }
 
     @Test
-    fun `the card carries the group's rate history, newest first`() = runTest(mainRule.dispatcher) {
-        val anya = fixtures.student("Аня")
-        val id = fixtures.group("11 «А»", members = setOf(anya), rate = rate)
-        env.groupRepo.save(
-            env.groupRepo.getById(id)!!.copy(price = Money.ofMajor(25)),
-            setOf(anya),
-        )
-
-        val vm = vm(id)
-        observing(vm.state)
-        advanceUntilIdle()
-
-        val changes = vm.state.current.rateHistory
-        assertEquals(2, changes.size)
-        assertEquals(Money.ofMajor(25), changes.first().to)
-        assertTrue("the oldest row is where the rate started", changes.last().isInitial)
-    }
-
-    @Test
     fun `a group with no lessons reports empty totals`() = runTest(mainRule.dispatcher) {
         val anya = fixtures.student("Аня")
         val id = fixtures.group("11 «А»", members = setOf(anya), rate = rate)
@@ -226,5 +209,81 @@ class GroupDetailViewModelTest {
         assertTrue(vm.state.current.lessons.isEmpty())
         assertEquals(0, vm.state.current.totals.lessons)
         assertEquals(Money.ZERO, vm.state.current.totals.earned)
+    }
+
+    /**
+     * **Retiring a group is the card's, not the form's.**
+     *
+     * Archiving and deleting used to sit in a «danger zone» at the foot of the group's *edit form*,
+     * which put the same lifecycle verb on the card for a student and on the form for a group — and
+     * meant reaching it involved scrolling past the whole roster. These three moved here with it.
+     *
+     * The roster is untouched by archiving: a retired group is still a record of who was in it.
+     */
+    @Test
+    fun `archiving a group keeps it and its roster`() = runTest(mainRule.dispatcher) {
+        val anya = fixtures.student("Аня")
+        val id = fixtures.group("Выпускники", members = setOf(anya), rate = rate)
+
+        val vm = vm(id)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        vm.setArchived(true)
+        advanceUntilIdle()
+
+        assertTrue(vm.state.current.group?.archived == true)
+        assertTrue(env.groupRepo.getById(id)!!.archived)
+        assertEquals(listOf(anya), env.groupRepo.getMemberIds(id))
+    }
+
+    @Test
+    fun `an unused group can be deleted`() = runTest(mainRule.dispatcher) {
+        val anya = fixtures.student("Аня")
+        val id = fixtures.group("Ошибка", members = setOf(anya), rate = rate)
+
+        val vm = vm(id)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        var deleted = false
+        vm.delete { deleted = true }
+        advanceUntilIdle()
+
+        assertTrue(deleted)
+        assertNull(env.groupRepo.getById(id))
+    }
+
+    /**
+     * A group with lessons is refused, because its classes must keep naming it — and the refusal is
+     * *said*, through the same one-shot event channel every other refusal in the app uses. The card
+     * offers archiving instead.
+     */
+    @Test
+    fun `deleting is refused while the group has lessons`() = runTest(mainRule.dispatcher) {
+        val algebra = fixtures.subject("Алгебра")
+        val anya = fixtures.pricedStudent("Аня", algebra)
+        val id = fixtures.group("11 «А»", subjectId = algebra, members = setOf(anya), rate = rate)
+        fixtures.completedLesson(
+            subjectId = algebra,
+            students = listOf(anya),
+            start = at(1),
+            rate = rate,
+            groupId = id,
+        )
+
+        val vm = vm(id)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        var deleted = false
+        val events = mutableListOf<GroupDetailViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+        vm.delete { deleted = true }
+        advanceUntilIdle()
+
+        assertFalse(deleted)
+        assertEquals(listOf(GroupDetailViewModel.Event.DELETE_BLOCKED_HAS_LESSONS), events)
+        assertNotNull("the group survives so its lessons still name it", env.groupRepo.getById(id))
     }
 }
