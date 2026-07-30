@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -34,9 +37,13 @@ import com.seblful.klas.ui.common.Spacing
  * it: **the data is on this device and nowhere else.** That is a promise worth making explicitly, and
  * it comes with an obligation the tutor has to know about — nothing is syncing, so a lost phone is
  * lost data unless they have exported a copy.
+ *
+ * And it now carries the way to *do* that. The screen raised the lost-phone point and then offered
+ * nothing about it, which leaves a warning as a warning: the tutor has to go back, find «Резервная
+ * копия» in the menu and remember why. The button is directly under the sentence that earns it.
  */
 @Composable
-fun AboutScreen(onBack: () -> Unit) {
+fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
     val context = LocalContext.current
     // Read from the installed package rather than from BuildConfig, so it is the version the
     // platform actually has — including the `.debug` suffix a debug install carries.
@@ -91,6 +98,21 @@ fun AboutScreen(onBack: () -> Unit) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    // Outlined, not filled: this screen has no primary action — it is a statement —
+                    // and the button is the way to act on one sentence of it.
+                    OutlinedButton(
+                        onClick = onBackup,
+                        modifier = Modifier.align(Alignment.End),
+                    ) {
+                        // Filled: it is a button's glyph, and the app's rule is filled for actions,
+                        // outlined for art. «Ещё»'s row uses the outlined one for the same screen,
+                        // correctly — that is a leading picture, this is the thing being pressed.
+                        Icon(Icons.Filled.Save, contentDescription = null)
+                        Text(
+                            stringResource(R.string.more_backup),
+                            Modifier.padding(start = Spacing.inline),
+                        )
+                    }
                 }
             }
         }

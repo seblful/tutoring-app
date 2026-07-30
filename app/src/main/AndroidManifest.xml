@@ -82,6 +82,28 @@
         </receiver>
 
         <!--
+          Lends one file at a time to whichever app the tutor picks from the share sheet — the report
+          CSV, written to `cache/shared` by `AndroidDocumentSharing`.
+
+          `exported="false"` with `grantUriPermissions="true"` is the pair that matters: nothing can
+          query this provider by authority, and the only way in is the read grant that travels with the
+          `ACTION_SEND` intent and expires with it. `res/xml/file_paths.xml` narrows it to that one
+          directory — this app's own files include every student's name, phone and email.
+
+          The authority carries `${applicationId}`, so the debug build's provider is distinct from the
+          release one; installing both side by side with the same authority fails at install time.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!--
           We provide our own Hilt-aware WorkManager configuration from KlasApp
           (Configuration.Provider), so disable the default on-startup initializer.
         -->

@@ -340,6 +340,21 @@ data class SettingsEntity(
      * layer can read it by accident.
      */
     val showGroupsTab: Boolean = true,
+    /**
+     * When the tutor last exported a backup, epoch millis — **null until they ever have.**
+     *
+     * Not a preference, and the only row in this table that is not one: it is a **receipt**. It lives
+     * here because it is the same kind of fact everything else in this table is — device-local, and
+     * deliberately outside the backup snapshot (`BackupSchemaCoverageTest`). Carrying it *in* a backup
+     * would be circular: restoring last Tuesday's file would claim the last export happened last
+     * Tuesday, on a phone that has never exported anything.
+     *
+     * Nullable rather than `0`-means-never, unlike [defaultGroupPriceMinor] next door. A sentinel earns
+     * its keep where the column is `NOT NULL` for a reason; here the absence is the whole point of the
+     * value — "you have never made a copy of this" is the strongest thing the backup screen can say —
+     * and a nullable column carries it without a rule to remember.
+     */
+    val lastExportMillis: Long? = null,
 ) {
     companion object {
         const val SINGLETON_ID = 0

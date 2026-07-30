@@ -13,4 +13,8 @@ abstract class StorageModule {
     @Binds
     @Singleton
     abstract fun bindDocumentStore(impl: SafDocumentStore): DocumentStore
+
+    @Binds
+    @Singleton
+    abstract fun bindDocumentSharing(impl: AndroidDocumentSharing): DocumentSharing
 }

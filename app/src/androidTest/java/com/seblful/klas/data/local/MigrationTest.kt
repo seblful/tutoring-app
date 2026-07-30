@@ -14,8 +14,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * **v1 → v2 keeps every row.** The database this migrates is a tutor's only copy of their students,
- * lessons and money, so what it does to them is asserted rather than reasoned about.
+ * **Every migration keeps every row.** The database this migrates is a tutor's only copy of their
+ * students, lessons and money, so what it does to them is asserted rather than reasoned about — v1 → v2
+ * for the rows it rewrites, and the whole chain to v3 because that is the upgrade a real phone performs.
  *
  * Room's [MigrationTestHelper] builds a real v1 database from the exported `schemas/1.json`, runs
  * [MIGRATION_1_2] against it, and — via `validateMigration` — refuses to pass if the result does not
@@ -165,5 +166,65 @@ class MigrationTest {
         )
         assertEquals(listOf("90", "90", "60"), classes.map { it["durationMinutes"] })
         assertEquals(listOf("7", "7", null), classes.map { it["groupId"] })
+    }
+
+    // ---- v2 → v3: the settings row remembers the last export ---------------------------------------
+
+    /**
+     * **The whole chain runs, v1 → v2 → v3**, which is the only version of this test worth having: a
+     * tutor upgrading from the build on their phone does not stop at v2.
+     *
+     * `runMigrationsAndValidate` is the assertion that matters here, and it is about the *schema* rather
+     * than the rows. `MIGRATION_2_3` adds one column by hand-written `ALTER TABLE`, and Room compares the
+     * result against `schemas/3.json` — so a `DEFAULT` on one side and not the other, or the wrong
+     * affinity, fails here instead of on a real upgrade. `MigrationChainTest` (unit) asserts only that a
+     * 2→3 migration *exists* and is wired in; nothing but this runs it.
+     */
+    @Test
+    fun settingsGainTheLastExportColumn() {
+        helper.createDatabase(name, 1).apply {
+            seedV1()
+            // A v1/v2 settings row, so the column is added to a table that has something in it: an
+            // `ALTER TABLE … ADD COLUMN` on an empty table would pass while backfilling wrongly.
+            execSQL(
+                "INSERT INTO settings (id, notificationsEnabled, calendarSyncEnabled, " +
+                    "emailInvitesEnabled, onboardingComplete, reminderLeadMinutes, autoCompleteEnabled, " +
+                    "themeMode, defaultLessonMinutes, defaultGroupPriceMinor, currency, showGroupsTab) " +
+                    "VALUES (1, 1, 1, 0, 1, 30, 0, 'DARK', 90, 2000, 'RUB', 1)",
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(name, 3, true, MIGRATION_1_2, MIGRATION_2_3)
+
+        val settings = db.rows("SELECT * FROM settings").single()
+        assertEquals(
+            "an install that upgrades has never exported, as far as the app can tell",
+            null,
+            settings["lastExportMillis"],
+        )
+        // The rest of the row is untouched: the tutor's theme, their reminder lead, their currency.
+        assertEquals("DARK", settings["themeMode"])
+        assertEquals("30", settings["reminderLeadMinutes"])
+        assertEquals("RUB", settings["currency"])
+        assertEquals("2000", settings["defaultGroupPriceMinor"])
+    }
+
+    /** And v3 still holds every lesson v2 made, so the second step carries the first one's work. */
+    @Test
+    fun theLessonsSurviveTheWholeChain() {
+        helper.createDatabase(name, 1).apply {
+            seedV1()
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(name, 3, true, MIGRATION_1_2, MIGRATION_2_3)
+
+        assertEquals(2, db.rows("SELECT * FROM lessons").size)
+        assertEquals(3, db.rows("SELECT * FROM attendance").size)
+        assertEquals(
+            "3000",
+            db.rows("SELECT SUM(chargeMinor) AS total FROM attendance").single()["total"],
+        )
     }
 }

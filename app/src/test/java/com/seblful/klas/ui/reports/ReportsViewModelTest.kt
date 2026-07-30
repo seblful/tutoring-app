@@ -4,12 +4,14 @@ import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.ReportCsv
 import com.seblful.klas.domain.ReportPeriod
 import com.seblful.klas.domain.Reports
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.testutil.CountingDispatcher
 import com.seblful.klas.testutil.FakeDocumentStore
+import com.seblful.klas.testutil.RecordingDocumentSharing
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
@@ -18,6 +20,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -46,10 +49,13 @@ class ReportsViewModelTest {
     /** The report's CSV export writes here; the report assertions below never touch it. */
     private val documents = FakeDocumentStore()
 
+    /** Where a shared report goes instead of the system share sheet. */
+    private val sharing = RecordingDocumentSharing()
+
     private fun vm() =
         ReportsViewModel(
             env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo,
-            documents, mainRule.dispatcher,
+            documents, sharing, mainRule.dispatcher,
         )
 
     /** Local midnight on a date, as the millis a class entity stores. */
@@ -386,7 +392,7 @@ class ReportsViewModelTest {
 
             val vm = ReportsViewModel(
                 env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo,
-                documents, counting,
+                documents, sharing, counting,
             )
             observing(vm.state)
             advanceUntilIdle()
@@ -397,4 +403,55 @@ class ReportsViewModelTest {
                 counting.dispatches > 0,
             )
         }
+
+
+    /**
+     * Sharing hands over **the same bytes** the export writes, as a CSV.
+     *
+     * Two things can go wrong here and neither is visible on a device without another app installed: the
+     * share could carry a different assembly of the report than the file does, and it could offer the
+     * wrong type — `text/plain` would hand a spreadsheet to a notes app.
+     */
+    @Test
+    fun `sharing hands over the same CSV the export writes`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        val header = listOf("Раздел", "Строка", "Сумма")
+        val lines = listOf(ReportCsv.Line("Итого", "2026", Money.ofMajor(30)))
+
+        vm.share(
+            filename = "klas-report.csv",
+            subject = "Отчёт Klas",
+            header = header,
+            lines = lines,
+        )
+        advanceUntilIdle()
+
+        val shared = sharing.shared.single()
+        assertEquals("klas-report.csv", shared.filename)
+        assertEquals(
+            "a CSV shared as anything else is offered to the wrong apps",
+            "text/csv",
+            shared.mimeType,
+        )
+        assertEquals("Отчёт Klas", shared.subject)
+        assertEquals("the file and the share are one assembly", ReportCsv.build(header, lines), shared.text)
+    }
+
+    /** A share that could not be handed anywhere is reported, like an export that could not be written. */
+    @Test
+    fun `a share nothing can receive is reported`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        sharing.failing = true
+        var received: ReportsViewModel.ExportEvent? = null
+        val job = backgroundScope.launch { vm.events.stream.collect { received = it } }
+
+        vm.share(filename = "klas-report.csv", subject = "x", header = emptyList(), lines = emptyList())
+        advanceUntilIdle()
+        job.cancel()
+
+        assertEquals(ReportsViewModel.ExportEvent.ERROR, received)
+    }
 }

@@ -21,6 +21,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import com.seblful.klas.domain.CalendarLayout
+import com.seblful.klas.domain.DaySummary
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.common.Loadable
@@ -70,13 +71,108 @@ class ScheduleViewModelTest {
         observing(vm.content)
         advanceUntilIdle()
 
-        // Read, and genuinely empty — which is the only state the empty prompt is honest in.
-        assertEquals(Loadable.Ready(ScheduleContent.Day(emptyList())), vm.content.value)
+        // Read, and genuinely empty — which is the only state the empty prompt is honest in. A day with
+        // no lessons summarises to nothing, which is what stops the summary line being drawn at all.
+        assertEquals(
+            Loadable.Ready(ScheduleContent.Day(emptyList(), DaySummary.NONE)),
+            vm.content.value,
+        )
     }
 
     /** A fixed day at [hour], for tests that only need distinct lesson times. */
     private fun at(hour: Int): Instant =
         LocalDate.of(2026, 5, 18).atTime(hour, 0).atZone(zone).toInstant()
+
+    /**
+     * The day carries what it adds up to, so the header can print it without doing arithmetic in a
+     * composable. The rules themselves are `DaySummaryTest`'s; what this pins is that the schedule
+     * actually applies them to the day it is showing.
+     */
+    @Test
+    fun `the selected day carries its own summary`() = runTest(mainRule.dispatcher) {
+        val subj = env.fixtures.subject("Математика")
+        val sid = env.fixtures.pricedStudent("Аня", subj, rate = Money.ofMajor(30))
+        val today = LocalDate.now(zone)
+        env.fixtures.lesson(
+            subjectId = subj, students = listOf(sid),
+            start = today.atTime(9, 0).atZone(zone).toInstant(),
+            minutes = 90, rate = Money.ofMajor(30),
+        )
+        env.fixtures.cancelledLesson(
+            subjectId = subj, students = listOf(sid),
+            start = today.atTime(15, 0).atZone(zone).toInstant(),
+            rate = Money.ofMajor(30),
+        )
+
+        val vm = vm()
+        observing(vm.content)
+        advanceUntilIdle()
+
+        val summary = vm.content.current.summary
+        assertEquals("the cancelled one is not a lesson the day holds", 1, summary.lessons)
+        assertEquals(1, summary.cancelled)
+        assertEquals(90, summary.minutes)
+        // 30/h for 90 minutes, and nothing for the hour that was given back.
+        assertEquals(Money.ofMajor(45), summary.money)
+    }
+
+    /**
+     * The **"you are here"** mark moves with the clock.
+     *
+     * Both halves matter and only the second needs a schedule: [com.seblful.klas.domain.NowMarker] decides
+     * *where* the mark goes and is tested on the JVM, but nothing else says the view model keeps asking.
+     * A mark computed once is a mark that is wrong for the rest of the day, on a screen a tutor leaves
+     * open all of it.
+     *
+     * As `today rolls over at midnight`: **no `advanceUntilIdle()`**. The minute tick has no last
+     * emission, so "until idle" never arrives and the test would hang rather than fail.
+     */
+    @Test
+    fun `the now mark follows the clock past a lesson`() = runTest(mainRule.dispatcher) {
+        val subj = env.fixtures.subject("Математика")
+        val sid = env.fixtures.pricedStudent("Аня", subj)
+        val day = LocalDate.of(2026, 5, 18)
+        // 08:59, one minute before the day's only lesson.
+        val clock = MutableClock(day.atTime(8, 59).atZone(zone).toInstant(), zone)
+        env.fixtures.lesson(
+            subjectId = subj,
+            students = listOf(sid),
+            start = day.atTime(9, 0).atZone(zone).toInstant(),
+        )
+
+        val vm = vm(clock)
+        observing(vm.content)
+        observing(vm.nowMark)
+        val minute = java.time.Duration.ofMinutes(1).toMillis()
+        advanceTimeBy(minute)
+
+        assertEquals("before the lesson, the mark is above it", 0, vm.nowMark.value)
+
+        // Past nine now. Both clocks move: the wall clock is what the mark is read from, the scheduler
+        // is what the tick is waiting on.
+        clock.advanceBy(minute)
+        advanceTimeBy(minute)
+
+        assertEquals("once it has started, the mark is below it", 1, vm.nowMark.value)
+    }
+
+    /** A day that is not today has no "now" in it, and must not have one drawn at either end. */
+    @Test
+    fun `another day gets no now mark`() = runTest(mainRule.dispatcher) {
+        val day = LocalDate.of(2026, 5, 18)
+        val clock = MutableClock(day.atTime(12, 0).atZone(zone).toInstant(), zone)
+
+        val vm = vm(clock)
+        observing(vm.content)
+        observing(vm.nowMark)
+        advanceTimeBy(1)
+        assertEquals(0, vm.nowMark.value)
+
+        vm.selectDate(day.plusDays(1))
+        advanceTimeBy(1)
+
+        assertNull("tomorrow has no now", vm.nowMark.value)
+    }
 
     @Test
     fun `add is disabled until at least one student and one subject exist`() = runTest(mainRule.dispatcher) {

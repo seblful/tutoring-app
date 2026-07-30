@@ -18,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontStyle
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.ContentCard
@@ -26,6 +25,7 @@ import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.balanceColor
 import com.seblful.klas.ui.common.balanceDescription
 
@@ -108,13 +108,19 @@ fun StudentsList(
                             color = balanceColor(row.balance),
                         )
                     }
+                    // A [StatusBadge], like every other state the app shows. This was an italic grey
+                    // word — the one place a state was said in a *font style* rather than in the pill
+                    // the lesson statuses use, so «в архиве» read as an aside about the row rather than
+                    // as a fact about the student, and the emphasis carried nothing to a screen reader.
+                    //
+                    // Still grey, deliberately: archiving is not one of the three lesson statuses
+                    // (`classStatusColor`), and a retired student must not borrow the red a debt is
+                    // written in. It is the pill that was missing, not the colour.
                     if (row.student.archived) {
-                        Spacer(Modifier.width(Spacing.itemGap))
-                        Text(
-                            stringResource(R.string.student_archived_badge),
-                            style = MaterialTheme.typography.labelMedium,
+                        Spacer(Modifier.width(Spacing.inline))
+                        StatusBadge(
+                            text = stringResource(R.string.student_archived_badge),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontStyle = FontStyle.Italic,
                         )
                     }
                 }

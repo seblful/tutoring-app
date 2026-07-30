@@ -82,6 +82,26 @@ class SettingsViewModel @Inject constructor(
     val notificationPermissionsRequired: Array<String> get() = notificationPermission.required
 
     /**
+     * Whether the calendar may actually be written to — the platform's answer, beside the tutor's intent
+     * in [AppSettings.calendarSyncEnabled].
+     *
+     * The notification row already did this and this one did not, though the permission behind it is
+     * revocable from exactly the same place: system settings, while the app is away. Revoking it leaves
+     * the switch **on** and the mirror silently dead — `CalendarContractSync` no-ops without the grant —
+     * which is the same defect the reminder row was fixed for, on the feature whose whole promise is that
+     * the lessons are also somewhere else.
+     *
+     * Note what this is *not*: the reason sync cannot be **enabled** without the grant. That rule is
+     * [setCalendarSyncEnabled]'s and is a refusal; this is a report. Off is off either way, so it only has
+     * something to say while the setting is on.
+     *
+     * Re-asked on resume through [refreshPermissions], like its counterpart: a permission is not a `Flow`.
+     */
+    val calendarPermitted: StateFlow<Boolean> = permissionChecks
+        .map { calendarPermission.isGranted() }
+        .hold(this, true)
+
+    /**
      * What has to happen, besides storing the setting, when the tutor turns reminders [on].
      *
      * Three outcomes, and the screen used to work them out in a nest of three `if`s inside the toggle's

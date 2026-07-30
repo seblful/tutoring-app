@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  What the app's FileProvider may hand out, and it is one directory: `cache/shared`, where
+  `AndroidDocumentSharing` writes the file it is about to pass to another app.
+
+  Deliberately narrow. A provider pointing at `.` would let any path the app can write be requested by
+  authority alone, and this app's files include a database of every student's name, phone and email.
+  One directory means a URI can only ever name the file the tutor just chose to share.
+-->
+<paths>
+    <cache-path
+        name="shared"
+        path="shared/" />
+</paths>

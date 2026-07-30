@@ -51,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -65,6 +66,7 @@ import com.seblful.klas.domain.LessonFilter
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.DatePickerModal
@@ -207,7 +209,14 @@ private fun StudentCard(
             // ellipsize to make room for it.
             if (student != null) {
                 OverflowMenu(
-                    archived = student.archived,
+                    student = student,
+                    // The same three launches the contact block makes, through the same guard: a tablet
+                    // with no dialler must not crash the card.
+                    onCall = { phone -> launchContact(context, dialIntent(phone), noAppMsg, messages) },
+                    onTelegram = { phone ->
+                        launchContact(context, telegramIntent(phone), noAppMsg, messages)
+                    },
+                    onEmail = { email -> launchContact(context, mailIntent(email), noAppMsg, messages) },
                     // Whether archiving is worth asking about, and what the question would have
                     // to say, are both `state.archiveIntent`'s — see [ArchiveIntent].
                     onArchive = {
@@ -446,7 +455,7 @@ private fun BalanceHero(state: StudentDetailState, modifier: Modifier = Modifier
  */
 @Composable
 private fun ContactBlock(
-    student: com.seblful.klas.domain.model.Student,
+    student: Student,
     onCall: (String) -> Unit,
     onEmail: (String) -> Unit,
     onTelegram: (String) -> Unit,
@@ -494,7 +503,7 @@ private fun ContactBlock(
 /** One tappable way of reaching the student, at a full-height target. */
 @Composable
 private fun ContactRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     text: String,
     onClick: () -> Unit,
     trailing: @Composable (() -> Unit)? = null,
@@ -528,18 +537,55 @@ private fun ContactRow(
 
 /** Archiving, one step back from the pencil it used to sit beside. */
 @Composable
-private fun OverflowMenu(archived: Boolean, onArchive: () -> Unit) {
+private fun OverflowMenu(
+    student: Student,
+    onCall: (String) -> Unit,
+    onTelegram: (String) -> Unit,
+    onEmail: (String) -> Unit,
+    onArchive: () -> Unit,
+) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }) {
             Icon(Icons.Filled.MoreVert, stringResource(R.string.action_more))
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            // **Reaching the student, from any tab.** The contact block is the top of the card, which is
+            // the right place for it — it is identity, not content — but it is also the part that scrolls
+            // away first, and a tutor two hundred rows into «Занятия» who wants to ring about the next
+            // one had to scroll all the way back for a number. The bar does not: it is the one thing on
+            // this screen that stays.
+            //
+            // Not a duplicate control so much as the same act reached the way an *action* is reached. The
+            // block still shows the phone, the email and the note — those are facts about the student, and
+            // reading one is why it stays visible; these are the three things you can *do* with them.
+            if (student.phone.isNotBlank()) {
+                ContactMenuItem(
+                    label = stringResource(R.string.student_call),
+                    icon = Icons.Filled.Phone,
+                    onClick = { expanded = false; onCall(student.phone) },
+                )
+                ContactMenuItem(
+                    label = stringResource(R.string.student_write_telegram),
+                    icon = Icons.AutoMirrored.Filled.Send,
+                    onClick = { expanded = false; onTelegram(student.phone) },
+                )
+            }
+            if (student.email.isNotBlank()) {
+                ContactMenuItem(
+                    label = stringResource(R.string.student_write_email),
+                    icon = Icons.Filled.MailOutline,
+                    onClick = { expanded = false; onEmail(student.email) },
+                )
+            }
+            if (student.phone.isNotBlank() || student.email.isNotBlank()) {
+                HorizontalDivider()
+            }
             DropdownMenuItem(
                 text = {
                     Text(
                         stringResource(
-                            if (archived) R.string.action_unarchive else R.string.action_archive
+                            if (student.archived) R.string.action_unarchive else R.string.action_archive
                         )
                     )
                 },
@@ -548,6 +594,20 @@ private fun OverflowMenu(archived: Boolean, onArchive: () -> Unit) {
             )
         }
     }
+}
+
+/** One way of reaching the student, in the overflow. Filled glyph: it is an action, not art. */
+@Composable
+private fun ContactMenuItem(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text(label) },
+        leadingIcon = { Icon(icon, contentDescription = null) },
+        onClick = onClick,
+    )
 }
 
 /**

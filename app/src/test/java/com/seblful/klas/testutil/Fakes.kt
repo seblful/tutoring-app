@@ -21,6 +21,7 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.storage.DocumentRef
+import com.seblful.klas.storage.DocumentSharing
 import com.seblful.klas.storage.DocumentStore
 import com.seblful.klas.work.Maintenance
 
@@ -182,6 +183,29 @@ class FakeDocumentStore(var failing: Boolean = false) : DocumentStore {
     override suspend fun write(ref: DocumentRef, text: String) {
         if (failing) error("Cannot open output stream")
         docs[ref.value] = text
+    }
+}
+
+/**
+ * Records what was handed to the share sheet.
+ *
+ * The real adapter writes a file and starts a chooser, neither of which exists on the JVM — but what the
+ * app *decides* does: the filename, the type that picks who is offered it, the subject line and the
+ * bytes. That is the whole of what a test can be wrong about here.
+ */
+class RecordingDocumentSharing(var failing: Boolean = false) : DocumentSharing {
+    data class Shared(
+        val filename: String,
+        val mimeType: String,
+        val subject: String,
+        val text: String,
+    )
+
+    val shared = mutableListOf<Shared>()
+
+    override suspend fun share(filename: String, mimeType: String, subject: String, text: String) {
+        if (failing) error("Nothing can receive this")
+        shared += Shared(filename, mimeType, subject, text)
     }
 }
 

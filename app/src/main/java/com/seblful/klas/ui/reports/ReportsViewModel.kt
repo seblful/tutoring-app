@@ -20,6 +20,7 @@ import com.seblful.klas.domain.model.SubjectId
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.storage.DocumentRef
+import com.seblful.klas.storage.DocumentSharing
 import com.seblful.klas.storage.DocumentStore
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
@@ -45,6 +46,7 @@ class ReportsViewModel @Inject constructor(
     groups: GroupRepository,
     payments: PaymentRepository,
     private val documents: DocumentStore,
+    private val sharing: DocumentSharing,
     @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
 
@@ -86,8 +88,15 @@ class ReportsViewModel @Inject constructor(
     /** Steps one period back (−1) or forward (+1). All time ignores it — it has nowhere to go. */
     fun shift(by: Int) = _period.update { it.shifted(by) }
 
-    /** Whether the export landed. One-shot, because a file written is not a state to be in. */
-    enum class ExportEvent { OK, ERROR }
+    /**
+     * Whether the export landed. One-shot, because a file written is not a state to be in.
+     *
+     * [SHARED] rather than reusing [OK]: the two are different promises. A saved file is somewhere the
+     * tutor chose and can go back to; a shared one has been handed to another app, and «Файл сохранён»
+     * about a message the tutor may or may not have sent would be the app claiming credit for something
+     * it cannot see the end of.
+     */
+    enum class ExportEvent { OK, SHARED, ERROR }
 
     val events = UiEvents<ExportEvent>()
 
@@ -113,6 +122,32 @@ class ReportsViewModel @Inject constructor(
     }
 
     /**
+     * Hands the same report to another app, through the system share sheet.
+     *
+     * The screen already had a way to *save* a CSV and no way to *send* one, which is the thing a tutor
+     * actually does with a month: it goes to an accountant, or to their own mail so it is somewhere other
+     * than this phone. `CreateDocument` cannot do that — it puts a file in a folder and the tutor then has
+     * to go and find it in a second app — and it is the same bytes either way, so the gap was one action.
+     *
+     * Same content, same assembly, same scope as [export]: the file is a means, not a record, so an
+     * abandoned share leaves a stale file in the cache and nothing else. [filename] and [subject] are
+     * words and arrive from the screen for the reason the CSV's headings do.
+     */
+    fun share(filename: String, subject: String, header: List<String>, lines: List<ReportCsv.Line>) {
+        viewModelScope.launch {
+            val ok = runCatchingCancellable {
+                sharing.share(
+                    filename = filename,
+                    mimeType = CSV_MIME_TYPE,
+                    subject = subject,
+                    text = ReportCsv.build(header, lines),
+                )
+            }.isSuccess
+            events.send(if (ok) ExportEvent.SHARED else ExportEvent.ERROR)
+        }
+    }
+
+    /**
      * The report itself is [Reports.of]'s — what a report counts, how it is ordered and which sections
      * are worth showing are all statements about reports, and none of them is this class's to make. What
      * is left here is naming: two id→name tables the domain has no database to look up.
@@ -131,4 +166,14 @@ class ReportsViewModel @Inject constructor(
         groupNames = groups.associate { GroupId(it.id) to it.name },
         zone = zone,
     )
+
+    private companion object {
+        /**
+         * What a report is, to the app receiving it. `text/csv` rather than `text/plain`: the type is
+         * what decides who the share sheet offers, and the point of this file is that it opens in a
+         * spreadsheet. The screen states the same constant for the `CreateDocument` contract, which is
+         * the platform's half of the same question.
+         */
+        const val CSV_MIME_TYPE = "text/csv"
+    }
 }

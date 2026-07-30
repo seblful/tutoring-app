@@ -52,8 +52,10 @@
     -->
     <string name="field_required">Обязательное поле</string>
     <!--
-      Short on purpose: the narrowest field that shows it is the student form's per-subject price box, at
-      140dp beside a checkbox. An example says more than «Неверная сумма» in the same room.
+      Short on purpose: it shows in the supporting line of every money field in the app, and an example
+      says more than «Неверная сумма» in the same room. (It was written for the student form's per-subject
+      price box while that was 140dp wide beside a checkbox; the box is full-width and stacked now, so the
+      constraint has gone — the wording is kept because it is better, not because it has to be.)
     -->
     <string name="money_error_unreadable">Например: 25 или 25,50</string>
     <string name="money_error_zero_payment">Платёж не может быть нулевым</string>
@@ -96,13 +98,29 @@
     <string name="schedule_week_empty">На эту неделю занятий нет</string>
     <string name="schedule_view_mode">Вид расписания</string>
     <!--
-      What the schedule says before anything can be booked. The button used to be a dead end: it
-      looked enabled, refused with a toast naming what was missing, and left the tutor to go and find
-      it. Now the empty state carries the fix.
+      What the schedule says before anything can be booked. Both the page and the button now carry the
+      fix — this empty state offers «Добавить ученика», and so does the message the add button shows (see
+      schedule_need_setup). What the original was missing was never the naming; it was the way out.
     -->
     <string name="schedule_empty_no_setup">Пока нечего планировать</string>
     <string name="schedule_empty_no_setup_detail">Занятие записывается на ученика и предмет с ценой. Начните с ученика.</string>
     <string name="schedule_add_student">Добавить ученика</string>
+    <!--
+      The mark in the day list saying where the current time falls. Lower case: it is a label on a
+      hairline, not a heading.
+    -->
+    <string name="schedule_now">сейчас</string>
+    <!--
+      A day's total, as a count of hours: «5 ч», «1,5 ч». Takes an already-formatted number
+      (`formatHours`), which is why it is %1$s and not %1$d — the value carries a decimal comma.
+    -->
+    <string name="hours_value">%1$s ч</string>
+    <!--
+      Cancelled lessons in a day's summary. Written as a label and a number rather than as a counted
+      noun, because the noun is elided: «отменено 2» would need «занятия» to agree with, and the
+      summary has already said the word once.
+    -->
+    <string name="schedule_summary_cancelled">отменено: %1$d</string>
     <string name="schedule_view_day">День</string>
     <string name="schedule_view_week">Неделя</string>
     <string name="schedule_view_month">Месяц</string>
@@ -282,7 +300,6 @@
     <string name="balance_owes">Долг %1$s</string>
 
     <!-- Price -->
-    <string name="price_not_set">Цена не указана</string>
     <string name="price_edit_title">Изменить цену</string>
     <string name="price_label">Цена за час</string>
     <string name="price_per_hour">%1$s/час</string>
@@ -397,6 +414,12 @@
     <string name="settings_notifications_blocked">Уведомления запрещены в настройках телефона — напоминания не придут</string>
     <string name="settings_calendar_sync">Синхронизация с календарём</string>
     <string name="settings_calendar_sync_desc">Показывать занятия в календаре устройства</string>
+    <!--
+      Sync is on and the permission has since been revoked in system settings, so nothing is being
+      mirrored. The counterpart of settings_notifications_blocked, and worded the same way: what the
+      platform will actually do, then why.
+    -->
+    <string name="settings_calendar_sync_blocked">Доступ к календарю отозван — занятия не переносятся</string>
     <string name="settings_email_invites">Приглашать учеников по email</string>
     <string name="settings_email_invites_desc">Добавлять ученика с email в событие занятия — приглашение и напоминание придут ему на почту</string>
     <string name="settings_reminder_lead">За сколько напоминать</string>
@@ -461,6 +484,8 @@
     <string name="onboarding_step">Шаг %1$d из %2$d</string>
     <string name="onboarding_subjects_title">Предметы</string>
     <string name="onboarding_subjects_desc">Добавьте предметы, которые вы преподаёте. Их можно изменить позже.</string>
+    <string name="onboarding_subject_removed">Предмет удалён</string>
+    <string name="onboarding_subject_remove_failed">Не удалось удалить предмет</string>
     <string name="onboarding_student_title">Первый ученик</string>
     <string name="onboarding_continue">Далее</string>
     <string name="onboarding_finish">Готово</string>
@@ -479,7 +504,12 @@
         <item quantity="other">Занятие завершено. Удаление уберёт начисленный доход у %1$d учеников. Удалить?</item>
     </plurals>
 
-    <!-- Schedule gating -->
+    <!--
+      Schedule gating: what the add button says on a day nothing can be booked into yet. Written for the
+      toast that used to be a dead end and left unused when the button was hidden instead; it is the
+      right sentence for the button that stays and explains, so it is in use again — and it names exactly
+      what `ScheduleViewModel.canAddClass` requires, one student and one subject.
+    -->
     <string name="schedule_need_setup">Сначала добавьте предмет и ученика</string>
 
     <!-- Reminders -->
@@ -506,6 +536,13 @@
     <!-- CSV, because a backup is for restoring and a spreadsheet is for the tax office. -->
     <string name="reports_export">Выгрузить в CSV</string>
     <string name="reports_export_filename">klas-report.csv</string>
+    <!--
+      Sending the same CSV to another app. Separate from reports_export because the acts differ: one
+      keeps a file, the other hands it over.
+    -->
+    <string name="reports_share">Отправить отчёт</string>
+    <!-- The line a receiving app has somewhere to put — an email's subject. %1$s is the period. -->
+    <string name="reports_share_subject">Отчёт Klas: %1$s</string>
     <string name="reports_export_success">Отчёт сохранён</string>
     <string name="reports_export_error">Не удалось сохранить файл</string>
     <string name="reports_csv_section">Раздел</string>
@@ -564,6 +601,14 @@
       choosing — a cloud folder included.
     -->
     <string name="backup_export_desc">Сохранить все данные в файл. В файле — имена, телефоны и почта учеников, без шифрования</string>
+    <!--
+      The backup screen leads with when the last copy was made. Two states, and the second is the one
+      worth having: an app that has never been backed up should say so plainly.
+    -->
+    <string name="backup_last_export">Последняя копия: %1$s</string>
+    <string name="backup_last_export_detail">Данные после этой даты есть только на этом телефоне</string>
+    <string name="backup_never">Копий ещё не было</string>
+    <string name="backup_never_detail">Данные есть только на этом телефоне. Потеряете телефон — потеряете всё</string>
     <string name="backup_import">Импортировать данные</string>
     <string name="backup_import_desc">Восстановить данные из файла</string>
     <string name="backup_import_confirm">Импорт заменит все текущие данные. Продолжить?</string>

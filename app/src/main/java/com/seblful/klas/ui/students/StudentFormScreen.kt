@@ -4,10 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,11 +23,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.ModeField
 import com.seblful.klas.ui.common.SaveAction
 import com.seblful.klas.ui.common.Spacing
@@ -144,13 +142,16 @@ fun StudentFormContent(
             state.allSubjects.forEach { subject ->
                 val selected = subject.id in state.selectedSubjectIds
                 val price = form.subjectPrices[subject.id] ?: MoneyField()
-                Row(
-                    Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+                // **The tick and the rate stack; they no longer share a row.** The price field was a
+                // fixed 140 dp beside a checkbox and a subject name, which is a third of a 360 dp phone
+                // spent on a box before the name gets any — and at a large font scale the name was
+                // squeezed to an ellipsis while «Цена» kept every dp of its own. Stacked, the name has
+                // the whole width and the rate has the whole width, at every scale, and the field's
+                // indent is what says the rate belongs to the subject above it.
+                Column(Modifier.fillMaxWidth()) {
                     Row(
                         Modifier
-                            .weight(1f)
+                            .fillMaxWidth()
                             .toggleable(
                                 value = selected,
                                 onValueChange = { on -> viewModel.toggleSubject(subject.id, on) },
@@ -161,17 +162,19 @@ fun StudentFormContent(
                         Text(subject.name, Modifier.padding(start = Spacing.inline))
                     }
                     if (selected) {
-                        Spacer(Modifier.width(Spacing.inline))
                         OutlinedTextField(
                             value = price.text,
                             onValueChange = { viewModel.setPriceText(subject.id, it) },
                             label = { Text(stringResource(R.string.price_label)) },
                             isError = price.isError,
-                            // Short enough to fit this box — see the note at `money_error_unreadable`.
                             supportingText = supportingTextOf(moneyErrorText(price)),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.width(PriceFieldWidth),
+                            // Indented to the width the checkbox takes, so the field sits under the
+                            // name it prices rather than under the tick.
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = PriceFieldIndent, top = Spacing.tight),
                         )
                     }
                 }
@@ -181,7 +184,9 @@ fun StudentFormContent(
 }
 
 /**
- * Wide enough for «1 250,50 BYN» and narrow enough to leave a subject name its room, in a row that
- * holds a checkbox, a name and this. A measurement, not a gap — see `Spacing`.
+ * How far the rate field is indented under the subject it prices, so its left edge lands under the
+ * subject's **name** rather than under its tick: the `Checkbox`'s own 48 dp touch target, plus the same
+ * [Spacing.inline] the name is set in from it. A measurement of two other controls, not a gap — see
+ * `Spacing`.
  */
-private val PriceFieldWidth = 140.dp
+private val PriceFieldIndent = MinTouchTarget + Spacing.inline

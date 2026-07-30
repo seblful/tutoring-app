@@ -30,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.PinnedHeader
 import com.seblful.klas.ui.common.ScreenSearch
 import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.Spacing
@@ -122,13 +123,22 @@ fun PeopleScreen(
         },
     ) { modifier ->
         Column(modifier) {
-            SegmentedChoice(
-                options = PeopleTab.entries,
-                selected = tab,
-                onSelect = { tab = it },
-                modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
-                label = { entry -> stringResource(entry.labelRes) },
-            )
+            // **Fixed, and drawn as fixed.** The control sits above the lists rather than inside them,
+            // so it never scrolls — but it was painted the page's own colour, which is what made rows
+            // appear to slide out from behind nothing as either list moved under it. [PinnedHeader] is
+            // the same band the detail cards' tab rows use, and for the same reason.
+            PinnedHeader {
+                SegmentedChoice(
+                    options = PeopleTab.entries,
+                    selected = tab,
+                    onSelect = { tab = it },
+                    modifier = Modifier.padding(
+                        horizontal = Spacing.gutter,
+                        vertical = Spacing.inline,
+                    ),
+                    label = { entry -> stringResource(entry.labelRes) },
+                )
+            }
             Box(Modifier.fillMaxSize()) {
                 // `query` is the visible side's, so either list's "empty because nothing matched"
                 // reads the same search its rows were filtered by.

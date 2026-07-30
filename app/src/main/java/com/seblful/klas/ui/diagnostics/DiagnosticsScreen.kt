@@ -77,6 +77,9 @@ fun DiagnosticsScreen(
 
             if (!state.hasLog) {
                 Text(stringResource(R.string.diagnostics_empty))
+                // Nothing claims the leftover height, so this is what keeps the debug button at the
+                // foot of the screen rather than under the empty-log sentence.
+                Spacer(Modifier.weight(1f))
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
                     OutlinedButton(onClick = { exportLauncher.launch(exportFilename) }) {
@@ -86,7 +89,14 @@ fun DiagnosticsScreen(
                         Text(stringResource(R.string.diagnostics_clear))
                     }
                 }
-                Card(Modifier.fillMaxWidth()) {
+                // **The log takes the space that is left, and scrolls inside it.** A crash log is
+                // 64 000 characters at its cap, and a card sized to its content is a card taller than
+                // the phone: the log's own `verticalScroll` then had nothing to scroll *within*, so the
+                // text simply ran past the bottom of the screen and took «Проверить сбой» — and the
+                // «Очистить» button, if the log were long enough — with it. `weight` is what turns a
+                // nested scroll from a mistake into the right control: it bounds the viewport the inner
+                // scroll moves through.
+                Card(Modifier.fillMaxWidth().weight(1f)) {
                     Text(
                         state.log,
                         modifier = Modifier
@@ -103,7 +113,6 @@ fun DiagnosticsScreen(
                 // Debug-only: verify the crash handler actually records and survives a real crash.
                 // The thrown exception is uncaught on purpose — it kills the app; relaunch to see the
                 // entry appear above. Never present in a release build (gated by the debuggable flag).
-                Spacer(Modifier.weight(1f))
                 OutlinedButton(
                     onClick = { throw RuntimeException("Test crash from Diagnostics screen") },
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),

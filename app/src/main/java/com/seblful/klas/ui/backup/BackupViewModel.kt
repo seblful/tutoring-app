@@ -5,12 +5,20 @@ import androidx.lifecycle.viewModelScope
 import com.seblful.klas.data.backup.BackupFailure
 import com.seblful.klas.data.backup.BackupManager
 import com.seblful.klas.data.backup.BackupRestore
+import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.seblful.klas.ui.common.UiEvents
+import com.seblful.klas.ui.common.hold
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.time.Clock
+import java.time.Instant
 import javax.inject.Inject
 
 /**
@@ -29,15 +37,61 @@ class BackupViewModel @Inject constructor(
     private val backup: BackupManager,
     private val restore: BackupRestore,
     private val documents: DocumentStore,
+    private val settings: SettingsRepository,
+    @param:ApplicationScope private val appScope: CoroutineScope,
+    private val clock: Clock,
 ) : ViewModel() {
 
     val events = UiEvents<BackupResult>()
 
+    /**
+     * When a backup was last exported, or null if one never has been — what the screen leads with.
+     *
+     * The screen used to state nothing at all: two rows describing what export and import *are*, on the
+     * one screen of an app whose whole promise is that the data is on this device and nowhere else. When
+     * the last copy was made is the single most valuable fact in that promise, and the app knew it and
+     * threw it away.
+     */
+    val lastExportAt: StateFlow<Instant?> = settings.observe()
+        .map { it.lastExportAt }
+        .hold(this, null)
+
+    /**
+     * Writes the snapshot, then **records that it happened** — in that order, and only if it did.
+     *
+     * Two guarded steps rather than one, and the split is the point in both directions. A stamp written
+     * for an export that failed would have the app telling the tutor they have a copy they do not have.
+     * And a stamp that *could not* be written is still not a failed export — the file is on the disk they
+     * chose — so it gets its own guard instead of turning a successful export into a reported error.
+     *
+     * **The two steps run in different scopes, and that is the whole reason the receipt is reliable.**
+     * The export itself stays in `viewModelScope`, as `DiagnosticsViewModel`'s does: what an abandoned one
+     * leaves behind is a short file in a place the tutor picked and can see, not a row missing from the
+     * ledger. The receipt is a **write to the database**, so it goes to the application scope by the rule
+     * every other write in this app follows — and here the rule has teeth. `viewModelScope` dies when this
+     * screen is popped, so a tutor who exports a large snapshot through SAF and backs out could otherwise
+     * be left with the file on disk and «Копий ещё не было» on the screen: the exact wrong answer this
+     * feature exists to prevent, and one no failure test can catch, because a cancellation is not a
+     * failure.
+     */
     fun export(ref: DocumentRef) {
         viewModelScope.launch {
-            val result = runCatchingCancellable { documents.write(ref, backup.exportJson()) }
-            events.send(result.fold({ BackupResult.ExportOk }, ::failed))
+            val written = runCatchingCancellable { documents.write(ref, backup.exportJson()) }
+            if (written.isSuccess) recordExport()
+            events.send(written.fold({ BackupResult.ExportOk }, ::failed))
         }
+    }
+
+    /**
+     * Stamps the settings row with the moment the copy was made, outliving the screen that asked for it.
+     *
+     * The failure is reported to the crash log rather than to the tutor — a receipt that would not write
+     * is not something they can act on, and telling them the export failed would be false — but it is
+     * reported: a silent `runCatching` here would make a stamp that never lands invisible everywhere.
+     * `appScope` carries a `CoroutineExceptionHandler` into the log, so *not* guarding is what reports it.
+     */
+    private fun recordExport() {
+        appScope.launch { settings.update { it.copy(lastExportAt = clock.instant()) } }
     }
 
     /** Reads the picked file through [DocumentStore] and hands the rest to [BackupRestore]. */

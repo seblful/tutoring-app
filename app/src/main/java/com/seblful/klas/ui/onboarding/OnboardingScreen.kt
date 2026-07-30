@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Payments
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.outlined.PhonelinkLock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -44,6 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
+import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.backup.BACKUP_MIME_TYPES
 import com.seblful.klas.ui.backup.BackupResult
@@ -52,6 +55,7 @@ import com.seblful.klas.ui.backup.messageIn
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TextFieldDialog
 import com.seblful.klas.ui.common.rememberMessages
@@ -104,6 +108,24 @@ fun OnboardingScreen(
     LaunchedEffect(backupViewModel, messages) {
         backupViewModel.events.stream.collect { result ->
             if (result is BackupResult.Failed) messages.show(result.failure.messageIn(context))
+        }
+    }
+
+    val removeFailedMsg = stringResource(R.string.onboarding_subject_remove_failed)
+    ShowMessagesFor(viewModel.events, messages) { removeFailedMsg }
+
+    // Removing a subject is undone by adding it back: nothing can reference one added during first run,
+    // so the name is the whole of it. The row it comes back as is a new one, which matters to nobody —
+    // an id here has no history behind it yet.
+    //
+    // Said **after** the row has gone, not beside the call that removes it. Announcing it up front would
+    // be «Предмет удалён» followed by «Не удалось удалить предмет» on a refusal — and a «Вернуть» offered
+    // in between would add a *second* subject of the same name, which nothing refuses.
+    val undoLabel = stringResource(R.string.action_undo)
+    val subjectRemovedMsg = stringResource(R.string.onboarding_subject_removed)
+    fun removeSubject(subject: Subject) {
+        viewModel.removeSubject(subject) {
+            messages.show(subjectRemovedMsg, undoLabel) { viewModel.addSubject(subject.name) }
         }
     }
 
@@ -236,7 +258,25 @@ fun OnboardingScreen(
                     } else {
                         LazyColumn(Modifier.weight(1f)) {
                             items(subjects, key = { it.id }) { subject ->
-                                ListItem(headlineContent = { Text(subject.name) })
+                                // Each one can be taken back. The list was read-only, so a typo in the
+                                // step whose only gate is "at least one subject" could be *finished
+                                // with* but not fixed — the tutor had to skip setup to reach the screen
+                                // that deletes one. Removal is undone from the snackbar rather than
+                                // guarded by a dialog: nothing references a subject added here (see
+                                // [OnboardingViewModel.removeSubject]), so there is nothing to warn
+                                // about, and «Вернуть» costs a mis-tap one tap instead of costing every
+                                // deliberate delete a confirmation.
+                                ListItem(
+                                    headlineContent = { Text(subject.name) },
+                                    trailingContent = {
+                                        IconButton(onClick = { removeSubject(subject) }) {
+                                            Icon(
+                                                Icons.Filled.Delete,
+                                                stringResource(R.string.action_delete),
+                                            )
+                                        }
+                                    },
+                                )
                             }
                         }
                     }

@@ -3,6 +3,7 @@ package com.seblful.klas.ui.schedule
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,11 +13,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
@@ -58,9 +61,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
+import com.seblful.klas.domain.DaySummary
 import com.seblful.klas.domain.LessonKind
+import com.seblful.klas.domain.NowMarker
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.format.formatDay
+import com.seblful.klas.format.formatHours
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatWeekRange
 import com.seblful.klas.format.toLocalDate
@@ -85,6 +91,7 @@ import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.map
 import com.seblful.klas.ui.common.popsOnChange
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.common.valueOrNull
 import com.seblful.klas.ui.theme.klasColors
@@ -112,6 +119,8 @@ fun ScheduleScreen(
     val week by viewModel.weekDays.collectAsState()
     val loads by viewModel.dayLoads.collectAsState()
     val timeConflict by viewModel.timeConflict.collectAsState()
+    // Where "now" falls in the selected day's list, or null when that day is not today — see [NowMarker].
+    val nowMark by viewModel.nowMark.collectAsState()
 
     // The sheet acts on the whole lesson in it, a group's included: its actions are the lesson's
     // time and status, and who is in one is changed on the lesson's own form.
@@ -127,18 +136,29 @@ fun ScheduleScreen(
         viewModel.events.stream.collect { messages.show(actionFailedMsg) }
     }
 
+    // What the add button says on a day nothing can be booked into yet — and the step that fixes it.
+    val cannotBookMsg = stringResource(R.string.schedule_need_setup)
+    val addStudentLabel = stringResource(R.string.schedule_add_student)
+
     KlasScreen(
         title = stringResource(R.string.schedule_title),
         messages = messages,
         floatingActionButton = {
-            // Hidden rather than shown-and-refusing. It used to be always present: with no students
-            // it looked enabled, popped a toast naming what was missing, and left the tutor to go and
-            // find it — a control whose only behaviour is to decline. The empty state below carries
-            // the same information *and* the way out of it.
-            if (canAddClass) {
-                FloatingActionButton(onClick = onAddClass) {
-                    Icon(Icons.Filled.Add, stringResource(R.string.action_add))
-                }
+            // **It stays put, and says why instead.** It was hidden while nothing could be booked, which
+            // solved the wrong half of the problem: the version before that popped a toast naming what
+            // was missing and left the tutor to go and find it — a control whose only behaviour is to
+            // decline — so it was removed. But a button that comes and goes on the app's busiest screen
+            // is its own defect: the tutor's thumb learns where it is, and on the one day it is absent
+            // the schedule reads as broken rather than as unready.
+            //
+            // What was actually wrong with the toast is that it was a dead end. This is not: the message
+            // carries «Добавить ученика», which is the step that unblocks booking, so the refusal and the
+            // way out arrive together. The empty state below still offers the same step for a tutor who
+            // reads the page instead of reaching for the button.
+            FloatingActionButton(
+                onClick = { if (canAddClass) onAddClass() else messages.show(cannotBookMsg, addStudentLabel, onAddStudent) },
+            ) {
+                Icon(Icons.Filled.Add, stringResource(R.string.action_add))
             }
         },
     ) { modifier ->
@@ -158,10 +178,18 @@ fun ScheduleScreen(
                         onNext = viewModel::goToNextDay,
                         onToday = viewModel::goToToday,
                     )
+                    // What the day comes to, under the day it names — the stepper's title is the date,
+                    // so this is the one place in this view the summary can sit.
+                    DaySummaryLine(
+                        summary = contentState.valueOrNull()?.summary ?: DaySummary.NONE,
+                        modifier = Modifier.padding(horizontal = Spacing.gutter),
+                    )
                     // Inset to the gutter, like the week and month dividers — those sit inside the list
                     // below and so pick it up from its `contentPadding`. This one is outside the list,
                     // so it has to say so, or switching view mode changes the divider's width.
-                    HorizontalDivider(Modifier.padding(horizontal = Spacing.gutter))
+                    HorizontalDivider(
+                        Modifier.padding(top = Spacing.tight, start = Spacing.gutter, end = Spacing.gutter),
+                    )
                 }
                 ScheduleViewMode.WEEK -> WeekNavigator(
                     days = week,
@@ -196,6 +224,7 @@ fun ScheduleScreen(
                     ScheduleViewMode.DAY -> dayList(
                         state = contentState.map { it.rows },
                         canAddClass = canAddClass,
+                        nowMark = nowMark,
                         onRowClick = { sheetFor = it },
                         onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
                         onAddClass = onAddClass,
@@ -232,7 +261,11 @@ fun ScheduleScreen(
                         } else {
                             week.sections.forEach { section ->
                                 item(key = "day-${section.date}", contentType = "day-header") {
-                                    DaySectionHeader(section.date, isSelected = section.date == date)
+                                    DaySectionHeader(
+                                        date = section.date,
+                                        isSelected = section.date == date,
+                                        summary = section.summary,
+                                    )
                                 }
                                 items(section.rows, key = { it.klass.id }) { row ->
                                     SwipeToCompleteCard(
@@ -260,13 +293,17 @@ fun ScheduleScreen(
                                     onSelect = viewModel::selectDate,
                                 )
                                 Spacer(Modifier.height(Spacing.itemGap))
-                                SelectedDayHeader(date)
+                                SelectedDayHeader(
+                                    date = date,
+                                    summary = contentState.valueOrNull()?.summary ?: DaySummary.NONE,
+                                )
                                 HorizontalDivider()
                             }
                         }
                         dayList(
                             state = contentState.map { it.rows },
                             canAddClass = canAddClass,
+                            nowMark = nowMark,
                             onRowClick = { sheetFor = it },
                             onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
                             onAddClass = onAddClass,
@@ -353,6 +390,7 @@ fun ScheduleScreen(
 private fun LazyListScope.dayList(
     state: Loadable<List<ScheduleRow>>,
     canAddClass: Boolean,
+    nowMark: Int?,
     onRowClick: (ScheduleRow) -> Unit,
     onComplete: (ScheduleRow) -> Unit,
     onAddClass: () -> Unit,
@@ -388,15 +426,32 @@ private fun LazyListScope.dayList(
             }
         }
     } else {
-        items(rows, key = { it.klass.id }) { row ->
-            SwipeToCompleteCard(
-                row = row,
-                onClick = { onRowClick(row) },
-                onComplete = { onComplete(row) },
-            )
+        // A row at a time rather than `items(rows)`, so the mark can be its own item *between* two
+        // lessons. It has to be one: `nowMark == rows.size` means the whole day is behind us, and there
+        // is no card left to draw it above — and an item with two roots would take `animateItem()` off
+        // the card, which is what keeps a re-sorted list from teleporting.
+        rows.forEachIndexed { index, row ->
+            if (index == nowMark) item(key = NowKey) { NowLine(Modifier.animateItem()) }
+            item(key = row.klass.id, contentType = "lesson") {
+                SwipeToCompleteCard(
+                    row = row,
+                    onClick = { onRowClick(row) },
+                    onComplete = { onComplete(row) },
+                )
+            }
         }
+        if (nowMark == rows.size) item(key = NowKey) { NowLine(Modifier.animateItem()) }
     }
 }
+
+/**
+ * The mark's list key. A constant, so the item keeps its identity as its *position* changes: the stable
+ * key is what makes the move an existing item changing place rather than one item being removed and
+ * another added, and `animateItem()` at both call sites is what makes that visible — the mark slides past
+ * a lesson as it begins instead of blinking from one gap to the next. A constant is also what keeps it
+ * unique, and a duplicate key crashes composition.
+ */
+private const val NowKey = "now"
 
 /**
  * Lesson cards that have not arrived yet, at the gutter and gap the real ones use — so the first real
@@ -667,13 +722,15 @@ private fun PageNavigator(
 
 /** Names the day the list below belongs to, since the calendar's title is the month. */
 @Composable
-private fun SelectedDayHeader(date: LocalDate) {
-    Text(
-        text = date.formatDay(),
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.tight),
-    )
+private fun SelectedDayHeader(date: LocalDate, summary: DaySummary) {
+    Column(Modifier.fillMaxWidth().padding(vertical = Spacing.tight)) {
+        Text(
+            text = date.formatDay(),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        DaySummaryLine(summary)
+    }
 }
 
 /**
@@ -681,21 +738,103 @@ private fun SelectedDayHeader(date: LocalDate) {
  * strip's selection stays traceable in the list below it.
  */
 @Composable
-private fun DaySectionHeader(date: LocalDate, isSelected: Boolean) {
-    Text(
-        text = date.formatDay(),
-        style = MaterialTheme.typography.titleSmall,
-        color = if (isSelected) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        },
+private fun DaySectionHeader(date: LocalDate, isSelected: Boolean, summary: DaySummary) {
+    Column(
         // One extra [Spacing.itemGap] above, so the gap that opens *before* a header is a section
         // break while the header still sits close to the day it names. The list's uniform `spacedBy`
         // cannot say that on its own.
-        modifier = Modifier.fillMaxWidth().padding(top = Spacing.itemGap),
+        Modifier.fillMaxWidth().padding(top = Spacing.itemGap),
+    ) {
+        Text(
+            text = date.formatDay(),
+            style = MaterialTheme.typography.titleSmall,
+            color = if (isSelected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
+        DaySummaryLine(summary)
+    }
+}
+
+/**
+ * What the day comes to: «4 занятия · 5 ч · 240 BYN».
+ *
+ * The screen listed a day's lessons and left the tutor to add them up — including the money, which is
+ * what the app is for. It goes wherever a day is *named*: under the stepper in the day view, under the
+ * selected-day heading in the month view, and on each heading of the week agenda. One rule, no
+ * exceptions to remember.
+ *
+ * The arithmetic is [DaySummary]'s and arrives already done (see [WeekSection.summary]) — what is here is
+ * the wording and the separator. A **cancelled** lesson is named apart rather than folded in: it counts
+ * towards nothing, and a day of four lessons and one cancellation must not read as five.
+ */
+@Composable
+private fun DaySummaryLine(summary: DaySummary, modifier: Modifier = Modifier) {
+    // Nothing at all to say about a day with nothing on it. The empty state below already does, at
+    // length, and a «0 занятий · 0 ч» above it would be the same news twice in a colder voice.
+    if (summary.isEmpty) return
+
+    val cancelled = stringResource(R.string.schedule_summary_cancelled, summary.cancelled)
+        .takeIf { summary.cancelled > 0 }
+    val parts = if (summary.lessons > 0) {
+        listOfNotNull(
+            pluralStringResource(R.plurals.lessons_count, summary.lessons, summary.lessons),
+            stringResource(R.string.hours_value, formatHours(summary.minutes)),
+            summary.money.text(),
+            cancelled,
+        )
+    } else {
+        // Everything on this day was called off. Saying so is the whole of it — there are no hours and
+        // no money, and printing zeroes for them would dress a cancelled day up as a counted one.
+        listOfNotNull(cancelled)
+    }
+
+    Text(
+        parts.joinToString(" · "),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.padding(top = Spacing.tight),
     )
 }
+
+/**
+ * The hairline that says **where now is** in today's list.
+ *
+ * A day is a column of times with nothing marking which of them have been — so the next lesson, the one
+ * row the tutor can still act on, has to be found by reading the clock and then reading the list. The
+ * mark is drawn only on today ([NowMarker] decides, not this) and it moves as the clock does.
+ *
+ * A dot and a rule in the brand colour, with the word: a bare tinted line among lesson cards would read
+ * as a divider, and the label is also the only part of this a screen reader can announce.
+ */
+@Composable
+private fun NowLine(modifier: Modifier = Modifier) {
+    Row(
+        modifier.fillMaxWidth().padding(vertical = Spacing.tight),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(NowDotSize)
+                .background(MaterialTheme.colorScheme.primary, CircleShape),
+        )
+        Text(
+            stringResource(R.string.schedule_now),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = Spacing.inline),
+        )
+        HorizontalDivider(
+            Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
+
+/** The mark's dot: a measurement of a drawn shape, not a gap — see `Spacing`. */
+private val NowDotSize = 6.dp
 
 /**
  * What can be done to the lesson that was tapped: change its status, edit it, move it, delete it.

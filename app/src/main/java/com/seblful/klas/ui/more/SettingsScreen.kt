@@ -62,6 +62,7 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.state.collectAsState()
     val notificationsPermitted by viewModel.notificationsPermitted.collectAsState()
+    val calendarPermitted by viewModel.calendarPermitted.collectAsState()
     val pendingSweep by viewModel.pendingSweep.collectAsState()
     val messages = rememberMessages()
     val deniedMsg = stringResource(R.string.calendar_denied)
@@ -151,7 +152,14 @@ fun SettingsScreen(
             SectionHeader(stringResource(R.string.settings_section_calendar))
             SwitchRow(
                 title = stringResource(R.string.settings_calendar_sync),
-                description = stringResource(R.string.settings_calendar_sync_desc),
+                // As the reminder row above: what the platform will actually do, not only what the tutor
+                // asked for. The calendar permission is revoked from the same place and with the same
+                // effect — sync switched on, nothing mirrored, nothing anywhere saying so.
+                description = if (settings.calendarSyncEnabled && !calendarPermitted) {
+                    stringResource(R.string.settings_calendar_sync_blocked)
+                } else {
+                    stringResource(R.string.settings_calendar_sync_desc)
+                },
                 checked = settings.calendarSyncEnabled,
                 onCheckedChange = { on ->
                     if (viewModel.setCalendarSyncEnabled(on) == CalendarSyncToggle.PERMISSION_NEEDED) {

@@ -112,11 +112,12 @@ fun parseMoneyOrNull(text: String): Money? {
 fun Money.toAmountInput(): String = amountText
 
 /**
- * Formats a number of minutes as hours for a stat tile: `90` → "1,5", `2520` → "42", `30` → "0,5".
+ * Formats a number of minutes as hours: `90` → "1,5", `2520` → "42", `30` → "0,5". The bare number —
+ * a stat tile carries its own «Часов» label, and the schedule's day summary wraps it in `hours_value`.
  *
  * Rounded to a tenth of an hour with integer arithmetic, matching the money model's refusal to let
  * floating point near a displayed number, and a whole number of hours prints with no decimal at all —
- * "42 ч" rather than "42,0 ч", since the tile is a summary and the extra digit only adds noise.
+ * "42 ч" rather than "42,0 ч", since both callers are summaries and the extra digit only adds noise.
  */
 fun formatHours(minutes: Int): String {
     val tenths = (minutes * 10 + 30) / 60

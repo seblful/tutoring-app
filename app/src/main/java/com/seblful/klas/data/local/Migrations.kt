@@ -137,3 +137,21 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         )
     }
 }
+
+/**
+ * **v2 → v3: the settings row remembers the last export.**
+ *
+ * One nullable column on a single-row table (`SettingsEntity.lastExportMillis`). Null is what an existing
+ * install upgrades to and it is the honest answer: the app was not recording this, so it does not know
+ * when — or whether — that tutor last made a copy. The backup screen says «Копий ещё не было» until the
+ * next export, which is a fair thing to tell somebody the app cannot vouch for.
+ *
+ * No `DEFAULT` clause, and therefore no `defaultValue` on the entity either: the two must agree or Room's
+ * schema validation fails after the migration, and a nullable column with no default is what
+ * `ALTER TABLE … ADD COLUMN` produces.
+ */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `settings` ADD COLUMN `lastExportMillis` INTEGER")
+    }
+}

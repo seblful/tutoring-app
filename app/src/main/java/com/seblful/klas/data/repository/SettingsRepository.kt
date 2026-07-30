@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,6 +25,18 @@ data class AppSettings(
     /** Pre-fills a new group's hourly rate. Null while the tutor has not set one. */
     val defaultGroupPrice: Money? = null,
     val currency: Currency = Currency.BYN,
+    /**
+     * When a backup was last exported — **null when one never has been.**
+     *
+     * The only member of this class that is not a preference, and the reason it is here rather than in a
+     * table of its own is that it shares every property of one: a single device-local value, deliberately
+     * outside the backup. See `SettingsEntity.lastExportMillis`.
+     *
+     * It owes the world nothing when it changes, which is why it needs no named mutator and no arm in
+     * [SettingsChange]: the export already happened, and recording that fact cannot re-earn a calendar or
+     * re-plan a reminder.
+     */
+    val lastExportAt: Instant? = null,
 )
 
 /**
@@ -149,6 +162,7 @@ class SettingsRepository @Inject constructor(
             // it used to be restated by every reader of the raw minor units.
             defaultGroupPrice = Money(defaultGroupPriceMinor).takeIf { defaultGroupPriceMinor != 0L },
             currency = Currency.parse(currency),
+            lastExportAt = lastExportMillis?.let(Instant::ofEpochMilli),
         )
 
     /**
@@ -167,6 +181,7 @@ class SettingsRepository @Inject constructor(
         defaultLessonMinutes = defaultLessonMinutes,
         defaultGroupPriceMinor = defaultGroupPrice?.minor ?: 0,
         currency = currency.name,
+        lastExportMillis = lastExportAt?.toEpochMilli(),
         // `SettingsEntity.showGroupsTab` is deliberately not set: nothing reads it any more (groups
         // and students share one tab now), and the column stays only because dropping it would mean
         // a table rebuild — SQLite before 3.35 has no `DROP COLUMN`, and minSdk 24 reaches back well

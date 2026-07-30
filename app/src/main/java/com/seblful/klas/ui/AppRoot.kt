@@ -218,7 +218,13 @@ private fun MainApp() {
                 DiagnosticsScreen(onBack = { navController.popBackStack() })
             }
             pushed(Routes.ABOUT) {
-                AboutScreen(onBack = { navController.popBackStack() })
+                AboutScreen(
+                    onBack = { navController.popBackStack() },
+                    // About is where the app makes the "your data is on this device and nowhere else"
+                    // promise, which is also where its one obligation is stated — so the way to act on
+                    // it is here rather than back in the menu.
+                    onBackup = { navController.navigate(Routes.BACKUP) },
+                )
             }
 
             pushed(

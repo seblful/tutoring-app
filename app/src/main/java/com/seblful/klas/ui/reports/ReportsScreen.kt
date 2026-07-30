@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.QueryStats
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -120,14 +121,15 @@ fun ReportsScreen(
 
     val exportOkMsg = stringResource(R.string.reports_export_success)
     val exportErrorMsg = stringResource(R.string.reports_export_error)
+    // Nothing to say when the sheet actually opened — the sheet is the feedback, and the app cannot see
+    // whether the tutor went on to send anything. This is only for the case where it could not open.
     LaunchedEffect(Unit) {
         viewModel.events.stream.collect { event ->
-            messages.show(
-                when (event) {
-                    ReportsViewModel.ExportEvent.OK -> exportOkMsg
-                    ReportsViewModel.ExportEvent.ERROR -> exportErrorMsg
-                }
-            )
+            when (event) {
+                ReportsViewModel.ExportEvent.OK -> messages.show(exportOkMsg)
+                ReportsViewModel.ExportEvent.SHARED -> Unit
+                ReportsViewModel.ExportEvent.ERROR -> messages.show(exportErrorMsg)
+            }
         }
     }
 
@@ -150,6 +152,8 @@ fun ReportsScreen(
         if (uri != null) viewModel.export(DocumentRef(uri.toString()), csvHeader, csvLines)
     }
     val exportFilename = stringResource(R.string.reports_export_filename)
+    // Names the period, so a report arriving in somebody's mail says which month it is.
+    val shareSubject = stringResource(R.string.reports_share_subject, periodTitle(period))
 
     KlasScreen(
         title = stringResource(R.string.reports_title),
@@ -159,6 +163,18 @@ fun ReportsScreen(
             // year — or an accountant — needs is a file that opens in a spreadsheet, and there was
             // nothing here that produced one.
             if (report?.hasData == true) {
+                // **Send comes before save**, and it is the one that was missing. Saving a CSV puts it in
+                // a folder the tutor then has to go and find in a second app; the thing they were
+                // actually doing with a month is sending it — to an accountant, or to their own mail so
+                // it is somewhere other than this phone. Both stay: a file kept and a file sent are
+                // different acts, and the share sheet cannot put one on the SD card.
+                IconButton(
+                    onClick = {
+                        viewModel.share(shareFilename(period), shareSubject, csvHeader, csvLines)
+                    },
+                ) {
+                    Icon(Icons.Filled.Share, stringResource(R.string.reports_share))
+                }
                 IconButton(onClick = { exportLauncher.launch(exportFilename) }) {
                     Icon(
                         Icons.Filled.FileDownload,
@@ -343,6 +359,27 @@ private fun periodTitle(period: ReportPeriod): String = when (period.kind) {
     ReportPeriod.Kind.MONTH -> formatMonth(period.anchor)
     ReportPeriod.Kind.YEAR -> stringResource(R.string.reports_period_year_title, period.anchor.year)
     ReportPeriod.Kind.ALL -> stringResource(R.string.reports_period_all)
+}
+
+/**
+ * What a shared report is **called**: `klas-report-2026-06.csv`, `klas-report-2026.csv`,
+ * `klas-report-all.csv`.
+ *
+ * The period is in the name because the file leaves the app. Every share was `klas-report.csv`, so an
+ * accountant sent twelve months received twelve files with one name and no way to tell them apart — and
+ * the subject line that does name the period belongs to the message rather than to the attachment.
+ *
+ * Not a string resource, and not localized: it is a filename, read by whatever the receiving app is, and
+ * `klas-report-2026-06` sorts and is typed the same everywhere. The screen's own «Выгрузить в CSV» dialog
+ * keeps the plain `reports_export_filename`, since the tutor is naming that one themselves.
+ */
+private fun shareFilename(period: ReportPeriod): String {
+    val suffix = when (period.kind) {
+        ReportPeriod.Kind.MONTH -> "%d-%02d".format(period.anchor.year, period.anchor.monthValue)
+        ReportPeriod.Kind.YEAR -> period.anchor.year.toString()
+        ReportPeriod.Kind.ALL -> "all"
+    }
+    return "klas-report-$suffix.csv"
 }
 
 private fun periodKindLabel(kind: ReportPeriod.Kind): Int = when (kind) {

@@ -36,7 +36,7 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, calendar layout, `CalendarSyncPolicy`, reminders, reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught`, `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, models (incl. `Currency` and the report-only id types, `model/Ids.kt`), and the `ReminderScheduler` port. All JVM-tested. |
+| `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, calendar layout, `CalendarSyncPolicy`, reminders, reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught`, `DaySummary`/`NowMarker` (what a day comes to, and where "now" falls in it), `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, models (incl. `Currency` and the report-only id types, `model/Ids.kt`), and the `ReminderScheduler` port. All JVM-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`, the `Transactor` port, and `upsertedId` — the one statement of `@Upsert`'s -1-on-update sentinel (the fakes reproduce it, so the fallback branch runs on the JVM too). Entities are also `@Serializable`, for the backup. `SnapshotDao` is the **separate** whole-table seam (see *Two interfaces onto the same tables*). |
 | `data/Mappers.kt` | Entities ⇄ domain models. Where a stored enum is parsed back. |
 | `data/repository/` | One invariant each, end to end, written in one transaction (see *Ownership*). Display **name ordering** is applied here. |
@@ -45,9 +45,9 @@ flowchart TB
 | `notifications/` | `Notifier` and `NotificationPermission` ports + Android adapters, `DueReminder`, `ReminderActions`/`ReminderNavigation` (what a reminder's own buttons do) and `ReminderAlarms`/`ReminderReceiver`/`ReminderActionReceiver` — reminders are **alarms**, not deferrable work. |
 | `work/` | WorkManager's half: the periodic `MaintenanceWorker`, `WorkScheduler`, `BootReceiver` (alarms die on reboot), and `Maintenance` — what an upkeep pass decides, kept out of the worker. |
 | `diagnostics/` | `CrashLogger` over `CrashLogStore`/`DeviceInfo` ports; the pure half is `domain/Diagnostics`. Viewed and exported from `ui/diagnostics`. |
-| `storage/` | `DocumentStore` port + SAF adapter over an opaque `DocumentRef`, so no view model touches a `Uri` or a `Context`. |
+| `storage/` | `DocumentStore` port + SAF adapter over an opaque `DocumentRef`, and `DocumentSharing` + its `ACTION_SEND`/`FileProvider` adapter — so no view model touches a `Uri`, an `Intent` or a `Context`. Two ports because the acts differ: one writes where the tutor pointed, the other hands a file to another app. |
 | `format/` | `ru`-locale date/time/money formatting (with `LocalDate`/`LocalTime` faces, so no caller restates the zone), `MoneyField` (what a money input is — each `Kind` carries its own zero rule), `NameOrder` (the one definition of how names are listed). |
-| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/` (routes, tab items, screen transitions), shared `common/` atoms — the screen shell (`KlasScreen`), the spacing scale (`Spacing`), `Loadable`/`Skeleton` (the loaded-yet distinction), `SegmentedChoice`, `HeroCard`, `StickyTabRow` — plus `onboarding/` and `RootViewModel` gating onboarding vs. the tabs. **Settings and About live in `ui/more/`.** |
+| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/` (routes, tab items, screen transitions), shared `common/` atoms — the screen shell (`KlasScreen`), the spacing scale (`Spacing`), `Loadable`/`Skeleton` (the loaded-yet distinction), `SegmentedChoice`, `HeroCard`, `PinnedHeader` (and `StickyTabRow` over it) — plus `onboarding/` and `RootViewModel` gating onboarding vs. the tabs. **Settings and About live in `ui/more/`.** |
 | `di/` | The database module, the `@DebugBuild` flag, `@ApplicationScope`/`@Computation` (`CoroutinesModule`) and the `Clock` (`TimeModule`) — which every defaulted `now` in the engine reads (`Maintenance`, `DueReminder`, `RateHistoryRepository`, `CrashLogger`), so the tested path is the shipped one. Other Hilt modules live beside their adapters. |
 
 ### Ownership (one invariant, one place)
@@ -292,18 +292,30 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   or calendar is absent, never blocking or corrupting local data.
 - **Settings live in Room** (single row) and are **device-local** — deliberately not backed up. Writes
   go through one `update {}` **under a `Mutex`**, because the row is written whole.
+- **The last export is a receipt, and it lives in that row** (`AppSettings.lastExportAt`). Not a
+  preference, but the same kind of fact: device-local, and outside the snapshot on purpose — a backup
+  that carried it would have last Tuesday's file claim that the phone restoring it exported something
+  last Tuesday. It is **written after the file and only if the file was written**, in its own guard, so a
+  stamp can neither be saved for a failed export nor turn a successful one into a reported error.
 - **The platform's own backup is off** (`allowBackup="false"` + `res/xml/data_extraction_rules.xml`):
   Auto Backup would have copied `klas.db` — every student's name, phone and email — to Google's
   servers, without a WAL checkpoint, and restored it without `BackupRestore`. The app's own JSON
   export is how data moves between devices, and the export screen says the file is unencrypted PII.
-- **The database is at v2, and migrates.** The rename changed both the application id and the file name
+- **Exactly one directory is reachable from outside the app** (`res/xml/file_paths.xml`, the other half of
+  the same argument): the `FileProvider` behind the report share sheet is scoped to `cache/shared` and
+  nothing else, is `exported="false"`, and hands out only the per-file read grant that travels with an
+  `ACTION_SEND` intent and dies with it. A provider pointing at `.` would have made `klas.db` requestable
+  by authority alone.
+- **The database is at v3, and migrates.** The rename changed both the application id and the file name
   (`tutoring.db` → `klas.db`), and Android never upgrades one application id into another, so no device
   can hold a pre-v1 `klas.db` — v1 shipped with no migrations for that reason. **v2 splits `classes` into
   `lessons` + `attendance` and migrates anyway** (`MIGRATION_1_2`), because "no released baseline" is not
   the same as "no data": the v1 databases that exist are on development phones with real students in
   them. `MigrationTest` runs it against a real v1 database and asserts every row, rate and charge
   survives — including that a taught lesson whose absentee was cancelled becomes a taught lesson with an
-  absentee.
+  absentee. **v3 adds one nullable column** (`settings.lastExportMillis`, `MIGRATION_2_3`); null is what
+  an upgrade lands on and is the honest answer — the app was not recording it, so it cannot say when that
+  tutor last made a copy.
 - **The destructive fallback is debug-only.** A release build **refuses to open** a database it cannot
   migrate: a crash leaves every row on disk for the next build, and is recoverable in the way a wipe
   is not.
@@ -381,6 +393,11 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   shown» has one definition, the port's: `AndroidNotifier` asks `NotificationPermission` too, instead
   of a weaker private copy that ignored the app-wide system switch. Deliberately *not*
   the calendar's rule: that flag gates a mirror, this one is only a preference, so it is never refused.
+- **Both permission rows show the platform's answer**, not only the tutor's intent. The calendar row does
+  it too now: its permission is revoked from the same place, while the app is away, and revoking it left
+  the switch on with the mirror silently dead. The two questions stay distinct — whether sync may be
+  *enabled* is a refusal (`setCalendarSyncEnabled`), whether it is *working* is a report — and neither is
+  a `Flow`, so both are re-asked on resume.
 - **Crash diagnostics are local + Play, no backend**: chains to the platform handler (so Android Vitals
   still reports) and appends to a size-capped file (`Diagnostics.appendBounded`, 64 000 chars, trimmed
   on entry boundaries), exportable from **Ещё → Настройки → Диагностика**. No Crashlytics/Sentry.
@@ -473,6 +490,10 @@ Android, and each was a default rather than a decision.
   written-but-unread: SQLite gained `DROP COLUMN` only in 3.35 / Android 12 and this app supports API
   24. `AppSettings` has dropped it, so nothing above the DAO can reach it.) Labels shrink a step at a
   time rather than wrapping.
+- **A row that opens a screen says so.** «Ещё»'s four entries had a leading icon and nothing trailing,
+  which is the shape of a *settings* list — four things to set — and none of them is: each navigates.
+  The trailing chevron is the platform's word for that, and the only mark telling these apart from the
+  switch rows two taps away.
 - **An empty list carries the way out of itself** (`ui/common/EmptyState`): an icon, a line saying what
   would be here, and — where there is one obvious thing to do — that action as a real button. A list
   empty because *nothing matched a search* says so instead and offers nothing.
@@ -480,6 +501,13 @@ Android, and each was a default rather than a decision.
   case-insensitive in the Russian locale, substring rather than prefix, every space-separated term
   matching in any order, so «пет ив» finds «Иван Петров». Students also sort **by debt**. Filtering and
   sorting happen in the view model, on the computation dispatcher.
+- **A state is a `StatusBadge`, never a font style.** «в архиве» was an italic grey word on both lists —
+  the one place a state was said in emphasis rather than in the pill the lesson statuses use, and
+  emphasis carries nothing to a screen reader. It stays *grey*, deliberately: archiving is not one of the
+  three lesson statuses, and a retired student must not borrow the red a debt is written in.
+- **The two rows are the same weight.** A group's row was four stacked lines against the students list's
+  two, in a list the two halves of one tab swap between, so switching to «Группы» read as a change of
+  density rather than of subject. The rate moved to the **trailing edge**, where money already sits.
 - **Names are ordered in Kotlin, not SQL** (`format/NameOrder`): `COLLATE NOCASE` folds ASCII only.
   Time and id ordering stays in SQL.
 - **Individual and group lessons are told apart wherever they meet** (`domain/LessonKind`,
@@ -491,6 +519,24 @@ Android, and each was a default rather than a decision.
   and month both show one selected day; week always lists the whole week. Paging only *browses* — it
   never moves the selection. A calendar cell shows **one count per status**. Both markers and lessons
   are queried for the **active view's range only**.
+- **Wherever a day is named, it says what it comes to** (`domain/DaySummary`): «4 занятия · 5 ч ·
+  240 BYN», under the stepper, under the month's selected-day heading and on each heading of the week
+  agenda. The screen listed a day's lessons and left the tutor to add up its money, which is the thing
+  the app is for. A day's money is **what its lessons come to, billed or not yet** — `chargeFor(rate,
+  duration)`, which for a taught lesson is the same number `rebill` stored, so tomorrow reads as itself
+  instead of as zero. That is why it is not `Taught.Totals`, which is deliberately backward-looking; a
+  calendar cell's `DayLoad` is the third of the three and counts statuses. **A cancelled lesson counts
+  for nothing** and is named apart.
+- **Today's list says where now is** (`domain/NowMarker`): a hairline between the lessons that have
+  begun and the ones ahead, drawn only on today, re-derived every minute from the injected `Clock`.
+  A `StateFlow` conflates an equal index, so the sixty ticks between two lessons cost no recomposition.
+  The week agenda has none on purpose — it is a list of days, and "where am I in today" is not the
+  question it asks.
+- **The add button never disappears; it explains.** It was hidden while nothing could be booked, which
+  fixed the wrong half of the earlier version's problem: that one popped a toast naming what was missing
+  and left the tutor to find it. A control that comes and goes on the app's busiest screen is its own
+  defect, so it stays and the message it shows **carries the way out** — «Добавить ученика» — which is
+  what the toast never did.
 - **A cancelled lesson recedes** — dimmed, time struck through — because the question a glance answers
   is "how full is this day". Its **badge is the error red**, so it is quiet without being lost; grey is
   now nobody's status at all (`ui/common/classStatusColor`).
@@ -528,8 +574,19 @@ Android, and each was a default rather than a decision.
   student, a group, a subject) and `ChoiceField` (a fixed set of values — `ModeField` over `ClassMode`)
   are the same private `MenuField`. «Место» used to be a label above two chips *and*, on the booking
   form, a `PickerField` that tapping replaced with them: one input, two appearances, neither matching
-  the fields it sat among. It is now never folded — unlike the price, a mode is a guess from the
-  student's usual place rather than a rate already agreed, so it has to be readable before a tap.
+  the fields it sat among.
+- **Nothing on the booking form is folded.** «Место» was the first to be unfolded and **the price is
+  now too**: it was a `PickerField` for a student and a plain text field for a group, so the same input
+  had two appearances decided by who the lesson was for. The fold saved one line and hid the only fact
+  on the form that is about money — whether the rate pre-filled from the student's price is the one the
+  tutor meant. The label is all that still differs, because the question does.
+- **A form is a `verticalScroll`, except where it ends in a list.** The group form is a `LazyColumn` —
+  its fields are `item`s and its roster is `items` — because the roster is as long as the tutor's student
+  list, and a `forEach` inside a scroll composed and measured forty `MemberPickRow`s with forty avatars,
+  none recycled and most off-screen. **Nothing on a form is a fixed width beside flexible text**, for the
+  reason the per-subject price used to be: at 140 dp next to a checkbox and a subject name it took a
+  third of a 360 dp phone, and at a large font scale the name was squeezed to an ellipsis while «Цена»
+  kept every dp of its own. It stacks under the name it prices, indented by the checkbox's own width.
 - **Leaving a filled-in form asks first** (`ui/common/UnsavedChanges`). `leaveIntent` picks the
   question, and `leaveGuard` is the **whole wiring** — the back handler, the dialog, and what each
   answer does; three screens spelled it by hand and two answered «Сохранить» without closing the
@@ -554,7 +611,11 @@ Android, and each was a default rather than a decision.
 - **A detail screen's list keys are namespaced** (`ui/students/StudentDetailKeys`): a subject id, a
   class id and a payment id all start at 1, and a duplicate key crashes composition.
 - **A student's contacts are actions.** Phone, email and Telegram open the platform's handler; each
-  launch is guarded, since a tablet with no dialler must not crash the card.
+  launch is guarded, since a tablet with no dialler must not crash the card. They are reachable **from
+  every tab**, through the card's overflow: the contact block is identity and belongs at the top, which
+  is also the part that scrolls away first — a tutor two hundred lessons down the «Занятия» tab had to
+  scroll back for a phone number. The block still *shows* the number, the email and the note, because
+  reading one is why it stays visible; the menu is where you act on them.
 - **A payment carries the date it was made**, defaulting to today, and can be **corrected in place**.
 - **A rate's history lives in the reprice dialog**, not under every subject row, where it is the
   context for the number being typed.
@@ -572,11 +633,24 @@ Android, and each was a default rather than a decision.
   earned nothing has no baseline rather than «+100 %». Debt rows **navigate to the student**.
 - **The report exports as CSV** (`domain/ReportCsv`), which a backup is not: semicolons and a BOM for
   Excel in a comma-decimal locale, and bare decimal amounts so a column can be summed.
+- **The same CSV can be sent as well as saved** (`storage/DocumentSharing`, `ACTION_SEND`). Saving puts a
+  file in a folder the tutor then has to find in a second app; sending it to an accountant — or to their
+  own mail, so it is somewhere other than this phone — is what they were actually doing with a month.
+  Both stay, because a file kept and a file sent are different acts. **The share sheet opening is its own
+  confirmation**, so only a failure is reported: the app cannot see whether anything was sent, and
+  «Файл сохранён» about a message that may never have gone would be claiming credit for it.
 - **First-run onboarding is offered, not imposed**: walk the setup, restore a backup, or skip. Skipping
-  is the same flag flip as finishing, so the app may legitimately open empty. Restore ends first run as
+  is the same flag flip as finishing, so the app may legitimately open empty. **A subject added in step 1
+  can be removed again** — undone from the snackbar rather than guarded by a dialog, since nothing can
+  reference one yet; the step's only gate is "at least one subject", so a typo used to be something the
+  tutor could finish setup with but not fix. Restore ends first run as
   part of what a restore *is*. Setup steps are numbered «Шаг N из M» from the enum. «Ещё» holds only
   what a tutor goes looking for — Diagnostics is folded into the foot of Settings, and About states the
   version and the offline promise.
+- **A screen that raises a problem carries the way to act on it.** About makes the lost-phone point and
+  now offers «Резервная копия» directly under the sentence that earns it; the backup screen leads with
+  when the last copy was made, or says «Копий ещё не было». Diagnostics gives the log `weight(1f)` so its
+  own scroll has a viewport — an uncapped 64 000-character card pushed the buttons off the screen.
 
 ### UI — one shell, one scale, one control per question
 
@@ -641,9 +715,12 @@ impossible**, and three of them carry a tripwire.
   buttons, menu items, chevrons and the selected tab stay filled. The two **lesson-kind** icons are
   deliberately exempt — they are a matched pair pinned on *ink height* by `LessonKindIconTest`, and
   swapping the set would change what that test measures.
-- **A pinned tab row is a fixed header, so it looks like one** (`StickyTabRow`): `surfaceContainer`
-  and a divider, not the page's own `surface`, which is what made rows appear to slide out from behind
-  nothing.
+- **A band content passes under is drawn as one** (`PinnedHeader`, and `StickyTabRow` over it):
+  `surfaceContainer` and a divider, not the page's own `surface`, which is what made rows appear to
+  slide out from behind nothing. The app has two, and they became fixed by different routes — a detail
+  card's tab row through `stickyHeader`, «Люди»'s segmented control by sitting outside the lists
+  entirely — which is why the shared thing is the *band* rather than the tab row: what earns it is that
+  something scrolls underneath, not how it came to be up there.
 - **«Готово» closes a picker; «Сохранить» writes; «Вернуть» undoes.** All three modals confirmed with
   «Сохранить», so booking a lesson asked for a save twice in a row — and the undo action was «Отменить»
   in an app where «Отменено» is a lesson *status*.
@@ -770,7 +847,8 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
   *compilation* of the instrumented tests on every PR and every push to `main`/`develop` — a tripwire
   nobody runs is not a tripwire. The instrumented tests themselves still need a device.
 - **Instrumented tests** (`src/androidTest`, 13 classes) cover Room integration — including the FK
-  cascade and restrict rules (`SubjectDeletionCascadeTest`) — backup round-trip and restore, calendar
+  cascade and restrict rules (`SubjectDeletionCascadeTest`) and the **migration chain** (`MigrationTest`,
+  see below) — backup round-trip and restore, calendar
   sync, auto-completion, and the questions that need real rendering: text measurement
   (`BottomBarLabelTest`), icon ink height (`LessonKindIconTest`), the plural rule set
   (`RussianPluralsTest`) and **a gesture**, which exists nowhere else (`SwipeToConfirmBoxTest` —
@@ -786,10 +864,13 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
   a Hilt component, or a WorkManager `Configuration` — and the process dies without it, so the *whole
   run* reports **zero tests** rather than a failure. It looked like flakiness in whichever test was
   unlucky. The argument lives in `androidTest/KlasTestApp.kt`; the rules are what make it hold.
-- **Known gap: there is no instrumented Room *migration* test yet.** `room-testing` and the exported
-  schema JSON are wired up and `MigrationChainTest` guards the chain's *existence*, but nothing yet
-  runs a real v1→vN upgrade against `MigrationTestHelper`. This has to exist before the first schema
-  bump after v1 ships.
+- **The migration chain is run for real, end to end** (`androidTest/.../MigrationTest`): a v1 database
+  built from the exported `schemas/1.json`, migrated **v1 → v2 → v3** against `MigrationTestHelper`, with
+  the rows asserted and `runMigrationsAndValidate` refusing a result that does not match the exported
+  schema column for column. That validation is the half a hand-written `ALTER TABLE` needs — a `DEFAULT`
+  on one side and not the other fails there rather than on a phone. It is instrumented, so **CI only
+  compiles it**; `MigrationChainTest` is the unit-suite half, and it guards the chain's *existence* and
+  wiring rather than its behaviour. Every new step needs a case here, not just a `Migration` object.
 - Notification display and real calendar writes can only be observed on a device.
 
 ---

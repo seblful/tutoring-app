@@ -24,7 +24,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -45,9 +44,7 @@ import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.moneyErrorText
 import com.seblful.klas.ui.common.rememberMessages
-import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.supportingTextOf
-import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.format.formatDate
 
@@ -81,7 +78,6 @@ fun ClassEditScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showFromPicker by remember { mutableStateOf(false) }
     var showDurationPicker by remember { mutableStateOf(false) }
-    var showPriceField by remember { mutableStateOf(false) }
 
     // Whether saving needs asking about, and how many billed lessons the question counts, are both
     // `state.saveIntent`'s — see [SaveIntent]. What is held here is only whether the dialog is up.
@@ -253,53 +249,40 @@ fun ClassEditScreen(
                         )
                     }
                 }
-                // The group's rate, pre-filled from the group and editable for this one lesson. Shown
-                // plainly rather than behind a tap: for a group lesson it is *n* students' money.
-                OutlinedTextField(
-                    value = form.price.text,
-                    onValueChange = { text ->
-                        viewModel.change(BookingIntent.Edit { it.copy(price = it.price.typed(text)) })
-                    },
-                    label = { Text(stringResource(R.string.class_group_price_label)) },
-                    isError = form.price.isError,
-                    supportingText = supportingTextOf(moneyErrorText(form.price)),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            } else if (showPriceField) {
-                // Price is pre-filled from the student's rate and usually right, so it stays folded
-                // until tapped — but as a *field*, not as a line of text. It used to render as a bare
-                // clickable `Text` directly beneath five bordered fields, which is the same input
-                // drawn three different ways on one form: an ordinary field, a picker, and a label.
-                //
-                // Revealing it also focuses it (`rememberRevealedFocus`), because the tap that asked
-                // for a price field was asking to type a price: it used to take one tap to unfold the
-                // field and a second to put the cursor in it.
-                OutlinedTextField(
-                    value = form.price.text,
-                    onValueChange = { text ->
-                        viewModel.change(BookingIntent.Edit { it.copy(price = it.price.typed(text)) })
-                    },
-                    label = { Text(stringResource(R.string.price_label)) },
-                    isError = form.price.isError,
-                    supportingText = supportingTextOf(moneyErrorText(form.price)),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().focusRequester(rememberRevealedFocus()),
-                )
-            } else {
-                PickerField(
-                    value = form.price.amount?.text() ?: "",
-                    label = stringResource(R.string.price_label),
-                    placeholder = stringResource(R.string.price_not_set),
-                    onClick = { showPriceField = true },
-                )
             }
 
-            // Never folded, unlike the price: a mode is not pre-filled from a rate the tutor already
-            // agreed, it is a guess from the student's usual place that this lesson may contradict, so
-            // it has to be readable — and changeable — without a tap to reveal it first.
+            // **The rate, never folded.** For a group it is *n* students' money; for one student it is
+            // the number that will be billed. It used to be a [PickerField] that a tap replaced with a
+            // text field for a student and a plain text field for a group — the same input, two
+            // appearances, on the same form, decided by who the lesson is for. The fold saved one line
+            // and cost the tutor the one fact on the form that is about money: whether the pre-filled
+            // rate is the one they meant was readable only after a tap.
+            //
+            // The label is the only thing that still differs, because the question does: a group's rate
+            // is the group's, a student's is theirs for this subject.
+            OutlinedTextField(
+                value = form.price.text,
+                onValueChange = { text ->
+                    viewModel.change(BookingIntent.Edit { it.copy(price = it.price.typed(text)) })
+                },
+                label = {
+                    Text(
+                        stringResource(
+                            if (form.target == ClassTarget.GROUP) R.string.class_group_price_label
+                            else R.string.price_label
+                        )
+                    )
+                },
+                isError = form.price.isError,
+                supportingText = supportingTextOf(moneyErrorText(form.price)),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            // Never folded either, and for its own reason: a mode is not a rate the tutor already
+            // agreed, it is a guess from the student's usual place that this lesson may contradict — so
+            // it has to be readable, and changeable, without a tap to reveal it first.
             ModeField(
                 label = stringResource(R.string.class_location_label),
                 selected = form.mode,

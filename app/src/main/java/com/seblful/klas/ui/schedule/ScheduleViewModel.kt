@@ -10,7 +10,9 @@ import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.CalendarLayout
 import com.seblful.klas.domain.ClassSession
+import com.seblful.klas.domain.DaySummary
 import com.seblful.klas.domain.GroupRules
+import com.seblful.klas.domain.NowMarker
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Student
@@ -28,6 +30,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -117,8 +120,18 @@ data class DeleteWarning(val billed: Boolean, val group: Boolean, val classes: I
     }
 }
 
-/** One day's section of the week agenda. Only days that actually have classes get one. */
-data class WeekSection(val date: LocalDate, val rows: List<ScheduleRow>)
+/**
+ * One day's section of the week agenda. Only days that actually have classes get one.
+ *
+ * @param summary what the day adds up to — see [DaySummary]. Carried rather than computed by the header
+ *   that prints it, because it sums money over every class of every lesson and belongs in the derivation
+ *   that already runs off the main thread.
+ */
+data class WeekSection(
+    val date: LocalDate,
+    val rows: List<ScheduleRow>,
+    val summary: DaySummary,
+)
 
 /**
  * How the schedule presents its classes: one day at a time, a whole week's agenda, or a month grid
@@ -141,7 +154,16 @@ sealed interface ScheduleContent {
     /** The visible week's sections, earliest day first. Empty for a single day. */
     val sections: List<WeekSection> get() = emptyList()
 
-    data class Day(override val rows: List<ScheduleRow>) : ScheduleContent
+    /**
+     * What the selected day adds up to. [DaySummary.NONE] for a week, whose days each carry their own
+     * ([WeekSection.summary]) — a week has no single day to summarize.
+     */
+    val summary: DaySummary get() = DaySummary.NONE
+
+    data class Day(
+        override val rows: List<ScheduleRow>,
+        override val summary: DaySummary,
+    ) : ScheduleContent
 
     data class Week(override val sections: List<WeekSection>) : ScheduleContent
 }
@@ -312,16 +334,13 @@ class ScheduleViewModel @Inject constructor(
                                 .groupBy { it.start.atZone(zone).toLocalDate() }
                                 .toSortedMap()
                                 .map { (day, dayClasses) ->
-                                    WeekSection(
-                                        date = day,
-                                        rows = sessionRows(dayClasses, studentsById, subjectsById, groupsById),
-                                    )
+                                    val rows = sessionRows(dayClasses, studentsById, subjectsById, groupsById)
+                                    WeekSection(date = day, rows = rows, summary = rows.summarised())
                                 },
                         )
                     } else {
-                        ScheduleContent.Day(
-                            sessionRows(visibleClasses, studentsById, subjectsById, groupsById),
-                        )
+                        val rows = sessionRows(visibleClasses, studentsById, subjectsById, groupsById)
+                        ScheduleContent.Day(rows = rows, summary = rows.summarised())
                     }
                 }
             }
@@ -330,6 +349,59 @@ class ScheduleViewModel @Inject constructor(
                 // no lessons* — so a cold open drew «Нет занятий» over the tutor's actual morning, with
                 // the book-a-lesson button under it, until the query returned. See [Loadable].
                 .derive(this, computation, Loadable.Loading)
+
+    /**
+     * The wall clock, once a minute, aligned to the minute — so the mark moves as the phone's clock
+     * changes rather than a stray number of seconds after this screen was opened.
+     *
+     * Sleeping to the next boundary rather than polling a second at a time, for the reason [today] sleeps
+     * to the next midnight: the answer changes on a schedule, and it is knowable when.
+     */
+    private val minutes: Flow<Instant> = flow {
+        while (true) {
+            val instant = clock.instant()
+            emit(instant)
+            val nextMinute = instant.plusSeconds(SECONDS_PER_MINUTE)
+                .minusNanos(instant.nano.toLong())
+                .minusSeconds(instant.epochSecond.mod(SECONDS_PER_MINUTE))
+            // At least a tick: a clock less than a millisecond short of the boundary truncates to a
+            // zero-length sleep, and this loop would spin on it.
+            delay(Duration.between(instant, nextMinute).toMillis().coerceAtLeast(1))
+        }
+    }
+
+    /**
+     * Where the **"you are here"** mark goes in the selected day's list: the index it sits before, or
+     * null when there is no mark to draw — see [NowMarker].
+     *
+     * Only the day list has one, which is both views that show a single day. The week agenda
+     * deliberately does not: it is a list of *days*, and a mark inside one of them would be answering a
+     * question ("where am I in today") that the view is not asking.
+     *
+     * **Re-derived every minute, and emitted only when it moves.** The tick is what makes it true — a
+     * mark computed once at composition drifts for as long as the screen is open, which on a schedule is
+     * all day. What keeps it cheap is that the tick produces the *same* index for most of an hour, and a
+     * `StateFlow` conflates an equal value: sixty ticks between two lessons cost sixty comparisons and no
+     * recomposition at all.
+     *
+     * **A test that collects this must advance time by a stated amount, never `advanceUntilIdle()`** —
+     * the same rule, for the same reason, as [today]: a clock has no last emission, so "until idle" never
+     * arrives. `WhileSubscribed` is what keeps that off every other test.
+     */
+    val nowMark: StateFlow<Int?> =
+        combine(content, _selectedDate, _viewMode, minutes) { loaded, date, mode, now ->
+            // Gated on the view rather than left to `ScheduleContent.Week.rows` being empty by default:
+            // an empty list of lessons on a day that *is* today answers 0, not null, so without this the
+            // flow would hold "the mark goes at the top" all through a week view that never draws one —
+            // a value contradicting the paragraph above it.
+            val rows = when {
+                mode == ScheduleViewMode.WEEK -> return@combine null
+                loaded is Loadable.Ready -> loaded.value.rows
+                else -> return@combine null
+            }
+            NowMarker.positionIn(rows.map { it.session }, date, now, zone)
+        }
+            .derive(this, computation, null)
 
     /**
      * Switches view. Opening a calendar view on a page that doesn't contain the selected day would
@@ -487,8 +559,14 @@ class ScheduleViewModel @Inject constructor(
             }
         }
 
+    /** What these rows come to — [DaySummary] over the lessons they stand for. */
+    private fun List<ScheduleRow>.summarised(): DaySummary = DaySummary.of(map { it.session })
+
     private companion object {
         /** A week's span as a day count, for the date arithmetic that pages the agenda. */
         const val DAYS_IN_WEEK = CalendarLayout.DAYS_IN_WEEK.toLong()
+
+        /** For the minute the "now" mark is aligned to. */
+        const val SECONDS_PER_MINUTE = 60L
     }
 }

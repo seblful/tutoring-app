@@ -4,27 +4,40 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Upload
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
+import com.seblful.klas.format.formatDate
+import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.ShowMessagesFor
+import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.rememberMessages
+import java.time.Instant
 
 /**
  * The types a backup file can arrive as: plenty of file managers hand a `.json` over as
@@ -40,6 +53,7 @@ fun BackupScreen(
 ) {
     val messages = rememberMessages()
     var confirmImportUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    val lastExportAt by viewModel.lastExportAt.collectAsState()
 
     val exportSuccess = stringResource(R.string.backup_export_success)
     val importSuccess = stringResource(R.string.backup_import_success)
@@ -68,6 +82,13 @@ fun BackupScreen(
         messages = messages,
     ) { modifier ->
         Column(modifier) {
+            // **When the last copy was made, first.** This screen was two rows describing what export
+            // and import *are* — and in an app whose whole promise is that the data is on this device
+            // and nowhere else, the date of the last backup is the most valuable fact in the product.
+            // The app knew it and threw it away; now it keeps it (`AppSettings.lastExportAt`) and leads
+            // with it, because it is the only thing here that is about the tutor rather than about the
+            // buttons.
+            LastExportCard(lastExportAt)
             ListItem(
                 leadingContent = { Icon(Icons.Outlined.Upload, null) },
                 headlineContent = { Text(stringResource(R.string.backup_export)) },
@@ -90,5 +111,54 @@ fun BackupScreen(
             onConfirm = { viewModel.import(DocumentRef(uri.toString())) },
             onDismiss = { confirmImportUri = null },
         )
+    }
+}
+
+/**
+ * «Последняя копия: 20 июня 2026» — or «Копий ещё не было», which is the version that matters.
+ *
+ * A [SectionCard] rather than a third `ListItem`: the two rows below it are things to *do* and this is a
+ * statement of fact, and a row that looks like the others but does nothing when tapped is a worse lie
+ * than a paragraph. Tinted when there has never been a backup — not the error red, because nothing is
+ * broken and the tutor may have decided this deliberately, but not the same grey as the rest of the
+ * screen either: it is the one thing here they might want to act on today.
+ */
+@Composable
+private fun LastExportCard(at: Instant?) {
+    val never = at == null
+    SectionCard(
+        Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(Spacing.gutter),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                if (never) Icons.Outlined.WarningAmber else Icons.Outlined.Schedule,
+                contentDescription = null,
+                tint = if (never) {
+                    MaterialTheme.colorScheme.tertiary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+            Column(Modifier.padding(start = Spacing.leading)) {
+                Text(
+                    if (never) {
+                        stringResource(R.string.backup_never)
+                    } else {
+                        stringResource(R.string.backup_last_export, at.toLocalDate().formatDate())
+                    },
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    stringResource(
+                        if (never) R.string.backup_never_detail else R.string.backup_last_export_detail
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }

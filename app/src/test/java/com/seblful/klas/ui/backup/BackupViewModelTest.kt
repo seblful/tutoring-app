@@ -12,9 +12,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneId
 
 /**
  * What the backup screen is told when an export or an import doesn't work.
@@ -34,10 +38,17 @@ class BackupViewModelTest {
     private val documents = FakeDocumentStore()
     private val ref = DocumentRef("content://backup.json")
 
+    /** A fixed instant, so the export receipt below is a value rather than "whenever the test ran". */
+    private val exportedAt: Instant = Instant.parse("2026-06-20T18:30:00Z")
+
     private fun vm() = BackupViewModel(
         backup = env.backupManager,
         restore = env.backupRestore,
         documents = documents,
+        settings = env.settingsRepo,
+        // The receipt is a database write, so it outlives the screen — see [BackupViewModel.export].
+        appScope = mainRule.appScope,
+        clock = Clock.fixed(exportedAt, ZoneId.of("Europe/Minsk")),
     )
 
     @Test
@@ -69,7 +80,44 @@ class BackupViewModelTest {
 
             assertEquals(BackupResult.ExportOk, received)
             assertTrue(documents.docs.getValue(ref.value).contains("Аня"))
+            assertEquals("and it records that it happened", exportedAt, env.settingsRepo.get().lastExportAt)
         }
+
+    /**
+     * A **failed** export leaves the receipt alone.
+     *
+     * The backup screen leads with «Последняя копия: …», so a stamp written for an export that did not
+     * happen is the app telling the tutor they have a copy of their students that they do not have. That
+     * is the one wrong answer this feature can give, and it is why the stamp is written after the file
+     * rather than beside it.
+     */
+    @Test
+    fun `an export that failed records no backup`() =
+        runTest(mainRule.dispatcher) {
+            val vm = vm()
+            documents.failing = true
+
+            vm.export(ref)
+            advanceUntilIdle()
+
+            assertNull(env.settingsRepo.get().lastExportAt)
+        }
+
+    /** Never exported is a state the screen says out loud, so it has to survive being asked for. */
+    @Test
+    fun `nothing exported yet reads as never`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        val job = backgroundScope.launch { vm.lastExportAt.collect {} }
+        advanceUntilIdle()
+
+        assertNull(vm.lastExportAt.value)
+
+        vm.export(ref)
+        advanceUntilIdle()
+        job.cancel()
+
+        assertEquals(exportedAt, vm.lastExportAt.value)
+    }
 
     @Test
     fun `a backup from a newer build is refused by version, and says which`() =
