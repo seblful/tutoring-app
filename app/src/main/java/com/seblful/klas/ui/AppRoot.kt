@@ -10,7 +10,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
+import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -117,6 +117,25 @@ private fun MainApp() {
 
     OpensTheLessonAReminderNames(navController)
 
+    // **The chrome leaves with the screen, not ahead of it.** Whether the tabs apply is settled the
+    // instant `navigate` is called, but the screen they belong to takes 260ms to go
+    // (`ui/navigation/Transitions.kt`). Deciding this by swapping `layoutType` to `None` cut the bar
+    // away on the transition's *first* frame, so for a quarter of a second the schedule — still fading
+    // out, still the only thing on screen — was drawn reflowed into the space the bar had just left,
+    // and only then did the form arrive. What the tutor watched disappear was part of the screen they
+    // were still looking at.
+    //
+    // `hide()` is a suspending transition, so the bar holds its place for the length of the push and
+    // goes once the form has landed: the removal now happens under a screen that has arrived rather
+    // than beneath one that is leaving. Measured on a 120Hz device, the bar is up for the whole ~300ms
+    // and then goes in one step — it does **not** slide out, so this is a matter of *when* rather than
+    // of added motion. Worth knowing before anyone tries to make it prettier.
+    //
+    // It also puts `layoutType` back to being *only* about the window's width — bar on a phone, rail
+    // once there is room — which is the question it was always meant to answer.
+    val chrome = rememberNavigationSuiteScaffoldState()
+    LaunchedEffect(onTab) { if (onTab) chrome.show() else chrome.hide() }
+
     NavigationSuiteScaffold(
         navigationSuiteItems = {
             klasTabs(tabs = TopDestination.entries, currentRoute = currentRoute) { dest ->
@@ -128,13 +147,10 @@ private fun MainApp() {
             }
         },
         // Hidden on a pushed screen, which owns the whole window: a card or a form is not somewhere the
-        // tabs apply. `None` rather than dropping the whole scaffold, because a second call site would
-        // be a second composable identity and would rebuild the `NavHost` — and with it the back stack.
-        layoutType = if (onTab) {
-            NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo())
-        } else {
-            NavigationSuiteType.None
-        },
+        // tabs apply. Still one call site, because a second would be a second composable identity and
+        // would rebuild the `NavHost` — and with it the back stack.
+        state = chrome,
+        layoutType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo()),
     ) {
         NavHost(
             navController = navController,
