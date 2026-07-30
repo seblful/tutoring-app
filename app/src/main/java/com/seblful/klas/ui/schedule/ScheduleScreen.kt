@@ -87,6 +87,7 @@ import com.seblful.klas.ui.common.popsOnChange
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.common.valueOrNull
+import com.seblful.klas.ui.theme.klasColors
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
@@ -461,10 +462,12 @@ private fun LazyItemScope.SwipeToCompleteCard(
             Row(
                 Modifier
                     .fillMaxSize()
-                    .background(
-                        MaterialTheme.colorScheme.tertiaryContainer,
-                        MaterialTheme.shapes.medium,
-                    )
+                    // **Green, the container tone of the badge this gesture produces.** It was
+                    // `tertiaryContainer`, which in this palette is a pale cyan — so the swipe promised
+                    // «Проведено» in a blue, the colour a lesson *still to come* is written in, and then
+                    // handed back a badge of another colour entirely. Now the panel and the badge are one
+                    // green: what the reveal shows is what the row will say (see `classStatusColor`).
+                    .background(klasColors.successContainer, MaterialTheme.shapes.medium)
                     .padding(horizontal = SheetGutter),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -473,14 +476,14 @@ private fun LazyItemScope.SwipeToCompleteCard(
                 Icon(
                     Icons.Filled.CheckCircle,
                     contentDescription = stringResource(R.string.class_mark_completed),
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    tint = klasColors.onSuccessContainer,
                     modifier = Modifier.armedPop(armed),
                 )
                 Spacer(Modifier.width(Spacing.inline))
                 Text(
                     stringResource(R.string.class_status_completed),
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    color = klasColors.onSuccessContainer,
                 )
             }
         },

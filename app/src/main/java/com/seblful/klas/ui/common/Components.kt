@@ -69,6 +69,7 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.format.MoneyField
+import com.seblful.klas.ui.theme.klasColors
 
 /**
  * The widest a single column of content should grow. On phones (always narrower than this) it's a
@@ -418,9 +419,14 @@ fun classStatusLabel(status: LessonStatus): String = stringResource(
 )
 
 /**
- * The tint a status is said in: the brand colour for a lesson still to come, tertiary for one taught,
+ * The tint a status is said in: the brand colour for a lesson still to come, **green for one taught**,
  * **the theme's error red for a cancelled one** — the same red a debt is written in ([balanceColor]),
  * red meaning "look here" in both places.
+ *
+ * Taught was `tertiary`, this palette's teal, which read as a second blue beside the indigo of a lesson
+ * still to come — the palette's `md_success` carries the whole argument. Green is what "done" is said in
+ * outside the app, and it now says it everywhere inside: this badge and the panel the schedule's swipe
+ * reveals are the two tones of the one colour.
  *
  * Cancelled was `onSurfaceVariant` before, which left grey saying two different things: "cancelled" and
  * the «Разные» badge a group lesson got when its members' statuses disagreed. That badge is gone — a
@@ -431,7 +437,7 @@ fun classStatusLabel(status: LessonStatus): String = stringResource(
 @Composable
 fun classStatusColor(status: LessonStatus): Color = when (status) {
     LessonStatus.SCHEDULED -> MaterialTheme.colorScheme.primary
-    LessonStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary
+    LessonStatus.COMPLETED -> klasColors.success
     LessonStatus.CANCELLED -> MaterialTheme.colorScheme.error
 }
 

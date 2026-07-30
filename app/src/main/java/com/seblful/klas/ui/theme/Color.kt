@@ -26,6 +26,24 @@ val md_onError = Color(0xFFFFFFFF)
 val md_errorContainer = Color(0xFFFFDAD6)
 val md_onErrorContainer = Color(0xFF410002)
 
+/*
+ * The green a **taught lesson** is said in — a role Material's scheme has no slot for, so it is carried
+ * beside it (see [KlasColors]) rather than borrowed from one of the three accents.
+ *
+ * Borrowed is what it was: «Проведено» was `tertiary`, and the panel the schedule's swipe reveals was
+ * `tertiaryContainer` — which, this palette's teal being a cyan hue, is the pale blue #A9EDFF. Blue is
+ * what a lesson *still to come* is written in here (`primary`), so the gesture that marks one taught was
+ * revealing the colour of one that had not been. Green is what "done" means outside this app, and it is
+ * a colour nothing else in the app claims: the teal it replaces is also the individual lesson's icon
+ * (`LessonKindUi`), so a taught lesson and a one-to-one lesson used to be the same colour.
+ *
+ * A tonal pair, because the green is used two ways: the strong tone for a *word* (the «Проведено» badge,
+ * which tints its own pill from it), the container tone for a *panel* that has words on it.
+ */
+val md_success = Color(0xFF146C2E)
+val md_successContainer = Color(0xFFA6F2B5)
+val md_onSuccessContainer = Color(0xFF00210A)
+
 val md_background = Color(0xFFFBF8FF)
 val md_onBackground = Color(0xFF1B1B21)
 val md_surface = Color(0xFFFBF8FF)
@@ -72,6 +90,14 @@ val md_error_d = Color(0xFFFFB4AB)
 val md_onError_d = Color(0xFF690005)
 val md_errorContainer_d = Color(0xFF93000A)
 val md_onErrorContainer_d = Color(0xFFFFDAD6)
+
+/**
+ * The same green after dark: the word lightens so it reads on a dark surface, the panel darkens so a word
+ * can be read on *it*. The light scheme's two tones swapped would be a bright green slab in a dark list.
+ */
+val md_success_d = Color(0xFF8BD99A)
+val md_successContainer_d = Color(0xFF005322)
+val md_onSuccessContainer_d = Color(0xFFA6F2B5)
 
 val md_background_d = Color(0xFF121318)
 val md_onBackground_d = Color(0xFFE3E1E9)

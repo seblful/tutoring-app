@@ -4,11 +4,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.ui.theme.KlasColors
 import com.seblful.klas.ui.theme.KlasTheme
+import com.seblful.klas.ui.theme.klasColors
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -56,6 +59,51 @@ class LessonStatusColorTest {
         )
         statuses.forEach { (status, color) ->
             assertNotEquals("$status is drawn in the neutral grey, which is nobody's status", neutral, color)
+        }
+    }
+
+    /**
+     * A taught lesson is **green**, in every tone and both schemes — and the badge draws it from the one
+     * place that says so ([KlasColors]), which is also where the schedule's swipe panel gets it.
+     *
+     * It was `tertiary`, the palette's teal, whose container tone is the pale cyan the swipe used to
+     * reveal: the gesture promised «Проведено» in a blue — the colour of a lesson still *to come* — and
+     * then produced a badge of another colour. So the assertion is about the hue and not only about which
+     * slot: green is the point, and a role called `success` that is not green is the bug returning.
+     */
+    @Test
+    fun taughtIsGreenInBothSchemesAndTheBadgeReadsIt() {
+        lateinit var light: KlasColors
+        lateinit var dark: KlasColors
+        var taught = Color.Unspecified
+        var teal = Color.Unspecified
+
+        composeRule.setContent {
+            KlasTheme(darkTheme = false) {
+                light = klasColors
+                taught = classStatusColor(LessonStatus.COMPLETED)
+                teal = MaterialTheme.colorScheme.tertiary
+            }
+            KlasTheme(darkTheme = true) { dark = klasColors }
+        }
+        composeRule.waitForIdle()
+
+        assertEquals("«Проведено» is not said in the app's success green", light.success, taught)
+        assertNotEquals("«Проведено» is still the palette's teal", teal, taught)
+        mapOf("light" to light, "dark" to dark).forEach { (scheme, colors) ->
+            mapOf(
+                "success" to colors.success,
+                "successContainer" to colors.successContainer,
+                "onSuccessContainer" to colors.onSuccessContainer,
+            ).forEach { (role, color) ->
+                // Green *dominant*, not a named constant: what went wrong was a colour whose blue outran
+                // its green, and that is exactly what this asks about — in the light tones and the dark
+                // ones, where the pair swaps ends.
+                assertTrue(
+                    "$scheme $role is not a green: $color",
+                    color.green > color.red && color.green > color.blue,
+                )
+            }
         }
     }
 }

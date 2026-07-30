@@ -495,7 +495,8 @@ Android, and each was a default rather than a decision.
   is "how full is this day". Its **badge is the error red**, so it is quiet without being lost; grey is
   now nobody's status at all (`ui/common/classStatusColor`).
 - **Marking a lesson completed is one swipe**, offered only where completing is legal
-  (`GroupRules.sessionTransitions`); the row springs back, and the status badge is the confirmation.
+  (`GroupRules.sessionTransitions`); the row springs back, and the status badge is the confirmation. The
+  panel behind it is the **green of «Проведено»** — see *green means taught* below.
 - **The swipe is a promise, and it can be taken back** (`ui/common/SwipeToConfirm`): the phone ticks at the
   mark — a third of the row — the lesson is marked **on the lift**, and sliding home again in between
   undoes the whole thing in silence. `swipeArmed` is the only copy of "would letting go act?", so the tick
@@ -651,6 +652,13 @@ impossible**, and three of them carry a tripwire.
 
 - **`ui/theme/`**: curated Material 3 palette (indigo + teal), light/dark with a SYSTEM/LIGHT/DARK
   setting, dynamic colour off for a consistent brand.
+- **Green means *taught*, and it is the app's own colour role** (`KlasColors`, handed down by `KlasTheme`
+  beside the Material scheme). «Проведено» used to be `tertiary` — the palette's teal — so it read as a
+  second blue next to the indigo of a lesson still to come, and the panel the swipe revealed
+  (`tertiaryContainer`) was a pale cyan: the gesture promised one colour and produced another. The badge
+  and that panel are now the two tones of one green. Roles Material has no slot for live in `KlasColors`
+  rather than being read off `isSystemInDarkTheme()`, because the light/dark answer is the *tutor's*
+  (`ThemeChoice`), not the phone's.
 - **The tonal ladder is stated**, not left to Material's defaults: an *item* sits on
   `surfaceContainerLow` (`ContentCard`), the *section* holding items on `surfaceContainer`
   (`SectionCard`, `StatRow`, a report card, a pinned `StickyTabRow`). Which of the two a list uses is

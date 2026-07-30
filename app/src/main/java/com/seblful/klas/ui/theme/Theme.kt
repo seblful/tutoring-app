@@ -9,7 +9,12 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -82,6 +87,46 @@ private val DarkColorScheme = darkColorScheme(
     surfaceContainerHighest = md_surfaceContainerHighest_d,
 )
 
+/**
+ * The colour roles this app needs and [androidx.compose.material3.ColorScheme] has no slot for — currently
+ * one: **the green a taught lesson is said in**.
+ *
+ * Handed down from [KlasTheme] in a `CompositionLocal` rather than read from `isSystemInDarkTheme()` where
+ * it is used, because the light/dark answer here is *the tutor's* and not the phone's (`ThemeChoice`, see
+ * `AppRoot`): a light app forced onto a dark phone would otherwise pick the dark green and paint it on
+ * white. The Material slots already arrive this way, through the scheme; these travel with them.
+ */
+@Immutable
+data class KlasColors(
+    /** The strong tone — for a *word*: the «Проведено» badge (`classStatusColor`). */
+    val success: Color,
+    /** The container tone — for a *panel*: what the schedule's swipe reveals behind a lesson card. */
+    val successContainer: Color,
+    /** What is legible on [successContainer]. */
+    val onSuccessContainer: Color,
+)
+
+private val LightKlasColors = KlasColors(
+    success = md_success,
+    successContainer = md_successContainer,
+    onSuccessContainer = md_onSuccessContainer,
+)
+
+private val DarkKlasColors = KlasColors(
+    success = md_success_d,
+    successContainer = md_successContainer_d,
+    onSuccessContainer = md_onSuccessContainer_d,
+)
+
+private val LocalKlasColors = staticCompositionLocalOf { LightKlasColors }
+
+/**
+ * The app's own colour roles, resolved for the theme in force — the counterpart of
+ * `MaterialTheme.colorScheme`, and read the same way at the point of use.
+ */
+val klasColors: KlasColors
+    @Composable @ReadOnlyComposable get() = LocalKlasColors.current
+
 @Composable
 fun KlasTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -122,10 +167,14 @@ fun KlasTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        shapes = Shapes,
-        content = content,
-    )
+    CompositionLocalProvider(
+        LocalKlasColors provides if (darkTheme) DarkKlasColors else LightKlasColors,
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            shapes = Shapes,
+            content = content,
+        )
+    }
 }
