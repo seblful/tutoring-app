@@ -36,7 +36,7 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, calendar layout, `CalendarSyncPolicy`, reminders, `Digests` (the two summaries: when each fires and whether it is worth sending), reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught`, `DaySummary`/`NowMarker` (what a day comes to, and where "now" falls in it), `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, models (incl. `Currency` and the report-only id types, `model/Ids.kt`), and the `ReminderScheduler`/`DigestScheduler` ports. All JVM-tested. |
+| `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, `Recurrence`/`Repeat` (what a repeating booking's dates are), calendar layout, `CalendarSyncPolicy`, reminders, `Digests` (the two summaries: when each fires and whether it is worth sending), reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught`, `DaySummary`/`NowMarker` (what a day comes to, and where "now" falls in it), `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, models (incl. `Currency` and the report-only id types, `model/Ids.kt`), and the `ReminderScheduler`/`DigestScheduler` ports. All JVM-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`, the `Transactor` port, and `upsertedId` — the one statement of `@Upsert`'s -1-on-update sentinel (the fakes reproduce it, so the fallback branch runs on the JVM too). Entities are also `@Serializable`, for the backup. `SnapshotDao` is the **separate** whole-table seam (see *Two interfaces onto the same tables*). |
 | `data/Mappers.kt` | Entities ⇄ domain models. Where a stored enum is parsed back. |
 | `data/repository/` | One invariant each, end to end, written in one transaction (see *Ownership*). Display **name ordering** is applied here. |
@@ -58,7 +58,8 @@ flowchart TB
   hour and returns `LessonWrite.Written | HourTaken(clash)` rather than trusting its callers to have
   asked (three used to, each with its own ignoring set; the fourth way in shipped as a double
   booking). Every write takes a whole **lesson** (`ClassSession`), so there is no single-class path
-  to drift.
+  to drift. **`bookSeries` is the one write that reports instead of refusing** (`SeriesWrite`) — it
+  answers about a term rather than an hour, and one taken Monday must not turn down the other eleven.
 - `CalendarMirror` — what a mirrored event *shows*, and every table that decides it. A title is built
   from the student's, subject's and group's name and the guest from the student's email, so **four**
   tables can invalidate an event, not just `classes`; a caller that changes one of them asks for a
@@ -256,7 +257,35 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   and is reported through `timeConflict` (schedule) or `SAVE_REFUSED_TIME_TAKEN` (form).
 - **Editing is allowed in any status and the charge is recomputed** in place, so income cannot be
   double-counted. Deleting is allowed in any status; deleting a completed lesson removes its income
-  and the UI warns. Classes are **one-off only** — no recurring series.
+  and the UI warns.
+- **A repeating booking writes lessons, not a series** (`domain/Recurrence`, `Repeat`,
+  `ClassRepository.bookSeries`). «Повторять» on the booking form materialises the run — twelve ordinary
+  rows, each independently movable, cancellable and deletable — and nothing afterwards remembers they
+  were arranged together. So there is still no such thing as a recurring series in the data: what exists
+  is a booking *act*. The alternative, a `series` table expanded on read, would have made every read path
+  learn to expand it (`Scheduling.conflicts`, `CalendarLayout.dayLoads`, `Reports`, `Digests`,
+  `Reminders`, the mirror, the backup format) and given the exceptions a real schedule is made of — "skip
+  the third", "the fifth moved" — a table of their own, against both *Room is the single source of truth*
+  and *a lesson is the unit of change*. The cost is no "cancel the rest of the series" in one tap; the
+  case that would be reached for is already `cancelScheduledFor`, which archiving a student runs.
+  - **Every occurrence is the same weekday at the same wall clock**, anchored on the lesson filled in —
+    Monday 16:00 *and* Thursday 18:00 is two bookings. That is what keeps the form from growing a
+    weekday grid, and it buys a guarantee: occurrences are ≥ 1 week apart and a lesson is ≤ 23 h 59 m
+    (`DurationPickerModal` bounds both fields), so a run cannot collide with **itself** and `bookSeries`
+    checks only the schedule as it stands. The hour is held through `ZoneId`, so a term through a
+    daylight-saving change stays at four o'clock rather than keeping its interval — the promise
+    `Digests` makes for firing at nine.
+  - **A taken hour is reported, not refused** (`SeriesWrite`). Over three months a holiday or an
+    already-booked evening is the normal case: refusing the whole term for one Monday is unusable and
+    skipping quietly is worse, so every free hour is booked and the write **says what it did** — the
+    shape `GroupRepository.Saved(id, dropped)` uses, for the same reason. Counted in **lessons**. The
+    three outcomes are three different things to say: all of it is an ordinary save, none of it is a
+    refusal (worded for the one time on the form, or for the run), and *some* of it holds the screen on a
+    dialog naming the skipped **dates** — a snackbar would be raised on a form that is navigating away,
+    and finding those Mondays is the whole of what the tutor now has to do.
+  - The run is **one write**: one read over the union of the occurrences' windows, one transaction, one
+    calendar batch, one reminder refresh. A loop over `book` would re-derive the whole reminder plan
+    twelve times.
 
 ### Groups
 
@@ -592,6 +621,17 @@ Android, and each was a default rather than a decision.
   and month both show one selected day; week always lists the whole week. Paging only *browses* — it
   never moves the selection. A calendar cell shows **one count per status**. Both markers and lessons
   are queried for the **active view's range only**.
+- **The schedule can be narrowed to one student**, which is how a term of bookings is checked after it is
+  made. The way in is a menu in the app bar; the way out is a **chip under the view segments**, and the
+  chip is the point — a narrowed calendar and a genuinely quiet week look identical, so the name stays on
+  screen for as long as it applies and carries its own dismissal. Both the chip and the queries read one
+  `StudentFilter`, resolved from `observeAll` (so archiving the student being looked at keeps their name,
+  and a filter naming nobody resolves to *no filter* rather than to an empty schedule with no way out).
+  The **markers are narrowed with the list**, or a cell would count lessons the day under it does not
+  show. What is filtered is **whole lessons** (`GroupRules.lessonsWith`), never the student's own class
+  out of one: a session of one would draw a group lesson with a roster of one and hand the action sheet a
+  session the lesson does not consist of — a filter is a way of looking, not a claim about what a lesson
+  is. A day emptied by the filter says so and offers **no** action, like a list emptied by a search.
 - **Wherever a day is named, it says what it comes to** (`domain/DaySummary`): «4 занятия · 5 ч ·
   240 BYN», under the stepper, under the month's selected-day heading and on each heading of the week
   agenda. The screen listed a day's lessons and left the tutor to add up its money, which is the thing
@@ -887,7 +927,9 @@ as in the calendar adapter.
 
 ## Non-goals (v1)
 
-Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring lesson series.
+Multi-user/login, cloud sync across devices, web/iOS, in-app payments, **a recurring-series entity** —
+booking a term writes its lessons and keeps no rule (see *Lessons*), so there is nothing to expand on
+read and nothing that owns a lesson after it exists.
 
 ---
 

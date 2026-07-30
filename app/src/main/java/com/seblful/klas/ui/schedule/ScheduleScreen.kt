@@ -22,21 +22,28 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditCalendar
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.PersonAddAlt
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
+import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -66,6 +73,7 @@ import com.seblful.klas.domain.DaySummary
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.domain.NowMarker
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.Student
 import com.seblful.klas.format.daySummaryText
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.formatMonth
@@ -112,6 +120,12 @@ fun ScheduleScreen(
 ) {
     // One state for the body: only the active view's lessons are assembled (see ScheduleContent).
     val contentState by viewModel.content.collectAsState()
+    // **Narrowed to the day rather than read for its day half.** The state can legitimately hold the
+    // *week's* content while this composition is drawing a day — switching view re-keys the query and the
+    // previous answer is still there — and `ScheduleContent` no longer lets one view answer the other's
+    // question with an empty list. A mismatch is `Loading`, which draws the skeleton. See
+    // [ScheduleContent.day].
+    val dayContent = contentState.day()
     val date by viewModel.selectedDate.collectAsState()
     val canAddClass by viewModel.canAddClass.collectAsState()
     // From the view model, so it rolls over at midnight rather than being fixed at composition.
@@ -124,6 +138,10 @@ fun ScheduleScreen(
     val timeConflict by viewModel.timeConflict.collectAsState()
     // Where "now" falls in the selected day's list, or null when that day is not today — see [NowMarker].
     val nowMark by viewModel.nowMark.collectAsState()
+    // Whose lessons are on screen, or null for everyone's. Both the chip and the queries read this one
+    // value, so the schedule can never be quietly narrowed with nothing saying so.
+    val studentFilter by viewModel.studentFilter.collectAsState()
+    val filterableStudents by viewModel.filterableStudents.collectAsState()
 
     // The sheet acts on the whole lesson in it, a group's included: its actions are the lesson's
     // time and status, and who is in one is changed on the lesson's own form.
@@ -157,6 +175,17 @@ fun ScheduleScreen(
     KlasScreen(
         title = stringResource(R.string.schedule_title),
         messages = messages,
+        actions = {
+            // Offered only once there is somebody to narrow to — a menu whose every entry is «Все
+            // ученики» is a control that cannot do anything.
+            if (filterableStudents.isNotEmpty()) {
+                StudentFilterAction(
+                    students = filterableStudents,
+                    selected = studentFilter?.studentId,
+                    onSelect = viewModel::setStudentFilter,
+                )
+            }
+        },
         floatingActionButton = {
             // **It stays put, and says why instead.** It was hidden while nothing could be booked, which
             // solved the wrong half of the problem: the version before that popped a toast naming what
@@ -183,6 +212,17 @@ fun ScheduleScreen(
             // this way in Settings.
             ViewModeSelector(selected = viewMode, onSelect = viewModel::setViewMode)
 
+            // **The chip is what makes the filter honest.** A narrowed schedule and a genuinely quiet
+            // week look identical, so for as long as one student's lessons are what is on screen their
+            // name stays above it — carrying its own way out, which is the difference between a filter
+            // and a mode the tutor can get stuck in.
+            studentFilter?.let { filter ->
+                StudentFilterChip(
+                    name = filter.name,
+                    onClear = { viewModel.setStudentFilter(null) },
+                )
+            }
+
             // The navigator stays pinned in every mode, so paging is always one tap away.
             when (viewMode) {
                 ScheduleViewMode.DAY -> {
@@ -195,7 +235,7 @@ fun ScheduleScreen(
                     // What the day comes to, under the day it names — the stepper's title is the date,
                     // so this is the one place in this view the summary can sit.
                     DaySummaryLine(
-                        summary = contentState.valueOrNull()?.summary ?: DaySummary.NONE,
+                        summary = dayContent.valueOrNull()?.summary ?: DaySummary.NONE,
                         modifier = Modifier.padding(horizontal = Spacing.gutter),
                     )
                     // Inset to the gutter, like the week and month dividers — those sit inside the list
@@ -236,8 +276,9 @@ fun ScheduleScreen(
                 when (viewMode) {
                     // The day list stands alone under its stepper.
                     ScheduleViewMode.DAY -> dayList(
-                        state = contentState.map { it.rows },
+                        state = dayContent.map { it.rows },
                         canAddClass = canAddClass,
+                        filtered = studentFilter != null,
                         nowMark = nowMark,
                         onRowClick = { sheetFor = it },
                         onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
@@ -261,13 +302,18 @@ fun ScheduleScreen(
                                 HorizontalDivider()
                             }
                         }
-                        val week = contentState.valueOrNull()
+                        val week = contentState.week().valueOrNull()
                         if (week == null) {
                             item(key = "loading") { LessonsSkeleton() }
                         } else if (week.sections.isEmpty()) {
                             item(key = "empty") {
                                 EmptyState(
-                                    title = stringResource(R.string.schedule_week_empty),
+                                    // A week empty because a filter is on is not a quiet week, and the
+                                    // same rule the searchable lists follow applies: say which it is.
+                                    title = stringResource(
+                                        if (studentFilter != null) R.string.schedule_filter_empty
+                                        else R.string.schedule_week_empty
+                                    ),
                                     icon = Icons.Outlined.EventBusy,
                                     modifier = Modifier.heightIn(min = 200.dp),
                                 )
@@ -309,14 +355,15 @@ fun ScheduleScreen(
                                 Spacer(Modifier.height(Spacing.itemGap))
                                 SelectedDayHeader(
                                     date = date,
-                                    summary = contentState.valueOrNull()?.summary ?: DaySummary.NONE,
+                                    summary = dayContent.valueOrNull()?.summary ?: DaySummary.NONE,
                                 )
                                 HorizontalDivider()
                             }
                         }
                         dayList(
-                            state = contentState.map { it.rows },
+                            state = dayContent.map { it.rows },
                             canAddClass = canAddClass,
+                            filtered = studentFilter != null,
                             nowMark = nowMark,
                             onRowClick = { sheetFor = it },
                             onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
@@ -398,16 +445,24 @@ fun ScheduleScreen(
 /**
  * The selected day's classes, or an empty state. Shared by the day and month views.
  *
- * The empty state depends on **why** it is empty, and there are now three reasons rather than two. A day
+ * The empty state depends on **why** it is empty, and there are now four reasons rather than two. A day
  * whose lessons have not been read yet is not an empty day: «Нет занятий» over the tutor's actual
  * morning, with a book-a-lesson button under it, was what the initial `ScheduleContent.Day(emptyList())`
  * produced on every cold start. Beyond that: a day with no lessons is an ordinary day and offers to book
  * one; an app with no students cannot book anything yet, and offers the step that unblocks it instead of
  * naming it and stopping there.
+ *
+ * The fourth is [filtered], and it takes precedence over the other two — a day emptied by narrowing the
+ * schedule to one student is not a free day, and the way out of it is the chip rather than anything on
+ * this page. It offers **no action**, deliberately: «Записать занятие» here would book into the day being
+ * looked at and not for the student being looked *for*, which is not what a tutor standing in front of
+ * this page has asked about. That matches the rule the searchable lists already follow — a list empty
+ * because nothing matched says so and offers nothing.
  */
 private fun LazyListScope.dayList(
     state: Loadable<List<ScheduleRow>>,
     canAddClass: Boolean,
+    filtered: Boolean,
     nowMark: Int?,
     onRowClick: (ScheduleRow) -> Unit,
     onComplete: (ScheduleRow) -> Unit,
@@ -423,7 +478,14 @@ private fun LazyListScope.dayList(
     }
     if (rows.isEmpty()) {
         item(key = "empty") {
-            if (canAddClass) {
+            if (filtered) {
+                EmptyState(
+                    title = stringResource(R.string.schedule_filter_empty),
+                    detail = stringResource(R.string.schedule_filter_empty_detail),
+                    icon = Icons.Outlined.EventBusy,
+                    modifier = Modifier.heightIn(min = 260.dp),
+                )
+            } else if (canAddClass) {
                 EmptyState(
                     title = stringResource(R.string.schedule_empty),
                     detail = stringResource(R.string.schedule_empty_detail),
@@ -459,6 +521,76 @@ private fun LazyListScope.dayList(
             }
         }
         if (nowMark == rows.size) item(key = NowKey) { NowLine(Modifier.animateItem()) }
+    }
+}
+
+/**
+ * The app bar's way into narrowing the schedule to one student.
+ *
+ * A menu rather than a second segmented row or a search box: the answer is one of a list that is as long
+ * as the tutor's roster, and it is asked rarely — a filter is something you switch on to check a term of
+ * bookings and then switch off again. «Все ученики» sits at the top as a real entry rather than the
+ * absence of one, for the reason `LessonFilter.ALL` does: the way out has to be visible from inside.
+ *
+ * The icon does **not** change to mark that a filter is on. The chip under the bar says that, in words,
+ * with the name in it — an icon differing by its fill is a signal a tutor has to already know how to read.
+ */
+@Composable
+private fun StudentFilterAction(
+    students: List<Student>,
+    selected: Long?,
+    onSelect: (Long?) -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }) {
+            Icon(Icons.Filled.FilterList, stringResource(R.string.schedule_filter_student))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.schedule_filter_all)) },
+                onClick = { onSelect(null); open = false },
+                trailingIcon = { if (selected == null) Icon(Icons.Filled.Check, null) },
+            )
+            students.forEach { student ->
+                DropdownMenuItem(
+                    text = { Text(student.name) },
+                    onClick = { onSelect(student.id); open = false },
+                    trailingIcon = { if (selected == student.id) Icon(Icons.Filled.Check, null) },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Who the schedule is currently showing, and the one tap that stops.
+ *
+ * An `InputChip` because that is what this is in Material's vocabulary — a value the tutor put there,
+ * removable — rather than a filter chip, which is a toggle among peers. It sits between the view-mode
+ * segments and the navigator so that it is above every one of the three views and cannot be scrolled
+ * away from: the whole point is that it is impossible to be looking at a narrowed schedule without
+ * seeing why.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StudentFilterChip(name: String, onClear: () -> Unit) {
+    Row(
+        Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.tight),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        InputChip(
+            selected = true,
+            onClick = onClear,
+            label = { Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            trailingIcon = {
+                Icon(
+                    Icons.Filled.Close,
+                    stringResource(R.string.schedule_filter_clear),
+                    Modifier.size(InputChipDefaults.AvatarSize),
+                )
+            },
+        )
     }
 }
 

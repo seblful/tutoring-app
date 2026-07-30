@@ -10,6 +10,7 @@ import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.MutableClock
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -25,6 +26,7 @@ import com.seblful.klas.domain.DaySummary
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.valueOrNull
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.Instant
@@ -55,6 +57,27 @@ class ScheduleViewModelTest {
         date.atTime(time).atZone(zone).toInstant().toEpochMilli()
 
     /**
+     * The day's content the screen would be drawing, insisted upon — `current`'s counterpart for a state
+     * that is a *shape* as well as an arrival.
+     *
+     * A test that reads this while the schedule is showing a week now fails naming the reason, where before
+     * it read an `emptyList()` default and asserted happily about a day the view model was not assembling.
+     * That default is what let the same emptiness reach the screen: see [day].
+     */
+    private val StateFlow<Loadable<ScheduleContent>>.dayContent: ScheduleContent.Day
+        get() = value.day().valueOrNull() ?: error(
+            "The schedule is not showing a day: its content is ${value}. Either the view mode is WEEK, " +
+                "or nothing has been collected yet — is `observing(…)` missing?"
+        )
+
+    /** [dayContent]'s counterpart for the week agenda. */
+    private val StateFlow<Loadable<ScheduleContent>>.weekContent: ScheduleContent.Week
+        get() = value.week().valueOrNull() ?: error(
+            "The schedule is not showing a week: its content is ${value}. Either the view mode is not " +
+                "WEEK, or nothing has been collected yet — is `observing(…)` missing?"
+        )
+
+    /**
      * The day is [Loadable.Loading] until its lessons have been read.
      *
      * The initial value used to be `ScheduleContent.Day(emptyList())` — *a day with no lessons* — which
@@ -77,6 +100,45 @@ class ScheduleViewModelTest {
             Loadable.Ready(ScheduleContent.Day(emptyList(), DaySummary.NONE)),
             vm.content.value,
         )
+    }
+
+    /**
+     * **One view's content is not an answer about another's** — the half of the loaded-yet problem that
+     * `Loadable` alone could not see, and the one still visible on a device after it was introduced.
+     *
+     * Switching view re-keys the lesson query, and a `StateFlow` holds its previous value until the new one
+     * arrives: the state was `Ready`, about the view the tutor had just left. `ScheduleContent` made that
+     * readable as emptiness, because `rows`, `sections` and `summary` were defaulted on the interface — a
+     * `Week` answered "what are this day's lessons" with `emptyList()`, and a `Day` answered "which days
+     * does this week hold" the same way. So tapping «Неделя» drew «Нет занятий на этой неделе» over a full
+     * week, and «День» drew «Нет занятий» with a book-a-lesson button, for as long as the new query took.
+     *
+     * Asserted on the narrowing rather than by racing the flow, because this is where the rule now lives
+     * and it is a rule about *values*: no scheduler ordering can make a week's content into a day's.
+     */
+    @Test
+    fun `content about one view never answers as another view's emptiness`() {
+        val day: Loadable<ScheduleContent> =
+            Loadable.Ready(ScheduleContent.Day(emptyList(), DaySummary.NONE))
+        val week: Loadable<ScheduleContent> = Loadable.Ready(ScheduleContent.Week(emptyList()))
+
+        // Each answers its own question — including when the answer is "nothing", which is the state the
+        // empty prompt is honest in.
+        assertEquals(Loadable.Ready(ScheduleContent.Day(emptyList(), DaySummary.NONE)), day.day())
+        assertEquals(Loadable.Ready(ScheduleContent.Week(emptyList())), week.week())
+
+        // And neither answers the other's. Not "empty": *not yet*, which draws the skeleton.
+        assertEquals("a week's content says nothing about a day", Loadable.Loading, week.day())
+        assertEquals("a day's content says nothing about a week", Loadable.Loading, day.week())
+    }
+
+    /** Loading narrows to loading, so a cold open is not mistaken for a shape mismatch either. */
+    @Test
+    fun `narrowing what has not arrived is still Loading`() {
+        val nothing: Loadable<ScheduleContent> = Loadable.Loading
+
+        assertEquals(Loadable.Loading, nothing.day())
+        assertEquals(Loadable.Loading, nothing.week())
     }
 
     /** A fixed day at [hour], for tests that only need distinct lesson times. */
@@ -108,7 +170,7 @@ class ScheduleViewModelTest {
         observing(vm.content)
         advanceUntilIdle()
 
-        val summary = vm.content.current.summary
+        val summary = vm.content.dayContent.summary
         assertEquals("the cancelled one is not a lesson the day holds", 1, summary.lessons)
         assertEquals(1, summary.cancelled)
         assertEquals(90, summary.minutes)
@@ -204,7 +266,7 @@ class ScheduleViewModelTest {
         observing(vm.content)
         advanceUntilIdle()
 
-        val rows = vm.content.current.rows
+        val rows = vm.content.dayContent.rows
         assertEquals(2, rows.size)
         assertTrue("rows are sorted by start time", rows[0].klass.start < rows[1].klass.start)
         assertEquals("Аня", rows[0].title)
@@ -406,7 +468,7 @@ class ScheduleViewModelTest {
         vm.selectDate(LocalDate.of(2026, 7, 15))
         advanceUntilIdle()
 
-        val sections = vm.content.current.sections
+        val sections = vm.content.weekContent.sections
         assertEquals("only days with classes get a section", 2, sections.size)
         assertEquals(monday, sections[0].date)
         assertEquals(thursday, sections[1].date)
@@ -431,12 +493,12 @@ class ScheduleViewModelTest {
         vm.setViewMode(ScheduleViewMode.WEEK)
         vm.selectDate(LocalDate.of(2026, 7, 15))
         advanceUntilIdle()
-        assertTrue(vm.content.current.sections.isEmpty())
+        assertTrue(vm.content.weekContent.sections.isEmpty())
 
         vm.goToNextWeek()
         advanceUntilIdle()
 
-        assertEquals(listOf(nextWeek), vm.content.current.sections.map { it.date })
+        assertEquals(listOf(nextWeek), vm.content.weekContent.sections.map { it.date })
     }
 
     @Test
@@ -464,20 +526,27 @@ class ScheduleViewModelTest {
         observing(vm.content)
         advanceUntilIdle()
 
-        // The day view assembles the selected day — and no week agenda exists to go stale.
-        val day = vm.content.current
-        assertTrue("the day view shows a day", day is ScheduleContent.Day)
-        assertEquals(1, day.rows.size)
-        assertTrue("no week agenda is assembled for the day view", day.sections.isEmpty())
+        // The day view assembles the selected day — and the week's question has no answer at all, rather
+        // than an empty one. That distinction is the fix for the flash on switching view: see [day].
+        val day = vm.content.value.day().valueOrNull()
+        assertEquals("the day view assembles the selected day", 1, day?.rows?.size)
+        assertEquals(
+            "and no week agenda exists to be drawn as an empty week",
+            Loadable.Loading,
+            vm.content.value.week(),
+        )
 
         vm.setViewMode(ScheduleViewMode.WEEK)
         advanceUntilIdle()
 
         // Switching view swaps the query rather than adding a second live one.
-        val week = vm.content.current
-        assertTrue("the week view shows a week", week is ScheduleContent.Week)
-        assertTrue("no day list is assembled for the week view", week.rows.isEmpty())
-        assertEquals("both of the week's lessons", 2, week.sections.sumOf { it.rows.size })
+        val week = vm.content.value.week().valueOrNull()
+        assertEquals("both of the week's lessons", 2, week?.sections?.sumOf { it.rows.size })
+        assertEquals(
+            "and no day list exists to be drawn as an empty day",
+            Loadable.Loading,
+            vm.content.value.day(),
+        )
     }
 
     @Test
@@ -498,7 +567,14 @@ class ScheduleViewModelTest {
         observing(vm.dayLoads)
         vm.selectDate(day)
         advanceUntilIdle()
-        assertTrue("the day view draws no calendar, so it queries none", vm.dayLoads.current.isEmpty())
+        // Still Loading, and that is the assertion: the day view queries no markers, and «no markers» is
+        // not an answer it may leave behind. `Ready(emptyMap())` was — and it outlived the switch, so
+        // «Месяц» re-appeared over a grid claiming a free month until its own query returned.
+        assertEquals(
+            "the day view draws no calendar, so it queries none — and claims none",
+            Loadable.Loading,
+            vm.dayLoads.value,
+        )
 
         vm.setViewMode(ScheduleViewMode.WEEK)
         advanceUntilIdle()
@@ -819,7 +895,7 @@ class ScheduleViewModelTest {
         vm.selectDate(wednesday)
         advanceUntilIdle()
 
-        val section = vm.content.current.sections.single()
+        val section = vm.content.weekContent.sections.single()
         assertEquals(wednesday, section.date)
         assertEquals("two member classes, one agenda row", 1, section.rows.size)
         assertTrue(section.rows[0].isGroup)
@@ -844,7 +920,7 @@ class ScheduleViewModelTest {
         observing(vm.content)
         advanceUntilIdle()
 
-        val rows = vm.content.current.rows
+        val rows = vm.content.dayContent.rows
         assertEquals("the group's two classes collapse into one row", 2, rows.size)
         val individual = rows.first()
         val group = rows.last()
@@ -871,7 +947,7 @@ class ScheduleViewModelTest {
         val vm = vm()
         observing(vm.content)
         advanceUntilIdle()
-        vm.setStatus(vm.content.current.rows.single().session, LessonStatus.COMPLETED)
+        vm.setStatus(vm.content.dayContent.rows.single().session, LessonStatus.COMPLETED)
         advanceUntilIdle()
 
         val saved = env.classDao.items.value
@@ -1020,4 +1096,195 @@ class ScheduleViewModelTest {
         )
         assertFalse("so a lesson that reads as taught offers no swipe", row.canSwipeComplete)
     }
+
+    // --- Narrowing the schedule to one student ---------------------------------------------------
+
+    /**
+     * Two students with a lesson each on the same day, and a group lesson holding one of them.
+     * Returns the pair of student ids.
+     */
+    private suspend fun seedTwoStudentsOn(day: LocalDate): Pair<Long, Long> {
+        val subj = env.fixtures.subject("Математика")
+        val ann = env.fixtures.pricedStudent("Аня", subj)
+        val bob = env.fixtures.pricedStudent("Борис", subj)
+        env.fixtures.lesson(
+            subjectId = subj, students = listOf(ann),
+            start = day.atTime(9, 0).atZone(zone).toInstant(),
+        )
+        env.fixtures.lesson(
+            subjectId = subj, students = listOf(bob),
+            start = day.atTime(11, 0).atZone(zone).toInstant(),
+        )
+        return ann to bob
+    }
+
+    @Test
+    fun `the schedule shows everyone until it is narrowed`() = runTest(mainRule.dispatcher) {
+        val today = LocalDate.now(zone)
+        seedTwoStudentsOn(today)
+
+        val vm = vm()
+        observing(vm.content)
+        advanceUntilIdle()
+
+        assertNull(vm.studentFilter.value)
+        assertEquals(2, vm.content.dayContent.rows.size)
+    }
+
+    @Test
+    fun `narrowing to a student leaves only their lessons, and names them`() =
+        runTest(mainRule.dispatcher) {
+            val today = LocalDate.now(zone)
+            val (ann, _) = seedTwoStudentsOn(today)
+
+            val vm = vm()
+            observing(vm.content)
+            observing(vm.studentFilter)
+            advanceUntilIdle()
+
+            vm.setStudentFilter(ann)
+            advanceUntilIdle()
+
+            assertEquals("Аня", vm.studentFilter.value?.name)
+            assertEquals(1, vm.content.dayContent.rows.size)
+            assertEquals("Аня", vm.content.dayContent.rows.single().title)
+        }
+
+    @Test
+    fun `clearing the filter brings everyone back`() = runTest(mainRule.dispatcher) {
+        val today = LocalDate.now(zone)
+        val (ann, _) = seedTwoStudentsOn(today)
+
+        val vm = vm()
+        observing(vm.content)
+        advanceUntilIdle()
+        vm.setStudentFilter(ann)
+        advanceUntilIdle()
+
+        vm.setStudentFilter(null)
+        advanceUntilIdle()
+
+        assertNull(vm.studentFilter.value)
+        assertEquals(2, vm.content.dayContent.rows.size)
+    }
+
+    /**
+     * **A filter narrows which lessons are shown, never what a lesson is.**
+     *
+     * Keeping only the filtered student's own class would leave a group lesson drawn as a session of one
+     * — a group row with a roster of one — and, worse, the sheet's «Проведено» would then act on a
+     * session the lesson does not consist of. See `GroupRules.lessonsWith`.
+     */
+    @Test
+    fun `a group lesson the student is in stays a whole lesson`() = runTest(mainRule.dispatcher) {
+        val today = LocalDate.now(zone)
+        val subj = env.fixtures.subject("Математика")
+        val ann = env.fixtures.pricedStudent("Аня", subj)
+        val bob = env.fixtures.pricedStudent("Борис", subj)
+        val cleo = env.fixtures.pricedStudent("Вера", subj)
+        val group = env.fixtures.group(subjectId = subj, members = setOf(ann, bob, cleo))
+        env.fixtures.lesson(
+            subjectId = subj, students = listOf(ann, bob, cleo), groupId = group,
+            start = today.atTime(9, 0).atZone(zone).toInstant(),
+        )
+
+        val vm = vm()
+        observing(vm.content)
+        advanceUntilIdle()
+        vm.setStudentFilter(ann)
+        advanceUntilIdle()
+
+        val row = vm.content.dayContent.rows.single()
+        assertTrue("it is still the group's lesson", row.isGroup)
+        assertEquals("with all three of its classes", 3, row.classes.size)
+        assertEquals(3, row.members.size)
+    }
+
+    @Test
+    fun `a group lesson the student is not in is left out entirely`() = runTest(mainRule.dispatcher) {
+        val today = LocalDate.now(zone)
+        val subj = env.fixtures.subject("Математика")
+        val ann = env.fixtures.pricedStudent("Аня", subj)
+        val bob = env.fixtures.pricedStudent("Борис", subj)
+        val group = env.fixtures.group(subjectId = subj, members = setOf(bob))
+        env.fixtures.lesson(
+            subjectId = subj, students = listOf(bob), groupId = group,
+            start = today.atTime(9, 0).atZone(zone).toInstant(),
+        )
+
+        val vm = vm()
+        observing(vm.content)
+        advanceUntilIdle()
+        vm.setStudentFilter(ann)
+        advanceUntilIdle()
+
+        assertTrue(vm.content.dayContent.rows.isEmpty())
+    }
+
+    /**
+     * The calendar's tallies follow the filter too. A cell counting lessons the list under it does not
+     * show would be the calendar contradicting the day it is a picker for.
+     */
+    @Test
+    fun `the month's markers are narrowed with the list`() = runTest(mainRule.dispatcher) {
+        val today = LocalDate.now(zone)
+        val (ann, _) = seedTwoStudentsOn(today)
+
+        val vm = vm()
+        vm.setViewMode(ScheduleViewMode.MONTH)
+        observing(vm.dayLoads)
+        advanceUntilIdle()
+
+        assertEquals(2, vm.dayLoads.current[today]?.counts?.get(LessonStatus.SCHEDULED))
+
+        vm.setStudentFilter(ann)
+        advanceUntilIdle()
+
+        assertEquals(1, vm.dayLoads.current[today]?.counts?.get(LessonStatus.SCHEDULED))
+    }
+
+    /**
+     * A filter naming somebody the database no longer holds resolves to *no filter at all*, rather than
+     * to an empty schedule with no way out of it. Both the chip and the queries read this one value, so
+     * they cannot disagree about whether narrowing is in effect.
+     */
+    @Test
+    fun `a filter on a student who is not there shows everyone`() = runTest(mainRule.dispatcher) {
+        val today = LocalDate.now(zone)
+        seedTwoStudentsOn(today)
+
+        val vm = vm()
+        observing(vm.content)
+        observing(vm.studentFilter)
+        advanceUntilIdle()
+
+        vm.setStudentFilter(9999L)
+        advanceUntilIdle()
+
+        assertNull(vm.studentFilter.value)
+        assertEquals(2, vm.content.dayContent.rows.size)
+    }
+
+    @Test
+    fun `an archived student the schedule is filtered by keeps their name`() =
+        runTest(mainRule.dispatcher) {
+            // The menu only offers active students, but one already being looked at must not lose the
+            // chip that says so — the chip is the only way back to everyone else.
+            val today = LocalDate.now(zone)
+            val (ann, _) = seedTwoStudentsOn(today)
+
+            val vm = vm()
+            observing(vm.content)
+            observing(vm.studentFilter)
+            observing(vm.filterableStudents)
+            advanceUntilIdle()
+            vm.setStudentFilter(ann)
+            advanceUntilIdle()
+
+            env.studentRepo.setArchived(env.studentRepo.getById(ann)!!, archived = true)
+            advanceUntilIdle()
+
+            assertEquals("Аня", vm.studentFilter.value?.name)
+            assertFalse(vm.filterableStudents.value.any { it.id == ann })
+        }
 }

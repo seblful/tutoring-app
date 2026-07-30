@@ -106,6 +106,17 @@
     <string name="schedule_empty_no_setup_detail">Занятие записывается на ученика и предмет с ценой. Начните с ученика.</string>
     <string name="schedule_add_student">Добавить ученика</string>
     <!--
+      Narrowing the schedule to one student. The chip is the point: a filtered calendar that looks empty
+      has to say why it is empty, so the name stays on screen for as long as it applies and carries its
+      own way out. An empty state reached *through* a filter offers no «Записать занятие» — booking from
+      there would land on the day, not on the student being looked at.
+    -->
+    <string name="schedule_filter_student">Показать одного ученика</string>
+    <string name="schedule_filter_all">Все ученики</string>
+    <string name="schedule_filter_clear">Показать всех</string>
+    <string name="schedule_filter_empty">У этого ученика здесь занятий нет</string>
+    <string name="schedule_filter_empty_detail">Уберите фильтр, чтобы увидеть остальные занятия</string>
+    <!--
       The mark in the day list saying where the current time falls. Lower case: it is a label on a
       hairline, not a heading.
     -->
@@ -158,6 +169,43 @@
     <string name="class_duration_ends_next_day">до %1$s (след. день)</string>
     <string name="duration_hours_label">Часы</string>
     <string name="duration_minutes_label">Минуты</string>
+    <!--
+      Repeating a booking. Deliberately shaped like the duration row above it: a fixed choice, then a
+      shortlist of counts with an escape hatch, then the consequence («по 24 сентября») beside the label
+      rather than in a field of its own. Every occurrence is the same weekday at the same time — a tutor
+      teaching Monday and Thursday books twice, which is why there is no weekday picker here.
+    -->
+    <string name="class_repeat_label">Повторять</string>
+    <string name="class_repeat_none">Нет</string>
+    <string name="class_repeat_weekly">Раз в неделю</string>
+    <string name="class_repeat_fortnightly">Раз в 2 недели</string>
+    <string name="class_repeat_count_label">Занятий</string>
+    <string name="class_repeat_count_custom">Другое</string>
+    <!-- %1$s: the last date the run reaches -->
+    <string name="class_repeat_until">по %1$s</string>
+    <string name="class_repeat_count_title">Сколько занятий</string>
+    <!-- The dialog behind «Другое». %1$d: the ceiling on one booking — a year of weekly lessons. -->
+    <string name="class_repeat_count_field">Занятий (до %1$d)</string>
+    <!--
+      A repeating booking that got some of its dates and not others. A dialog rather than a snackbar:
+      the save closes the form, and a skipped date is a lesson the tutor believes they have booked.
+    -->
+    <string name="class_series_title">Занятия записаны</string>
+    <plurals name="class_series_booked">
+        <item quantity="one">Записано %1$d занятие.</item>
+        <item quantity="few">Записано %1$d занятия.</item>
+        <item quantity="many">Записано %1$d занятий.</item>
+        <item quantity="other">Записано %1$d занятия.</item>
+    </plurals>
+    <!-- %1$d: how many were skipped. The dates themselves follow, appended by the screen. -->
+    <plurals name="class_series_skipped">
+        <item quantity="one">Пропущено %1$d занятие — это время уже занято:</item>
+        <item quantity="few">Пропущено %1$d занятия — это время уже занято:</item>
+        <item quantity="many">Пропущено %1$d занятий — это время уже занято:</item>
+        <item quantity="other">Пропущено %1$d занятия — это время уже занято:</item>
+    </plurals>
+    <!-- Every date of a repeating booking was taken, so nothing at all was written. -->
+    <string name="class_series_refused_all_taken">Ничего не записано: всё это время уже занято</string>
     <string name="class_pick_date">Выберите дату</string>
     <string name="class_pick_time">Выберите время</string>
     <!-- %1$s: ученик или группа, %2$s: время занятия, которое уже стоит в расписании -->

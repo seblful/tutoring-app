@@ -217,6 +217,25 @@ object GroupRules {
             .sortedWith(compareBy({ it.start }, { it.first.id }))
 
     /**
+     * Every class of every lesson [studentId] is in — **whole lessons, not only their own class**.
+     *
+     * This is the schedule's per-student narrowing, and the distinction is the whole of it. Keeping only
+     * the student's own row would leave a group lesson as a session of one: it would draw as a group
+     * lesson with a roster of one, its day would total one member's money, and — the part that matters —
+     * the sheet's «Проведено» would act on a session the lesson does not consist of. A filter is a way of
+     * *looking*, so it narrows which lessons are shown and never what one of them is.
+     *
+     * Filtered here rather than in SQL because the schedule already reads a date range whole
+     * ([sessions] collapses it), and a second query keyed on a student would answer a different question
+     * — "their classes" — which is the answer this deliberately does not want.
+     */
+    fun lessonsWith(classes: List<TutoringClass>, studentId: Long): List<TutoringClass> {
+        val theirLessons = classes.filter { it.studentId == studentId }
+            .mapTo(mutableSetOf()) { it.lessonId }
+        return classes.filter { it.lessonId in theirLessons }
+    }
+
+    /**
      * The members a lesson can actually be booked for: archived students are left out. Archiving is
      * how a student leaves without erasing history, so a group they were in must stop billing them —
      * but their past group lessons stay untouched.

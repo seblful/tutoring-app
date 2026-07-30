@@ -55,6 +55,36 @@ sealed interface LessonWrite<out T> {
     }
 }
 
+/**
+ * What booking a repeating lesson settled on: the occurrences that were written, and the ones that were
+ * not because their hour was already somebody's.
+ *
+ * **It reports rather than refuses**, which is the difference between this and [LessonWrite]. A single
+ * booking has one hour and one answer about it; a term of twelve has twelve, and over three months a
+ * holiday or an already-booked evening is the normal case, not the exception. Turning the whole term down
+ * because of one Monday would be unusable, and skipping quietly would be worse — the tutor would find out
+ * in March. So every free hour is booked and the write **says what it did**, which is the shape
+ * `GroupRepository.Saved(id, dropped)` already uses for the same reason: the form reports the write
+ * instead of predicting it with a second check of its own.
+ *
+ * @param bookedIds the new class ids, over every occurrence — a group's lesson contributes one per member.
+ * @param lessons how many **lessons** were written. Not `bookedIds.size`, which counts classes: booking a
+ *   group of four for a month is four lessons and sixteen classes, and the sentence the tutor reads is
+ *   about the evenings they will be teaching.
+ * @param skipped the occurrences left out, each naming the lesson that holds the hour.
+ */
+data class SeriesWrite(
+    val bookedIds: List<Long>,
+    val lessons: Int,
+    val skipped: List<Skipped>,
+) {
+    /** One occurrence that was not booked: when it would have been, and what stood in the way. */
+    data class Skipped(val start: Instant, val clash: ClassSession)
+
+    /** Nothing was written at all — every occurrence's hour was taken. */
+    val wroteNothing: Boolean get() = lessons == 0
+}
+
 @Singleton
 class ClassRepository @Inject constructor(
     private val dao: ClassDao,
@@ -257,6 +287,13 @@ class ClassRepository @Inject constructor(
      * Refuses a non-positive length for the reason `Scheduling.Slot` gives — such a lesson would occupy
      * no time, and so would stand in no other lesson's way. The last two throw rather than return,
      * because no form can submit them: they are a caller's bug, not a schedule that moved.
+     *
+     * **A run of one**, delegating to [bookSeries] rather than checking the hour and writing the rows a
+     * second time. The two had the same body, and the difference between them is only how many answers
+     * come back: one hour has one, so a skipped occurrence *is* [LessonWrite.HourTaken]. Keeping both
+     * implementations would have left the app booking through one of them and most of the suite through
+     * the other — the shape `LessonFilter.accepted` was named away from, with the tested copy and the
+     * shipped copy free to drift apart.
      */
     suspend fun book(
         subjectId: Long,
@@ -267,31 +304,127 @@ class ClassRepository @Inject constructor(
         price: Money,
         groupId: Long? = null,
     ): LessonWrite<List<Long>> {
+        val written = bookSeries(
+            subjectId = subjectId,
+            starts = listOf(start),
+            durationMinutes = durationMinutes,
+            mode = mode,
+            studentIds = studentIds,
+            price = price,
+            groupId = groupId,
+        )
+        return written.skipped.firstOrNull()
+            ?.let { LessonWrite.HourTaken(it.clash) }
+            ?: LessonWrite.Written(written.bookedIds)
+    }
+
+    /**
+     * Books the same lesson at each of [starts] — the whole of what «Повторять» writes.
+     *
+     * Every occurrence is an ordinary lesson; what this owns is that they are decided and written
+     * **together**, in the three phases [write] states:
+     *
+     *   1. one read over the union of the occurrences' windows, partitioning them into free and taken
+     *      (a read that only *decides* whether to write stays outside the transaction);
+     *   2. every free occurrence's rows inside one transaction;
+     *   3. one calendar mirror and one reminder refresh for the lot.
+     *
+     * A loop over [book] would have been the obvious implementation and is the thing to avoid: it would
+     * re-derive the whole reminder plan twelve times and hand the calendar twelve separate batches, which
+     * is exactly what [write]'s "refresh once per lesson write, not once per class" exists to prevent —
+     * only worse, because the unit here is a term rather than a lesson.
+     *
+     * **The occurrences are checked against the schedule as it stands, and not against each other.** They
+     * can't collide: [Recurrence] spaces them a week or more apart and a lesson runs at most 23 h 59 m.
+     *
+     * Refuses an empty roster and a non-positive length for the reasons [book] gives, and an empty
+     * [starts] for the same kind of reason — a booking with no occurrences would write nothing and report
+     * success.
+     */
+    suspend fun bookSeries(
+        subjectId: Long,
+        starts: List<Instant>,
+        durationMinutes: Int,
+        mode: ClassMode,
+        studentIds: Collection<Long>,
+        price: Money,
+        groupId: Long? = null,
+    ): SeriesWrite {
         require(studentIds.isNotEmpty()) { "A lesson needs at least one student" }
         require(durationMinutes > 0) { "A lesson lasts a positive number of minutes, not $durationMinutes" }
-        holdingHour(start, durationMinutes, ignoring = emptySet())?.let { return LessonWrite.HourTaken(it) }
-        // Every member's row in one transaction: a group lesson is either wholly booked or not
-        // booked, never a partial roster nobody asked for.
-        val ids = write {
-            // The lesson first, once: its hour, subject and status are one fact, and the ids of the rows
-            // below are what tie the students to it.
-            val lesson = TutoringClass(
-                studentId = 0,
-                subjectId = subjectId,
-                start = start,
-                durationMinutes = durationMinutes,
-                price = price,
-                mode = mode,
-                groupId = groupId,
-            )
-            val lessonId = lessons.upsert(lesson.toLessonEntity())
-            val booked = studentIds.map { studentId ->
-                val klass = lesson.copy(lessonId = lessonId, studentId = studentId)
-                klass.copy(id = attendance.upsert(klass.toAttendanceEntity()))
-            }
-            Committed(booked.map { it.id }, mirror = booked)
+        require(starts.isNotEmpty()) { "A booking needs at least one start" }
+
+        val slots = starts.map { Scheduling.Slot(it, durationMinutes) }
+        // One read for the whole term rather than one per occurrence. The union of the per-slot windows
+        // is a superset of each, and `Scheduling.conflicts` applies the real overlap test to every one —
+        // handing over more classes than a given slot needs is the safe direction, as `startingWithin`
+        // relies on too.
+        val around = getBetween(
+            from = slots.minOf { it.start }.minus(Scheduling.LONGEST_LESSON),
+            to = slots.maxOf { it.end },
+        )
+        val free = mutableListOf<Scheduling.Slot>()
+        val skipped = mutableListOf<SeriesWrite.Skipped>()
+        slots.forEach { slot ->
+            val clash = Scheduling.conflicts(slot, around).firstOrNull()
+            if (clash == null) free += slot else skipped += SeriesWrite.Skipped(slot.start, clash)
         }
-        return LessonWrite.Written(ids)
+        // Returned before [write] rather than through it: with nothing to commit there is nothing to
+        // mirror and nothing to re-plan, and running the phases anyway would re-derive the entire
+        // reminder plan to arrive back where it started.
+        if (free.isEmpty()) return SeriesWrite(emptyList(), lessons = 0, skipped = skipped)
+
+        val booked = write {
+            val rows = free.flatMap { slot ->
+                insertLesson(
+                    subjectId = subjectId,
+                    start = slot.start,
+                    durationMinutes = durationMinutes,
+                    mode = mode,
+                    studentIds = studentIds,
+                    price = price,
+                    groupId = groupId,
+                )
+            }
+            Committed(rows, mirror = rows)
+        }
+        return SeriesWrite(booked.map { it.id }, lessons = free.size, skipped = skipped)
+    }
+
+    /**
+     * Writes one lesson's rows — the lesson, then a class per student — and hands back the classes with
+     * the ids their inserts returned.
+     *
+     * **Inside a transaction, always**: it is phase 2 and nothing else, which is why it neither opens one
+     * nor mirrors anything. Named rather than inlined so that [bookSeries]'s transaction body reads as
+     * the one thing it is — "write each free occurrence's lesson" — with what a lesson's rows *are*
+     * stated beside it rather than nested two lambdas deep.
+     */
+    private suspend fun insertLesson(
+        subjectId: Long,
+        start: Instant,
+        durationMinutes: Int,
+        mode: ClassMode,
+        studentIds: Collection<Long>,
+        price: Money,
+        groupId: Long?,
+    ): List<TutoringClass> {
+        // The lesson first, once: its hour, subject and status are one fact, and the ids of the rows
+        // below are what tie the students to it.
+        val lesson = TutoringClass(
+            studentId = 0,
+            subjectId = subjectId,
+            start = start,
+            durationMinutes = durationMinutes,
+            price = price,
+            mode = mode,
+            groupId = groupId,
+        )
+        val lessonId = lessons.upsert(lesson.toLessonEntity())
+        return studentIds.map { studentId ->
+            val klass = lesson.copy(lessonId = lessonId, studentId = studentId)
+            klass.copy(id = attendance.upsert(klass.toAttendanceEntity()))
+        }
     }
 
     /**

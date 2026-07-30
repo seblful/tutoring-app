@@ -6,6 +6,7 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.ClassSession
+import com.seblful.klas.domain.Repeat
 import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
@@ -1476,4 +1477,197 @@ class ClassEditViewModelTest {
         assertEquals("COMPLETED", saved.status)
         assertEquals(Money.ofMajor(60).minor, saved.chargeMinor)
     }
+
+    // --- «Повторять»: booking a run of lessons ---------------------------------------------------
+
+    /** Fills the form for a run of [count] lessons repeating [every], starting on [date] at [from]. */
+    private fun ClassEditViewModel.fillRepeating(
+        studentId: Long,
+        subjectId: Long,
+        date: LocalDate,
+        from: LocalTime,
+        every: Repeat,
+        count: Int,
+    ) = change(
+        BookingIntent.Edit {
+            it.copy(
+                studentId = studentId, subjectId = subjectId, date = date,
+                timeFrom = from, durationMinutes = 60, price = MoneyField("30"),
+                repeat = every, repeatCount = count,
+            )
+        },
+    )
+
+    @Test
+    fun `a form that does not repeat books exactly one lesson`() = runTest(mainRule.dispatcher) {
+        val (ann, subject) = seedStudentWithPricedSubject()
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        vm.fillFor(ann, subject, LocalDate.now(zone).plusDays(2), LocalTime.of(10, 0), minutes = 60)
+        var done = false
+        vm.save { done = true }
+        advanceUntilIdle()
+
+        assertTrue(done)
+        assertEquals(1, env.classRepo.getAll().size)
+        assertNull("nothing to report about a single booking", vm.seriesOutcome.value)
+    }
+
+    @Test
+    fun `a weekly run books a lesson a week and navigates back`() = runTest(mainRule.dispatcher) {
+        val (ann, subject) = seedStudentWithPricedSubject()
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        val first = LocalDate.now(zone).plusDays(2)
+        vm.fillRepeating(ann, subject, first, LocalTime.of(10, 0), Repeat.WEEKLY, count = 4)
+        var done = false
+        vm.save { done = true }
+        advanceUntilIdle()
+
+        assertTrue("a run that got every date it asked for is an ordinary save", done)
+        assertNull(vm.seriesOutcome.value)
+        assertEquals(
+            listOf(first, first.plusWeeks(1), first.plusWeeks(2), first.plusWeeks(3)),
+            env.classRepo.getAll().map { it.start.atZone(zone).toLocalDate() }.sorted(),
+        )
+    }
+
+    @Test
+    fun `the form says how far a run reaches before it is saved`() = runTest(mainRule.dispatcher) {
+        val (ann, subject) = seedStudentWithPricedSubject()
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        val first = LocalDate.now(zone).plusDays(2)
+        vm.fillRepeating(ann, subject, first, LocalTime.of(10, 0), Repeat.FORTNIGHTLY, count = 3)
+        advanceUntilIdle()
+
+        // «по 24 сентября» — read off the same rule the write uses, so the promise on screen and the
+        // lessons written cannot differ.
+        assertEquals(first.plusWeeks(4), vm.state.current.form.repeatsUntil)
+    }
+
+    @Test
+    fun `a lesson loaded for editing never repeats`() = runTest(mainRule.dispatcher) {
+        // Repeating is a property of the act of booking; there is nothing for it to say about a row
+        // already in the database, and an edit that quietly turned one lesson into twelve would be the
+        // worst possible reading of the field.
+        val (_, id) = seedLesson(LocalDate.now(zone).plusDays(2), LocalTime.of(14, 0))
+        val vm = vm(id)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        assertEquals(Repeat.NONE, vm.state.current.form.repeat)
+        assertNull(vm.state.current.form.repeatsUntil)
+    }
+
+    @Test
+    fun `a run that loses one date books the rest and holds the screen to say so`() =
+        runTest(mainRule.dispatcher) {
+            val first = LocalDate.now(zone).plusDays(2)
+            // Борис already has the third Monday of the run.
+            seedLesson(first.plusWeeks(2), LocalTime.of(10, 0))
+            val (ann, subject) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
+
+            val vm = vm()
+            observing(vm.state)
+            advanceUntilIdle()
+            vm.fillRepeating(ann, subject, first, LocalTime.of(10, 0), Repeat.WEEKLY, count = 4)
+
+            var done = false
+            vm.save { done = true }
+            advanceUntilIdle()
+
+            assertFalse("the screen waits for the report to be read", done)
+            val outcome = vm.seriesOutcome.value!!
+            assertEquals(3, outcome.booked)
+            assertEquals(listOf(first.plusWeeks(2)), outcome.skipped)
+        }
+
+    @Test
+    fun `acknowledging the report clears it, and leaving then asks nothing`() =
+        runTest(mainRule.dispatcher) {
+            val first = LocalDate.now(zone).plusDays(2)
+            seedLesson(first.plusWeeks(1), LocalTime.of(10, 0))
+            val (ann, subject) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
+
+            val vm = vm()
+            observing(vm.state)
+            advanceUntilIdle()
+            vm.fillRepeating(ann, subject, first, LocalTime.of(10, 0), Repeat.WEEKLY, count = 3)
+            vm.save { }
+            advanceUntilIdle()
+
+            assertNotNull(vm.seriesOutcome.value)
+            vm.acknowledgeSeries()
+            advanceUntilIdle()
+
+            assertNull(vm.seriesOutcome.value)
+            // The lessons are in the database, so back must not go on offering to save them.
+            assertFalse(vm.state.current.isDirty)
+        }
+
+    @Test
+    fun `a run whose every date is taken writes nothing and says which refusal it was`() =
+        runTest(mainRule.dispatcher) {
+            val first = LocalDate.now(zone).plusDays(2)
+            val (bob, physics) = seedStudentWithPricedSubject(studentName = "Борис", subjectName = "Химия")
+            repeat(3) { week ->
+                env.classRepo.book(
+                    subjectId = physics,
+                    start = first.plusWeeks(week.toLong()).atTime(10, 0).atZone(zone).toInstant(),
+                    durationMinutes = 60,
+                    mode = ClassMode.IN_PERSON,
+                    studentIds = listOf(bob),
+                    price = Money.ofMajor(30),
+                ).written()
+            }
+            val (ann, subject) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
+
+            val vm = vm()
+            observing(vm.state)
+            advanceUntilIdle()
+            vm.fillRepeating(ann, subject, first, LocalTime.of(10, 0), Repeat.WEEKLY, count = 3)
+
+            var done = false
+            vm.save { done = true }
+            advanceUntilIdle()
+
+            assertFalse(done)
+            assertNull("nothing was written, so there is no report — it is a refusal", vm.seriesOutcome.value)
+            // Worded for a run rather than for the one time on the form: naming three dates the tutor
+            // cannot see would be a claim they have no way to check.
+            assertEquals(
+                ClassEditViewModel.Event.SERIES_REFUSED_ALL_TAKEN,
+                vm.events.stream.first(),
+            )
+            assertEquals(3, env.classRepo.getAll().size)
+        }
+
+    @Test
+    fun `a single booking onto a taken hour still says that hour is taken`() =
+        runTest(mainRule.dispatcher) {
+            // The one-lesson case goes through the same write now, and its wording must not drift into
+            // the run's.
+            val date = LocalDate.now(zone).plusDays(3)
+            seedLesson(date, LocalTime.of(10, 0))
+            val (ann, subject) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
+
+            val vm = vm()
+            observing(vm.state)
+            advanceUntilIdle()
+            vm.fillFor(ann, subject, date, LocalTime.of(10, 0), minutes = 60)
+            vm.save { }
+            advanceUntilIdle()
+
+            assertEquals(
+                ClassEditViewModel.Event.SAVE_REFUSED_TIME_TAKEN,
+                vm.events.stream.first(),
+            )
+        }
 }

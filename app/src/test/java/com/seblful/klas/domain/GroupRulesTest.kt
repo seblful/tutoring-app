@@ -480,4 +480,54 @@ class GroupRulesTest {
             IllegalArgumentException::class.java,
         ) { GroupRules.rosterChange(session, wanted = setOf(2), lessonEdit, t0) }
     }
+
+    // --- The lessons one student is in — the schedule's per-student narrowing --------------------
+
+    @Test
+    fun `a student's own lessons come through`() {
+        val theirs = klass(1, studentId = 1)
+        val anothers = klass(2, studentId = 2, start = t1)
+
+        assertEquals(
+            listOf(theirs),
+            GroupRules.lessonsWith(listOf(theirs, anothers), studentId = 1),
+        )
+    }
+
+    @Test
+    fun `a student in nothing here matches nothing`() {
+        val classes = listOf(klass(1, studentId = 1), klass(2, studentId = 2, start = t1))
+
+        assertEquals(emptyList<TutoringClass>(), GroupRules.lessonsWith(classes, studentId = 3))
+    }
+
+    /**
+     * **The whole lesson, not their class out of it.** This is what keeps a filtered group lesson from
+     * arriving as a session of one — which would draw a group row with a roster of one, total one
+     * member's money for the day, and hand the action sheet a session the lesson does not consist of.
+     */
+    @Test
+    fun `a group lesson the student is in comes through whole`() {
+        val session = groupSession(1L to 1L, 2L to 2L, 3L to 3L)
+        val classes = session.classes
+
+        assertEquals(classes, GroupRules.lessonsWith(classes, studentId = 1))
+    }
+
+    @Test
+    fun `a group lesson the student is not in is left out entirely`() {
+        val classes = groupSession(1L to 1L, 2L to 2L).classes
+
+        assertEquals(emptyList<TutoringClass>(), GroupRules.lessonsWith(classes, studentId = 3))
+    }
+
+    @Test
+    fun `a mixed day keeps every lesson the student is in and nothing else`() {
+        val group = groupSession(1L to 1L, 2L to 2L).classes
+        val theirOwn = klass(10, studentId = 1, start = t1)
+        val someoneElses = klass(11, studentId = 2, start = t1.plusSeconds(7200))
+        val all = group + theirOwn + someoneElses
+
+        assertEquals(group + theirOwn, GroupRules.lessonsWith(all, studentId = 1))
+    }
 }

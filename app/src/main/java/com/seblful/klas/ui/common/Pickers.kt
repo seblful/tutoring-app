@@ -2,6 +2,7 @@ package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
@@ -147,6 +148,52 @@ fun DurationPickerModal(
         confirmButton = {
             TextButton(
                 onClick = { onConfirm(total) },
+                enabled = total > 0,
+            ) { Text(stringResource(R.string.action_done)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
+}
+
+/**
+ * How many lessons a repeating booking writes — the booking form's «Другое».
+ *
+ * The same shape as [DurationPickerModal] and for the same reason: the chips carry the answers a tutor
+ * actually gives (a month, two months, a term) and this asks for the rest. [max] is a real ceiling rather
+ * than a formality — it is how many rows one «Сохранить» may put in the database, each with a calendar
+ * event and a place in the reminder plan — so it is stated in the field's own label instead of being
+ * discovered by typing into a field that silently stops accepting digits.
+ *
+ * Seeded once, deliberately, as the duration dialog is: from the moment it opens the field is the
+ * tutor's.
+ */
+@Composable
+fun CountPickerModal(
+    title: String,
+    label: String,
+    initial: Int,
+    max: Int,
+    onConfirm: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var count by remember { mutableStateOf(initial.toString()) }
+    val total = count.toIntOrNull() ?: 0
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            CountField(
+                value = count,
+                onValue = { count = it },
+                label = label,
+                max = max,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(total) },
+                // Zero lessons is not a booking, exactly as a lesson of no length is not a lesson.
                 enabled = total > 0,
             ) { Text(stringResource(R.string.action_done)) }
         },

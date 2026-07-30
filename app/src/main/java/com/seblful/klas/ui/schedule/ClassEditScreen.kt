@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -29,7 +31,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
+import com.seblful.klas.domain.Recurrence
+import com.seblful.klas.domain.Repeat
 import com.seblful.klas.ui.common.ConfirmDialog
+import com.seblful.klas.ui.common.CountPickerModal
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.DurationPickerModal
@@ -49,6 +54,7 @@ import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.supportingTextOf
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.format.formatDate
+import java.time.LocalDate
 
 @Composable
 fun ClassEditScreen(
@@ -84,21 +90,29 @@ private fun ClassEditForm(
     val messages = rememberMessages()
     val timeTakenMsg = stringResource(R.string.class_save_refused_time_taken)
     val noMembersMsg = stringResource(R.string.class_group_no_members_left)
+    val allTakenMsg = stringResource(R.string.class_series_refused_all_taken)
     val saveFailedMsg = stringResource(R.string.save_failed)
     LaunchedEffect(Unit) {
         viewModel.events.stream.collect { event ->
             val message = when (event) {
                 ClassEditViewModel.Event.SAVE_REFUSED_TIME_TAKEN -> timeTakenMsg
                 ClassEditViewModel.Event.SAVE_REFUSED_NO_MEMBERS -> noMembersMsg
+                ClassEditViewModel.Event.SERIES_REFUSED_ALL_TAKEN -> allTakenMsg
                 ClassEditViewModel.Event.SAVE_FAILED -> saveFailedMsg
             }
             messages.show(message)
         }
     }
 
+    // A repeating booking that got some of its dates and not others — see [SeriesOutcome]. State rather
+    // than a message, because a successful save navigates away and a snackbar on a screen being popped is
+    // shown to nobody; the screen leaves when the dialog is dismissed.
+    val seriesOutcome by viewModel.seriesOutcome.collectAsState()
+
     var showDatePicker by remember { mutableStateOf(false) }
     var showFromPicker by remember { mutableStateOf(false) }
     var showDurationPicker by remember { mutableStateOf(false) }
+    var showRepeatCountPicker by remember { mutableStateOf(false) }
 
     // Whether saving needs asking about, and how many billed lessons the question counts, are both
     // `state.saveIntent`'s — see [SaveIntent]. What is held here is only whether the dialog is up.
@@ -232,6 +246,21 @@ private fun ClassEditForm(
                 onCustom = { showDurationPicker = true },
             )
 
+            // Whether this books one lesson or a term of them. **Only while booking**: repeating is a
+            // property of the act, not of a lesson, so there is nothing for it to say about a row already
+            // in the database — and offering it there would read as an invitation to turn one lesson into
+            // twelve by editing it.
+            if (viewModel.isNew) {
+                RepeatPicker(
+                    repeat = form.repeat,
+                    count = form.repeatCount,
+                    until = form.repeatsUntil,
+                    onRepeat = { repeat -> viewModel.change(BookingIntent.Edit { it.copy(repeat = repeat) }) },
+                    onCount = { count -> viewModel.change(BookingIntent.Edit { it.copy(repeatCount = count) }) },
+                    onCustomCount = { showRepeatCountPicker = true },
+                )
+            }
+
             if (form.target == ClassTarget.GROUP) {
                 // Who the lesson covers — ticked one by one, and the same list whether it is being
                 // booked or corrected afterwards. Someone away this week is not off the roster, so
@@ -342,6 +371,32 @@ private fun ClassEditForm(
             onDismiss = { showDurationPicker = false },
         )
     }
+    if (showRepeatCountPicker) {
+        CountPickerModal(
+            title = stringResource(R.string.class_repeat_count_title),
+            label = stringResource(R.string.class_repeat_count_field, Recurrence.MAX_COUNT),
+            initial = viewModel.repeatCountPickerDefault(),
+            max = Recurrence.MAX_COUNT,
+            onConfirm = { count ->
+                viewModel.change(BookingIntent.Edit { it.copy(repeatCount = count) })
+                showRepeatCountPicker = false
+            },
+            onDismiss = { showRepeatCountPicker = false },
+        )
+    }
+
+    // Dismissing **is** leaving: the lessons are already written, so there is nothing to decide here and
+    // only one button. What it must not do is let the form close on its own before the tutor has read
+    // which dates were skipped — that is the whole reason the save held the navigation.
+    seriesOutcome?.let { outcome ->
+        val leave = { viewModel.acknowledgeSeries(); onBack() }
+        AlertDialog(
+            onDismissRequest = leave,
+            title = { Text(stringResource(R.string.class_series_title)) },
+            text = { Text(seriesOutcomeText(outcome)) },
+            confirmButton = { TextButton(onClick = leave) { Text(stringResource(R.string.action_ok)) } },
+        )
+    }
 
     confirmingDrops?.let { confirm ->
         ConfirmDialog(
@@ -431,6 +486,103 @@ private fun DurationPicker(
             )
         }
     }
+}
+
+/**
+ * Whether this booking writes one lesson or a run of them.
+ *
+ * **Deliberately the same shape as [DurationPicker] one field above**: a label carrying the consequence
+ * of the choice beside it, then the control. The two questions are neighbours in the tutor's head — how
+ * long, and how often — and answering them in two different-looking ways on one form is the kind of drift
+ * `ui/common` exists to stop.
+ *
+ * Segments for the frequency, chips for the count, because that is what each *is*: «Повторять» is a
+ * choice between a fixed, mutually exclusive few, and the count is a shortlist with an escape hatch. The
+ * count only appears once something is being repeated — asking "how many lessons?" of a booking that is
+ * one lesson is a field with a single legal answer.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RepeatPicker(
+    repeat: Repeat,
+    count: Int,
+    until: LocalDate?,
+    onRepeat: (Repeat) -> Unit,
+    onCount: (Int) -> Unit,
+    onCustomCount: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(R.string.class_repeat_label),
+                style = MaterialTheme.typography.labelLarge,
+            )
+            // «по 24 сентября» — the last day the run reaches. Shown only once there is a date to count
+            // from, exactly as the lesson's end waits for a start.
+            if (until != null) {
+                Text(
+                    " · " + stringResource(R.string.class_repeat_until, until.formatDate()),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        SegmentedChoice(
+            options = Repeat.entries,
+            selected = repeat,
+            onSelect = onRepeat,
+            label = { option ->
+                stringResource(
+                    when (option) {
+                        Repeat.NONE -> R.string.class_repeat_none
+                        Repeat.WEEKLY -> R.string.class_repeat_weekly
+                        Repeat.FORTNIGHTLY -> R.string.class_repeat_fortnightly
+                    }
+                )
+            },
+        )
+        if (repeat.repeats) {
+            Text(
+                stringResource(R.string.class_repeat_count_label),
+                style = MaterialTheme.typography.labelLarge,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
+                Recurrence.COMMON_COUNTS.forEach { option ->
+                    FilterChip(
+                        selected = option == count,
+                        onClick = { onCount(option) },
+                        label = { Text(option.toString()) },
+                    )
+                }
+                // Lit when the chosen count is not one of the offered ones — otherwise a booking of six
+                // would show no chip selected and read as nothing having been set, the same rule the
+                // duration chips follow.
+                FilterChip(
+                    selected = count !in Recurrence.COMMON_COUNTS,
+                    onClick = onCustomCount,
+                    label = { Text(stringResource(R.string.class_repeat_count_custom)) },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * What a partly-booked run says: how many lessons went in, then which dates did not and why.
+ *
+ * The counts are `SeriesOutcome`'s and the dates are its own; all this owns is the wording — including
+ * that the skipped dates are **listed** rather than counted, since finding those Mondays is the thing the
+ * tutor now has to do.
+ */
+@Composable
+private fun seriesOutcomeText(outcome: SeriesOutcome): String {
+    val booked = pluralStringResource(R.plurals.class_series_booked, outcome.booked, outcome.booked)
+    val skipped = pluralStringResource(
+        R.plurals.class_series_skipped,
+        outcome.skipped.size,
+        outcome.skipped.size,
+    )
+    return "$booked\n\n$skipped ${outcome.skipped.joinToString { it.formatDate() }}"
 }
 
 /**

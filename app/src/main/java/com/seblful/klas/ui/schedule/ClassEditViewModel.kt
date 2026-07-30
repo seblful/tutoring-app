@@ -13,6 +13,8 @@ import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.GroupRules
+import com.seblful.klas.domain.Recurrence
+import com.seblful.klas.domain.Repeat
 import com.seblful.klas.domain.RosterChange
 import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.SessionEdit
@@ -50,6 +52,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -116,7 +119,40 @@ data class ClassForm(
      * which for a completed one takes what they were charged with it.
      */
     val excludedMemberIds: Set<Long> = emptySet(),
+    /**
+     * Whether this booking writes the one lesson or a run of them — see [Repeat].
+     *
+     * On the form for a **new** lesson only. Repeating is a property of the act of booking rather than of
+     * a lesson, and there is nothing on a lesson already in the database for it to describe: a lesson
+     * loaded by [ClassEditViewModel.loadExisting] therefore keeps the default, and the edit path never
+     * reads [starts].
+     */
+    val repeat: Repeat = Repeat.NONE,
+    /** How many lessons a repeating booking writes, this one included. Meaningless while [repeat] is NONE. */
+    val repeatCount: Int = Recurrence.DEFAULT_COUNT,
 ) {
+    /**
+     * The last day this booking reaches — «по 24 сентября», shown beside «Повторять» the way the lesson's
+     * end is shown beside «Длительность»: a consequence of the choice, worth confirming and not worth a
+     * field. Null while the booking does not repeat or has no date yet.
+     */
+    val repeatsUntil: LocalDate?
+        get() = date?.takeIf { repeat.repeats }?.let { Recurrence.lastDate(it, repeat, repeatCount) }
+
+    /**
+     * Every instant this booking would write a lesson at, first one first. One element unless [repeat]
+     * says otherwise; empty while the date or the time is still missing.
+     *
+     * The one place the form's wall-clock values become the *series* of instants, as [slot] is the one
+     * place they become the single one — so what the tutor is shown («по 24 сентября») and what the
+     * repository is handed are read off the same rule.
+     */
+    fun starts(zone: ZoneId): List<Instant> {
+        val day = date ?: return emptyList()
+        val at = timeFrom ?: return emptyList()
+        return Recurrence.startsFor(day, at, repeat, repeatCount, zone)
+    }
+
     /**
      * Where the lesson ends — for the form to show, not for it to keep. Null until there is a start and
      * a length to add to it.
@@ -187,6 +223,14 @@ internal data class ValidForm(
     val price: Money,
     val mode: ClassMode,
     val excludedMemberIds: Set<Long>,
+    /**
+     * Every start this booking writes a lesson at — [slot]'s first, then the rest of the series. A single
+     * booking is the one-element list, so the save has one shape rather than a branch.
+     *
+     * Only a **new** booking reads it: editing a lesson moves the one lesson, and [ClassForm.repeat] is
+     * NONE for anything loaded from the database.
+     */
+    val starts: List<Instant>,
 ) {
     /** Who the lesson is for — the one thing the two kinds of booking genuinely disagree about. */
     sealed interface Target {
@@ -216,6 +260,9 @@ internal data class ValidForm(
             price = form.price.amount ?: return null,
             mode = form.mode,
             excludedMemberIds = form.excludedMemberIds,
+            // Non-empty exactly when `slot` is: both are null-guarded on the same date and time, so a form
+            // that produced a slot produced a series with that slot's start at the head of it.
+            starts = form.starts(zone),
         )
     }
 }
@@ -363,6 +410,19 @@ sealed interface SaveIntent {
      */
     data class ConfirmBilledDrops(val billedLessons: Int) : SaveIntent
 }
+
+/**
+ * What a repeating booking came to, when it could not book all of it.
+ *
+ * Only ever built for a **partial** result: everything booked is an ordinary save and nothing booked is a
+ * refusal, so this exists precisely for the outcome that is neither and that a form would otherwise have
+ * to swallow. [booked] counts **lessons**, matching `SeriesWrite.lessons` — a group's evening is one
+ * lesson to the tutor however many students are in the room.
+ *
+ * [skipped] carries the dates rather than their number because the count alone gives the tutor nothing to
+ * act on: the thing they now have to do is find those Mondays and book them somewhere else.
+ */
+data class SeriesOutcome(val booked: Int, val skipped: List<LocalDate>)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -569,6 +629,13 @@ class ClassEditViewModel @Inject constructor(
      * The one flow here **not** wrapped in [Loadable], and deliberately: its null is the absence of a
      * warning rather than a claim about the tutor's data, and the repository refuses a taken hour on save
      * regardless (`LessonWrite.HourTaken`), so an unread answer cannot let a double booking through.
+     *
+     * **It answers about the lesson on the form, which for a repeating booking is the first occurrence
+     * only.** That is the honest scope for a live warning: the form shows one date and one time, and
+     * flagging a clash three Mondays away would point at a field that does not say that. The rest of the
+     * run is answered where it is decided — `bookSeries` books every free hour and reports the ones it
+     * could not ([SeriesOutcome]), so a later clash is named after the fact rather than guessed at before
+     * it.
      */
     private val conflict: StateFlow<TimeConflict?> =
         combine(
@@ -840,6 +907,9 @@ class ClassEditViewModel @Inject constructor(
      */
     fun durationPickerDefault(): Int = currentForm.durationMinutes ?: defaultMinutes.value
 
+    /** What «Другое» opens on for the number of lessons: whatever the form already says. */
+    fun repeatCountPickerDefault(): Int = currentForm.repeatCount
+
     /**
      * Saves the form as one lesson. Booking a student and booking a group differ only in **who** the
      * classes are written for — one student, or the group's roster — so both go through the same two
@@ -859,6 +929,16 @@ class ClassEditViewModel @Inject constructor(
         SAVE_REFUSED_NO_MEMBERS,
 
         /**
+         * A repeating booking where **every** occurrence's hour was taken, so nothing was written at all.
+         *
+         * Distinct from [SAVE_REFUSED_TIME_TAKEN], which says "this time is taken" about the one time on
+         * the form. Said about twelve dates that would be a claim the tutor cannot check against anything
+         * they can see, so this one names the situation instead: nothing was booked, and the run of dates
+         * is the thing to change.
+         */
+        SERIES_REFUSED_ALL_TAKEN,
+
+        /**
          * The write itself failed — a database or calendar error rather than a rule. Distinct from the
          * two refusals above because there is nothing the tutor can change about it: the answer is
          * "that didn't save, try again", not "pick another time".
@@ -868,9 +948,35 @@ class ClassEditViewModel @Inject constructor(
 
     val events = UiEvents<Event>()
 
+    /**
+     * A repeating booking that went through with **some** of its occurrences left out, and what to say
+     * about it. Null when there is nothing to report — which is every single booking and every series
+     * that got every date it asked for.
+     *
+     * **State, and not a [UiEvents] message, because the form is leaving.** A successful save navigates
+     * back, and a snackbar raised on a screen that is being popped is shown to nobody. What is owed here
+     * is more than a passing note anyway: a skipped occurrence is a lesson the tutor believes they have
+     * booked and has not, so it is a dialog they dismiss, and the save holds the navigation until they do
+     * ([acknowledgeSeries]).
+     */
+    private val _seriesOutcome = MutableStateFlow<SeriesOutcome?>(null)
+    val seriesOutcome: StateFlow<SeriesOutcome?> = _seriesOutcome.asStateFlow()
+
+    /**
+     * Dismisses the series report. The screen navigates back afterwards — the lessons are written either
+     * way, so this acknowledges rather than decides.
+     */
+    fun acknowledgeSeries() {
+        _seriesOutcome.value = null
+    }
+
     /** What a save attempt settled on: written, or turned down for a reason worth saying. */
     private sealed interface SaveOutcome {
         data object Saved : SaveOutcome
+
+        /** Written, but not all of it — [outcome] is what the tutor has to be told before leaving. */
+        data class SavedPartly(val outcome: SeriesOutcome) : SaveOutcome
+
         data class Refused(val reason: Event) : SaveOutcome
     }
 
@@ -892,6 +998,13 @@ class ClassEditViewModel @Inject constructor(
             when (val settled = outcome.getOrNull()) {
                 null -> events.send(Event.SAVE_FAILED)
                 is SaveOutcome.Refused -> events.send(settled.reason)
+                // Both written cases clear `touched` first: the lessons are in the database, so leaving
+                // must not go on asking whether to save them. They differ only in who closes the screen —
+                // the partial one hands that to the dialog it raises.
+                is SaveOutcome.SavedPartly -> {
+                    booking.value = booking.value.copy(touched = false)
+                    _seriesOutcome.value = settled.outcome
+                }
                 SaveOutcome.Saved -> {
                     // Nothing is unsaved any more, so leaving must not ask about it.
                     booking.value = booking.value.copy(touched = false)
@@ -933,24 +1046,7 @@ class ClassEditViewModel @Inject constructor(
                 roster = roster,
             )
         } else {
-            val studentIds = when (val target = valid.target) {
-                is ValidForm.Target.Group -> bookableRoster(target.groupId) - valid.excludedMemberIds
-                is ValidForm.Target.Individual -> listOf(target.studentId)
-            }
-            // A group whose every member has been archived (or been unticked) has nobody left
-            // to bill; the lesson would be a row belonging to no one, so there is nothing to book.
-            if (studentIds.isEmpty()) {
-                return SaveOutcome.Refused(Event.SAVE_REFUSED_NO_MEMBERS)
-            }
-            classes.book(
-                subjectId = valid.subjectId,
-                start = valid.slot.start,
-                durationMinutes = valid.slot.durationMinutes,
-                mode = valid.mode,
-                studentIds = studentIds,
-                price = valid.price,
-                groupId = valid.groupId,
-            )
+            return book(valid)
         }
         return when (written) {
             // The repository re-checks the hour against the database, not against [conflict]: the
@@ -959,6 +1055,54 @@ class ClassEditViewModel @Inject constructor(
             // the button was enabled, so a silent no-op looks like the app lost the lesson.
             is LessonWrite.HourTaken -> SaveOutcome.Refused(Event.SAVE_REFUSED_TIME_TAKEN)
             is LessonWrite.Written<*> -> SaveOutcome.Saved
+        }
+    }
+
+    /**
+     * Books what [valid] describes — one lesson, or the whole run of them «Повторять» asked for.
+     *
+     * **One path for both**, because a single booking is a series of one ([ValidForm.starts]): the branch
+     * that used to exist here would otherwise have had to be re-made in the outcome mapping below, and
+     * the one-lesson case is the one that must not regress.
+     *
+     * The three answers [SeriesWrite] can carry map to three different things to say. Nothing written is
+     * a refusal and keeps the tutor on the form — worded as "this time is taken" for a single lesson,
+     * because that is what the sentence is about, and as "none of them could be booked" for a series.
+     * Everything written is an ordinary save. Some written is the case this feature adds, and it is the
+     * one the form cannot silently swallow.
+     */
+    private suspend fun book(valid: ValidForm): SaveOutcome {
+        val studentIds = when (val target = valid.target) {
+            is ValidForm.Target.Group -> bookableRoster(target.groupId) - valid.excludedMemberIds
+            is ValidForm.Target.Individual -> listOf(target.studentId)
+        }
+        // A group whose every member has been archived (or been unticked) has nobody left
+        // to bill; the lesson would be a row belonging to no one, so there is nothing to book.
+        if (studentIds.isEmpty()) {
+            return SaveOutcome.Refused(Event.SAVE_REFUSED_NO_MEMBERS)
+        }
+        val written = classes.bookSeries(
+            subjectId = valid.subjectId,
+            starts = valid.starts,
+            durationMinutes = valid.slot.durationMinutes,
+            mode = valid.mode,
+            studentIds = studentIds,
+            price = valid.price,
+            groupId = valid.groupId,
+        )
+        return when {
+            written.wroteNothing -> SaveOutcome.Refused(
+                if (valid.starts.size > 1) Event.SERIES_REFUSED_ALL_TAKEN else Event.SAVE_REFUSED_TIME_TAKEN,
+            )
+            written.skipped.isEmpty() -> SaveOutcome.Saved
+            else -> SaveOutcome.SavedPartly(
+                SeriesOutcome(
+                    booked = written.lessons,
+                    // The dates, not a count: "one was skipped" leaves the tutor to find which Monday,
+                    // which is the whole of what they now have to do about it.
+                    skipped = written.skipped.map { it.start.atZone(zone).toLocalDate() },
+                ),
+            )
         }
     }
 

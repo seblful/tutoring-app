@@ -25,6 +25,7 @@ import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.hold
 import com.seblful.klas.ui.common.ready
+import com.seblful.klas.ui.common.valueOrNull
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -39,6 +40,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.DayOfWeek
@@ -140,6 +142,21 @@ data class WeekSection(
 enum class ScheduleViewMode { DAY, WEEK, MONTH }
 
 /**
+ * The schedule narrowed to one student — who, and the name the chip saying so is drawn from.
+ *
+ * **The name is carried rather than looked up by the screen**, and that is the point of the type: it is
+ * read from every student rather than the active ones, so archiving somebody the schedule is currently
+ * filtered by leaves the chip naming them instead of going blank. The same value is what the lesson
+ * queries narrow on, so the chip and the list cannot disagree about whether a filter is applied — a
+ * filtered calendar looking empty for no visible reason is the failure this whole feature has to avoid.
+ *
+ * Resolving to null when the id matches nobody is deliberate and is why both read this and not the id: a
+ * restored backup can take a student away, and an empty schedule filtered by a person who no longer
+ * exists would have no way out.
+ */
+data class StudentFilter(val studentId: Long, val name: String)
+
+/**
  * The lessons the schedule body is currently showing — one shape per way of showing them.
  *
  * There is deliberately one of these rather than a flow per view: the schedule assembles only what
@@ -148,25 +165,45 @@ enum class ScheduleViewMode { DAY, WEEK, MONTH }
  */
 sealed interface ScheduleContent {
 
-    /** The selected day's rows — what the day and month views both show. Empty for a week. */
-    val rows: List<ScheduleRow> get() = emptyList()
-
-    /** The visible week's sections, earliest day first. Empty for a single day. */
-    val sections: List<WeekSection> get() = emptyList()
-
     /**
-     * What the selected day adds up to. [DaySummary.NONE] for a week, whose days each carry their own
-     * ([WeekSection.summary]) — a week has no single day to summarize.
+     * The selected day's rows and what they add up to — what the day and month views both show.
      */
-    val summary: DaySummary get() = DaySummary.NONE
-
     data class Day(
-        override val rows: List<ScheduleRow>,
-        override val summary: DaySummary,
+        val rows: List<ScheduleRow>,
+        val summary: DaySummary,
     ) : ScheduleContent
 
-    data class Week(override val sections: List<WeekSection>) : ScheduleContent
+    /** The visible week's sections, earliest day first; each day carries its own summary. */
+    data class Week(val sections: List<WeekSection>) : ScheduleContent
 }
+
+/**
+ * The selected day's content, and **[Loadable.Loading] while what has arrived is the week's.**
+ *
+ * This is the second half of the loaded-yet problem, and `Loadable` alone could not see it: switching view
+ * re-keys the query, and a `StateFlow` holds its previous value meanwhile — so the state was `Ready`, about
+ * the view the tutor had just left. `ScheduleContent` used to help it lie: `rows`, `sections` and `summary`
+ * were all defaulted on the interface, so a `Week` answered "what are this day's lessons" with
+ * `emptyList()` and a `Day` answered "what are this week's days" the same way. Tapping «Неделя» therefore
+ * drew «Нет занятий на этой неделе» over a full week, and «День» drew «Нет занятий» with the
+ * book-a-lesson button under it — the exact defect [Loadable] was introduced to remove, one frame later
+ * and by a different route. The defaults are gone and the narrowing says so instead: content about another
+ * view is not an answer, it is the absence of one.
+ *
+ * Paging is the same question changing, and is covered by the same rule — the day's flow re-emits
+ * [Loadable.Loading] when its key moves, so yesterday's lessons are never listed under today's date, and
+ * an empty Tuesday cannot say «Нет занятий» about a busy Wednesday.
+ */
+fun Loadable<ScheduleContent>.day(): Loadable<ScheduleContent.Day> = narrowed()
+
+/** The visible week's content, and [Loadable.Loading] while what has arrived is a single day's. */
+fun Loadable<ScheduleContent>.week(): Loadable<ScheduleContent.Week> = narrowed()
+
+private inline fun <reified T : ScheduleContent> Loadable<ScheduleContent>.narrowed(): Loadable<T> =
+    when (this) {
+        Loadable.Loading -> Loadable.Loading
+        is Loadable.Ready -> (value as? T)?.let { Loadable.Ready(it) } ?: Loadable.Loading
+    }
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -232,6 +269,37 @@ class ScheduleViewModel @Inject constructor(
     private val _viewMode = MutableStateFlow(ScheduleViewMode.DAY)
     val viewMode: StateFlow<ScheduleViewMode> = _viewMode.asStateFlow()
 
+    private val _filterStudentId = MutableStateFlow<Long?>(null)
+
+    /**
+     * Whose lessons the schedule is showing, or null for everyone's — see [StudentFilter].
+     *
+     * Declared **before** [dayLoads] and [content] because both narrow on it: properties initialise in
+     * declaration order, and a flow combined into them before it exists is a null reference at
+     * construction rather than at first collection.
+     */
+    val studentFilter: StateFlow<StudentFilter?> =
+        combine(_filterStudentId, students.observeAll()) { id, all ->
+            id?.let { wanted -> all.firstOrNull { it.id == wanted } }
+                ?.let { StudentFilter(it.id, it.name) }
+        }
+            .derive(this, computation, null)
+
+    /**
+     * The students the filter menu offers — the active ones, in the repository's name order.
+     *
+     * Archived students are left out for the reason they are left out of the booking form's picker: the
+     * menu is a way of *starting* to look at somebody, and a retired student is not who a tutor is
+     * planning around. One already being filtered by survives regardless, since [studentFilter] reads the
+     * full list.
+     */
+    val filterableStudents: StateFlow<List<Student>> = students.observeActive().hold(this, emptyList())
+
+    /** Narrows the schedule to one student, or shows everyone again with null. */
+    fun setStudentFilter(studentId: Long?) {
+        _filterStudentId.value = studentId
+    }
+
     /**
      * The lesson a refused [move] or [setStatus] would have collided with, until it is acknowledged.
      * State rather than a fire-and-forget event, so the message survives a recomposition or a rotation.
@@ -285,25 +353,52 @@ class ScheduleViewModel @Inject constructor(
      * once and it is only their numbers that arrive.
      */
     val dayLoads: StateFlow<Loadable<Map<LocalDate, CalendarLayout.DayLoad>>> =
-        combine(_viewMode, _visibleMonth, _visibleWeek, ::Triple)
-            .flatMapLatest { (mode, month, week) ->
-                val range = when (mode) {
+        combine(_viewMode, _visibleMonth, _visibleWeek, studentFilter, ::MarkerKey)
+            .flatMapLatest { key ->
+                val range = when (key.mode) {
                     ScheduleViewMode.DAY -> null
-                    ScheduleViewMode.WEEK -> week to week.plusDays(DAYS_IN_WEEK)
+                    ScheduleViewMode.WEEK -> key.week to key.week.plusDays(DAYS_IN_WEEK)
                     ScheduleViewMode.MONTH ->
-                        CalendarLayout.monthGrid(month, weekStart).let { it.firstDate to it.endExclusive }
+                        CalendarLayout.monthGrid(key.month, weekStart)
+                            .let { it.firstDate to it.endExclusive }
                 }
                 if (range == null) {
-                    flowOf(emptyMap())
+                    // The day view draws no calendar, so it queries none — and says **Loading** rather
+                    // than "no markers", which is a claim about a month nobody asked it about. That claim
+                    // used to survive the switch back: `Ready(emptyMap())` from the day view was still
+                    // there when «Месяц» re-appeared, so the grid drew a free month for a frame.
+                    flowOf(Loadable.Loading)
                 } else {
                     classes.observeBetween(
                         range.first.atStartOfDay(zone).toInstant(),
                         range.second.atStartOfDay(zone).toInstant(),
-                    ).map { CalendarLayout.dayLoads(it, zone) }
+                    )
+                        .map { CalendarLayout.dayLoads(key.narrow(it), zone) }
+                        .ready()
+                        // Paging is a new question too: the tallies are keyed by date, so last month's
+                        // map has no entry for any day of this one — every cell would read as free.
+                        .onStart { emit(Loadable.Loading) }
                 }
             }
-                .ready()
                 .derive(this, computation, Loadable.Loading)
+
+    /**
+     * What one page of calendar markers is *about*: which view, which page, and whose lessons.
+     *
+     * A named type because there are four of them now and `combine`'s `::Triple` had run out — but also
+     * because [narrow] belongs beside them. The filter is applied to the tallies as well as to the list
+     * under them on purpose: a cell counting lessons the list does not show is the calendar contradicting
+     * the day it is a picker for.
+     */
+    private data class MarkerKey(
+        val mode: ScheduleViewMode,
+        val month: YearMonth,
+        val week: LocalDate,
+        val filter: StudentFilter?,
+    ) {
+        fun narrow(classes: List<TutoringClass>): List<TutoringClass> =
+            filter?.let { GroupRules.lessonsWith(classes, it.studentId) } ?: classes
+    }
 
     /**
      * The lessons the **active view** needs, and no others.
@@ -315,8 +410,9 @@ class ScheduleViewModel @Inject constructor(
      * [dayLoads] already follows for calendar markers.
      */
     val content: StateFlow<Loadable<ScheduleContent>> =
-        combine(_viewMode, _selectedDate, _visibleWeek, ::Triple)
-            .flatMapLatest { (mode, date, week) ->
+        combine(_viewMode, _selectedDate, _visibleWeek, studentFilter, ::ContentKey)
+            .flatMapLatest { key ->
+                val (mode, date, week, filter) = key
                 val isWeek = mode == ScheduleViewMode.WEEK
                 val from = if (isWeek) week else date
                 val to = if (isWeek) week.plusDays(DAYS_IN_WEEK) else date.plusDays(1)
@@ -328,7 +424,12 @@ class ScheduleViewModel @Inject constructor(
                     students.observeAll(),
                     subjects.observeAll(),
                     groups.observeAll(),
-                ) { visibleClasses, studentList, subjectList, groupList ->
+                ) { readClasses, studentList, subjectList, groupList ->
+                    // Whole **lessons** the student is in, never their class pulled out of one — see
+                    // [GroupRules.lessonsWith]. A filter changes what is on screen, not what a lesson is,
+                    // so the sheet's actions still act on the session the lesson consists of.
+                    val visibleClasses =
+                        filter?.let { GroupRules.lessonsWith(readClasses, it.studentId) } ?: readClasses
                     val studentsById = studentList.associateBy { it.id }
                     val subjectsById = subjectList.associateBy { it.id }
                     val groupsById = groupList.associateBy { it.id }
@@ -351,12 +452,31 @@ class ScheduleViewModel @Inject constructor(
                         ScheduleContent.Day(rows = rows, summary = rows.summarised())
                     }
                 }
+                    .ready()
+                    // **A new question un-answers the old one.** Inside the `flatMapLatest`, so every
+                    // change of key — the view, the day, the week, the filter — goes back to Loading
+                    // rather than leaving the previous answer on screen as though it were this one's.
+                    // Without it, `Ready` outlived the question it answered: tapping «Неделя» kept a
+                    // single day's content, whose `sections` were empty, and the agenda said the week
+                    // was free. See [day] for the whole account.
+                    .onStart { emit(Loadable.Loading) }
             }
-                .ready()
                 // `ScheduleContent.Day(emptyList())` used to be the initial value, which is a *day with
                 // no lessons* — so a cold open drew «Нет занятий» over the tutor's actual morning, with
                 // the book-a-lesson button under it, until the query returned. See [Loadable].
                 .derive(this, computation, Loadable.Loading)
+
+    /**
+     * What one assembly of the schedule body is *about*: which view, which day or week, and whose
+     * lessons. [MarkerKey]'s counterpart, kept separate because the two views page independently — the
+     * body follows the **selected day** while the markers follow the visible month.
+     */
+    private data class ContentKey(
+        val mode: ScheduleViewMode,
+        val date: LocalDate,
+        val week: LocalDate,
+        val filter: StudentFilter?,
+    )
 
     /**
      * The wall clock, once a minute, aligned to the minute — so the mark moves as the phone's clock
@@ -397,16 +517,13 @@ class ScheduleViewModel @Inject constructor(
      * arrives. `WhileSubscribed` is what keeps that off every other test.
      */
     val nowMark: StateFlow<Int?> =
-        combine(content, _selectedDate, _viewMode, minutes) { loaded, date, mode, now ->
-            // Gated on the view rather than left to `ScheduleContent.Week.rows` being empty by default:
-            // an empty list of lessons on a day that *is* today answers 0, not null, so without this the
-            // flow would hold "the mark goes at the top" all through a week view that never draws one —
-            // a value contradicting the paragraph above it.
-            val rows = when {
-                mode == ScheduleViewMode.WEEK -> return@combine null
-                loaded is Loadable.Ready -> loaded.value.rows
-                else -> return@combine null
-            }
+        combine(content, _selectedDate, minutes) { loaded, date, now ->
+            // **Narrowed, not gated on the view.** This used to take `_viewMode` as a fourth source and
+            // return null for a week, because `ScheduleContent.Week` answered `rows` with an empty list by
+            // default — and an empty list on a day that *is* today answers 0, "the mark goes at the top",
+            // so the flow held a mark all through a week view that never drew one. With the defaults gone,
+            // the week's content simply is not a day's and there is nothing to gate: see [day].
+            val rows = loaded.day().valueOrNull()?.rows ?: return@combine null
             NowMarker.positionIn(rows.map { it.session }, date, now, zone)
         }
             .derive(this, computation, null)
