@@ -8,14 +8,18 @@ import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.repository.SettingsChange
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.domain.ReminderScheduler
+import com.seblful.klas.notifications.ExactAlarmPermission
 import com.seblful.klas.notifications.NotificationPermission
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.hold
+import com.seblful.klas.ui.common.ready
 import com.seblful.klas.work.Maintenance
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -40,10 +44,23 @@ class SettingsViewModel @Inject constructor(
     private val maintenance: Maintenance,
     private val calendarPermission: CalendarPermission,
     private val notificationPermission: NotificationPermission,
+    private val exactAlarms: ExactAlarmPermission,
 ) : ViewModel() {
 
-    val state: StateFlow<AppSettings> = settings.observe()
-        .hold(this, AppSettings())
+    /**
+     * The settings row, as the screen draws it.
+     *
+     * [Loadable] rather than `AppSettings()`, because **every row on this screen is a stored value and
+     * the class's defaults are not a neutral placeholder — they are a different tutor's settings.** A
+     * default `AppSettings` says reminders are on, sync is off, the currency is BYN and the lesson is an
+     * hour, so for the frame or two before the row was read, a tutor who had turned reminders off watched
+     * the switch flip itself off, and one on RUB watched «Валюта» change under them. A settings screen
+     * that lies for a frame is worse than one that waits for a frame: the flip looks like the app doing
+     * something. See [Loadable].
+     */
+    val state: StateFlow<Loadable<AppSettings>> = settings.observe()
+        .ready()
+        .hold(this, Loadable.Loading)
 
     /** How many lessons a sweep just settled. Reported once, as a message — never replayed. */
     val swept = UiEvents<Int>()
@@ -63,20 +80,26 @@ class SettingsViewModel @Inject constructor(
     private val permissionChecks = MutableStateFlow(0)
 
     /**
-     * Whether a reminder would actually be shown — the platform's answer, next to the tutor's intent in
-     * [AppSettings.notificationsEnabled].
+     * What will actually happen to a reminder — **both** platform answers, next to the tutor's intent in
+     * [AppSettings.notificationsEnabled]. See [ReminderDelivery] for why there are two.
      *
-     * Both are needed because they can disagree, and only one of them was ever on screen. The setting is
-     * on by default; the permission is not granted by default; `AndroidNotifier` no-ops without it. So a
-     * fresh install showed «Напоминания» switched on while no reminder could ever appear, and nothing
-     * anywhere said so — the app's one time-critical feature, silently dead, reading as enabled.
+     * All three facts are needed because they can disagree, and for a long time only the first was on
+     * screen. The setting is on by default; neither permission is granted by default. So a fresh install
+     * showed «Напоминания» switched on while no reminder could appear at all — and once that was fixed, an
+     * Android 14 install showed it working while every reminder was arriving whenever Doze got round to
+     * it.
      *
      * Not a `Flow` from the platform, because there is no such thing: a permission changes while the app
      * is away, in system settings. The screen re-asks on resume through [refreshPermissions].
      */
-    val notificationsPermitted: StateFlow<Boolean> = permissionChecks
-        .map { notificationPermission.isGranted() }
-        .hold(this, true)
+    val reminderDelivery: StateFlow<ReminderDelivery> =
+        combine(settings.observe(), permissionChecks) { s, _ ->
+            ReminderDelivery.of(
+                enabled = s.notificationsEnabled,
+                permitted = notificationPermission.isGranted(),
+                exact = exactAlarms.isGranted(),
+            )
+        }.hold(this, ReminderDelivery.ON_TIME)
 
     /** What to request when [notificationsPermitted] is false; empty where there is nothing to ask. */
     val notificationPermissionsRequired: Array<String> get() = notificationPermission.required
@@ -112,7 +135,10 @@ class SettingsViewModel @Inject constructor(
      * dead end, and getting it wrong shows a dialog that can never appear.
      */
     fun notificationsIntent(on: Boolean): NotificationsIntent = when {
-        !on || notificationsPermitted.value -> NotificationsIntent.Nothing
+        // Asked of the port directly rather than read off [reminderDelivery], for the reason
+        // [setCalendarSyncEnabled] asks directly too: this is a decision made at the moment of the tap,
+        // and a `WhileSubscribed` flow's `.value` is only as fresh as its last collection.
+        !on || notificationPermission.isGranted() -> NotificationsIntent.Nothing
         notificationPermissionsRequired.isNotEmpty() ->
             NotificationsIntent.Request(notificationPermissionsRequired)
         else -> NotificationsIntent.BlockedBySystem
@@ -144,13 +170,19 @@ class SettingsViewModel @Inject constructor(
                 SettingsChange.CalendarWork.WITHDRAW -> calendar.clear()
                 SettingsChange.CalendarWork.NONE -> Unit
             }
-            if (change.replansReminders) reminders.refreshNow()
+            // One call answers both, because both are discharged by an upkeep pass: it re-derives the
+            // reminder plan and re-plans the digests from the row that has just been written.
+            if (change.replansReminders || change.replansDigests) reminders.refreshNow()
             // Run here and now, rather than by asking the scheduler to get round to it: the tutor is
             // standing in front of the switch they just flipped, and the pass has to be able to report
             // back. It re-derives the reminder plan too, so it subsumes the refresh above.
+            //
+            // `run` and not `runUnwatched`: this pass **is** watched, and reporting it twice — once in the
+            // snackbar the tutor is looking at and once in the notification tray — would be the app
+            // telling them something they had just been told.
             if (change.sweepsDueLessons) {
                 val settled = maintenance.run()
-                if (settled > 0) swept.send(settled)
+                if (settled.lessons > 0) swept.send(settled.lessons)
             }
         }
     }
@@ -226,6 +258,54 @@ enum class CalendarSyncToggle {
 
     /** Nothing changed: enabling needs the calendar permission, which isn't granted yet. */
     PERMISSION_NEEDED,
+}
+
+/**
+ * What will actually happen to a lesson reminder — the one answer the reminder row reports.
+ *
+ * A reminder needs **two** grants and they fail differently, which is why this is a named answer and not
+ * a boolean. `POST_NOTIFICATIONS` decides whether it appears at all; `SCHEDULE_EXACT_ALARM` decides
+ * whether it appears *when promised*. The second one is the one the app was silent about: it is absent by
+ * default on Android 14+, `ReminderAlarms` falls back to `setAndAllowWhileIdle` without it, and Doze may
+ * then hold the alarm until its next maintenance window. So «занятие через час» could arrive during the
+ * lesson, on a feature whose whole worth is the hour of warning, with the switch reading «включено» and
+ * the row underneath saying everything was fine.
+ *
+ * [LATE] is deliberately not a refusal. The inexact alarm is a real fallback — late is much better than
+ * never, and the app declines to demand `USE_EXACT_ALARM`, which Play reserves for alarm-clock and
+ * calendar apps. What the tutor is owed is the sentence, not a dialog.
+ *
+ * Ordered by what the tutor can do about it: [OFF] is their own choice, [BLOCKED] and [LATE] are the
+ * platform's, and a [BLOCKED] reminder has nothing to be late about — so the checks stack rather than
+ * combine.
+ */
+enum class ReminderDelivery {
+
+    /** The tutor has switched reminders off. Nothing to report about the platform. */
+    OFF,
+
+    /** On, permitted, exact — the reminder arrives when it says it will. */
+    ON_TIME,
+
+    /** On, but nothing can be posted: the permission is missing or notifications are off app-wide. */
+    BLOCKED,
+
+    /** On and permitted, but only an inexact alarm may be set, so the reminder may arrive late. */
+    LATE,
+    ;
+
+    companion object {
+        /**
+         * Pure, and therefore tested: the interesting part is the *precedence* of three booleans, and on
+         * a device two of them cannot be moved without walking through system settings.
+         */
+        fun of(enabled: Boolean, permitted: Boolean, exact: Boolean): ReminderDelivery = when {
+            !enabled -> OFF
+            !permitted -> BLOCKED
+            !exact -> LATE
+            else -> ON_TIME
+        }
+    }
 }
 
 /**

@@ -9,8 +9,10 @@ import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.testutil.MainDispatcherRule
+import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
+import com.seblful.klas.ui.common.Loadable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -45,6 +47,47 @@ class GroupFormViewModelTest {
         return ann to bob
     }
 
+    /**
+     * **An existing group's form waits for the group.** The state used to start at `UiState()`, and the
+     * form is drawn from it the moment the screen appears while `init` reads the row in a coroutine — so
+     * editing «11 А» opened on a blank name with «Обязательное поле» under it, a rate of nothing, and «У
+     * вас нет учеников» in the error red, and then filled itself in. That is the [Loadable] defect on a
+     * record that *exists*, which is the worst place for it.
+     */
+    @Test
+    fun `an existing group's form is Loading until the group has been read`() = runTest(mainRule.dispatcher) {
+        val (ann, _) = seedStudents()
+        val id = env.groupRepo.save(
+            Group(name = "11 «А»", price = Money.ofMajor(20)),
+            memberIds = setOf(ann),
+        ).id
+
+        val vm = vm(id)
+        assertEquals(Loadable.Loading, vm.state.value)
+
+        observing(vm.state)
+        advanceUntilIdle()
+
+        // And what it becomes is the group, not a blank: the pair is what says the wait ended correctly.
+        assertEquals("11 «А»", vm.state.current.form.name)
+        assertEquals(Money.ofMajor(20), vm.state.current.price)
+    }
+
+    /**
+     * A **new** group is [Loadable.Ready] as it stands: there is no record to wait for, and an empty form
+     * is what "add a group" is. Only the prefilled rate arrives late, into a field that is honest without
+     * it — so the screen must not be made to wait here, or adding a group would open on a skeleton.
+     */
+    @Test
+    fun `a new group's form is Ready without waiting`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        assertEquals("", vm.state.current.form.name)
+        assertFalse(vm.state.current.canSave)
+    }
+
     @Test
     fun `a group needs a name, a rate and at least one member`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
@@ -52,19 +95,19 @@ class GroupFormViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertFalse(vm.state.value.canSave)
+        assertFalse(vm.state.current.canSave)
 
         vm.update { it.copy(name = "11 «А»") }
         advanceUntilIdle()
-        assertFalse("a group with nobody in it can't be booked", vm.state.value.canSave)
+        assertFalse("a group with nobody in it can't be booked", vm.state.current.canSave)
 
         vm.toggleMember(ann, true)
         advanceUntilIdle()
-        assertFalse("a group that doesn't say what it costs can't be billed", vm.state.value.canSave)
+        assertFalse("a group that doesn't say what it costs can't be billed", vm.state.current.canSave)
 
         vm.update { it.copy(price = MoneyField("20")) }
         advanceUntilIdle()
-        assertTrue(vm.state.value.canSave)
+        assertTrue(vm.state.current.canSave)
     }
 
     @Test
@@ -78,12 +121,12 @@ class GroupFormViewModelTest {
         vm.toggleMember(ann, true)
         vm.update { it.copy(price = MoneyField("0")) }
         advanceUntilIdle()
-        assertTrue("a group taught for free still bills — at 0", vm.state.value.canSave)
-        assertEquals(Money.ZERO, vm.state.value.price)
+        assertTrue("a group taught for free still bills — at 0", vm.state.current.canSave)
+        assertEquals(Money.ZERO, vm.state.current.price)
 
         vm.update { it.copy(price = MoneyField("")) }
         advanceUntilIdle()
-        assertFalse(vm.state.value.canSave)
+        assertFalse(vm.state.current.canSave)
     }
 
     @Test
@@ -121,9 +164,9 @@ class GroupFormViewModelTest {
             observing(vm.state)
             advanceUntilIdle()
 
-            assertEquals("Группа", vm.state.value.form.name)
-            assertEquals(Money.ofMajor(20), vm.state.value.price)
-            assertEquals(setOf(ann), vm.state.value.form.memberIds)
+            assertEquals("Группа", vm.state.current.form.name)
+            assertEquals(Money.ofMajor(20), vm.state.current.price)
+            assertEquals(setOf(ann), vm.state.current.form.memberIds)
 
             vm.toggleMember(ann, false)
             vm.toggleMember(bob, true)
@@ -144,7 +187,7 @@ class GroupFormViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(Money.ofMajor(15), vm.state.value.price)
+        assertEquals(Money.ofMajor(15), vm.state.current.price)
     }
 
     @Test
@@ -158,8 +201,8 @@ class GroupFormViewModelTest {
 
             // 0 means "not set": pre-filling it would invent an amount, so the field stays empty and
             // the form stays invalid until the tutor says what the group costs.
-            assertEquals("", vm.state.value.form.price.text)
-            assertFalse(vm.state.value.canSave)
+            assertEquals("", vm.state.current.form.price.text)
+            assertFalse(vm.state.current.canSave)
         }
 
     /**
@@ -176,8 +219,8 @@ class GroupFormViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(Money.ofMajor(15), vm.state.value.price)
-        assertFalse("the app filled that in, not the tutor", vm.state.value.isDirty)
+        assertEquals(Money.ofMajor(15), vm.state.current.price)
+        assertFalse("the app filled that in, not the tutor", vm.state.current.isDirty)
     }
 
     /** Typing before the default lands must survive it — and must still count as unsaved work. */
@@ -191,8 +234,8 @@ class GroupFormViewModelTest {
         vm.update { it.copy(price = MoneyField.of(Money.ofMajor(25))) }
         advanceUntilIdle()
 
-        assertEquals(Money.ofMajor(25), vm.state.value.price)
-        assertTrue(vm.state.value.isDirty)
+        assertEquals(Money.ofMajor(25), vm.state.current.price)
+        assertTrue(vm.state.current.isDirty)
     }
 
     @Test
@@ -204,23 +247,23 @@ class GroupFormViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertFalse("loading a group is not editing it", vm.state.value.isDirty)
+        assertFalse("loading a group is not editing it", vm.state.current.isDirty)
 
         vm.update { it.copy(name = "11 «Б»") }
         advanceUntilIdle()
-        assertTrue(vm.state.value.isDirty)
+        assertTrue(vm.state.current.isDirty)
 
         vm.update { it.copy(name = "11 «А»") }
         advanceUntilIdle()
-        assertFalse("renamed back — nothing left to save", vm.state.value.isDirty)
+        assertFalse("renamed back — nothing left to save", vm.state.current.isDirty)
 
         vm.update { it.copy(price = MoneyField.of(Money.ofMajor(30))) }
         advanceUntilIdle()
-        assertTrue(vm.state.value.isDirty)
+        assertTrue(vm.state.current.isDirty)
 
         vm.save { }
         advanceUntilIdle()
-        assertFalse("saved is the new baseline", vm.state.value.isDirty)
+        assertFalse("saved is the new baseline", vm.state.current.isDirty)
     }
 
     @Test
@@ -233,7 +276,7 @@ class GroupFormViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals("the group's own rate, not the default for new ones", Money.ofMajor(40), vm.state.value.price)
+        assertEquals("the group's own rate, not the default for new ones", Money.ofMajor(40), vm.state.current.price)
     }
 
     @Test
@@ -247,8 +290,8 @@ class GroupFormViewModelTest {
             observing(vm.state)
             advanceUntilIdle()
 
-            assertEquals(listOf(ann, bob), vm.state.value.candidates.map { it.id })
-            assertTrue(vm.state.value.hasStudents)
+            assertEquals(listOf(ann, bob), vm.state.current.candidates.map { it.id })
+            assertTrue(vm.state.current.hasStudents)
         }
 
     @Test
@@ -260,7 +303,7 @@ class GroupFormViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(listOf(ann), vm.state.value.candidates.map { it.id })
+        assertEquals(listOf(ann), vm.state.current.candidates.map { it.id })
     }
 
     /**
@@ -318,8 +361,8 @@ class GroupFormViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertFalse("nobody left who could be billed", vm.state.value.canSave)
-        assertEquals(setOf(ann), vm.state.value.strandedMemberIds)
+        assertFalse("nobody left who could be billed", vm.state.current.canSave)
+        assertEquals(setOf(ann), vm.state.current.strandedMemberIds)
         assertEquals("nothing written, so the roster is untouched", listOf(ann), env.groupRepo.getMemberIds(id))
     }
 
@@ -355,12 +398,12 @@ class GroupFormViewModelTest {
             advanceUntilIdle()
 
             // No subject yet: everyone is a candidate.
-            assertEquals(setOf(ann, bob), vm.state.value.candidates.map { it.id }.toSet())
+            assertEquals(setOf(ann, bob), vm.state.current.candidates.map { it.id }.toSet())
 
             vm.setSubject(algebra)
             advanceUntilIdle()
 
-            assertEquals(listOf(ann), vm.state.value.candidates.map { it.id })
+            assertEquals(listOf(ann), vm.state.current.candidates.map { it.id })
         }
 
     @Test
@@ -377,13 +420,13 @@ class GroupFormViewModelTest {
             vm.toggleMember(ann, true)
             vm.toggleMember(bob, true)
             advanceUntilIdle()
-            assertEquals(2, vm.state.value.selectedMemberIds.size)
+            assertEquals(2, vm.state.current.selectedMemberIds.size)
 
             // Bob isn't priced for algebra, so he stops counting the moment the subject is chosen.
             vm.setSubject(algebra)
             advanceUntilIdle()
-            assertEquals(setOf(ann), vm.state.value.selectedMemberIds)
-            assertTrue(vm.state.value.canSave)
+            assertEquals(setOf(ann), vm.state.current.selectedMemberIds)
+            assertTrue(vm.state.current.canSave)
 
             var savedId = 0L
             vm.save { savedId = it }
@@ -408,8 +451,8 @@ class GroupFormViewModelTest {
             advanceUntilIdle()
 
             // Nobody is priced for algebra, so there is no roster to book and nothing to save.
-            assertFalse(vm.state.value.hasStudents)
-            assertFalse(vm.state.value.canSave)
+            assertFalse(vm.state.current.hasStudents)
+            assertFalse(vm.state.current.canSave)
         }
 
     /**
@@ -429,7 +472,7 @@ class GroupFormViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        val changes = vm.state.value.rateHistory
+        val changes = vm.state.current.rateHistory
         assertEquals(2, changes.size)
         assertEquals(Money.ofMajor(25), changes.first().to)
         assertTrue("the oldest row is where the rate started", changes.last().isInitial)
@@ -444,7 +487,7 @@ class GroupFormViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertTrue(vm.state.value.rateHistory.isEmpty())
+        assertTrue(vm.state.current.rateHistory.isEmpty())
     }
 
     /**
@@ -466,7 +509,7 @@ class GroupFormViewModelTest {
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()
-        assertTrue("the form loaded the flag", vm.state.value.archived)
+        assertTrue("the form loaded the flag", vm.state.current.archived)
 
         vm.update { it.copy(name = "Выпускники 2024") }
         vm.save { }

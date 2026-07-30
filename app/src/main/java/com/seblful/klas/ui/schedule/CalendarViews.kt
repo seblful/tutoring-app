@@ -31,8 +31,11 @@ import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.CalendarLayout
 import com.seblful.klas.format.shortName
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
+import com.seblful.klas.ui.common.map
+import com.seblful.klas.ui.common.valueOrNull
 import java.time.DayOfWeek
 import java.time.LocalDate
 
@@ -54,13 +57,22 @@ private val TallySpacing = 3.dp
 private val DiscToTally = 1.dp
 
 /**
+ * The bar standing in for a day's counts before they have been read: about one `labelSmall` digit wide,
+ * and faint enough to read as "not filled in yet" rather than as a mark of its own. Off the spacing scale
+ * for [TallySpacing]'s reason — it is measured against the glyph it replaces.
+ */
+private val TallyPlaceholderWidth = 10.dp
+private val TallyPlaceholderHeight = 4.dp
+private const val TallyPlaceholderAlpha = 0.18f
+
+/**
  * A month page: weekday headers over rows of day cells, each marked with a per-status count of its
  * classes. Tapping a cell selects that day; the class list below shows it.
  */
 @Composable
 fun MonthCalendar(
     grid: CalendarLayout.MonthGrid,
-    loads: Map<LocalDate, CalendarLayout.DayLoad>,
+    loads: Loadable<Map<LocalDate, CalendarLayout.DayLoad>>,
     selected: LocalDate,
     today: LocalDate,
     onSelect: (LocalDate) -> Unit,
@@ -73,7 +85,7 @@ fun MonthCalendar(
                 week.forEach { date ->
                     DayCell(
                         date = date,
-                        load = loads[date],
+                        load = loads.map { it[date] },
                         inMonth = grid.isInMonth(date),
                         isSelected = date == selected,
                         isToday = date == today,
@@ -93,7 +105,7 @@ fun MonthCalendar(
 @Composable
 fun WeekStrip(
     days: List<LocalDate>,
-    loads: Map<LocalDate, CalendarLayout.DayLoad>,
+    loads: Loadable<Map<LocalDate, CalendarLayout.DayLoad>>,
     selected: LocalDate,
     today: LocalDate,
     onSelect: (LocalDate) -> Unit,
@@ -105,7 +117,7 @@ fun WeekStrip(
             days.forEach { date ->
                 DayCell(
                     date = date,
-                    load = loads[date],
+                    load = loads.map { it[date] },
                     inMonth = true,
                     isSelected = date == selected,
                     isToday = date == today,
@@ -141,7 +153,7 @@ private fun WeekdayHeader(week: List<LocalDate>) {
 @Composable
 private fun DayCell(
     date: LocalDate,
-    load: CalendarLayout.DayLoad?,
+    load: Loadable<CalendarLayout.DayLoad?>,
     inMonth: Boolean,
     isSelected: Boolean,
     isToday: Boolean,
@@ -158,8 +170,9 @@ private fun DayCell(
         else -> scheme.onSurfaceVariant.copy(alpha = 0.5f)
     }
     // Spoken as "15, 2 занятия, 1 Запланировано, 1 Отменено" — the tallies carry that breakdown
-    // visually through colour alone, which a screen reader cannot convey, so it must be said.
-    val cellDescription = load?.let { dayLoad ->
+    // visually through colour alone, which a screen reader cannot convey, so it must be said. A cell
+    // whose counts have not arrived says only its date, which is all that is known about it.
+    val cellDescription = load.valueOrNull()?.let { dayLoad ->
         val total = pluralStringResource(R.plurals.lessons_count, dayLoad.total, dayLoad.total)
         val breakdown = dayLoad.tallies.map { "${it.count} ${classStatusLabel(it.status)}" }
         (listOf(date.dayOfMonth.toString(), total) + breakdown).joinToString(", ")
@@ -215,9 +228,30 @@ private fun DayCell(
  * *below* the day-number disc rather than inside it is what keeps those colours readable on the
  * selected day and leaves room for a two-digit count. Always reserves its row's height so day
  * numbers stay on the same baseline whether or not the day has classes.
+ *
+ * **A day with no counts yet is not a day with no lessons**, and in a grid the difference is invisible
+ * unless something is drawn: an empty cell is how this calendar says «свободно», so until the query
+ * answers, one dim bar stands where the numbers will be. That bar is deliberately **not** a
+ * `SkeletonBlock` — the pulse is an `rememberInfiniteTransition` each, and a month grid would start
+ * thirty-five of them to animate something the size of a digit.
  */
 @Composable
-private fun DayTallies(load: CalendarLayout.DayLoad?) {
+private fun DayTallies(load: Loadable<CalendarLayout.DayLoad?>) {
+    if (load is Loadable.Loading) {
+        Row(
+            Modifier.fillMaxWidth().height(TallyRowHeight),
+            horizontalArrangement = Arrangement.spacedBy(TallySpacing, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier
+                    .size(width = TallyPlaceholderWidth, height = TallyPlaceholderHeight)
+                    .clip(MaterialTheme.shapes.extraSmall)
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = TallyPlaceholderAlpha)),
+            )
+        }
+        return
+    }
     Row(
         // `fillMaxWidth` bounds the row to its **cell**, which a wrap-content row is not: three
         // two-digit tallies at a large font scale measured wider than a seventh of a phone and drew
@@ -227,7 +261,7 @@ private fun DayTallies(load: CalendarLayout.DayLoad?) {
         horizontalArrangement = Arrangement.spacedBy(TallySpacing, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        load?.tallies?.forEach { tally ->
+        load.valueOrNull()?.tallies?.forEach { tally ->
             Text(
                 text = tally.count.toString(),
                 style = MaterialTheme.typography.labelSmall,

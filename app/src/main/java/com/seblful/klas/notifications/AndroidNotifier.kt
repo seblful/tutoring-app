@@ -11,13 +11,17 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
+import com.seblful.klas.domain.Digests
+import com.seblful.klas.domain.model.Currency
+import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.format.daySummaryText
 import com.seblful.klas.format.formatTime
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Creates the reminder channel and posts class-reminder notifications through the platform. */
+/** Creates the app's channels and posts every notification it sends through the platform. */
 @Singleton
 class AndroidNotifier @Inject constructor(
     @param:ApplicationContext private val context: Context,
@@ -30,49 +34,89 @@ class AndroidNotifier @Inject constructor(
     private val permission: NotificationPermission,
 ) : Notifier {
 
-    override fun ensureChannel() {
+    override fun ensureChannels() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val channel = NotificationChannel(
-            CHANNEL_REMINDERS,
-            context.getString(R.string.reminder_channel_name),
-            NotificationManager.IMPORTANCE_HIGH,
-        ).apply { description = context.getString(R.string.reminder_channel_desc) }
-        context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+        val manager = context.getSystemService(NotificationManager::class.java)
+        // One channel per kind, so each can be tuned or silenced on its own in system settings. The
+        // importances are the difference between them stated in the platform's own terms: a reminder
+        // interrupts because a lesson is about to start, a digest arrives at an hour the tutor chose, and
+        // the upkeep report is news about something already done.
+        manager.createNotificationChannel(
+            channel(
+                CHANNEL_REMINDERS,
+                R.string.reminder_channel_name,
+                R.string.reminder_channel_desc,
+                NotificationManager.IMPORTANCE_HIGH,
+            ),
+        )
+        manager.createNotificationChannel(
+            channel(
+                CHANNEL_AGENDA,
+                R.string.agenda_channel_name,
+                R.string.agenda_channel_desc,
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ),
+        )
+        manager.createNotificationChannel(
+            channel(
+                CHANNEL_DEBTS,
+                R.string.debts_channel_name,
+                R.string.debts_channel_desc,
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ),
+        )
+        manager.createNotificationChannel(
+            channel(
+                CHANNEL_UPKEEP,
+                R.string.upkeep_channel_name,
+                R.string.upkeep_channel_desc,
+                // LOW: no sound, no peek. The tutor is being told what the app did while they were away,
+                // which is worth being able to read and never worth interrupting anything for.
+                NotificationManager.IMPORTANCE_LOW,
+            ),
+        )
     }
+
+    /**
+     * Vibration and sound are left to the channel's importance — **the phone's answer, not this app's.**
+     *
+     * No `setVibrationPattern` and no `setSound` anywhere here, for the same reason `ui/common/Haptics`
+     * refuses to touch `Vibrator`: a duration this app invented would override the device's own haptic
+     * strength and whatever the tutor has already chosen for it. `IMPORTANCE_HIGH` and
+     * `IMPORTANCE_DEFAULT` vibrate by default; `IMPORTANCE_LOW` does not. That is the whole of the app's
+     * opinion on the subject, and it is expressed in the one vocabulary system settings also speaks.
+     */
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.O)
+    private fun channel(id: String, nameRes: Int, descRes: Int, importance: Int): NotificationChannel =
+        NotificationChannel(id, context.getString(nameRes), importance)
+            .apply { description = context.getString(descRes) }
 
     /** No-ops silently if notification permission is missing. */
     override fun showClassReminder(klass: TutoringClass, whoName: String, subjectName: String) {
         if (!permission.isGranted()) return
-        ensureChannel()
+        ensureChannels()
 
         // 12- or 24-hour from the phone, like every other time the tutor is shown. A reminder is read
         // *on* the phone — it is only "not a screen" in the sense that this class draws it, and the
         // first pass at following the system clock drew the line there and missed this. A lesson booked
         // at 9:00 PM was announced as «21:00»: one clock to set it on and another to be reminded of it.
-        val time = klass.start.formatTime(hour12 = !DateFormat.is24HourFormat(context))
-        val title = context.getString(R.string.reminder_title)
-        val headline = listOf(time, subjectName, whoName)
-            .filter { it.isNotBlank() }
-            .joinToString(" · ")
-
-        val intent = Intent(context, MainActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        val openApp = PendingIntent.getActivity(
-            context,
-            klass.id.toInt(),
-            intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
+        val time = klass.start.formatTime(hour12 = hour12())
+        val headline = joined(time, subjectName, whoName)
 
         val notification = NotificationCompat.Builder(context, CHANNEL_REMINDERS)
             .setSmallIcon(R.drawable.ic_stat_reminder)
-            .setContentTitle(title)
+            .setContentTitle(context.getString(R.string.reminder_title))
             .setContentText(headline)
             .setStyle(NotificationCompat.BigTextStyle().bigText(headline))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
-            .setContentIntent(openApp)
+            .setContentIntent(openApp(klass.id.toInt()))
+            // Reminders stack: a tutor with back-to-back lessons can have two or three in the tray at
+            // once, and un-grouped they sit among everything else the phone has to say. Grouping is only
+            // half of it — Android needs a *summary* to collapse them under, which is why [remindersSummary]
+            // is posted straight after this one.
+            .setGroup(GROUP_REMINDERS)
             // The two things a tutor does about the lesson they have just been reminded of, in the order
             // the reminder makes them likely: it happened, or it has to move. Same words as the schedule's
             // own actions — «Проведено» and «Перенести» are one idea each, so they are one string each.
@@ -80,16 +124,144 @@ class AndroidNotifier @Inject constructor(
             .addAction(rescheduleAction(klass.id))
             .build()
 
-        // Guarded above; still defend against revocation between check and post.
+        post(klass.id.toInt(), notification)
+        remindersSummary()
+    }
+
+    override fun cancelClassReminder(classId: Long) {
+        NotificationManagerCompat.from(context).cancel(classId.toInt())
+    }
+
+    /**
+     * The tray entry several reminders collapse under.
+     *
+     * A group needs one or the members are drawn as ordinary separate notifications on Android 7 through
+     * 11 — the grouping is silently ignored without it. It carries no actions and no time of its own,
+     * because it is not about a lesson: «Проведено» on a summary of three lessons could only guess which.
+     *
+     * Re-posted with every reminder rather than tracked, since posting the same id twice updates in place,
+     * and it is `setOnlyAlertOnce` so a second reminder arriving does not make the summary buzz again on
+     * top of it. It is not cancelled anywhere: the platform removes a summary once its last child is gone.
+     */
+    private fun remindersSummary() {
+        val summary = NotificationCompat.Builder(context, CHANNEL_REMINDERS)
+            .setSmallIcon(R.drawable.ic_stat_reminder)
+            .setContentTitle(context.getString(R.string.reminder_title))
+            .setGroup(GROUP_REMINDERS)
+            .setGroupSummary(true)
+            .setOnlyAlertOnce(true)
+            .setAutoCancel(true)
+            .setContentIntent(openApp(ID_REMINDERS_SUMMARY))
+            .build()
+        post(ID_REMINDERS_SUMMARY, summary)
+    }
+
+    override fun showAgenda(agenda: Digests.Agenda, currency: Currency) {
+        if (!permission.isGranted()) return
+        ensureChannels()
+
+        val lines = agenda.lessons.map { joined(it.start.formatTime(hour12 = hour12()), it.subject, it.who) }
+        // InboxStyle rather than BigTextStyle: this is a *list*, and the platform draws each line as one
+        // and elides the ones that do not fit rather than truncating the middle of a sentence. It shows
+        // about six, so a fuller day says how many more it is not naming instead of stopping mid-morning.
+        val style = NotificationCompat.InboxStyle()
+        lines.take(MAX_AGENDA_LINES).forEach { style.addLine(it) }
+        if (lines.size > MAX_AGENDA_LINES) {
+            style.setSummaryText(
+                context.getString(R.string.agenda_more, lines.size - MAX_AGENDA_LINES),
+            )
+        }
+
+        // The same sentence the schedule prints under the day it names — see [daySummaryText]. Never
+        // null here: `Agenda.isWorthPosting` has already refused an empty day, and it is the only way in.
+        val summary = daySummaryText(context.resources, agenda.summary, currency).orEmpty()
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_AGENDA)
+            .setSmallIcon(R.drawable.ic_stat_reminder)
+            .setContentTitle(context.getString(R.string.agenda_title))
+            .setContentText(summary)
+            .setStyle(style)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setAutoCancel(true)
+            .setContentIntent(openApp(ID_AGENDA))
+            .build()
+
+        post(ID_AGENDA, notification)
+    }
+
+    override fun showDebts(debts: Digests.Debts, currency: Currency) {
+        if (!permission.isGranted()) return
+        ensureChannels()
+
+        val body = joined(
+            context.resources.getQuantityString(R.plurals.students_count, debts.students, debts.students),
+            debts.total.format(currency),
+        )
+        val notification = NotificationCompat.Builder(context, CHANNEL_DEBTS)
+            .setSmallIcon(R.drawable.ic_stat_reminder)
+            .setContentTitle(context.getString(R.string.debts_title))
+            .setContentText(body)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setAutoCancel(true)
+            // Straight to the report that lists them, where each debt row opens the student — the tray can
+            // say how much is owed in total and nothing at all about by whom.
+            .setContentIntent(openApp(ID_DEBTS, TrayNavigation.ACTION_OPEN_DEBTS))
+            .build()
+
+        post(ID_DEBTS, notification)
+    }
+
+    override fun showAutoCompleted(lessons: Int, billed: Money, currency: Currency) {
+        if (!permission.isGranted()) return
+        ensureChannels()
+
+        val body = joined(
+            context.resources.getQuantityString(R.plurals.lessons_count, lessons, lessons),
+            billed.format(currency),
+        )
+        val notification = NotificationCompat.Builder(context, CHANNEL_UPKEEP)
+            .setSmallIcon(R.drawable.ic_stat_reminder)
+            .setContentTitle(context.getString(R.string.upkeep_completed_title))
+            .setContentText(body)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setAutoCancel(true)
+            .setContentIntent(openApp(ID_UPKEEP))
+            .build()
+
+        post(ID_UPKEEP, notification)
+    }
+
+    /**
+     * Posts [notification], defending against the permission being revoked between the check at the top of
+     * each method and the post at the bottom of it.
+     */
+    private fun post(id: Int, notification: android.app.Notification) {
         try {
-            NotificationManagerCompat.from(context).notify(klass.id.toInt(), notification)
+            NotificationManagerCompat.from(context).notify(id, notification)
         } catch (_: SecurityException) {
             // Notification permission was revoked — nothing to show.
         }
     }
 
-    override fun cancelClassReminder(classId: Long) {
-        NotificationManagerCompat.from(context).cancel(classId.toInt())
+    /** «21:00 · Математика · Иван Петров», skipping whatever is not known. */
+    private fun joined(vararg parts: String): String =
+        parts.filter { it.isNotBlank() }.joinToString(" · ")
+
+    /** The phone's clock, asked here because a notification has no composition to ask it in. */
+    private fun hour12(): Boolean = !DateFormat.is24HourFormat(context)
+
+    /**
+     * Opening the app from a tray entry.
+     *
+     * `FLAG_ACTIVITY_SINGLE_TOP` so a notification never stacks a second copy of the one activity on top
+     * of the app the tutor already has open. [action] carries where to land when it is somewhere other
+     * than wherever they left off — see [TrayNavigation].
+     */
+    private fun openApp(requestCode: Int, action: String? = null): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            .apply { action?.let { setAction(it) } }
+        return PendingIntent.getActivity(context, requestCode, intent, FLAGS)
     }
 
     /**
@@ -112,15 +284,12 @@ class AndroidNotifier @Inject constructor(
     /**
      * «Перенести» — opens the lesson, because a new time cannot be picked from a notification. The
      * tutor lands on the lesson's own screen with its date and time, which is where the app moves a
-     * lesson anyway; see [ReminderNavigation] for the rule that reads this back.
-     *
-     * `FLAG_ACTIVITY_SINGLE_TOP` for the reason it is on the tap-to-open intent too — a reminder must
-     * not stack a second copy of the one activity on top of the app the tutor already has open.
+     * lesson anyway; see [TrayNavigation] for the rule that reads this back.
      */
     private fun rescheduleAction(classId: Long): NotificationCompat.Action {
         val intent = Intent(context, MainActivity::class.java)
-            .setAction(ReminderNavigation.ACTION_OPEN_LESSON)
-            .putExtra(ReminderNavigation.EXTRA_CLASS_ID, classId)
+            .setAction(TrayNavigation.ACTION_OPEN_LESSON)
+            .putExtra(TrayNavigation.EXTRA_CLASS_ID, classId)
             .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
         return action(
             R.string.class_move,
@@ -137,6 +306,26 @@ class AndroidNotifier @Inject constructor(
 
     companion object {
         const val CHANNEL_REMINDERS = "class_reminders"
+        const val CHANNEL_AGENDA = "daily_agenda"
+        const val CHANNEL_DEBTS = "debt_digest"
+        const val CHANNEL_UPKEEP = "upkeep_report"
+
+        /** What several lesson reminders collapse under in the tray. */
+        private const val GROUP_REMINDERS = "com.seblful.klas.REMINDERS"
+
+        /**
+         * The ids of the notifications there is only ever one of, kept **negative** so they cannot
+         * collide with a reminder's — a reminder is identified by its class id, and those are positive
+         * `AUTOINCREMENT` row ids. Nothing else needs saying about the numbers themselves; what matters is
+         * that the space they come from is disjoint from the one the database allocates.
+         */
+        private const val ID_REMINDERS_SUMMARY = -1
+        private const val ID_AGENDA = -2
+        private const val ID_DEBTS = -3
+        private const val ID_UPKEEP = -4
+
+        /** About what an `InboxStyle` actually draws before the platform starts eliding lines. */
+        private const val MAX_AGENDA_LINES = 6
 
         /**
          * `UPDATE_CURRENT` so a re-posted reminder carries the lesson's current id in its extras rather

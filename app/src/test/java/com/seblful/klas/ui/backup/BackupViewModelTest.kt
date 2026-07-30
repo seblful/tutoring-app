@@ -6,7 +6,9 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.testutil.FakeDocumentStore
 import com.seblful.klas.testutil.MainDispatcherRule
+import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.ui.common.Loadable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -103,20 +105,28 @@ class BackupViewModelTest {
             assertNull(env.settingsRepo.get().lastExportAt)
         }
 
-    /** Never exported is a state the screen says out loud, so it has to survive being asked for. */
+    /**
+     * Never exported is a state the screen says out loud, so it has to survive being asked for — and it
+     * must be **said only about a row that was read**. «Копий ещё не было» is the sentence this screen
+     * exists to make, and an initial `null` made it to every tutor for the frame or two before the row
+     * arrived, including the ones who exported yesterday. `Loading` and never-exported are the same value
+     * without [Loadable], and only one of them is a warning.
+     */
     @Test
-    fun `nothing exported yet reads as never`() = runTest(mainRule.dispatcher) {
+    fun `nothing exported yet reads as never, and only once the row has been read`() = runTest(mainRule.dispatcher) {
         val vm = vm()
+        assertEquals(Loadable.Loading, vm.lastExportAt.value)
+
         val job = backgroundScope.launch { vm.lastExportAt.collect {} }
         advanceUntilIdle()
 
-        assertNull(vm.lastExportAt.value)
+        assertNull("read, and genuinely never exported", vm.lastExportAt.current)
 
         vm.export(ref)
         advanceUntilIdle()
         job.cancel()
 
-        assertEquals(exportedAt, vm.lastExportAt.value)
+        assertEquals(exportedAt, vm.lastExportAt.current)
     }
 
     @Test

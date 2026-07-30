@@ -12,6 +12,7 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.LeavableForm
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.derive
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -51,7 +52,17 @@ class StudentFormViewModel @Inject constructor(
 
     data class UiState(
         val form: Form = Form(),
-        val allSubjects: List<Subject> = emptyList(),
+        /**
+         * Everything the tutor teaches, to tick a price against — [Loadable], while the rest of this
+         * state is not.
+         *
+         * The split is the point. A blank name and an empty phone box are what "add a student" *is*, so
+         * the form is honest before anything has been read and must not be withheld; the subject list is
+         * a read of the database, and empty is a **refusal** on this screen — «Сначала добавьте
+         * предметы», in the error red, which is what a tutor with nine subjects saw for the frame or two
+         * before they arrived. So only the list waits. See [Loadable].
+         */
+        val allSubjects: Loadable<List<Subject>> = Loadable.Loading,
     ) : LeavableForm {
         val selectedSubjectIds: Set<Long> get() = form.subjectPrices.keys
 
@@ -75,7 +86,9 @@ class StudentFormViewModel @Inject constructor(
     val state: StateFlow<UiState> = combine(
         form,
         subjectsRepo.observeAll(),
-    ) { f, subjects -> UiState(f, subjects) }
+    ) { f, subjects -> UiState(f, Loadable.Ready(subjects)) }
+        // The form itself is usable from the first frame, so the state is not wrapped — the one part of it
+        // that has to have been read carries its own answer (see [UiState.allSubjects]).
         .derive(this, computation, UiState())
 
     fun update(transform: (Form) -> Form) {

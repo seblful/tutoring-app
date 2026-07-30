@@ -33,10 +33,13 @@ import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.ShowMessagesFor
+import com.seblful.klas.ui.common.SkeletonBlock
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.rememberMessages
+import androidx.compose.ui.unit.dp
 import java.time.Instant
 
 /**
@@ -88,7 +91,16 @@ fun BackupScreen(
             // The app knew it and threw it away; now it keeps it (`AppSettings.lastExportAt`) and leads
             // with it, because it is the only thing here that is about the tutor rather than about the
             // buttons.
-            LastExportCard(lastExportAt)
+            // Only this card waits. The two rows under it are things to *do* and they can be done before
+            // the receipt has been read — a screen that withholds «Экспорт» while it works out whether the
+            // tutor has a copy is withholding the way to make one.
+            when (val loaded = lastExportAt) {
+                Loadable.Loading -> SkeletonBlock(
+                    LastExportCardHeight,
+                    Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
+                )
+                is Loadable.Ready -> LastExportCard(loaded.value)
+            }
             ListItem(
                 leadingContent = { Icon(Icons.Outlined.Upload, null) },
                 headlineContent = { Text(stringResource(R.string.backup_export)) },
@@ -113,6 +125,13 @@ fun BackupScreen(
         )
     }
 }
+
+/**
+ * The height [LastExportCard] comes to: an icon beside a `titleSmall` over a `bodySmall`, at
+ * [Spacing.gutter] all round. Measured off that card rather than set to the spacing scale, for the reason
+ * `Skeleton.kt`'s own row heights are — it stands in for something whose size is not its own choice.
+ */
+private val LastExportCardHeight = 84.dp
 
 /**
  * «Последняя копия: 20 июня 2026» — or «Копий ещё не было», which is the version that matters.

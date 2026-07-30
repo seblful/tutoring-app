@@ -965,6 +965,11 @@ fun AvatarStack(
  * The whole row is one toggle rather than a row containing a checkbox, so the target is the full
  * width and comfortably past the 48dp minimum — the checkbox itself is `onCheckedChange = null`,
  * which makes it a picture of the state instead of a second, smaller way to change it.
+ *
+ * **The tick is felt**, and here rather than at the two call sites for the reason the row itself is shared:
+ * this is one act, and it changes a stored fact — who is on a roster, who was at a lesson. That is what
+ * earns a haptic, whereas the row being *tappable* would not; and because the whole row is the target, a
+ * thumb covers the checkbox it just changed, so the buzz is often the only immediate answer.
  */
 @Composable
 fun MemberPickRow(
@@ -973,6 +978,7 @@ fun MemberPickRow(
     onToggle: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val toggleFeedback = rememberToggleFeedback()
     Row(
         modifier
             .fillMaxWidth()
@@ -981,7 +987,7 @@ fun MemberPickRow(
                 if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
                 else Color.Transparent
             )
-            .toggleable(value = selected, onValueChange = onToggle)
+            .toggleable(value = selected, onValueChange = { on -> toggleFeedback(on); onToggle(on) })
             .heightIn(min = MinTouchTarget)
             .padding(horizontal = Spacing.inline, vertical = Spacing.tight),
         verticalAlignment = Alignment.CenterVertically,

@@ -32,6 +32,32 @@ object Reports {
     /** A student's outstanding debt (only students who actually owe appear). */
     data class Debt(val student: StudentId, val amount: Money)
 
+    /**
+     * **What is owed, as a whole**: how many students are in the red and what it adds up to.
+     *
+     * A named answer rather than two calls to the aggregations below, because there is a second reader of
+     * those numbers now — the weekly debt digest — and it is outside a report. `ReportsSurfaceTest` exists
+     * to stop exactly that: a caller reaching past [of] for pieces of a report and reassembling them puts
+     * the decisions about what a report *is* somewhere a report is not tested. The digest wants a summary
+     * and not a report, so the summary is a thing this module names.
+     *
+     * A [total] with no [students] behind it is not expressible here, which is the useful part: the two
+     * figures always come from one pass over one list of balances, so the tray cannot say «0 учеников ·
+     * 540 BYN».
+     */
+    data class Outstanding(val students: Int, val total: Money) {
+
+        companion object {
+            /**
+             * Sums [balances] — which must already be the students the caller means, since who counts is
+             * not this type's rule. The debt digest passes the **active** ones, by the same rule the
+             * reports follow: archiving is how a tutor says they have stopped teaching somebody.
+             */
+            fun of(balances: List<StudentBalance>): Outstanding =
+                Outstanding(students = debts(balances).size, total = totalOutstanding(balances))
+        }
+    }
+
     /** Income from one kind of teaching — see [incomeByKind]. */
     data class KindIncome(val kind: LessonKind, val total: Money)
 

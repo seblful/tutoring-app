@@ -18,8 +18,10 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.ui.common.LeavableForm
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.derive
+import com.seblful.klas.ui.common.valueOrNull
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -177,6 +179,21 @@ class GroupFormViewModel @Inject constructor(
     private val pristine = MutableStateFlow(Form())
 
     /**
+     * Whether the app has finished putting values into the form — what makes [state] [Loadable.Ready].
+     *
+     * A new group is filled in from the moment it exists: there is no record to read, and the prefilled
+     * rate is written into a blank field that is honest without it. An **existing** group is not, and the
+     * gap was visible: `init` reads it in a coroutine, so the screen was already up, drawing `UiState()`
+     * — a blank name with «Обязательное поле» under it, a rate of nothing, and «У вас нет учеников» in
+     * the error red — over a group with six of them. That is the same defect [Loadable] was added for on
+     * the list screens, in the one place where the wrong answer is about a record that *does* exist.
+     *
+     * Separate from [pristine], which asks a different question: this one is "has the app finished", that
+     * one is "what did the app put there", and only the second survives the tutor typing over it.
+     */
+    private val filled = MutableStateFlow(isNew)
+
+    /**
      * Ids priced for the chosen subject, or null while there is no subject (meaning "no restriction").
      * Re-queried whenever the subject changes, so enrolling a student elsewhere shows up here at once.
      */
@@ -192,7 +209,7 @@ class GroupFormViewModel @Inject constructor(
     private val edited: Flow<Pair<Form, Boolean>> =
         combine(form, pristine) { f, p -> f to (f != p) }
 
-    val state: StateFlow<UiState> = combine(
+    val state: StateFlow<Loadable<UiState>> = combine(
         edited,
         students.observeActive(),
         subjects.observeAll(),
@@ -213,7 +230,13 @@ class GroupFormViewModel @Inject constructor(
             state, changes ->
             state.copy(rateHistory = changes)
         }
-        .derive(this, computation, UiState())
+        // Nothing above this line can emit before the students and the subjects have been read — a
+        // `combine` waits for every source — so [filled] is the only question left: whether the *group*
+        // has arrived in the form. Both halves matter, and the initial value is what says so.
+        .combine(filled) { state, isFilled ->
+            if (isFilled) Loadable.Ready(state) else Loadable.Loading
+        }
+        .derive(this, computation, Loadable.Loading)
 
     init {
         if (!isNew) {
@@ -230,6 +253,9 @@ class GroupFormViewModel @Inject constructor(
                     )
                     pristine.value = form.value
                 }
+                // Outside the `let`, so a group that is no longer there still opens: it is an empty form
+                // rather than a screen waiting on a skeleton for a row that will never arrive.
+                filled.value = true
             }
         } else {
             // Pre-fill the tutor's usual group rate, when they have set one — and only into an
@@ -277,7 +303,9 @@ class GroupFormViewModel @Inject constructor(
      * the next save of the group — a rename included — is what drops them.
      */
     fun save(onSaved: (Long) -> Unit) {
-        val s = state.value
+        // A form that has not loaded holds nothing to save — and the screen offers no save button while
+        // it is drawing a skeleton, so this is the belt to that braces.
+        val s = state.value.valueOrNull() ?: return
         if (!s.canSave) return
         // The rate `canSave` has just proved, taken as a value instead of re-asserted with `!!` — the
         // same check twice is the same check drifting apart.

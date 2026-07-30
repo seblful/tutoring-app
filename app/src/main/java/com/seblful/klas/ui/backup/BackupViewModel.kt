@@ -11,8 +11,10 @@ import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentStore
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.hold
+import com.seblful.klas.ui.common.ready
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -52,9 +54,17 @@ class BackupViewModel @Inject constructor(
      * the last copy was made is the single most valuable fact in that promise, and the app knew it and
      * threw it away.
      */
-    val lastExportAt: StateFlow<Instant?> = settings.observe()
+    /**
+     * ...and [Loadable], because **null is the answer that matters here.** «Копий ещё не было» is the
+     * sentence this screen exists to make, tinted so it is the one thing on it worth acting on today — and
+     * an initial `null` said it to every tutor for the frame or two before the row was read, including the
+     * ones who exported yesterday. Loading and never-exported are the same value without this, and only
+     * one of them is a warning. See [Loadable].
+     */
+    val lastExportAt: StateFlow<Loadable<Instant?>> = settings.observe()
         .map { it.lastExportAt }
-        .hold(this, null)
+        .ready()
+        .hold(this, Loadable.Loading)
 
     /**
      * Writes the snapshot, then **records that it happened** — in that order, and only if it did.

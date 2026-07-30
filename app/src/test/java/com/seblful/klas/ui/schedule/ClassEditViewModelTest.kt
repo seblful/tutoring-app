@@ -16,8 +16,10 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.testutil.MainDispatcherRule
+import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
+import com.seblful.klas.ui.common.Loadable
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -70,6 +72,66 @@ class ClassEditViewModelTest {
         val subjectId = env.subjectDao.upsert(SubjectEntity(name = subjectName))
         env.priceDao.upsert(PriceEntity(studentId, subjectId, price.minor))
         return studentId to subjectId
+    }
+
+    // --- Whether the form has arrived ---
+
+    /**
+     * **A lesson being edited waits for itself.** The state used to start at `ClassFormState(isNew)`,
+     * which the screen draws the instant it appears while [ClassEditViewModel.loadExisting] is still a
+     * coroutine — so «Перенести» on Борис's Tuesday opened with no student, no subject, today's date and
+     * the default length, then replaced all four. See `ui/common/Loadable.kt`.
+     */
+    @Test
+    fun `an existing lesson's form is Loading until the lesson has been read`() = runTest(mainRule.dispatcher) {
+        val date = LocalDate.now(zone).plusDays(2)
+        val (_, id) = seedLesson(date, LocalTime.of(14, 0))
+
+        val vm = vm(id)
+        assertEquals(Loadable.Loading, vm.state.value)
+
+        observing(vm.state)
+        advanceUntilIdle()
+
+        val state = vm.state.current
+        assertEquals(date, state.form.date)
+        assertEquals(LocalTime.of(14, 0), state.form.timeFrom)
+    }
+
+    /**
+     * And it waits for the **pickers** too, not only for the lesson — because the pickers are where the
+     * form reads the names it shows. `state.students.firstOrNull { it.id == form.studentId }?.name` over a
+     * list that has merely not been read yet is an empty «Ученик» field on a lesson that has one, which is
+     * the same lie one frame later. So the first thing the screen is ever handed already names its lesson.
+     */
+    @Test
+    fun `the form's first Ready state already names the lesson's student`() = runTest(mainRule.dispatcher) {
+        val date = LocalDate.now(zone).plusDays(2)
+        val (studentId, id) = seedLesson(date, LocalTime.of(14, 0), studentName = "Борис")
+
+        val vm = vm(id)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        val state = vm.state.current
+        assertEquals(studentId, state.form.studentId)
+        assertEquals(
+            "the picker the field reads the name out of has arrived with it",
+            "Борис",
+            state.students.firstOrNull { it.id == state.form.studentId }?.name,
+        )
+    }
+
+    /** A new booking is [Loadable.Ready] at once: a blank form is what booking a lesson starts as. */
+    @Test
+    fun `a new booking is Ready without waiting`() = runTest(mainRule.dispatcher) {
+        seedStudentWithPricedSubject()
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        assertFalse(vm.state.current.canSave)
+        assertNull(vm.state.current.form.date)
     }
 
     // --- ClassForm validation (pure) ---
@@ -284,9 +346,9 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(studentId, vm.state.value.form.studentId)
-        assertEquals(subjectId, vm.state.value.form.subjectId)
-        assertEquals("30", vm.state.value.form.price.text)
+        assertEquals(studentId, vm.state.current.form.studentId)
+        assertEquals(subjectId, vm.state.current.form.subjectId)
+        assertEquals("30", vm.state.current.form.price.text)
     }
 
     /**
@@ -339,9 +401,9 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         // A student and a subject have been chosen — by the app, not by anybody.
-        assertNotNull(vm.state.value.form.studentId)
-        assertNotNull(vm.state.value.form.subjectId)
-        assertFalse(vm.state.value.isDirty)
+        assertNotNull(vm.state.current.form.studentId)
+        assertNotNull(vm.state.current.form.subjectId)
+        assertFalse(vm.state.current.isDirty)
     }
 
     @Test
@@ -357,10 +419,10 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(ClassTarget.GROUP, vm.state.value.form.target)
-        assertEquals(groupId, vm.state.value.form.groupId)
-        assertEquals("the group's rate was prefilled", "20", vm.state.value.form.price.text)
-        assertFalse("opening the form from a group is not editing it", vm.state.value.isDirty)
+        assertEquals(ClassTarget.GROUP, vm.state.current.form.target)
+        assertEquals(groupId, vm.state.current.form.groupId)
+        assertEquals("the group's rate was prefilled", "20", vm.state.current.form.price.text)
+        assertFalse("opening the form from a group is not editing it", vm.state.current.isDirty)
     }
 
     @Test
@@ -378,16 +440,16 @@ class ClassEditViewModelTest {
             observing(vm.state)
             advanceUntilIdle()
 
-            assertEquals(LocalTime.of(10, 0), vm.state.value.form.timeFrom)
-            assertFalse("loading the lesson is not editing it", vm.state.value.isDirty)
+            assertEquals(LocalTime.of(10, 0), vm.state.current.form.timeFrom)
+            assertFalse("loading the lesson is not editing it", vm.state.current.isDirty)
 
             vm.change(BookingIntent.StartAt(LocalTime.of(11, 0)))
             advanceUntilIdle()
-            assertTrue(vm.state.value.isDirty)
+            assertTrue(vm.state.current.isDirty)
 
             vm.save { }
             advanceUntilIdle()
-            assertFalse("there is nothing unsaved left", vm.state.value.isDirty)
+            assertFalse("there is nothing unsaved left", vm.state.current.isDirty)
         }
 
     @Test
@@ -398,7 +460,7 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertNull(vm.state.value.form.studentId)
+        assertNull(vm.state.current.form.studentId)
     }
 
     @Test
@@ -414,10 +476,10 @@ class ClassEditViewModelTest {
         vm.change(BookingIntent.ChooseStudent(remoteId))
         advanceUntilIdle()
 
-        assertEquals(remoteId, vm.state.value.form.studentId)
-        assertNull(vm.state.value.form.subjectId)
-        assertEquals("", vm.state.value.form.price.text)
-        assertEquals(ClassMode.REMOTE, vm.state.value.form.mode)
+        assertEquals(remoteId, vm.state.current.form.studentId)
+        assertNull(vm.state.current.form.subjectId)
+        assertEquals("", vm.state.current.form.price.text)
+        assertEquals(ClassMode.REMOTE, vm.state.current.form.mode)
     }
 
     @Test
@@ -436,12 +498,12 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
         vm.change(BookingIntent.ChooseSubject(math))
         advanceUntilIdle()
-        assertEquals("30", vm.state.value.form.price.text)
+        assertEquals("30", vm.state.current.form.price.text)
 
         // Switching subject keeps a price the user already has — selectSubject only fills an empty field.
         vm.change(BookingIntent.ChooseSubject(physics))
         advanceUntilIdle()
-        assertEquals("30", vm.state.value.form.price.text)
+        assertEquals("30", vm.state.current.form.price.text)
     }
 
     @Test
@@ -453,8 +515,8 @@ class ClassEditViewModelTest {
 
         vm.change(BookingIntent.StartAt(LocalTime.of(10, 0)))
         advanceUntilIdle()
-        assertEquals(90, vm.state.value.form.durationMinutes)
-        assertEquals(LocalTime.of(11, 30), vm.state.value.form.ends?.time)
+        assertEquals(90, vm.state.current.form.durationMinutes)
+        assertEquals(LocalTime.of(11, 30), vm.state.current.form.ends?.time)
     }
 
     @Test
@@ -469,8 +531,8 @@ class ClassEditViewModelTest {
 
         // Moving the start later leaves it 90 minutes long, now 14:00–15:30.
         vm.change(BookingIntent.StartAt(LocalTime.of(14, 0)))
-        assertEquals(90, vm.state.value.form.durationMinutes)
-        assertEquals(LocalTime.of(15, 30), vm.state.value.form.ends?.time)
+        assertEquals(90, vm.state.current.form.durationMinutes)
+        assertEquals(LocalTime.of(15, 30), vm.state.current.form.ends?.time)
     }
 
     @Test
@@ -566,7 +628,7 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        val state = vm.state.value
+        val state = vm.state.current
         assertEquals(60, state.form.durationMinutes)
         assertEquals(LocalTime.MIDNIGHT, state.form.ends?.time)
         assertEquals(true, state.form.ends?.nextDay)
@@ -687,7 +749,7 @@ class ClassEditViewModelTest {
         vm.fillFor(annId, subjectId, date, LocalTime.of(10, 30), minutes = 60)
         advanceUntilIdle()
 
-        val clash = vm.state.value.conflict
+        val clash = vm.state.current.conflict
         assertEquals("Борис", clash?.who)
         assertEquals(date.atTime(10, 0).atZone(zone).toInstant(), clash?.slot?.start)
 
@@ -711,7 +773,7 @@ class ClassEditViewModelTest {
 
         vm.fillFor(annId, subjectId, date, LocalTime.of(11, 0), minutes = 60)
         advanceUntilIdle()
-        assertNull(vm.state.value.conflict)
+        assertNull(vm.state.current.conflict)
 
         var done = false
         vm.save { done = true }
@@ -735,7 +797,7 @@ class ClassEditViewModelTest {
         vm.fillFor(annId, subjectId, date, LocalTime.of(10, 0), minutes = 60)
         advanceUntilIdle()
 
-        assertNull("a cancelled lesson is not happening, so the slot is free", vm.state.value.conflict)
+        assertNull("a cancelled lesson is not happening, so the slot is free", vm.state.current.conflict)
         vm.save { }
         advanceUntilIdle()
         assertEquals(2, env.classDao.items.value.size)
@@ -750,12 +812,12 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertNull("its own hour is not a conflict", vm.state.value.conflict)
+        assertNull("its own hour is not a conflict", vm.state.current.conflict)
 
         // Lengthen it in place — the overlap with its own old span must not block the save.
         vm.change(BookingIntent.Edit { it.copy(durationMinutes = 90) })
         advanceUntilIdle()
-        assertNull(vm.state.value.conflict)
+        assertNull(vm.state.current.conflict)
 
         var done = false
         vm.save { done = true }
@@ -784,7 +846,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         // Every member's class is excluded, not just the one that was opened.
-        assertNull(vm.state.value.conflict)
+        assertNull(vm.state.current.conflict)
         var done = false
         vm.save { done = true }
         advanceUntilIdle()
@@ -813,7 +875,7 @@ class ClassEditViewModelTest {
         vm.fillFor(carl, physics, date, LocalTime.of(10, 30), minutes = 60)
         advanceUntilIdle()
 
-        assertEquals("11 «А»", vm.state.value.conflict?.who)
+        assertEquals("11 «А»", vm.state.current.conflict?.who)
         vm.save { }
         advanceUntilIdle()
         assertEquals("no third class was written", 2, env.classDao.items.value.size)
@@ -932,9 +994,9 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         assertFalse(vm.isNew)
-        assertEquals(studentId, vm.state.value.form.studentId)
-        assertEquals(subjectId, vm.state.value.form.subjectId)
-        assertEquals("30", vm.state.value.form.price.text)
+        assertEquals(studentId, vm.state.current.form.studentId)
+        assertEquals(subjectId, vm.state.current.form.subjectId)
+        assertEquals("30", vm.state.current.form.price.text)
     }
 
     @Test
@@ -997,9 +1059,9 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(ClassTarget.GROUP, vm.state.value.form.target)
-        assertEquals(groupId, vm.state.value.form.groupId)
-        assertEquals(ClassMode.REMOTE, vm.state.value.form.mode)
+        assertEquals(ClassTarget.GROUP, vm.state.current.form.target)
+        assertEquals(groupId, vm.state.current.form.groupId)
+        assertEquals(ClassMode.REMOTE, vm.state.current.form.mode)
     }
 
     @Test
@@ -1013,7 +1075,7 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(listOf("Алгебра", "Физика"), vm.state.value.subjects.map { it.name })
+        assertEquals(listOf("Алгебра", "Физика"), vm.state.current.subjects.map { it.name })
     }
 
     @Test
@@ -1025,8 +1087,8 @@ class ClassEditViewModelTest {
 
         // The group's rate, not either member's individual price — and known from the group alone,
         // without waiting for a subject.
-        assertEquals(groupRate, vm.state.value.form.price.amount)
-        assertEquals(2, vm.state.value.members.size)
+        assertEquals(groupRate, vm.state.current.form.price.amount)
+        assertEquals(2, vm.state.current.members.size)
     }
 
     @Test
@@ -1044,7 +1106,7 @@ class ClassEditViewModelTest {
         assertEquals(
             "one lesson at an agreed rate isn't overruled by the group's",
             Money.ofMajor(35),
-            vm.state.value.form.price.amount,
+            vm.state.current.form.price.amount,
         )
     }
 
@@ -1057,7 +1119,7 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(listOf(ann), vm.state.value.members.map { it.id })
+        assertEquals(listOf(ann), vm.state.current.members.map { it.id })
 
         val date = LocalDate.now(zone).plusDays(2)
         vm.change(BookingIntent.Edit { it.copy(date = date, timeFrom = LocalTime.of(10, 0), durationMinutes = 60) })
@@ -1170,10 +1232,10 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         // Only the group's subject is on offer, it is already chosen, and the picker is locked.
-        assertEquals(listOf(algebra), vm.state.value.subjects.map { it.id })
-        assertEquals(algebra, vm.state.value.form.subjectId)
-        assertTrue(vm.state.value.subjectFixedByGroup)
-        assertTrue("physics is not bookable for this group", vm.state.value.subjects.none { it.id == physics })
+        assertEquals(listOf(algebra), vm.state.current.subjects.map { it.id })
+        assertEquals(algebra, vm.state.current.form.subjectId)
+        assertTrue(vm.state.current.subjectFixedByGroup)
+        assertTrue("physics is not bookable for this group", vm.state.current.subjects.none { it.id == physics })
     }
 
     @Test
@@ -1186,8 +1248,8 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         // A group with no subject keeps choosing per lesson.
-        assertEquals(2, vm.state.value.subjects.size)
-        assertFalse(vm.state.value.subjectFixedByGroup)
+        assertEquals(2, vm.state.current.subjects.size)
+        assertFalse(vm.state.current.subjectFixedByGroup)
     }
 
     @Test
@@ -1206,9 +1268,9 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(ClassTarget.GROUP, vm.state.value.form.target)
-        assertEquals("the rate the lesson was booked at", groupRate, vm.state.value.form.price.amount)
-        assertEquals(listOf(ann, bob), vm.state.value.members.map { it.id })
+        assertEquals(ClassTarget.GROUP, vm.state.current.form.target)
+        assertEquals("the rate the lesson was booked at", groupRate, vm.state.current.form.price.amount)
+        assertEquals(listOf(ann, bob), vm.state.current.members.map { it.id })
 
         // Re-price the lesson and lengthen it; both members' classes must be updated in place.
         vm.change(BookingIntent.Edit { it.copy(price = MoneyField("28"), durationMinutes = 90) })
@@ -1247,9 +1309,9 @@ class ClassEditViewModelTest {
 
         // Bob is still listed though he left the group — he is in this lesson and can be taken out
         // of it. Carl is listed because he could be added to it, but unticked because he wasn't there.
-        assertEquals(listOf(ann, bob, carl), vm.state.value.members.map { it.id })
-        assertEquals(setOf(carl), vm.state.value.form.excludedMemberIds)
-        assertFalse("loading a lesson is not the tutor's edit", vm.state.value.isDirty)
+        assertEquals(listOf(ann, bob, carl), vm.state.current.members.map { it.id })
+        assertEquals(setOf(carl), vm.state.current.form.excludedMemberIds)
+        assertFalse("loading a lesson is not the tutor's edit", vm.state.current.isDirty)
 
         // Re-saving must not create a class for the newcomer, nor drop the departed member's.
         vm.save { }
@@ -1294,7 +1356,7 @@ class ClassEditViewModelTest {
         val vm = vm(id = ids.first())
         observing(vm.state)
         advanceUntilIdle()
-        assertEquals("Bob is offered, unticked", setOf(bob), vm.state.value.form.excludedMemberIds)
+        assertEquals("Bob is offered, unticked", setOf(bob), vm.state.current.form.excludedMemberIds)
 
         vm.change(BookingIntent.IncludeMember(bob, true))
         vm.save { }
@@ -1325,8 +1387,8 @@ class ClassEditViewModelTest {
         vm.change(BookingIntent.IncludeMember(bob, false))
         advanceUntilIdle()
 
-        assertTrue(vm.state.value.allMembersExcluded)
-        assertFalse("nothing left to bill", vm.state.value.canSave)
+        assertTrue(vm.state.current.allMembersExcluded)
+        assertFalse("nothing left to bill", vm.state.current.canSave)
         assertEquals("both classes are still there", 2, env.classDao.items.value.size)
     }
 
@@ -1351,20 +1413,20 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals("nothing unticked yet", 0, vm.state.value.billedDrops)
-        assertEquals("so saving asks nothing", SaveIntent.Save, vm.state.value.saveIntent)
+        assertEquals("nothing unticked yet", 0, vm.state.current.billedDrops)
+        assertEquals("so saving asks nothing", SaveIntent.Save, vm.state.current.saveIntent)
 
         vm.change(BookingIntent.IncludeMember(bob, false))
         advanceUntilIdle()
-        assertEquals("an absent member earned nothing to lose", 0, vm.state.value.billedDrops)
-        assertEquals(SaveIntent.Save, vm.state.value.saveIntent)
+        assertEquals("an absent member earned nothing to lose", 0, vm.state.current.billedDrops)
+        assertEquals(SaveIntent.Save, vm.state.current.saveIntent)
 
         vm.change(BookingIntent.IncludeMember(ann, false))
         advanceUntilIdle()
-        assertEquals(1, vm.state.value.billedDrops)
+        assertEquals(1, vm.state.current.billedDrops)
         // The gate and the count the question needs, together. Both were in the composable, where the
         // count was also kept as a second copy in screen state.
-        assertEquals(SaveIntent.ConfirmBilledDrops(1), vm.state.value.saveIntent)
+        assertEquals(SaveIntent.ConfirmBilledDrops(1), vm.state.current.saveIntent)
     }
 
     @Test
@@ -1376,13 +1438,13 @@ class ClassEditViewModelTest {
 
         vm.change(BookingIntent.ChooseTarget(ClassTarget.GROUP))
         advanceUntilIdle()
-        assertEquals(groupId, vm.state.value.form.groupId) // the only group is auto-selected
-        assertNull(vm.state.value.form.studentId)
+        assertEquals(groupId, vm.state.current.form.groupId) // the only group is auto-selected
+        assertNull(vm.state.current.form.studentId)
 
         vm.change(BookingIntent.ChooseTarget(ClassTarget.STUDENT))
         advanceUntilIdle()
-        assertNull(vm.state.value.form.groupId)
-        assertTrue("the group's rate goes with the group", vm.state.value.form.price.text.isEmpty())
+        assertNull(vm.state.current.form.groupId)
+        assertTrue("the group's rate goes with the group", vm.state.current.form.price.text.isEmpty())
     }
 
     @Test

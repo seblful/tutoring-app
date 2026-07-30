@@ -307,6 +307,31 @@ data class SettingsEntity(
     /** Minutes before a class that reminders fire (in-app and email). */
     val reminderLeadMinutes: Int = 60,
     /**
+     * Whether the morning digest naming the day's lessons is posted, and at what minute past local
+     * midnight (540 = 09:00). **Off by default** — a reminder ahead of a lesson is what the tutor came
+     * for; a message every morning is something they have to ask for.
+     *
+     * The five columns below are one feature and were added together by the v4 → v5 migration, whose
+     * `DEFAULT`s these `defaultValue`s must match exactly or Room's schema validation fails the moment
+     * the upgrade finishes. They agree on purpose, as [dynamicColorEnabled] does: an install that has
+     * never had digests should not acquire one by being upgraded.
+     */
+    @ColumnInfo(defaultValue = "0")
+    val dailyAgendaEnabled: Boolean = false,
+
+    @ColumnInfo(defaultValue = "540")
+    val agendaMinuteOfDay: Int = 9 * 60,
+
+    @ColumnInfo(defaultValue = "0")
+    val debtDigestEnabled: Boolean = false,
+
+    /** [java.time.DayOfWeek.getValue] — 1 is Monday. */
+    @ColumnInfo(defaultValue = "1")
+    val debtDayOfWeek: Int = 1,
+
+    @ColumnInfo(defaultValue = "540")
+    val debtMinuteOfDay: Int = 9 * 60,
+    /**
      * Whether finished classes auto-complete (and bill) without manual confirmation. **Off by
      * default**: billing a class the tutor hasn't confirmed risks over-stating a student's debt, so
      * the safe default is to have the tutor mark each lesson completed. Opt in via Settings.

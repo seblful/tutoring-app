@@ -2,6 +2,7 @@ package com.seblful.klas.ui.students
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -23,10 +24,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
+import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.ListSkeleton
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.ModeField
 import com.seblful.klas.ui.common.SaveAction
@@ -127,56 +132,81 @@ fun StudentFormContent(
             stringResource(R.string.student_form_subjects_title),
             style = MaterialTheme.typography.titleMedium,
         )
-        if (state.allSubjects.isEmpty()) {
-            Text(
-                stringResource(R.string.student_form_no_subjects),
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        } else {
-            Text(
-                stringResource(R.string.student_form_subjects_required),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
-            )
-            state.allSubjects.forEach { subject ->
-                val selected = subject.id in state.selectedSubjectIds
-                val price = form.subjectPrices[subject.id] ?: MoneyField()
-                // **The tick and the rate stack; they no longer share a row.** The price field was a
-                // fixed 140 dp beside a checkbox and a subject name, which is a third of a 360 dp phone
-                // spent on a box before the name gets any — and at a large font scale the name was
-                // squeezed to an ellipsis while «Цена» kept every dp of its own. Stacked, the name has
-                // the whole width and the rate has the whole width, at every scale, and the field's
-                // indent is what says the rate belongs to the subject above it.
-                Column(Modifier.fillMaxWidth()) {
-                    Row(
-                        Modifier
+        // «Сначала добавьте предметы» is a refusal, and saying it about subjects that have merely not
+        // been read yet is the [Loadable] defect — here in the error red, on the screen a tutor reaches
+        // by tapping «Добавить». Three rows of skeleton stand in until the list has actually arrived.
+        when (val loaded = state.allSubjects) {
+            Loadable.Loading ->
+                ListSkeleton(rows = 3, rowHeight = SubjectRowHeight, contentPadding = PaddingValues(0.dp))
+
+            is Loadable.Ready -> SubjectPrices(loaded.value, state, viewModel)
+        }
+    }
+}
+
+/**
+ * The subjects to tick, each with the price this student is charged for it — and the refusal when there
+ * are none to tick.
+ *
+ * Its own composable so the branch above it can be a `when` over three cases rather than an early return
+ * out of the form's `Column`. Emits its rows as siblings into that `Column`, so they keep its spacing.
+ */
+@Composable
+private fun SubjectPrices(
+    subjects: List<Subject>,
+    state: StudentFormViewModel.UiState,
+    viewModel: StudentFormViewModel,
+) {
+    val form = state.form
+    if (subjects.isEmpty()) {
+        Text(
+            stringResource(R.string.student_form_no_subjects),
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    } else {
+        Text(
+            stringResource(R.string.student_form_subjects_required),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall,
+        )
+        subjects.forEach { subject ->
+            val selected = subject.id in state.selectedSubjectIds
+            val price = form.subjectPrices[subject.id] ?: MoneyField()
+            // **The tick and the rate stack; they no longer share a row.** The price field was a
+            // fixed 140 dp beside a checkbox and a subject name, which is a third of a 360 dp phone
+            // spent on a box before the name gets any — and at a large font scale the name was
+            // squeezed to an ellipsis while «Цена» kept every dp of its own. Stacked, the name has
+            // the whole width and the rate has the whole width, at every scale, and the field's
+            // indent is what says the rate belongs to the subject above it.
+            Column(Modifier.fillMaxWidth()) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .toggleable(
+                            value = selected,
+                            onValueChange = { on -> viewModel.toggleSubject(subject.id, on) },
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(checked = selected, onCheckedChange = null)
+                    Text(subject.name, Modifier.padding(start = Spacing.inline))
+                }
+                if (selected) {
+                    OutlinedTextField(
+                        value = price.text,
+                        onValueChange = { viewModel.setPriceText(subject.id, it) },
+                        label = { Text(stringResource(R.string.price_label)) },
+                        isError = price.isError,
+                        supportingText = supportingTextOf(moneyErrorText(price)),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        // Indented to the width the checkbox takes, so the field sits under the
+                        // name it prices rather than under the tick.
+                        modifier = Modifier
                             .fillMaxWidth()
-                            .toggleable(
-                                value = selected,
-                                onValueChange = { on -> viewModel.toggleSubject(subject.id, on) },
-                            ),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Checkbox(checked = selected, onCheckedChange = null)
-                        Text(subject.name, Modifier.padding(start = Spacing.inline))
-                    }
-                    if (selected) {
-                        OutlinedTextField(
-                            value = price.text,
-                            onValueChange = { viewModel.setPriceText(subject.id, it) },
-                            label = { Text(stringResource(R.string.price_label)) },
-                            isError = price.isError,
-                            supportingText = supportingTextOf(moneyErrorText(price)),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            // Indented to the width the checkbox takes, so the field sits under the
-                            // name it prices rather than under the tick.
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = PriceFieldIndent, top = Spacing.tight),
-                        )
-                    }
+                            .padding(start = PriceFieldIndent, top = Spacing.tight),
+                    )
                 }
             }
         }
@@ -190,3 +220,6 @@ fun StudentFormContent(
  * `Spacing`.
  */
 private val PriceFieldIndent = MinTouchTarget + Spacing.inline
+
+/** A tick and a subject name — the row the skeleton stands in for while the subjects are being read. */
+private val SubjectRowHeight = MinTouchTarget

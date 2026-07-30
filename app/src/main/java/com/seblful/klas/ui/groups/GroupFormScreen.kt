@@ -25,6 +25,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.LoadingFormScreen
 import com.seblful.klas.ui.common.MemberPickRow
 import com.seblful.klas.ui.common.ModeField
 import com.seblful.klas.ui.common.RateHistoryList
@@ -59,13 +61,33 @@ import com.seblful.klas.ui.common.supportingTextOf
  * round. **The fields must stay value-driven from the view model for that to hold**: a field keeping its
  * own `TextFieldValue` in a plain `remember` would lose the caret position here rather than the focus.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupFormScreen(
     onBack: () -> Unit,
     viewModel: GroupFormViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val screenState by viewModel.state.collectAsState()
+    val title = stringResource(
+        if (viewModel.isNew) R.string.group_add_title else R.string.group_edit_title
+    )
+
+    // An existing group's form waits rather than drawing itself from a blank [GroupFormViewModel.Form]:
+    // every field here is a stored value, and the blank version of this screen states that the group has
+    // no name, no rate and — in the error red — that the tutor has no students. See [Loadable].
+    when (val loaded = screenState) {
+        Loadable.Loading -> LoadingFormScreen(title = title, onBack = onBack, fields = 5)
+        is Loadable.Ready -> GroupForm(loaded.value, title, viewModel, onBack)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GroupForm(
+    state: GroupFormViewModel.UiState,
+    title: String,
+    viewModel: GroupFormViewModel,
+    onBack: () -> Unit,
+) {
     val form = state.form
 
     // Back — the arrow or the system gesture — asks before throwing away edits to a group.
@@ -76,9 +98,7 @@ fun GroupFormScreen(
     ShowMessagesFor(viewModel.events, messages) { notPricedMsg }
 
     KlasScreen(
-        title = stringResource(
-            if (viewModel.isNew) R.string.group_add_title else R.string.group_edit_title
-        ),
+        title = title,
         onBack = requestLeave,
         messages = messages,
         // The rate field and the roster are at the bottom of a long form, and under edge-to-edge the

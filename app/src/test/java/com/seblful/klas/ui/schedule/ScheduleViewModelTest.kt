@@ -491,14 +491,18 @@ class ScheduleViewModelTest {
             )
 
         val vm = vm()
+        // A cell with no tally is this calendar saying «свободно», so the counts must not start at an
+        // empty map — a fortnight off and a fortnight unread would draw the same grid. See [Loadable].
+        assertEquals(Loadable.Loading, vm.dayLoads.value)
+
         observing(vm.dayLoads)
         vm.selectDate(day)
         advanceUntilIdle()
-        assertTrue("the day view draws no calendar, so it queries none", vm.dayLoads.value.isEmpty())
+        assertTrue("the day view draws no calendar, so it queries none", vm.dayLoads.current.isEmpty())
 
         vm.setViewMode(ScheduleViewMode.WEEK)
         advanceUntilIdle()
-        assertEquals(1, vm.dayLoads.value.getValue(day).total)
+        assertEquals(1, vm.dayLoads.current.getValue(day).total)
     }
 
     @Test
@@ -538,7 +542,7 @@ class ScheduleViewModelTest {
         vm.selectDate(LocalDate.of(2026, 7, 1))
         advanceUntilIdle()
 
-        val loads = vm.dayLoads.value
+        val loads = vm.dayLoads.current
         assertEquals(2, loads.getValue(inMonth).total)
         assertEquals("padding cells are marked too", 1, loads.getValue(padding).total)
         assertFalse("days outside the page are not loaded", otherMonth in loads)
@@ -559,15 +563,15 @@ class ScheduleViewModelTest {
         vm.setViewMode(ScheduleViewMode.MONTH)
         vm.selectDate(LocalDate.of(2026, 7, 1))
         advanceUntilIdle()
-        assertFalse(august in vm.dayLoads.value)
+        assertFalse(august in vm.dayLoads.current)
 
         vm.goToNextMonth()
         advanceUntilIdle()
 
-        assertEquals(1, vm.dayLoads.value.getValue(august).total)
+        assertEquals(1, vm.dayLoads.current.getValue(august).total)
         assertEquals(
             mapOf(LessonStatus.COMPLETED to 1),
-            vm.dayLoads.value.getValue(august).counts,
+            vm.dayLoads.current.getValue(august).counts,
         )
     }
 

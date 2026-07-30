@@ -17,7 +17,13 @@ import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.ReminderScheduler
 import com.seblful.klas.domain.Reminders
+import com.seblful.klas.domain.DigestScheduler
+import com.seblful.klas.domain.Digests
+import com.seblful.klas.domain.model.Currency
+import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.notifications.DueDigest
+import com.seblful.klas.notifications.ExactAlarmPermission
 import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.storage.DocumentRef
@@ -42,6 +48,23 @@ class RecordingReminderScheduler : ReminderScheduler {
 
     override fun schedule(plans: List<Reminders.Plan>) {
         schedules += plans
+    }
+}
+
+/**
+ * Records the digest plans arranged, so a test can assert *when* each digest was set for — and, just as
+ * importantly, that a switched-off one was arranged for nothing at all.
+ */
+class RecordingDigestScheduler : DigestScheduler {
+
+    /** Every plan handed over, newest last. */
+    val plans = mutableListOf<Digests.Plan>()
+
+    /** The plan currently in force — the last one scheduled, or nothing arranged if none ever was. */
+    val planned: Digests.Plan get() = plans.lastOrNull() ?: Digests.Plan(null, null)
+
+    override fun schedule(plan: Digests.Plan) {
+        plans += plan
     }
 }
 
@@ -84,7 +107,7 @@ class FakeCalendarSync(var available: Boolean = true) : CalendarSync {
     }
 }
 
-/** Records posted reminders so tests can assert what a due reminder announced, and to whom. */
+/** Records everything posted to the tray, so tests can assert what the app announced and to whom. */
 class RecordingNotifier : Notifier {
     data class Posted(val klass: TutoringClass, val whoName: String, val subjectName: String)
 
@@ -92,7 +115,7 @@ class RecordingNotifier : Notifier {
     var channelsEnsured = 0
         private set
 
-    override fun ensureChannel() {
+    override fun ensureChannels() {
         channelsEnsured++
     }
 
@@ -105,6 +128,32 @@ class RecordingNotifier : Notifier {
 
     override fun cancelClassReminder(classId: Long) {
         cancelled += classId
+    }
+
+    /** The agendas posted, in order — what the morning digest said about each day it announced. */
+    val agendas = mutableListOf<Digests.Agenda>()
+
+    override fun showAgenda(agenda: Digests.Agenda, currency: Currency) {
+        agendas += agenda
+    }
+
+    /** The weekly debt summaries posted. */
+    val debts = mutableListOf<Digests.Debts>()
+
+    override fun showDebts(debts: Digests.Debts, currency: Currency) {
+        this.debts += debts
+    }
+
+    /**
+     * What each unattended upkeep pass reported billing. Empty is the assertion that matters most often:
+     * a pass the tutor asked for reports through the screen instead, and must post nothing here.
+     */
+    data class AutoCompleted(val lessons: Int, val billed: Money)
+
+    val autoCompleted = mutableListOf<AutoCompleted>()
+
+    override fun showAutoCompleted(lessons: Int, billed: Money, currency: Currency) {
+        autoCompleted += AutoCompleted(lessons, billed)
     }
 }
 
@@ -164,6 +213,18 @@ class FakeNotificationPermission(
     var granted: Boolean = true,
     override var required: Array<String> = arrayOf("POST_NOTIFICATIONS"),
 ) : NotificationPermission {
+    override fun isGranted(): Boolean = granted
+}
+
+/**
+ * Stands in for whether an alarm may be set for an exact instant.
+ *
+ * [granted] false is the default state of a fresh Android 14+ install: reminders are shown, but through
+ * an inexact alarm Doze may hold until its next window, so the hour's warning can land during the lesson.
+ * Defaults to true here because that is what every version below Android 12 reports and what most tests
+ * are not about.
+ */
+class FakeExactAlarmPermission(var granted: Boolean = true) : ExactAlarmPermission {
     override fun isGranted(): Boolean = granted
 }
 
@@ -238,7 +299,10 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
     val calendar = FakeCalendarSync()
     val calendarPermission = FakeCalendarPermission()
     val notificationPermission = FakeNotificationPermission()
+    val exactAlarmPermission = FakeExactAlarmPermission()
     val reminders = RecordingReminderScheduler()
+    val notifier = RecordingNotifier()
+    val digestScheduler = RecordingDigestScheduler()
 
     val settingsRepo = SettingsRepository(settingsDao)
     val calendarMirror =
@@ -302,6 +366,24 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
         classes = classRepo,
         settings = settingsRepo,
         scheduler = reminders,
+        digests = digestScheduler,
+        notifier = notifier,
+        clock = clock,
+    )
+
+    /**
+     * Everything the two digests do when they come due. The real class, like [maintenance] — only the
+     * `Notifier` under it is a double, so what a digest *says* is this environment's rows read by the
+     * production code rather than a fixture agreeing with itself.
+     */
+    val dueDigest = DueDigest(
+        classes = classRepo,
+        students = studentRepo,
+        subjects = subjectRepo,
+        groups = groupRepo,
+        payments = paymentRepo,
+        settings = settingsRepo,
+        notifier = notifier,
         clock = clock,
     )
 }

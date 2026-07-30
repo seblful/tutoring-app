@@ -2,10 +2,12 @@ package com.seblful.klas.work
 
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.Digests
 import com.seblful.klas.domain.Reminders
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
+import com.seblful.klas.testutil.RecordingNotifier
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -141,7 +143,7 @@ class MaintenanceTest {
         seedClass(now.plusSeconds(3600)) // still to come, so not settled by this pass
         env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
 
-        assertEquals(2, maintenance().run(now))
+        assertEquals(2, maintenance().run(now).lessons)
     }
 
     /**
@@ -157,7 +159,7 @@ class MaintenanceTest {
         val ids = env.fixtures.lesson(subjectId, members, start = now.minusSeconds(7200), groupId = groupId)
         env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
 
-        assertEquals("one finished hour", 1, maintenance().run(now))
+        assertEquals("one finished hour", 1, maintenance().run(now).lessons)
         val session = env.classRepo.getSessionFor(ids.first())!!
         assertEquals("billed to all three of them", 3, session.size)
     }
@@ -166,7 +168,7 @@ class MaintenanceTest {
     fun `a pass that settles nothing reports nothing`() = runTest(mainRule.dispatcher) {
         seedClass(now.minusSeconds(7200))
         // The setting is off, so the finished lesson is left for the tutor to confirm by hand.
-        assertEquals(0, maintenance().run(now))
+        assertEquals(0, maintenance().run(now).lessons)
     }
 
     /**
@@ -181,7 +183,91 @@ class MaintenanceTest {
         seedClass(now.plusSeconds(3600))
 
         assertEquals(2, maintenance().dueForCompletion(now))
-        assertEquals("and counting it settled nothing", 0, maintenance().run(now))
+        assertEquals("and counting it settled nothing", 0, maintenance().run(now).lessons)
+    }
+
+    // --- Who the pass reports to --------------------------------------------------------------------
+    //
+    // Completing a lesson **bills** it, so a pass that settles anything has moved the tutor's income.
+    // Which pass says so is decided by who asked for it: the switch reports through the screen the tutor
+    // is standing in front of, and the pass that runs at four in the afternoon with the app closed had
+    // nothing to report to at all — so it recognised income in silence.
+
+    @Test
+    fun `an unwatched pass says what it billed`() = runTest(mainRule.dispatcher) {
+        seedClass(now.minusSeconds(7200))
+        seedClass(now.minusSeconds(3600))
+        env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
+
+        maintenance().runUnwatched(now)
+
+        // Two hours at 30, and the count is in lessons.
+        assertEquals(
+            listOf(RecordingNotifier.AutoCompleted(2, Money.ofMajor(60))),
+            env.notifier.autoCompleted,
+        )
+    }
+
+    /** Nothing settled, nothing to announce — a notification whose content is "no news". */
+    @Test
+    fun `an unwatched pass that settles nothing stays quiet`() = runTest(mainRule.dispatcher) {
+        seedClass(now.minusSeconds(7200))
+        // The setting is off, so nothing is completed and nothing was billed.
+        maintenance().runUnwatched(now)
+
+        assertTrue(env.notifier.autoCompleted.isEmpty())
+    }
+
+    /**
+     * The pass the tutor **asked for** must not also post. It reports through `SettingsViewModel.swept`,
+     * in the snackbar under the switch they just flipped; announcing it in the tray as well would be the
+     * app telling them something they had just been told.
+     */
+    @Test
+    fun `a watched pass reports to the screen and not to the tray`() = runTest(mainRule.dispatcher) {
+        seedClass(now.minusSeconds(7200))
+        env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
+
+        val settled = maintenance().run(now)
+
+        assertEquals(1, settled.lessons)
+        assertTrue("nothing posted", env.notifier.autoCompleted.isEmpty())
+    }
+
+    // --- The digests are re-planned by the same pass -------------------------------------------------
+
+    /**
+     * Every trigger that re-derives the reminder plan re-plans the digests too, from the same settings
+     * read: an app start, a reboot, a periodic tick, a settings change. Otherwise a digest whose hour was
+     * changed while the app was closed would keep its old one until something happened to touch it.
+     */
+    @Test
+    fun `a pass plans the digests the tutor has switched on`() = runTest(mainRule.dispatcher) {
+        env.settingsRepo.update {
+            it.copy(
+                dailyAgendaEnabled = true,
+                agendaMinuteOfDay = 9 * 60,
+                debtDigestEnabled = true,
+                debtDayOfWeek = 1,
+                debtMinuteOfDay = 9 * 60,
+            )
+        }
+
+        maintenance().run(now)
+
+        val planned = env.digestScheduler.planned
+        // `now` is Monday 15 June 2026, 12:00 UTC — 15:00 in Europe/Minsk, so nine has gone for today and
+        // for this Monday. Both roll forward rather than firing immediately.
+        assertEquals(Instant.parse("2026-06-16T06:00:00Z"), planned.agendaAt)
+        assertEquals(Instant.parse("2026-06-22T06:00:00Z"), planned.debtsAt)
+    }
+
+    /** A digest switched off is planned for nothing, which is what cancels work already enqueued. */
+    @Test
+    fun `a pass plans nothing for a digest that is off`() = runTest(mainRule.dispatcher) {
+        maintenance().run(now)
+
+        assertEquals(Digests.Plan(agendaAt = null, debtsAt = null), env.digestScheduler.planned)
     }
 
     @Test

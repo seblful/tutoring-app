@@ -4,7 +4,6 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.content.edit
 import com.seblful.klas.domain.Reminders
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -24,11 +23,17 @@ import javax.inject.Singleton
  * swap rather than a redesign.
  *
  * **Exact where allowed, inexact where not.** `SCHEDULE_EXACT_ALARM` is granted by default on Android
- * 13 but revocable, and absent on 14+ unless the user grants it, so [canBeExact] is asked every time
- * rather than assumed. Without it the alarm is still set, `setAndAllowWhileIdle` — which is late but
- * far closer than batched work, and Doze permits one such wake-up per app per window. The app never
- * prompts for the exact-alarm permission: a tutoring reminder does not justify the dialog, and the
+ * 13 but revocable, and absent on 14+ unless the user grants it, so [ExactAlarmPermission] is asked
+ * every time rather than assumed. Without it the alarm is still set, `setAndAllowWhileIdle` — which is
+ * late but far closer than batched work, and Doze permits one such wake-up per app per window. The app
+ * never prompts for the exact-alarm permission: a tutoring reminder does not justify the dialog, and the
  * inexact path is a genuine fallback rather than a broken one.
+ *
+ * **Whether an alarm can be exact has one definition, and it is the port's.** This class used to answer
+ * it with a private `canBeExact()`, which is the same mistake `AndroidNotifier` made about the
+ * notification permission: the answer decided how the app behaved and there was no way for anything else
+ * to read it, so the settings screen could not say that reminders had silently become approximate. Now
+ * the arming and the reporting ask one object — see [com.seblful.klas.ui.more.ReminderDelivery].
  *
  * **Why the ids are remembered.** The plan is re-derived from scratch on every change, so arming it
  * means disarming whatever was armed before — and `AlarmManager` has no "cancel everything of mine".
@@ -41,6 +46,7 @@ import javax.inject.Singleton
 @Singleton
 class ReminderAlarms @Inject constructor(
     @param:ApplicationContext private val context: Context,
+    private val exactAlarms: ExactAlarmPermission,
 ) {
     private val alarmManager: AlarmManager
         get() = context.getSystemService(AlarmManager::class.java)
@@ -67,7 +73,7 @@ class ReminderAlarms @Inject constructor(
 
     private fun arm(classId: Long, at: Long) {
         val intent = pendingIntent(classId)
-        if (canBeExact()) {
+        if (exactAlarms.isGranted()) {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent)
         } else {
             alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent)
@@ -93,10 +99,6 @@ class ReminderAlarms @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }
-
-    /** Asked each time: the permission is revocable, and absent by default on Android 14+. */
-    private fun canBeExact(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
 
     private fun prefs() = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 

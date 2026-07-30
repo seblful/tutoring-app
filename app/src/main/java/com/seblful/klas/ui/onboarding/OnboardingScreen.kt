@@ -55,10 +55,13 @@ import com.seblful.klas.ui.backup.messageIn
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.ListSkeleton
+import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TextFieldDialog
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.valueOrNull
 import com.seblful.klas.ui.students.StudentFormContent
 import com.seblful.klas.ui.students.StudentFormViewModel
 
@@ -249,7 +252,13 @@ fun OnboardingScreen(
                         Icon(Icons.Filled.Add, null)
                         Text(stringResource(R.string.subject_add_title), Modifier.padding(start = Spacing.inline))
                     }
-                    if (subjects.isEmpty()) {
+                    // «Нет предметов» is usually the truth on this screen — it runs on a fresh install —
+                    // but not always: the step is reachable again once subjects have been added, and it
+                    // must not say that over three the tutor has just typed. See [Loadable].
+                    val added = subjects.valueOrNull()
+                    if (added == null) {
+                        ListSkeleton(Modifier.weight(1f), rows = 3, rowHeight = SubjectRowHeight)
+                    } else if (added.isEmpty()) {
                         EmptyState(
                             title = stringResource(R.string.subjects_empty),
                             icon = Icons.AutoMirrored.Outlined.MenuBook,
@@ -257,7 +266,7 @@ fun OnboardingScreen(
                         )
                     } else {
                         LazyColumn(Modifier.weight(1f)) {
-                            items(subjects, key = { it.id }) { subject ->
+                            items(added, key = { it.id }) { subject ->
                                 // Each one can be taken back. The list was read-only, so a typo in the
                                 // step whose only gate is "at least one subject" could be *finished
                                 // with* but not fixed — the tutor had to skip setup to reach the screen
@@ -282,7 +291,9 @@ fun OnboardingScreen(
                     }
                     Button(
                         onClick = { step = Step.STUDENT },
-                        enabled = subjects.isNotEmpty(),
+                        // Disabled while the list has not arrived, as it is when the list is empty: the
+                        // step's gate is "at least one subject", and nothing yet says there is one.
+                        enabled = !added.isNullOrEmpty(),
                         modifier = Modifier.fillMaxWidth().padding(Spacing.gutter),
                     ) { Text(stringResource(R.string.onboarding_continue)) }
                 }
@@ -335,6 +346,9 @@ private fun Caption(text: String) {
         textAlign = TextAlign.Center,
     )
 }
+
+/** A subject's row in step 1 — what the skeleton stands in for while the list is being read. */
+private val SubjectRowHeight = MinTouchTarget
 
 /** One thing the app does, on the welcome screen: an icon and a line, left-aligned as a list. */
 @Composable

@@ -6,8 +6,11 @@ import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.model.Subject
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.derive
+import com.seblful.klas.ui.common.ready
+import com.seblful.klas.ui.common.valueOrNull
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.StateFlow
@@ -31,8 +34,17 @@ class OnboardingViewModel @Inject constructor(
     @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
 
-    val subjects: StateFlow<List<Subject>> = subjectsRepo.observeAll()
-        .derive(this, computation, emptyList())
+    /**
+     * The subjects added so far, for step 1's list.
+     *
+     * [Loadable] like every other screen's list, though this is the one screen where empty is usually the
+     * *true* answer: onboarding runs on a fresh install. It is not always — the step is reachable again
+     * after subjects have been added, and a tutor who has just typed three of them must not be shown
+     * «Нет предметов» over them, with «Далее» disabled, while the list is being re-read.
+     */
+    val subjects: StateFlow<Loadable<List<Subject>>> = subjectsRepo.observeAll()
+        .ready()
+        .derive(this, computation, Loadable.Loading)
 
     /**
      * Whether restoring a backup here would destroy something, and so has to be confirmed.
@@ -43,7 +55,9 @@ class OnboardingViewModel @Inject constructor(
      * The gate was an `if (subjects.isEmpty())` in the picker's result callback, which is both a rule
      * about the backup format and a place no test reaches.
      */
-    fun restoreNeedsConfirming(): Boolean = subjects.value.isNotEmpty()
+    // A list not yet read is nothing to destroy: the question is asked only about subjects known to be
+    // there, and an unread list makes the restore the unguarded one it is on a fresh install.
+    fun restoreNeedsConfirming(): Boolean = subjects.value.valueOrNull().orEmpty().isNotEmpty()
 
     fun addSubject(name: String) {
         val trimmed = name.trim()

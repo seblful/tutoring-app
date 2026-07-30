@@ -2,8 +2,12 @@ package com.seblful.klas.work
 
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.domain.DigestScheduler
+import com.seblful.klas.domain.Digests
 import com.seblful.klas.domain.ReminderScheduler
 import com.seblful.klas.domain.Reminders
+import com.seblful.klas.domain.model.Money
+import com.seblful.klas.notifications.Notifier
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -28,6 +32,8 @@ class Maintenance @Inject constructor(
     private val classes: ClassRepository,
     private val settings: SettingsRepository,
     private val scheduler: ReminderScheduler,
+    private val digests: DigestScheduler,
+    private val notifier: Notifier,
     private val clock: Clock,
 ) {
     /**
@@ -54,7 +60,7 @@ class Maintenance @Inject constructor(
      * production takes, and a default a test cannot move makes the tested path and the shipped path
      * two different paths.
      */
-    suspend fun run(now: Instant = clock.instant()): Int {
+    suspend fun run(now: Instant = clock.instant()): Settled {
         val s = settings.get()
         // Auto-completion (and therefore auto-billing) is opt-in; when off, the tutor confirms each
         // lesson by marking it completed.
@@ -75,6 +81,57 @@ class Maintenance @Inject constructor(
                 horizon = horizon,
             ),
         )
-        return completed.distinctBy { it.lessonId }.size
+        // The digests are re-planned by the same pass and from the same settings read, for the reason the
+        // reminder plan is: this runs at every app start, after a reboot, on every periodic tick and
+        // behind every settings change, so there is exactly one place where "what the tutor has asked for"
+        // becomes "what is arranged". A digest whose time was changed while the app was closed is put
+        // right by the next pass rather than staying wrong until something happened to touch it.
+        digests.schedule(
+            Digests.plan(
+                now = now,
+                zone = clock.zone,
+                agendaEnabled = s.dailyAgendaEnabled,
+                agendaMinuteOfDay = s.agendaMinuteOfDay,
+                debtsEnabled = s.debtDigestEnabled,
+                debtDayOfWeek = s.debtDayOfWeek,
+                debtMinuteOfDay = s.debtMinuteOfDay,
+            ),
+        )
+        return Settled(
+            lessons = completed.distinctBy { it.lessonId }.size,
+            billed = completed.fold(Money.ZERO) { acc, c -> acc + c.charge },
+        )
     }
+
+    /**
+     * One upkeep pass **that nobody is watching** — the periodic tick and the pass after a reboot — which
+     * reports what it billed to the notification tray instead of to a screen.
+     *
+     * The distinction between this and [run] is who asked. A pass the tutor triggered by turning
+     * auto-completion on reports back through the switch they are standing in front of
+     * (`SettingsViewModel.swept`), and one on the way into the app reports by the schedule being correct
+     * when they get there. A pass that happens at four in the afternoon with the app closed had nothing to
+     * report to, so it recognised income in silence — the tutor's income figure moved and nothing anywhere
+     * accounted for it, which is the same complaint that made the auto-completion switch ask first.
+     *
+     * Here rather than in [MaintenanceWorker] because a `CoroutineWorker` is reachable only from a device,
+     * and "does an unwatched pass announce itself" is a decision about the tutor's money.
+     */
+    suspend fun runUnwatched(now: Instant = clock.instant()): Settled {
+        val settled = run(now)
+        if (settled.lessons > 0) {
+            notifier.showAutoCompleted(settled.lessons, settled.billed, settings.get().currency)
+        }
+        return settled
+    }
+
+    /**
+     * What one pass settled: how many **lessons** it auto-completed and what they came to.
+     *
+     * Counted in lessons rather than classes, like [dueForCompletion]: a group's hour bills every member
+     * and is one lesson of the tutor's. The money is the other half of the same fact and is carried
+     * alongside because both readers need both — the switch says «завершено N занятий», the tray says what
+     * that added to the income.
+     */
+    data class Settled(val lessons: Int, val billed: Money)
 }

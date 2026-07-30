@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -65,8 +66,8 @@ import com.seblful.klas.domain.DaySummary
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.domain.NowMarker
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.format.daySummaryText
 import com.seblful.klas.format.formatDay
-import com.seblful.klas.format.formatHours
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatWeekRange
 import com.seblful.klas.format.toLocalDate
@@ -78,6 +79,7 @@ import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.ListSkeleton
+import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.Spacing
@@ -91,7 +93,8 @@ import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.map
 import com.seblful.klas.ui.common.popsOnChange
 import com.seblful.klas.ui.common.rememberMessages
-import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.common.rememberRejectFeedback
+import com.seblful.klas.ui.common.rememberConfirmFeedback
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.common.valueOrNull
 import com.seblful.klas.ui.theme.klasColors
@@ -134,6 +137,17 @@ fun ScheduleScreen(
     val actionFailedMsg = stringResource(R.string.action_failed)
     LaunchedEffect(Unit) {
         viewModel.events.stream.collect { messages.show(actionFailedMsg) }
+    }
+
+    val confirmFeedback = rememberConfirmFeedback()
+    val rejectFeedback = rememberRejectFeedback()
+
+    // **The app's one hard "no", felt.** One tutor, one lesson at a time: an overlapping hour is refused
+    // outright rather than warned about, and until now that arrived as a dialog and nothing else. Keyed on
+    // the conflict rather than fired from the action, because `timeConflict` is *state* — it has to survive
+    // a rotation — so the buzz belongs to the refusal arriving and not to each recomposition that draws it.
+    LaunchedEffect(timeConflict) {
+        if (timeConflict != null) rejectFeedback()
     }
 
     // What the add button says on a day nothing can be booked into yet — and the step that fixes it.
@@ -320,7 +334,11 @@ fun ScheduleScreen(
             row = row,
             sheetState = rememberModalBottomSheetState(),
             onEdit = { onEditClass(row.klass.id); sheetFor = null },
-            onStatus = { viewModel.setStatus(row.session, it); sheetFor = null },
+            // **The same «done» the swipe gives**, because it is the same act. Marking a lesson taught by
+            // dragging its row both buzzed and popped; doing it from this sheet only popped, so the app felt
+            // different depending on which way the tutor reached the one thing that bills a lesson. The pop
+            // is `popsOnChange` on the status badge and arrives either way (`ui/common/Pop`).
+            onStatus = { confirmFeedback(); viewModel.setStatus(row.session, it); sheetFor = null },
             onMove = { movingRow = row; sheetFor = null },
             onDelete = { deletingRow = row; sheetFor = null },
             onDismiss = { sheetFor = null },
@@ -766,33 +784,24 @@ private fun DaySectionHeader(date: LocalDate, isSelected: Boolean, summary: DayS
  * selected-day heading in the month view, and on each heading of the week agenda. One rule, no
  * exceptions to remember.
  *
- * The arithmetic is [DaySummary]'s and arrives already done (see [WeekSection.summary]) — what is here is
- * the wording and the separator. A **cancelled** lesson is named apart rather than folded in: it counts
- * towards nothing, and a day of four lessons and one cancellation must not read as five.
+ * The arithmetic is [DaySummary]'s and the **wording is [daySummaryText]'s** — shared with the morning
+ * digest, which summarises the same day into the notification tray. Two copies of this sentence could
+ * add one day up two ways, and both numbers would look right. A **cancelled** lesson is named apart
+ * rather than folded in: it counts towards nothing, and a day of four lessons and one cancellation must
+ * not read as five.
  */
 @Composable
 private fun DaySummaryLine(summary: DaySummary, modifier: Modifier = Modifier) {
-    // Nothing at all to say about a day with nothing on it. The empty state below already does, at
-    // length, and a «0 занятий · 0 ч» above it would be the same news twice in a colder voice.
-    if (summary.isEmpty) return
-
-    val cancelled = stringResource(R.string.schedule_summary_cancelled, summary.cancelled)
-        .takeIf { summary.cancelled > 0 }
-    val parts = if (summary.lessons > 0) {
-        listOfNotNull(
-            pluralStringResource(R.plurals.lessons_count, summary.lessons, summary.lessons),
-            stringResource(R.string.hours_value, formatHours(summary.minutes)),
-            summary.money.text(),
-            cancelled,
-        )
-    } else {
-        // Everything on this day was called off. Saying so is the whole of it — there are no hours and
-        // no money, and printing zeroes for them would dress a cancelled day up as a counted one.
-        listOfNotNull(cancelled)
-    }
+    // Null is "nothing to say about this day" — the empty state below already says it at length, and a
+    // «0 занятий · 0 ч» above that would be the same news twice in a colder voice.
+    val text = daySummaryText(
+        LocalContext.current.resources,
+        summary,
+        LocalCurrency.current,
+    ) ?: return
 
     Text(
-        parts.joinToString(" · "),
+        text,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier.padding(top = Spacing.tight),

@@ -7,8 +7,10 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.testutil.MainDispatcherRule
+import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
+import com.seblful.klas.ui.common.Loadable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -30,8 +32,31 @@ class SettingsViewModelTest {
 
     private fun vm() = SettingsViewModel(
         env.settingsRepo, env.calendarMirror, env.reminders, env.maintenance,
-        env.calendarPermission, env.notificationPermission,
+        env.calendarPermission, env.notificationPermission, env.exactAlarmPermission,
     )
+
+    /**
+     * **A settings row is never drawn from a default**, because `AppSettings()`'s defaults are a different
+     * tutor's settings: reminders on, sync off, BYN, hour-long lessons. The state used to start there, so
+     * a tutor who had switched reminders off opened the screen on a switch that was on and then watched it
+     * flip — which reads as the app doing something rather than as the app catching up.
+     *
+     * Both halves are asserted, as `LoadableTest` argues: `Loading` alone could be a state nothing leaves.
+     */
+    @Test
+    fun `the settings are Loading until the row is read, and then say what is stored`() =
+        runTest(mainRule.dispatcher) {
+            env.settingsRepo.update { it.copy(notificationsEnabled = false, currency = Currency.RUB) }
+
+            val vm = vm()
+            assertEquals(Loadable.Loading, vm.state.value)
+
+            observing(vm.state)
+            advanceUntilIdle()
+
+            assertFalse("the tutor's own answer, not the default", vm.state.current.notificationsEnabled)
+            assertEquals(Currency.RUB, vm.state.current.currency)
+        }
 
     /**
      * Turning reminders on has three possible consequences, and telling the last two apart is the point:
@@ -42,7 +67,7 @@ class SettingsViewModelTest {
     fun `turning reminders on asks for the permission only when there is one to ask for`() =
         runTest(mainRule.dispatcher) {
             val vm = vm()
-            observing(vm.notificationsPermitted)
+            observing(vm.reminderDelivery)
             advanceUntilIdle()
 
             assertEquals("switching off asks nothing", NotificationsIntent.Nothing, vm.notificationsIntent(on = false))
@@ -98,7 +123,7 @@ class SettingsViewModelTest {
         advanceUntilIdle()
 
         // Null is "not set", so a new group's rate is left blank rather than pre-filled with a guess.
-        assertNull(vm.state.value.defaultGroupPrice)
+        assertNull(vm.state.current.defaultGroupPrice)
 
         // And clearing it again is expressible.
         vm.update { it.copy(defaultGroupPrice = Money(2000)) }
@@ -440,42 +465,99 @@ class SettingsViewModelTest {
     fun `the platform's answer is reported apart from the tutor's intent`() = runTest(mainRule.dispatcher) {
         env.notificationPermission.granted = false
         val vm = vm()
-        observing(vm.notificationsPermitted)
+        // Both, because the point is the two disagreeing — and the tutor's own answer is now a read that
+        // has to have happened before it can be asserted about.
+        observing(vm.state, vm.reminderDelivery)
         advanceUntilIdle()
 
-        assertTrue("the tutor asked for reminders", vm.state.value.notificationsEnabled)
-        assertFalse("but the platform will not show them", vm.notificationsPermitted.value)
+        assertTrue("the tutor asked for reminders", vm.state.current.notificationsEnabled)
+        assertEquals(
+            "but the platform will not show them",
+            ReminderDelivery.BLOCKED,
+            vm.reminderDelivery.value,
+        )
+    }
+
+    /**
+     * The other half of the platform's answer, and the half that was missing: the reminder *will* be
+     * shown, and not necessarily when it says. A fresh Android 14+ install is in exactly this state,
+     * because `SCHEDULE_EXACT_ALARM` is not granted by default there — so the app's one time-critical
+     * promise was quietly approximate on every new install, with the row underneath reporting it as fine.
+     */
+    @Test
+    fun `a reminder that can only be inexact is reported as late, not as working`() =
+        runTest(mainRule.dispatcher) {
+            env.exactAlarmPermission.granted = false
+            val vm = vm()
+            observing(vm.reminderDelivery)
+            advanceUntilIdle()
+
+            assertEquals(ReminderDelivery.LATE, vm.reminderDelivery.value)
+        }
+
+    /**
+     * Precedence, which is the whole reason this is a named answer rather than two booleans: a reminder
+     * nothing can post has nothing to be late about, so the blocked state wins and the tutor is given one
+     * problem to fix instead of two.
+     */
+    @Test
+    fun `nothing postable outranks nothing punctual`() = runTest(mainRule.dispatcher) {
+        env.notificationPermission.granted = false
+        env.exactAlarmPermission.granted = false
+        val vm = vm()
+        observing(vm.reminderDelivery)
+        advanceUntilIdle()
+
+        assertEquals(ReminderDelivery.BLOCKED, vm.reminderDelivery.value)
     }
 
     @Test
     fun `granting the permission is picked up on the next check`() = runTest(mainRule.dispatcher) {
         env.notificationPermission.granted = false
         val vm = vm()
-        observing(vm.notificationsPermitted)
+        observing(vm.reminderDelivery)
         advanceUntilIdle()
-        assertFalse(vm.notificationsPermitted.value)
+        assertEquals(ReminderDelivery.BLOCKED, vm.reminderDelivery.value)
 
         // What returning from the system dialog — or from system settings — amounts to.
         env.notificationPermission.granted = true
         vm.refreshPermissions()
         advanceUntilIdle()
 
-        assertTrue(vm.notificationsPermitted.value)
+        assertEquals(ReminderDelivery.ON_TIME, vm.reminderDelivery.value)
     }
 
     /** And revoked the same way: a permission can be taken away while the app is in the background. */
     @Test
     fun `revoking the permission is picked up too`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        observing(vm.notificationsPermitted)
+        observing(vm.reminderDelivery)
         advanceUntilIdle()
-        assertTrue(vm.notificationsPermitted.value)
+        assertEquals(ReminderDelivery.ON_TIME, vm.reminderDelivery.value)
 
         env.notificationPermission.granted = false
         vm.refreshPermissions()
         advanceUntilIdle()
 
-        assertFalse(vm.notificationsPermitted.value)
+        assertEquals(ReminderDelivery.BLOCKED, vm.reminderDelivery.value)
+    }
+
+    /**
+     * Switching reminders off says nothing about the platform. Both grants are missing here and the answer
+     * is still [ReminderDelivery.OFF] — the row must not lecture a tutor about a permission for a feature
+     * they have just turned off.
+     */
+    @Test
+    fun `a reminder switched off reports nothing about the platform`() = runTest(mainRule.dispatcher) {
+        env.notificationPermission.granted = false
+        env.exactAlarmPermission.granted = false
+        val vm = vm()
+        observing(vm.reminderDelivery)
+
+        vm.update { it.copy(notificationsEnabled = false) }
+        advanceUntilIdle()
+
+        assertEquals(ReminderDelivery.OFF, vm.reminderDelivery.value)
     }
 
     /** Turning reminders off is never blocked — nothing to ask for, nothing to warn about. */

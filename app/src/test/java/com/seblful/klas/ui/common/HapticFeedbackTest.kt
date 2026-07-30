@@ -15,8 +15,15 @@ import java.io.File
  *
  * And it is performed in one file (`ui/common/Haptics.kt`) rather than at each gesture, so *which* effect a
  * moment gets is a decision with one home — the same argument as [timeText] having the only copy of "which
- * clock is this phone on". There are two moments: the mark a drag crosses ([rememberArmedFeedback]) and the
- * action landing ([rememberConfirmFeedback]).
+ * clock is this phone on". There are five moments, and the list is deliberately short: the mark a drag
+ * crosses ([rememberArmedFeedback]), an action landing ([rememberConfirmFeedback]), a refusal
+ * ([rememberRejectFeedback]), a stored fact toggling ([rememberToggleFeedback]) and moving between the
+ * segments of a fixed choice ([rememberSegmentTickFeedback]).
+ *
+ * **What is not on the list is the point of the list.** An ordinary button, a list row, a tab, a navigation —
+ * none of them buzz. The platform reserves haptics for state changes, gesture thresholds and confirmations
+ * and leaves a plain tap to its ripple; a phone that buzzes at everything is one where no buzz means
+ * anything.
  */
 class HapticFeedbackTest {
 
@@ -74,23 +81,47 @@ class HapticFeedbackTest {
 
     /** So the scans above cannot pass by the app having stopped buzzing at all. */
     @Test
-    fun `both buzzes exist and are used`() {
+    fun `every buzz exists and is used`() {
         val haptics = ProjectFiles.sourceFile("ui/common/Haptics.kt").readText()
         val elsewhere = ProjectFiles.sources().filter { it.name != "Haptics.kt" }.map { it.readText() }
 
         assertTrue("`Haptics.kt` performs no haptic feedback", "performHapticFeedback" in haptics)
-        assertTrue(
-            "Nothing asks for the confirm buzz — the swipe used to, on the lift",
-            elsewhere.any { "rememberConfirmFeedback()" in it },
+
+        val unused = Moments.filterNot { (_, factory) -> elsewhere.any { "$factory()" in it } }
+        assertEquals(
+            "A named haptic moment nothing asks for. Either the moment it was written for lost its " +
+                "buzz, or the function should go: $unused",
+            emptyList<Pair<String, String>>(),
+            unused,
         )
+    }
+
+    /**
+     * The **confirm and the refusal are a pair**, and the refusal is the one that was missing: a lesson
+     * marked taught buzzed twice while an hour refused because it was already booked — the app's one hard
+     * "no" — said nothing at all. If the app can say yes without words it has to be able to say no.
+     */
+    @Test
+    fun `a refusal is felt wherever the schedule refuses an hour`() {
+        val schedule = ProjectFiles.sourceFile("ui/schedule/ScheduleScreen.kt").readText()
+
         assertTrue(
-            "Nothing asks for the armed tick — the swipe used to, at its mark",
-            elsewhere.any { "rememberArmedFeedback()" in it },
+            "The schedule draws the time-conflict refusal without feeling like one",
+            "rememberRejectFeedback()" in schedule,
         )
     }
 
     private companion object {
         /** Vibrating the phone without asking it: the API, its effects, and the permission they need. */
         val RawVibration = listOf("android.os.Vibrator", "VibrationEffect", "HapticFeedbackConstants")
+
+        /** Each named moment, and what it is for — so a message can say which one went unused. */
+        val Moments = listOf(
+            "the mark a drag crosses" to "rememberArmedFeedback",
+            "an action landing" to "rememberConfirmFeedback",
+            "a refusal" to "rememberRejectFeedback",
+            "a stored fact toggling" to "rememberToggleFeedback",
+            "moving between segments" to "rememberSegmentTickFeedback",
+        )
     }
 }

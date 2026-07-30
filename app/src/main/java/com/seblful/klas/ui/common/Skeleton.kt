@@ -139,8 +139,42 @@ fun LoadingDetailScreen(onBack: () -> Unit) {
     }
 }
 
+/**
+ * A form before the record it edits has been read: the fields, in order, at the size they will be.
+ *
+ * **The title is known and is passed in, unlike [LoadingDetailScreen]'s.** A form knows whether it is
+ * adding or editing before it knows anything else — that comes from the navigation argument, not from the
+ * database — so «Изменить занятие» is a fact here and «Иван Петров» is not.
+ *
+ * A form is the one place where drawing the loaded-yet state as *content* would be worst: an
+ * `OutlinedTextField` bound to a value that has not arrived is not a blank field, it is a field
+ * **stating** that the lesson has no student and the group no name, over the tutor's real data, with a
+ * required-field hint under it and «Нет групп» in the error red beside it. Waiting is the only honest
+ * thing a form can draw.
+ *
+ * No save action: there is nothing yet to save, and an enabled one would act on the empty form. The back
+ * arrow stays live for [LoadingDetailScreen]'s reason, and needs no unsaved-changes question — a form
+ * that has not loaded cannot hold work.
+ *
+ * @param fields how many rows the form opens with. The caller knows; this does not.
+ */
+@Composable
+fun LoadingFormScreen(title: String, onBack: () -> Unit, fields: Int = 4) {
+    KlasScreen(title = title, onBack = onBack) { modifier ->
+        Column(
+            modifier.padding(Spacing.gutter),
+            verticalArrangement = Arrangement.spacedBy(Spacing.gutter),
+        ) {
+            repeat(fields) { SkeletonBlock(FieldHeight) }
+        }
+    }
+}
+
 /** Roughly a `ContentCard` holding a 40dp avatar and two lines of text. */
 private val SkeletonRowHeight = 72.dp
+
+/** Roughly an `OutlinedTextField` with a label and a line of supporting text under it. */
+private val FieldHeight = 72.dp
 
 /** Roughly a `StatRow`: three tiles of a value, a label and a hint, at 12dp vertical padding. */
 private val StatRowHeight = 76.dp

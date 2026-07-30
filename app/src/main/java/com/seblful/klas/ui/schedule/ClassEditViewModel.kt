@@ -26,9 +26,12 @@ import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.LeavableForm
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.hold
+import com.seblful.klas.ui.common.ready
+import com.seblful.klas.ui.common.valueOrNull
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -417,8 +420,29 @@ class ClassEditViewModel @Inject constructor(
      */
     private val session = MutableStateFlow<ClassSession?>(null)
 
-    private val students: StateFlow<List<Student>> = studentsRepo.observeActive()
-        .derive(this, computation, emptyList())
+    /**
+     * Whether the app has finished putting the lesson into the form.
+     *
+     * A **new** lesson is ready as it stands: an empty form is the honest picture of a booking nobody has
+     * filled in yet, and everything `init` does to it afterwards is a prefill into a blank field. An
+     * **edited** one is not — [loadExisting] is a coroutine, so the screen was already up and drawing a
+     * blank `ClassForm`: no student, no subject, today's date, the default length, and «Нет групп» in the
+     * error red, over a lesson that has all five. See [Loadable].
+     */
+    private val filled = MutableStateFlow(isNew)
+
+    /**
+     * The active students, for the picker.
+     *
+     * [Loadable] rather than a list starting empty, because the picker lists are also where this form
+     * reads the **names it displays**: `state.students.firstOrNull { it.id == form.studentId }?.name`
+     * against a list that has merely not been read yet is an empty student field on a lesson that has
+     * one. A `combine` over `StateFlow`s cannot wait for them — a placeholder is an emission — so the
+     * waiting has to be in the value.
+     */
+    private val students: StateFlow<Loadable<List<Student>>> = studentsRepo.observeActive()
+        .ready()
+        .derive(this, computation, Loadable.Loading)
 
     /**
      * The form and every rule about how it moves — see [BookingForm], which is pure. This class holds
@@ -441,11 +465,12 @@ class ClassEditViewModel @Inject constructor(
      * The groups offered in the picker: the active ones, plus the group of the lesson being edited so
      * an archived group's existing lesson can still name itself.
      */
-    private val groups: StateFlow<List<Group>> =
+    private val groups: StateFlow<Loadable<List<Group>>> =
         combine(groupsRepo.observeAll(), form.map { it.groupId }.distinctUntilChanged()) { all, selected ->
             all.filter { !it.archived || it.id == selected }
         }
-            .derive(this, computation, emptyList())
+            .ready()
+            .derive(this, computation, Loadable.Loading)
 
     /**
      * Who the lesson may cover, listed under the group with a tick each. While **booking**, the
@@ -456,7 +481,7 @@ class ClassEditViewModel @Inject constructor(
      * Offering the current roster on an old lesson is the point rather than a leak: the group is who
      * is taught, and a lesson recorded without somebody who was there is a mistake worth fixing.
      */
-    private val members: StateFlow<List<Student>> =
+    private val members: StateFlow<Loadable<List<Student>>> =
         combine(form.map { it.groupId }.distinctUntilChanged(), session) { groupId, booked ->
             MembersKey(groupId, booked?.classes?.map { it.studentId }?.toSet())
         }.distinctUntilChanged()
@@ -475,7 +500,8 @@ class ClassEditViewModel @Inject constructor(
                     else -> membersOf(key.groupId)
                 }
             }
-            .derive(this, computation, emptyList())
+            .ready()
+            .derive(this, computation, Loadable.Loading)
 
     /** [bookedIds] is null while booking something new, and the lesson's members while editing one. */
     private data class MembersKey(val groupId: Long?, val bookedIds: Set<Long>?)
@@ -486,10 +512,11 @@ class ClassEditViewModel @Inject constructor(
      * the group is taught it, and every member is priced for it. For a group without one: all of
      * them, because nothing on the group says otherwise.
      */
-    private val subjects: StateFlow<List<Subject>> =
+    private val subjects: StateFlow<Loadable<List<Subject>>> =
         form.map { SubjectKey.of(it) }.distinctUntilChanged()
             .flatMapLatest { subjectsFor(it) }
-            .derive(this, computation, emptyList())
+            .ready()
+            .derive(this, computation, Loadable.Loading)
 
     /**
      * The bookable subjects for one target, as a flow. Extracted so the shared [subjects] and the
@@ -521,13 +548,14 @@ class ClassEditViewModel @Inject constructor(
      * group has one. Drives the picker's enabled state: showing a dropdown that can only be set to
      * what it already says would invite a choice that isn't there.
      */
-    private val subjectFixedByGroup: StateFlow<Boolean> =
+    private val subjectFixedByGroup: StateFlow<Loadable<Boolean>> =
         form.map { it.groupId }.distinctUntilChanged()
             .flatMapLatest { groupId ->
                 if (groupId == null) flowOf(false)
                 else groupsRepo.observeById(groupId).map { it?.subjectId != null }
             }
-            .derive(this, computation, false)
+            .ready()
+            .derive(this, computation, Loadable.Loading)
 
 
     /**
@@ -537,6 +565,10 @@ class ClassEditViewModel @Inject constructor(
      *
      * The lesson being **edited** is excluded by every one of its class ids, not just the one that was
      * tapped: a group lesson would otherwise be found colliding with its own other members.
+     *
+     * The one flow here **not** wrapped in [Loadable], and deliberately: its null is the absence of a
+     * warning rather than a claim about the tutor's data, and the repository refuses a taken hour on save
+     * regardless (`LessonWrite.HourTaken`), so an unread answer cannot let a double booking through.
      */
     private val conflict: StateFlow<TimeConflict?> =
         combine(
@@ -570,29 +602,55 @@ class ClassEditViewModel @Inject constructor(
         val subjectFixedByGroup: Boolean,
     )
 
-    val state: StateFlow<ClassFormState> =
+    /**
+     * The five pickers as one value, once **all five** have been read.
+     *
+     * `return@combine` on the first one missing rather than five nested `when`s: the answer is the same
+     * whichever it is, and there is no partly-drawable form — a subject list that has arrived is no use
+     * while the student list it names the lesson's student from has not.
+     */
+    private val pickers: Flow<Loadable<Pickers>> =
+        combine(students, groups, members, subjects, subjectFixedByGroup) { s, g, m, subj, fixed ->
+            Loadable.Ready(
+                Pickers(
+                    students = s.valueOrNull() ?: return@combine Loadable.Loading,
+                    groups = g.valueOrNull() ?: return@combine Loadable.Loading,
+                    members = m.valueOrNull() ?: return@combine Loadable.Loading,
+                    subjects = subj.valueOrNull() ?: return@combine Loadable.Loading,
+                    subjectFixedByGroup = fixed.valueOrNull() ?: return@combine Loadable.Loading,
+                ),
+            )
+        }
+
+    val state: StateFlow<Loadable<ClassFormState>> =
         combine(
-            combine(students, groups, members, subjects, subjectFixedByGroup, ::Pickers),
+            pickers,
             booking,
             conflict,
             session,
-        ) { pickers, held, clash, booked ->
+            filled,
+        ) { readPickers, held, clash, booked, isFilled ->
+            // Both halves: the lesson has been put in the form, and the lists the form names it out of
+            // have been read. Either one alone still draws a lesson that is not this lesson.
+            val pickers = readPickers.valueOrNull()?.takeIf { isFilled } ?: return@combine Loadable.Loading
             val f = held.form
             val isTouched = held.touched
-            ClassFormState(
-                form = f,
-                isNew = isNew,
-                students = pickers.students,
-                groups = pickers.groups,
-                members = pickers.members,
-                subjects = pickers.subjects,
-                subjectFixedByGroup = pickers.subjectFixedByGroup,
-                booked = booked?.classes.orEmpty(),
-                conflict = clash,
-                isDirty = isTouched,
+            Loadable.Ready(
+                ClassFormState(
+                    form = f,
+                    isNew = isNew,
+                    students = pickers.students,
+                    groups = pickers.groups,
+                    members = pickers.members,
+                    subjects = pickers.subjects,
+                    subjectFixedByGroup = pickers.subjectFixedByGroup,
+                    booked = booked?.classes.orEmpty(),
+                    conflict = clash,
+                    isDirty = isTouched,
+                ),
             )
         }
-            .derive(this, computation, ClassFormState(isNew = isNew))
+            .derive(this, computation, Loadable.Loading)
 
     /** Archived students and groups are looked up too — a past lesson still occupied that hour. */
     private fun describe(clash: ClassSession, students: List<Student>, groups: List<Group>): TimeConflict =
@@ -604,7 +662,12 @@ class ClassEditViewModel @Inject constructor(
 
     init {
         if (!isNew) {
-            viewModelScope.launch { loadExisting() }
+            // [filled] is set outside [loadExisting] so a lesson that is no longer there still opens as a
+            // form, rather than leaving the screen on a skeleton waiting for a row that will never come.
+            viewModelScope.launch {
+                loadExisting()
+                filled.value = true
+            }
         } else if (preselectedGroupId != 0L) {
             // Not the tutor's work, so neither marks the form unsaved — see [BookingIntent.isEdit].
             change(BookingIntent.ChooseTarget(ClassTarget.GROUP).asSetup())
@@ -696,9 +759,18 @@ class ClassEditViewModel @Inject constructor(
         applied.lookups.forEach { run(it) }
     }
 
+    /**
+     * What [BookingForm] may look things up in synchronously — the picker contents as they stand.
+     *
+     * A list that has not been read is passed as an empty one, which is what it was before [Loadable] and
+     * is right here rather than a lie: this context answers "is the student I was just handed in the
+     * list", and the form already copes with the answer being no — `init` passes the only student along as
+     * `known` for exactly that reason. The distinction that matters is about what the *screen draws*, and
+     * that is [state]'s.
+     */
     private fun bookingContext() = BookingContext(
-        students = students.value,
-        groups = groups.value,
+        students = students.value.valueOrNull().orEmpty(),
+        groups = groups.value.valueOrNull().orEmpty(),
         defaultLessonMinutes = defaultMinutes.value,
     )
 

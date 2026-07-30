@@ -41,12 +41,23 @@ fun <T> SegmentedChoice(
     enabled: (T) -> Boolean = { true },
     label: @Composable (T) -> String,
 ) {
+    // Here rather than at the eight call sites, which is the point of this composable existing: the tick is
+    // a property of "picking a segment" and not of any one row that happens to be made of segments. It fires
+    // only where the selection **moves** — the `if (!isSelected)` below is the one place that decides that,
+    // so a tutor re-tapping the segment they are already on gets the silence they should.
+    val segmentTick = rememberSegmentTickFeedback()
+
     SingleChoiceSegmentedButtonRow(modifier.fillMaxWidth()) {
         options.forEachIndexed { index, option ->
             val isSelected = option == selected
             SegmentedButton(
                 selected = isSelected,
-                onClick = { if (!isSelected) onSelect(option) },
+                onClick = {
+                    if (!isSelected) {
+                        segmentTick()
+                        onSelect(option)
+                    }
+                },
                 enabled = isSelected || enabled(option),
                 shape = SegmentedButtonDefaults.itemShape(index, options.size),
                 // No check mark. Its slot costs ~28dp of a segment that may be one third of a phone,

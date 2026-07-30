@@ -31,7 +31,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.compose.runtime.CompositionLocalProvider
 import com.seblful.klas.domain.model.Currency
-import com.seblful.klas.notifications.ReminderNavigation
+import com.seblful.klas.notifications.TrayNavigation
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.theme.KlasTheme
 import com.seblful.klas.ui.backup.BackupScreen
@@ -247,13 +247,13 @@ private fun MainApp() {
 }
 
 /**
- * Sends the tutor to the lesson when the app was opened by a reminder's «Перенести».
+ * Sends the tutor where a notification they tapped asks them to go — a lesson for a reminder's
+ * «Перенести», the reports for the weekly debt digest.
  *
- * A notification cannot show a date picker, so that button carries the lesson's id and this is where it
- * becomes navigation — onto the lesson's own form, which is where a lesson's date and time are changed
- * and where a clash on the new hour is already refused and worded. Whether an intent asks for one at all
- * is [ReminderNavigation.lessonToOpen]'s, not this composable's: the app is opened by the launcher far
- * more often than by a reminder, and getting that wrong would yank the tutor onto a lesson every time.
+ * A notification cannot show a date picker or list who owes what, so each carries an action and this is
+ * where it becomes navigation. **Which** destination an intent asks for is [TrayNavigation.destinationFor]'s
+ * and not this composable's: the app is opened by the launcher far more often than by a notification, and
+ * getting that wrong would yank the tutor onto a lesson every time they open the app.
  *
  * **Both arrivals, because they are different arrivals.** A cold start has the intent waiting on the
  * activity; an app already running gets it through `onNewIntent`, which is the common case — the tutor
@@ -268,12 +268,24 @@ private fun OpensTheLessonAReminderNames(navController: NavHostController) {
     val activity = LocalActivity.current as? ComponentActivity
 
     val open: (Intent) -> Unit = { intent ->
-        val id = ReminderNavigation.lessonToOpen(
+        val destination = TrayNavigation.destinationFor(
             action = intent.action,
-            classId = intent.getLongExtra(ReminderNavigation.EXTRA_CLASS_ID, 0L),
+            classId = intent.getLongExtra(TrayNavigation.EXTRA_CLASS_ID, 0L),
         )
-        // `launchSingleTop` so two taps on the same reminder do not stack the same lesson twice.
-        if (id != null) navController.navigate(Routes.classEdit(id)) { launchSingleTop = true }
+        // `launchSingleTop` so two taps on the same notification do not stack the same screen twice.
+        when (destination) {
+            is TrayNavigation.Destination.Lesson ->
+                navController.navigate(Routes.classEdit(destination.classId)) { launchSingleTop = true }
+            // A **tab**, so it is switched to the way the bottom bar switches to it — popping back to the
+            // start destination with the state saved. Pushing «Отчёты» on top of wherever the tutor was
+            // would leave the reports sitting above the schedule with a back arrow and no tab selected.
+            TrayNavigation.Destination.Debts -> navController.navigate(Routes.REPORTS) {
+                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+            null -> Unit
+        }
     }
 
     var launchIntentHandled by rememberSaveable { mutableStateOf(false) }

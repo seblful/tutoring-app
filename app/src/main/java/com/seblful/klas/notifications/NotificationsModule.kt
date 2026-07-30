@@ -19,4 +19,10 @@ abstract class NotificationsModule {
     abstract fun bindNotificationPermission(
         impl: AndroidNotificationPermission,
     ): NotificationPermission
+
+    @Binds
+    @Singleton
+    abstract fun bindExactAlarmPermission(
+        impl: AndroidExactAlarmPermission,
+    ): ExactAlarmPermission
 }

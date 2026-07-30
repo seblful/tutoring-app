@@ -171,3 +171,31 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         db.execSQL("ALTER TABLE `settings` ADD COLUMN `dynamicColorEnabled` INTEGER NOT NULL DEFAULT 0")
     }
 }
+
+/**
+ * **v4 → v5: the two digests, and when they land.**
+ *
+ * Five columns on the same single-row table: whether the morning agenda is posted and at what minute past
+ * local midnight, and the same for the weekly debt summary plus which weekday it falls on
+ * (`SettingsEntity.dailyAgendaEnabled` and its four neighbours).
+ *
+ * **Both switches backfill off**, which is the only defensible answer: these are notifications the app
+ * did not previously send, and an upgrade must not start sending a tutor a message every morning because
+ * they installed a new version. The times backfill to their defaults — 540 = 09:00, Monday — so a tutor
+ * who *does* switch a digest on lands on a sensible hour rather than midnight, without having to visit
+ * the two rows that set it first.
+ *
+ * `NOT NULL DEFAULT …` on all five: SQLite requires a default for a non-null column added to a table that
+ * already has a row, and every value here has an honest one. The entity's `defaultValue` annotations
+ * repeat these exactly — `MigrationChainTest` is what stops them drifting apart, and Room's schema
+ * validation fails loudly at the end of this migration if they ever do.
+ */
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `settings` ADD COLUMN `dailyAgendaEnabled` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `settings` ADD COLUMN `agendaMinuteOfDay` INTEGER NOT NULL DEFAULT 540")
+        db.execSQL("ALTER TABLE `settings` ADD COLUMN `debtDigestEnabled` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `settings` ADD COLUMN `debtDayOfWeek` INTEGER NOT NULL DEFAULT 1")
+        db.execSQL("ALTER TABLE `settings` ADD COLUMN `debtMinuteOfDay` INTEGER NOT NULL DEFAULT 540")
+    }
+}

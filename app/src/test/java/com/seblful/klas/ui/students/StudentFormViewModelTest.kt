@@ -5,6 +5,8 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
+import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.valueOrNull
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -25,6 +27,32 @@ class StudentFormViewModelTest {
     private val env = TestEnv()
 
     private fun vm() = StudentFormViewModel(env.subjectRepo, env.enrollmentRepo, mainRule.appScope, mainRule.dispatcher)
+
+    /**
+     * **The form is usable at once; only its subject list waits.**
+     *
+     * Empty is a *refusal* on this screen — «Сначала добавьте предметы», in the error red — so an initial
+     * `emptyList()` said it to a tutor with nine subjects for the frame or two before they were read. But
+     * the fields around it are legitimately blank (this screen only ever *adds* a student), so wrapping the
+     * whole state would make «Добавить ученика» open on a skeleton for no reason. Hence the split: the
+     * state is a plain value and [StudentFormViewModel.UiState.allSubjects] carries its own answer.
+     */
+    @Test
+    fun `only the subject list waits to be read`() = runTest(mainRule.dispatcher) {
+        env.fixtures.subject("Математика")
+        val vm = vm()
+
+        assertEquals(Loadable.Loading, vm.state.value.allSubjects)
+        assertEquals("but the form itself is already there", "", vm.state.value.form.name)
+
+        observing(vm.state)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("Математика"),
+            vm.state.value.allSubjects.valueOrNull()?.map { it.name },
+        )
+    }
 
     @Test
     fun `form starts invalid and becomes valid with a name and a priced subject`() = runTest(mainRule.dispatcher) {

@@ -18,7 +18,7 @@ import androidx.room.RoomDatabase
         SettingsEntity::class,
     ],
     views = [ClassRow::class],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {

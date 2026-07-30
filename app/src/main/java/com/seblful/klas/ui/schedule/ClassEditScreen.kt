@@ -34,6 +34,8 @@ import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.DurationPickerModal
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.LoadingFormScreen
 import com.seblful.klas.ui.common.MemberPickRow
 import com.seblful.klas.ui.common.ModeField
 import com.seblful.klas.ui.common.PickerField
@@ -48,13 +50,32 @@ import com.seblful.klas.ui.common.supportingTextOf
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.format.formatDate
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClassEditScreen(
     onBack: () -> Unit,
     viewModel: ClassEditViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val screenState by viewModel.state.collectAsState()
+    val title = stringResource(if (viewModel.isNew) R.string.class_add_title else R.string.class_edit_title)
+
+    // A lesson being edited waits for itself. Drawn from a blank `ClassForm` this screen states that the
+    // lesson has no student, no subject and — for a group booking — that there are no groups at all, in
+    // the error red, over a lesson that has all three. See [Loadable]; a new booking is [Loadable.Ready]
+    // from the start, because a blank form is what a new booking *is*.
+    when (val loaded = screenState) {
+        Loadable.Loading -> LoadingFormScreen(title = title, onBack = onBack, fields = 5)
+        is Loadable.Ready -> ClassEditForm(loaded.value, title, viewModel, onBack)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ClassEditForm(
+    state: ClassFormState,
+    title: String,
+    viewModel: ClassEditViewModel,
+    onBack: () -> Unit,
+) {
     val form = state.form
     val members = state.members
     val durations by viewModel.durationOptions.collectAsState()
@@ -95,7 +116,7 @@ fun ClassEditScreen(
     val requestLeave = leaveGuard(form = state, onLeave = onBack, onSave = ::requestSave)
 
     KlasScreen(
-        title = stringResource(if (viewModel.isNew) R.string.class_add_title else R.string.class_edit_title),
+        title = title,
         onBack = requestLeave,
         messages = messages,
         // The keyboard shrinks the viewport rather than covering it; the shell composes that in ahead

@@ -90,6 +90,7 @@ import com.seblful.klas.ui.common.balanceDescription
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
+import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.moneyErrorText
@@ -212,11 +213,11 @@ private fun StudentCard(
                     student = student,
                     // The same three launches the contact block makes, through the same guard: a tablet
                     // with no dialler must not crash the card.
-                    onCall = { phone -> launchContact(context, dialIntent(phone), noAppMsg, messages) },
+                    onCall = { phone -> launchExternally(context, dialIntent(phone), noAppMsg, messages) },
                     onTelegram = { phone ->
-                        launchContact(context, telegramIntent(phone), noAppMsg, messages)
+                        launchExternally(context, telegramIntent(phone), noAppMsg, messages)
                     },
-                    onEmail = { email -> launchContact(context, mailIntent(email), noAppMsg, messages) },
+                    onEmail = { email -> launchExternally(context, mailIntent(email), noAppMsg, messages) },
                     // Whether archiving is worth asking about, and what the question would have
                     // to say, are both `state.archiveIntent`'s — see [ArchiveIntent].
                     onArchive = {
@@ -242,10 +243,10 @@ private fun StudentCard(
                 student?.let {
                     ContactBlock(
                         student = it,
-                        onCall = { phone -> launchContact(context, dialIntent(phone), noAppMsg, messages) },
-                        onEmail = { email -> launchContact(context, mailIntent(email), noAppMsg, messages) },
+                        onCall = { phone -> launchExternally(context, dialIntent(phone), noAppMsg, messages) },
+                        onEmail = { email -> launchExternally(context, mailIntent(email), noAppMsg, messages) },
                         onTelegram = { phone ->
-                            launchContact(context, telegramIntent(phone), noAppMsg, messages)
+                            launchExternally(context, telegramIntent(phone), noAppMsg, messages)
                         },
                         modifier = Modifier.padding(
                             horizontal = Spacing.gutter,
@@ -885,23 +886,6 @@ private fun LazyListScope.paymentsTab(
             modifier = Modifier.clickable { onEdit(payment) }.animateItem(),
         )
     }
-}
-
-/**
- * Reaching the student through whatever app handles it.
- *
- * Every one of these can fail on a real device — a tablet with no dialler, a phone with no mail
- * client, Telegram not installed — and an unhandled `ActivityNotFoundException` from a tap on a
- * phone number would be a crash in the middle of the most ordinary thing on the screen. It says so
- * instead, in the same snackbar everything else on this card speaks through.
- */
-private fun launchContact(
-    context: android.content.Context,
-    intent: Intent,
-    failureMessage: String,
-    messages: com.seblful.klas.ui.common.Messages,
-) {
-    runCatching { context.startActivity(intent) }.onFailure { messages.show(failureMessage) }
 }
 
 private fun dialIntent(phone: String): Intent =

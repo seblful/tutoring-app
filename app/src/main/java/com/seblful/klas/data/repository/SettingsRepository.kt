@@ -19,6 +19,35 @@ data class AppSettings(
     val emailInvitesEnabled: Boolean = false,
     val onboardingComplete: Boolean = false,
     val reminderLeadMinutes: Int = 60,
+    /**
+     * Whether the morning digest naming the day's lessons is posted. **Off by default**, like every other
+     * notification the app sends unasked: a reminder before a lesson is the feature the tutor installed
+     * this for, a message every morning is one they have to want.
+     */
+    val dailyAgendaEnabled: Boolean = false,
+    /**
+     * What time of day the agenda is posted, as **minutes since local midnight** — 540 is 09:00.
+     *
+     * Minutes rather than a `LocalTime`, because this is a stored column and `AppSettings` is the shape of
+     * the row: an `Int` needs no converter and no total parse function on the way back (contrast
+     * `ClassStatus.parse`, which exists because a *name* can come back unreadable). The minutes are turned
+     * into a wall-clock time by `domain/Digests`, which is also where "what if that time is already past
+     * today" is answered.
+     */
+    val agendaMinuteOfDay: Int = 9 * 60,
+    /** Whether the weekly summary of who owes money is posted. Off by default, as [dailyAgendaEnabled]. */
+    val debtDigestEnabled: Boolean = false,
+    /**
+     * Which day of the week the debt digest lands on, as [java.time.DayOfWeek.getValue] — 1 is Monday,
+     * which is the default and the day a tutor's week is planned on.
+     *
+     * Deliberately **not** derived from `di.FirstDayOfWeek`: that answers where a *calendar grid* starts,
+     * a question about how the phone's owner reads a month. This is a day the tutor picked to be told
+     * something on, and the two would only coincide by accident.
+     */
+    val debtDayOfWeek: Int = 1,
+    /** What time the debt digest is posted, minutes since local midnight. See [agendaMinuteOfDay]. */
+    val debtMinuteOfDay: Int = 9 * 60,
     val autoCompleteEnabled: Boolean = false,
     val themeMode: String = "SYSTEM",
     /**
@@ -87,6 +116,24 @@ data class SettingsChange(val before: AppSettings, val after: AppSettings) {
      * computed under the old lead. Independent of calendar sync — the alarms are the app's own.
      */
     val replansReminders: Boolean get() = moved { it.reminderLeadMinutes }
+
+    /**
+     * Whether the two digests have to be re-planned: each is a single piece of work enqueued for the next
+     * time it is due, so **every** field that decides when — or whether — it fires invalidates what is
+     * already enqueued.
+     *
+     * All five in one arm rather than one arm each, because they discharge to the same call and splitting
+     * them would only invite a caller to discharge half. Switching a digest **off** counts too: the work
+     * already enqueued would otherwise still fire, and a notification arriving after the switch that
+     * governs it was turned off is the same class of defect as [sweepsDueLessons] — a setting whose tail
+     * nobody ran.
+     */
+    val replansDigests: Boolean
+        get() = moved { it.dailyAgendaEnabled } ||
+            moved { it.agendaMinuteOfDay } ||
+            moved { it.debtDigestEnabled } ||
+            moved { it.debtDayOfWeek } ||
+            moved { it.debtMinuteOfDay }
 
     /**
      * Whether the lessons already waiting have to be settled now: turning auto-completion **on** owes
@@ -163,6 +210,11 @@ class SettingsRepository @Inject constructor(
             emailInvitesEnabled = emailInvitesEnabled,
             onboardingComplete = onboardingComplete,
             reminderLeadMinutes = reminderLeadMinutes,
+            dailyAgendaEnabled = dailyAgendaEnabled,
+            agendaMinuteOfDay = agendaMinuteOfDay,
+            debtDigestEnabled = debtDigestEnabled,
+            debtDayOfWeek = debtDayOfWeek,
+            debtMinuteOfDay = debtMinuteOfDay,
             autoCompleteEnabled = autoCompleteEnabled,
             themeMode = themeMode,
             dynamicColorEnabled = dynamicColorEnabled,
@@ -185,6 +237,11 @@ class SettingsRepository @Inject constructor(
         emailInvitesEnabled = emailInvitesEnabled,
         onboardingComplete = onboardingComplete,
         reminderLeadMinutes = reminderLeadMinutes,
+        dailyAgendaEnabled = dailyAgendaEnabled,
+        agendaMinuteOfDay = agendaMinuteOfDay,
+        debtDigestEnabled = debtDigestEnabled,
+        debtDayOfWeek = debtDayOfWeek,
+        debtMinuteOfDay = debtMinuteOfDay,
         autoCompleteEnabled = autoCompleteEnabled,
         themeMode = themeMode,
         dynamicColorEnabled = dynamicColorEnabled,

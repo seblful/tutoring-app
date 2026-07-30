@@ -276,8 +276,15 @@ class ScheduleViewModel @Inject constructor(
      * neighbouring-month days padding its first and last rows, so those cells aren't misleadingly
      * blank) or the week strip. Scoped to the active view so browsing far from the selected day
      * never widens the query, and so the day view pays for no markers at all.
+     *
+     * [Loadable] because **a cell with no tally is a statement that the day is free** — the calendar's
+     * whole job is "how full is this week", answered in a glance nobody re-takes, and an empty map is the
+     * same value a fortnight off gives. `DayTallies` therefore draws a placeholder rather than nothing
+     * until the counts have been read. Note what stays unwrapped either side of it: [monthGrid] and
+     * [weekDays] are arithmetic on a date and are known without the database, so those cells appear at
+     * once and it is only their numbers that arrive.
      */
-    val dayLoads: StateFlow<Map<LocalDate, CalendarLayout.DayLoad>> =
+    val dayLoads: StateFlow<Loadable<Map<LocalDate, CalendarLayout.DayLoad>>> =
         combine(_viewMode, _visibleMonth, _visibleWeek, ::Triple)
             .flatMapLatest { (mode, month, week) ->
                 val range = when (mode) {
@@ -295,7 +302,8 @@ class ScheduleViewModel @Inject constructor(
                     ).map { CalendarLayout.dayLoads(it, zone) }
                 }
             }
-                .derive(this, computation, emptyMap())
+                .ready()
+                .derive(this, computation, Loadable.Loading)
 
     /**
      * The lessons the **active view** needs, and no others.

@@ -39,7 +39,7 @@ class KlasApp : Application(), Configuration.Provider {
         // Record crashes to a local file first, before any startup work can throw. The handler still
         // hands off to the platform default, so Google Play (Android Vitals) keeps reporting them.
         crashLogger.install()
-        notifier.ensureChannel()
+        notifier.ensureChannels()
         workScheduler.ensurePeriodicMaintenance()
 
         // Catch up **in process**, not by enqueueing a worker.

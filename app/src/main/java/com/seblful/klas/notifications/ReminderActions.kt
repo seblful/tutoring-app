@@ -16,7 +16,7 @@ import javax.inject.Singleton
  * it.
  *
  * «Перенести» is not here. A new time has to be picked, which needs a screen, so that button opens the
- * lesson instead of doing anything — see [ReminderNavigation].
+ * lesson instead of doing anything — see [TrayNavigation].
  */
 @Singleton
 class ReminderActions @Inject constructor(

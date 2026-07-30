@@ -20,7 +20,12 @@ import javax.inject.Inject
  *
  * The plan is re-derived rather than restored, which is the same rule as everywhere else: [Maintenance]
  * recomputes it from the database, so there is no stale copy to be wrong. Auto-completion rides along,
- * which is right after a reboot too — lessons ended while the phone was off.
+ * which is right after a reboot too — lessons ended while the phone was off. So do the digests, whose
+ * enqueued work WorkManager does restore, but whose firing instant was computed before the phone was off.
+ *
+ * `runUnwatched`, because nobody is: a phone that has just come back up may have missed a whole day of
+ * lessons ending, and settling them is what bills them. The tutor is told what it settled rather than
+ * finding the number changed.
  */
 @AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
@@ -34,7 +39,7 @@ class BootReceiver : BroadcastReceiver() {
         val pending = goAsync()
         appScope.launch {
             try {
-                runCatchingCancellable { maintenance.run() }
+                runCatchingCancellable { maintenance.runUnwatched() }
             } finally {
                 pending.finish()
             }

@@ -36,14 +36,14 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, calendar layout, `CalendarSyncPolicy`, reminders, reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught`, `DaySummary`/`NowMarker` (what a day comes to, and where "now" falls in it), `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, models (incl. `Currency` and the report-only id types, `model/Ids.kt`), and the `ReminderScheduler` port. All JVM-tested. |
+| `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, calendar layout, `CalendarSyncPolicy`, reminders, `Digests` (the two summaries: when each fires and whether it is worth sending), reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught`, `DaySummary`/`NowMarker` (what a day comes to, and where "now" falls in it), `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, models (incl. `Currency` and the report-only id types, `model/Ids.kt`), and the `ReminderScheduler`/`DigestScheduler` ports. All JVM-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`, the `Transactor` port, and `upsertedId` — the one statement of `@Upsert`'s -1-on-update sentinel (the fakes reproduce it, so the fallback branch runs on the JVM too). Entities are also `@Serializable`, for the backup. `SnapshotDao` is the **separate** whole-table seam (see *Two interfaces onto the same tables*). |
 | `data/Mappers.kt` | Entities ⇄ domain models. Where a stored enum is parsed back. |
 | `data/repository/` | One invariant each, end to end, written in one transaction (see *Ownership*). Display **name ordering** is applied here. |
 | `data/backup/` | The **file format**: export, transactional replace-all import, `BackupIntegrity` (what a file must be readable as before any of it is written), `BackupFailure` (which refusal it was) and `BackupRestore` (everything a *restore* means beyond the rows). What tables exist and the order they may be emptied and filled in is `SnapshotDao`'s. |
 | `calendar/` | `CalendarSync` + `CalendarPermission` ports and a `CalendarContract` adapter. |
-| `notifications/` | `Notifier` and `NotificationPermission` ports + Android adapters, `DueReminder`, `ReminderActions`/`ReminderNavigation` (what a reminder's own buttons do) and `ReminderAlarms`/`ReminderReceiver`/`ReminderActionReceiver` — reminders are **alarms**, not deferrable work. |
-| `work/` | WorkManager's half: the periodic `MaintenanceWorker`, `WorkScheduler`, `BootReceiver` (alarms die on reboot), and `Maintenance` — what an upkeep pass decides, kept out of the worker. |
+| `notifications/` | `Notifier`, `NotificationPermission` and `ExactAlarmPermission` ports + Android adapters, `DueReminder` and `DueDigest` (what each notification says, and whether it is still owed), `ReminderActions`/`TrayNavigation` (what a tray entry's buttons and taps do) and `ReminderAlarms`/`ReminderReceiver`/`ReminderActionReceiver` — reminders are **alarms**, not deferrable work. |
+| `work/` | WorkManager's half: the periodic `MaintenanceWorker`, the two `DigestWorkers`, `WorkScheduler`, `BootReceiver` (alarms die on reboot), and `Maintenance` — what an upkeep pass decides, kept out of the worker. |
 | `diagnostics/` | `CrashLogger` over `CrashLogStore`/`DeviceInfo` ports; the pure half is `domain/Diagnostics`. Viewed and exported from `ui/diagnostics`. |
 | `storage/` | `DocumentStore` port + SAF adapter over an opaque `DocumentRef`, and `DocumentSharing` + its `ACTION_SEND`/`FileProvider` adapter — so no view model touches a `Uri`, an `Intent` or a `Context`. Two ports because the acts differ: one writes where the tutor pointed, the other hands a file to another app. |
 | `format/` | `ru`-locale date/time/money formatting (with `LocalDate`/`LocalTime` faces, so no caller restates the zone), `MoneyField` (what a money input is — each `Kind` carries its own zero rule), `NameOrder` (the one definition of how names are listed). |
@@ -71,7 +71,8 @@ flowchart TB
 - `RateHistoryRepository` — what a *rate change* is, since two repositories set rates.
 - `SettingsRepository` — one `update { it.copy(...) }` rather than a setter per field, serialized —
   returning `SettingsChange`, which classifies what the move owes the world (calendar re-earned,
-  reminder plan re-derived, finished lessons settled); the settings screen's one mutator discharges it,
+  reminder plan re-derived, digests re-planned, finished lessons settled); the settings screen's one mutator
+  discharges it,
   so no setting can lose its tail by lacking a named method. Two already had: the reminder lead left
   mirrored events stale, and auto-completion did nothing at all until something unrelated ran the
   upkeep pass — so confirming one old lesson by hand then credited every other one at once.
@@ -147,10 +148,21 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   an empty collection, which is the same value an empty database produces — so for the frame or two
   before Room's first emission each screen drew its *empty state*: «Нет занятий» over the tutor's real
   morning, "add your first student" to a tutor with forty. `Loadable<T>` is `Loading | Ready(value)`,
-  the initial value of the seven screen flows that had one, and `ready()` is how a flow marks its
+  the initial value of every screen flow that had a placeholder, and `ready()` is how a flow marks its
   emissions. Empty is now only ever said about data that was read. Screens draw `Loading` as a
   **skeleton shaped like the content** (`ui/common/Skeleton.kt`), never a centred spinner — a spinner
   reflows the whole screen on the first real frame, which is the jump it exists to prevent.
+  - **The lists were only the visible half.** A default value is not neutral wherever the screen is
+    *about a record*: `AppSettings()` is another tutor's settings, so «Настройки» opened with the switches
+    at their defaults and then flipped them; a blank `ClassForm`/group `Form` states that the lesson has no
+    student and the group no name, in the error red, over one that has both — so both edit forms wait
+    (`LoadingFormScreen`), while **adding** anything is `Ready` at once, because a blank form is what
+    adding *is*. A **form's pickers are part of its own readiness**, not separate state: the fields read
+    the names they show out of them, so `ClassEditViewModel` waits for the lists as well as the lesson.
+  - **What waits is decided per fact, not per screen.** Backup withholds only the «Последняя копия» card —
+    the export button works without it — the student form only its subject checklist, and a calendar cell
+    only its tallies (an empty cell *is* how the month says «свободно», so one dim bar stands in). Things
+    computable without the database — a month grid, a week's dates, a duration chip set — never wait.
 - **`derive` and `hold` end every screen flow** (`ui/common/ScreenState.kt`). Twenty-six flows across
   thirteen view models spelled the same `flowOn(computation).stateIn(viewModelScope,
   WhileSubscribed(5_000), initial)`, so the grace period — which decides whether rotating the device
@@ -307,7 +319,7 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   nothing else, is `exported="false"`, and hands out only the per-file read grant that travels with an
   `ACTION_SEND` intent and dies with it. A provider pointing at `.` would have made `klas.db` requestable
   by authority alone.
-- **The database is at v4, and migrates.** The rename changed both the application id and the file name
+- **The database is at v5, and migrates.** The rename changed both the application id and the file name
   (`tutoring.db` → `klas.db`), and Android never upgrades one application id into another, so no device
   can hold a pre-v1 `klas.db` — v1 shipped with no migrations for that reason. **v2 splits `classes` into
   `lessons` + `attendance` and migrates anyway** (`MIGRATION_1_2`), because "no released baseline" is not
@@ -318,7 +330,10 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   an upgrade lands on and is the honest answer — the app was not recording it, so it cannot say when that
   tutor last made a copy. **v4 adds one boolean** (`settings.dynamicColorEnabled`, `MIGRATION_3_4`),
   `NOT NULL DEFAULT 0` — an existing install has been looking at the app's own palette all along, so
-  backfilling "off" changes nothing about how their phone looks the moment they upgrade.
+  backfilling "off" changes nothing about how their phone looks the moment they upgrade. **v5 adds the
+  five digest columns** (`MIGRATION_4_5`): both switches backfill **off**, because these are notifications
+  the app did not previously send and an upgrade must not start sending a tutor a message every morning;
+  the times backfill to 09:00 and Monday, so switching one on lands on a sensible hour rather than midnight.
 - **The destructive fallback is debug-only.** A release build **refuses to open** a database it cannot
   migrate: a crash leaves every row on disk for the next build, and is recoverable in the way a wipe
   is not.
@@ -379,12 +394,37 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   would settle that backlog anyway, and a "no" that only postponed it would be a lie. Wanting
   auto-completion without the backlog is therefore not expressible — cancel the lessons you do not want
   billed first. The **background** pass still asks nobody; a worker cannot.
+- **An unwatched pass says what it billed** (`Maintenance.runUnwatched`, the upkeep channel). Completing a
+  lesson recognises income, so which pass *announces* itself is decided by who asked for it: the switch
+  reports through the screen the tutor is standing in front of, an app-start pass reports by the schedule
+  being right when they get there, and the pass that runs at four in the afternoon with the app closed had
+  nothing to report to at all — so it moved the income figure in silence. Counted in **lessons**, with what
+  they came to beside it.
 - **A reminder is answerable from the tray**: «Проведено» and «Перенести», the schedule's own two words.
   «Проведено» acts in place — a broadcast into `ReminderActions`, no screen — because the tutor is
   walking out of the lesson, not sitting down with the app; «Перенести» can only *open* the lesson, since
   a notification cannot show a picker. What the buttons decide is outside the receiver
-  (`ReminderActions`, `ReminderNavigation`) for the reason `DueReminder` is: a `BroadcastReceiver` is
-  reachable only from a device, and one of these buttons **bills**.
+  (`ReminderActions`, `TrayNavigation`) for the reason `DueReminder` is: a `BroadcastReceiver` is
+  reachable only from a device, and one of these buttons **bills**. Reminders **stack**, so they carry a
+  group and a summary to collapse under — Android ignores the grouping without one.
+- **Where a tray tap lands has one answer** (`TrayNavigation.destinationFor`), sealed rather than a nullable
+  id per destination, so a third tray entry cannot quietly become a third boolean in `AppRoot`. It was
+  `ReminderNavigation` while a reminder was the only notification that opened anything; the debt digest is
+  the second, and it is not a reminder. The debts land on the **reports tab** the way the bottom bar
+  reaches it — pushing it on top of wherever the tutor was would leave a back arrow and no tab selected.
+- **Two digests, both opt-in, both scheduled by the upkeep pass** (`domain/Digests`, `notifications/DueDigest`):
+  a morning agenda naming the day's lessons, and a weekly summary of who owes money. Times and the weekday
+  are the tutor's, in settings, defaulting to 09:00 and Monday. They are **workers, not alarms** — the split
+  the app already draws is whether being late is wrong, and «сегодня 4 занятия» is still true at twenty past;
+  spending the exact-alarm budget here would put the one feature that needs punctuality behind two that do
+  not. The firing instant is pure (a wall-clock promise through `ZoneId`, so a DST day still lands at nine),
+  and re-derived by every pass, which is what corrects WorkManager's periodic drift.
+- **A digest says nothing rather than saying nothing happened.** An empty day, a day whose only lesson was
+  called off, a week with no debts: no notification at all. The agenda prints the **same** `DaySummary`
+  sentence the schedule puts under that day (`format/daySummaryText`, one rule, two readers) and lists the
+  lessons that summary counts — a cancelled one is named by the summary and given no line, exactly as on
+  the screen. It covers the **whole** day and not the rest of it, because the total it prints is a whole-day
+  total and two day-lengths in one notification would both look right.
 - **A notification is a stale view of the lesson by construction**, so acting on one asks the same
   legality question the actions sheet asks (`GroupRules.sessionTransitions`): it can sit in the tray for
   hours while the lesson is cancelled, deleted or completed by hand. A cancelled lesson is never
@@ -401,6 +441,21 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   the switch on with the mirror silently dead. The two questions stay distinct — whether sync may be
   *enabled* is a refusal (`setCalendarSyncEnabled`), whether it is *working* is a report — and neither is
   a `Flow`, so both are re-asked on resume.
+- **A reminder needs two grants, and they fail differently** (`ReminderDelivery`: OFF | ON_TIME | BLOCKED |
+  LATE). `POST_NOTIFICATIONS` decides whether it appears; `SCHEDULE_EXACT_ALARM` decides whether it appears
+  *when promised* — and that one is absent by default on Android 14+, where `ReminderAlarms` falls back to
+  an inexact alarm Doze may hold for hours. So the app's one time-critical promise was quietly approximate
+  on every new install with the row underneath reporting it fine. Whether an alarm can be exact now has one
+  definition, the port's (`ExactAlarmPermission`), for the reason "may a reminder be shown" does: the private
+  copy inside the adapter decided the behaviour and nothing else could read it. **LATE is a report, not a
+  refusal** — inexact is a real fallback, and the app still declines `USE_EXACT_ALARM` — but it carries the
+  way out: a row that opens the system page, shown only while that is what the state is.
+- **A refusal the tutor cannot act on is worse than silence.** «Уведомления запрещены» was a dead-end
+  snackbar; it now carries «Открыть настройки», and the same message is shown when a *request* comes back
+  denied — on Android 13+ turning notifications off app-wide revokes the permission, so re-asking is
+  auto-denied and the switch reads as doing nothing. The guarded launch is shared with the student card's
+  contact actions (`ui/common/launchExternally`), because an `ACTION_*_SETTINGS` with no activity behind it
+  is as real on an OEM build as a tablet with no dialler.
 - **Crash diagnostics are local + Play, no backend**: chains to the platform handler (so Android Vitals
   still reports) and appends to a size-capped file (`Diagnostics.appendBounded`, 64 000 chars, trimmed
   on entry boundaries), exportable from **Ещё → Настройки → Диагностика**. No Crashlytics/Sentry.
@@ -437,11 +492,26 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   app speaks Russian to a tutor in Minsk. Material's `DatePicker` cannot be made to follow: it reads
   `WeekFields.of(locale)`, which ignores the keyword here (`WeekStartKeywordTest` pins this), so its own
   little month stays Monday-first.
-- **A gesture speaks through the phone's haptics** (`ui/common/Haptics`, `HapticFeedbackTest`), and a
-  gesture that can be taken back has **two** moments to say: `GestureThresholdActivate` at the mark
-  («now»), `Confirm` when the action lands («done»). Both go through `LocalHapticFeedback`, which honours
-  the system touch-feedback setting and degrades an effect the phone is too old to know. No `Vibrator`, no
-  `VIBRATE` permission, and each effect is chosen in one place.
+- **The app speaks through the phone's haptics** (`ui/common/Haptics`, `HapticFeedbackTest`), in **five**
+  named moments and no others: `GestureThresholdActivate` at a drag's mark («now»), `Confirm` when an action
+  lands («done»), `Reject` when one is refused («no»), `ToggleOn`/`ToggleOff` when a stored fact flips, and
+  `SegmentTick` moving between the segments of a fixed choice. Each is chosen in one place and wired into
+  the shared atom that owns the moment — `SwitchRow`, `SegmentedChoice`, `SwipeToConfirmBox` — never per
+  screen, so a switch cannot buzz "on" while turning off and a re-tap on the segment already chosen is
+  silent. All go through `LocalHapticFeedback`, which honours the system touch-feedback setting and degrades
+  an effect the phone is too old to know. No `Vibrator`, no `VIBRATE` permission.
+- **What does *not* buzz is the point of the list**: an ordinary button, a list row, a tab, a navigation.
+  The platform reserves haptics for state changes, thresholds and confirmations and leaves a plain tap to its
+  ripple — a phone that buzzes at everything is one where no buzz means anything.
+- **A refusal is felt, and a status change feels the same whichever way it was made.** The app's one hard
+  "no" — an hour already taken — arrived as a dialog and nothing else, while a lesson marked taught buzzed
+  twice; and marking one taught *from the sheet* only popped, so the same act felt different depending on how
+  it was reached. The `Reject` is keyed on the refusal **arriving** rather than on the action, because
+  `timeConflict` is state that survives a rotation.
+- **A notification's buzz is the channel's**, not the app's: importance is set (HIGH for a reminder, DEFAULT
+  for a digest, LOW for the upkeep report) and no `setVibrationPattern` or `setSound` anywhere — the same
+  argument that keeps `Vibrator` out of the UI. Channels are created at **app start** rather than before the
+  first post of each kind, or a tutor could not pre-mute a digest until it had already interrupted them once.
 
 ### UI — the platform edge
 
