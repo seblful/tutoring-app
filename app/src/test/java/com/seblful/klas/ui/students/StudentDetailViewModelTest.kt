@@ -15,6 +15,7 @@ import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.MutableClock
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import java.time.Instant
 import java.time.LocalDate
@@ -76,7 +77,7 @@ class StudentDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(Money.ofMajor(25), vm.state.value.balance)
+        assertEquals(Money.ofMajor(25), vm.state.current.balance)
     }
 
     @Test
@@ -92,7 +93,7 @@ class StudentDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(listOf("Алгебра", "Математика"), vm.state.value.subjects.map { it.subject.name })
+        assertEquals(listOf("Алгебра", "Математика"), vm.state.current.subjects.map { it.subject.name })
     }
 
     @Test
@@ -107,7 +108,7 @@ class StudentDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        val totals = vm.state.value.totals
+        val totals = vm.state.current.totals
         assertEquals(2, totals.lessons)
         assertEquals(1, totals.upcoming)
         assertEquals("a scheduled lesson adds no hours yet", 150, totals.minutes)
@@ -131,7 +132,7 @@ class StudentDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        val rows = vm.state.value.classes.sortedBy { it.klass.start }
+        val rows = vm.state.current.classes.sortedBy { it.klass.start }
         assertEquals(LessonKind.INDIVIDUAL, rows[0].kind)
         assertNull("an individual lesson has no group to name", rows[0].groupName)
         assertEquals(LessonKind.GROUP, rows[1].kind)
@@ -150,8 +151,8 @@ class StudentDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(mapOf(LessonKind.INDIVIDUAL to 2), vm.state.value.lessonKinds)
-        assertFalse("nothing to narrow", vm.state.value.hasBothKinds)
+        assertEquals(mapOf(LessonKind.INDIVIDUAL to 2), vm.state.current.lessonKinds)
+        assertFalse("nothing to narrow", vm.state.current.hasBothKinds)
 
         val groupId = env.groupDao.upsert(GroupEntity(name = "11 «А»", subjectId = subj))
         env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = "SCHEDULED", chargeMinor = 0, groupId = groupId)
@@ -159,9 +160,9 @@ class StudentDetailViewModelTest {
 
         assertEquals(
             mapOf(LessonKind.INDIVIDUAL to 2, LessonKind.GROUP to 1),
-            vm.state.value.lessonKinds,
+            vm.state.current.lessonKinds,
         )
-        assertTrue(vm.state.value.hasBothKinds)
+        assertTrue(vm.state.current.hasBothKinds)
     }
 
     /**
@@ -181,7 +182,7 @@ class StudentDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        val bySubject = vm.state.value.subjects.associateBy { it.subject.name }
+        val bySubject = vm.state.current.subjects.associateBy { it.subject.name }
         assertEquals(2, bySubject.getValue("Алгебра").history.size)
         assertEquals(Money.ofMajor(35), bySubject.getValue("Алгебра").history.first().to)
         assertEquals(Money.ofMajor(30), bySubject.getValue("Алгебра").history.first().from)
@@ -388,7 +389,7 @@ class StudentDetailViewModelTest {
             observing(vm.state)
             advanceUntilIdle()
 
-            assertEquals(ArchiveIntent.Archive, vm.state.value.archiveIntent)
+            assertEquals(ArchiveIntent.Archive, vm.state.current.archiveIntent)
         }
 
     @Test
@@ -403,14 +404,14 @@ class StudentDetailViewModelTest {
             observing(vm.state)
             advanceUntilIdle()
 
-            val both = vm.state.value.archiveIntent as ArchiveIntent.Confirm
+            val both = vm.state.current.archiveIntent as ArchiveIntent.Confirm
             assertEquals(Money.ofMajor(30), both.openBalance)
             assertEquals(1, both.upcomingLessons)
 
             // Paid up, but a lesson still booked: one part, not none.
             vm.addPayment(Money.ofMajor(30), today)
             advanceUntilIdle()
-            val lessonsOnly = vm.state.value.archiveIntent as ArchiveIntent.Confirm
+            val lessonsOnly = vm.state.current.archiveIntent as ArchiveIntent.Confirm
             assertNull("nothing outstanding to mention", lessonsOnly.openBalance)
             assertEquals(1, lessonsOnly.upcomingLessons)
         }
@@ -426,7 +427,7 @@ class StudentDetailViewModelTest {
         vm.addPayment(Money.ofMajor(25), today)
         advanceUntilIdle()
 
-        val confirm = vm.state.value.archiveIntent as ArchiveIntent.Confirm
+        val confirm = vm.state.current.archiveIntent as ArchiveIntent.Confirm
         assertEquals(Money.ofMajor(-25), confirm.openBalance)
         assertEquals(0, confirm.upcomingLessons)
     }
@@ -442,7 +443,7 @@ class StudentDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(ArchiveIntent.Restore, vm.state.value.archiveIntent)
+        assertEquals(ArchiveIntent.Restore, vm.state.current.archiveIntent)
     }
 
     // --- Archiving has to settle the schedule too --------------------------------------------------
@@ -619,7 +620,7 @@ class StudentDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        val stored = vm.state.value.payments.single()
+        val stored = vm.state.current.payments.single()
         vm.deletePayment(stored)
         advanceUntilIdle()
         assertTrue("the delete went through first", env.paymentDao.items.value.isEmpty())

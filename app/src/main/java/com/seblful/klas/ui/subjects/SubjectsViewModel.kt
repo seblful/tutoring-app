@@ -7,8 +7,10 @@ import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.PeopleSearch
 import com.seblful.klas.domain.model.Subject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.derive
+import com.seblful.klas.ui.common.ready
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,11 +42,13 @@ class SubjectsViewModel @Inject constructor(
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
 
-    val subjects: StateFlow<List<Subject>> =
+    /** [Loadable], so the empty state is only ever shown about subjects that were actually read. */
+    val subjects: StateFlow<Loadable<List<Subject>>> =
         combine(repository.observeAll(), _query) { all, query ->
             PeopleSearch.filter(all, query) { it.name }
         }
-            .derive(this, computation, emptyList())
+            .ready()
+            .derive(this, computation, Loadable.Loading)
 
     fun setQuery(query: String) {
         _query.value = query

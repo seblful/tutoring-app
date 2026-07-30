@@ -6,6 +6,10 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.People
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.seblful.klas.R
 
@@ -71,12 +75,18 @@ object Routes {
 enum class TopDestination(
     val route: String,
     @param:StringRes val labelRes: Int,
+    /** Drawn while this is the current tab. */
     val icon: ImageVector,
+    /**
+     * Drawn while it is not — Material's pair, and the second signal the bar was missing. With one
+     * filled glyph for both states the tinted pill was the only thing marking where you were.
+     */
+    val iconOutlined: ImageVector,
 ) {
-    PEOPLE(Routes.PEOPLE, R.string.nav_people, Icons.Filled.People),
-    SCHEDULE(Routes.SCHEDULE, R.string.nav_schedule, Icons.Filled.CalendarMonth),
-    REPORTS(Routes.REPORTS, R.string.nav_reports, Icons.Filled.BarChart),
-    MORE(Routes.MORE, R.string.nav_more, Icons.Filled.MoreHoriz);
+    PEOPLE(Routes.PEOPLE, R.string.nav_people, Icons.Filled.People, Icons.Outlined.People),
+    SCHEDULE(Routes.SCHEDULE, R.string.nav_schedule, Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
+    REPORTS(Routes.REPORTS, R.string.nav_reports, Icons.Filled.BarChart, Icons.Outlined.BarChart),
+    MORE(Routes.MORE, R.string.nav_more, Icons.Filled.MoreHoriz, Icons.Outlined.MoreHoriz);
 
     companion object {
         /** The routes that are tabs — what the bottom bar is shown for. */

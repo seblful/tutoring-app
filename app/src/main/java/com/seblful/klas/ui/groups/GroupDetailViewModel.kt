@@ -18,7 +18,9 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.RateChange
 import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.domain.model.Student
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.derive
+import com.seblful.klas.ui.common.ready
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.StateFlow
@@ -92,7 +94,7 @@ class GroupDetailViewModel @Inject constructor(
 
     val groupId: Long = checkNotNull(savedStateHandle["id"])
 
-    val state: StateFlow<GroupDetailState> = combine(
+    val state: StateFlow<Loadable<GroupDetailState>> = combine(
         groups.observeById(groupId),
         groups.observeMemberIds(groupId),
         // Every student, not just active ones: an archived member still explains a past lesson.
@@ -126,5 +128,7 @@ class GroupDetailViewModel @Inject constructor(
     }.combine(rateHistory.observeFor(RateOwner.GroupRate(groupId))) { state, changes ->
         state.copy(rateHistory = changes)
     }
-        .derive(this, computation, GroupDetailState())
+        .ready()
+        // As the student's card: `GroupDetailState()` is an empty group, not an unread one. See [Loadable].
+        .derive(this, computation, Loadable.Loading)
 }

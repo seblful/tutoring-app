@@ -1,4 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  The two platform themes. Neither styles anything the tutor looks at — `ui/theme/` does all of that —
+  they describe the *window* Compose is drawn into.
+
+  `Theme.Klas` used to be `android:Theme.Material.Light.NoActionBar` and nothing else, which meant its
+  `windowBackground` was the platform's light grey, fixed, with no `values-night` counterpart. That
+  background is what the system paints for the whole cold start, so every launch on a dark phone opened
+  with a white rectangle before the first Compose frame replaced it. The app's own colour is stated here
+  now (`@color/klas_window`, which has a night variant), so the window the tutor waits on is already the
+  colour the app is about to be.
+-->
 <resources>
-    <style name="Theme.Klas" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!--
+      The theme the activity actually runs under, once the splash has handed over.
+
+      Bars are transparent because the app is edge-to-edge (`enableEdgeToEdge()` in `MainActivity`) and
+      draws its own background behind them. `windowLightStatusBar` is the static answer for a light
+      config; the live one — which has to follow the app's *own* theme setting, not the system's — is set
+      from Compose in `KlasTheme`, where the resolved choice is known.
+    -->
+    <style name="Theme.Klas" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/klas_window</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <!--
+      The launch window: what is on screen between the launcher tap and the first Compose frame.
+
+      This is the theme the manifest points the activity at; `installSplashScreen()` swaps in
+      `postSplashScreenTheme` as soon as the activity is up. Declared through core-splashscreen rather
+      than left to the platform so the same launch exists on API 24–30, where there is no system splash
+      at all and the alternative is a bare coloured rectangle.
+    -->
+    <style name="Theme.Klas.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/klas_window</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.Klas</item>
+    </style>
+
 </resources>

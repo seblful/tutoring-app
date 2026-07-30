@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -54,9 +55,9 @@ class GroupDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals("11 «А»", vm.state.value.group?.name)
-        assertEquals("Алгебра", vm.state.value.subjectName)
-        assertEquals(Money.ofMajor(25), vm.state.value.group?.price)
+        assertEquals("11 «А»", vm.state.current.group?.name)
+        assertEquals("Алгебра", vm.state.current.subjectName)
+        assertEquals(Money.ofMajor(25), vm.state.current.group?.price)
     }
 
     /** A group made before subjects were fixed on the group has none — and the card must not invent one. */
@@ -69,7 +70,7 @@ class GroupDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertNull(vm.state.value.subjectName)
+        assertNull(vm.state.current.subjectName)
     }
 
     @Test
@@ -85,7 +86,7 @@ class GroupDetailViewModelTest {
 
         assertEquals(
             listOf("анна", "Ярослав", "Борис"),
-            vm.state.value.members.map { it.student.name },
+            vm.state.current.members.map { it.student.name },
         )
     }
 
@@ -107,7 +108,7 @@ class GroupDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        val attended = vm.state.value.members.associate { it.student.name to it.attended }
+        val attended = vm.state.current.members.associate { it.student.name to it.attended }
         assertEquals(2, attended["Аня"])
         assertEquals(1, attended["Борис"])
     }
@@ -121,8 +122,8 @@ class GroupDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(1, vm.state.value.members.size)
-        assertEquals(0, vm.state.value.members.single().attended)
+        assertEquals(1, vm.state.current.members.size)
+        assertEquals(0, vm.state.current.members.single().attended)
     }
 
     @Test
@@ -138,7 +139,7 @@ class GroupDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        val lessons = vm.state.value.lessons
+        val lessons = vm.state.current.lessons
         assertEquals("four classes are two lessons", 2, lessons.size)
         assertEquals("newest first", at(2_000), lessons.first().session.start)
         assertEquals(2, lessons.first().members)
@@ -167,7 +168,7 @@ class GroupDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        val totals = vm.state.value.totals
+        val totals = vm.state.current.totals
         assertEquals(1, totals.lessons)
         assertEquals(1, totals.upcoming)
         assertEquals(90, totals.minutes)
@@ -190,8 +191,8 @@ class GroupDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(1, vm.state.value.lessons.size)
-        assertEquals(Money.ofMajor(20), vm.state.value.totals.earned)
+        assertEquals(1, vm.state.current.lessons.size)
+        assertEquals(Money.ofMajor(20), vm.state.current.totals.earned)
     }
 
     @Test
@@ -207,7 +208,7 @@ class GroupDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        val changes = vm.state.value.rateHistory
+        val changes = vm.state.current.rateHistory
         assertEquals(2, changes.size)
         assertEquals(Money.ofMajor(25), changes.first().to)
         assertTrue("the oldest row is where the rate started", changes.last().isInitial)
@@ -222,8 +223,8 @@ class GroupDetailViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertTrue(vm.state.value.lessons.isEmpty())
-        assertEquals(0, vm.state.value.totals.lessons)
-        assertEquals(Money.ZERO, vm.state.value.totals.earned)
+        assertTrue(vm.state.current.lessons.isEmpty())
+        assertEquals(0, vm.state.current.totals.lessons)
+        assertEquals(Money.ZERO, vm.state.current.totals.earned)
     }
 }

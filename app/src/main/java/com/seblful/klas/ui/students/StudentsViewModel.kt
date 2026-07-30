@@ -11,7 +11,9 @@ import com.seblful.klas.domain.Billing
 import com.seblful.klas.domain.PeopleSearch
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.derive
+import com.seblful.klas.ui.common.ready
 import com.seblful.klas.ui.people.PeopleSide
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -60,8 +62,12 @@ class StudentsViewModel @Inject constructor(
      * The rows to draw. Filtering and sorting happen **here**, not in the composable, so they run on
      * [computation] with the balance arithmetic they depend on rather than on the frame the list is
      * being drawn in.
+     *
+     * [Loadable] because an empty list is an answer and the absence of one is not: starting at
+     * `emptyList()` meant a tutor with forty students was invited to add their first for the frame or
+     * two before the query returned.
      */
-    val rows: StateFlow<List<StudentRow>> =
+    val rows: StateFlow<Loadable<List<StudentRow>>> =
         _showArchived.flatMapLatest { archived ->
             val source = if (archived) students.observeAll() else students.observeActive()
             combine(
@@ -77,7 +83,8 @@ class StudentsViewModel @Inject constructor(
                     .sortedWith(sort.comparator)
             }
         }
-            .derive(this, computation, emptyList())
+            .ready()
+            .derive(this, computation, Loadable.Loading)
 
     /**
      * Debt first, then by name.

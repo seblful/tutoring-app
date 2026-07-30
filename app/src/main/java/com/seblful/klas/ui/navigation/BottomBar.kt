@@ -3,9 +3,8 @@ package com.seblful.klas.ui.navigation
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -13,32 +12,49 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.takeOrElse
 
 /**
- * The bottom tab bar.
+ * The app's top-level tabs, as items rather than as a bar.
  *
- * Split out of the screen graph so the bar can be composed — and its labels measured — without a
- * `NavHost` or a view model behind it.
+ * They used to be a `BottomBar` composable wrapping `NavigationBar` directly, which meant the app could
+ * only ever *be* a bottom bar: on a tablet or an unfolded foldable it drew a phone's bar across the foot
+ * of a ten-inch screen, where the convention is a rail down the side. `NavigationSuiteScaffold` picks
+ * between the two from the window's width class, and it wants the tabs as items — so this is the one
+ * place a tab is defined, and which chrome renders it is no longer this file's business.
  *
- * @param tabs the tabs to show, in order (see [TopDestination.visible]).
- * @param currentRoute the route currently shown; the matching tab is the selected one, and no tab
- *   is selected for a route that is not a tab.
+ * @param tabs the tabs to show, in order (see [TopDestination]).
+ * @param currentRoute the route currently shown; the matching tab is the selected one, and no tab is
+ *   selected for a route that is not a tab.
  */
-@Composable
-fun BottomBar(
+fun NavigationSuiteScope.klasTabs(
     tabs: List<TopDestination>,
     currentRoute: String?,
     onSelect: (TopDestination) -> Unit,
 ) {
-    NavigationBar {
-        tabs.forEach { dest ->
-            val label = stringResource(dest.labelRes)
-            NavigationBarItem(
-                selected = currentRoute == dest.route,
-                onClick = { onSelect(dest) },
-                icon = { Icon(dest.icon, label) },
-                label = { TabLabel(label) },
-            )
-        }
+    tabs.forEach { dest ->
+        item(
+            selected = currentRoute == dest.route,
+            onClick = { onSelect(dest) },
+            icon = { TabIcon(dest, selected = currentRoute == dest.route) },
+            label = { TabLabel(dest) },
+        )
     }
+}
+
+/**
+ * A tab's glyph: **outlined when it is not the current tab, filled when it is.**
+ *
+ * Both used to be the same filled icon, which left the tinted pill behind the selected one as the only
+ * thing saying where you were — one signal, and the weakest of the two Material gives you. Filling the
+ * selected glyph is what makes the current tab readable at a glance, in a screenshot, and to someone who
+ * cannot pick the pill's tint out of the background.
+ */
+@Composable
+private fun TabIcon(dest: TopDestination, selected: Boolean) {
+    Icon(
+        imageVector = if (selected) dest.icon else dest.iconOutlined,
+        // Null: the label beside it says the same word, and `NavigationSuiteScaffold` already builds the
+        // item's own selected/unselected semantics. A description here would be read out twice.
+        contentDescription = null,
+    )
 }
 
 /**
@@ -49,11 +65,14 @@ fun BottomBar(
  * on a second line. Holding the label to one line is what fixes that; the type additionally shrinks
  * (never below [MinLabelFontSize]) on the narrower screens and larger font scales where the word
  * really does not fit, so it stays whole where a fixed size would have to cut it short.
+ *
+ * Still the bar's problem rather than the rail's — a rail has width to spare — which is why the rule
+ * and the test that pins it are named after the bar.
  */
 @Composable
-private fun TabLabel(text: String) {
+private fun TabLabel(dest: TopDestination) {
     Text(
-        text = text,
+        text = stringResource(dest.labelRes),
         maxLines = 1,
         // Only reachable if even the minimum size overflows (a very large font scale); wrapping is
         // what we are avoiding, so cut the word instead of adding a line.

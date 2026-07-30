@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -153,7 +154,9 @@ fun OnboardingScreen(
         },
         snackbarHost = { SnackbarHost(messages.hostState) },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).constrainedContent()) {
+        // imePadding here rather than only inside the embedded student form: the step's «Готово» button
+        // sits below the form, so without it the keyboard covers the one control that finishes setup.
+        Column(Modifier.fillMaxSize().padding(padding).imePadding().constrainedContent()) {
             // Which step, and how many are left. Without it the setup was a sequence of screens with
             // no visible end, which is the difference between "this takes a minute" as a claim and as
             // something the tutor can see.

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The window on a dark phone.
+
+  Only `Theme.Klas` needs restating: `Theme.Klas.Starting` reaches its background through
+  `@color/klas_window` and its follow-on theme through `@style/Theme.Klas`, and both of those resolve
+  per configuration — so the splash is dark here without being declared twice.
+
+  The parent loses its `.Light`, which is what carries a sensible default for anything in the window
+  decor this file does not name. `windowLightStatusBar` flips: dark ground wants light icons.
+-->
+<resources>
+    <style name="Theme.Klas" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/klas_window</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

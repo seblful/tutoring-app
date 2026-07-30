@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -31,12 +32,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.ListSkeleton
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.SearchField
 import com.seblful.klas.ui.common.TextFieldDialog
 import com.seblful.klas.ui.common.constrainedContent
@@ -49,8 +54,9 @@ fun SubjectsScreen(
     onBack: () -> Unit,
     viewModel: SubjectsViewModel = hiltViewModel(),
 ) {
-    val subjects by viewModel.subjects.collectAsState()
+    val subjectsState by viewModel.subjects.collectAsState()
     val query by viewModel.query.collectAsState()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     var editing by remember { mutableStateOf<Subject?>(null) } // non-null while dialog open
     var adding by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<Subject?>(null) }
@@ -67,9 +73,11 @@ fun SubjectsScreen(
     }
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(messages.hostState) },
         topBar = {
             TopAppBar(
+                scrollBehavior = scrollBehavior,
                 title = {
                     if (searching) {
                         SearchField(
@@ -106,37 +114,49 @@ fun SubjectsScreen(
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            when {
-                subjects.isEmpty() && query.isNotBlank() -> EmptyState(
-                    title = stringResource(R.string.search_no_results),
-                    detail = stringResource(R.string.search_no_results_detail),
-                    icon = Icons.Filled.SearchOff,
+            // «Пока нет предметов» offers to create the first one, so it must not be shown about
+            // subjects that have merely not been read yet — see [Loadable].
+            when (val state = subjectsState) {
+                Loadable.Loading -> ListSkeleton(
+                    Modifier.constrainedContent(),
+                    rowHeight = SubjectRowHeight,
                 )
 
-                subjects.isEmpty() -> EmptyState(
-                    title = stringResource(R.string.subjects_empty),
-                    detail = stringResource(R.string.subjects_empty_detail),
-                    icon = Icons.AutoMirrored.Filled.MenuBook,
-                    actionLabel = stringResource(R.string.subjects_add),
-                    onAction = { adding = true },
-                )
-
-                else -> LazyColumn(Modifier.fillMaxSize().constrainedContent()) {
-                    items(subjects, key = { it.id }) { subject ->
-                        ListItem(
-                            headlineContent = { Text(subject.name) },
-                            trailingContent = {
-                                Row {
-                                    IconButton(onClick = { editing = subject }) {
-                                        Icon(Icons.Filled.Edit, stringResource(R.string.action_edit))
-                                    }
-                                    IconButton(onClick = { deleting = subject }) {
-                                        Icon(Icons.Filled.Delete, stringResource(R.string.action_delete))
-                                    }
-                                }
-                            },
-                            modifier = Modifier.animateItem(),
+                is Loadable.Ready -> {
+                    val subjects = state.value
+                    when {
+                        subjects.isEmpty() && query.isNotBlank() -> EmptyState(
+                            title = stringResource(R.string.search_no_results),
+                            detail = stringResource(R.string.search_no_results_detail),
+                            icon = Icons.Filled.SearchOff,
                         )
+
+                        subjects.isEmpty() -> EmptyState(
+                            title = stringResource(R.string.subjects_empty),
+                            detail = stringResource(R.string.subjects_empty_detail),
+                            icon = Icons.AutoMirrored.Filled.MenuBook,
+                            actionLabel = stringResource(R.string.subjects_add),
+                            onAction = { adding = true },
+                        )
+
+                        else -> LazyColumn(Modifier.fillMaxSize().constrainedContent()) {
+                            items(subjects, key = { it.id }) { subject ->
+                                ListItem(
+                                    headlineContent = { Text(subject.name) },
+                                    trailingContent = {
+                                        Row {
+                                            IconButton(onClick = { editing = subject }) {
+                                                Icon(Icons.Filled.Edit, stringResource(R.string.action_edit))
+                                            }
+                                            IconButton(onClick = { deleting = subject }) {
+                                                Icon(Icons.Filled.Delete, stringResource(R.string.action_delete))
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.animateItem(),
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -169,3 +189,6 @@ fun SubjectsScreen(
         )
     }
 }
+
+/** A one-line `ListItem` with a trailing icon pair — what the skeleton stands in for. */
+private val SubjectRowHeight = 56.dp

@@ -26,6 +26,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -34,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -92,9 +94,16 @@ fun PeopleScreen(
     val query by side.query.collectAsState()
     val archived by side.showArchived.collectAsState()
 
+    // The bar takes on its scrolled colour once a list has moved under it. Pinned rather than
+    // enter-always: the segmented control below it is how the tutor switches side, and a title that
+    // hid on scroll would take that with it.
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
+                scrollBehavior = scrollBehavior,
                 title = {
                     if (searching) {
                         SearchField(
@@ -164,14 +173,14 @@ fun PeopleScreen(
                 // reads the same search its rows were filtered by.
                 when (tab) {
                     PeopleTab.STUDENTS -> StudentsList(
-                        rows = studentRows,
+                        state = studentRows,
                         searching = query.isNotBlank(),
                         onStudentClick = onStudentClick,
                         onAddStudent = onAddStudent,
                     )
 
                     PeopleTab.GROUPS -> GroupsList(
-                        rows = groupRows,
+                        state = groupRows,
                         searching = query.isNotBlank(),
                         onGroupClick = onGroupClick,
                         onAddGroup = onAddGroup,

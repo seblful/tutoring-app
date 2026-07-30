@@ -18,9 +18,11 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.runCatchingCancellable
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.hold
+import com.seblful.klas.ui.common.ready
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -282,7 +284,7 @@ class ScheduleViewModel @Inject constructor(
      * and the session collapse happen once rather than once per view. This is the same rule
      * [dayLoads] already follows for calendar markers.
      */
-    val content: StateFlow<ScheduleContent> =
+    val content: StateFlow<Loadable<ScheduleContent>> =
         combine(_viewMode, _selectedDate, _visibleWeek, ::Triple)
             .flatMapLatest { (mode, date, week) ->
                 val isWeek = mode == ScheduleViewMode.WEEK
@@ -323,7 +325,11 @@ class ScheduleViewModel @Inject constructor(
                     }
                 }
             }
-                .derive(this, computation, ScheduleContent.Day(emptyList()))
+                .ready()
+                // `ScheduleContent.Day(emptyList())` used to be the initial value, which is a *day with
+                // no lessons* — so a cold open drew «Нет занятий» over the tutor's actual morning, with
+                // the book-a-lesson button under it, until the query returned. See [Loadable].
+                .derive(this, computation, Loadable.Loading)
 
     /**
      * Switches view. Opening a calendar view on a page that doesn't contain the selected day would

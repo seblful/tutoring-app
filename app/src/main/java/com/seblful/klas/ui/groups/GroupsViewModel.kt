@@ -9,7 +9,9 @@ import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.format.NameOrder
 import com.seblful.klas.domain.PeopleSearch
 import com.seblful.klas.domain.model.Group
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.derive
+import com.seblful.klas.ui.common.ready
 import com.seblful.klas.ui.people.PeopleSide
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -60,7 +62,8 @@ class GroupsViewModel @Inject constructor(
     private val _query = MutableStateFlow("")
     override val query: StateFlow<String> = _query.asStateFlow()
 
-    val rows: StateFlow<List<GroupRow>> =
+    /** [Loadable], so "no groups yet" is never said about groups that have not been read — see `Loadable`. */
+    val rows: StateFlow<Loadable<List<GroupRow>>> =
         _showArchived.flatMapLatest { archived ->
             val source = if (archived) groups.observeAll() else groups.observeActive()
             combine(
@@ -93,7 +96,8 @@ class GroupsViewModel @Inject constructor(
                     .filter { PeopleSearch.matches(it.group.name, query) }
             }
         }
-            .derive(this, computation, emptyList())
+            .ready()
+            .derive(this, computation, Loadable.Loading)
 
     override fun toggleArchived() {
         _showArchived.value = !_showArchived.value

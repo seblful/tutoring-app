@@ -12,6 +12,7 @@ import com.seblful.klas.testutil.CountingDispatcher
 import com.seblful.klas.testutil.FakeDocumentStore
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import java.time.Instant
 import java.time.LocalDate
@@ -72,7 +73,7 @@ class ReportsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(ReportPeriod.currentYear(LocalDate.now(zone)), vm.state.value.period)
+        assertEquals(ReportPeriod.currentYear(LocalDate.now(zone)), vm.state.current.period)
         assertEquals(ReportPeriod.Kind.YEAR, vm.period.value.kind)
     }
 
@@ -87,17 +88,17 @@ class ReportsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals("last year's income is not this year's", Money.ofMajor(30), vm.state.value.totalIncome)
+        assertEquals("last year's income is not this year's", Money.ofMajor(30), vm.state.current.totalIncome)
 
         vm.setKind(ReportPeriod.Kind.ALL)
         advanceUntilIdle()
-        assertEquals(Money.ofMajor(130), vm.state.value.totalIncome)
+        assertEquals(Money.ofMajor(130), vm.state.current.totalIncome)
 
         // Back to a year, one step behind: the year that only holds the older lesson.
         vm.setKind(ReportPeriod.Kind.YEAR)
         vm.shift(-1)
         advanceUntilIdle()
-        assertEquals(Money.ofMajor(100), vm.state.value.totalIncome)
+        assertEquals(Money.ofMajor(100), vm.state.current.totalIncome)
     }
 
     @Test
@@ -118,8 +119,8 @@ class ReportsViewModelTest {
         vm.shift(toMay)
         advanceUntilIdle()
 
-        assertEquals(5, vm.state.value.period.anchor.monthValue)
-        assertEquals(Money.ofMajor(40), vm.state.value.totalIncome)
+        assertEquals(5, vm.state.current.period.anchor.monthValue)
+        assertEquals(Money.ofMajor(40), vm.state.current.totalIncome)
     }
 
     /** A balance is charges minus payments over a whole history — clipping it to a year invents one. */
@@ -135,7 +136,7 @@ class ReportsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        val state = vm.state.value
+        val state = vm.state.current
         assertEquals("this year's income only", Money.ofMajor(50), state.totalIncome)
         assertEquals("but the whole debt", Money.ofMajor(200), state.totalOutstanding)
         assertEquals(listOf("Аня"), state.debts.map { it.label })
@@ -157,7 +158,7 @@ class ReportsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        val byGroup = vm.state.value.byGroup
+        val byGroup = vm.state.current.byGroup
         assertEquals(listOf("Вечерняя", "Утренняя"), byGroup.map { it.label })
         assertEquals(listOf(Money.ofMajor(50), Money.ofMajor(30)), byGroup.map { it.amount })
         // No share: the groups do not add up to the income, so a percentage of it is not theirs to
@@ -176,7 +177,7 @@ class ReportsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(listOf("Выпускники"), vm.state.value.byGroup.map { it.label })
+        assertEquals(listOf("Выпускники"), vm.state.current.byGroup.map { it.label })
     }
 
     /** Students and subjects genuinely partition the income, so their lines carry a share of it. */
@@ -192,10 +193,10 @@ class ReportsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(listOf(75, 25), vm.state.value.byStudent.map { it.percent })
-        assertEquals(listOf(100), vm.state.value.bySubject.map { it.percent })
+        assertEquals(listOf(75, 25), vm.state.current.byStudent.map { it.percent })
+        assertEquals(listOf(100), vm.state.current.bySubject.map { it.percent })
         // A debt is money to collect, not a proportion: nothing to print a percentage of.
-        assertEquals(listOf(null, null), vm.state.value.debts.map { it.percent })
+        assertEquals(listOf(null, null), vm.state.current.debts.map { it.percent })
     }
 
     @Test
@@ -211,7 +212,7 @@ class ReportsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        val state = vm.state.value
+        val state = vm.state.current
         assertEquals(Money.ofMajor(30), state.totalIncome)
         assertEquals(1, state.byStudent.size)
         assertEquals("Аня", state.byStudent.single().label)
@@ -232,7 +233,7 @@ class ReportsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(listOf("Борис", "Аня"), vm.state.value.byStudent.map { it.label })
+        assertEquals(listOf("Борис", "Аня"), vm.state.current.byStudent.map { it.label })
     }
 
     @Test
@@ -246,9 +247,9 @@ class ReportsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertTrue(vm.state.value.debts.isEmpty())
-        assertEquals(Money.ZERO, vm.state.value.totalOutstanding)
-        assertEquals(Money.ofMajor(30), vm.state.value.totalIncome)
+        assertTrue(vm.state.current.debts.isEmpty())
+        assertEquals(Money.ZERO, vm.state.current.totalOutstanding)
+        assertEquals(Money.ofMajor(30), vm.state.current.totalIncome)
     }
 
     @Test
@@ -262,7 +263,7 @@ class ReportsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        val trend = vm.state.value.trend
+        val trend = vm.state.current.trend
         assertEquals(Reports.Trend.Bucket.MONTHS, trend.bucket)
         assertEquals(12, trend.bars.size)
         assertEquals(Money.ofMajor(20), trend.peak?.total)
@@ -284,7 +285,7 @@ class ReportsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        val taught = vm.state.value.taught
+        val taught = vm.state.current.taught
         assertEquals("one group lesson plus one individual", 2, taught.lessons)
         assertEquals(120, taught.minutes)
         assertEquals(Money.ofMajor(140), taught.earned)
@@ -300,7 +301,7 @@ class ReportsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        val state = vm.state.value
+        val state = vm.state.current
         assertTrue("this year earned nothing", state.noIncome)
         // ...but the screen must still draw the picker that gets the tutor out of the empty year.
         assertTrue(state.hasData)
@@ -313,8 +314,8 @@ class ReportsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertFalse(vm.state.value.hasData)
-        assertTrue(vm.state.value.noIncome)
+        assertFalse(vm.state.current.hasData)
+        assertTrue(vm.state.current.noIncome)
     }
 
     /**
@@ -346,7 +347,7 @@ class ReportsViewModelTest {
         val vm = vm()
         observing(vm.state)
         advanceUntilIdle()
-        val state = vm.state.value
+        val state = vm.state.current
 
         assertTrue("the fixture fills every section", state.byStudent.isNotEmpty())
         assertTrue(state.bySubject.isNotEmpty())
@@ -390,7 +391,7 @@ class ReportsViewModelTest {
             observing(vm.state)
             advanceUntilIdle()
 
-            assertEquals("the report was built", Money.ofMajor(30), vm.state.value.totalIncome)
+            assertEquals("the report was built", Money.ofMajor(30), vm.state.current.totalIncome)
             assertTrue(
                 "nothing reached the computation dispatcher, so the derivation ran on the main one",
                 counting.dispatches > 0,

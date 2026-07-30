@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -26,6 +27,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -35,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -64,10 +67,16 @@ fun StudentFormScreen(
     // Back — the arrow or the system gesture — asks before throwing a filled-in form away.
     val requestLeave = leaveGuard(form = state, onLeave = onBack, onSave = { viewModel.save(onBack) })
 
+    // The bar takes on its scrolled colour once content has moved under it — M3's own signal that
+    // the two are separate surfaces. Pinned, because this bar carries actions that must stay put.
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(messages.hostState) },
         topBar = {
             TopAppBar(
+                scrollBehavior = scrollBehavior,
                 title = { Text(stringResource(R.string.student_add_title)) },
                 navigationIcon = {
                     IconButton(onClick = requestLeave) {
@@ -100,6 +109,10 @@ fun StudentFormContent(
     val form = state.form
     Column(
         modifier
+            // Before the scroll, so the keyboard shrinks the viewport instead of covering the
+            // per-subject price fields at the foot of the form. See `ClassEditScreen`. Consumed here, so
+            // a host that has already applied it (onboarding) is not padded twice.
+            .imePadding()
             .constrainedContent()
             .verticalScroll(rememberScrollState())
             .padding(16.dp),

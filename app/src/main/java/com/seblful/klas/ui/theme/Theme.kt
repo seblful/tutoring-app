@@ -1,7 +1,7 @@
 package com.seblful.klas.ui.theme
 
-import android.app.Activity
 import android.os.Build
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -9,7 +9,10 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
 private val LightColorScheme = lightColorScheme(
     primary = md_primary,
@@ -94,6 +97,29 @@ fun KlasTheme(
 
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
+    }
+
+    /*
+     * The status- and navigation-bar icons follow **the app's** resolved theme, not the phone's.
+     *
+     * The XML themes state a light/dark answer per configuration, which is right for the launch window
+     * and wrong the moment the two disagree: the theme setting is the tutor's (`ThemeChoice`), so a
+     * light app forced onto a dark phone was drawing white system icons over its own white background —
+     * an invisible clock and an invisible back gesture hint. `darkTheme` here is the answer *after*
+     * «follow the system» has been resolved, which is the only place both facts are known.
+     *
+     * A `SideEffect` rather than a `LaunchedEffect`: this is a write to the window on every successful
+     * composition, not work to be cancelled, and it has to have landed before the frame is presented.
+     */
+    val view = LocalView.current
+    val activity = LocalActivity.current
+    if (!view.isInEditMode && activity != null) {
+        SideEffect {
+            WindowCompat.getInsetsController(activity.window, view).apply {
+                isAppearanceLightStatusBars = !darkTheme
+                isAppearanceLightNavigationBars = !darkTheme
+            }
+        }
     }
 
     MaterialTheme(

@@ -28,10 +28,10 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.QueryStats
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -46,6 +46,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -57,6 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -74,12 +76,15 @@ import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatMonthName
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.ListSkeleton
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatRow
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.valueOrNull
 import com.seblful.klas.ui.common.lessonKindFill
 import com.seblful.klas.ui.common.lessonKindLabel
 import com.seblful.klas.ui.common.lessonsStat
@@ -111,7 +116,11 @@ fun ReportsScreen(
     onStudentClick: (Long) -> Unit,
     viewModel: ReportsViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val reportState by viewModel.state.collectAsState()
+    // The period is its own flow, so the navigator is live while the report behind it is still being
+    // assembled — the frame is the thing the tutor steers this screen with, and it needs no data.
+    val period by viewModel.period.collectAsState()
+    val report = reportState.valueOrNull()
     val messages = rememberMessages()
 
     val exportOkMsg = stringResource(R.string.reports_export_success)
@@ -136,8 +145,10 @@ fun ReportsScreen(
     )
     // Remembered: this walks every group, subject, student and debt row, and recomposition is not
     // a new report. Rebuilt only when the report itself changes.
-    val csvHeadings = csvHeadings(state.period)
-    val csvLines = remember(state, csvHeadings) { ReportCsv.linesFor(state, csvHeadings) }
+    val csvHeadings = csvHeadings(period)
+    val csvLines = remember(report, csvHeadings) {
+        report?.let { ReportCsv.linesFor(it, csvHeadings) }.orEmpty()
+    }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument(CSV_MIME_TYPE),
     ) { uri ->
@@ -145,16 +156,20 @@ fun ReportsScreen(
     }
     val exportFilename = stringResource(R.string.reports_export_filename)
 
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(messages.hostState) },
         topBar = {
             TopAppBar(
+                scrollBehavior = scrollBehavior,
                 title = { Text(stringResource(R.string.reports_title)) },
                 actions = {
                     // A backup is JSON meant to be read back by this app. What a tutor totalling
                     // their year — or an accountant — needs is a file that opens in a spreadsheet,
                     // and there was nothing here that produced one.
-                    if (state.hasData) {
+                    if (report?.hasData == true) {
                         IconButton(onClick = { exportLauncher.launch(exportFilename) }) {
                             Icon(
                                 Icons.Filled.FileDownload,
@@ -166,7 +181,16 @@ fun ReportsScreen(
             )
         },
     ) { padding ->
-        if (!state.hasData) {
+        // «Нет данных» says the tutor has earned nothing, which is a claim about their year — so it
+        // waits for the report to actually arrive. Before [Loadable] the initial value was an empty
+        // report, and every cold open of this screen made that claim for a frame or two.
+        if (report == null) {
+            Column(Modifier.fillMaxSize().padding(padding).constrainedContent()) {
+                ReportsSkeleton()
+            }
+            return@Scaffold
+        }
+        if (!report.hasData) {
             EmptyState(
                 title = stringResource(R.string.reports_empty),
                 detail = stringResource(R.string.reports_empty_detail),
@@ -180,16 +204,40 @@ fun ReportsScreen(
             // Pinned rather than scrolled away with the first card: the period is what everything
             // below means, and changing it is the main thing this screen is driven by.
             PeriodNavigator(
-                period = state.period,
+                period = period,
                 onPrevious = { viewModel.shift(-1) },
                 onNext = { viewModel.shift(1) },
                 onKind = viewModel::setKind,
             )
             HorizontalDivider()
-            ReportBody(state, onStudentClick, Modifier.weight(1f))
+            ReportBody(report, onStudentClick, Modifier.weight(1f))
         }
     }
 }
+
+/**
+ * The report's shape before its numbers: the hero card, then the section cards under it.
+ *
+ * Sized like the real thing rather than as uniform rows — the income card is much taller than a
+ * breakdown, and a skeleton that ignores that reflows the screen on the first real frame, which is the
+ * jump it exists to prevent.
+ */
+@Composable
+private fun ReportsSkeleton() {
+    Column(
+        Modifier.fillMaxWidth().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        com.seblful.klas.ui.common.SkeletonBlock(IncomeCardHeight)
+        ListSkeleton(rows = 3, rowHeight = SectionCardHeight, contentPadding = PaddingValues(0.dp))
+    }
+}
+
+/** Roughly `IncomeCard`: a label, a headline amount and the comparison line, at 20dp padding. */
+private val IncomeCardHeight = 116.dp
+
+/** Roughly a `ReportCard` with a title and two or three rows. */
+private val SectionCardHeight = 132.dp
 
 private const val CSV_MIME_TYPE = "text/csv"
 
@@ -368,7 +416,13 @@ private fun ColumnScope.ComparisonLine(state: Reports.Report) {
         // and an upward arrow beside it would be asserting growth the app just declined to measure.
         if (change is Reports.Change.Percent && change.value != 0) {
             Icon(
-                if (change.value > 0) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown,
+                // AutoMirrored: a trend arrow points *forward in time*, so it flips with the layout
+                // direction. The non-mirrored pair is deprecated for exactly this reason.
+                if (change.value > 0) {
+                    Icons.AutoMirrored.Filled.TrendingUp
+                } else {
+                    Icons.AutoMirrored.Filled.TrendingDown
+                },
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
             )

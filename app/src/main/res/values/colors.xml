@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The one colour the *platform* needs to know, as opposed to the ones Compose owns.
+
+  Everything the app draws comes from `ui/theme/Color.kt`. This is the window underneath it: what the
+  system paints from the moment the launcher is tapped until the first Compose frame arrives. It has to
+  be stated here because that window exists before any Kotlin has run, and it has to match
+  `md_background` exactly or the app opens with a flash of a colour it never uses again.
+
+  The night variant is in `values-night/`, which is what fixes the flash being *white* on a dark phone.
+-->
+<resources>
+    <!-- = md_background (Color.kt). Keep the two in step. -->
+    <color name="klas_window">#FBF8FF</color>
+</resources>

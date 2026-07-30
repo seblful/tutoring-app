@@ -26,6 +26,8 @@ import com.seblful.klas.R
 import com.seblful.klas.ui.common.AvatarStack
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.ListSkeleton
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.text
 
@@ -33,16 +35,26 @@ import com.seblful.klas.ui.common.text
  * The groups list — a **body**, sharing a scaffold with the students list (see
  * `ui/people/PeopleScreen.kt`). A group is students seen as a roster, so the two are one tab.
  *
+ * As the students list, three states: a group list that has not been read is a skeleton, not an
+ * invitation to create the first group. See [Loadable].
+ *
  * @param searching whether an empty list means "nothing matched" rather than "there are none".
  */
 @Composable
 fun GroupsList(
-    rows: List<GroupRow>,
+    state: Loadable<List<GroupRow>>,
     searching: Boolean,
     onGroupClick: (Long) -> Unit,
     onAddGroup: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val rows = when (state) {
+        Loadable.Loading -> {
+            ListSkeleton(modifier.constrainedContent())
+            return
+        }
+        is Loadable.Ready -> state.value
+    }
     if (rows.isEmpty()) {
         if (searching) {
             EmptyState(

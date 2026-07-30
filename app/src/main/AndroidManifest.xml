@@ -25,21 +25,33 @@
       No platform backup, on purpose — see res/xml/data_extraction_rules.xml for the argument.
       The app's own JSON export (Ещё → Резервная копия) is how data moves between devices.
     -->
+    <!--
+      enableOnBackInvokedCallback opts into the predictive back gesture (Android 13+, animated on 14+).
+      Without it the system has nothing to preview during the swipe, so on a device that has trained the
+      tutor to expect a peek at where they are going, this app is the one that just cuts. Navigation
+      Compose animates its own transitions through it; ignored below API 33.
+    -->
     <application
         android:name=".KlasApp"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        android:enableOnBackInvokedCallback="true"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Klas"
-        tools:targetApi="31">
+        tools:targetApi="33">
+        <!--
+          The launcher entry wears the *starting* theme, not the app's. `installSplashScreen()` swaps in
+          `Theme.Klas` (its `postSplashScreenTheme`) the moment the activity is created, so the splash is
+          the only thing that ever renders under it.
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.Klas">
+            android:theme="@style/Theme.Klas.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

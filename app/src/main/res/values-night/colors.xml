@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The launch window on a dark phone. See `values/colors.xml` for why this file exists at all.
+
+  This follows the **system's** night mode, not the app's own theme setting — the setting lives in Room
+  and cannot be read before the window is drawn. SYSTEM is the default and the common case, so this is
+  right for almost everybody; a tutor who has forced LIGHT on a dark phone still sees one switch, and
+  the splash is held until settings load (see `MainActivity`) so they see it once, before any content.
+-->
+<resources>
+    <!-- = md_background_d (Color.kt). Keep the two in step. -->
+    <color name="klas_window">#121318</color>
+</resources>

@@ -47,7 +47,7 @@ flowchart TB
 | `diagnostics/` | `CrashLogger` over `CrashLogStore`/`DeviceInfo` ports; the pure half is `domain/Diagnostics`. Viewed and exported from `ui/diagnostics`. |
 | `storage/` | `DocumentStore` port + SAF adapter over an opaque `DocumentRef`, so no view model touches a `Uri` or a `Context`. |
 | `format/` | `ru`-locale date/time/money formatting (with `LocalDate`/`LocalTime` faces, so no caller restates the zone), `MoneyField` (what a money input is — each `Kind` carries its own zero rule), `NameOrder` (the one definition of how names are listed). |
-| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` atoms, `onboarding/`, and `RootViewModel` gating onboarding vs. the tabs. **Settings and About live in `ui/more/`.** |
+| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/` (routes, tab items, screen transitions), shared `common/` atoms (incl. `Loadable`/`Skeleton` — the loaded-yet distinction), `onboarding/`, and `RootViewModel` gating onboarding vs. the tabs. **Settings and About live in `ui/more/`.** |
 | `di/` | The database module, the `@DebugBuild` flag, `@ApplicationScope`/`@Computation` (`CoroutinesModule`) and the `Clock` (`TimeModule`) — which every defaulted `now` in the engine reads (`Maintenance`, `DueReminder`, `RateHistoryRepository`, `CrashLogger`), so the tested path is the shipped one. Other Hilt modules live beside their adapters. |
 
 ### Ownership (one invariant, one place)
@@ -140,6 +140,14 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 
 ### The view-model tail, named once
 
+- **A screen's state says whether it has arrived** (`ui/common/Loadable.kt`). Every list flow started at
+  an empty collection, which is the same value an empty database produces — so for the frame or two
+  before Room's first emission each screen drew its *empty state*: «Нет занятий» over the tutor's real
+  morning, "add your first student" to a tutor with forty. `Loadable<T>` is `Loading | Ready(value)`,
+  the initial value of the seven screen flows that had one, and `ready()` is how a flow marks its
+  emissions. Empty is now only ever said about data that was read. Screens draw `Loading` as a
+  **skeleton shaped like the content** (`ui/common/Skeleton.kt`), never a centred spinner — a spinner
+  reflows the whole screen on the first real frame, which is the jump it exists to prevent.
 - **`derive` and `hold` end every screen flow** (`ui/common/ScreenState.kt`). Twenty-six flows across
   thirteen view models spelled the same `flowOn(computation).stateIn(viewModelScope,
   WhileSubscribed(5_000), initial)`, so the grace period — which decides whether rotating the device
@@ -392,6 +400,46 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   the system touch-feedback setting and degrades an effect the phone is too old to know. No `Vibrator`, no
   `VIBRATE` permission, and each effect is chosen in one place.
 
+### UI — the platform edge
+
+The app's own layer was careful long before this one was: these are the places where Compose meets
+Android, and each was a default rather than a decision.
+
+- **The launch window is the app's colour, in both themes** (`res/values/themes.xml`,
+  `values-night/`, `res/values/colors.xml`). `Theme.Klas` was the platform's `Material.Light`, fixed, so
+  the window the system paints for the whole cold start was white — on every dark-mode launch. The
+  splash is declared through **core-splashscreen** so it exists on API 24–30 too, and `MainActivity`
+  **holds it until the settings row arrives** (`setKeepOnScreenCondition`), which is what makes the
+  handover silent: the theme is resolved from that row, so lifting earlier shows a spinner or a frame of
+  the wrong theme. `values-night` follows the *system*, since the tutor's own choice lives in Room and
+  cannot be read before a window exists — right for SYSTEM, which is the default.
+- **The system bars' icons follow the app's resolved theme, not the phone's** (`ui/theme/Theme.kt`). The
+  XML answer is per *configuration*; a light app forced onto a dark phone was drawing white icons over
+  its own white background.
+- **There is exactly one `Scaffold` in any tree.** The root is a `NavigationSuiteScaffold`
+  (`ui/AppRoot.kt`) and every screen brings its own `Scaffold`. A `Scaffold` wrapping a `NavHost` of
+  `Scaffold`-bearing screens applied the status-bar inset twice — a Compose inset is not consumed by a
+  `padding()` call — so the four tab screens sat a status bar too low while every pushed screen sat
+  correctly.
+- **The chrome follows the window**: bottom bar on a phone, navigation rail once there is width
+  (`NavigationSuiteType.None` on a pushed screen). Tabs are defined once as suite *items*
+  (`ui/navigation/BottomBar.kt`, `klasTabs`), with the outlined/filled glyph pair Material asks for —
+  the bar had one filled icon per tab, leaving the tinted pill as the only mark of where you were.
+  Two-pane list-detail browsing is **deliberately not** done: the panes would be redone by the screen-shell
+  refactor and no tablet is a target yet.
+- **A form applies `imePadding()` before its scroll**, so the keyboard shrinks the viewport instead of
+  covering it. Under edge-to-edge the IME is an inset rather than a resize, and M3's default scaffold
+  insets leave it out — so the group's rate field, the roster and the per-subject prices sat under the
+  keyboard with nothing to scroll. The one dialog tall enough to need it (`StudentEditDialog`) scrolls too.
+- **Every scrolling screen's app bar reacts to the content under it** — `pinnedScrollBehavior` for the
+  tonal change that separates bar from page, and `LargeTopAppBar` +
+  `exitUntilCollapsedScrollBehavior` on the two detail cards, where the title *is* the subject of the
+  screen. Repeated per screen for now; this is the strongest argument for a shared screen shell.
+- **Motion says which direction the app moved** (`ui/navigation/Transitions.kt`): `tab` cross-fades
+  between peers, `pushed` slides a quarter-width so back visibly reverses the way in. Two builder
+  functions rather than four transition arguments per `composable`, because there are sixteen screens.
+  Predictive back is opted into (`enableOnBackInvokedCallback`), which needs those directions to preview.
+
 ### UI — navigation and lists
 
 - **The bottom bar reads who → when → money**: «Люди», «Расписание», «Отчёты», «Ещё»; the app opens on
@@ -573,6 +621,10 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
   only — **name ordering is not restated there**, so they have no version of it to disagree with.
 - **`isReturnDefaultValues` is deliberately off.** It turns an unmocked framework call into a silent
   pass on `null`/`0`. A test that needs Android has found a missing port.
+- **A test reads screen state through `current`, not `.value`** (`testutil/Observing.kt`). State is
+  `Loadable`, and `current` insists on `Ready` — so a test that forgot `observing(…)`, or advanced the
+  scheduler too early, now fails naming the cause instead of asserting happily against a placeholder
+  that was an empty list of exactly the shape it expected.
 - **Three test doubles exist for what cannot otherwise be observed** (`testutil/`): `CountingDispatcher`
   (was the derivation really moved off the main thread — a `flowOn` is invisible in the result),
   `MutableClock` (a midnight rollover needs the wall clock and the scheduler moved together) and
@@ -631,7 +683,8 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
 ## Tooling & build
 
 - Kotlin 2.3.21, AGP 9.3.1, Gradle 9.6.1, JDK 21 (Android Studio JBR). compileSdk 37, targetSdk 36,
-  minSdk 24. Hilt 2.60.1, Room 2.8.4, WorkManager, Navigation Compose, kotlinx-serialization — versions
+  minSdk 24. Hilt 2.60.1, Room 2.8.4, WorkManager, Navigation Compose, kotlinx-serialization,
+  core-splashscreen, material3-adaptive-navigation-suite (BOM-managed, like material3) — versions
   in `gradle/libs.versions.toml`. Current release: `0.2.0` (`versionCode` 3).
 - **AGP 9 compiles Kotlin itself**: the `kotlin.android` plugin is not applied, and the root
   `build.gradle.kts` pins the built-in KGP so it matches the Compose/serialization plugins and KSP.

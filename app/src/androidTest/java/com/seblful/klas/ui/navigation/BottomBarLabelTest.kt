@@ -2,6 +2,8 @@ package com.seblful.klas.ui.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
@@ -100,6 +102,15 @@ class BottomBarLabelTest {
         )
     }
 
+    /**
+     * The tabs in **bar** form, whatever the window would otherwise ask for.
+     *
+     * `NavigationSuiteScaffold` picks between a bar and a rail from the window's width class, and this
+     * test is about the bar: it constrains a `Box` to a phone's width, which says nothing about the
+     * window. Pinning [NavigationSuiteType.NavigationBar] is what keeps it measuring the case the labels
+     * are tight in — a rail has width to spare, so a test that accidentally got one would pass whatever
+     * the labels did.
+     */
     private fun ComposeContentTestRule.setBarContent(
         width: MutableState<Dp>,
         tabs: List<TopDestination>,
@@ -111,7 +122,13 @@ class BottomBarLabelTest {
             ) {
                 KlasTheme {
                     Box(Modifier.width(width.value)) {
-                        BottomBar(tabs = tabs, currentRoute = Routes.SCHEDULE, onSelect = {})
+                        NavigationSuiteScaffold(
+                            layoutType = NavigationSuiteType.NavigationBar,
+                            navigationSuiteItems = {
+                                klasTabs(tabs = tabs, currentRoute = Routes.SCHEDULE, onSelect = {})
+                            },
+                            content = {},
+                        )
                     }
                 }
             }

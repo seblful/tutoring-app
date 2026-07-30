@@ -32,6 +32,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -42,7 +43,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -55,6 +56,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -73,6 +75,8 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.LessonFilterChips
 import com.seblful.klas.ui.common.LessonKindIcon
+import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.LoadingDetailScreen
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.PickerField
 import com.seblful.klas.ui.common.RateHistoryList
@@ -109,13 +113,31 @@ private enum class StudentTab(val labelRes: Int) {
     PAYMENTS(R.string.student_payments_title),
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * The card, once there is a student to draw one for.
+ *
+ * The wait is a screen of its own rather than a card full of zeroes: `StudentDetailState()` — the initial
+ * value this used to open on — is a student with no name, no debt and no lessons, so the card stated
+ * «Долг 0» about somebody before it had read them. See [Loadable].
+ */
 @Composable
 fun StudentDetailScreen(
     onBack: () -> Unit,
     viewModel: StudentDetailViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    when (val screenState = viewModel.state.collectAsState().value) {
+        Loadable.Loading -> LoadingDetailScreen(onBack)
+        is Loadable.Ready -> StudentCard(screenState.value, viewModel, onBack)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StudentCard(
+    state: StudentDetailState,
+    viewModel: StudentDetailViewModel,
+    onBack: () -> Unit,
+) {
     val student = state.student
 
     var tab by rememberSaveable { mutableStateOf(StudentTab.SUBJECTS) }
@@ -164,11 +186,18 @@ fun StudentDetailScreen(
         messages.show(paymentDeletedMsg, undoLabel) { viewModel.restorePayment(payment) }
     }
 
+    // A student's name is what this screen is *about*, so it gets the large title Material designed for
+    // exactly that — collapsing into an ordinary bar as the list scrolls, instead of being a 16sp string
+    // ellipsised between a back arrow and two actions.
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(messages.hostState) },
         topBar = {
-            TopAppBar(
-                title = { Text(student?.name ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            LargeTopAppBar(
+                scrollBehavior = scrollBehavior,
+                title = { Text(student?.name ?: "", maxLines = 2, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))

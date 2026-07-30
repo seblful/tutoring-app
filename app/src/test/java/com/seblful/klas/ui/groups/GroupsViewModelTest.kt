@@ -4,6 +4,7 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -33,9 +34,9 @@ class GroupsViewModelTest {
         observing(vm.rows)
         advanceUntilIdle()
 
-        assertEquals(listOf("11 «А»", "Выпускники"), vm.rows.value.map { it.group.name })
-        assertEquals(listOf("Аня", "Борис"), vm.rows.value.first().memberNames)
-        assertEquals(listOf("Борис"), vm.rows.value.last().memberNames)
+        assertEquals(listOf("11 «А»", "Выпускники"), vm.rows.current.map { it.group.name })
+        assertEquals(listOf("Аня", "Борис"), vm.rows.current.first().memberNames)
+        assertEquals(listOf("Борис"), vm.rows.current.last().memberNames)
     }
 
     @Test
@@ -49,11 +50,11 @@ class GroupsViewModelTest {
         observing(vm.rows)
         advanceUntilIdle()
 
-        assertEquals(listOf(active), vm.rows.value.map { it.group.id })
+        assertEquals(listOf(active), vm.rows.current.map { it.group.id })
 
         vm.toggleArchived()
         advanceUntilIdle()
-        assertEquals(setOf(active, retired), vm.rows.value.map { it.group.id }.toSet())
+        assertEquals(setOf(active, retired), vm.rows.current.map { it.group.id }.toSet())
     }
 
     /**
@@ -72,6 +73,6 @@ class GroupsViewModelTest {
         observing(vm.rows)
         advanceUntilIdle()
 
-        assertEquals(listOf("анна", "Ярослав"), vm.rows.value.single().memberNames)
+        assertEquals(listOf("анна", "Ярослав"), vm.rows.current.single().memberNames)
     }
 }

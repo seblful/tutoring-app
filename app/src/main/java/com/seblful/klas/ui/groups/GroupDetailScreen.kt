@@ -22,13 +22,14 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
@@ -46,6 +48,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.format.formatHours
 import com.seblful.klas.ui.common.Avatar
+import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.LoadingDetailScreen
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.RateHistoryList
 import com.seblful.klas.ui.common.Stat
@@ -81,7 +85,6 @@ private enum class GroupTab(val labelRes: Int) {
  * @param onEdit opens the group form — the only place a group's roster, subject or rate changes.
  * @param onMemberClick opens a member's own card, which is where their money lives.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupDetailScreen(
     onBack: () -> Unit,
@@ -90,16 +93,38 @@ fun GroupDetailScreen(
     onLessonClick: (Long) -> Unit,
     viewModel: GroupDetailViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    // As the student's card: `GroupDetailState()` is an empty group rather than an unread one, so the
+    // wait is its own screen instead of a card claiming no members and no lessons. See [Loadable].
+    when (val screenState = viewModel.state.collectAsState().value) {
+        Loadable.Loading -> LoadingDetailScreen(onBack)
+        is Loadable.Ready -> GroupCard(screenState.value, onBack, onEdit, onMemberClick, onLessonClick)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GroupCard(
+    state: GroupDetailState,
+    onBack: () -> Unit,
+    onEdit: () -> Unit,
+    onMemberClick: (Long) -> Unit,
+    onLessonClick: (Long) -> Unit,
+) {
     val group = state.group
 
     var tab by rememberSaveable { mutableStateOf(GroupTab.STUDENTS) }
     var historyExpanded by rememberSaveable { mutableStateOf(false) }
 
+    // The group's name is the subject of the screen, as a student's is on theirs — the same large,
+    // collapsing title, so the two cards read as one pattern.
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text(group?.name ?: "") },
+            LargeTopAppBar(
+                scrollBehavior = scrollBehavior,
+                title = { Text(group?.name ?: "", maxLines = 2) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))

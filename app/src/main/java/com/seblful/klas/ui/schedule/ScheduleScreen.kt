@@ -46,6 +46,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +58,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -75,6 +77,8 @@ import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.LessonKindIcon
+import com.seblful.klas.ui.common.ListSkeleton
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.SwipeToConfirmBox
 import com.seblful.klas.ui.common.TimePickerModal
@@ -83,9 +87,11 @@ import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.constrainedContent
+import com.seblful.klas.ui.common.map
 import com.seblful.klas.ui.common.popsOnChange
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.common.valueOrNull
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatWeekRange
@@ -104,7 +110,7 @@ fun ScheduleScreen(
     viewModel: ScheduleViewModel = hiltViewModel(),
 ) {
     // One state for the body: only the active view's lessons are assembled (see ScheduleContent).
-    val content by viewModel.content.collectAsState()
+    val contentState by viewModel.content.collectAsState()
     val date by viewModel.selectedDate.collectAsState()
     val canAddClass by viewModel.canAddClass.collectAsState()
     // From the view model, so it rolls over at midnight rather than being fixed at composition.
@@ -130,9 +136,17 @@ fun ScheduleScreen(
         viewModel.events.stream.collect { messages.show(actionFailedMsg) }
     }
 
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(messages.hostState) },
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.schedule_title)) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.schedule_title)) },
+                scrollBehavior = scrollBehavior,
+            )
+        },
         floatingActionButton = {
             // Hidden rather than shown-and-refusing. It used to be always present: with no students
             // it looked enabled, popped a toast naming what was missing, and left the tutor to go and
@@ -185,7 +199,7 @@ fun ScheduleScreen(
                 when (viewMode) {
                     // The day list stands alone under its stepper.
                     ScheduleViewMode.DAY -> dayList(
-                        rows = content.rows,
+                        state = contentState.map { it.rows },
                         canAddClass = canAddClass,
                         onRowClick = { sheetFor = it },
                         onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
@@ -209,7 +223,10 @@ fun ScheduleScreen(
                                 HorizontalDivider()
                             }
                         }
-                        if (content.sections.isEmpty()) {
+                        val week = contentState.valueOrNull()
+                        if (week == null) {
+                            item(key = "loading") { LessonsSkeleton() }
+                        } else if (week.sections.isEmpty()) {
                             item(key = "empty") {
                                 EmptyState(
                                     title = stringResource(R.string.schedule_week_empty),
@@ -218,7 +235,7 @@ fun ScheduleScreen(
                                 )
                             }
                         } else {
-                            content.sections.forEach { section ->
+                            week.sections.forEach { section ->
                                 item(key = "day-${section.date}", contentType = "day-header") {
                                     DaySectionHeader(section.date, isSelected = section.date == date)
                                 }
@@ -255,7 +272,7 @@ fun ScheduleScreen(
                             }
                         }
                         dayList(
-                            rows = content.rows,
+                            state = contentState.map { it.rows },
                             canAddClass = canAddClass,
                             onRowClick = { sheetFor = it },
                             onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
@@ -333,18 +350,28 @@ fun ScheduleScreen(
 /**
  * The selected day's classes, or an empty state. Shared by the day and month views.
  *
- * The empty state depends on **why** it is empty. A day with no lessons is an ordinary day and offers
- * to book one; an app with no students cannot book anything yet, and offers the step that unblocks it
- * instead of naming it and stopping there.
+ * The empty state depends on **why** it is empty, and there are now three reasons rather than two. A day
+ * whose lessons have not been read yet is not an empty day: «Нет занятий» over the tutor's actual
+ * morning, with a book-a-lesson button under it, was what the initial `ScheduleContent.Day(emptyList())`
+ * produced on every cold start. Beyond that: a day with no lessons is an ordinary day and offers to book
+ * one; an app with no students cannot book anything yet, and offers the step that unblocks it instead of
+ * naming it and stopping there.
  */
 private fun LazyListScope.dayList(
-    rows: List<ScheduleRow>,
+    state: Loadable<List<ScheduleRow>>,
     canAddClass: Boolean,
     onRowClick: (ScheduleRow) -> Unit,
     onComplete: (ScheduleRow) -> Unit,
     onAddClass: () -> Unit,
     onAddStudent: () -> Unit,
 ) {
+    val rows = when (state) {
+        Loadable.Loading -> {
+            item(key = "loading") { LessonsSkeleton() }
+            return
+        }
+        is Loadable.Ready -> state.value
+    }
     if (rows.isEmpty()) {
         item(key = "empty") {
             if (canAddClass) {
@@ -377,6 +404,18 @@ private fun LazyListScope.dayList(
             )
         }
     }
+}
+
+/**
+ * Lesson cards that have not arrived yet, at the gutter and gap the real ones use — so the first real
+ * frame changes colour rather than layout.
+ */
+@Composable
+private fun LessonsSkeleton() {
+    ListSkeleton(
+        rows = 3,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 5.dp),
+    )
 }
 
 /** Chooses between the day, week and month views. */

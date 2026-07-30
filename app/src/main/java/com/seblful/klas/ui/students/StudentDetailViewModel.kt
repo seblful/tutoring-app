@@ -27,8 +27,11 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.runCatchingCancellable
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.derive
+import com.seblful.klas.ui.common.ready
+import com.seblful.klas.ui.common.valueOrNull
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -231,7 +234,7 @@ class StudentDetailViewModel @Inject constructor(
      * mixes both kinds, and «Биология, 18:00» twice over — once billed at 30 and once at 20 — is a
      * puzzle until it says which of the two was the group's.
      */
-    val state: StateFlow<StudentDetailState> = combine(
+    val state: StateFlow<Loadable<StudentDetailState>> = combine(
         partial,
         payments.observeForStudent(studentId),
         groups.observeAll(),
@@ -255,7 +258,10 @@ class StudentDetailViewModel @Inject constructor(
             lessonKinds = LessonKind.tally(partial.classes),
         )
     }
-        .derive(this, computation, StudentDetailState())
+        .ready()
+        // `StudentDetailState()` used to stand in, which is a student with no name, no debt and no
+        // lessons — so the card opened stating zeroes about somebody before reading them. See [Loadable].
+        .derive(this, computation, Loadable.Loading)
 
     private data class Partial(
         val student: Student?,
@@ -280,7 +286,7 @@ class StudentDetailViewModel @Inject constructor(
     }
 
     fun editStudent(name: String, phone: String, email: String, note: String, mode: ClassMode) {
-        val current = state.value.student ?: return
+        val current = state.value.valueOrNull()?.student ?: return
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
         write {
@@ -302,7 +308,7 @@ class StudentDetailViewModel @Inject constructor(
      * tutor is making on purpose but from another screen.
      */
     fun setArchived(archived: Boolean) {
-        val current = state.value.student ?: return
+        val current = state.value.valueOrNull()?.student ?: return
         write(onWritten = { cancelled -> if (cancelled > 0) events.send(Event.ARCHIVE_CANCELLED_LESSONS) }) {
             students.setArchived(current, archived)
         }

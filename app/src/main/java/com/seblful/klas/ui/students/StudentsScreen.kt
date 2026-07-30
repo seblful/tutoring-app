@@ -24,6 +24,8 @@ import com.seblful.klas.R
 import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.ListSkeleton
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.balanceColor
 import com.seblful.klas.ui.common.balanceDescription
 import com.seblful.klas.ui.common.constrainedContent
@@ -39,17 +41,29 @@ import com.seblful.klas.ui.common.constrainedContent
  * running string comparisons on the frame it is drawing — so that work stays in the view model, on
  * the computation dispatcher, beside the balance arithmetic it travels with.
  *
+ * Three states, not two. «Пока нет учеников» is an invitation and it must only ever be extended to a
+ * tutor who genuinely has none — so a list that has not been read yet draws a skeleton instead. The
+ * distinction arrives as a type ([Loadable]) rather than being inferred from emptiness, which is what it
+ * used to be: the initial `emptyList()` and a genuinely empty database were the same value.
+ *
  * @param searching whether the empty list is empty because nothing matched, or because there is
  *   nothing. The two need different words and only one of them has an action.
  */
 @Composable
 fun StudentsList(
-    rows: List<StudentRow>,
+    state: Loadable<List<StudentRow>>,
     searching: Boolean,
     onStudentClick: (Long) -> Unit,
     onAddStudent: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val rows = when (state) {
+        Loadable.Loading -> {
+            ListSkeleton(modifier.constrainedContent())
+            return
+        }
+        is Loadable.Ready -> state.value
+    }
     if (rows.isEmpty()) {
         // "Nothing matched «зщ»" is a typo to fix; "no students yet" is an invitation. Offering to
         // create a student in the first case would be answering a question nobody asked.

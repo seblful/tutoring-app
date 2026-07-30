@@ -21,8 +21,10 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentStore
+import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.derive
+import com.seblful.klas.ui.common.ready
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,7 +62,12 @@ class ReportsViewModel @Inject constructor(
         val payments: List<Payment>,
     )
 
-    val state: StateFlow<Reports.Report> = combine(
+    /**
+     * [Loadable] because an empty report and an unread one look identical and mean opposite things:
+     * `Reports.Report(period)` as an initial value made every cold open of this screen state «Нет
+     * данных» — that the tutor has earned nothing — before the first read came back.
+     */
+    val state: StateFlow<Loadable<Reports.Report>> = combine(
         classes.observeAll(),
         students.observeAll(),
         subjects.observeAll(),
@@ -68,9 +75,10 @@ class ReportsViewModel @Inject constructor(
         payments.observeAll(),
         ::Sources,
     ).combine(_period) { sources, period -> sources.report(period) }
+        .ready()
         // The heaviest derivation in the app — every class against every payment and every student,
         // re-run on each write anywhere — and it used to run on the main thread. See [Computation].
-        .derive(this, computation, Reports.Report(_period.value))
+        .derive(this, computation, Loadable.Loading)
 
     /** Reads the same period at another width, keeping where the tutor was looking. */
     fun setKind(kind: ReportPeriod.Kind) = _period.update { it.withKind(kind) }

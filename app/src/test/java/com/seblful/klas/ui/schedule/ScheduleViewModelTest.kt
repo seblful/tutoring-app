@@ -21,7 +21,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import com.seblful.klas.domain.CalendarLayout
+import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
+import com.seblful.klas.ui.common.Loadable
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.Instant
@@ -50,6 +52,27 @@ class ScheduleViewModelTest {
 
     private fun startMillisOn(date: LocalDate, time: LocalTime): Long =
         date.atTime(time).atZone(zone).toInstant().toEpochMilli()
+
+    /**
+     * The day is [Loadable.Loading] until its lessons have been read.
+     *
+     * The initial value used to be `ScheduleContent.Day(emptyList())` — *a day with no lessons* — which
+     * is indistinguishable from a genuinely free day, so every cold start drew «Нет занятий» and a
+     * book-a-lesson button over the tutor's actual morning until the query returned. This is the app's
+     * opening screen, so it was also the first thing anybody saw.
+     */
+    @Test
+    fun `the day is Loading until its lessons have been read`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+
+        assertEquals(Loadable.Loading, vm.content.value)
+
+        observing(vm.content)
+        advanceUntilIdle()
+
+        // Read, and genuinely empty — which is the only state the empty prompt is honest in.
+        assertEquals(Loadable.Ready(ScheduleContent.Day(emptyList())), vm.content.value)
+    }
 
     /** A fixed day at [hour], for tests that only need distinct lesson times. */
     private fun at(hour: Int): Instant =
@@ -85,7 +108,7 @@ class ScheduleViewModelTest {
         observing(vm.content)
         advanceUntilIdle()
 
-        val rows = vm.content.value.rows
+        val rows = vm.content.current.rows
         assertEquals(2, rows.size)
         assertTrue("rows are sorted by start time", rows[0].klass.start < rows[1].klass.start)
         assertEquals("Аня", rows[0].title)
@@ -287,7 +310,7 @@ class ScheduleViewModelTest {
         vm.selectDate(LocalDate.of(2026, 7, 15))
         advanceUntilIdle()
 
-        val sections = vm.content.value.sections
+        val sections = vm.content.current.sections
         assertEquals("only days with classes get a section", 2, sections.size)
         assertEquals(monday, sections[0].date)
         assertEquals(thursday, sections[1].date)
@@ -312,12 +335,12 @@ class ScheduleViewModelTest {
         vm.setViewMode(ScheduleViewMode.WEEK)
         vm.selectDate(LocalDate.of(2026, 7, 15))
         advanceUntilIdle()
-        assertTrue(vm.content.value.sections.isEmpty())
+        assertTrue(vm.content.current.sections.isEmpty())
 
         vm.goToNextWeek()
         advanceUntilIdle()
 
-        assertEquals(listOf(nextWeek), vm.content.value.sections.map { it.date })
+        assertEquals(listOf(nextWeek), vm.content.current.sections.map { it.date })
     }
 
     @Test
@@ -346,7 +369,7 @@ class ScheduleViewModelTest {
         advanceUntilIdle()
 
         // The day view assembles the selected day — and no week agenda exists to go stale.
-        val day = vm.content.value
+        val day = vm.content.current
         assertTrue("the day view shows a day", day is ScheduleContent.Day)
         assertEquals(1, day.rows.size)
         assertTrue("no week agenda is assembled for the day view", day.sections.isEmpty())
@@ -355,7 +378,7 @@ class ScheduleViewModelTest {
         advanceUntilIdle()
 
         // Switching view swaps the query rather than adding a second live one.
-        val week = vm.content.value
+        val week = vm.content.current
         assertTrue("the week view shows a week", week is ScheduleContent.Week)
         assertTrue("no day list is assembled for the week view", week.rows.isEmpty())
         assertEquals("both of the week's lessons", 2, week.sections.sumOf { it.rows.size })
@@ -696,7 +719,7 @@ class ScheduleViewModelTest {
         vm.selectDate(wednesday)
         advanceUntilIdle()
 
-        val section = vm.content.value.sections.single()
+        val section = vm.content.current.sections.single()
         assertEquals(wednesday, section.date)
         assertEquals("two member classes, one agenda row", 1, section.rows.size)
         assertTrue(section.rows[0].isGroup)
@@ -721,7 +744,7 @@ class ScheduleViewModelTest {
         observing(vm.content)
         advanceUntilIdle()
 
-        val rows = vm.content.value.rows
+        val rows = vm.content.current.rows
         assertEquals("the group's two classes collapse into one row", 2, rows.size)
         val individual = rows.first()
         val group = rows.last()
@@ -748,7 +771,7 @@ class ScheduleViewModelTest {
         val vm = vm()
         observing(vm.content)
         advanceUntilIdle()
-        vm.setStatus(vm.content.value.rows.single().session, LessonStatus.COMPLETED)
+        vm.setStatus(vm.content.current.rows.single().session, LessonStatus.COMPLETED)
         advanceUntilIdle()
 
         val saved = env.classDao.items.value
