@@ -42,7 +42,7 @@ flowchart TB
 | `data/repository/` | One invariant each, end to end, written in one transaction (see *Ownership*). Display **name ordering** is applied here. |
 | `data/backup/` | The **file format**: export, transactional replace-all import, `BackupIntegrity` (what a file must be readable as before any of it is written), `BackupFailure` (which refusal it was) and `BackupRestore` (everything a *restore* means beyond the rows). What tables exist and the order they may be emptied and filled in is `SnapshotDao`'s. |
 | `calendar/` | `CalendarSync` + `CalendarPermission` ports and a `CalendarContract` adapter. |
-| `notifications/` | `Notifier` and `NotificationPermission` ports + Android adapters, `DueReminder`, and `ReminderAlarms`/`ReminderReceiver` — reminders are **alarms**, not deferrable work. |
+| `notifications/` | `Notifier` and `NotificationPermission` ports + Android adapters, `DueReminder`, `ReminderActions`/`ReminderNavigation` (what a reminder's own buttons do) and `ReminderAlarms`/`ReminderReceiver`/`ReminderActionReceiver` — reminders are **alarms**, not deferrable work. |
 | `work/` | WorkManager's half: the periodic `MaintenanceWorker`, `WorkScheduler`, `BootReceiver` (alarms die on reboot), and `Maintenance` — what an upkeep pass decides, kept out of the worker. |
 | `diagnostics/` | `CrashLogger` over `CrashLogStore`/`DeviceInfo` ports; the pure half is `domain/Diagnostics`. Viewed and exported from `ui/diagnostics`. |
 | `storage/` | `DocumentStore` port + SAF adapter over an opaque `DocumentRef`, so no view model touches a `Uri` or a `Context`. |
@@ -364,6 +364,18 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   would settle that backlog anyway, and a "no" that only postponed it would be a lie. Wanting
   auto-completion without the backlog is therefore not expressible — cancel the lessons you do not want
   billed first. The **background** pass still asks nobody; a worker cannot.
+- **A reminder is answerable from the tray**: «Проведено» and «Перенести», the schedule's own two words.
+  «Проведено» acts in place — a broadcast into `ReminderActions`, no screen — because the tutor is
+  walking out of the lesson, not sitting down with the app; «Перенести» can only *open* the lesson, since
+  a notification cannot show a picker. What the buttons decide is outside the receiver
+  (`ReminderActions`, `ReminderNavigation`) for the reason `DueReminder` is: a `BroadcastReceiver` is
+  reachable only from a device, and one of these buttons **bills**.
+- **A notification is a stale view of the lesson by construction**, so acting on one asks the same
+  legality question the actions sheet asks (`GroupRules.sessionTransitions`): it can sit in the tray for
+  hours while the lesson is cancelled, deleted or completed by hand. A cancelled lesson is never
+  resurrected as a taught one on the strength of an old reminder. The reminder leaves the tray either
+  way — "nothing to do" and "done" look identical from outside, and a button that visibly does nothing
+  reads as broken.
 - **The notification permission is asked for where reminders are**, in settings, never over a first
   launch — and the row shows the **platform's** answer beside the tutor's intent. «May a reminder be
   shown» has one definition, the port's: `AndroidNotifier` asks `NotificationPermission` too, instead
@@ -809,6 +821,7 @@ app/src/main/java/com/seblful/klas/
 ├── data/              # Mappers.kt + {local,repository,backup}/
 ├── calendar/  notifications/  diagnostics/  work/  format/  storage/  di/
 │                 └── ReminderAlarms + ReminderReceiver (reminders are alarms, not workers)
+│                     + ReminderActions/ReminderActionReceiver («Проведено» from the tray)
 ├── Coroutines.kt      # runCatchingCancellable — the only way suspend calls are guarded
 ├── RussianLocale.kt   # Context.inRussian() — the locale pin
 ├── ui/{schedule,people,students,groups,subjects,reports,backup,more,

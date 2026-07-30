@@ -98,6 +98,13 @@ class RecordingNotifier : Notifier {
     override fun showClassReminder(klass: TutoringClass, whoName: String, subjectName: String) {
         posted += Posted(klass, whoName, subjectName)
     }
+
+    /** Which reminders were taken back out of the tray, in the order they were. */
+    val cancelled = mutableListOf<Long>()
+
+    override fun cancelClassReminder(classId: Long) {
+        cancelled += classId
+    }
 }
 
 /**

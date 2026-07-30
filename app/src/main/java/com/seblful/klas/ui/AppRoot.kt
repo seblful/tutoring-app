@@ -1,5 +1,8 @@
 package com.seblful.klas.ui
 
+import android.content.Intent
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,11 +12,18 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.core.util.Consumer
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -21,6 +31,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.compose.runtime.CompositionLocalProvider
 import com.seblful.klas.domain.model.Currency
+import com.seblful.klas.notifications.ReminderNavigation
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.theme.KlasTheme
 import com.seblful.klas.ui.backup.BackupScreen
@@ -97,6 +108,8 @@ private fun MainApp() {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val onTab = currentRoute in TopDestination.routes
+
+    OpensTheLessonAReminderNames(navController)
 
     NavigationSuiteScaffold(
         navigationSuiteItems = {
@@ -218,5 +231,49 @@ private fun MainApp() {
                 ClassEditScreen(onBack = { navController.popBackStack() })
             }
         }
+    }
+}
+
+/**
+ * Sends the tutor to the lesson when the app was opened by a reminder's «Перенести».
+ *
+ * A notification cannot show a date picker, so that button carries the lesson's id and this is where it
+ * becomes navigation — onto the lesson's own form, which is where a lesson's date and time are changed
+ * and where a clash on the new hour is already refused and worded. Whether an intent asks for one at all
+ * is [ReminderNavigation.lessonToOpen]'s, not this composable's: the app is opened by the launcher far
+ * more often than by a reminder, and getting that wrong would yank the tutor onto a lesson every time.
+ *
+ * **Both arrivals, because they are different arrivals.** A cold start has the intent waiting on the
+ * activity; an app already running gets it through `onNewIntent`, which is the common case — the tutor
+ * pulls the shade down over the app they were just in. Handling only the first would make the button work
+ * exactly once per process.
+ *
+ * The `rememberSaveable` guard is about rotation: the activity is rebuilt and hands back the *same*
+ * launch intent, which without it would re-open the lesson the tutor had already navigated away from.
+ */
+@Composable
+private fun OpensTheLessonAReminderNames(navController: NavHostController) {
+    val activity = LocalActivity.current as? ComponentActivity
+
+    val open: (Intent) -> Unit = { intent ->
+        val id = ReminderNavigation.lessonToOpen(
+            action = intent.action,
+            classId = intent.getLongExtra(ReminderNavigation.EXTRA_CLASS_ID, 0L),
+        )
+        // `launchSingleTop` so two taps on the same reminder do not stack the same lesson twice.
+        if (id != null) navController.navigate(Routes.classEdit(id)) { launchSingleTop = true }
+    }
+
+    var launchIntentHandled by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(activity) {
+        if (launchIntentHandled) return@LaunchedEffect
+        launchIntentHandled = true
+        activity?.intent?.let(open)
+    }
+
+    DisposableEffect(activity) {
+        val listener = Consumer<Intent>(open)
+        activity?.addOnNewIntentListener(listener)
+        onDispose { activity?.removeOnNewIntentListener(listener) }
     }
 }

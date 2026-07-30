@@ -64,6 +64,14 @@
             android:name=".notifications.ReminderReceiver"
             android:exported="false" />
 
+        <!--
+          Where a tap on a reminder's «Проведено» lands. Not exported either: the only thing that may
+          mark a lesson taught without opening the app is this app's own notification.
+        -->
+        <receiver
+            android:name=".notifications.ReminderActionReceiver"
+            android:exported="false" />
+
         <!-- Alarms are cleared by a restart, so the plan is re-derived once the device is back. -->
         <receiver
             android:name=".work.BootReceiver"

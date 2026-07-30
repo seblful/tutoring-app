@@ -73,6 +73,11 @@ class AndroidNotifier @Inject constructor(
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
             .setContentIntent(openApp)
+            // The two things a tutor does about the lesson they have just been reminded of, in the order
+            // the reminder makes them likely: it happened, or it has to move. Same words as the schedule's
+            // own actions — «Проведено» and «Перенести» are one idea each, so they are one string each.
+            .addAction(completeAction(klass.id))
+            .addAction(rescheduleAction(klass.id))
             .build()
 
         // Guarded above; still defend against revocation between check and post.
@@ -83,7 +88,61 @@ class AndroidNotifier @Inject constructor(
         }
     }
 
+    override fun cancelClassReminder(classId: Long) {
+        NotificationManagerCompat.from(context).cancel(classId.toInt())
+    }
+
+    /**
+     * «Проведено» — marks the lesson taught without opening anything, which is the whole point of
+     * having it here: the tutor is walking out of the lesson, not sitting down with the app.
+     *
+     * A broadcast rather than an activity, so nothing is drawn; [ReminderActionReceiver] hands it to
+     * [ReminderActions], which decides whether the change is still legal.
+     */
+    private fun completeAction(classId: Long): NotificationCompat.Action {
+        val intent = Intent(context, ReminderActionReceiver::class.java)
+            .setAction(ReminderActionReceiver.ACTION_COMPLETE)
+            .putExtra(ReminderActionReceiver.EXTRA_CLASS_ID, classId)
+        return action(
+            R.string.class_status_completed,
+            PendingIntent.getBroadcast(context, classId.toInt(), intent, FLAGS),
+        )
+    }
+
+    /**
+     * «Перенести» — opens the lesson, because a new time cannot be picked from a notification. The
+     * tutor lands on the lesson's own screen with its date and time, which is where the app moves a
+     * lesson anyway; see [ReminderNavigation] for the rule that reads this back.
+     *
+     * `FLAG_ACTIVITY_SINGLE_TOP` for the reason it is on the tap-to-open intent too — a reminder must
+     * not stack a second copy of the one activity on top of the app the tutor already has open.
+     */
+    private fun rescheduleAction(classId: Long): NotificationCompat.Action {
+        val intent = Intent(context, MainActivity::class.java)
+            .setAction(ReminderNavigation.ACTION_OPEN_LESSON)
+            .putExtra(ReminderNavigation.EXTRA_CLASS_ID, classId)
+            .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        return action(
+            R.string.class_move,
+            PendingIntent.getActivity(context, classId.toInt(), intent, FLAGS),
+        )
+    }
+
+    /**
+     * Icon 0 on purpose: since Android N the platform draws action *labels* only, and every device this
+     * app runs on is N or later (minSdk 24). A drawable here would be one nobody ever sees.
+     */
+    private fun action(labelRes: Int, intent: PendingIntent): NotificationCompat.Action =
+        NotificationCompat.Action.Builder(0, context.getString(labelRes), intent).build()
+
     companion object {
         const val CHANNEL_REMINDERS = "class_reminders"
+
+        /**
+         * `UPDATE_CURRENT` so a re-posted reminder carries the lesson's current id in its extras rather
+         * than a stale one: the request code is the class id, but a `PendingIntent`'s identity ignores
+         * extras entirely, so this is what keeps the buttons pointed at the right lesson.
+         */
+        private const val FLAGS = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
     }
 }

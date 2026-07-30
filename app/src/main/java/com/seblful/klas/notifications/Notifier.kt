@@ -21,4 +21,14 @@ interface Notifier {
      *   lesson, since one lesson earns one reminder and is announced by whoever is in the room.
      */
     fun showClassReminder(klass: TutoringClass, whoName: String, subjectName: String)
+
+    /**
+     * Takes the reminder for [classId] out of the tray.
+     *
+     * On the port rather than left to the adapter that posts, because it is a *consequence* the app
+     * decides: a reminder answered by its own «Проведено» button must not stay sitting there, and
+     * whether it was is what [ReminderActions] is tested on. Harmless for a reminder that is not
+     * showing.
+     */
+    fun cancelClassReminder(classId: Long)
 }
