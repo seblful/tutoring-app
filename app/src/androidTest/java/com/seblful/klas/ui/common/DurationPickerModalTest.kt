@@ -6,6 +6,8 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
+import androidx.test.platform.app.InstrumentationRegistry
+import com.seblful.klas.R
 import com.seblful.klas.ui.theme.KlasTheme
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -34,6 +36,8 @@ class DurationPickerModalTest {
     @get:Rule(order = 1)
     val rule = createComposeRule()
 
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+
     /** The confirmed length, or null while nothing has been confirmed. */
     private var confirmed: Int? = null
 
@@ -51,7 +55,22 @@ class DurationPickerModalTest {
 
     private fun hours() = rule.onAllNodes(hasSetTextAction())[0]
     private fun minutes() = rule.onAllNodes(hasSetTextAction())[1]
-    private fun save() = rule.onNodeWithText("Сохранить")
+
+    /**
+     * The button that closes the modal — «Готово», and **not** «Сохранить».
+     *
+     * Named `confirm` rather than `save` because that distinction is the point: a picker returns a value
+     * to the form it was opened from and writes nothing, so the booking form used to ask the tutor to save
+     * twice in a row, the first of which plausibly read as having committed the booking. All three modals
+     * in `Pickers.kt` were moved onto `action_done` for it.
+     *
+     * Read from resources rather than typed as a literal, which is the whole reason this comment exists:
+     * the label was hard-coded here as «Сохранить», so when the modals moved, this suite went red and
+     * stayed red — instrumented tests need a device, CI only compiles them, and nothing ran the full suite
+     * again until long afterwards. A test that spells a user-facing string by hand is a test that has to be
+     * remembered; this one cannot drift from the button it presses.
+     */
+    private fun confirm() = rule.onNodeWithText(context.getString(R.string.action_done))
 
     @Test
     fun hoursAndMinutesAreConfirmedAsOneLength() {
@@ -59,7 +78,7 @@ class DurationPickerModalTest {
 
         hours().performTextReplacement("2")
         minutes().performTextReplacement("5")
-        save().performClick()
+        confirm().performClick()
 
         assertEquals(125, confirmed)
     }
@@ -69,7 +88,7 @@ class DurationPickerModalTest {
     fun theLengthItOpensOnIsTheOneItReturns() {
         open(initialMinutes = 50)
 
-        save().performClick()
+        confirm().performClick()
 
         assertEquals(50, confirmed)
     }
@@ -80,7 +99,7 @@ class DurationPickerModalTest {
 
         hours().performTextReplacement("24")
         minutes().performTextReplacement("60")
-        save().performClick()
+        confirm().performClick()
 
         assertEquals("neither keystroke landed, so it is still the hour it opened on", 60, confirmed)
     }
@@ -92,8 +111,8 @@ class DurationPickerModalTest {
         hours().performTextReplacement("0")
         minutes().performTextReplacement("0")
 
-        save().assertIsNotEnabled()
-        save().performClick()
+        confirm().assertIsNotEnabled()
+        confirm().performClick()
         assertNull(confirmed)
     }
 }
