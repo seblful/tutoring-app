@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -126,6 +127,7 @@ fun ScheduleScreen(
     // question with an empty list. A mismatch is `Loading`, which draws the skeleton. See
     // [ScheduleContent.day].
     val dayContent = contentState.day()
+
     val date by viewModel.selectedDate.collectAsState()
     val canAddClass by viewModel.canAddClass.collectAsState()
     // From the view model, so it rolls over at midnight rather than being fixed at composition.
@@ -142,6 +144,25 @@ fun ScheduleScreen(
     // value, so the schedule can never be quietly narrowed with nothing saying so.
     val studentFilter by viewModel.studentFilter.collectAsState()
     val filterableStudents by viewModel.filterableStudents.collectAsState()
+
+    /**
+     * **A change of view is a new page, and a page starts at the top.**
+     *
+     * The three views share one `LazyColumn`, and switching between them changes what its *first item* is:
+     * the month grid and the week strip are `item`s in the list, so «Месяц» prepends one and «День» takes
+     * it away. A `LazyColumn` keeps the item that was on top on top — it re-finds it by key across a
+     * content change, which is what stops a list jumping when a row is inserted above — so the grid was
+     * inserted *above the viewport* and «Месяц» opened on the lesson list, with only the hairline under
+     * the calendar showing where a month had been drawn off-screen.
+     *
+     * The scroll position is therefore per page, and this is the only thing in this screen that says so;
+     * no view of the schedule has ever reset it. Note what does **not** fix it: the day's flow going back
+     * to `Loadable.Loading` on a new key does replace the anchor row with a skeleton, but `stateIn`
+     * conflates, so when the re-query answers inside the frame the composition never sees the `Loading`
+     * at all and the anchor survives. Waiting is about *what is drawn*; this is about *where*.
+     */
+    val listState = rememberLazyListState()
+    LaunchedEffect(viewMode) { listState.scrollToItem(0) }
 
     // The sheet acts on the whole lesson in it, a group's included: its actions are the lesson's
     // time and status, and who is in one is changed on the lesson's own form.
@@ -262,6 +283,7 @@ fun ScheduleScreen(
             // a full day of classes doesn't fit a landscape phone.
             LazyColumn(
                 Modifier.fillMaxSize(),
+                state = listState,
                 // The gutter is the list's, not each row's — see [Spacing]. The calendar items in here
                 // are laid out inside it too, which is why `MonthCalendar` and `WeekStrip` no longer
                 // carry a narrower one of their own.

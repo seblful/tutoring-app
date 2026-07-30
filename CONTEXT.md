@@ -621,6 +621,16 @@ Android, and each was a default rather than a decision.
   and month both show one selected day; week always lists the whole week. Paging only *browses* — it
   never moves the selection. A calendar cell shows **one count per status**. Both markers and lessons
   are queried for the **active view's range only**.
+  - **One view's content is never an answer about another's** (`ScheduleContent.day()`/`.week()`). Switching
+    view re-keys the query and a `StateFlow` holds its previous value meanwhile, so the state is `Ready` —
+    about the view just left. `ScheduleContent` used to default `rows`/`sections`/`summary` on the interface,
+    which let a `Week` answer "this day's lessons" with `emptyList()`: «Неделя» drew «Нет занятий на этой
+    неделе» over a full week. Narrowing makes a mismatch `Loading`, which draws the skeleton.
+  - **A change of view is a new page, and a page starts at the top.** The three views share one
+    `LazyColumn` and the grid and the strip are `item`s in it, so switching prepends or removes the first
+    item — and a `LazyColumn` keeps the item that was on top on top. The month grid was therefore inserted
+    *above the viewport*. `ScheduleScreen` hoists the list state and resets it on `viewMode`; this is the
+    only place in the app that owns a scroll position, and `ViewSwitchScrollTest` pins both halves.
 - **The schedule can be narrowed to one student**, which is how a term of bookings is checked after it is
   made. The way in is a menu in the app bar; the way out is a **chip under the view segments**, and the
   chip is the point — a narrowed calendar and a genuinely quiet week look identical, so the name stays on
