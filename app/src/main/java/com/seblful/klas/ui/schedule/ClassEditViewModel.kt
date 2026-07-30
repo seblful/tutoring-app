@@ -72,7 +72,7 @@ data class SubjectKey(val target: ClassTarget, val studentId: Long?, val groupId
 
 /**
  * The class-booking form. Date and times start **empty** — the user must choose them (the pickers
- * open on today and on the current time, see [ClassEditViewModel.startPickerDefault]).
+ * open on today and on the next whole hour, see [ClassEditViewModel.startPickerDefault]).
  *
  * **A lesson is a start and a length**, which is what the database row is ([TutoringClass.start] and
  * [TutoringClass.durationMinutes]) and what [Scheduling.Slot] is. The end is derived for display
@@ -741,11 +741,26 @@ class ClassEditViewModel @Inject constructor(
 
     /**
      * What the start-time picker opens on: the start already chosen, or — for a lesson whose time is
-     * still empty — the current time, since a booking is normally written down as it is arranged.
-     * [now] is a parameter so the rule can be tested without depending on the wall clock.
+     * still empty — **the next whole hour**. [now] is a parameter so the rule can be tested without
+     * depending on the wall clock.
+     *
+     * It used to offer the current time to the minute, on the reasoning that a booking is written down
+     * as it is arranged. But a lesson is *arranged* at 15:23 and *held* at 16:00: tutoring runs on the
+     * hour, so the minutes were a number the tutor had to spin away every single time, and a start of
+     * 15:23 is one already slightly in the past. Rounding up gives the common case nothing to do.
+     *
+     * Already on the hour stays there — 15:00 opens on 15:00, not 16:00 — because that time is neither
+     * past nor short of the hour. The test is the **minute**, not equality with the truncated time:
+     * seconds are below anything the picker can show, so 15:00:20 is still the 15:00 hour and must not
+     * be pushed an hour on. Late in the evening the next hour wraps to 00:00, which is the hour it is;
+     * the date is a separate field, so nothing is claimed about *which* midnight.
      */
-    fun startPickerDefault(now: LocalTime = LocalTime.now(clock)): LocalTime =
-        currentForm.timeFrom ?: now.truncatedTo(ChronoUnit.MINUTES)
+    fun startPickerDefault(now: LocalTime = LocalTime.now(clock)): LocalTime {
+        val chosen = currentForm.timeFrom
+        if (chosen != null) return chosen
+        val onTheHour = now.truncatedTo(ChronoUnit.HOURS)
+        return if (now.minute == 0) onTheHour else onTheHour.plusHours(1)
+    }
 
     /**
      * What «Другая» opens on: the length already chosen, otherwise the tutor's default lesson — the same

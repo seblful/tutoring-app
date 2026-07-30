@@ -474,16 +474,40 @@ class ClassEditViewModelTest {
     }
 
     @Test
-    fun `the pickers open on the current time and the default length while nothing is chosen`() =
+    fun `the pickers open on the next whole hour and the default length while nothing is chosen`() =
         runTest(mainRule.dispatcher) {
             env.settingsRepo.update { it.copy(defaultLessonMinutes = 90) }
             val vm = vm()
             advanceUntilIdle()
 
-            // A lesson is normally written down as it is being arranged, so an empty form offers the
-            // current time — to the minute — and the tutor's own lesson length.
-            assertEquals(LocalTime.of(14, 37), vm.startPickerDefault(LocalTime.of(14, 37, 42)))
+            // A lesson arranged at 14:37 is held at 15:00 — tutoring runs on the hour, so an empty form
+            // rounds up rather than offering minutes the tutor would only spin away. The length is the
+            // tutor's own.
+            assertEquals(LocalTime.of(15, 0), vm.startPickerDefault(LocalTime.of(14, 37, 42)))
             assertEquals(90, vm.durationPickerDefault())
+        }
+
+    @Test
+    fun `a time already on the hour is the hour it opens on`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        advanceUntilIdle()
+
+        // Nothing to round: 15:00 is neither in the past nor short of the hour, so it must not be
+        // pushed to 16:00.
+        assertEquals(LocalTime.of(15, 0), vm.startPickerDefault(LocalTime.of(15, 0)))
+        // Seconds are not minutes, and are below what the picker can even show — 15:00:20 is still
+        // the 15:00 hour, not a reason to offer 16:00.
+        assertEquals(LocalTime.of(15, 0), vm.startPickerDefault(LocalTime.of(15, 0, 20)))
+    }
+
+    @Test
+    fun `the last hour of the day rounds up to midnight rather than overflowing`() =
+        runTest(mainRule.dispatcher) {
+            val vm = vm()
+            advanceUntilIdle()
+
+            // The date is a separate field, so this is "the next hour", not a claim about which day.
+            assertEquals(LocalTime.MIDNIGHT, vm.startPickerDefault(LocalTime.of(23, 40)))
         }
 
     @Test
