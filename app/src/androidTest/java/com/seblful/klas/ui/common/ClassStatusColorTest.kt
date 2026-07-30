@@ -5,6 +5,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.ui.theme.KlasTheme
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Rule
@@ -22,9 +24,13 @@ import org.junit.Test
  * Resolved inside [KlasTheme], since these are theme slots rather than fixed values: the assertion is
  * about which slot each status draws from, which is the whole of the decision.
  */
+@HiltAndroidTest
 class LessonStatusColorTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val hilt = HiltAndroidRule(this)
+
+    @get:Rule(order = 1)
     val composeRule = createComposeRule()
 
     private val statuses = mutableMapOf<LessonStatus, Color>()

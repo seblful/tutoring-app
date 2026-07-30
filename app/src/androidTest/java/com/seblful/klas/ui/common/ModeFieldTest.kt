@@ -8,6 +8,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.ui.theme.KlasTheme
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -20,10 +22,17 @@ import org.junit.Test
  * tapped — it used to be a label with two chips, which on the booking form was hidden behind a
  * [PickerField] until tapped, so one input had two appearances — the alternative is offered only once the
  * field is opened, and choosing it both reports the mode and closes the menu.
+ *
+ * `@HiltAndroidTest` for the reason `RevealedFocusTest` explains: it keeps an app component waking up
+ * in the instrumentation process from killing the run.
  */
+@HiltAndroidTest
 class ModeFieldTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val hilt = HiltAndroidRule(this)
+
+    @get:Rule(order = 1)
     val rule = createComposeRule()
 
     /** The mode last chosen, or null while nothing has been chosen. */

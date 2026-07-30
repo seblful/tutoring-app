@@ -1,6 +1,9 @@
 package com.seblful.klas
 
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.temporal.WeekFields
@@ -28,7 +31,11 @@ import java.util.Locale
  * If this test ever fails, the platform has started honouring `fw` — at which point the keyword can be
  * passed through [inRussian] to make both calendars agree, and this file has done its job.
  */
+@HiltAndroidTest
 class WeekStartKeywordTest {
+
+    @get:Rule
+    val hilt = HiltAndroidRule(this)
 
     private fun weekStartOf(tag: String): DayOfWeek =
         WeekFields.of(Locale.forLanguageTag(tag)).firstDayOfWeek

@@ -7,6 +7,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import com.seblful.klas.ui.theme.KlasTheme
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -23,9 +25,13 @@ import org.junit.Test
  * The two fields are addressed by position rather than by their labels — a text field merges its label
  * into its own semantics, so matching «Часы» would match the field *and* be the thing under test.
  */
+@HiltAndroidTest
 class DurationPickerModalTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val hilt = HiltAndroidRule(this)
+
+    @get:Rule(order = 1)
     val rule = createComposeRule()
 
     /** The confirmed length, or null while nothing has been confirmed. */

@@ -15,6 +15,8 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.ui.theme.KlasTheme
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -33,9 +35,13 @@ import kotlin.math.abs
  * read out of **one** capture — a screenshot costs a round trip to the host window, and doing it twice
  * per test made this flaky when the activity went away between the two.
  */
+@HiltAndroidTest
 class LessonKindIconTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val hilt = HiltAndroidRule(this)
+
+    @get:Rule(order = 1)
     val composeRule = createComposeRule()
 
     /** What was actually painted for one kind: the glyph's bounding box, and the colour of its body. */

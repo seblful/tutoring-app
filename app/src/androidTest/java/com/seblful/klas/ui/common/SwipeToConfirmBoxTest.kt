@@ -19,6 +19,8 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.ui.theme.KlasTheme
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -39,9 +41,13 @@ import org.junit.Test
  * injected in steps with the composition let settle in between, so «at the mark» is a moment the assertions
  * can stand in rather than a frame they race.
  */
+@HiltAndroidTest
 class SwipeToConfirmBoxTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val hilt = HiltAndroidRule(this)
+
+    @get:Rule(order = 1)
     val rule = createComposeRule()
 
     private class Recorder : HapticFeedback {

@@ -1,7 +1,10 @@
 package com.seblful.klas
 
 import androidx.test.platform.app.InstrumentationRegistry
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
 
 /**
@@ -15,7 +18,11 @@ import org.junit.Test
  * So these assert the whole rule set through the resources, not one form: the boundaries are what break.
  * Read through [inRussian], which is where the fix lives.
  */
+@HiltAndroidTest
 class RussianPluralsTest {
+
+    @get:Rule
+    val hilt = HiltAndroidRule(this)
 
     private val resources = InstrumentationRegistry.getInstrumentation().targetContext.inRussian().resources
 

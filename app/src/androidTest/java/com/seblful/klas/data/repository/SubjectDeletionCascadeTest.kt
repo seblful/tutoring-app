@@ -27,11 +27,14 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Subject
 import kotlinx.coroutines.test.runTest
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.time.Instant
@@ -46,7 +49,11 @@ import java.time.Instant
  * takes only its rate log with it. (Needs a device/emulator for Room.)
  */
 @RunWith(AndroidJUnit4::class)
+@HiltAndroidTest
 class SubjectDeletionCascadeTest {
+
+    @get:Rule
+    val hilt = HiltAndroidRule(this)
 
     private lateinit var db: AppDatabase
     private lateinit var subjects: SubjectRepository

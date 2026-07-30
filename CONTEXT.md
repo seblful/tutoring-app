@@ -672,6 +672,15 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
   it caught the swipe deciding against a stale offset, so a slide home still confirmed). A debug-only
   manifest entry lets the test host show over the keyguard, so they run against a locked phone (there is
   no emulator).
+- **Every instrumented class is `@HiltAndroidTest` with a `HiltAndroidRule`, and the run happens on
+  `KlasTestApp`, not Hilt's stock test application.** Not because the tests inject anything — most do
+  not — but because the app's own components keep waking up *inside* the instrumentation process:
+  `ReminderReceiver` when a real lesson's alarm comes due, `BootReceiver` after the run's own install,
+  `MainActivity` when the phone's owner opens the app mid-run, and WorkManager's `SystemJobService` when
+  the periodic maintenance job fires. Each needs something the stock test application cannot give —
+  a Hilt component, or a WorkManager `Configuration` — and the process dies without it, so the *whole
+  run* reports **zero tests** rather than a failure. It looked like flakiness in whichever test was
+  unlucky. The argument lives in `androidTest/KlasTestApp.kt`; the rules are what make it hold.
 - **Known gap: there is no instrumented Room *migration* test yet.** `room-testing` and the exported
   schema JSON are wired up and `MigrationChainTest` guards the chain's *existence*, but nothing yet
   runs a real v1→vN upgrade against `MigrationTestHelper`. This has to exist before the first schema
