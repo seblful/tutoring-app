@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -54,6 +55,7 @@ import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.format.formatDate
@@ -309,6 +311,10 @@ fun ClassEditScreen(
                 // until tapped — but as a *field*, not as a line of text. It used to render as a bare
                 // clickable `Text` directly beneath five bordered fields, which is the same input
                 // drawn three different ways on one form: an ordinary field, a picker, and a label.
+                //
+                // Revealing it also focuses it (`rememberRevealedFocus`), because the tap that asked
+                // for a price field was asking to type a price: it used to take one tap to unfold the
+                // field and a second to put the cursor in it.
                 OutlinedTextField(
                     value = form.price.text,
                     onValueChange = { text ->
@@ -318,7 +324,7 @@ fun ClassEditScreen(
                     isError = form.price.isError,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().focusRequester(rememberRevealedFocus()),
                 )
             } else {
                 PickerField(

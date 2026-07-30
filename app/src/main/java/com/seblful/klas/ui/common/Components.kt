@@ -673,6 +673,26 @@ fun PickerField(
 /** Matches an `OutlinedTextField`'s height, so a row mixing the two lines up. */
 private val PickerFieldHeight = 56.dp
 
+/**
+ * The focus a **reveal owes the tap that caused it**: an input that appears because something was
+ * tapped takes the caret and the keyboard as it arrives, so one tap does what one tap looked like it
+ * would.
+ *
+ * Attach the returned requester with `Modifier.focusRequester(...)` to the field being revealed. The
+ * focus is asked for on first composition, which for a field inside an `if` *is* the moment it appears.
+ *
+ * Shared because this is the same defect twice over. Search had it fixed inline — tapping the icon
+ * offered a box that then had to be tapped again — and the booking form's price still had it: the first
+ * tap swapped the [PickerField] for a text field and the second one put the cursor in it, for an input
+ * whose whole purpose is to be typed into.
+ */
+@Composable
+fun rememberRevealedFocus(): FocusRequester {
+    val requester = remember { FocusRequester() }
+    LaunchedEffect(Unit) { requester.requestFocus() }
+    return requester
+}
+
 /** Material's standard opacity for disabled content. */
 private const val DISABLED_ALPHA = 0.38f
 
@@ -799,9 +819,8 @@ fun SearchField(
     placeholder: String,
     modifier: Modifier = Modifier,
 ) {
-    val focusRequester = remember { FocusRequester() }
     // Opening search and then having to tap the box would make the icon a two-tap affordance.
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    val focusRequester = rememberRevealedFocus()
     TextField(
         value = query,
         onValueChange = onQueryChange,
