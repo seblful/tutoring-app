@@ -4,8 +4,6 @@ import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
@@ -13,80 +11,40 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 
 /**
- * The two kinds of destination this app has, and the motion each one is entered with.
+ * **Every destination arrives the same way: a short cross-fade.** One rule, one duration, no direction.
  *
- * Every screen used to arrive with `NavHost`'s default cross-fade, which says nothing about *where* it
- * came from. That matters most where the answer differs: opening a student's card is a step deeper into
- * the app and swiping back should undo it, while moving from «Люди» to «Отчёты» is a step sideways
- * between peers. One animation for both left the app with no way to tell a push from a tab switch, which
- * is the question "did that open or replace what I was looking at?" — and it is also what the
- * predictive-back gesture needs an answer to in order to preview anything (see the manifest's
- * `enableOnBackInvokedCallback`).
+ * There used to be two builders. A *tab* cross-faded between peers and a *pushed* screen slid a quarter
+ * of the width, so that back visibly reversed the way in — the argument being that the app should say
+ * whether a screen opened on top of what you were looking at or replaced it.
  *
- * Written as two builder functions rather than as transition arguments spelled at each `composable`,
- * because there are four of those arguments and sixteen screens: the version where each screen states
- * its own motion is the version where the fifth screen states it differently.
- */
-
-/**
- * A **tab**: one of the four top-level peers. Cross-fades, with no direction, because there is no
- * hierarchy between them to describe — a slide would assert an order the bottom bar does not have.
- */
-fun NavGraphBuilder.tab(
-    route: String,
-    content: @Composable AnimatedContentScope.(NavBackStackEntry) -> Unit,
-) = composable(
-    route = route,
-    enterTransition = { fadeIn(tween(TabMillis)) },
-    exitTransition = { fadeOut(tween(TabMillis)) },
-    popEnterTransition = { fadeIn(tween(TabMillis)) },
-    popExitTransition = { fadeOut(tween(TabMillis)) },
-    content = content,
-)
-
-/**
- * A **pushed** screen: a card, a form, a settings page. Slides in from the trailing edge and leaves back
- * towards it, so the gesture that dismisses it visibly reverses the gesture that opened it.
+ * It was not worth what it cost. The slide had to be short to avoid reading as a page turn, a short slide
+ * needs a fade or an opaque screen appears from nowhere already covering most of the display, and a fade
+ * over the travel means neither screen is opaque while both are on screen — so the compositor drew one
+ * through the other. Tapping «+» on the schedule printed «Расписание» and «Новое занятие» over each
+ * other for a quarter of a second, with the day's lessons showing through the form's fields. Tuning the
+ * two fades against each other made that shorter without making it a different kind of thing, and the
+ * whole apparatus existed to convey one bit — deeper, or sideways — that the app bar's back arrow already
+ * states in words, permanently, on every screen that has one.
  *
- * The travel is a fraction of the width rather than the whole of it ([SlideFraction]): a full-width
- * slide reads as a page turn and costs the eye the whole distance, while a short one plus a fade lands
- * as depth. The outgoing screen underneath moves the other way by the same fraction, which is what makes
- * the two look like a stack instead of two independent animations.
+ * So the distinction is gone rather than tuned. Motion here says only "the screen changed", which is the
+ * one thing it is reliably good at saying.
+ *
+ * **Predictive back still works** — the manifest keeps `enableOnBackInvokedCallback` — it simply previews
+ * a fade rather than a slide.
  */
-fun NavGraphBuilder.pushed(
+fun NavGraphBuilder.screen(
     route: String,
     arguments: List<NamedNavArgument> = emptyList(),
     content: @Composable AnimatedContentScope.(NavBackStackEntry) -> Unit,
 ) = composable(
     route = route,
     arguments = arguments,
-    enterTransition = {
-        slideInHorizontally(tween(EnterMillis)) { width -> width / SlideFraction } +
-            fadeIn(tween(EnterMillis))
-    },
-    exitTransition = {
-        slideOutHorizontally(tween(EnterMillis)) { width -> -width / SlideFraction } +
-            fadeOut(tween(ExitMillis))
-    },
-    popEnterTransition = {
-        slideInHorizontally(tween(EnterMillis)) { width -> -width / SlideFraction } +
-            fadeIn(tween(EnterMillis))
-    },
-    popExitTransition = {
-        slideOutHorizontally(tween(EnterMillis)) { width -> width / SlideFraction } +
-            fadeOut(tween(ExitMillis))
-    },
+    enterTransition = { fadeIn(tween(FadeMillis)) },
+    exitTransition = { fadeOut(tween(FadeMillis)) },
+    popEnterTransition = { fadeIn(tween(FadeMillis)) },
+    popExitTransition = { fadeOut(tween(FadeMillis)) },
     content = content,
 )
 
-/** Long enough to be read as a direction, short enough not to be waited on. */
-private const val EnterMillis = 260
-
-/** The outgoing screen leaves faster than the incoming one arrives, so the new one leads. */
-private const val ExitMillis = 200
-
-/** A peer replacing a peer: no travel, so only the crossfade's own length. */
-private const val TabMillis = 180
-
-/** A quarter of the width — enough to carry direction, not far enough to read as a page turn. */
-private const val SlideFraction = 4
+/** Long enough to register as a change, short enough that nothing is waited on. */
+private const val FadeMillis = 180

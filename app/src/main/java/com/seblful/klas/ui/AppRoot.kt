@@ -44,8 +44,7 @@ import com.seblful.klas.ui.more.SettingsScreen
 import com.seblful.klas.ui.navigation.Routes
 import com.seblful.klas.ui.navigation.TopDestination
 import com.seblful.klas.ui.navigation.klasTabs
-import com.seblful.klas.ui.navigation.pushed
-import com.seblful.klas.ui.navigation.tab
+import com.seblful.klas.ui.navigation.screen
 import com.seblful.klas.ui.onboarding.OnboardingScreen
 import com.seblful.klas.ui.people.PeopleScreen
 import com.seblful.klas.ui.reports.ReportsScreen
@@ -115,21 +114,36 @@ private fun MainApp() {
     val currentRoute = backStackEntry?.destination?.route
     val onTab = currentRoute in TopDestination.routes
 
+    // **Which tab is marked is not "which route is showing".** Asked the second way, the answer while
+    // anything is pushed is *none of them* — so the instant a form opened, every glyph in the bar fell
+    // back to its outline and the tinted pill went out, and since the bar now stays for the length of
+    // the change, that is a bar going visibly dead on its way off screen.
+    //
+    // A pushed screen sits on top of the tab it was opened from, so the back stack already holds the
+    // answer: the deepest entry that is a tab is the one that owns whatever is above it. Read rather
+    // than remembered, which is what keeps it right through a process death, a deep link and a tray tap
+    // — a remembered "last tab seen" would be a guess restored from nothing on any arrival that did not
+    // start at a tab.
+    val backStack by navController.currentBackStack.collectAsState()
+    val selectedTabRoute = backStack
+        .lastOrNull { it.destination.route in TopDestination.routes }
+        ?.destination?.route
+
     OpensTheLessonAReminderNames(navController)
 
     // **The chrome leaves with the screen, not ahead of it.** Whether the tabs apply is settled the
-    // instant `navigate` is called, but the screen they belong to takes 260ms to go
+    // instant `navigate` is called, but the screen they belong to takes the length of a fade to go
     // (`ui/navigation/Transitions.kt`). Deciding this by swapping `layoutType` to `None` cut the bar
-    // away on the transition's *first* frame, so for a quarter of a second the schedule — still fading
-    // out, still the only thing on screen — was drawn reflowed into the space the bar had just left,
-    // and only then did the form arrive. What the tutor watched disappear was part of the screen they
-    // were still looking at.
+    // away on the transition's *first* frame, so the schedule — still fading out, still the only thing
+    // on screen — was drawn reflowed into the space the bar had just left, and only then did the form
+    // arrive. What the tutor watched disappear was part of the screen they were still looking at, which
+    // is the whole of why it read as a glitch rather than as the chrome going away.
     //
-    // `hide()` is a suspending transition, so the bar holds its place for the length of the push and
-    // goes once the form has landed: the removal now happens under a screen that has arrived rather
-    // than beneath one that is leaving. Measured on a 120Hz device, the bar is up for the whole ~300ms
-    // and then goes in one step — it does **not** slide out, so this is a matter of *when* rather than
-    // of added motion. Worth knowing before anyone tries to make it prettier.
+    // `hide()` is a suspending transition, so the bar holds its place for the length of the change and
+    // goes once the new screen has landed: the removal now happens under a screen that has arrived
+    // rather than beneath one that is leaving. Measured on a 120Hz device it does **not** slide out —
+    // it holds and then goes in one step — so this is a matter of *when* rather than of added motion.
+    // Worth knowing before anyone tries to make it prettier.
     //
     // It also puts `layoutType` back to being *only* about the window's width — bar on a phone, rail
     // once there is room — which is the question it was always meant to answer.
@@ -138,7 +152,7 @@ private fun MainApp() {
 
     NavigationSuiteScaffold(
         navigationSuiteItems = {
-            klasTabs(tabs = TopDestination.entries, currentRoute = currentRoute) { dest ->
+            klasTabs(tabs = TopDestination.entries, selectedRoute = selectedTabRoute) { dest ->
                 navController.navigate(dest.route) {
                     popUpTo(navController.graph.startDestinationId) { saveState = true }
                     launchSingleTop = true
@@ -157,7 +171,7 @@ private fun MainApp() {
             startDestination = Routes.SCHEDULE,
             modifier = Modifier.fillMaxSize(),
         ) {
-            tab(Routes.SCHEDULE) {
+            screen(Routes.SCHEDULE) {
                 ScheduleScreen(
                     onAddClass = { navController.navigate(Routes.classEdit(0)) },
                     onEditClass = { navController.navigate(Routes.classEdit(it)) },
@@ -166,10 +180,10 @@ private fun MainApp() {
                     onAddStudent = { navController.navigate(Routes.STUDENT_ADD) },
                 )
             }
-            tab(Routes.REPORTS) {
+            screen(Routes.REPORTS) {
                 ReportsScreen(onStudentClick = { navController.navigate(Routes.studentDetail(it)) })
             }
-            tab(Routes.MORE) {
+            screen(Routes.MORE) {
                 MoreScreen(
                     onSubjects = { navController.navigate(Routes.SUBJECTS) },
                     onBackup = { navController.navigate(Routes.BACKUP) },
@@ -177,7 +191,7 @@ private fun MainApp() {
                     onAbout = { navController.navigate(Routes.ABOUT) },
                 )
             }
-            tab(Routes.PEOPLE) {
+            screen(Routes.PEOPLE) {
                 PeopleScreen(
                     onStudentClick = { navController.navigate(Routes.studentDetail(it)) },
                     onAddStudent = { navController.navigate(Routes.STUDENT_ADD) },
@@ -186,10 +200,10 @@ private fun MainApp() {
                 )
             }
 
-            pushed(Routes.STUDENT_ADD) {
+            screen(Routes.STUDENT_ADD) {
                 StudentFormScreen(onBack = { navController.popBackStack() })
             }
-            pushed(
+            screen(
                 Routes.STUDENT_DETAIL,
                 arguments = listOf(navArgument("id") { type = NavType.LongType }),
             ) {
@@ -199,10 +213,10 @@ private fun MainApp() {
             }
 
             // Declared before the `group/{id}` card so the literal route can never be read as an id.
-            pushed(Routes.GROUP_ADD) {
+            screen(Routes.GROUP_ADD) {
                 GroupFormScreen(onBack = { navController.popBackStack() })
             }
-            pushed(
+            screen(
                 Routes.GROUP_DETAIL,
                 arguments = listOf(navArgument("id") { type = NavType.LongType }),
             ) { entry ->
@@ -215,20 +229,20 @@ private fun MainApp() {
                 )
             }
             // Adding and editing are the same form; it tells them apart by the id it is given.
-            pushed(
+            screen(
                 Routes.GROUP_EDIT,
                 arguments = listOf(navArgument("id") { type = NavType.LongType }),
             ) {
                 GroupFormScreen(onBack = { navController.popBackStack() })
             }
 
-            pushed(Routes.SUBJECTS) {
+            screen(Routes.SUBJECTS) {
                 SubjectsScreen(onBack = { navController.popBackStack() })
             }
-            pushed(Routes.BACKUP) {
+            screen(Routes.BACKUP) {
                 BackupScreen(onBack = { navController.popBackStack() })
             }
-            pushed(Routes.SETTINGS) {
+            screen(Routes.SETTINGS) {
                 SettingsScreen(
                     onBack = { navController.popBackStack() },
                     // Diagnostics is developer furniture and used to sit as a peer of «Настройки» in
@@ -236,10 +250,10 @@ private fun MainApp() {
                     onDiagnostics = { navController.navigate(Routes.DIAGNOSTICS) },
                 )
             }
-            pushed(Routes.DIAGNOSTICS) {
+            screen(Routes.DIAGNOSTICS) {
                 DiagnosticsScreen(onBack = { navController.popBackStack() })
             }
-            pushed(Routes.ABOUT) {
+            screen(Routes.ABOUT) {
                 AboutScreen(
                     onBack = { navController.popBackStack() },
                     // About is where the app makes the "your data is on this device and nowhere else"
@@ -249,7 +263,7 @@ private fun MainApp() {
                 )
             }
 
-            pushed(
+            screen(
                 Routes.CLASS_EDIT,
                 arguments = listOf(
                     navArgument("id") { type = NavType.LongType },

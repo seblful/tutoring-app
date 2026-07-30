@@ -577,10 +577,30 @@ Android, and each was a default rather than a decision.
   tonal change that separates bar from page, and `LargeTopAppBar` +
   `exitUntilCollapsedScrollBehavior` on the two detail cards, where the title *is* the subject of the
   screen. Repeated per screen for now; this is the strongest argument for a shared screen shell.
-- **Motion says which direction the app moved** (`ui/navigation/Transitions.kt`): `tab` cross-fades
-  between peers, `pushed` slides a quarter-width so back visibly reverses the way in. Two builder
-  functions rather than four transition arguments per `composable`, because there are sixteen screens.
-  Predictive back is opted into (`enableOnBackInvokedCallback`), which needs those directions to preview.
+- **Every destination arrives the same way — a short cross-fade** (`ui/navigation/Transitions.kt`, one
+  `screen` builder rather than four transition arguments per `composable`, because there are sixteen of
+  them). It used to say *direction*: `tab` cross-faded between peers while `pushed` slid a quarter-width
+  so back reversed the way in. That was not worth what it cost. The slide had to be short to avoid
+  reading as a page turn; a short slide needs a fade or the incoming screen appears from nowhere already
+  covering most of the display; and a fade across the travel means **neither screen is opaque while both
+  are on screen**, so the compositor drew one through the other — «Расписание» and «Новое занятие»
+  printed over each other for a quarter of a second, the day's lessons showing through the form's fields.
+  The apparatus existed to convey one bit (deeper, or sideways) that the app bar's back arrow already
+  states in words, permanently. Predictive back is still opted into
+  (`enableOnBackInvokedCallback`); it previews a fade.
+- **The navigation chrome leaves with the screen, not ahead of it** (`AppRoot`). Whether the tabs apply
+  is settled the instant `navigate` is called, but the screen they belong to takes a fade to go, so
+  switching `layoutType` to `None` cut the bar away on the transition's first frame and the outgoing
+  screen — still the only thing visible — reflowed into the space it left. The suite's own
+  `NavigationSuiteScaffoldState.hide()` holds it for the length of the change instead, so the removal
+  falls under a screen that has arrived. It does not slide; this is *when*, not added motion.
+- **Which tab is *marked* is not which route is showing.** `klasTabs` takes a `selectedRoute`, read off
+  the **back stack** (`AppRoot`): a pushed screen sits on top of the tab it was opened from, so the
+  deepest entry that is a tab owns everything above it. Comparing against the *current* route answered
+  "none of them" the moment anything was pushed — every glyph fell to its outline and the pill went out
+  — which was invisible only while the bar was being deleted on the transition's first frame, and became
+  a bar going dead on screen as soon as it stayed. Read rather than remembered, so process death, a deep
+  link and a tray tap straight into a lesson all still name the right tab.
 
 ### UI — navigation and lists
 
