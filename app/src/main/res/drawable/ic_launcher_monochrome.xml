@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The themed-icon layer: the same "K" wordmark as `ic_launcher_foreground`, drawn as one solid
+  silhouette.
+
+  Android's themed icons (13+) take this drawable's **alpha only** and fill it with one colour from the
+  wallpaper's scheme, over a tonal background it generates. Both layers used to be the same file, which
+  is the reason for this one — not because a tint flattens the artwork's colours, since the foreground
+  is a single flat #FFFFFF and comes through a tint unchanged. Two narrower reasons:
+
+  1. **The page fan does not survive the size a launcher draws.** The brand foreground builds the book's
+     edge out of three hairline slivers of negative space, about half a unit wide in a 108-unit
+     viewport. At the 48dp a home screen actually renders, that is a fifth of a pixel: the strokes stop
+     being lines and become a smear of half-lit grey along the mark's lower arm. Here that whole
+     passage is one straight edge, so the arm is a solid wedge and the mark stays crisp all the way
+     down to 36dp. The small page curl above the stem is kept — it is an order of magnitude heavier
+     than the fan and still reads.
+  2. **The two layers want to be able to differ.** While `<monochrome>` pointed at the colour
+     foreground, any later change to the brand art — a gradient, a second tone, a highlight — would
+     have silently become a monochrome bug, because *that* is the case where a flat tint destroys
+     information. Splitting them now means the brand icon can be drawn freely and this one stays a
+     silhouette by construction.
+
+  The geometry is the foreground's own, so the two cannot drift apart in size or position: same 108dp
+  viewport, same path, and the same outer radius of 30.75 units from the centre — inside the 33-unit
+  (66dp) safe circle every adaptive layer has to respect, with room for Samsung's zoom.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 48.7792 29.0663 L 48.7792 30.1377 C 48.7792 30.2237 47.2332 30.2284 47.0703 30.2447 C 44.859 30.4657 37.2604 31.6802 36.481 34.0649 C 36.2833 34.6686 36.6509 35.9087 37.3279 35.8598 C 37.4524 35.8505 38.9309 34.9525 39.2426 34.8094 C 43.306 32.9388 48.3488 31.957 52.7122 33.2808 L 52.6878 44.1889 C 55.2819 41.4773 57.4631 38.141 60.0584 35.4597 C 64.2473 31.1323 71.0292 32.0164 76.3803 33.2878 L 61.7474 52.618 C 56.2091 51.008 51.4862 54.3374 48.1499 58.3972 C 53.3486 54.2012 60.3375 51.4734 65.4769 57.3921 L 76.884 72.5438 L 75.1833 76.2942 C 71.8494 76.2023 68.32 76.5222 65.0058 76.328 C 62.4373 76.1768 60.7982 75.6254 59.1917 73.5722 C 56.4615 70.0823 52.7297 60.5911 48.3383 59.2836 C 47.8974 59.1522 47.0808 59.0731 47.0808 59.785 L 47.0808 76.2314 C 47.0808 76.2384 46.9924 76.3257 46.9866 76.3257 L 36.3379 76.3257 C 35.6702 76.3257 34.6081 75.2543 34.6663 74.5319 L 34.6046 34.9548 C 34.7477 32.5561 37.7944 31.3312 39.7405 30.6414 C 42.6162 29.6212 45.7302 29.1558 48.7839 29.0674 Z" />
+</vector>

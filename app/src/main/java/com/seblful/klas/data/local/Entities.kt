@@ -293,12 +293,13 @@ data class SettingsEntity(
      * on the tutor's behalf. Switching calendar sync on puts the lessons in *their* calendar and
      * nothing more; reaching the students is a separate, deliberate opt-in via Settings.
      *
-     * The declared `defaultValue` stays **1** on purpose, in step with the v2 → v3 migration's
-     * `DEFAULT 1` (they must match, or Room's schema validation fails). That pair governs only the
-     * upgrade backfill, where "on" is what calendar sync already did before this became its own
-     * switch — backfilling 0 would silently withdraw invitations those students already have. A
-     * fresh install never sees it: rows are always written whole from this class, so it is this
-     * Kotlin default that a new tutor starts on.
+     * The declared `defaultValue` stays **1** on purpose while the Kotlin default is `false`, and the
+     * disagreement is the point. It is part of the v1 baseline schema rather than of any migration, so
+     * what it governs is a table *created* with it: "on" is what calendar sync already did before this
+     * became its own switch, and a column that defaulted to 0 would silently withdraw invitations those
+     * students already have. A fresh install never sees it — rows are always written whole from this
+     * class, so it is the Kotlin default that a new tutor starts on. Where a column added by a migration
+     * wants the two to agree instead, see [dynamicColorEnabled].
      */
     @ColumnInfo(defaultValue = "1")
     val emailInvitesEnabled: Boolean = false,
@@ -313,6 +314,19 @@ data class SettingsEntity(
     val autoCompleteEnabled: Boolean = false,
     /** "SYSTEM" | "LIGHT" | "DARK". */
     val themeMode: String = "SYSTEM",
+    /**
+     * Whether the colour scheme is derived from the wallpaper (Material You) instead of the app's own
+     * indigo and teal. **Off by default**, which is the decision rather than the absence of one: the
+     * palette is chosen, the status colours are tuned against it, and a tutor who never opens Settings
+     * should get the app as it was designed. Android 12+ only, and Settings hides the row below that.
+     *
+     * The `defaultValue` matches the v3 → v4 migration's `DEFAULT 0` — they have to, or Room's schema
+     * validation fails after the upgrade — and here the two agree on purpose rather than by coincidence
+     * (contrast [emailInvitesEnabled], where they deliberately differ): an existing install has been
+     * looking at the curated palette all along, so "off" is both the honest backfill and the right start.
+     */
+    @ColumnInfo(defaultValue = "0")
+    val dynamicColorEnabled: Boolean = false,
     /** Pre-fills the end time when booking a class. */
     val defaultLessonMinutes: Int = 60,
     /**

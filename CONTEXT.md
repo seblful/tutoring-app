@@ -47,7 +47,8 @@ flowchart TB
 | `diagnostics/` | `CrashLogger` over `CrashLogStore`/`DeviceInfo` ports; the pure half is `domain/Diagnostics`. Viewed and exported from `ui/diagnostics`. |
 | `storage/` | `DocumentStore` port + SAF adapter over an opaque `DocumentRef`, and `DocumentSharing` + its `ACTION_SEND`/`FileProvider` adapter — so no view model touches a `Uri`, an `Intent` or a `Context`. Two ports because the acts differ: one writes where the tutor pointed, the other hands a file to another app. |
 | `format/` | `ru`-locale date/time/money formatting (with `LocalDate`/`LocalTime` faces, so no caller restates the zone), `MoneyField` (what a money input is — each `Kind` carries its own zero rule), `NameOrder` (the one definition of how names are listed). |
-| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/` (routes, tab items, screen transitions), shared `common/` atoms — the screen shell (`KlasScreen`), the spacing scale (`Spacing`), `Loadable`/`Skeleton` (the loaded-yet distinction), `SegmentedChoice`, `HeroCard`, `PinnedHeader` (and `StickyTabRow` over it) — plus `onboarding/` and `RootViewModel` gating onboarding vs. the tabs. **Settings and About live in `ui/more/`.** |
+| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/` (routes, tab items, screen transitions), shared `common/` atoms — the screen shell (`KlasScreen`), the spacing scale (`Spacing`), `Loadable`/`Skeleton` (the loaded-yet distinction), `SegmentedChoice`, `HeroCard`, `PinnedHeader` (and `StickyTabRow` over it) — plus `onboarding/` and `RootViewModel` gating onboarding vs. the tabs. **Settings and About live in `ui/more/`.** The theme (`ui/theme/`) owns the two colour schemes, `KlasColors`, the type scale and `dynamicColorAvailable`. |
+| `preview/` (debug only) | `@Preview`s of the shared `ui/common/` vocabulary and the `@KlasPreview` multipreview that renders each in light, dark and 1.5× text. In `src/debug/` so neither the previews nor their sample data reach a release APK. |
 | `di/` | The database module, the `@DebugBuild` flag, `@ApplicationScope`/`@Computation` (`CoroutinesModule`) and the `Clock` (`TimeModule`) — which every defaulted `now` in the engine reads (`Maintenance`, `DueReminder`, `RateHistoryRepository`, `CrashLogger`), so the tested path is the shipped one. Other Hilt modules live beside their adapters. |
 
 ### Ownership (one invariant, one place)
@@ -306,7 +307,7 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   nothing else, is `exported="false"`, and hands out only the per-file read grant that travels with an
   `ACTION_SEND` intent and dies with it. A provider pointing at `.` would have made `klas.db` requestable
   by authority alone.
-- **The database is at v3, and migrates.** The rename changed both the application id and the file name
+- **The database is at v4, and migrates.** The rename changed both the application id and the file name
   (`tutoring.db` → `klas.db`), and Android never upgrades one application id into another, so no device
   can hold a pre-v1 `klas.db` — v1 shipped with no migrations for that reason. **v2 splits `classes` into
   `lessons` + `attendance` and migrates anyway** (`MIGRATION_1_2`), because "no released baseline" is not
@@ -315,7 +316,9 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   survives — including that a taught lesson whose absentee was cancelled becomes a taught lesson with an
   absentee. **v3 adds one nullable column** (`settings.lastExportMillis`, `MIGRATION_2_3`); null is what
   an upgrade lands on and is the honest answer — the app was not recording it, so it cannot say when that
-  tutor last made a copy.
+  tutor last made a copy. **v4 adds one boolean** (`settings.dynamicColorEnabled`, `MIGRATION_3_4`),
+  `NOT NULL DEFAULT 0` — an existing install has been looking at the app's own palette all along, so
+  backfilling "off" changes nothing about how their phone looks the moment they upgrade.
 - **The destructive fallback is debug-only.** A release build **refuses to open** a database it cannot
   migrate: a crash leaves every row on disk for the next build, and is recoverable in the way a wipe
   is not.
@@ -740,10 +743,37 @@ impossible**, and three of them carry a tripwire.
   `surfaceContainerLow` (`ContentCard`), the *section* holding items on `surfaceContainer`
   (`SectionCard`, `StatRow`, a report card, a pinned `StickyTabRow`). Which of the two a list uses is
   decided by **nesting depth** — see *one shell, one scale, one control per question* above.
-- **The type scale states every style**, including the ones matching the default. `AppFontFamily` is
-  one constant, so a Cyrillic-first face is a one-line swap.
+- **The app is set in Golos Text** (`res/font/`, `ui/theme/Type.kt`), a Cyrillic-first text face — the
+  right way round for a UI pinned to Russian, where the Latin is the borrowed alphabet. The type scale
+  states every style, including the ones matching the default, and names the family through one
+  `AppFontFamily` constant so the styles cannot disagree. Shipped as **four static instances** cut from
+  the upstream variable font, because Android honours a `wght` axis only from API 26 and `minSdk` is 24 —
+  a variable font would have flattened the whole scale to Regular on 24 and 25. Not subsetted: the face
+  is 566 codepoints to begin with, and trimming it risks tofu on the Belarusian «і», «ў» or Ukrainian «ї»
+  a Minsk tutor's roster can hold. The OFL notice ships in `res/raw/` and is readable from **About**.
+- **Dynamic colour is offered, off by default** (`settings.dynamicColorEnabled`, Android 12+ only, and
+  Settings hides the row below that). The curated indigo/teal is the app's identity and what a tutor who
+  never opens Settings should get; wanting the wallpaper's colours instead is a real preference and now a
+  stated one rather than an absence. `dynamicColorAvailable` (`ui/theme/Theme.kt`) is the single place the
+  OS version is checked, so the switch and the theme cannot disagree about when it applies. `KlasColors`
+  is deliberately **unaffected**: green is what "this lesson happened" means, not a matter of taste.
 - **Avatar colours key off the student's id, not their name** (`domain/AvatarPalette`), so a rename
   doesn't move them; `AvatarStack` draws a roster as overlapping monograms.
+- **A monogram is a picture, and says nothing.** `Avatar` clears its own semantics — every caller puts
+  the full name in the same row, so TalkBack announcing «И» before «Ирина Петрова» was the letter
+  arriving as a word. `AvatarStack` replaces its children with one description naming **every** member,
+  including the ones behind «+N»: the truncation is what a list row's width can afford and a reader has
+  no width.
+- **The themed launcher icon has its own drawable** (`ic_launcher_monochrome.xml`), not an alias of the
+  colour foreground. Android tints that layer flat and a launcher draws it at 48dp, where the brand art's
+  hairline page fan — half a unit wide in a 108-unit viewport — is a fifth of a pixel of grey smear. The
+  silhouette resolves that passage into one solid edge, keeps the same geometry (outer radius 30.75, so
+  inside the 33-unit safe circle), and is wired into **both** `ic_launcher` and `ic_launcher_round`.
+- **Shared components have previews** (`src/debug/java/.../preview/`), rendered light, dark and at 1.5×
+  text by one `@KlasPreview` multipreview annotation. In the **debug** source set on purpose: a preview
+  is a development tool, so its sample data has no business in a release APK. They exist because a card's
+  inset or a badge's weight is repeated across fifteen screens, and that kind of drift is caught by
+  seeing two of them side by side rather than a fortnight apart.
 - **The two lesson-kind icons are one pair, not a ranking** (`ui/common/LessonKindUi.kt`): same brand
   colour, matched on **ink height** rather than nominal size.
 - **Anything tappable clears 48dp** (`ui/common/MinTouchTarget`), and the main lists carry
@@ -850,7 +880,10 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
   cascade and restrict rules (`SubjectDeletionCascadeTest`) and the **migration chain** (`MigrationTest`,
   see below) — backup round-trip and restore, calendar
   sync, auto-completion, and the questions that need real rendering: text measurement
-  (`BottomBarLabelTest`), icon ink height (`LessonKindIconTest`), the plural rule set
+  (`BottomBarLabelTest` for the tab labels, `StatRowAutoSizeTest` for a stat tile's amount — both through
+  the shared `testutil/textLayoutOf`, since an autosized `Text`'s settled size is *not* in its layout
+  input and can only be read back off `GetTextLayoutResult`), icon ink height (`LessonKindIconTest`),
+  what a screen reader is handed (`AvatarSemanticsTest`), the plural rule set
   (`RussianPluralsTest`) and **a gesture**, which exists nowhere else (`SwipeToConfirmBoxTest` —
   it caught the swipe deciding against a stale offset, so a slide home still confirmed). A debug-only
   manifest entry lets the test host show over the keyguard, so they run against a locked phone (there is
@@ -865,7 +898,8 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
   run* reports **zero tests** rather than a failure. It looked like flakiness in whichever test was
   unlucky. The argument lives in `androidTest/KlasTestApp.kt`; the rules are what make it hold.
 - **The migration chain is run for real, end to end** (`androidTest/.../MigrationTest`): a v1 database
-  built from the exported `schemas/1.json`, migrated **v1 → v2 → v3** against `MigrationTestHelper`, with
+  built from the exported `schemas/1.json`, migrated **v1 → v2 → v3 → v4** against `MigrationTestHelper`
+  (one `migrateToCurrent()` helper, so the next step is added in one place), with
   the rows asserted and `runMigrationsAndValidate` refusing a result that does not match the exported
   schema column for column. That validation is the half a hand-written `ALTER TABLE` needs — a `DEFAULT`
   on one side and not the other fails there rather than on a phone. It is instrumented, so **CI only

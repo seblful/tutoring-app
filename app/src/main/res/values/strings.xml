@@ -357,6 +357,10 @@
     <string name="group_no_students">Сначала добавьте учеников</string>
     <string name="group_no_students_for_subject">Нет учеников с ценой на этот предмет</string>
     <string name="group_no_members">Участников нет</string>
+    <!-- Spoken only. What a row of overlapping monograms is, for a screen reader that would otherwise
+         read them as loose letters — and it names every member, not just the four drawn: the «+2» is a
+         concession to the width of a list row, and a reader has no width. -->
+    <string name="roster_members">Ученики: %1$s</string>
     <!-- The save kept only the members priced for the group's subject; somebody was left out. -->
     <string name="group_members_not_priced">Не все участники сохранены: у некоторых нет цены на предмет группы</string>
     <string name="group_delete_confirm">Удалить эту группу? Ученики и их занятия останутся.</string>
@@ -395,6 +399,10 @@
     <string name="about_tagline">Учёт занятий, оплат и долгов для частного репетитора</string>
     <string name="about_offline">Работает без интернета. Данные хранятся только на этом устройстве — их не видит никто, кроме вас.</string>
     <string name="about_backup_hint">Чтобы не потерять данные при смене телефона, сделайте резервную копию.</string>
+    <!-- The bundled typeface's credit, and the way to read its licence. The OFL asks that its notice
+         travel with the font: res/raw/golos_text_ofl.txt is that notice, and this is what opens it. -->
+    <string name="about_typeface">Шрифт Golos Text — Paratype, лицензия OFL 1.1</string>
+    <string name="about_typeface_licence">Лицензия шрифта</string>
 
     <!-- Settings -->
     <string name="settings_title">Настройки</string>
@@ -455,6 +463,10 @@
     <string name="theme_system">Системная</string>
     <string name="theme_light">Светлая</string>
     <string name="theme_dark">Тёмная</string>
+    <!-- Material You. Worded as what it does rather than as what Google calls it: «Material You» means
+         nothing to a tutor, while the wallpaper is the thing they can look at to predict the result. -->
+    <string name="settings_dynamic_color">Цвета из обоев</string>
+    <string name="settings_dynamic_color_desc">Подобрать оттенки под обои телефона вместо собственных цветов приложения</string>
     <string name="currency_byn">BYN</string>
     <string name="currency_rub">RUB</string>
     <string name="settings_currency_change">Сменить</string>

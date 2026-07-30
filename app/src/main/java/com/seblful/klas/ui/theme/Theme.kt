@@ -95,6 +95,11 @@ private val DarkColorScheme = darkColorScheme(
  * it is used, because the light/dark answer here is *the tutor's* and not the phone's (`ThemeChoice`, see
  * `AppRoot`): a light app forced onto a dark phone would otherwise pick the dark green and paint it on
  * white. The Material slots already arrive this way, through the scheme; these travel with them.
+ *
+ * **Unaffected by dynamic colour**, deliberately. Wallpaper-derived schemes fill the Material roles and
+ * have nothing to say about this one, and green is not a matter of taste here — it is what "this lesson
+ * happened" means, in the same way `error` red is what a debt means. A tutor who turns on the wallpaper's
+ * colours is asking for the app's *chrome* to follow their phone, not for its answers to change hue.
  */
 @Immutable
 data class KlasColors(
@@ -127,6 +132,17 @@ private val LocalKlasColors = staticCompositionLocalOf { LightKlasColors }
 val klasColors: KlasColors
     @Composable @ReadOnlyComposable get() = LocalKlasColors.current
 
+/**
+ * Whether this phone can derive a scheme from the wallpaper at all — Material You arrived in Android 12,
+ * and `minSdk` here is 24.
+ *
+ * Public, and the **only** place the version is checked, because two answers to "is this offered" is one
+ * more than the app can keep straight: Settings uses it to decide whether to draw the switch at all, and
+ * [KlasTheme] uses it to decide whether to honour it. A row that could be switched on where the theme
+ * would ignore it is a setting that lies, and that is exactly the shape the bug would take.
+ */
+val dynamicColorAvailable: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
 @Composable
 fun KlasTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -135,7 +151,7 @@ fun KlasTheme(
     content: @Composable () -> Unit,
 ) {
     val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+        dynamicColor && dynamicColorAvailable -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }

@@ -55,6 +55,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -181,6 +183,15 @@ fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
  * A round monogram from the first letter of [name] — a lightweight student avatar. The colour comes
  * from [studentId] rather than the name, so the list reads as a set of distinct people rather than
  * a wall of identical chips, and a student keeps their colour when their name is corrected.
+ *
+ * **Silent to a screen reader.** The monogram is a picture of the name it stands beside, and a picture
+ * that is read aloud stops being one: TalkBack announced «И» and then «Ирина Петрова» on every row of
+ * the students list, so the letter arrived as a word of its own before the name it was drawn from. Every
+ * caller puts the full name in the same row — a list item's headline, a pick row's label, and in an
+ * [AvatarStack] the whole roster at once — so there is no case where clearing this loses a fact.
+ *
+ * `clearAndSetSemantics` rather than `contentDescription = null`, because the thing to suppress is the
+ * `Text` inside: a null description on the circle would leave the letter itself still announced.
  */
 @Composable
 fun Avatar(name: String, studentId: Long, modifier: Modifier = Modifier, size: Dp = 40.dp) {
@@ -189,7 +200,8 @@ fun Avatar(name: String, studentId: Long, modifier: Modifier = Modifier, size: D
         modifier
             .size(size)
             .clip(CircleShape)
-            .background(container),
+            .background(container)
+            .clearAndSetSemantics { },
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -870,7 +882,18 @@ private const val DISABLED_ALPHA = 0.38f
  * answer "which group is this" at a glance and take one line however many there are; the overflow
  * count carries the rest.
  *
- * @param names the members, in the order they should appear.
+ * ### Spoken as a roster, not as letters
+ *
+ * The stack is drawn from single characters, so left alone it reached a screen reader as what it is made
+ * of rather than as what it means: four disconnected letters and «+2», with nothing saying they were
+ * people or that they belonged to the group whose row they sat in. One description replaces the lot.
+ *
+ * It names **every** member, including the ones the «+N» stands in for. The truncation is a concession to
+ * the width of a list row and a reader does not have one — a tutor who cannot see the faces should not
+ * also be the only one who cannot find out who is in the group. The rest of the app already works this
+ * way; `DayCell` builds a whole spoken sentence for a calendar cell that draws three dots.
+ *
+ * @param names the members, in the order they should appear — **all** of them, however many are drawn.
  * @param ids their student ids — [Avatar] colours by id, so a member keeps their colour everywhere.
  * @param max how many faces to draw before collapsing the remainder into «+N».
  */
@@ -884,8 +907,11 @@ fun AvatarStack(
 ) {
     val shown = names.take(max)
     val overflow = names.size - shown.size
+    val roster = stringResource(R.string.roster_members, names.joinToString(", "))
     Row(
-        modifier,
+        // Cleared and replaced rather than added to: the monograms and the «+2» are the parts, and a
+        // reader that got both the description and the parts would hear the group twice over.
+        modifier.clearAndSetSemantics { contentDescription = roster },
         // Negative spacing is the overlap: each face tucks under the one before it.
         horizontalArrangement = Arrangement.spacedBy((-size / 3)),
         verticalAlignment = Alignment.CenterVertically,

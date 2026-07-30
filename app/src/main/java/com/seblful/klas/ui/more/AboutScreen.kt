@@ -3,27 +3,35 @@ package com.seblful.klas.ui.more
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.Spacing
 
@@ -45,6 +53,8 @@ import com.seblful.klas.ui.common.Spacing
 @Composable
 fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
     val context = LocalContext.current
+    val resources = LocalResources.current
+    var showingLicence by remember { mutableStateOf(false) }
     // Read from the installed package rather than from BuildConfig, so it is the version the
     // platform actually has — including the `.debug` suffix a debug install carries.
     val version = remember(context) {
@@ -115,6 +125,52 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
                     }
                 }
             }
+            // The typeface credit, last and quietest — an obligation rather than a feature. The face
+            // ships inside the APK, so the OFL's notice ships with it, and a notice nobody can reach is
+            // not one: tapping this opens it. It sits on the one screen that already exists to state
+            // what the app is made of.
+            //
+            // A button rather than a caption, because it does something and has to look like it does —
+            // `labelSmall` keeps it the smallest text on the screen while the primary colour says it is
+            // a control, and the minimum height is the same 48dp everything tappable in this app gets.
+            TextButton(
+                onClick = { showingLicence = true },
+                modifier = Modifier
+                    .padding(top = Spacing.itemGap)
+                    .heightIn(min = MinTouchTarget),
+            ) {
+                Text(
+                    stringResource(R.string.about_typeface),
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
+    }
+
+    if (showingLicence) {
+        // Read when it is asked for rather than with the screen: 4KB off disk is nothing, but it is
+        // nothing that a tutor opening «О приложении» has any reason to pay for.
+        val licence = remember(resources) {
+            resources.openRawResource(R.raw.golos_text_ofl).bufferedReader().use { it.readText() }
+        }
+        AlertDialog(
+            onDismissRequest = { showingLicence = false },
+            title = { Text(stringResource(R.string.about_typeface_licence)) },
+            text = {
+                // Left in English, as licences are. Scrollable because it is four screens long, and
+                // the OFL's terms are not something to show an abridged version of.
+                Text(
+                    licence,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showingLicence = false }) {
+                    Text(stringResource(R.string.action_ok))
+                }
+            },
+        )
     }
 }

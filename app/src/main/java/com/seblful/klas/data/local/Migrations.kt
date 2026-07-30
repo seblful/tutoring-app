@@ -155,3 +155,19 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         db.execSQL("ALTER TABLE `settings` ADD COLUMN `lastExportMillis` INTEGER")
     }
 }
+
+/**
+ * **v3 → v4: the tutor may ask for the wallpaper's colours.**
+ *
+ * One boolean on the same single-row table (`SettingsEntity.dynamicColorEnabled`). `NOT NULL DEFAULT 0`,
+ * which is both what SQLite requires of a non-null column added to a table that already has a row and
+ * the answer that matches what the tutor has been looking at: every existing install has been running on
+ * the app's own palette, so backfilling "off" changes nothing about how their phone looks the moment
+ * they upgrade. The declared default on the entity has to say `"0"` too, or Room's schema validation
+ * fails the moment this migration finishes.
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `settings` ADD COLUMN `dynamicColorEnabled` INTEGER NOT NULL DEFAULT 0")
+    }
+}

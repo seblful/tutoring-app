@@ -70,7 +70,13 @@ fun AppRoot(rootViewModel: RootViewModel = hiltViewModel()) {
         ThemeChoice.SYSTEM -> isSystemInDarkTheme()
     }
 
-    KlasTheme(darkTheme = darkTheme) {
+    // Both halves of "how does this look" come from the same row, and both default to the app's own
+    // answer while it is still loading: no wallpaper colours for the frame before the setting arrives,
+    // so a tutor who has them off never sees them flash on.
+    KlasTheme(
+        darkTheme = darkTheme,
+        dynamicColor = settings?.dynamicColorEnabled == true,
+    ) {
         CompositionLocalProvider(LocalCurrency provides (settings?.currency ?: Currency.BYN)) {
             when (rootViewModel.routeFor(settings)) {
                 // Reached only if the splash has already been lifted — `MainActivity` holds it until

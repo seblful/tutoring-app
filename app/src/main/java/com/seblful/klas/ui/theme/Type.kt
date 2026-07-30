@@ -2,23 +2,53 @@ package com.seblful.klas.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.seblful.klas.R
 
 /**
- * The one family the whole app sets its type in.
+ * The one family the whole app sets its type in: **Golos Text**.
  *
- * A single constant rather than `FontFamily.Default` repeated per style, because the styles below
- * must not be able to disagree: the scale used to name the family style by style and set the weight
- * only on some of them, which left `titleSmall` — every report card's title, every day header —
- * rendering at the platform's regular weight beside a `titleMedium` that had been made semi-bold.
- * The identity was declared but applied unevenly, which reads as a mistake rather than as a choice.
+ * A single constant rather than the family repeated per style, because the styles below must not be
+ * able to disagree: the scale used to name the family style by style and set the weight only on some
+ * of them, which left `titleSmall` — every report card's title, every day header — rendering at the
+ * platform's regular weight beside a `titleMedium` that had been made semi-bold. The identity was
+ * declared but applied unevenly, which reads as a mistake rather than as a choice.
  *
- * It is the platform family for now. Swapping in a Cyrillic-first face (Golos Text, Inter, Onest)
- * means dropping the files into `res/font` and changing this one line — every style follows.
+ * ### Why a face at all, and why this one
+ *
+ * The app was set in `FontFamily.Default`, which on Android is Roboto and renders Cyrillic perfectly
+ * well — so this is not a correctness fix. It is the cheapest thing that stops an app looking like the
+ * template it was started from, because the face is the one design decision visible in every single
+ * pixel of text on every screen.
+ *
+ * Golos Text is drawn **Cyrillic-first** (Paratype), which is the right way round for an app whose UI
+ * is pinned to Russian: the Latin here is the borrowed alphabet, not the other way about. It is a text
+ * face rather than a display one — made to stay legible at a list row's 14sp, which is the size most of
+ * this app is — and it is [OFL][R.raw.golos_text_ofl] licensed, so it can simply ship.
+ *
+ * ### Four static instances, not one variable font
+ *
+ * Upstream ships a single variable `GolosText[wght].ttf`. Android honours a variable axis only from
+ * **API 26**, and this app's `minSdk` is 24 — on 24 and 25 a variable font loads at its default
+ * instance, so every weight below would have come out Regular and the whole scale would have
+ * flattened on exactly the old devices least able to spare the contrast. So the four weights the scale
+ * actually asks for are instanced out of the axis ahead of time (`fvar` dropped, `usWeightClass` set)
+ * and shipped as four ordinary statics.
+ *
+ * Deliberately **not subsetted**. The face is a compact 566 codepoints to begin with, so trimming it
+ * would save little, and the thing it would cost is real: a student's name is free text, and Belarusian
+ * «і», «ў» or Ukrainian «ї», «є» in a Minsk tutor's roster would come back as tofu. Keeping the face
+ * whole makes that impossible.
  */
-private val AppFontFamily = FontFamily.Default
+private val AppFontFamily = FontFamily(
+    Font(R.font.golos_text_regular, FontWeight.Normal),
+    Font(R.font.golos_text_medium, FontWeight.Medium),
+    Font(R.font.golos_text_semibold, FontWeight.SemiBold),
+    Font(R.font.golos_text_bold, FontWeight.Bold),
+)
 
 /**
  * The type scale: **every** style stated, none left to the M3 baseline.

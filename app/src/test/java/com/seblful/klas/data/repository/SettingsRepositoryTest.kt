@@ -17,6 +17,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
 
 /**
  * The settings row. Previously untested — its eleven setters were each too small to look worth it,
@@ -66,15 +67,22 @@ class SettingsRepositoryTest {
             reminderLeadMinutes = 15,
             autoCompleteEnabled = true,
             themeMode = "DARK",
+            dynamicColorEnabled = true,
             defaultLessonMinutes = 45,
             defaultGroupPrice = Money(2_500),
             currency = Currency.RUB,
+            lastExportAt = Instant.parse("2026-06-20T18:30:00Z"),
         )
 
         repo.update { wanted }
 
         // Every field survives AppSettings -> SettingsEntity -> AppSettings. A field forgotten in
         // either mapper shows up here rather than as a setting that silently resets.
+        //
+        // Every field has to be given a **non-default** value for that to be true, which is the part
+        // that is easy to lose: `lastExportAt` was added to the class and not to this list, so for a
+        // while the assertion compared null to null and would have passed on a mapper that dropped it
+        // outright. If a new setting is added below, it belongs here too.
         assertEquals(wanted, repo.get())
     }
 

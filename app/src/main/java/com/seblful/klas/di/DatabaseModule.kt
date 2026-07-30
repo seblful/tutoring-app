@@ -9,6 +9,7 @@ import com.seblful.klas.data.local.GroupDao
 import com.seblful.klas.data.local.LessonDao
 import com.seblful.klas.data.local.MIGRATION_1_2
 import com.seblful.klas.data.local.MIGRATION_2_3
+import com.seblful.klas.data.local.MIGRATION_3_4
 import com.seblful.klas.data.local.PaymentDao
 import com.seblful.klas.data.local.PriceDao
 import com.seblful.klas.data.local.RateHistoryDao
@@ -56,7 +57,7 @@ object DatabaseModule {
         @DebugBuild debugBuild: Boolean,
     ): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .apply { if (debugBuild) fallbackToDestructiveMigration(dropAllTables = true) }
             .build()
 

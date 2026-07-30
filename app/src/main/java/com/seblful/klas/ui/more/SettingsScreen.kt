@@ -52,6 +52,7 @@ import com.seblful.klas.ui.common.moneyErrorText
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.supportingTextOf
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.theme.dynamicColorAvailable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -237,6 +238,21 @@ fun SettingsScreen(
                 selected = settings.themeMode,
                 onSelect = { mode -> viewModel.update { it.copy(themeMode = mode) } },
             )
+            // Hidden rather than disabled below Android 12, which is the opposite of what the two rows
+            // above do — and for the opposite reason. A blocked reminder or a dimmed invitation switch
+            // is a condition the tutor can *change*, so saying so is help; an OS that has no Material
+            // You is not, and a permanently dead row would only ever be clutter with an explanation
+            // attached. `dynamicColorAvailable` is the same answer the theme itself acts on.
+            if (dynamicColorAvailable) {
+                SwitchRow(
+                    title = stringResource(R.string.settings_dynamic_color),
+                    description = stringResource(R.string.settings_dynamic_color_desc),
+                    checked = settings.dynamicColorEnabled,
+                    onCheckedChange = { on ->
+                        viewModel.update { it.copy(dynamicColorEnabled = on) }
+                    },
+                )
+            }
 
             // Last, and deliberately dull. Diagnostics used to stand in «Ещё» beside «Настройки» and
             // «Резервная копия», which put a crash-log viewer at the same level as the things a tutor

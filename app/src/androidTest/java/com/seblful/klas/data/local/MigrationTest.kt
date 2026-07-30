@@ -16,7 +16,8 @@ import org.junit.runner.RunWith
 /**
  * **Every migration keeps every row.** The database this migrates is a tutor's only copy of their
  * students, lessons and money, so what it does to them is asserted rather than reasoned about — v1 → v2
- * for the rows it rewrites, and the whole chain to v3 because that is the upgrade a real phone performs.
+ * for the rows it rewrites, and the whole chain to the current version because that is the upgrade a real
+ * phone performs.
  *
  * Room's [MigrationTestHelper] builds a real v1 database from the exported `schemas/1.json`, runs
  * [MIGRATION_1_2] against it, and — via `validateMigration` — refuses to pass if the result does not
@@ -184,14 +185,7 @@ class MigrationTest {
     fun settingsGainTheLastExportColumn() {
         helper.createDatabase(name, 1).apply {
             seedV1()
-            // A v1/v2 settings row, so the column is added to a table that has something in it: an
-            // `ALTER TABLE … ADD COLUMN` on an empty table would pass while backfilling wrongly.
-            execSQL(
-                "INSERT INTO settings (id, notificationsEnabled, calendarSyncEnabled, " +
-                    "emailInvitesEnabled, onboardingComplete, reminderLeadMinutes, autoCompleteEnabled, " +
-                    "themeMode, defaultLessonMinutes, defaultGroupPriceMinor, currency, showGroupsTab) " +
-                    "VALUES (1, 1, 1, 0, 1, 30, 0, 'DARK', 90, 2000, 'RUB', 1)",
-            )
+            seedV1Settings()
             close()
         }
 
@@ -210,7 +204,47 @@ class MigrationTest {
         assertEquals("2000", settings["defaultGroupPriceMinor"])
     }
 
-    /** And v3 still holds every lesson v2 made, so the second step carries the first one's work. */
+    // ---- v3 → v4: the tutor may ask for the wallpaper's colours -------------------------------------
+
+    /**
+     * **The added boolean lands as `0`, and the row it lands on is otherwise untouched.**
+     *
+     * The backfill is the whole assertion. `dynamicColorEnabled` is `NOT NULL`, so `ALTER TABLE … ADD
+     * COLUMN` cannot add it to a table with a row in it *without* a `DEFAULT` — the migration would fail
+     * outright. What it can do is add it with the wrong one, and that failure is silent and visible: every
+     * existing tutor's app would repaint itself in their wallpaper's colours on upgrade, having never been
+     * asked. So a settings row is seeded first, and the column is read back off it.
+     *
+     * Validated at v4, which is the other half — Room compares the result against `schemas/4.json`, so the
+     * `DEFAULT 0` in the migration and the `defaultValue = "0"` on the entity have to agree here rather
+     * than on a phone.
+     */
+    @Test
+    fun theSettingsRowGainsDynamicColourSwitchedOff() {
+        helper.createDatabase(name, 1).apply {
+            seedV1()
+            seedV1Settings()
+            close()
+        }
+
+        val db = migrateToCurrent()
+
+        val settings = db.rows("SELECT * FROM settings").single()
+        assertEquals(
+            "an install that upgrades has not asked for the wallpaper's colours",
+            "0",
+            settings["dynamicColorEnabled"],
+        )
+        // And the step before it is still done: v3's column is here and still says "never exported".
+        assertEquals(null, settings["lastExportMillis"])
+        // The rest of the row is the tutor's, and none of it is this migration's business.
+        assertEquals("DARK", settings["themeMode"])
+        assertEquals("30", settings["reminderLeadMinutes"])
+        assertEquals("RUB", settings["currency"])
+        assertEquals("2000", settings["defaultGroupPriceMinor"])
+    }
+
+    /** And v4 still holds every lesson v2 made, so each step carries the ones before it. */
     @Test
     fun theLessonsSurviveTheWholeChain() {
         helper.createDatabase(name, 1).apply {
@@ -218,13 +252,37 @@ class MigrationTest {
             close()
         }
 
-        val db = helper.runMigrationsAndValidate(name, 3, true, MIGRATION_1_2, MIGRATION_2_3)
+        val db = migrateToCurrent()
 
         assertEquals(2, db.rows("SELECT * FROM lessons").size)
         assertEquals(3, db.rows("SELECT * FROM attendance").size)
         assertEquals(
             "3000",
             db.rows("SELECT SUM(chargeMinor) AS total FROM attendance").single()["total"],
+        )
+    }
+
+    /**
+     * Every migration the app ships, run in order and validated against the newest exported schema.
+     *
+     * One place to add the next step, so that a migration written without a test still fails something:
+     * `MigrationChainTest` (unit) asserts the chain is unbroken and wired in, and this is what actually
+     * runs it end to end.
+     */
+    private fun migrateToCurrent(): SupportSQLiteDatabase =
+        helper.runMigrationsAndValidate(name, 4, true, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+
+    /**
+     * A settings row as v1 and v2 wrote it — every column that existed before the two that were added
+     * since, so a migration is exercised against a table with something in it. An `ALTER TABLE … ADD
+     * COLUMN` on an empty table passes while backfilling wrongly.
+     */
+    private fun SupportSQLiteDatabase.seedV1Settings() {
+        execSQL(
+            "INSERT INTO settings (id, notificationsEnabled, calendarSyncEnabled, " +
+                "emailInvitesEnabled, onboardingComplete, reminderLeadMinutes, autoCompleteEnabled, " +
+                "themeMode, defaultLessonMinutes, defaultGroupPriceMinor, currency, showGroupsTab) " +
+                "VALUES (1, 1, 1, 0, 1, 30, 0, 'DARK', 90, 2000, 'RUB', 1)",
         )
     }
 }

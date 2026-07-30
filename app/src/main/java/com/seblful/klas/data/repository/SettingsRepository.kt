@@ -21,6 +21,14 @@ data class AppSettings(
     val reminderLeadMinutes: Int = 60,
     val autoCompleteEnabled: Boolean = false,
     val themeMode: String = "SYSTEM",
+    /**
+     * Whether to take the colour scheme from the wallpaper instead of the app's own palette. Off by
+     * default — see `SettingsEntity.dynamicColorEnabled` for why that is a decision and not a gap.
+     *
+     * Like [themeMode] beside it, this owes nothing outside the row and so has no arm in
+     * [SettingsChange]: it changes what the next frame is painted in and nothing that was recorded.
+     */
+    val dynamicColorEnabled: Boolean = false,
     val defaultLessonMinutes: Int = 60,
     /** Pre-fills a new group's hourly rate. Null while the tutor has not set one. */
     val defaultGroupPrice: Money? = null,
@@ -157,6 +165,7 @@ class SettingsRepository @Inject constructor(
             reminderLeadMinutes = reminderLeadMinutes,
             autoCompleteEnabled = autoCompleteEnabled,
             themeMode = themeMode,
+            dynamicColorEnabled = dynamicColorEnabled,
             defaultLessonMinutes = defaultLessonMinutes,
             // The column's 0-means-not-set sentinel is spelled here, at the row's edge, once —
             // it used to be restated by every reader of the raw minor units.
@@ -178,6 +187,7 @@ class SettingsRepository @Inject constructor(
         reminderLeadMinutes = reminderLeadMinutes,
         autoCompleteEnabled = autoCompleteEnabled,
         themeMode = themeMode,
+        dynamicColorEnabled = dynamicColorEnabled,
         defaultLessonMinutes = defaultLessonMinutes,
         defaultGroupPriceMinor = defaultGroupPrice?.minor ?: 0,
         currency = currency.name,

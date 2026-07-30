@@ -9,15 +9,14 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
+import com.seblful.klas.testutil.textLayoutOf
 import com.seblful.klas.ui.theme.KlasTheme
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -147,15 +146,8 @@ class BottomBarLabelTest {
         tabs.associateWith { layoutOf(context.getString(it.labelRes)).size.width }
 
     /** The layout the label was actually drawn with — the one autosize settled on. */
-    private fun ComposeContentTestRule.layoutOf(label: String): TextLayoutResult {
-        val results = mutableListOf<TextLayoutResult>()
-        onNodeWithText(label, useUnmergedTree = true)
-            .fetchSemanticsNode()
-            .config[SemanticsActions.GetTextLayoutResult]
-            .action
-            ?.invoke(results)
-        return results.first()
-    }
+    private fun ComposeContentTestRule.layoutOf(label: String): TextLayoutResult =
+        textLayoutOf(label)
 
     private companion object {
         /** Narrowest phone width still supported, the common one, and a large one. */
