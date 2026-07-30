@@ -30,7 +30,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -342,22 +341,31 @@ fun classModeLabel(mode: ClassMode): String = stringResource(
     }
 )
 
-/** A two-option chooser for a class mode (in person / remote). */
+/**
+ * Where a class is held, chosen the way every other single answer on a form is: a [ChoiceField].
+ *
+ * It used to be a bare label above two filter chips. Two chips are a fine control in isolation, but on
+ * these forms the mode sits among bordered fields — a student, a subject, a date — and was the only
+ * input drawn without a border, so it read as a caption with buttons under it rather than as the fourth
+ * field. On the booking form it was worse than inconsistent: folded it was a [PickerField] and tapping
+ * it *replaced* that with the label-and-chips, so one input had two different appearances.
+ *
+ * @param label «Место» on a lesson, «Место занятий» where the default for future lessons is being set —
+ *   the same control answering two different questions.
+ */
 @Composable
-fun ModeSelector(
+fun ModeField(
+    label: String,
     selected: ClassMode,
     onSelect: (ClassMode) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ClassMode.entries.forEach { mode ->
-            FilterChip(
-                selected = selected == mode,
-                onClick = { onSelect(mode) },
-                label = { Text(classModeLabel(mode)) },
-            )
-        }
-    }
+    ChoiceField(
+        label = label,
+        selected = selected,
+        options = ClassMode.entries,
+        optionLabel = { mode -> classModeLabel(mode) },
+        onSelect = onSelect,
+    )
 }
 
 @Composable
@@ -436,8 +444,11 @@ fun StudentEditDialog(
                     label = { Text(stringResource(R.string.student_note_label)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Text(stringResource(R.string.student_mode_label), style = MaterialTheme.typography.labelLarge)
-                ModeSelector(selected = mode, onSelect = { mode = it })
+                ModeField(
+                    label = stringResource(R.string.student_mode_label),
+                    selected = mode,
+                    onSelect = { mode = it },
+                )
             }
         },
         confirmButton = {
@@ -503,7 +514,6 @@ fun TextFieldDialog(
  * Shared rather than per-screen because the group form and the booking form must offer a subject the
  * same way; they disagree only on what the list contains and whether it can be changed.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DropdownField(
     label: String,
@@ -512,9 +522,71 @@ fun DropdownField(
     onSelect: (Long) -> Unit,
     enabled: Boolean = true,
 ) {
+    MenuField(label = label, selectedText = selectedText, enabled = enabled) { dismiss ->
+        options.forEach { (id, name) ->
+            DropdownMenuItem(
+                text = { Text(name) },
+                onClick = { onSelect(id); dismiss() },
+            )
+        }
+    }
+}
+
+/**
+ * The same field, for picking one of a **fixed set of values** rather than one of a table's rows — a
+ * class mode today, any other small enum a form has to ask about tomorrow.
+ *
+ * Separate from [DropdownField] because the two answer differently shaped questions: an id-backed
+ * choice can be selected without being in the list it offers (a student the form was opened on, before
+ * their row has loaded), so its displayed text is passed in, while here [selected] is always one of
+ * [options] and the label is derived. What they must never differ on is how they *look*, which is why
+ * both are the same [MenuField].
+ *
+ * @param optionLabel how a value reads to the tutor — `@Composable` because those labels are
+ *   `stringResource`s.
+ */
+@Composable
+fun <T> ChoiceField(
+    label: String,
+    selected: T,
+    options: List<T>,
+    optionLabel: @Composable (T) -> String,
+    onSelect: (T) -> Unit,
+    enabled: Boolean = true,
+) {
+    MenuField(label = label, selectedText = optionLabel(selected), enabled = enabled) { dismiss ->
+        options.forEach { option ->
+            DropdownMenuItem(
+                text = { Text(optionLabel(option)) },
+                onClick = { onSelect(option); dismiss() },
+            )
+        }
+    }
+}
+
+/**
+ * The shape both dropdowns share: a bordered, read-only field showing what is chosen, opening a menu of
+ * [items] on tap.
+ *
+ * Private on purpose. It exists so that "pick one thing" cannot end up looking like two different
+ * controls depending on whether the thing has a row id — the mistake this file's [PickerField] KDoc
+ * describes, made once already with price and place.
+ *
+ * @param items the menu's contents, given the [dismiss] that closes it — a menu item that selects
+ *   without closing would leave the tutor tapping outside to get rid of it.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MenuField(
+    label: String,
+    selectedText: String,
+    enabled: Boolean,
+    items: @Composable ColumnScope.(dismiss: () -> Unit) -> Unit,
+) {
     var expanded by remember { mutableStateOf(false) }
+    val open = expanded && enabled
     ExposedDropdownMenuBox(
-        expanded = expanded && enabled,
+        expanded = open,
         onExpandedChange = { if (enabled) expanded = it },
     ) {
         OutlinedTextField(
@@ -523,16 +595,11 @@ fun DropdownField(
             readOnly = true,
             enabled = enabled,
             label = { Text(label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded && enabled) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = open) },
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
-        ExposedDropdownMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
-            options.forEach { (id, name) ->
-                DropdownMenuItem(
-                    text = { Text(name) },
-                    onClick = { onSelect(id); expanded = false },
-                )
-            }
+        ExposedDropdownMenu(expanded = open, onDismissRequest = { expanded = false }) {
+            items { expanded = false }
         }
     }
 }

@@ -452,6 +452,12 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   changed. The schedule's action sheet acts on the whole lesson and deliberately lists no members.
 - **Anything hidden behind a tap is drawn as a field** (`ui/common/PickerField`) — a `Surface`, not a
   disabled `OutlinedTextField` with its colours painted back in, which would cost the ripple.
+- **Picking one thing looks the same whether or not the thing has a row id.** `DropdownField` (a
+  student, a group, a subject) and `ChoiceField` (a fixed set of values — `ModeField` over `ClassMode`)
+  are the same private `MenuField`. «Место» used to be a label above two chips *and*, on the booking
+  form, a `PickerField` that tapping replaced with them: one input, two appearances, neither matching
+  the fields it sat among. It is now never folded — unlike the price, a mode is a guess from the
+  student's usual place rather than a rate already agreed, so it has to be readable before a tap.
 - **Leaving a filled-in form asks first** (`ui/common/UnsavedChanges`). `leaveIntent` picks the
   question, and `leaveGuard` is the **whole wiring** — the back handler, the dialog, and what each
   answer does; three screens spelled it by hand and two answered «Сохранить» without closing the

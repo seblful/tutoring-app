@@ -42,7 +42,7 @@ import com.seblful.klas.R
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.MemberPickRow
-import com.seblful.klas.ui.common.ModeSelector
+import com.seblful.klas.ui.common.ModeField
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.rememberMessages
@@ -157,8 +157,11 @@ fun GroupFormScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Text(stringResource(R.string.student_mode_label), style = MaterialTheme.typography.labelLarge)
-            ModeSelector(selected = form.mode, onSelect = { m -> viewModel.update { it.copy(mode = m) } })
+            ModeField(
+                label = stringResource(R.string.student_mode_label),
+                selected = form.mode,
+                onSelect = { m -> viewModel.update { it.copy(mode = m) } },
+            )
 
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {

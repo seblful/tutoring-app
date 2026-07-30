@@ -45,10 +45,9 @@ import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.DurationPickerModal
 import com.seblful.klas.ui.common.MemberPickRow
-import com.seblful.klas.ui.common.ModeSelector
+import com.seblful.klas.ui.common.ModeField
 import com.seblful.klas.ui.common.PickerField
 import com.seblful.klas.ui.common.TimePickerModal
-import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.rememberMessages
@@ -86,7 +85,6 @@ fun ClassEditScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showFromPicker by remember { mutableStateOf(false) }
     var showDurationPicker by remember { mutableStateOf(false) }
-    var showModeSelector by remember { mutableStateOf(false) }
     var showPriceField by remember { mutableStateOf(false) }
 
     // Whether saving needs asking about, and how many billed lessons the question counts, are both
@@ -316,20 +314,14 @@ fun ClassEditScreen(
                 )
             }
 
-            if (showModeSelector) {
-                Text(stringResource(R.string.class_location_label), style = MaterialTheme.typography.labelLarge)
-                ModeSelector(
-                    selected = form.mode,
-                    onSelect = { selected -> viewModel.change(BookingIntent.Edit { it.copy(mode = selected) }) },
-                )
-            } else {
-                // Folded away like the price, and now drawn like it too.
-                PickerField(
-                    value = classModeLabel(form.mode),
-                    label = stringResource(R.string.class_location_label),
-                    onClick = { showModeSelector = true },
-                )
-            }
+            // Never folded, unlike the price: a mode is not pre-filled from a rate the tutor already
+            // agreed, it is a guess from the student's usual place that this lesson may contradict, so
+            // it has to be readable — and changeable — without a tap to reveal it first.
+            ModeField(
+                label = stringResource(R.string.class_location_label),
+                selected = form.mode,
+                onSelect = { selected -> viewModel.change(BookingIntent.Edit { it.copy(mode = selected) }) },
+            )
         }
     }
 
