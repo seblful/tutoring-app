@@ -136,23 +136,28 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Turns auto-completion on or off — **asking first** when switching it on would settle a backlog
-     * of any size.
+     * Turns auto-completion on or off — **asking first** whenever switching it on would complete a past
+     * lesson, however few.
      *
      * Turning it on completes every lesson that has already finished, however long ago, and completing
-     * a lesson bills it. That is what the setting says it does and it is what a tutor turning it on
-     * generally wants, but for a term's worth of unconfirmed lessons it is a large, silent movement of
-     * recognized income off one tap, so the number is put to them first.
+     * a lesson bills it. That is what the setting says it does and generally what a tutor turning it on
+     * wants, but it is still recognized income moving off one tap, so the number is put to them first.
      *
-     * A small backlog is not worth a dialog — up to [SWEEP_ASKS_ABOVE] lessons it just happens, and
-     * [swept] says how many. The threshold is a judgement about when "it did what it says" turns into
-     * "where did that income come from", not a rule about correctness.
+     * **However few, and not above some size.** There was a threshold here, on the argument that a
+     * couple of stale lessons are not worth a dialog. It is the wrong shape for this: the tutor cannot
+     * see the backlog before they flip the switch, so "small enough not to mention" is a judgement made
+     * on their behalf about *their* money, and the number that gets billed unasked is exactly the number
+     * they had no way to check. Zero is the only backlog worth not asking about, and that case asks
+     * nothing because there is nothing to say.
      *
      * **Declining leaves the setting off**, which is the only honest answer available: the sweep has no
      * lower bound, so with the setting on that backlog would be settled by the next upkeep pass
      * regardless — a "no" that only postponed it would be a lie. Wanting auto-completion *without* the
      * backlog is therefore not expressible here, and deliberately so; the tutor cancels the old lessons
      * they do not want billed, then turns it on.
+     *
+     * The **background** pass asks nobody and sweeps whatever has finished, as it always has. Nothing
+     * can be asked from a worker, and once the switch is on that is the arrangement the tutor agreed to.
      */
     fun setAutoCompleteEnabled(on: Boolean) {
         if (!on) {
@@ -162,7 +167,7 @@ class SettingsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             val backlog = maintenance.dueForCompletion()
-            if (backlog > SWEEP_ASKS_ABOVE) _pendingSweep.value = backlog
+            if (backlog > 0) _pendingSweep.value = backlog
             else update { it.copy(autoCompleteEnabled = true) }
         }
     }
@@ -191,11 +196,6 @@ class SettingsViewModel @Inject constructor(
         if (enabled && !calendarPermission.isGranted()) return CalendarSyncToggle.PERMISSION_NEEDED
         update { it.copy(calendarSyncEnabled = enabled) }
         return CalendarSyncToggle.APPLIED
-    }
-
-    companion object {
-        /** Backlogs bigger than this are asked about; see [setAutoCompleteEnabled]. */
-        const val SWEEP_ASKS_ABOVE = 10
     }
 }
 

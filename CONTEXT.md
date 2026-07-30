@@ -356,12 +356,14 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 - **Upkeep also runs in process at startup** (`KlasApp`), not only as an enqueued worker, because
   auto-completion is what *bills* a finished lesson.
 - **Turning auto-completion on is an action, not just a flag.** It sweeps the whole backlog — every
-  lesson that has already finished, however long ago — so the switch runs the pass itself and reports
-  what it settled, and asks first above `SettingsViewModel.SWEEP_ASKS_ABOVE`. Both counts are in
-  **lessons**, not billed classes. Declining leaves the setting **off**: the sweep has no lower bound,
-  so with it on the next pass would settle that backlog anyway, and a "no" that only postponed it would
-  be a lie. Wanting auto-completion without the backlog is therefore not expressible — cancel the
-  lessons you do not want billed first.
+  lesson that has already finished, however long ago — so the switch runs the pass itself, asks first
+  whenever that would complete anything at all, and reports what it settled. Both counts are in
+  **lessons**, not billed classes. No size threshold: the tutor cannot see the backlog before flipping
+  the switch, so "small enough not to mention" would be a judgement made on their behalf about their
+  money. Declining leaves the setting **off**: the sweep has no lower bound, so with it on the next pass
+  would settle that backlog anyway, and a "no" that only postponed it would be a lie. Wanting
+  auto-completion without the backlog is therefore not expressible — cancel the lessons you do not want
+  billed first. The **background** pass still asks nobody; a worker cannot.
 - **The notification permission is asked for where reminders are**, in settings, never over a first
   launch — and the row shows the **platform's** answer beside the tutor's intent. «May a reminder be
   shown» has one definition, the port's: `AndroidNotifier` asks `NotificationPermission` too, instead

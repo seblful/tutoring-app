@@ -289,6 +289,9 @@ class SettingsViewModelTest {
     // happened to run the upkeep pass. It read as a switch that did nothing, and then marking one old
     // lesson completed by hand completed every other old lesson too — that tap was simply what finally
     // ran the pass, and it credited the lot at once.
+    //
+    // It now runs the pass itself, having asked. The **background** pass is not represented here and asks
+    // nobody: nothing can be asked from a worker, and by then the tutor has agreed to the arrangement.
 
     /** Lessons that finished before the environment's clock, so a pass at `now` is due to settle them. */
     private suspend fun finishedLessons(count: Int): List<Long> {
@@ -306,8 +309,16 @@ class SettingsViewModelTest {
 
     private suspend fun statuses(ids: List<Long>) = ids.map { env.classRepo.getById(it)?.status }
 
+    /**
+     * The switch asks before it bills anything, and **nothing is stored** until the tutor answers — so a
+     * question left hanging cannot half-apply.
+     *
+     * Three lessons, deliberately: there was a size threshold here, and a backlog this small went through
+     * without a word. The tutor cannot see the backlog before flipping the switch, so a threshold decides
+     * on their behalf that some amount of their money may be recognized unasked.
+     */
     @Test
-    fun `turning auto-completion on settles the finished lessons there and then`() =
+    fun `a backlog of any size is asked about before anything is stored`() =
         runTest(mainRule.dispatcher) {
             val ids = finishedLessons(3)
 
@@ -315,60 +326,14 @@ class SettingsViewModelTest {
             vm.setAutoCompleteEnabled(true)
             advanceUntilIdle()
 
-            assertTrue(env.settingsRepo.get().autoCompleteEnabled)
-            assertEquals(List(3) { LessonStatus.COMPLETED }, statuses(ids))
-            assertNull("a backlog this small is not worth a dialog", vm.pendingSweep.value)
-        }
-
-    /** No lesson is completed by a switch in silence — the count the tutor can check against. */
-    @Test
-    fun `and says how many it settled`() = runTest(mainRule.dispatcher) {
-        finishedLessons(3)
-        val vm = vm()
-        val reported = mutableListOf<Int>()
-        backgroundScope.launch { vm.swept.stream.collect { reported += it } }
-
-        vm.setAutoCompleteEnabled(true)
-        advanceUntilIdle()
-
-        assertEquals(listOf(3), reported)
-    }
-
-    @Test
-    fun `a pass that settles nothing says nothing`() = runTest(mainRule.dispatcher) {
-        val vm = vm()
-        val reported = mutableListOf<Int>()
-        backgroundScope.launch { vm.swept.stream.collect { reported += it } }
-
-        vm.setAutoCompleteEnabled(true)
-        advanceUntilIdle()
-
-        assertTrue("nothing had finished, so there is nothing to report", reported.isEmpty())
-        assertTrue("but the setting is on", env.settingsRepo.get().autoCompleteEnabled)
-    }
-
-    /**
-     * A term's worth of unconfirmed lessons is a large movement of recognized income off one tap, so the
-     * number goes to the tutor first — and **nothing is stored** until they answer, so a question left
-     * hanging cannot half-apply.
-     */
-    @Test
-    fun `a backlog worth mentioning is asked about before anything is stored`() =
-        runTest(mainRule.dispatcher) {
-            val ids = finishedLessons(SettingsViewModel.SWEEP_ASKS_ABOVE + 1)
-
-            val vm = vm()
-            vm.setAutoCompleteEnabled(true)
-            advanceUntilIdle()
-
-            assertEquals(SettingsViewModel.SWEEP_ASKS_ABOVE + 1, vm.pendingSweep.value)
+            assertEquals(3, vm.pendingSweep.value)
             assertFalse("the switch stays off while the question is up", env.settingsRepo.get().autoCompleteEnabled)
             assertTrue(statuses(ids).all { it == LessonStatus.SCHEDULED })
         }
 
     @Test
     fun `confirming the question turns it on and settles the backlog`() = runTest(mainRule.dispatcher) {
-        val ids = finishedLessons(SettingsViewModel.SWEEP_ASKS_ABOVE + 1)
+        val ids = finishedLessons(3)
         val vm = vm()
         vm.setAutoCompleteEnabled(true)
         advanceUntilIdle()
@@ -378,7 +343,38 @@ class SettingsViewModelTest {
 
         assertNull(vm.pendingSweep.value)
         assertTrue(env.settingsRepo.get().autoCompleteEnabled)
-        assertTrue(statuses(ids).all { it == LessonStatus.COMPLETED })
+        assertEquals(List(3) { LessonStatus.COMPLETED }, statuses(ids))
+    }
+
+    /** And says what it did, rather than leaving the tutor to trust the number it asked with. */
+    @Test
+    fun `and says how many it settled`() = runTest(mainRule.dispatcher) {
+        finishedLessons(3)
+        val vm = vm()
+        val reported = mutableListOf<Int>()
+        backgroundScope.launch { vm.swept.stream.collect { reported += it } }
+
+        vm.setAutoCompleteEnabled(true)
+        advanceUntilIdle()
+        vm.confirmPendingSweep()
+        advanceUntilIdle()
+
+        assertEquals(listOf(3), reported)
+    }
+
+    /** Zero is the one backlog worth not asking about: there is nothing to say and nothing to bill. */
+    @Test
+    fun `nothing waiting means nothing to ask`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        val reported = mutableListOf<Int>()
+        backgroundScope.launch { vm.swept.stream.collect { reported += it } }
+
+        vm.setAutoCompleteEnabled(true)
+        advanceUntilIdle()
+
+        assertNull("no question", vm.pendingSweep.value)
+        assertTrue("the setting simply goes on", env.settingsRepo.get().autoCompleteEnabled)
+        assertTrue("and nothing is reported", reported.isEmpty())
     }
 
     /**
@@ -388,7 +384,7 @@ class SettingsViewModelTest {
      */
     @Test
     fun `declining leaves the switch off and the lessons alone`() = runTest(mainRule.dispatcher) {
-        val ids = finishedLessons(SettingsViewModel.SWEEP_ASKS_ABOVE + 1)
+        val ids = finishedLessons(3)
         val vm = vm()
         vm.setAutoCompleteEnabled(true)
         advanceUntilIdle()
@@ -399,6 +395,21 @@ class SettingsViewModelTest {
         assertNull(vm.pendingSweep.value)
         assertFalse(env.settingsRepo.get().autoCompleteEnabled)
         assertTrue(statuses(ids).all { it == LessonStatus.SCHEDULED })
+    }
+
+    /** Asked again on the next attempt — a "no" refuses this sweep, it does not remember a preference. */
+    @Test
+    fun `declining and trying again asks again`() = runTest(mainRule.dispatcher) {
+        finishedLessons(3)
+        val vm = vm()
+        vm.setAutoCompleteEnabled(true)
+        advanceUntilIdle()
+        vm.dismissPendingSweep()
+
+        vm.setAutoCompleteEnabled(true)
+        advanceUntilIdle()
+
+        assertEquals(3, vm.pendingSweep.value)
     }
 
     /** One-directional: switching a preference off is not a reason to un-bill anything, or to bill it. */

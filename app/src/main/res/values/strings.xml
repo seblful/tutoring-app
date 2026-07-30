@@ -403,11 +403,11 @@
     <string name="settings_autocomplete">Автозавершение занятий</string>
     <string name="settings_autocomplete_desc">Отмечать прошедшие занятия проведёнными автоматически</string>
     <!--
-      Asked before switching auto-completion on, when doing so would settle a backlog worth mentioning.
-      Turning it on completes every lesson that has already finished, however long ago, and completing a
-      lesson bills it — so a term of unconfirmed lessons is a large movement of recognized income off one
-      tap. The question names the number and says what will happen to the money, because that is the part
-      the setting's own description does not.
+      Asked before switching auto-completion on, whenever doing so would complete a past lesson — however
+      few, since the tutor cannot see the backlog before they flip the switch. Turning it on completes
+      every lesson that has already finished, however long ago, and completing a lesson bills it. The
+      question names the number and says what will happen to the money, because that is the part the
+      setting's own description does not.
     -->
     <plurals name="settings_autocomplete_sweep_confirm">
         <item quantity="one">%1$d прошедшее занятие будет отмечено проведённым, и доход по нему начислится. Включить автозавершение?</item>
