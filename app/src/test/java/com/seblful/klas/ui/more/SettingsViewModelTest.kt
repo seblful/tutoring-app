@@ -2,6 +2,7 @@ package com.seblful.klas.ui.more
 
 import com.seblful.klas.calendar.Guest
 import com.seblful.klas.domain.model.Currency
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
@@ -9,6 +10,7 @@ import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -27,7 +29,8 @@ class SettingsViewModelTest {
     private val env = TestEnv()
 
     private fun vm() = SettingsViewModel(
-        env.settingsRepo, env.calendarMirror, env.reminders, env.calendarPermission, env.notificationPermission,
+        env.settingsRepo, env.calendarMirror, env.reminders, env.maintenance,
+        env.calendarPermission, env.notificationPermission,
     )
 
     /**
@@ -277,6 +280,139 @@ class SettingsViewModelTest {
         assertEquals(listOf("evt-1"), env.calendar.deletes)
         // The event id is cleared off the class.
         assertEquals(null, env.classDao.items.value.single().calendarEventId)
+    }
+
+    // --- Turning auto-completion on ----------------------------------------------------------------
+    //
+    // The switch used to be wired straight to the generic `update`, so it stored a flag and owed
+    // nothing: the backlog sat there until an app restart, the half-hourly tick, or *any* lesson write
+    // happened to run the upkeep pass. It read as a switch that did nothing, and then marking one old
+    // lesson completed by hand completed every other old lesson too — that tap was simply what finally
+    // ran the pass, and it credited the lot at once.
+
+    /** Lessons that finished before the environment's clock, so a pass at `now` is due to settle them. */
+    private suspend fun finishedLessons(count: Int): List<Long> {
+        val subjectId = env.fixtures.subject("Математика")
+        val studentId = env.fixtures.pricedStudent(subjectId = subjectId, rate = Money.ofMajor(30))
+        val ended = env.clock.instant().minusSeconds(30L * 24 * 3600)
+        return (1..count).map { n ->
+            env.fixtures.lesson(
+                subjectId = subjectId,
+                students = listOf(studentId),
+                start = ended.plusSeconds(n * 2L * 3600),
+            ).single()
+        }
+    }
+
+    private suspend fun statuses(ids: List<Long>) = ids.map { env.classRepo.getById(it)?.status }
+
+    @Test
+    fun `turning auto-completion on settles the finished lessons there and then`() =
+        runTest(mainRule.dispatcher) {
+            val ids = finishedLessons(3)
+
+            val vm = vm()
+            vm.setAutoCompleteEnabled(true)
+            advanceUntilIdle()
+
+            assertTrue(env.settingsRepo.get().autoCompleteEnabled)
+            assertEquals(List(3) { LessonStatus.COMPLETED }, statuses(ids))
+            assertNull("a backlog this small is not worth a dialog", vm.pendingSweep.value)
+        }
+
+    /** No lesson is completed by a switch in silence — the count the tutor can check against. */
+    @Test
+    fun `and says how many it settled`() = runTest(mainRule.dispatcher) {
+        finishedLessons(3)
+        val vm = vm()
+        val reported = mutableListOf<Int>()
+        backgroundScope.launch { vm.swept.stream.collect { reported += it } }
+
+        vm.setAutoCompleteEnabled(true)
+        advanceUntilIdle()
+
+        assertEquals(listOf(3), reported)
+    }
+
+    @Test
+    fun `a pass that settles nothing says nothing`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        val reported = mutableListOf<Int>()
+        backgroundScope.launch { vm.swept.stream.collect { reported += it } }
+
+        vm.setAutoCompleteEnabled(true)
+        advanceUntilIdle()
+
+        assertTrue("nothing had finished, so there is nothing to report", reported.isEmpty())
+        assertTrue("but the setting is on", env.settingsRepo.get().autoCompleteEnabled)
+    }
+
+    /**
+     * A term's worth of unconfirmed lessons is a large movement of recognized income off one tap, so the
+     * number goes to the tutor first — and **nothing is stored** until they answer, so a question left
+     * hanging cannot half-apply.
+     */
+    @Test
+    fun `a backlog worth mentioning is asked about before anything is stored`() =
+        runTest(mainRule.dispatcher) {
+            val ids = finishedLessons(SettingsViewModel.SWEEP_ASKS_ABOVE + 1)
+
+            val vm = vm()
+            vm.setAutoCompleteEnabled(true)
+            advanceUntilIdle()
+
+            assertEquals(SettingsViewModel.SWEEP_ASKS_ABOVE + 1, vm.pendingSweep.value)
+            assertFalse("the switch stays off while the question is up", env.settingsRepo.get().autoCompleteEnabled)
+            assertTrue(statuses(ids).all { it == LessonStatus.SCHEDULED })
+        }
+
+    @Test
+    fun `confirming the question turns it on and settles the backlog`() = runTest(mainRule.dispatcher) {
+        val ids = finishedLessons(SettingsViewModel.SWEEP_ASKS_ABOVE + 1)
+        val vm = vm()
+        vm.setAutoCompleteEnabled(true)
+        advanceUntilIdle()
+
+        vm.confirmPendingSweep()
+        advanceUntilIdle()
+
+        assertNull(vm.pendingSweep.value)
+        assertTrue(env.settingsRepo.get().autoCompleteEnabled)
+        assertTrue(statuses(ids).all { it == LessonStatus.COMPLETED })
+    }
+
+    /**
+     * **Declining leaves the setting off**, which is the only honest answer available: the sweep has no
+     * lower bound, so with the setting on the next upkeep pass would settle that backlog anyway — a "no"
+     * that merely postponed it would be a lie.
+     */
+    @Test
+    fun `declining leaves the switch off and the lessons alone`() = runTest(mainRule.dispatcher) {
+        val ids = finishedLessons(SettingsViewModel.SWEEP_ASKS_ABOVE + 1)
+        val vm = vm()
+        vm.setAutoCompleteEnabled(true)
+        advanceUntilIdle()
+
+        vm.dismissPendingSweep()
+        advanceUntilIdle()
+
+        assertNull(vm.pendingSweep.value)
+        assertFalse(env.settingsRepo.get().autoCompleteEnabled)
+        assertTrue(statuses(ids).all { it == LessonStatus.SCHEDULED })
+    }
+
+    /** One-directional: switching a preference off is not a reason to un-bill anything, or to bill it. */
+    @Test
+    fun `turning auto-completion off settles nothing`() = runTest(mainRule.dispatcher) {
+        env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
+        val ids = finishedLessons(3)
+
+        val vm = vm()
+        vm.setAutoCompleteEnabled(false)
+        advanceUntilIdle()
+
+        assertFalse(env.settingsRepo.get().autoCompleteEnabled)
+        assertTrue(statuses(ids).all { it == LessonStatus.SCHEDULED })
     }
 
     // --- Intent and platform truth are two facts ---------------------------------------------------

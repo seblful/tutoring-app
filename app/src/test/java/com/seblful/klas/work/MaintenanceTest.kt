@@ -28,12 +28,8 @@ class MaintenanceTest {
     private val env = TestEnv()
     private val now: Instant = Instant.parse("2026-06-15T12:00:00Z")
 
-    private fun maintenance() = Maintenance(
-        classes = env.classRepo,
-        settings = env.settingsRepo,
-        scheduler = env.reminders,
-        clock = env.clock,
-    )
+    /** The environment's own — the same instance the settings screen's switch runs. */
+    private fun maintenance() = env.maintenance
 
     /**
      * One lesson, booked through the repository — so its price and charge are what the app would have
@@ -130,6 +126,62 @@ class MaintenanceTest {
         maintenance().run(now)
 
         assertTrue(env.reminders.armed.isEmpty())
+    }
+
+    // --- What a pass did, and what one would do -----------------------------------------------------
+    //
+    // Both counts exist for the settings switch: it asks the tutor about the backlog before turning
+    // auto-completion on, and reports what it settled afterwards. Both are in **lessons**, because that
+    // is what the tutor is being asked about — an evening's group lesson is one hour to confirm.
+
+    @Test
+    fun `a pass reports how many lessons it settled`() = runTest(mainRule.dispatcher) {
+        seedClass(now.minusSeconds(7200))
+        seedClass(now.minusSeconds(3600))
+        seedClass(now.plusSeconds(3600)) // still to come, so not settled by this pass
+        env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
+
+        assertEquals(2, maintenance().run(now))
+    }
+
+    /**
+     * The count the switch reports is lessons, not billed classes. A group of three finishing an hour
+     * is **one** «Завершено 1 занятие» — reporting three would name a number the tutor cannot find
+     * anywhere in their schedule.
+     */
+    @Test
+    fun `a group lesson counts once, however many it billed`() = runTest(mainRule.dispatcher) {
+        val subjectId = env.fixtures.subject("Математика")
+        val members = listOf("Аня", "Боря", "Вера").map { env.fixtures.student(it) }
+        val groupId = env.fixtures.group(subjectId = subjectId, members = members.toSet())
+        val ids = env.fixtures.lesson(subjectId, members, start = now.minusSeconds(7200), groupId = groupId)
+        env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
+
+        assertEquals("one finished hour", 1, maintenance().run(now))
+        val session = env.classRepo.getSessionFor(ids.first())!!
+        assertEquals("billed to all three of them", 3, session.size)
+    }
+
+    @Test
+    fun `a pass that settles nothing reports nothing`() = runTest(mainRule.dispatcher) {
+        seedClass(now.minusSeconds(7200))
+        // The setting is off, so the finished lesson is left for the tutor to confirm by hand.
+        assertEquals(0, maintenance().run(now))
+    }
+
+    /**
+     * The backlog is counted **regardless of the setting** — that is the whole point of it. It is what
+     * the settings screen puts to the tutor *before* switching auto-completion on, at which moment the
+     * setting is by definition still off.
+     */
+    @Test
+    fun `the backlog is countable while auto-completion is still off`() = runTest(mainRule.dispatcher) {
+        seedClass(now.minusSeconds(7200))
+        seedClass(now.minusSeconds(3600))
+        seedClass(now.plusSeconds(3600))
+
+        assertEquals(2, maintenance().dueForCompletion(now))
+        assertEquals("and counting it settled nothing", 0, maintenance().run(now))
     }
 
     @Test

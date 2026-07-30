@@ -41,6 +41,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -69,9 +71,21 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.state.collectAsState()
     val notificationsPermitted by viewModel.notificationsPermitted.collectAsState()
+    val pendingSweep by viewModel.pendingSweep.collectAsState()
     val messages = rememberMessages()
     val deniedMsg = stringResource(R.string.calendar_denied)
     val notificationsBlockedMsg = stringResource(R.string.settings_notifications_blocked)
+
+    // The count comes with the event, so the plural is resolved from the context rather than read
+    // above the collector as the other screens do — `stringResource` cannot be called from inside one,
+    // and there is no state here to pre-resolve it from. The app's resources are pinned to Russian
+    // (`inRussian`), which is what makes the quantity rule the right one.
+    val resources = LocalContext.current.resources
+    LaunchedEffect(viewModel, messages) {
+        viewModel.swept.stream.collect { count ->
+            messages.show(resources.getQuantityString(R.plurals.settings_autocomplete_swept, count, count))
+        }
+    }
 
     // A permission can be granted or revoked in system settings while the app is away, so the screen
     // re-asks each time it comes back rather than trusting what it learned when it opened.
@@ -186,7 +200,10 @@ fun SettingsScreen(
                 title = stringResource(R.string.settings_autocomplete),
                 description = stringResource(R.string.settings_autocomplete_desc),
                 checked = settings.autoCompleteEnabled,
-                onCheckedChange = { on -> viewModel.update { it.copy(autoCompleteEnabled = on) } },
+                // Not the generic `update`: turning this on settles — and bills — every lesson that has
+                // already finished, so whether that needs asking about first is the view model's to
+                // decide. It answers through [SettingsViewModel.pendingSweep], below.
+                onCheckedChange = { on -> viewModel.setAutoCompleteEnabled(on) },
             )
             ChoiceRow(
                 title = stringResource(R.string.settings_default_lesson),
@@ -257,6 +274,20 @@ fun SettingsScreen(
             confirmLabel = stringResource(R.string.settings_currency_change),
             onConfirm = { viewModel.update { it.copy(currency = code) } },
             onDismiss = { pendingCurrency = null },
+        )
+    }
+    // Held in the view model rather than here, unlike the currency above: what the question is *about*
+    // — how many finished lessons are waiting — has to be counted before it can be asked.
+    pendingSweep?.let { backlog ->
+        ConfirmDialog(
+            text = pluralStringResource(
+                R.plurals.settings_autocomplete_sweep_confirm,
+                backlog,
+                backlog,
+            ),
+            confirmLabel = stringResource(R.string.action_enable),
+            onConfirm = { viewModel.confirmPendingSweep() },
+            onDismiss = { viewModel.dismissPendingSweep() },
         )
     }
 }

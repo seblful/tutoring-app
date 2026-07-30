@@ -486,6 +486,19 @@ class ClassRepository @Inject constructor(
         dao.nextScheduledAfter(now.toEpochMilli())?.toDomain()
 
     /**
+     * How many **lessons** are waiting to be auto-completed at [now] — what [autoCompleteDue] would
+     * settle if it ran, whether or not the setting that lets it run is on.
+     *
+     * Asked before the sweep happens, because the tutor is put the question first (see
+     * `SettingsViewModel.setAutoCompleteEnabled`). It reads the same query the sweep reads rather than
+     * a count of its own, so the number in the question cannot disagree with what the answer then does.
+     *
+     * Lessons, not classes: a group's finished hour is one lesson to confirm, not one per member.
+     */
+    suspend fun countDueForCompletion(now: Instant): Int =
+        lessons.dueForCompletion(now.toEpochMilli()).size
+
+    /**
      * Auto-completes every scheduled class whose end time has passed, billing its booked price.
      * Returns the classes that were completed.
      *

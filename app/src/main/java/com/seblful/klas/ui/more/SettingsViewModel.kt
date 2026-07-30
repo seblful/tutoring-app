@@ -9,10 +9,13 @@ import com.seblful.klas.data.repository.SettingsChange
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.domain.ReminderScheduler
 import com.seblful.klas.notifications.NotificationPermission
+import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.hold
+import com.seblful.klas.work.Maintenance
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,24 +24,40 @@ import javax.inject.Inject
  * The settings screen.
  *
  * Every setting goes through one [update], and what a change owes besides being stored — the
- * calendar re-earned, the reminder plan re-derived — is discharged there, from the classification
- * the store hands back ([SettingsChange]). Two settings used to have named methods carrying their
- * tails by hand, and the third that owed one rode the generic path in silence: changing the
- * reminder lead left every already-mirrored event at the old lead until that lesson happened to be
- * edited. The one method left with a name, [setCalendarSyncEnabled], exists for its *refusal* — the
- * permission gate — not for its tail.
+ * calendar re-earned, the reminder plan re-derived, the finished lessons settled — is discharged
+ * there, from the classification the store hands back ([SettingsChange]). Two settings used to have
+ * named methods carrying their tails by hand, and the third that owed one rode the generic path in
+ * silence: changing the reminder lead left every already-mirrored event at the old lead until that
+ * lesson happened to be edited. The two methods left with a name exist for what they **refuse or
+ * ask** — [setCalendarSyncEnabled] for the permission gate, [setAutoCompleteEnabled] for the
+ * question — not for their tails.
  */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settings: SettingsRepository,
     private val calendar: CalendarMirror,
     private val reminders: ReminderScheduler,
+    private val maintenance: Maintenance,
     private val calendarPermission: CalendarPermission,
     private val notificationPermission: NotificationPermission,
 ) : ViewModel() {
 
     val state: StateFlow<AppSettings> = settings.observe()
         .hold(this, AppSettings())
+
+    /** How many lessons a sweep just settled. Reported once, as a message — never replayed. */
+    val swept = UiEvents<Int>()
+
+    private val _pendingSweep = MutableStateFlow<Int?>(null)
+
+    /**
+     * The size of a backlog the tutor has been asked about and has not yet answered for — null while
+     * nothing is being asked. See [setAutoCompleteEnabled] for why the question exists.
+     *
+     * State rather than a one-shot event, because it must survive a rotation: a question the screen
+     * forgot halfway would leave the switch off with the tutor believing they had turned it on.
+     */
+    val pendingSweep: StateFlow<Int?> = _pendingSweep.asStateFlow()
 
     /** Bumped by [refreshPermissions] to re-ask the platform; a permission is not observable. */
     private val permissionChecks = MutableStateFlow(0)
@@ -106,7 +125,57 @@ class SettingsViewModel @Inject constructor(
                 SettingsChange.CalendarWork.NONE -> Unit
             }
             if (change.replansReminders) reminders.refreshNow()
+            // Run here and now, rather than by asking the scheduler to get round to it: the tutor is
+            // standing in front of the switch they just flipped, and the pass has to be able to report
+            // back. It re-derives the reminder plan too, so it subsumes the refresh above.
+            if (change.sweepsDueLessons) {
+                val settled = maintenance.run()
+                if (settled > 0) swept.send(settled)
+            }
         }
+    }
+
+    /**
+     * Turns auto-completion on or off — **asking first** when switching it on would settle a backlog
+     * of any size.
+     *
+     * Turning it on completes every lesson that has already finished, however long ago, and completing
+     * a lesson bills it. That is what the setting says it does and it is what a tutor turning it on
+     * generally wants, but for a term's worth of unconfirmed lessons it is a large, silent movement of
+     * recognized income off one tap, so the number is put to them first.
+     *
+     * A small backlog is not worth a dialog — up to [SWEEP_ASKS_ABOVE] lessons it just happens, and
+     * [swept] says how many. The threshold is a judgement about when "it did what it says" turns into
+     * "where did that income come from", not a rule about correctness.
+     *
+     * **Declining leaves the setting off**, which is the only honest answer available: the sweep has no
+     * lower bound, so with the setting on that backlog would be settled by the next upkeep pass
+     * regardless — a "no" that only postponed it would be a lie. Wanting auto-completion *without* the
+     * backlog is therefore not expressible here, and deliberately so; the tutor cancels the old lessons
+     * they do not want billed, then turns it on.
+     */
+    fun setAutoCompleteEnabled(on: Boolean) {
+        if (!on) {
+            _pendingSweep.value = null
+            update { it.copy(autoCompleteEnabled = false) }
+            return
+        }
+        viewModelScope.launch {
+            val backlog = maintenance.dueForCompletion()
+            if (backlog > SWEEP_ASKS_ABOVE) _pendingSweep.value = backlog
+            else update { it.copy(autoCompleteEnabled = true) }
+        }
+    }
+
+    /** Answers [pendingSweep] with yes: the setting goes on, and [update] settles the backlog. */
+    fun confirmPendingSweep() {
+        _pendingSweep.value = null
+        update { it.copy(autoCompleteEnabled = true) }
+    }
+
+    /** Answers [pendingSweep] with no. Nothing is stored, so the switch stays off. */
+    fun dismissPendingSweep() {
+        _pendingSweep.value = null
     }
 
     /**
@@ -122,6 +191,11 @@ class SettingsViewModel @Inject constructor(
         if (enabled && !calendarPermission.isGranted()) return CalendarSyncToggle.PERMISSION_NEEDED
         update { it.copy(calendarSyncEnabled = enabled) }
         return CalendarSyncToggle.APPLIED
+    }
+
+    companion object {
+        /** Backlogs bigger than this are asked about; see [setAutoCompleteEnabled]. */
+        const val SWEEP_ASKS_ABOVE = 10
     }
 }
 

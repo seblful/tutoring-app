@@ -22,6 +22,7 @@ import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentStore
+import com.seblful.klas.work.Maintenance
 
 /** Records reminder-refresh requests and armed plans so tests can assert side effects fired. */
 class RecordingReminderScheduler : ReminderScheduler {
@@ -259,5 +260,17 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
         settings = settingsRepo,
         calendar = calendarMirror,
         reminders = reminders,
+    )
+
+    /**
+     * The real upkeep pass. Not a fake, because the settings screen's auto-completion switch runs it
+     * for real and reports what it settled — a double would let a test agree about a number this
+     * environment made up.
+     */
+    val maintenance = Maintenance(
+        classes = classRepo,
+        settings = settingsRepo,
+        scheduler = reminders,
+        clock = clock,
     )
 }

@@ -67,6 +67,23 @@ data class SettingsChange(val before: AppSettings, val after: AppSettings) {
      */
     val replansReminders: Boolean get() = moved { it.reminderLeadMinutes }
 
+    /**
+     * Whether the lessons already waiting have to be settled now: turning auto-completion **on** owes
+     * the sweep the tutor just asked for.
+     *
+     * The third obligation, and the one that was missing — with exactly the consequence this class was
+     * written about. Nothing discharged the switch, so the backlog sat until something unrelated
+     * happened to run the upkeep pass: an app restart, the half-hourly tick, or *any* lesson write. The
+     * switch appeared to do nothing, and then confirming a single old lesson by hand completed every
+     * other old lesson at once — the tutor's tap on one row credited months of income, because it was
+     * the tap that finally ran the pass owed since the toggle.
+     *
+     * Only on the way on. Turning it **off** owes nothing: the pass simply stops running, and lessons
+     * already completed stay completed — un-billing the past is not what switching a preference off
+     * means.
+     */
+    val sweepsDueLessons: Boolean get() = moved { it.autoCompleteEnabled } && after.autoCompleteEnabled
+
     private fun <T> moved(field: (AppSettings) -> T): Boolean = field(before) != field(after)
 }
 

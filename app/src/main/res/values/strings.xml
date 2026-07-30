@@ -23,6 +23,7 @@
     <string name="action_back">Назад</string>
     <string name="action_archive">В архив</string>
     <string name="action_unarchive">Из архива</string>
+    <string name="action_enable">Включить</string>
     <string name="action_undo">Отменить</string>
     <!-- The action a snackbar carries when the message names something to go and look at. -->
     <string name="action_show">Показать</string>
@@ -354,6 +355,27 @@
     <string name="settings_reminder_lead">За сколько напоминать</string>
     <string name="settings_autocomplete">Автозавершение занятий</string>
     <string name="settings_autocomplete_desc">Отмечать прошедшие занятия проведёнными автоматически</string>
+    <!--
+      Asked before switching auto-completion on, when doing so would settle a backlog worth mentioning.
+      Turning it on completes every lesson that has already finished, however long ago, and completing a
+      lesson bills it — so a term of unconfirmed lessons is a large movement of recognized income off one
+      tap. The question names the number and says what will happen to the money, because that is the part
+      the setting's own description does not.
+    -->
+    <plurals name="settings_autocomplete_sweep_confirm">
+        <item quantity="one">%1$d прошедшее занятие будет отмечено проведённым, и доход по нему начислится. Включить автозавершение?</item>
+        <item quantity="few">%1$d прошедших занятия будут отмечены проведёнными, и доход по ним начислится. Включить автозавершение?</item>
+        <item quantity="many">%1$d прошедших занятий будут отмечены проведёнными, и доход по ним начислится. Включить автозавершение?</item>
+        <item quantity="other">%1$d прошедших занятия будут отмечены проведёнными, и доход по ним начислится. Включить автозавершение?</item>
+    </plurals>
+    <!-- What the sweep actually settled. Said even when it was not asked about, so no lesson is ever
+         completed in silence by a switch. -->
+    <plurals name="settings_autocomplete_swept">
+        <item quantity="one">Завершено %1$d занятие</item>
+        <item quantity="few">Завершено %1$d занятия</item>
+        <item quantity="many">Завершено %1$d занятий</item>
+        <item quantity="other">Завершено %1$d занятия</item>
+    </plurals>
     <string name="settings_default_lesson">Длительность по умолчанию</string>
     <string name="settings_currency">Валюта</string>
     <string name="settings_default_group_price">Цена группы по умолчанию</string>

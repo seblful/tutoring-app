@@ -31,15 +31,34 @@ class Maintenance @Inject constructor(
     private val clock: Clock,
 ) {
     /**
-     * Runs one upkeep pass. [now] defaults to the **injected** clock, never the wall clock: the
-     * default is the path production takes, and a default a test cannot move makes the tested path
-     * and the shipped path two different paths.
+     * How many lessons a pass at [now] **would** auto-complete — the backlog, and deliberately
+     * regardless of whether the setting is on: this is what the settings screen puts to the tutor
+     * before turning it on, and the sweep only follows if they say yes.
+     *
+     * Here rather than at the call site so it shares this class's clock with [run]. A backlog counted
+     * against one instant and settled against another is a question answered about a different number.
      */
-    suspend fun run(now: Instant = clock.instant()) {
+    suspend fun dueForCompletion(now: Instant = clock.instant()): Int =
+        classes.countDueForCompletion(now)
+
+    /**
+     * Runs one upkeep pass, returning **how many lessons it auto-completed** — zero when the setting
+     * is off, or when nothing had finished. Counted in lessons, like [dueForCompletion]: a group's
+     * hour bills every member but is one lesson settled.
+     *
+     * The count is returned because a pass the tutor **asked for** has to be able to say what it did:
+     * turning auto-completion on settles the whole backlog at once, and an income figure that moves
+     * with nothing accounting for it is the thing that made this feature feel arbitrary.
+     *
+     * [now] defaults to the **injected** clock, never the wall clock: the default is the path
+     * production takes, and a default a test cannot move makes the tested path and the shipped path
+     * two different paths.
+     */
+    suspend fun run(now: Instant = clock.instant()): Int {
         val s = settings.get()
         // Auto-completion (and therefore auto-billing) is opt-in; when off, the tutor confirms each
         // lesson by marking it completed.
-        if (s.autoCompleteEnabled) classes.autoCompleteDue(now)
+        val completed = if (s.autoCompleteEnabled) classes.autoCompleteDue(now) else emptyList()
         // The horizon is named once and used twice — to fetch the window and to filter it — because a
         // plan derived over a shorter window than it filters on would quietly drop reminders.
         val horizon = Reminders.DEFAULT_HORIZON
@@ -56,5 +75,6 @@ class Maintenance @Inject constructor(
                 horizon = horizon,
             ),
         )
+        return completed.distinctBy { it.lessonId }.size
     }
 }
