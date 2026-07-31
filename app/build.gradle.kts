@@ -28,8 +28,8 @@ android {
         applicationId = "com.seblful.klas"
         minSdk = 24
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.3.0"
+        versionCode = 5
+        versionName = "0.3.1"
 
         testInstrumentationRunner = "com.seblful.klas.HiltTestRunner"
     }

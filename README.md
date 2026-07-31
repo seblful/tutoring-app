@@ -5,7 +5,7 @@ payments and debts. **Offline-first and local-only — no backend, no account, n
 English UI (following the phone unless told otherwise), Material 3, money in **BYN**, **RUB**, **USD**
 or **EUR**.
 
-> Application ID: `com.seblful.klas` · current version: `0.3.0` (`versionCode` 4) · launcher label: **Klas**
+> Application ID: `com.seblful.klas` · current version: `0.3.1` (`versionCode` 5) · launcher label: **Klas**
 
 ## Features
 
