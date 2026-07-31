@@ -28,8 +28,8 @@ android {
         applicationId = "com.seblful.klas"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.2.0"
+        versionCode = 4
+        versionName = "0.3.0"
 
         testInstrumentationRunner = "com.seblful.klas.HiltTestRunner"
     }
@@ -93,12 +93,11 @@ android {
     // pure and every Android edge sits behind a port (CalendarSync, Notifier, DocumentStore,
     // ReminderScheduler, Transactor), so a test that needs the framework has found a missing port
     // rather than a reason to turn this back on.
-    // Room's exported schema JSONs (see `ksp { room.schemaLocation }`) are shipped as androidTest
-    // assets so MigrationTestHelper can create an old-version DB and validate migrations against the
-    // bundled schema for each version.
-    sourceSets {
-        getByName("androidTest").assets.directories.add("$projectDir/schemas")
-    }
+    //
+    // The exported schemas (`ksp { room.schemaLocation }`) used to be shipped as androidTest assets so
+    // `MigrationTestHelper` could stand an old-version database up on a device. There are no migrations
+    // to test any more (`AppDatabase.BASELINE_VERSION`), so nothing on a device reads them; the schema
+    // that remains is read off the tree by `MigrationChainTest`, on the JVM.
 }
 
 // Kotlin compiler options moved out of the deprecated android.kotlinOptions block (removed in AGP 9).

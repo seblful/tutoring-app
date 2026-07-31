@@ -4,7 +4,7 @@ A native Android app for a **single private tutor** to manage students, groups, 
 payments and debts. **Offline-first and local-only — no backend, no account, no cloud.** Russian UI,
 Material 3, money in **BYN** or **RUB**.
 
-> Application ID: `com.seblful.klas` · current version: `0.2.0` (`versionCode` 3) · launcher label: **Klas**
+> Application ID: `com.seblful.klas` · current version: `0.3.0` (`versionCode` 4) · launcher label: **Klas**
 
 ## Features
 
