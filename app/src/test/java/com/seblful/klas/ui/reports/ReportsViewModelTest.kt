@@ -5,6 +5,7 @@ import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.ReportCsv
+import com.seblful.klas.format.AppLocale
 import com.seblful.klas.domain.ReportPeriod
 import com.seblful.klas.domain.Reports
 import com.seblful.klas.domain.model.Money
@@ -482,7 +483,13 @@ class ReportsViewModelTest {
             shared.mimeType,
         )
         assertEquals("Отчёт Klas", shared.subject)
-        assertEquals("the file and the share are one assembly", ReportCsv.build(header, lines), shared.text)
+        assertEquals(
+            "the file and the share are one assembly",
+            // `AppLocale` has not been moved, so the app's language is the JVM default's and the dialect
+            // follows it — the point of the assertion is that both ways out produce the *same* bytes.
+            ReportCsv.build(header, lines, ReportCsv.Dialect.forDecimal(AppLocale.decimalSeparator)),
+            shared.text,
+        )
     }
 
     /** A share that could not be handed anywhere is reported, like an export that could not be written. */

@@ -50,6 +50,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.seblful.klas.R
+import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.Digests
 import com.seblful.klas.domain.model.Money
@@ -66,7 +67,9 @@ import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.common.ChoiceRow
 import com.seblful.klas.ui.common.currencyLabel
+import com.seblful.klas.ui.common.languageLabel
 import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.moneyErrorText
 import com.seblful.klas.ui.common.rememberMessages
@@ -97,8 +100,9 @@ fun SettingsScreen(
 
     // The count comes with the event, so the plural is resolved from the context rather than read
     // above the collector as the other screens do — `stringResource` cannot be called from inside one,
-    // and there is no state here to pre-resolve it from. The app's resources are pinned to Russian
-    // (`inRussian`), which is what makes the quantity rule the right one.
+    // and there is no state here to pre-resolve it from. This is the *provided* context, in the app's own
+    // language (`ProvideLocalizedResources`), which is what makes the quantity rule the right one: a
+    // plural's form comes from the configuration's locale and not from the folder it was loaded from.
     val context = LocalContext.current
     val resources = context.resources
     LaunchedEffect(viewModel, messages) {
@@ -414,6 +418,24 @@ private fun SettingsList(
         )
 
         SectionHeader(stringResource(R.string.settings_section_appearance))
+        // **First in the section**, because it is what a tutor comes here looking for, and it governs more
+        // than the section's name suggests: the words on every screen, in every notification and in a
+        // mirrored calendar event's location. Which is why it is one of the settings that owes something on
+        // the way out — `SettingsChange.calendarWork` re-mirrors the events that still carry the old
+        // language, and [update] is what discharges it.
+        //
+        // Applied without asking, unlike the currency below: a language changes the words around the
+        // numbers, where a currency changes what the numbers claim to be.
+        ChoiceRow(
+            title = stringResource(R.string.settings_language),
+            // The legal set is [AppLanguage]'s and the wording is [languageLabel]'s; the row only places it.
+            options = AppLanguage.entries.map { it.name to languageLabel(it) },
+            selected = settings.language.name,
+            onSelect = { name ->
+                val picked = AppLanguage.parse(name)
+                if (picked != settings.language) viewModel.update { it.copy(language = picked) }
+            },
+        )
         ChoiceRow(
             title = stringResource(R.string.settings_theme),
             options = listOf(
@@ -763,28 +785,3 @@ private fun SectionHeader(title: String) {
     )
 }
 
-/**
- * A labelled row with a single-choice segmented control.
- *
- * Through [SegmentedChoice], so these four rows get the one-line shrink rule the schedule's segments
- * already had — «Как в системе» in a third of a phone is exactly the label that needed it, and it was
- * wrapping here while the identical control two screens away did not.
- */
-@Composable
-private fun <T> ChoiceRow(
-    title: String,
-    options: List<Pair<T, String>>,
-    selected: T,
-    onSelect: (T) -> Unit,
-) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = Spacing.inline)) {
-        Text(title, style = MaterialTheme.typography.bodyLarge)
-        SegmentedChoice(
-            options = options.map { it.first },
-            selected = selected,
-            onSelect = onSelect,
-            modifier = Modifier.padding(top = Spacing.inline),
-            label = { value -> options.first { it.first == value }.second },
-        )
-    }
-}

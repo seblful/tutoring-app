@@ -17,6 +17,8 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.format.daySummaryText
 import com.seblful.klas.format.formatTime
+import com.seblful.klas.format.money
+import com.seblful.klas.inAppLanguage
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -33,6 +35,22 @@ class AndroidNotifier @Inject constructor(
      */
     private val permission: NotificationPermission,
 ) : Notifier {
+
+    /**
+     * The context every **word** in this class is read from: the application's, in the language the tutor
+     * chose ([com.seblful.klas.inAppLanguage]).
+     *
+     * [context] itself cannot be it. The application's base context is pinned to whatever language the
+     * *phone* asks for, because the settings row cannot be read before a context exists (`KlasApp`), and a
+     * notification is the one surface with no composition to be handed a localized one by — so this is where
+     * the app's own answer arrives. It matters for the plural rules as much as for the words: a quantity's
+     * form comes from the configuration's locale, not from the folder the string was loaded from.
+     *
+     * Read per use rather than held, so a language changed in Settings applies to the next notification
+     * without this singleton having to be told. Everything that is *not* a word — the system service, the
+     * `PendingIntent`s, the builders — stays on [context], which is the one the platform expects.
+     */
+    private val words: Context get() = context.inAppLanguage()
 
     override fun ensureChannels() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -88,8 +106,8 @@ class AndroidNotifier @Inject constructor(
      */
     @androidx.annotation.RequiresApi(Build.VERSION_CODES.O)
     private fun channel(id: String, nameRes: Int, descRes: Int, importance: Int): NotificationChannel =
-        NotificationChannel(id, context.getString(nameRes), importance)
-            .apply { description = context.getString(descRes) }
+        NotificationChannel(id, words.getString(nameRes), importance)
+            .apply { description = words.getString(descRes) }
 
     /** No-ops silently if notification permission is missing. */
     override fun showClassReminder(klass: TutoringClass, whoName: String, subjectName: String) {
@@ -105,7 +123,7 @@ class AndroidNotifier @Inject constructor(
 
         val notification = NotificationCompat.Builder(context, CHANNEL_REMINDERS)
             .setSmallIcon(R.drawable.ic_stat_reminder)
-            .setContentTitle(context.getString(R.string.reminder_title))
+            .setContentTitle(words.getString(R.string.reminder_title))
             .setContentText(headline)
             .setStyle(NotificationCompat.BigTextStyle().bigText(headline))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -146,7 +164,7 @@ class AndroidNotifier @Inject constructor(
     private fun remindersSummary() {
         val summary = NotificationCompat.Builder(context, CHANNEL_REMINDERS)
             .setSmallIcon(R.drawable.ic_stat_reminder)
-            .setContentTitle(context.getString(R.string.reminder_title))
+            .setContentTitle(words.getString(R.string.reminder_title))
             .setGroup(GROUP_REMINDERS)
             .setGroupSummary(true)
             .setOnlyAlertOnce(true)
@@ -168,17 +186,17 @@ class AndroidNotifier @Inject constructor(
         lines.take(MAX_AGENDA_LINES).forEach { style.addLine(it) }
         if (lines.size > MAX_AGENDA_LINES) {
             style.setSummaryText(
-                context.getString(R.string.agenda_more, lines.size - MAX_AGENDA_LINES),
+                words.getString(R.string.agenda_more, lines.size - MAX_AGENDA_LINES),
             )
         }
 
         // The same sentence the schedule prints under the day it names — see [daySummaryText]. Never
         // null here: `Agenda.isWorthPosting` has already refused an empty day, and it is the only way in.
-        val summary = daySummaryText(context.resources, agenda.summary, currency).orEmpty()
+        val summary = daySummaryText(words.resources, agenda.summary, currency).orEmpty()
 
         val notification = NotificationCompat.Builder(context, CHANNEL_AGENDA)
             .setSmallIcon(R.drawable.ic_stat_reminder)
-            .setContentTitle(context.getString(R.string.agenda_title))
+            .setContentTitle(words.getString(R.string.agenda_title))
             .setContentText(summary)
             .setStyle(style)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
@@ -194,12 +212,12 @@ class AndroidNotifier @Inject constructor(
         ensureChannels()
 
         val body = joined(
-            context.resources.getQuantityString(R.plurals.students_count, debts.students, debts.students),
-            debts.total.format(currency),
+            words.resources.getQuantityString(R.plurals.students_count, debts.students, debts.students),
+            debts.total.money(currency),
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_DEBTS)
             .setSmallIcon(R.drawable.ic_stat_reminder)
-            .setContentTitle(context.getString(R.string.debts_title))
+            .setContentTitle(words.getString(R.string.debts_title))
             .setContentText(body)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setAutoCancel(true)
@@ -216,12 +234,12 @@ class AndroidNotifier @Inject constructor(
         ensureChannels()
 
         val body = joined(
-            context.resources.getQuantityString(R.plurals.lessons_count, lessons, lessons),
-            billed.format(currency),
+            words.resources.getQuantityString(R.plurals.lessons_count, lessons, lessons),
+            billed.money(currency),
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_UPKEEP)
             .setSmallIcon(R.drawable.ic_stat_reminder)
-            .setContentTitle(context.getString(R.string.upkeep_completed_title))
+            .setContentTitle(words.getString(R.string.upkeep_completed_title))
             .setContentText(body)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setAutoCancel(true)
@@ -302,7 +320,7 @@ class AndroidNotifier @Inject constructor(
      * app runs on is N or later (minSdk 24). A drawable here would be one nobody ever sees.
      */
     private fun action(labelRes: Int, intent: PendingIntent): NotificationCompat.Action =
-        NotificationCompat.Action.Builder(0, context.getString(labelRes), intent).build()
+        NotificationCompat.Action.Builder(0, words.getString(labelRes), intent).build()
 
     companion object {
         const val CHANNEL_REMINDERS = "class_reminders"

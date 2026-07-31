@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
+import com.seblful.klas.testutil.RussianMinskPhone
 import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.AttendanceEntity
@@ -73,7 +74,7 @@ class BackupRestoreTest {
     @Before fun setUp() {
         source = newDb()
         target = newDb()
-        settings = SettingsRepository(target.settingsDao())
+        settings = SettingsRepository(target.settingsDao(), RussianMinskPhone)
         val mirror = CalendarMirror(
             target.classDao(), target.attendanceDao(), target.studentDao(), target.subjectDao(), target.groupDao(),
             noCalendar, settings,

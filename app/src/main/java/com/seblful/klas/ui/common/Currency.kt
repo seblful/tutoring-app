@@ -7,6 +7,7 @@ import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.format.money
 
 /**
  * The [Currency] money is displayed in, chosen in Settings and provided at the app root. UI formats
@@ -14,10 +15,18 @@ import com.seblful.klas.domain.model.Money
  */
 val LocalCurrency = compositionLocalOf { Currency.BYN }
 
-/** Formats this amount in the currency currently provided by [LocalCurrency]. */
+/**
+ * Formats this amount in the currency currently provided by [LocalCurrency], with the app language's
+ * decimal separator.
+ *
+ * The separator is not a second composition local: it is a property of the language the whole app is set
+ * to, published where the settings row is read (`format/AppLocale`), and every reader of it — this, a
+ * notification, a money field being seeded — has to agree. A local would have made the screens agree with
+ * each other and with nothing else.
+ */
 @Composable
 @ReadOnlyComposable
-fun Money.text(): String = format(LocalCurrency.current)
+fun Money.text(): String = money(LocalCurrency.current)
 
 /** The human name of [currency] — words only; the legal set is [Currency]'s. */
 @Composable
@@ -26,5 +35,7 @@ fun currencyLabel(currency: Currency): String = stringResource(
     when (currency) {
         Currency.BYN -> R.string.currency_byn
         Currency.RUB -> R.string.currency_rub
+        Currency.USD -> R.string.currency_usd
+        Currency.EUR -> R.string.currency_eur
     },
 )

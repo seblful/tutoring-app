@@ -16,7 +16,9 @@ import org.junit.Test
  * what made the bug easy to miss.
  *
  * So these assert the whole rule set through the resources, not one form: the boundaries are what break.
- * Read through [inRussian], which is where the fix lives.
+ * Read through [inLanguage], which is where the fix lives — and which is now asked for *per language*
+ * rather than pinned once, the app having two. `EnglishPluralsTest` is the other side of the same coin:
+ * the mistake is symmetric, and an English phone reading Russian rules is the same defect as the reverse.
  */
 @HiltAndroidTest
 class RussianPluralsTest {
@@ -24,7 +26,9 @@ class RussianPluralsTest {
     @get:Rule
     val hilt = HiltAndroidRule(this)
 
-    private val resources = InstrumentationRegistry.getInstrumentation().targetContext.inRussian().resources
+    private val resources = InstrumentationRegistry.getInstrumentation().targetContext
+        .inLanguage(java.util.Locale.forLanguageTag("ru"))
+        .resources
 
     @Test
     fun aLessonCountTakesTheFormItsNumberCallsFor() {

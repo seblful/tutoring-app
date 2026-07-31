@@ -1,8 +1,9 @@
 # Klas — Tutoring App
 
 A native Android app for a **single private tutor** to manage students, groups, subjects, schedule,
-payments and debts. **Offline-first and local-only — no backend, no account, no cloud.** Russian UI,
-Material 3, money in **BYN** or **RUB**.
+payments and debts. **Offline-first and local-only — no backend, no account, no cloud.** Russian and
+English UI (following the phone unless told otherwise), Material 3, money in **BYN**, **RUB**, **USD**
+or **EUR**.
 
 > Application ID: `com.seblful.klas` · current version: `0.3.0` (`versionCode` 4) · launcher label: **Klas**
 
@@ -18,6 +19,7 @@ Material 3, money in **BYN** or **RUB**.
 - **Reminders** — notifications ahead of a lesson, driven by `AlarmManager` (exact where the platform allows) so they arrive on time rather than whenever the system feels like it.
 - **Backup** — full database export/import as a JSON snapshot via the Storage Access Framework, checked for readability before a single row is written.
 - **Crash diagnostics** — local crash log (viewable/exportable in-app) plus Google Play Vitals; no third-party SDK.
+- **Language & currency** — Russian or English, following the phone by default, switched instantly in Settings or picked during first-run setup. Money is labelled BYN / RUB / USD / EUR — a display setting, never a conversion — and a fresh install starts on whichever of the four the phone's region names.
 
 ## Tech Stack
 

@@ -1,6 +1,5 @@
 package com.seblful.klas
 
-import android.content.res.Resources
 import java.time.DayOfWeek
 import java.util.Locale
 
@@ -14,10 +13,10 @@ import java.util.Locale
  * their week to Sunday there has said what they want their calendars to look like, and the schedule is a
  * calendar.
  *
- * **Read off the *device*, not the app.** [inRussian] replaces the configuration locale with a plain `ru`
- * so plurals resolve by Russian rules, and that replacement drops the extension keywords — the app's own
- * context can no longer see this preference. `Locale.getDefault` is set by the platform at process start
- * and `Resources.getSystem()` is untouched by us, so both are asked and the first answer wins.
+ * **Read off the *device*, not the app.** [inLanguage] replaces the configuration locale with a bare `ru`
+ * or `en` so plurals resolve by the rules of the language on screen, and that replacement drops the
+ * extension keywords — the app's own context can no longer see this preference. [deviceLocales] is the list
+ * that still can, and the first answer in it wins.
  *
  * **Only an explicit preference moves it; otherwise Monday.** The locale's own convention (`WeekFields.of`)
  * is deliberately not consulted: it would answer "Sunday" for a phone whose *language* is `en-US` while the
@@ -47,16 +46,5 @@ fun firstDayOfWeekOrNull(locale: Locale): DayOfWeek? =
         "sun" -> DayOfWeek.SUNDAY
         else -> null
     }
-
-/**
- * The locales worth asking: the JVM default, the default for *formats* — the category the platform
- * documents these preferences under — and then the device configuration's list, most-preferred first.
- */
-private fun deviceLocales(): List<Locale> = buildList {
-    add(Locale.getDefault(Locale.Category.FORMAT))
-    add(Locale.getDefault())
-    val system = Resources.getSystem().configuration.locales
-    for (index in 0 until system.size()) add(system[index])
-}
 
 private const val FIRST_DAY_OF_WEEK = "fw"

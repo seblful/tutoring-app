@@ -1,6 +1,8 @@
 package com.seblful.klas.data.repository
 
 import com.seblful.klas.data.repository.SettingsChange.CalendarWork
+import com.seblful.klas.domain.model.AppLanguage
+import com.seblful.klas.domain.model.Currency
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -62,12 +64,44 @@ class SettingsChangeTest {
         assertTrue(c.replansReminders)
     }
 
+    /**
+     * A mirrored event's **location** is the app's own word for «Очно» or "Remote", written at mirror time.
+     * So a language change leaves every event already in the tutor's calendar in the language it was written
+     * in, indefinitely — the same defect the reminder lead had, and the reason this class exists.
+     */
+    @Test
+    fun `changing the language while synced owes a resync`() {
+        val synced = base.copy(calendarSyncEnabled = true)
+        val c = change(before = synced, after = synced.copy(language = AppLanguage.ENGLISH))
+        assertEquals("a mirrored event's location is written in the app's words", CalendarWork.RESYNC, c.calendarWork)
+        assertFalse("the alarms carry no words of their own", c.replansReminders)
+    }
+
+    @Test
+    fun `changing the language while not synced owes the calendar nothing`() {
+        // Every other surface builds its words at the moment it shows them; only the mirror stores them.
+        val c = change(after = base.copy(language = AppLanguage.ENGLISH))
+        assertEquals(CalendarWork.NONE, c.calendarWork)
+    }
+
     @Test
     fun `a change that moves nothing the world can see owes nothing`() {
         val c = change(
-            after = base.copy(themeMode = "DARK", currency = com.seblful.klas.domain.model.Currency.RUB, defaultLessonMinutes = 45),
+            after = base.copy(themeMode = "DARK", currency = Currency.RUB, defaultLessonMinutes = 45),
         )
         assertEquals(CalendarWork.NONE, c.calendarWork)
         assertFalse(c.replansReminders)
+    }
+
+    /**
+     * The currency is the near-miss worth pinning: it is printed into *notifications* and into a report, but
+     * never stored in anything the app has to go back and rewrite — a calendar event's title and location
+     * carry no money. So unlike the language beside it, it owes nothing.
+     */
+    @Test
+    fun `changing the currency owes the calendar nothing, even while synced`() {
+        val synced = base.copy(calendarSyncEnabled = true)
+        val c = change(before = synced, after = synced.copy(currency = Currency.USD))
+        assertEquals(CalendarWork.NONE, c.calendarWork)
     }
 }

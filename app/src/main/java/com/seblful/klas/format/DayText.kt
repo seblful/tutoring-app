@@ -18,8 +18,9 @@ import com.seblful.klas.domain.model.Currency
  *
  * Takes [Resources] rather than being a `@Composable`, for the same reason: a notification is built from a
  * `Context` and has no composition to read `stringResource` from. Plurals still come from the resources'
- * own configuration, which the app pins to Russian on both paths (`Context.inRussian()`, applied in
- * `KlasApp` and `MainActivity`) — that is what makes the quantity rule the right one.
+ * own configuration rather than from the folder the strings were loaded from, so **which** `Resources` is
+ * handed in decides the quantity rule: a screen's come from `AppRoot`, a notification's from
+ * `Context.inAppLanguage()`, and both are the language the app is set to.
  *
  * Null rather than an empty string, so a caller has to decide what "nothing to say" looks like: the
  * schedule draws no line at all, because its empty state already says it at length and «0 занятий · 0 ч»
@@ -37,7 +38,7 @@ fun daySummaryText(res: Resources, summary: DaySummary, currency: Currency): Str
         listOfNotNull(
             res.getQuantityString(R.plurals.lessons_count, summary.lessons, summary.lessons),
             res.getString(R.string.hours_value, formatHours(summary.minutes)),
-            summary.money.format(currency),
+            summary.money.money(currency),
             cancelled,
         )
     } else {

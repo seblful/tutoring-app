@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
+import com.seblful.klas.testutil.RussianMinskPhone
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.DatabaseSnapshot
@@ -64,7 +65,7 @@ class ClassCalendarSyncTest {
             ),
         )
         calendar = FakeCalendarSync()
-        val settings = SettingsRepository(db.settingsDao())
+        val settings = SettingsRepository(db.settingsDao(), RussianMinskPhone)
         settings.update { it.copy(calendarSyncEnabled = true) } // calendar mirroring is off unless enabled
         val mirror = CalendarMirror(
             db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(), calendar, settings,

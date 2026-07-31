@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.inAppLanguage
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -144,7 +145,11 @@ class DeviceCalendarSync @Inject constructor(
         put(CalendarContract.Events.DTSTART, klass.start.toEpochMilli())
         put(CalendarContract.Events.DTEND, klass.end.toEpochMilli())
         put(CalendarContract.Events.EVENT_TIMEZONE, ZoneId.systemDefault().id)
-        put(CalendarContract.Events.EVENT_LOCATION, context.getString(modeLabelRes(klass.mode)))
+        // The one **word** this class writes, so it is the one thing read in the tutor's chosen language
+        // rather than off the application context (which is pinned to the phone's — see `KlasApp`). An event
+        // keeps the language it was mirrored in until something re-mirrors it, which is why changing the
+        // language owes a resync: `SettingsChange.calendarWork`.
+        put(CalendarContract.Events.EVENT_LOCATION, context.inAppLanguage().getString(modeLabelRes(klass.mode)))
         // Mark that this event carries reminders/guests, so the provider keeps the rows we add.
         put(CalendarContract.Events.HAS_ALARM, 1)
         put(CalendarContract.Events.HAS_ATTENDEE_DATA, 1)

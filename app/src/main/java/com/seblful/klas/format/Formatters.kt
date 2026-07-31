@@ -16,40 +16,63 @@ import java.time.temporal.ChronoField
 import java.util.Locale
 
 /**
- * Shared display formatting for dates, times and money in the app's `ru` locale. Lives in a
+ * Shared display formatting for dates, times and money in the language the app is set to. Lives in a
  * neutral module (not `ui`) so non-UI callers — notifications, workers, view models — use the
  * same formats without depending on the UI layer.
+ *
+ * **The locale is [AppLocale.current], read per call.** These used to be module-level `val`s built against
+ * a pinned `ru`, which was right while `values/` was the only string folder there was: a formatter built
+ * once at class-load cannot follow a setting. It is one lookup and one `Map` read per format now, against a
+ * cache keyed by locale — a `DateTimeFormatter` is immutable and thread-safe, so the sets are still built
+ * once each, just once *per language* and on demand rather than once per process.
  */
-
-private val RU = Locale.forLanguageTag("ru")
-private val dateFmt = DateTimeFormatter.ofPattern("d MMM yyyy", RU)
-private val dayFmt = DateTimeFormatter.ofPattern("EEEE, d MMMM", RU)
-private val timeFmt = DateTimeFormatter.ofPattern("HH:mm", RU)
-private val dateTimeFmt = DateTimeFormatter.ofPattern("d MMM, HH:mm", RU)
-private val dayMonthFmt = DateTimeFormatter.ofPattern("d MMMM", RU)
-private val monthFmt = DateTimeFormatter.ofPattern("LLLL yyyy", RU)
 
 /**
- * The 12-hour faces of [timeFmt] and [dateTimeFmt], for a phone whose clock is set that way — asked for
- * by `hour12`, never by this module deciding. The app's own default is the 24-hour one above.
- *
- * The marker is spelled "AM"/"PM" here rather than taken from the locale: `ru` renders it «ДП»/«ПП» under
- * some CLDR versions and "AM"/"PM" under others, so an unpinned marker would have read differently on two
- * Androids — and it is the Latin pair a tutor reading a 12-hour clock expects. Built rather than patterned
- * because a pattern's `a` is exactly the part that varies.
+ * Every formatter this file needs, for one locale. Grouped rather than kept as nine parallel maps so that
+ * "the formats for a language" is a single thing to build, look up and reason about — and so a tenth format
+ * cannot be added to eight of the nine languages.
  */
-private val amPm = mapOf(0L to "AM", 1L to "PM")
-private val time12Fmt = DateTimeFormatterBuilder()
-    .appendValue(ChronoField.CLOCK_HOUR_OF_AMPM)
-    .appendLiteral(':')
-    .appendValue(ChronoField.MINUTE_OF_HOUR, 2)
-    .appendLiteral(' ')
-    .appendText(ChronoField.AMPM_OF_DAY, amPm)
-    .toFormatter(RU)
-private val dateTime12Fmt = DateTimeFormatterBuilder()
-    .appendPattern("d MMM, ")
-    .append(time12Fmt)
-    .toFormatter(RU)
+private class Formats(val locale: Locale) {
+    val date: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", locale)
+    val day: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, d MMMM", locale)
+    val time: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", locale)
+    val dateTime: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM, HH:mm", locale)
+    val dayMonth: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM", locale)
+    val month: DateTimeFormatter = DateTimeFormatter.ofPattern("LLLL yyyy", locale)
+
+    /**
+     * The 12-hour faces of [time] and [dateTime], for a phone whose clock is set that way — asked for by
+     * `hour12`, never by this module deciding. The app's own default is the 24-hour one above.
+     *
+     * The marker is spelled "AM"/"PM" here rather than taken from the locale: `ru` renders it «ДП»/«ПП»
+     * under some CLDR versions and "AM"/"PM" under others, so an unpinned marker would have read
+     * differently on two Androids — and it is the Latin pair a tutor reading a 12-hour clock expects, in
+     * either language. Built rather than patterned because a pattern's `a` is exactly the part that varies.
+     */
+    val time12: DateTimeFormatter = DateTimeFormatterBuilder()
+        .appendValue(ChronoField.CLOCK_HOUR_OF_AMPM)
+        .appendLiteral(':')
+        .appendValue(ChronoField.MINUTE_OF_HOUR, 2)
+        .appendLiteral(' ')
+        .appendText(ChronoField.AMPM_OF_DAY, mapOf(0L to "AM", 1L to "PM"))
+        .toFormatter(locale)
+
+    val dateTime12: DateTimeFormatter = DateTimeFormatterBuilder()
+        .appendPattern("d MMM, ")
+        .append(time12)
+        .toFormatter(locale)
+}
+
+/**
+ * The formats for [AppLocale.current], built on first use of each language and kept.
+ *
+ * A plain synchronized map rather than a `ConcurrentHashMap`: there are two languages, this is read on
+ * whichever thread is drawing, and building a duplicate set would be harmless anyway — the entries are
+ * immutable and interchangeable.
+ */
+private val cache = java.util.Collections.synchronizedMap(mutableMapOf<Locale, Formats>())
+
+private val formats: Formats get() = cache.getOrPut(AppLocale.current) { Formats(AppLocale.current) }
 
 /**
  * The zone an instant is **rendered** in: the phone's, read per call so a device that changes zone
@@ -59,7 +82,8 @@ private val dateTime12Fmt = DateTimeFormatterBuilder()
  * whether there is a second possible answer. Which clock face to use is the phone owner's preference and the
  * app must not guess it, so no surface may pick one by saying nothing. "Where is this phone" has exactly one
  * answer at render time, and threading it through seventeen display functions would be ceremony with no
- * decision behind it.
+ * decision behind it. The app's **language** is ambient for the same reason and by the same argument — see
+ * [AppLocale], which is where that one is written down.
  *
  * It is also not the ambient read that mattered. `ScheduleViewModel.moveTo` and `ReportsViewModel` both used
  * to read `ZoneId.systemDefault()` themselves, and both are **write** paths — deciding which instant to
@@ -72,8 +96,8 @@ private val zone: ZoneId get() = ZoneId.systemDefault()
 fun Instant.toLocalDate(): LocalDate = atZone(zone).toLocalDate()
 fun Instant.toLocalTime(): LocalTime = atZone(zone).toLocalTime()
 
-fun Instant.formatDate(): String = atZone(zone).format(dateFmt)
-fun Instant.formatDay(): String = atZone(zone).format(dayFmt).replaceFirstChar { it.uppercase() }
+fun Instant.formatDate(): String = atZone(zone).format(formats.date)
+fun Instant.formatDay(): String = atZone(zone).format(formats.day).capitalizedForDisplay()
 
 /**
  * A clock is the one format the *phone* has an opinion about, so these take it as an argument — and
@@ -86,24 +110,28 @@ fun Instant.formatDay(): String = atZone(zone).format(dayFmt).replaceFirstChar {
  * somewhere else, so it keeps `HH:mm` whatever this phone is set to.
  */
 fun Instant.formatTime(hour12: Boolean): String =
-    atZone(zone).format(if (hour12) time12Fmt else timeFmt)
+    atZone(zone).format(if (hour12) formats.time12 else formats.time)
 
 fun Instant.formatDateTime(hour12: Boolean): String =
-    atZone(zone).format(if (hour12) dateTime12Fmt else dateTimeFmt)
+    atZone(zone).format(if (hour12) formats.dateTime12 else formats.dateTime)
 
 // The same formats for callers already holding a local date or time. Before these existed, five
 // screens spelled `atStartOfDay(ZoneId.systemDefault()).toInstant()` to reach the Instant overloads
 // — the zone convention this module owns, restated at every call — and the booking form grew its own
-// "%02d:%02d" for lesson times, a second spelling of [timeFmt].
-fun LocalDate.formatDate(): String = format(dateFmt)
-fun LocalDate.formatDay(): String = format(dayFmt).replaceFirstChar { it.uppercase() }
-fun LocalTime.formatTime(hour12: Boolean): String = format(if (hour12) time12Fmt else timeFmt)
+// "%02d:%02d" for lesson times, a second spelling of the 24-hour face.
+fun LocalDate.formatDate(): String = format(formats.date)
+fun LocalDate.formatDay(): String = format(formats.day).capitalizedForDisplay()
+fun LocalTime.formatTime(hour12: Boolean): String = format(if (hour12) formats.time12 else formats.time)
 
 /**
- * Parses a user-entered amount in rubles (comma or dot decimals) into [Money], or null.
- * Uses [BigDecimal] — not floating point — so it matches the integer-kopeck money model exactly,
+ * Parses a user-entered amount (comma or dot decimals) into [Money], or null.
+ * Uses [java.math.BigDecimal] — not floating point — so it matches the integer-kopeck money model exactly,
  * rejects non-finite input ("Infinity"/"NaN") and clamps nothing: an amount too large to fit in
  * [Money]'s `Long` minor units is rejected (null) rather than silently overflowing.
+ *
+ * **Both separators, in both languages.** The app writes `1500,50` in Russian and `1500.50` in English
+ * ([AppLocale.decimalSeparator]), and this accepts either whichever is being written — a field seeded before
+ * the language changed still reads, and a tutor whose phone keyboard offers the other one is not refused.
  *
  * **This is the app's one gate on how large an amount can be** — anything above [Money.MAX] is
  * rejected here, where the answer is still "that is not an amount" rather than a number that has
@@ -122,10 +150,10 @@ fun parseMoneyOrNull(text: String): Money? {
 /**
  * Formats [Money] as a plain editable amount with no currency sign, e.g. "50", "45,05", "-0,50".
  *
- * Kept as the name a text field seeds itself with, but the rendering itself is [Money.amountText] —
- * the same string [Money.format] puts a currency after — so the two can't drift.
+ * Kept as the name a text field seeds itself with, but the rendering itself is [Money.amount] — the same
+ * string [money] puts a currency after — so the two can't drift.
  */
-fun Money.toAmountInput(): String = amountText
+fun Money.toAmountInput(): String = amount()
 
 /**
  * Formats a number of minutes as hours: `90` → "1,5", `2520` → "42", `30` → "0,5". The bare number —
@@ -134,15 +162,16 @@ fun Money.toAmountInput(): String = amountText
  * Rounded to a tenth of an hour with integer arithmetic, matching the money model's refusal to let
  * floating point near a displayed number, and a whole number of hours prints with no decimal at all —
  * "42 ч" rather than "42,0 ч", since both callers are summaries and the extra digit only adds noise.
+ * The separator is the app language's, the same one money is written with.
  */
 fun formatHours(minutes: Int): String {
     val tenths = (minutes * 10 + 30) / 60
     val whole = tenths / 10
     val fraction = tenths % 10
-    return if (fraction == 0) "$whole" else "$whole,$fraction"
+    return if (fraction == 0) "$whole" else "$whole${AppLocale.decimalSeparator}$fraction"
 }
 
-/** Formats an epoch-month key (year * 12 + monthIndex) as e.g. "Июнь 2026". */
+/** Formats an epoch-month key (year * 12 + monthIndex) as e.g. "Июнь 2026" / "June 2026". */
 fun formatMonthKey(key: Int): String {
     val year = key / 12
     val month = key % 12 + 1
@@ -154,23 +183,39 @@ fun formatMonthKey(key: Int): String {
  * year it belongs to, where repeating "2026" on all twelve rows says nothing.
  */
 fun formatMonthName(key: Int): String =
-    Month.of(key % 12 + 1).getDisplayName(TextStyle.FULL_STANDALONE, RU)
-        .replaceFirstChar { it.uppercase() }
+    Month.of(key % 12 + 1).getDisplayName(TextStyle.FULL_STANDALONE, formats.locale)
+        .capitalizedForDisplay()
 
 /** Formats a month as e.g. "Июнь 2026" — the schedule calendar's page title. */
 fun formatMonth(month: YearMonth): String =
-    month.atDay(1).format(monthFmt).replaceFirstChar { it.uppercase() }
+    month.atDay(1).format(formats.month).capitalizedForDisplay()
 
-/** Short weekday name for a calendar header, e.g. "пн". */
-fun DayOfWeek.shortName(): String = getDisplayName(TextStyle.SHORT_STANDALONE, RU)
+/** Short weekday name for a calendar header, e.g. "пн" / "Mon". */
+fun DayOfWeek.shortName(): String = getDisplayName(TextStyle.SHORT_STANDALONE, formats.locale)
 
 /**
  * Formats a week as an inclusive range, dropping whatever the two ends share so the label stays
  * short enough to sit between the navigator's arrows:
  * "6 – 12 июля", "29 июня – 5 июля", "28 дек. 2026 – 3 янв. 2027".
  */
-fun formatWeekRange(start: LocalDate, end: LocalDate): String = when {
-    start.year != end.year -> "${start.format(dateFmt)} – ${end.format(dateFmt)}"
-    start.month != end.month -> "${start.format(dayMonthFmt)} – ${end.format(dayMonthFmt)}"
-    else -> "${start.dayOfMonth} – ${end.format(dayMonthFmt)}"
+fun formatWeekRange(start: LocalDate, end: LocalDate): String {
+    val f = formats
+    return when {
+        start.year != end.year -> "${start.format(f.date)} – ${end.format(f.date)}"
+        start.month != end.month -> "${start.format(f.dayMonth)} – ${end.format(f.dayMonth)}"
+        else -> "${start.dayOfMonth} – ${end.format(f.dayMonth)}"
+    }
 }
+
+/**
+ * A display string with its first letter raised — for the places a name is used as a **heading**.
+ *
+ * CLDR gives Russian its month and weekday names in lower case («июнь», «понедельник»), because that is how
+ * the language writes them mid-sentence; English capitalises them already. Upper-casing the first character
+ * is therefore a no-op in English and the correction in Russian, which is why it is applied unconditionally
+ * rather than under a `when` over the language. Cased in the **formatting locale**, not the JVM default, so
+ * the app's own answer is what decides — the difference is real (Turkish's dotless i), even if neither of
+ * the app's two languages is where it bites.
+ */
+private fun String.capitalizedForDisplay(): String =
+    replaceFirstChar { it.titlecase(formats.locale) }

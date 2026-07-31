@@ -1,10 +1,14 @@
 package com.seblful.klas.data.repository
 
+import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.data.local.SettingsDao
 import com.seblful.klas.data.local.SettingsEntity
+import com.seblful.klas.format.AppLocale
+import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.testutil.FakeSettingsDao
+import com.seblful.klas.testutil.RussianMinskPhone
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,8 +20,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
+import java.util.Locale
 
 /**
  * The settings row. Previously untested — its eleven setters were each too small to look worth it,
@@ -27,8 +33,16 @@ import java.time.Instant
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsRepositoryTest {
 
+    /**
+     * Reading the row **writes** `AppLocale.current`, which is process-wide — so this class is one of the
+     * ones that has to put it back, or which language the next test class formats a date in would depend on
+     * the order JUnit happened to run them in.
+     */
+    @get:Rule
+    val locale = AppLocaleRule.russian()
+
     private val dao = FakeSettingsDao()
-    private val repo = SettingsRepository(dao)
+    private val repo = SettingsRepository(dao, RussianMinskPhone)
 
     @Test
     fun `a missing row reads as the defaults`() = runTest {
@@ -40,7 +54,75 @@ class SettingsRepositoryTest {
         assertFalse("email invites default off — mailing students is a deliberate opt-in", settings.emailInvitesEnabled)
         assertFalse("auto-complete default off — never bill unconfirmed", settings.autoCompleteEnabled)
         assertNull(settings.defaultGroupPrice) // not set until the tutor sets one
-        assertEquals(Currency.BYN, settings.currency)
+        assertEquals("this phone is in Belarus", Currency.BYN, settings.currency)
+        assertEquals("follow the phone until the tutor says otherwise", AppLanguage.SYSTEM, settings.language)
+    }
+
+    /**
+     * **A row that does not exist is a tutor who has chosen nothing**, so the currency they see is the one
+     * their phone names rather than the first currency the app ever had.
+     *
+     * This is where "default as phone" is actually implemented, and it is here rather than in first-run setup
+     * because it has to hold on every path: a tutor who skips the setup entirely, or flips any switch before
+     * reaching it, still gets their own currency — the first write persists whatever this substituted. There
+     * is nothing to substitute for the language, `AppLanguage.SYSTEM` being a live rule rather than a value.
+     */
+    @Test
+    fun `a phone with no row is captioned in its own currency`() = runTest {
+        val american = SettingsRepository(FakeSettingsDao(), listOf(Locale.forLanguageTag("en-US")))
+        val german = SettingsRepository(FakeSettingsDao(), listOf(Locale.forLanguageTag("de-DE")))
+        val unknown = SettingsRepository(FakeSettingsDao(), listOf(Locale.forLanguageTag("en-GB")))
+
+        assertEquals(Currency.USD, american.get().currency)
+        assertEquals(Currency.EUR, german.get().currency)
+        assertEquals("nothing the app offers, so the fallback", Currency.USD, unknown.get().currency)
+    }
+
+    /** And the very first write is what makes that stick, rather than it being re-derived every launch. */
+    @Test
+    fun `the first write persists the currency the phone named`() = runTest {
+        val dao = FakeSettingsDao()
+        val repo = SettingsRepository(dao, listOf(Locale.forLanguageTag("de-DE")))
+
+        // Anything at all — here the flag that ends first run, which is what «Пропустить» writes.
+        repo.update { it.copy(onboardingComplete = true) }
+
+        assertEquals("EUR", dao.get()?.currency)
+    }
+
+    /**
+     * **Reading the row publishes the app's display locale**, which is what keeps the words and the dates in
+     * the same language: every consumer — the UI, the workers, the notifier — arrives through here, so
+     * `AppLocale.current` is already the new one before the new `AppSettings` reaches any of them.
+     *
+     * Asserted on both read paths, because a worker uses [SettingsRepository.get] and never observes.
+     */
+    @Test
+    fun `reading the row publishes the locale everything formats in`() = runTest {
+        repo.update { it.copy(language = AppLanguage.ENGLISH) }
+        assertEquals(Locale.forLanguageTag("en"), AppLocale.current)
+
+        repo.update { it.copy(language = AppLanguage.RUSSIAN) }
+        assertEquals(Locale.forLanguageTag("ru"), AppLocale.current)
+
+        // «Follow the phone» resolves against the device, not to nothing: this fixture's phone is Russian.
+        repo.update { it.copy(language = AppLanguage.SYSTEM) }
+        assertEquals(Locale.forLanguageTag("ru"), AppLocale.current)
+
+        AppLocale.current = Locale.ROOT
+        repo.observe().first()
+        assertEquals("observing publishes it too", Locale.forLanguageTag("ru"), AppLocale.current)
+    }
+
+    /** SYSTEM is a rule and not a value, so it answers with *this* phone rather than with a constant. */
+    @Test
+    fun `system resolves against the phone the app is on`() = runTest {
+        val dao = FakeSettingsDao()
+        val american = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-US")))
+
+        american.update { it.copy(language = AppLanguage.SYSTEM) }
+
+        assertEquals(Locale.forLanguageTag("en"), AppLocale.current)
     }
 
     @Test
@@ -71,6 +153,7 @@ class SettingsRepositoryTest {
             defaultLessonMinutes = 45,
             defaultGroupPrice = Money(2_500),
             currency = Currency.RUB,
+            language = AppLanguage.ENGLISH,
             lastExportAt = Instant.parse("2026-06-20T18:30:00Z"),
         )
 
@@ -135,7 +218,7 @@ class SettingsRepositoryTest {
     @Test
     fun `two concurrent updates do not lose one another`() = runTest {
         val dao = SuspendingSettingsDao()
-        val repo = SettingsRepository(dao)
+        val repo = SettingsRepository(dao, RussianMinskPhone)
 
         // Interleaved at the read: both are in flight before either writes.
         val first = launch { repo.update { it.copy(currency = Currency.RUB) } }
@@ -152,7 +235,7 @@ class SettingsRepositoryTest {
     @Test
     fun `an update is not lost by one that started while it was reading`() = runTest {
         val dao = SuspendingSettingsDao()
-        val repo = SettingsRepository(dao)
+        val repo = SettingsRepository(dao, RussianMinskPhone)
 
         val enabling = launch { repo.update { it.copy(calendarSyncEnabled = true) } }
         val theming = launch { repo.update { it.copy(themeMode = "DARK") } }

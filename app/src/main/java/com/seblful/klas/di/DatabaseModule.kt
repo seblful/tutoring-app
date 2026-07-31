@@ -7,6 +7,7 @@ import com.seblful.klas.data.local.AttendanceDao
 import com.seblful.klas.data.local.ClassDao
 import com.seblful.klas.data.local.GroupDao
 import com.seblful.klas.data.local.LessonDao
+import com.seblful.klas.data.local.Migrations
 import com.seblful.klas.data.local.PaymentDao
 import com.seblful.klas.data.local.PriceDao
 import com.seblful.klas.data.local.RateHistoryDao
@@ -28,10 +29,11 @@ import javax.inject.Singleton
 object DatabaseModule {
 
     /**
-     * **No `addMigrations`, because there is nothing below the schema to migrate from** — see
-     * [AppDatabase.BASELINE_VERSION], which states that claim and why it holds. A fresh install creates
-     * the current schema outright. `MigrationChainTest` fails the build the moment the version is bumped
-     * past that baseline without a migration, so this staying empty is checked rather than remembered.
+     * **Every migration the app owns is handed over here** — `Migrations.kt` is where they are written and
+     * this is the only thing Room reads, so a chain that exists but is never passed to `addMigrations`
+     * leaves every upgrade with no path at all. `MigrationChainTest` asserts both halves: that a step exists
+     * for every version between [AppDatabase.BASELINE_VERSION] and the one declared, and that they are
+     * wired in here. A fresh install skips all of it and creates the current schema outright.
      *
      * The destructive fallback is **gated on the debug build**, because that is the only case it was
      * ever meant for: a dev device carrying a schema from some earlier point in development. Room applies
@@ -52,6 +54,7 @@ object DatabaseModule {
         @DebugBuild debugBuild: Boolean,
     ): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.NAME)
+            .addMigrations(*Migrations.ALL)
             .apply { if (debugBuild) fallbackToDestructiveMigration(dropAllTables = true) }
             .build()
 

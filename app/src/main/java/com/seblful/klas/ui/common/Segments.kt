@@ -1,10 +1,13 @@
 package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -30,8 +33,9 @@ import kotlin.math.abs
  * for a *shortlist with an escape hatch*, which is exactly what the duration chips below it are and
  * exactly what this was not.
  *
- * @param options the values, in the order they should appear. Two to four; past that a row of segments
- *   is narrower per label than a phone can render.
+ * @param options the values, in the order they should appear. Two to [MaxSegments]; past that a row of
+ *   segments is narrower per label than a phone can render, and a growing list of options wants
+ *   [ChoiceRow], which changes control rather than shrinking past legibility.
  * @param label how a value reads to the tutor. Drawn through [SegmentLabel], so every segmented control
  *   in the app shrinks its text the same way instead of only the one that happened to need it first.
  * @param enabled whether a particular option may be chosen. The default lets everything be picked; the
@@ -72,6 +76,92 @@ fun <T> SegmentedChoice(
                 icon = {},
             ) { SegmentLabel(label(option)) }
         }
+    }
+}
+
+/**
+ * The most options a row of segments can carry — [SegmentedChoice]'s own stated bound, named here because
+ * [ChoiceRow] is what enforces it.
+ */
+const val MaxSegments = 4
+
+/**
+ * Whether a choice of [optionCount] values is asked with segments, or with a field instead.
+ *
+ * A named answer rather than an `if` inside the composable, for the reason every other one in this app is:
+ * a `@Composable` can only be exercised on a device, and this is the rule that decides what a *growing*
+ * list of options looks like — the language and the currency both gain an entry whenever the app learns one.
+ * `SegmentsTest` pins the boundary on the JVM; `ChoiceRowTest` pins that each side really draws the control
+ * it names.
+ */
+fun fitsInSegments(optionCount: Int): Boolean = optionCount <= MaxSegments
+
+/**
+ * A labelled row for **picking one of a fixed few** — the shape a *setting* takes.
+ *
+ * Here rather than private to `SettingsScreen`, which is where it was written: first-run setup asks two of
+ * the same questions Settings does — the language and the currency — and a choice that looks like a setting
+ * on one screen and like something else on the other would be the app disagreeing with itself about what
+ * kind of question it is asking. The same argument moved `AddRow` into this package.
+ *
+ * **Which control it draws is decided by how many options there are**, and that is the point of the row
+ * existing rather than each screen reaching for [SegmentedChoice] itself. Up to [MaxSegments] it is
+ * segments; past that it is a [ChoiceField], because a row of segments is a fixed fraction of the screen
+ * divided by the number of them and at five there is no width left to shrink a label into. This app has two
+ * settings that are *lists which grow* — the language and the currency, one entry per translation and per
+ * currency the app learns — so without this the fifth of either would have silently produced an unreadable
+ * row rather than a compile error or a visibly different control. The other five call sites are choices with
+ * a fixed arity (a theme, a lesson length, two sides of a tab) and never reach the bound.
+ *
+ * Both controls are already the app's own answers to their respective questions, so this switches between
+ * two established shapes rather than inventing a third: see *one control per kind of question*.
+ */
+@Composable
+fun <T> ChoiceRow(
+    title: String,
+    options: List<Pair<T, String>>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    description: String? = null,
+) {
+    if (!fitsInSegments(options.size)) {
+        // A field, whose own label and supporting slot carry the two lines the segmented version draws
+        // above itself — «everything that qualifies a field goes in that field's `supportingText`».
+        Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = Spacing.inline)) {
+            ChoiceField(
+                label = title,
+                selected = selected,
+                options = options.map { it.first },
+                optionLabel = { value -> options.first { it.first == value }.second },
+                onSelect = onSelect,
+                supportingText = description,
+            )
+        }
+        return
+    }
+
+    Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = Spacing.inline)) {
+        Text(title, style = MaterialTheme.typography.bodyLarge)
+        // The qualifier goes **under the label and above the control**, the place a `ListItem`'s supporting
+        // text would be: it explains the question, not the answer that happens to be selected. Only the
+        // setup's currency row uses it — every settings row's title is its own explanation.
+        if (description != null) {
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.tight),
+            )
+        }
+        // Through [SegmentedChoice], so every one of these gets the one-line shrink rule the schedule's
+        // segments already had; «Как в системе» in a third of a phone is exactly the label that needed it.
+        SegmentedChoice(
+            options = options.map { it.first },
+            selected = selected,
+            onSelect = onSelect,
+            modifier = Modifier.padding(top = Spacing.inline),
+            label = { value -> options.first { it.first == value }.second },
+        )
     }
 }
 

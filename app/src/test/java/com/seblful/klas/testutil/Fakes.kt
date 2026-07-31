@@ -323,7 +323,19 @@ class RecordingDocumentSharing(var failing: Boolean = false) : DocumentSharing {
  * (calendar, calendar permission, reminder scheduler) are fakes — so mapping logic and repository
  * side effects are exercised for real.
  */
-class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
+/**
+ * The phone the fixtures assume: Russian, in Belarus — the app's original tutor.
+ *
+ * Which matters to exactly two answers, both of them about a settings row nobody has written yet: what
+ * `AppLanguage.SYSTEM` resolves to, and which currency an amount is captioned with. A test about either
+ * hands [TestEnv] a different list; every other test wants "the app as it shipped", which is this.
+ */
+val RussianMinskPhone: List<java.util.Locale> = listOf(java.util.Locale.forLanguageTag("ru-BY"))
+
+class TestEnv(
+    val transactor: RecordingTransactor = RecordingTransactor(),
+    val deviceLocales: List<java.util.Locale> = RussianMinskPhone,
+) {
     val subjectDao = FakeSubjectDao()
     val studentDao = FakeStudentDao()
     val groupDao = FakeGroupDao()
@@ -351,7 +363,7 @@ class TestEnv(val transactor: RecordingTransactor = RecordingTransactor()) {
     val notifier = RecordingNotifier()
     val digestScheduler = RecordingDigestScheduler()
 
-    val settingsRepo = SettingsRepository(settingsDao)
+    val settingsRepo = SettingsRepository(settingsDao, deviceLocales)
     val calendarMirror =
         CalendarMirror(classDao, attendanceDao, studentDao, subjectDao, groupDao, calendar, settingsRepo)
 

@@ -367,8 +367,22 @@ data class SettingsEntity(
      */
     @ColumnInfo(defaultValue = "0")
     val defaultGroupPriceMinor: Long = 0,
-    /** Currency code used to display all money, e.g. "BYN" or "RUB". */
+    /** Currency code used to display all money — one of `Currency`'s names, e.g. "BYN" or "USD". */
     val currency: String = "BYN",
+    /**
+     * Which language the app is shown in: `AppLanguage`'s names — "SYSTEM" | "RUSSIAN" | "ENGLISH".
+     *
+     * Added by the v5 → v6 migration, whose `DEFAULT 'SYSTEM'` this `defaultValue` must match exactly or
+     * Room's schema validation fails the moment the upgrade finishes. The two agree on purpose, as
+     * [dynamicColorEnabled] does and unlike [emailInvitesEnabled]: "SYSTEM" is the honest backfill *and* the
+     * right start. An install upgrading from v5 has only ever been shown Russian, and on a Russian phone —
+     * which is nearly all of them, the app having shipped in Russian only — "SYSTEM" resolves to exactly
+     * that. Pinning `'RUSSIAN'` instead would have been the same words today and the wrong ones forever
+     * after, since it would state a preference the tutor never expressed and outlive them changing their
+     * phone's language.
+     */
+    @ColumnInfo(defaultValue = "SYSTEM")
+    val language: String = "SYSTEM",
     /**
      * **Vestigial — written with its default, read by nothing.**
      *

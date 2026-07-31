@@ -17,7 +17,8 @@ class ReportCsvTest {
      */
     private val BOM = "\uFEFF"
 
-    private fun build(vararg lines: ReportCsv.Line) = ReportCsv.build(header, lines.toList())
+    private fun build(vararg lines: ReportCsv.Line) =
+        ReportCsv.build(header, lines.toList(), ReportCsv.Dialect.COMMA_DECIMAL)
 
     private val headings = ReportCsv.Headings(
         total = "Доход", period = "Июнь 2026", byGroup = "По группам", bySubject = "По предметам",
@@ -109,6 +110,51 @@ class ReportCsvTest {
         val csv = build(ReportCsv.Line("s", "credit", Money.ZERO - Money.ofMajor(20)))
 
         assertTrue(csv, csv.contains("s;credit;-20,00"))
+    }
+
+    /**
+     * The two halves of a dialect **travel together**, which is the whole reason it is one type: Excel's
+     * list separator is `;` in every locale that writes `1500,50` and `,` in every locale that writes
+     * `1500.50`, and either half on its own produces a file no spreadsheet can read.
+     */
+    @Test
+    fun `an English dialect writes dot decimals in a comma-separated file`() {
+        val csv = ReportCsv.build(
+            listOf("Section", "Name", "Amount"),
+            listOf(ReportCsv.Line("Income", "Anya", Money(125_050))),
+            ReportCsv.Dialect.DOT_DECIMAL,
+        )
+
+        assertEquals(BOM + "Section,Name,Amount\r\nIncome,Anya,1250.50\r\n", csv)
+    }
+
+    /** And the escaping follows the delimiter, or a name with a comma in it would shift a column. */
+    @Test
+    fun `the quoted character is the dialect's own delimiter`() {
+        val commas = ReportCsv.build(
+            header,
+            listOf(ReportCsv.Line("Income", "Petrova, Anya", Money.ofMajor(10))),
+            ReportCsv.Dialect.DOT_DECIMAL,
+        )
+        val semicolons = ReportCsv.build(
+            header,
+            listOf(ReportCsv.Line("Income", "Petrova, Anya", Money.ofMajor(10))),
+            ReportCsv.Dialect.COMMA_DECIMAL,
+        )
+
+        assertTrue(commas, commas.contains("\"Petrova, Anya\""))
+        assertTrue("a comma is an ordinary character here", semicolons.contains(";Petrova, Anya;"))
+    }
+
+    @Test
+    fun `a dialect is picked by the separator the reader writes decimals with`() {
+        assertEquals(ReportCsv.Dialect.DOT_DECIMAL, ReportCsv.Dialect.forDecimal('.'))
+        assertEquals(ReportCsv.Dialect.COMMA_DECIMAL, ReportCsv.Dialect.forDecimal(','))
+        assertEquals(
+            "anything else is a comma-decimal locale, which is the app's older half",
+            ReportCsv.Dialect.COMMA_DECIMAL,
+            ReportCsv.Dialect.forDecimal('٫'),
+        )
     }
 
     /**

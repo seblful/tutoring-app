@@ -18,6 +18,7 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.SubjectId
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.format.AppLocale
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentSharing
@@ -133,11 +134,21 @@ class ReportsViewModel @Inject constructor(
     fun export(ref: DocumentRef, header: List<String>, lines: List<ReportCsv.Line>) {
         viewModelScope.launch {
             val ok = runCatchingCancellable {
-                documents.write(ref, ReportCsv.build(header, lines))
+                documents.write(ref, csv(header, lines))
             }.isSuccess
             events.send(if (ok) ExportEvent.OK else ExportEvent.ERROR)
         }
     }
+
+    /**
+     * The file, both ways out — saved and shared assemble the *same bytes*, which is what
+     * `ReportsViewModelTest` pins.
+     *
+     * The dialect is the app language's ([AppLocale]): the file is read away from the phone but by the tutor
+     * who exported it, in a spreadsheet set up for the numbers they write — see [ReportCsv].
+     */
+    private fun csv(header: List<String>, lines: List<ReportCsv.Line>): String =
+        ReportCsv.build(header, lines, ReportCsv.Dialect.forDecimal(AppLocale.decimalSeparator))
 
     /**
      * Hands the same report to another app, through the system share sheet.
@@ -158,7 +169,7 @@ class ReportsViewModel @Inject constructor(
                     filename = filename,
                     mimeType = CSV_MIME_TYPE,
                     subject = subject,
-                    text = ReportCsv.build(header, lines),
+                    text = csv(header, lines),
                 )
             }.isSuccess
             events.send(if (ok) ExportEvent.SHARED else ExportEvent.ERROR)

@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
+import com.seblful.klas.testutil.RussianMinskPhone
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.RoomTransactor
@@ -58,7 +59,7 @@ class AutoCompleteTest {
                 prices = listOf(PriceEntity(1, 1, amountMinor = 5000)), // 50 BYN
             ),
         )
-        val settings = SettingsRepository(db.settingsDao())
+        val settings = SettingsRepository(db.settingsDao(), RussianMinskPhone)
         val mirror = CalendarMirror(
             db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(), noCalendar, settings,
         )

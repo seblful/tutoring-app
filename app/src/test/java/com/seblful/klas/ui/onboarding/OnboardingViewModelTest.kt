@@ -1,6 +1,9 @@
 package com.seblful.klas.ui.onboarding
 
+import com.seblful.klas.domain.model.AppLanguage
+import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Subject
+import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
@@ -19,6 +22,10 @@ class OnboardingViewModelTest {
 
     @get:Rule
     val mainRule = MainDispatcherRule()
+
+    /** Storing a language publishes the app's display locale, which is process-wide — put it back. */
+    @get:Rule
+    val locale = AppLocaleRule.russian()
 
     private val env = TestEnv()
 
@@ -42,6 +49,75 @@ class OnboardingViewModelTest {
 
             assertEquals(Loadable.Ready(emptyList<Subject>()), vm.subjects.value)
         }
+
+    /**
+     * **Both of step 1's answers arrive already right for the phone**, which is what "default as phone" comes
+     * to and the reason the step is a nod rather than a form: `AppLanguage.SYSTEM` is a live rule that follows
+     * the device, and the currency is substituted from it by `SettingsRepository` for a row nobody has written
+     * yet. Nothing here seeds anything — the point of the assertion is that there is no seeding step to
+     * forget.
+     */
+    @Test
+    fun `the language and currency start where the phone puts them`() = runTest(mainRule.dispatcher) {
+        val minsk = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.dispatcher)
+        observing(minsk.locale)
+        advanceUntilIdle()
+
+        val chosen = (minsk.locale.value as Loadable.Ready).value
+        assertEquals("follow the phone, which is what SYSTEM is for", AppLanguage.SYSTEM, chosen.language)
+        assertEquals("this fixture's phone is in Belarus", Currency.BYN, chosen.currency)
+    }
+
+    /** The one case the guess gets half right, and the reason the step exists at all. */
+    @Test
+    fun `an English phone in Minsk is offered English and rubles`() = runTest(mainRule.dispatcher) {
+        val env = TestEnv(deviceLocales = listOf(java.util.Locale.forLanguageTag("en-BY")))
+        val vm = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.dispatcher)
+        observing(vm.locale)
+        advanceUntilIdle()
+
+        val chosen = (vm.locale.value as Loadable.Ready).value
+        assertEquals(AppLanguage.SYSTEM, chosen.language)
+        assertEquals("the region is what says which currency, never the language", Currency.BYN, chosen.currency)
+    }
+
+    /**
+     * Both are stored as they are tapped, and the language one applies to the screen doing the asking —
+     * `AppRoot` provides the composition's locale from this row, which is what lets the tutor *see* whether
+     * the pre-set answer was right instead of having to believe it.
+     */
+    @Test
+    fun `picking a language or currency stores it at once, with nothing to confirm`() =
+        runTest(mainRule.dispatcher) {
+            val vm = vm()
+            observing(vm.locale)
+
+            vm.setLanguage(AppLanguage.ENGLISH)
+            advanceUntilIdle()
+            assertEquals(AppLanguage.ENGLISH, env.settingsRepo.get().language)
+
+            vm.setCurrency(Currency.EUR)
+            advanceUntilIdle()
+            assertEquals(Currency.EUR, env.settingsRepo.get().currency)
+            assertEquals("the other answer is untouched", AppLanguage.ENGLISH, env.settingsRepo.get().language)
+        }
+
+    /**
+     * **Skipping keeps the phone's currency**, because the row is written whole from what was read: the tutor
+     * who never reaches step 1 still gets their own money labelled, which is the path a per-step seed would
+     * have missed.
+     */
+    @Test
+    fun `skipping the setup still persists the currency the phone named`() = runTest(mainRule.dispatcher) {
+        val env = TestEnv(deviceLocales = listOf(java.util.Locale.forLanguageTag("de-DE")))
+        val vm = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.dispatcher)
+
+        vm.complete()
+        advanceUntilIdle()
+
+        assertEquals("EUR", env.settingsDao.row.value?.currency)
+        assertTrue(env.settingsRepo.get().onboardingComplete)
+    }
 
     @Test
     fun `addSubject trims the name and ignores a blank one`() = runTest(mainRule.dispatcher) {

@@ -1,13 +1,13 @@
 # Project Context
 
 **Klas** — a native Android app for a **single** private tutor to manage students, groups, subjects,
-schedule, payments and debts. **Offline-first / local-only — no backend.** Russian UI, Material 3.
-See `PLANNING.md` for the product goal and success criteria.
+schedule, payments and debts. **Offline-first / local-only — no backend.** Russian and English UI,
+Material 3. See `PLANNING.md` for the product goal and success criteria.
 
-The launcher label is the Latin **Klas** though every other string is Russian: it is a brand, not a
-word being read. Renamed from «Репетит» (`com.seblful.repetit`) while unpublished, which is the only
-reason the application id could move with it. `TutoringClass` keeps its name: it is the *domain* noun
-for a tutoring class, not the app's.
+The launcher label is the Latin **Klas** in both languages: it is a brand, not a word being read.
+Renamed from «Репетит» (`com.seblful.repetit`) while unpublished, which is the only reason the
+application id could move with it. `TutoringClass` keeps its name: it is the *domain* noun for a
+tutoring class, not the app's.
 
 **This file is the map: *what* was decided and *where* it lives.** The **reasoning** for every rule
 below sits in the KDoc next to it — that is the place to add or read the argument, so this file can
@@ -36,8 +36,8 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, `Recurrence`/`Repeat` (what a repeating booking's dates are), calendar layout, `CalendarSyncPolicy`, reminders, `Digests` (the two summaries: when each fires, whether one already due is still owed, and whether it is worth sending), reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught`, `DaySummary`/`NowMarker` (what a day comes to, and where "now" falls in it), `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, models (incl. `Currency` and the report-only id types, `model/Ids.kt`), and the `ReminderScheduler`/`DigestScheduler` ports. All JVM-tested. |
-| `data/local/` | Room entities, DAOs, `AppDatabase`, the `Transactor` port, and `upsertedId` — the one statement of `@Upsert`'s -1-on-update sentinel (the fakes reproduce it, so the fallback branch runs on the JVM too). Entities are also `@Serializable`, for the backup. `SnapshotDao` is the **separate** whole-table seam (see *Two interfaces onto the same tables*). |
+| `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, `Recurrence`/`Repeat` (what a repeating booking's dates are), calendar layout, `CalendarSyncPolicy`, reminders, `Digests` (the two summaries: when each fires, whether one already due is still owed, and whether it is worth sending), reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught`, `DaySummary`/`NowMarker` (what a day comes to, and where "now" falls in it), `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, models (incl. `Currency`, `AppLanguage` — the two settings that are about *reading* the app rather than about a lesson — and the report-only id types, `model/Ids.kt`), and the `ReminderScheduler`/`DigestScheduler` ports. All JVM-tested. |
+| `data/local/` | Room entities, DAOs, `AppDatabase`, `Migrations` (every way *into* the current schema), the `Transactor` port, and `upsertedId` — the one statement of `@Upsert`'s -1-on-update sentinel (the fakes reproduce it, so the fallback branch runs on the JVM too). Entities are also `@Serializable`, for the backup. `SnapshotDao` is the **separate** whole-table seam (see *Two interfaces onto the same tables*). |
 | `data/Mappers.kt` | Entities ⇄ domain models. Where a stored enum is parsed back. |
 | `data/repository/` | One invariant each, end to end, written in one transaction (see *Ownership*). Display **name ordering** is applied here. |
 | `data/backup/` | The **file format**: export, transactional replace-all import, `BackupIntegrity` (what a file must be readable as before any of it is written), `BackupFailure` (which refusal it was) and `BackupRestore` (everything a *restore* means beyond the rows). What tables exist and the order they may be emptied and filled in is `SnapshotDao`'s. |
@@ -46,10 +46,10 @@ flowchart TB
 | `work/` | WorkManager's half: the periodic `MaintenanceWorker`, the two `DigestWorkers`, `WorkScheduler`, `BootReceiver` (alarms die on reboot), and `Maintenance` — what an upkeep pass decides, kept out of the worker. |
 | `diagnostics/` | `CrashLogger` over `CrashLogStore`/`DeviceInfo` ports; the pure half is `domain/Diagnostics`. Viewed and exported from `ui/diagnostics`. |
 | `storage/` | `DocumentStore` port + SAF adapter over an opaque `DocumentRef`, and `DocumentSharing` + its `ACTION_SEND`/`FileProvider` adapter — so no view model touches a `Uri`, an `Intent` or a `Context`. Two ports because the acts differ: one writes where the tutor pointed, the other hands a file to another app. |
-| `format/` | `ru`-locale date/time/money formatting (with `LocalDate`/`LocalTime` faces, so no caller restates the zone), `MoneyField` (what a money input is — each `Kind` carries its own zero rule), `NameOrder` (the one definition of how names are listed). |
-| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/` (routes, tab items, screen transitions), shared `common/` atoms, **one concern per file** — the screen shell (`KlasScreen`), the spacing scale (`Spacing`) and the three fixed figures beside it (`Metrics`), `Loadable`/`Skeleton` (the loaded-yet distinction), `Surfaces`, `Fields`, `Dialogs`, `Avatars`, `Badges`, `EmptyStates`, `DomainText`, `SegmentedChoice`, `HeroCard`, `PinnedHeader` (and `StickyTabRow` over it) — plus `onboarding/` and `RootViewModel` gating onboarding vs. the tabs. **Settings and About live in `ui/more/`.** The theme (`ui/theme/`) owns the two colour schemes, `KlasColors`, the type scale and `dynamicColorAvailable`. |
+| `format/` | Date/time/money formatting in the app's chosen language (with `LocalDate`/`LocalTime` faces, so no caller restates the zone), `AppLocale` — the one published answer to *which* language, and the decimal separator that goes with it — `MoneyField` (what a money input is — each `Kind` carries its own zero rule), `NameOrder` (the one definition of how names are listed). |
+| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/` (routes, tab items, screen transitions), shared `common/` atoms, **one concern per file** — the screen shell (`KlasScreen`), the spacing scale (`Spacing`) and the three fixed figures beside it (`Metrics`), `Loadable`/`Skeleton` (the loaded-yet distinction), `Surfaces`, `Fields`, `Dialogs`, `Avatars`, `Badges`, `EmptyStates`, `DomainText`, `Segments` (`SegmentedChoice` and the `ChoiceRow` a setting is asked with), `Currency`/`Language` (the words for the two stored choices), `LocalizedResources` (the whole composition's language), `HeroCard`, `PinnedHeader` (and `StickyTabRow` over it) — plus `onboarding/` and `RootViewModel` gating onboarding vs. the tabs. **Settings and About live in `ui/more/`.** The theme (`ui/theme/`) owns the two colour schemes, `KlasColors`, the type scale and `dynamicColorAvailable`. |
 | `preview/` (debug only) | `@Preview`s of the shared `ui/common/` vocabulary and the `@KlasPreview` multipreview that renders each in light, dark and 1.5× text. In `src/debug/` so neither the previews nor their sample data reach a release APK. |
-| `di/` | The database module, the `@DebugBuild` flag, `@ApplicationScope`/`@Computation` (`CoroutinesModule`) and the `Clock` (`TimeModule`) — which every defaulted `now` in the engine reads (`Maintenance`, `DueReminder`, `RateHistoryRepository`, `CrashLogger`), so the tested path is the shipped one. Other Hilt modules live beside their adapters. |
+| `di/` | The database module, the `@DebugBuild` flag, `@ApplicationScope`/`@Computation` (`CoroutinesModule`), the `Clock` and `@FirstDayOfWeek` (`TimeModule`) — which every defaulted `now` in the engine reads (`Maintenance`, `DueReminder`, `RateHistoryRepository`, `CrashLogger`), so the tested path is the shipped one — and `@DeviceLocales` (`LocaleModule`), the phone's own list, which is what «follow the system» and a fresh install's currency are resolved against. Other Hilt modules live beside their adapters. |
 
 ### Ownership (one invariant, one place)
 
@@ -79,6 +79,9 @@ flowchart TB
   so no setting can lose its tail by lacking a named method. Two already had: the reminder lead left
   mirrored events stale, and auto-completion did nothing at all until something unrelated ran the
   upkeep pass — so confirming one old lesson by hand then credited every other one at once.
+  It also owns the two answers the *row* cannot give on its own: what a phone that has written nothing sees
+  (`Currency.preferredFor`, off `@DeviceLocales`), and the **display locale**, published on every read and
+  write so nothing downstream can be handed a language and format a date in the previous one.
 - `StudentRepository` — the whole act of **archiving**, which is more than a flag: a retired student's
   still-planned lessons are called off first, through `ClassRepository`.
 - `SubjectRepository` — a subject is deletable only while nothing references it.
@@ -102,11 +105,27 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 - **Money is integer minor units** (kopecks) — no floating point — and **bounded** by `Money.MAX`
   (1 000 000,00), because the arithmetic downstream multiplies. Enforced at both ways in: the typed
   input gate (`parseMoneyOrNull`) and a restored file (`BackupIntegrity`).
-- **Currency is a display setting, not a fact about the data**: the `Currency` enum (BYN or RUB),
-  chosen in Settings, provided through `LocalCurrency` and printed by `Money.text()`. Changing it
-  **re-labels** stored amounts rather than converting them, so the switch confirms first. The stored
-  word is parsed totally (`Currency.parse`, falling back to BYN — a label carries no money) and sits
-  in `StoredEnumNamesTest` like every other persisted constant name.
+- **Currency is a display setting, not a fact about the data**: the `Currency` enum (BYN, RUB, USD,
+  EUR), chosen in Settings and in first-run setup, provided through `LocalCurrency` and printed by
+  `Money.text()`. Changing it **re-labels** stored amounts rather than converting them, so the switch
+  confirms first — in Settings, where there is history to re-label, and not during setup, where there is
+  none. The stored word is parsed totally (`Currency.parse`, falling back to BYN — a label carries no
+  money) and sits in `StoredEnumNamesTest` like every other persisted constant name.
+  - **All four print as their ISO code, never a symbol.** The same argument that keeps them
+    un-converted: the app is captioning a number it was handed, and «$» *claims* a currency where «BYN»
+    only names one — the same amount would read as US dollars to somebody who meant Australian ones. A
+    code is also unambiguous in both languages.
+  - **A fresh install is captioned in the phone's currency** (`Currency.preferredFor`, off the locale's
+    **region** — a Minsk tutor with an English phone is paid in rubles). It is substituted where a
+    settings row that *does not exist yet* is mapped to defaults (`SettingsRepository`), not seeded by a
+    setup step: a row that has never been written is exactly "the tutor has chosen nothing", so the
+    answer holds on every path in — including skipping setup — and the first write persists it.
+- **The decimal separator is the app language's, not the currency's** (`AppLocale.decimalSeparator`):
+  `1500,50` in Russian and `1500.50` in English, whichever currency captions it. `Money.amountText` takes
+  it as a parameter with **no default**, for the reason `hour12` has none — a default is how the wrong one
+  gets picked everywhere at once — and `format/` supplies the app's answer to every caller.
+  `parseMoneyOrNull` deliberately accepts either, so a field the app pre-filled before the language moved
+  still reads instead of turning red.
 - **Price is an hourly rate booked per class**, pre-filled from the student's rate for the subject
   (or the group's own), editable per lesson. `charge = booked rate × duration`, so later re-pricing
   never touches existing classes.
@@ -371,9 +390,9 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   nothing else, is `exported="false"`, and hands out only the per-file read grant that travels with an
   `ACTION_SEND` intent and dies with it. A provider pointing at `.` would have made `klas.db` requestable
   by authority alone.
-- **The database is at v5, and v5 is the baseline** (`AppDatabase.BASELINE_VERSION`) — the oldest version
-  any `klas.db` can be at, so there are no migrations and `data/local/Migrations.kt` does not exist. It did:
-  a chain of four, v1 → v5, squashed before the first release because every step of it was dead code.
+- **The database is at v6 and the baseline is v5** (`AppDatabase.BASELINE_VERSION`) — the oldest version
+  any `klas.db` can be at, so `data/local/Migrations.kt` holds exactly one step. That file was deleted once
+  already: a chain of four, v1 → v5, squashed before the first release because every step of it was dead code.
   `com.seblful.klas` v0.2.0 (`versionCode` 3) declared schema **v1** and reached nobody — it is a tag, not a
   shipped artifact; v2–v5 were all written after it, so no device ever held an intermediate version; and the
   one database holding real students, the author's own `.debug` install, was already at v5. The rename is
@@ -383,12 +402,19 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   `splitIntoLessons` stays (a file on somebody's disk outlives the schema it came from) while its SQL twin
   went.
 - **The baseline is no longer free: `0.3.0` (`versionCode` 4) is the v5 build that shipped.** It is now the
-  version in tutors' hands, so a bump to v6 owes a migration from it. The squash was the one chance to
-  delete a chain, and it has been spent — everything below is what the next schema change has to do
-  instead. `MigrationChainTest` reads the constant and fails a bump that does
-  not ship one — verified by bumping the version and watching it fail, which is the only way to know a
-  tripwire is one. Raising the baseline is a promise that no database below it exists **anywhere**, which
-  after a release means every install has been upgraded past it: not a thing to assume.
+  version in tutors' hands, so the v6 bump that added `settings.language` duly shipped `MIGRATION_5_6` from
+  it — **the app's first real migration**, running on phones that hold a tutor's students. The squash was
+  the one chance to delete a chain, and it has been spent. `MigrationChainTest` reads the constant and fails
+  a bump that does not ship a migration, or one not passed to `addMigrations` — verified by bumping the
+  version and watching it fail, which is the only way to know a tripwire is one. Raising the baseline is a
+  promise that no database below it exists **anywhere**, which after a release means every install has been
+  upgraded past it: not a thing to assume, and not a thing v6 changes.
+  - **The unit tripwire proves the step is *there*; a device proves it *works*.** So the exported schema
+    JSONs are shipped as `androidTest` assets again (`app/build.gradle.kts`) and
+    `SettingsLanguageMigrationTest` stands a v5 database up under `MigrationTestHelper` — in both of v5's
+    real states, a populated settings row and no row at all, since an `ADD COLUMN` with the wrong `DEFAULT`
+    hides on an empty table. It asserts the row's *other* columns too: a migration that dropped and
+    recreated the table would validate against the schema perfectly.
 - **The destructive fallback is debug-only.** A release build **refuses to open** a database it cannot
   migrate: a crash leaves every row on disk for the next build, and is recoverable in the way a wipe
   is not.
@@ -534,10 +560,58 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 
 ### UI — language and where decisions live
 
-- **The app pins its own locale to Russian** (`Context.inRussian()` in `RussianLocale.kt`, applied in
-  `KlasApp` and `MainActivity` via `attachBaseContext`), because a **plural** rule set comes from the
-  *configuration's* locale. Counted nouns therefore always go through `<plurals>`, never `%d` plus a
-  fixed word. There is one resource set; the bundle does not split by language.
+- **The app speaks two languages, and which one is the tutor's setting** — `AppLanguage`
+  (SYSTEM | RUSSIAN | ENGLISH), stored in the settings row, chosen in Settings and in the first step of
+  first-run setup. **SYSTEM is the default and a real answer**, the shape `ThemeChoice` already had: a tutor
+  who has set their phone to English has said what language they read software in, and it is the only answer
+  that stays right when they change their mind on the phone. `values-ru/` is Russian, `values/` is English
+  **and the fallback** — Android loads the default folder for an unmatched locale, so `AppLanguage.FALLBACK`
+  has to be English or a French phone would get English strings under Russian dates.
+  - **The locale is *pinned onto the resources*, never `Locale.setDefault`** (`Context.inLanguage` in
+    `Localization.kt`). A **plural** rule set comes from the *configuration's* locale rather than from the
+    folder the string was loaded from, so an unpinned phone applies its own quantity forms to whatever text
+    it loaded — the original defect («0 занятия» on an English phone) is symmetric, and an English app under
+    Russian rules is the same bug. Counted nouns therefore always go through `<plurals>`, never `%d` plus a
+    fixed word. The JVM default is left alone because it is the **phone's** answer and is read as such:
+    `WeekStart` asks it which day the tutor starts their week on.
+  - **Screens get it from the composition, not from the activity** (`ProvideLocalizedResources`, called once
+    by `AppRoot`). `attachBaseContext` runs before Hilt and the row is a suspending query, so the activity
+    can only ever pin the *phone's* language; providing it instead of recreating the activity is also what
+    makes the switch instant. It provides **all three** locals — `LocalResources`, `LocalContext`,
+    `LocalConfiguration` — because a reader may ask any of them, and providing the resources without the
+    configuration is a screen whose ordinary strings follow the setting and whose counted nouns do not. Its
+    own composable so a device test can exercise the real provision (`LocalizedResourcesTest`): whether
+    Compose honours a provided locale is a fact about Compose, and the one part of this that would fail
+    silently and completely.
+  - **The two surfaces with no composition ask for it themselves** — `AndroidNotifier` and the calendar
+    mirror's event location, through `Context.inAppLanguage()`. `KlasApp` and `MainActivity` still pin their
+    base contexts, but only to *a language the app has*, which is a statement about plural rules and not
+    about the setting.
+  - **`AppLocale` is the one published answer**, and it is published where the settings row is read or
+    written (`SettingsRepository`) — so a consumer cannot be handed a new language and then format a date in
+    the previous one. Ambient for the reason `Formatters`' zone is: at render time there is exactly one
+    answer, and threading a `Locale` through seventeen display functions would be ceremony with no decision
+    behind it. A test states it through `AppLocaleRule`, which is required of *any* assertion about a
+    formatted date or amount — without it such a test asserts the build machine's locale.
+  - **A language change owes the calendar a resync** (`SettingsChange.calendarWork`), because a mirrored
+    event's location is the app's own word for «Очно» written at mirror time. Every other surface builds its
+    words when it shows them; only the mirror stores them.
+  - **No string file may drift from the reference** (`StringCoverageTest`): every name in every language, the
+    same *kind* everywhere (a `<string>` here and a `<plurals>` there is a crash), the same format arguments,
+    positional everywhere, each language's own plural forms, and equal-length `<string-array>`s — both of the
+    app's arrays are read by index. A missing translation fails no build: `R.string.foo` resolves against
+    `values/`, so it ships and then throws for whichever tutors read the other folder.
+- **A third language is an addition, not a rewrite**, and the pieces that would otherwise silently
+  half-support it are the ones with tripwires on them. `StringCoverageTest` **discovers** the folders instead
+  of naming them, so a new `values-xx/` comes under every assertion at once, and it pins the folders against
+  `AppLanguage.translated` both ways — a folder with no enum entry is unreachable, an entry with no folder
+  claims a language and serves English. What a new language costs is therefore stated rather than
+  remembered: an enum constant, a `values-xx/` folder, its plural forms in that test's acknowledgement list
+  (CLDR's rules are not reachable from a JVM test, so they are declared — which is what stops a language
+  being exempted by default), a `languageLabel` arm the compiler demands, and a device plural test beside
+  the two that exist. Everything else — the formatters, the resolution, the decimal separator, the settings
+  and setup rows — is generic over `AppLanguage.entries` already. Verified by dropping a partial
+  `values-de/` into the tree and reading what failed.
 - **A screen draws; it does not decide.** Rules that would sit inside composables live in the module
   behind them, because a `@Composable` can only be exercised on a device: `ClassFormState`,
   `MoneyField`, `leaveIntent`, `Maintenance`, `CrashLogger`.
@@ -555,7 +629,9 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   question directly, having no composition to ask it in. The line is **read on this phone or away from it**,
   not screen or not-a-screen: what keeps `HH:mm` is a report, an export, a backup. `hour12` has **no
   default**, so no surface can pick a clock by saying nothing. The 12-hour marker is a pinned "AM"/"PM",
-  since `ru` CLDR renders it «ДП»/«ПП» on some Androids and not others.
+  since `ru` CLDR renders it «ДП»/«ПП» on some Androids and not others. **A clock face is not a language**:
+  both faces are the same in Russian and English, and `FormattersLanguageTest` pins that they do not move
+  with the setting.
 - **Where the week starts is the phone's answer too, where the phone has one** — the `fw` regional
   preference (Android 14+), read off the device's locales (`WeekStart.kt`) and injected as
   `di.FirstDayOfWeek`. The month grid, the week strip and the header row all take it from there, and the
@@ -665,9 +741,14 @@ Android, and each was a default rather than a decision.
   would be here, and — where there is one obvious thing to do — that action as a real button. A list
   empty because *nothing matched a search* says so instead and offers nothing.
 - **The three list screens can be searched** (`domain/PeopleSearch`, one rule so they cannot disagree):
-  case-insensitive in the Russian locale, substring rather than prefix, every space-separated term
+  case-insensitive in `Locale.ROOT`, substring rather than prefix, every space-separated term
   matching in any order, so «пет ив» finds «Иван Петров». Students also sort **by debt**. Filtering and
   sorting happen in the view model, on the computation dispatcher.
+  - **How a name is folded belongs to no language**, and is stated rather than left to the JVM default — the
+    phone's — in both places that fold one (`PeopleSearch`, `format/NameOrder`), so what a name *matches* and
+    where it *sorts* cannot disagree. Turkish maps `I` to `ı`, which is enough to break both on a phone whose
+    language the app does not even offer. `PeopleSearch` was pinned to `ru` on the argument that the app was
+    Russian by construction, which stopped being true when English arrived.
 - **A state is a `StatusBadge`, never a font style.** «в архиве» was an italic grey word on both lists —
   the one place a state was said in emphasis rather than in the pill the lesson statuses use, and
   emphasis carries nothing to a screen reader. It stays *grey*, deliberately: archiving is not one of the
@@ -819,8 +900,14 @@ Android, and each was a default rather than a decision.
   not for groups, not for debts), is integer arithmetic on kopecks, and is **not** forced to total 100.
   The total is stated **against the period before it** (`Reports.change`); growth from a period that
   earned nothing has no baseline rather than «+100 %». Debt rows **navigate to the student**.
-- **The report exports as CSV** (`domain/ReportCsv`), which a backup is not: semicolons and a BOM for
-  Excel in a comma-decimal locale, and bare decimal amounts so a column can be summed.
+- **The report exports as CSV** (`domain/ReportCsv`), which a backup is not: a BOM for Excel and Cyrillic,
+  and bare decimal amounts so a column can be summed. **The delimiter travels with the decimal separator**
+  (`ReportCsv.Dialect`, picked from the app's language): Excel's list separator is `;` in every locale that
+  writes `1500,50` and `,` in every locale that writes `1500.50`, and either half on its own is a file that
+  lands in one column. One type rather than two characters, because choosing them independently is the
+  mistake. This is the one place that does *not* follow "read on the phone or away from it" — a report is
+  read away from the phone, but by the tutor who exported it, in a spreadsheet set up for the numbers they
+  write.
 - **The same CSV can be sent as well as saved** (`storage/DocumentSharing`, `ACTION_SEND`). Saving puts a
   file in a folder the tutor then has to find in a second app; sending it to an accountant — or to their
   own mail, so it is somewhere other than this phone — is what they were actually doing with a month.
@@ -832,7 +919,15 @@ Android, and each was a default rather than a decision.
   can be removed again** — undone from the snackbar rather than guarded by a dialog, since nothing can
   reference one yet; the step's only gate is "at least one subject", so a typo used to be something the
   tutor could finish setup with but not fix. Restore ends first run as
-  part of what a restore *is*. Setup steps are numbered «Шаг N из M» from the enum. «Ещё» holds only
+  part of what a restore *is*. Setup steps are numbered «Шаг N из M» from the enum.
+  - **Step 1 is the language and the currency**, and it is a step rather than a form because **both arrive
+    already set from the phone**: SYSTEM follows the device and the currency comes off its region. What earns
+    it a screen of its own is that the guess is wrong in a way only the tutor can see — a Minsk tutor's
+    English phone names dollars — and that everything after it is read in the answer. The language applies on
+    the tap (the composition provides it), which is what makes the pre-set answer checkable rather than
+    something to be believed; the currency asks no confirmation here, unlike in Settings, because there is no
+    recorded history yet to re-label. Skipping the setup entirely still keeps the phone's currency, since it
+    is substituted at the row rather than seeded by this step. «Ещё» holds only
   what a tutor goes looking for — Diagnostics is folded into the foot of Settings, and About states the
   version and the offline promise.
 - **A screen that raises a problem carries the way to act on it.** About makes the lost-phone point and
@@ -884,7 +979,19 @@ impossible**, and three of them carry a tripwire.
   `SegmentedChoice` (`ui/common/Segments.kt`) — seven places already were, and the booking form's
   student-or-group was a pair of chips. `SegmentLabel`'s one-line shrink rule came with it, so the
   settings rows get it too. **Chips stay for a shortlist with an escape hatch**, which is what the
-  duration chips are.
+  duration chips are. `ChoiceRow` — the labelled row *shape* a setting takes — sits in the same file and
+  not private to `SettingsScreen`, because first-run setup asks two of the same questions Settings does
+  (the language, the currency) and a choice that looked like a setting on one screen and like something
+  else on the other would be the app disagreeing about what kind of question it is asking.
+  - **`ChoiceRow` picks its control by how many options there are** (`fitsInSegments`, `MaxSegments` = 4):
+    segments up to the bound, a `ChoiceField` past it. Both are shapes the app already uses, so this
+    switches between two established answers rather than inventing a third. It earns its keep because two
+    of the app's choices are **lists that grow** — one option per language and per currency — and the
+    currency row sits *at* the bound today, so the fifth of either would have shipped as four illegible
+    words in 72 dp: no compile error, no crash, nothing that looks deliberate. The decision is a named
+    pure function rather than an `if` in the composable, per *a screen draws, it does not decide*; the
+    field arm is unreachable until a fifth option exists, which is exactly why `ChoiceRowTest` exercises
+    it on a device.
   - **Where the segments choose what the whole screen is, the page also turns by dragging it sideways**
     (`Modifier.swipeBetweenSegments`, same file): «Люди» (Ученики ⇄ Группы) and «Расписание» (День →
     Неделя → Месяц), left for the next and right for the previous. A shortcut and never the only way in —
@@ -951,8 +1058,9 @@ impossible**, and three of them carry a tripwire.
   `surfaceContainerLow` (`ContentCard`), the *section* holding items on `surfaceContainer`
   (`SectionCard`, `StatRow`, a report card, a pinned `StickyTabRow`). Which of the two a list uses is
   decided by **nesting depth** — see *one shell, one scale, one control per question* above.
-- **The app is set in Golos Text** (`res/font/`, `ui/theme/Type.kt`), a Cyrillic-first text face — the
-  right way round for a UI pinned to Russian, where the Latin is the borrowed alphabet. The type scale
+- **The app is set in Golos Text** (`res/font/`, `ui/theme/Type.kt`), a Cyrillic-first text face — chosen
+  when Russian was the only language, and kept now that English is the second: it is a full Latin face too,
+  and the alternative is two typefaces for one app. The type scale
   states every style, including the ones matching the default, and names the family through one
   `AppFontFamily` constant so the styles cannot disagree. Shipped as **four static instances** cut from
   the upstream variable font, because Android honours a `wght` axis only from API 26 and `minSdk` is 24 —
@@ -1159,7 +1267,7 @@ app/src/main/java/com/seblful/klas/
 │                 └── ReminderAlarms + ReminderReceiver (reminders are alarms, not workers)
 │                     + ReminderActions/ReminderActionReceiver («Проведено» from the tray)
 ├── Coroutines.kt      # runCatchingCancellable — the only way suspend calls are guarded
-├── RussianLocale.kt   # Context.inRussian() — the locale pin
+├── Localization.kt    # Context.inLanguage() + deviceLocales() — how a language reaches the resources
 ├── ui/{schedule,people,students,groups,subjects,reports,backup,more,
 │       onboarding,diagnostics,common,navigation,theme}/
 ├── MainActivity.kt    # @AndroidEntryPoint → AppRoot()

@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.ui.AppRoot
 import com.seblful.klas.ui.RootViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -34,9 +35,18 @@ class MainActivity : ComponentActivity() {
      */
     private val rootViewModel: RootViewModel by viewModels()
 
-    // The activity's base context comes from the device configuration, not from the application's, so
-    // pinning it there is not enough — every screen reads its strings through this one. See [inRussian].
-    override fun attachBaseContext(newBase: Context) = super.attachBaseContext(newBase.inRussian())
+    /**
+     * The activity's base context comes from the device configuration rather than from the application's,
+     * so it is pinned the same way and for the same reason: a language the app is actually written in, so
+     * the plural rules match the words. See [inLanguage].
+     *
+     * **This is not where the tutor's choice is honoured** — it cannot be, since the settings row is read
+     * asynchronously and this runs before `onCreate`. `AppRoot` provides the chosen language to the whole
+     * composition once the row arrives, under the splash that is still up, so no screen is ever drawn in the
+     * wrong one. What this covers is the frame before that and anything outside composition.
+     */
+    override fun attachBaseContext(newBase: Context) =
+        super.attachBaseContext(newBase.inLanguage(AppLanguage.SYSTEM.localeFor(deviceLocales())))
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Before super, as the library requires: it swaps the activity's theme from

@@ -18,7 +18,7 @@ import androidx.room.RoomDatabase
         SettingsEntity::class,
     ],
     views = [ClassRow::class],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -43,12 +43,13 @@ abstract class AppDatabase : RoomDatabase() {
 
         /**
          * **The oldest schema version any `klas.db` can be at**, and therefore the version Room needs no
-         * way *into*. Equal to the version `@Database` declares means: there are no migrations, because
-         * there is nothing to migrate from.
+         * way *into*. Equal to the version `@Database` declares would mean: there are no migrations,
+         * because there is nothing to migrate from. It is one below it — the app is at v6 — so
+         * `data/local/Migrations.kt` holds exactly one step.
          *
-         * This is a claim about **releases**, not about the schema, and it is the reason
-         * `data/local/Migrations.kt` no longer exists. It was 1, with a chain of four migrations up to v5,
-         * and every one of them was dead code:
+         * This is a claim about **releases**, not about the schema, and it is why that file was deleted
+         * once already. It was 1, with a chain of four migrations up to v5, and every one of them was dead
+         * code:
          *
          * - `com.seblful.klas` v0.2.0 (`versionCode` 3) declared schema v1 and reached nobody — it is a
          *   tag, not a shipped artifact. `com.seblful.repetit` is a *different application id*, which
@@ -63,10 +64,12 @@ abstract class AppDatabase : RoomDatabase() {
          * silence. Deleting it is safe exactly once — before the first release of a v5 build.
          *
          * **That release has happened: 0.3.0 (`versionCode` 4).** So the window is shut, and this number
-         * is no longer free. It is the version in tutors' hands, so a
-         * bump to v6 owes a migration from it, and `MigrationChainTest` reads this constant to say so.
+         * is no longer free. It is the version in tutors' hands, and the v6 bump that added
+         * `settings.language` duly shipped [Migrations.MIGRATION_5_6] from it — the first real migration
+         * this app has ever had. `MigrationChainTest` reads this constant to demand one per step.
+         *
          * Raising it is a promise that no database below it exists anywhere, which after a release means
-         * *every* install has been upgraded past it — not a thing to assume.
+         * *every* install has been upgraded past it — not a thing to assume, and not a thing v6 changes.
          */
         const val BASELINE_VERSION = 5
     }

@@ -2,13 +2,16 @@ package com.seblful.klas.data.repository
 
 import com.seblful.klas.data.local.SettingsDao
 import com.seblful.klas.data.local.SettingsEntity
+import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.format.AppLocale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Instant
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -61,7 +64,19 @@ data class AppSettings(
     val defaultLessonMinutes: Int = 60,
     /** Pre-fills a new group's hourly rate. Null while the tutor has not set one. */
     val defaultGroupPrice: Money? = null,
+    /**
+     * What money is captioned with. **The default here is only the shape of the row** — what a phone that
+     * has chosen nothing actually shows is [Currency.preferredFor]'s answer, substituted by
+     * [SettingsRepository] where a missing row is mapped to defaults, because it is a fact about the device
+     * rather than a constant. BYN is simply the first currency the app ever had.
+     */
     val currency: Currency = Currency.BYN,
+    /**
+     * Which language the app is shown in. [AppLanguage.SYSTEM] — follow the phone — is the default and a
+     * real answer, so unlike [currency] there is nothing about the device to substitute: the resolution
+     * happens where it is displayed, and keeps happening if the tutor changes their phone.
+     */
+    val language: AppLanguage = AppLanguage.SYSTEM,
     /**
      * When a backup was last exported — **null when one never has been.**
      *
@@ -95,9 +110,15 @@ data class SettingsChange(val before: AppSettings, val after: AppSettings) {
     /**
      * The calendar work this change owes. The mirror is a best-effort copy of local truth filtered
      * through these settings, so moving one the mirror bakes into every event — sync itself, whether
-     * the student is invited, how far ahead the event's email reminder fires — means re-earning the
-     * copy. Switching sync **off** withdraws the events instead; with sync off nothing the mirror
-     * would read is observable, and there is nothing to re-earn.
+     * the student is invited, how far ahead the event's email reminder fires, **the words it is written
+     * in** — means re-earning the copy. Switching sync **off** withdraws the events instead; with sync off
+     * nothing the mirror would read is observable, and there is nothing to re-earn.
+     *
+     * The language is in that list for the same reason a rename is (`CalendarMirror.refreshFor*`): a
+     * mirrored event's location is the app's own word for «Дистанционно» or "Remote", written at mirror time,
+     * so every event already in the tutor's calendar keeps the language it was written in until something
+     * re-mirrors it. Without this arm, switching to English left a calendar half in Russian indefinitely —
+     * the exact shape of the defect this class was written about, one setting whose tail nobody ran.
      */
     val calendarWork: CalendarWork
         get() = when {
@@ -106,7 +127,8 @@ data class SettingsChange(val before: AppSettings, val after: AppSettings) {
                 (
                     moved { it.calendarSyncEnabled } ||
                         moved { it.emailInvitesEnabled } ||
-                        moved { it.reminderLeadMinutes }
+                        moved { it.reminderLeadMinutes } ||
+                        moved { it.language }
                     ) -> CalendarWork.RESYNC
             else -> CalendarWork.NONE
         }
@@ -168,6 +190,11 @@ data class SettingsChange(val before: AppSettings, val after: AppSettings) {
 @Singleton
 class SettingsRepository @Inject constructor(
     private val dao: SettingsDao,
+    /**
+     * The phone's locales — what a row that has chosen nothing falls back to, and what
+     * [AppLanguage.SYSTEM] is resolved against. See `di.DeviceLocales`.
+     */
+    @param:com.seblful.klas.di.DeviceLocales private val deviceLocales: List<Locale>,
 ) {
     fun observe(): Flow<AppSettings> = dao.observe().map { it.toSettings() }
 
@@ -197,13 +224,31 @@ class SettingsRepository @Inject constructor(
             val before = get()
             val after = transform(before)
             dao.upsert(after.toEntity())
-            SettingsChange(before, after)
+            // A write publishes the display locale too. The `get` above published the row as it *was*, so
+            // without this a caller that changes the language and then formats something — a worker, or the
+            // settings screen's own tail — would be handed the previous one until the flow next emitted.
+            SettingsChange(before, resolved(after))
         }
 
     private val writeLock = Mutex()
 
-    private fun SettingsEntity?.toSettings(): AppSettings =
-        if (this == null) AppSettings()
+    /**
+     * The row as the rest of the app speaks it — and the one place the app's **display locale** is
+     * published.
+     *
+     * Every reader of the settings goes through here (the UI, the workers, the notifier), so resolving
+     * `language` on the way out is what makes it impossible to be handed a new language and then format a
+     * date in the previous one: `AppLocale.current` is already the new one before this `AppSettings` reaches
+     * anybody. Doing it in the view model instead would have left the notification tray and every worker
+     * reading a locale nothing had updated, and doing it in two places would have made *which* collector ran
+     * first decide what month a lesson was in. See [AppLocale].
+     */
+    private fun SettingsEntity?.toSettings(): AppSettings = resolved(
+        // A row that does not exist is a tutor who has chosen nothing, which is not the same as a tutor who
+        // chose the app's oldest currency: the phone names one, so that is what their money is captioned
+        // with until they say otherwise, and the first settings write persists it. The `AppSettings`
+        // defaults state the shape of the row; this states what an unwritten one means on *this* device.
+        if (this == null) AppSettings(currency = Currency.preferredFor(deviceLocales))
         else AppSettings(
             notificationsEnabled = notificationsEnabled,
             calendarSyncEnabled = calendarSyncEnabled,
@@ -223,8 +268,15 @@ class SettingsRepository @Inject constructor(
             // it used to be restated by every reader of the raw minor units.
             defaultGroupPrice = Money(defaultGroupPriceMinor).takeIf { defaultGroupPriceMinor != 0L },
             currency = Currency.parse(currency),
+            language = AppLanguage.parse(language),
             lastExportAt = lastExportMillis?.let(Instant::ofEpochMilli),
-        )
+        ),
+    )
+
+    /** [settings], with its language published as the locale everything displays in. */
+    private fun resolved(settings: AppSettings): AppSettings = settings.also {
+        AppLocale.current = it.language.localeFor(deviceLocales)
+    }
 
     /**
      * The row is always written whole from Kotlin, so this — not the entity's `defaultValue`
@@ -248,6 +300,7 @@ class SettingsRepository @Inject constructor(
         defaultLessonMinutes = defaultLessonMinutes,
         defaultGroupPriceMinor = defaultGroupPrice?.minor ?: 0,
         currency = currency.name,
+        language = language.name,
         lastExportMillis = lastExportAt?.toEpochMilli(),
         // `SettingsEntity.showGroupsTab` is deliberately not set: nothing reads it any more (groups
         // and students share one tab now), and the column stays only because dropping it would mean

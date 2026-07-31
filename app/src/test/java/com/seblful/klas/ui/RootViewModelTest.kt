@@ -37,7 +37,7 @@ class RootViewModelTest {
      */
     @Test
     fun `settings read as not-yet-loaded rather than as defaults`() {
-        val vm = RootViewModel(env.settingsRepo)
+        val vm = RootViewModel(env.settingsRepo, env.deviceLocales)
 
         assertNull("null is what makes AppRoot wait rather than guess", vm.settings.value)
     }
@@ -46,7 +46,7 @@ class RootViewModelTest {
     fun `the stored settings arrive once the app is watching`() = runTest(mainRule.dispatcher) {
         env.settingsRepo.update { it.copy(onboardingComplete = true, themeMode = "DARK", currency = Currency.RUB) }
 
-        val vm = RootViewModel(env.settingsRepo)
+        val vm = RootViewModel(env.settingsRepo, env.deviceLocales)
         observing(vm.settings)
         advanceUntilIdle()
 
@@ -63,7 +63,7 @@ class RootViewModelTest {
      */
     @Test
     fun `the route waits while settings are unread, then onboards or opens the tabs`() {
-        val vm = RootViewModel(env.settingsRepo)
+        val vm = RootViewModel(env.settingsRepo, env.deviceLocales)
 
         assertEquals(RootRoute.LOADING, vm.routeFor(null))
         assertEquals(RootRoute.ONBOARDING, vm.routeFor(AppSettings(onboardingComplete = false)))
@@ -86,7 +86,7 @@ class RootViewModelTest {
     /** A fresh install has no settings row at all, and must still resolve — to the defaults. */
     @Test
     fun `a first run resolves to the defaults rather than staying unloaded`() = runTest(mainRule.dispatcher) {
-        val vm = RootViewModel(env.settingsRepo)
+        val vm = RootViewModel(env.settingsRepo, env.deviceLocales)
         observing(vm.settings)
         advanceUntilIdle()
 

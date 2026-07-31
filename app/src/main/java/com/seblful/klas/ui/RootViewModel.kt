@@ -1,12 +1,14 @@
 package com.seblful.klas.ui
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.seblful.klas.data.repository.AppSettings
 import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.di.DeviceLocales
+import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.ui.common.hold
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
+import java.util.Locale
 import javax.inject.Inject
 
 /**
@@ -55,6 +57,8 @@ enum class ThemeChoice {
 @HiltViewModel
 class RootViewModel @Inject constructor(
     settings: SettingsRepository,
+    /** The phone's locales, for the half of [localeFor] that «follow the system» leaves open. */
+    @param:DeviceLocales private val deviceLocales: List<Locale>,
 ) : ViewModel() {
     val settings: StateFlow<AppSettings?> = settings.observe()
         .hold(this, null)
@@ -65,4 +69,16 @@ class RootViewModel @Inject constructor(
         !settings.onboardingComplete -> RootRoute.ONBOARDING
         else -> RootRoute.MAIN
     }
+
+    /**
+     * Which locale to display [settings] in — the strings, their plural rules, the month names and the
+     * decimal separator, which all have to be the same one.
+     *
+     * A row that has not loaded reads as [AppLanguage.SYSTEM], the default, so the frame before it arrives is
+     * in the phone's language rather than in a language nobody asked for. It is a named answer for the reason
+     * [routeFor] is: resolving «follow the system» is the one part a composable would otherwise decide, and
+     * `AppRoot` may not be the second place that knows what SYSTEM means.
+     */
+    fun localeFor(settings: AppSettings?): Locale =
+        (settings?.language ?: AppLanguage.SYSTEM).localeFor(deviceLocales)
 }

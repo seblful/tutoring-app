@@ -94,10 +94,14 @@ android {
     // ReminderScheduler, Transactor), so a test that needs the framework has found a missing port
     // rather than a reason to turn this back on.
     //
-    // The exported schemas (`ksp { room.schemaLocation }`) used to be shipped as androidTest assets so
-    // `MigrationTestHelper` could stand an old-version database up on a device. There are no migrations
-    // to test any more (`AppDatabase.BASELINE_VERSION`), so nothing on a device reads them; the schema
-    // that remains is read off the tree by `MigrationChainTest`, on the JVM.
+    // Room's exported schema JSONs (see `ksp { room.schemaLocation }`) are shipped as androidTest assets so
+    // `MigrationTestHelper` can stand a v5 database up on a device and validate the migration against the
+    // bundled v6 schema — see `SettingsLanguageMigrationTest`. This wiring was deleted with the squashed
+    // migration chain and is back because v6 owes a real migration from a released version; the JVM half
+    // (`MigrationChainTest`) reads the same files off the tree and only proves the chain *exists*.
+    sourceSets {
+        getByName("androidTest").assets.directories.add("$projectDir/schemas")
+    }
 }
 
 // Kotlin compiler options moved out of the deprecated android.kotlinOptions block (removed in AGP 9).

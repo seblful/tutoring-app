@@ -34,7 +34,8 @@ class StoredEnumNamesTest {
      */
     private val storedStatuses = setOf("SCHEDULED", "COMPLETED", "CANCELLED")
     private val storedModes = setOf("IN_PERSON", "REMOTE")
-    private val storedCurrencies = setOf("BYN", "RUB")
+    private val storedCurrencies = setOf("BYN", "RUB", "USD", "EUR")
+    private val storedLanguages = setOf("SYSTEM", "RUSSIAN", "ENGLISH")
 
     @Test
     fun `the stored status names are the ones the database holds`() {
@@ -70,6 +71,28 @@ class StoredEnumNamesTest {
                 "Migrate the column (or accept the fallback deliberately), then update this list.",
             storedCurrencies,
             com.seblful.klas.domain.model.Currency.entries.map { it.name }.toSet(),
+        )
+    }
+
+    /**
+     * The other stored word that carries no money: `settings.language`, which decides the app's words and
+     * nothing about its numbers. An unrecognized value falls back to `SYSTEM` — follow the phone — so a
+     * rename costs the tutor a preference rather than a record, but it costs it silently and on every
+     * device that stored the old text.
+     *
+     * **`SYSTEM` is on this list even though it names no language.** It is the value the v5 → v6 migration
+     * backfills with and the value the column defaults to, so it is as much a stored word as the two
+     * translations are.
+     */
+    @Test
+    fun `the stored language names are the ones the settings row holds`() {
+        assertEquals(
+            "An AppLanguage constant was renamed, added or removed. The `settings.language` column " +
+                "stores these names — devices holding the old text will silently fall back to SYSTEM " +
+                "and follow the phone again. Migrate the column (or accept the fallback deliberately), " +
+                "then update this list.",
+            storedLanguages,
+            com.seblful.klas.domain.model.AppLanguage.entries.map { it.name }.toSet(),
         )
     }
 

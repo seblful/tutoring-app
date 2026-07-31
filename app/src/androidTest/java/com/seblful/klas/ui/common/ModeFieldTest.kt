@@ -6,6 +6,9 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.res.stringResource
+import androidx.test.platform.app.InstrumentationRegistry
+import com.seblful.klas.R
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.ui.theme.KlasTheme
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -25,6 +28,13 @@ import org.junit.Test
  *
  * `@HiltAndroidTest` for the reason `RevealedFocusTest` explains: it keeps an app component waking up
  * in the instrumentation process from killing the run.
+ *
+ * **The two words are read, not written.** They were the literals «Очно» and «Удалённо», which worked while
+ * the app had one string folder: whatever locale the test device was in, there was only Russian to load. With
+ * `values/` English and `values-ru/` Russian the words are now the *device's*, and hard-coding either
+ * language would make this pass on one phone and fail on another — about nothing, since what is asserted is
+ * the field's shape and not its vocabulary. Read through the same resources the composable draws from, so the
+ * test and the screen cannot disagree.
  */
 @HiltAndroidTest
 class ModeFieldTest {
@@ -35,51 +45,59 @@ class ModeFieldTest {
     @get:Rule(order = 1)
     val rule = createComposeRule()
 
+    private val resources = InstrumentationRegistry.getInstrumentation().targetContext.resources
+    private val inPerson: String = resources.getString(R.string.class_mode_in_person)
+    private val remote: String = resources.getString(R.string.class_mode_remote)
+
     /** The mode last chosen, or null while nothing has been chosen. */
     private var chosen: ClassMode? = null
 
     private fun open(selected: ClassMode) {
         rule.setContent {
             KlasTheme {
-                ModeField(label = "Место", selected = selected, onSelect = { mode -> chosen = mode })
+                ModeField(
+                    label = stringResource(R.string.class_location_label),
+                    selected = selected,
+                    onSelect = { mode -> chosen = mode },
+                )
             }
         }
     }
 
-    /** The field itself, which is the only «Очно» or «Удалённо» on screen while the menu is shut. */
+    /** The field itself, which is the only mode word on screen while the menu is shut. */
     private fun field(text: String) = rule.onNodeWithText(text)
 
     @Test
     fun theChosenModeIsReadableWithoutOpeningAnything() {
         open(selected = ClassMode.REMOTE)
 
-        field("Удалённо").assertIsDisplayed()
-        rule.onAllNodesWithText("Очно").assertCountEquals(0)
+        field(remote).assertIsDisplayed()
+        rule.onAllNodesWithText(inPerson).assertCountEquals(0)
         assertNull("nothing was picked, so nothing was reported", chosen)
     }
 
     @Test
     fun theOtherModeIsOfferedOnlyOnceTheFieldIsOpened() {
         open(selected = ClassMode.IN_PERSON)
-        rule.onAllNodesWithText("Удалённо").assertCountEquals(0)
+        rule.onAllNodesWithText(remote).assertCountEquals(0)
 
-        field("Очно").performClick()
+        field(inPerson).performClick()
 
-        rule.onNodeWithText("Удалённо").assertIsDisplayed()
+        rule.onNodeWithText(remote).assertIsDisplayed()
     }
 
     @Test
     fun pickingFromTheMenuReportsTheModeAndClosesIt() {
         open(selected = ClassMode.IN_PERSON)
 
-        field("Очно").performClick()
-        rule.onNodeWithText("Удалённо").performClick()
+        field(inPerson).performClick()
+        rule.onNodeWithText(remote).performClick()
 
         assertEquals(ClassMode.REMOTE, chosen)
-        // The field goes on showing «Очно» — it displays what it is told to, and this test's caller does
-        // not change it — so once the menu has gone that is the one «Очно» left. Waited for rather than
+        // The field goes on showing the mode it was given — it displays what it is told to, and this test's
+        // caller does not change it — so once the menu has gone that is the one left. Waited for rather than
         // asserted outright, because the menu leaves on an animation.
-        rule.waitUntil { rule.onAllNodesWithText("Очно").fetchSemanticsNodes().size == 1 }
-        rule.onAllNodesWithText("Удалённо").assertCountEquals(0)
+        rule.waitUntil { rule.onAllNodesWithText(inPerson).fetchSemanticsNodes().size == 1 }
+        rule.onAllNodesWithText(remote).assertCountEquals(0)
     }
 }

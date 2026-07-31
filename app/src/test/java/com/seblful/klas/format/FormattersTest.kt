@@ -2,10 +2,12 @@ package com.seblful.klas.format
 
 import com.seblful.klas.domain.ClassRules
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.testutil.AppLocaleRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.Instant
@@ -13,8 +15,19 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
 
-/** Covers the month-key encoding and the amount-input formatter not pinned elsewhere. */
+/**
+ * Covers the month-key encoding and the amount-input formatter not pinned elsewhere.
+ *
+ * **In Russian, said out loud.** Every expectation below — «пн», «6 – 12 июля», `-0,50` — is a fact about
+ * one of the app's two languages, and the formatters read the ambient [com.seblful.klas.format.AppLocale].
+ * Without the rule that would be the *build machine's* locale, so this file would assert Russian output on a
+ * Russian workstation and fail on an English CI agent. `FormattersLanguageTest` is the other half: that the
+ * same functions follow the setting rather than merely producing these strings.
+ */
 class FormattersTest {
+
+    @get:Rule
+    val locale = AppLocaleRule.russian()
 
     private fun keyOf(year: Int, month: Int) = year * 12 + (month - 1)
 
@@ -193,12 +206,12 @@ class FormattersTest {
     @Test
     fun `an amount above the ceiling is not an amount`() {
         assertNull(parseMoneyOrNull("2000000000000000"))
-        assertNull(parseMoneyOrNull(Money(Money.MAX.minor + 1).amountText))
+        assertNull(parseMoneyOrNull(Money(Money.MAX.minor + 1).amountText(',')))
     }
 
     @Test
     fun `the ceiling itself parses, and still bills a positive charge over the longest lesson`() {
-        assertEquals(Money.MAX, parseMoneyOrNull(Money.MAX.amountText))
+        assertEquals(Money.MAX, parseMoneyOrNull(Money.MAX.amountText(',')))
 
         val charge = ClassRules.chargeFor(Money.MAX, durationMinutes = 24 * 60)
         assertTrue("the ceiling exists so this cannot wrap", charge.minor > 0)

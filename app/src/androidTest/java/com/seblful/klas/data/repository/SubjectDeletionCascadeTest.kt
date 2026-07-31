@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
+import com.seblful.klas.testutil.RussianMinskPhone
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.local.AppDatabase
@@ -83,7 +84,7 @@ class SubjectDeletionCascadeTest {
         // is under test here is the foreign-key behaviour, not the calendar.
         val mirror = CalendarMirror(
             db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(),
-            noCalendar, SettingsRepository(db.settingsDao()),
+            noCalendar, SettingsRepository(db.settingsDao(), RussianMinskPhone),
         )
         // The real repositories, because the guards being tested are theirs: "is this subject still
         // taught" is a question about classes and about groups, and each is answered by whoever owns it.

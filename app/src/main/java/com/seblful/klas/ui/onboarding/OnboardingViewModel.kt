@@ -3,8 +3,11 @@ package com.seblful.klas.ui.onboarding
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.klas.di.Computation
+import com.seblful.klas.data.repository.AppSettings
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.data.repository.SubjectRepository
+import com.seblful.klas.domain.model.AppLanguage
+import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
@@ -18,9 +21,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Drives first-run setup: the user adds at least one subject, then their first student (with
- * subjects and prices). Completing it flips `AppSettings.onboardingComplete`, after which
- * the app shows its normal tabs.
+ * Drives first-run setup: the tutor confirms the language and currency, adds at least one subject, then
+ * their first student (with subjects and prices). Completing it flips `AppSettings.onboardingComplete`,
+ * after which the app shows its normal tabs.
  *
  * Setup is offered, not imposed — [complete] is also what «Пропустить» calls, leaving an app with
  * no subjects and no students, which every screen already handles with its empty state. Restoring
@@ -35,7 +38,42 @@ class OnboardingViewModel @Inject constructor(
 ) : ViewModel() {
 
     /**
-     * The subjects added so far, for step 1's list.
+     * The language and the currency the app is about to be read in — step 1's two answers.
+     *
+     * **Both arrive already correct for this phone**, which is the whole of what the step is for: the
+     * language defaults to `AppLanguage.SYSTEM` and the currency is substituted from the device by
+     * `SettingsRepository` for a row that does not exist yet, so a tutor whose phone already says what they
+     * want passes straight through. The step exists because the *guess* has to be checkable — and because a
+     * Minsk tutor with an English phone is the case the guess gets half right.
+     *
+     * [Loadable] rather than defaulted, for the reason every settings screen's row is: `AppSettings()` is
+     * somebody else's answer, and drawing BYN under a segmented control that then jumps to USD reads as the
+     * app changing its mind rather than as the app catching up.
+     */
+    val locale: StateFlow<Loadable<AppSettings>> = settings.observe()
+        .ready()
+        .derive(this, computation, Loadable.Loading)
+
+    /**
+     * Stores the language, which **applies as it is tapped** — `AppRoot` provides the whole composition's
+     * locale from this row, so the next frame of this very screen is in the new one.
+     *
+     * That is not a nicety: it is what makes the pre-set answer above something the tutor can check rather
+     * than something they have to believe. There is no confirmation, unlike the currency in Settings later
+     * on — a language changes the words around the numbers, where a currency changes what the numbers claim
+     * to be, and at this point in the setup there are no numbers to re-label.
+     */
+    fun setLanguage(language: AppLanguage) {
+        viewModelScope.launch { settings.update { it.copy(language = language) } }
+    }
+
+    /** Stores the currency. Asks nothing: nothing has been recorded yet for a re-label to touch. */
+    fun setCurrency(currency: Currency) {
+        viewModelScope.launch { settings.update { it.copy(currency = currency) } }
+    }
+
+    /**
+     * The subjects added so far, for step 2's list.
      *
      * [Loadable] like every other screen's list, though this is the one screen where empty is usually the
      * *true* answer: onboarding runs on a fresh install. It is not always — the step is reachable again

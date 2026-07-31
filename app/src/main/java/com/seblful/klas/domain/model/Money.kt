@@ -1,8 +1,11 @@
 package com.seblful.klas.domain.model
 
 /**
- * An amount of money in BYN, stored as an integer number of minor units (kopecks)
- * to avoid floating-point rounding. Displayed with the "BYN" sign, e.g. `1500 BYN`.
+ * An amount of money, stored as an integer number of minor units (kopecks, cents) to avoid
+ * floating-point rounding. Displayed with the currency's ISO code after it, e.g. `1500 BYN`.
+ *
+ * **The amount carries no currency**, deliberately: which one it is captioned with is a display setting
+ * ([Currency]), so the same stored number reads as rubles or as dollars without being touched.
  */
 @JvmInline
 value class Money(val minor: Long) : Comparable<Money> {
@@ -19,18 +22,23 @@ value class Money(val minor: Long) : Comparable<Money> {
      * The amount on its own, with no currency sign — e.g. `1500`, `1500,50`, `-0,50`. The one
      * definition of how an amount reads: [format] adds a currency to it, and `Money.toAmountInput`
      * in `format/` is what a text field is seeded with, so an amount can't render two ways.
+     *
+     * [decimal] has **no default**, for the reason `hour12` has none: it is a fact about how the reader
+     * writes numbers, not something this class can know, and a default is how the wrong one gets picked
+     * everywhere at once. Russian writes `1500,50` and English `1500.50`; the app's own answer is its
+     * chosen language's, supplied once by `format/AppLocale` so no screen has to decide. `parseMoneyOrNull`
+     * deliberately accepts either, so a field seeded one way still reads if the language changes under it.
      */
-    val amountText: String
-        get() {
-            val sign = if (minor < 0) "-" else ""
-            val abs = kotlin.math.abs(minor)
-            val major = abs / 100
-            val kopecks = (abs % 100).toInt()
-            return if (kopecks == 0) "$sign$major" else "$sign$major,${kopecks.toString().padStart(2, '0')}"
-        }
+    fun amountText(decimal: Char): String {
+        val sign = if (minor < 0) "-" else ""
+        val abs = kotlin.math.abs(minor)
+        val major = abs / 100
+        val kopecks = (abs % 100).toInt()
+        return if (kopecks == 0) "$sign$major" else "$sign$major$decimal${kopecks.toString().padStart(2, '0')}"
+    }
 
-    /** Formats as a localized amount in [currency], e.g. `1500 BYN` or `1500,50 RUB`. */
-    fun format(currency: Currency = Currency.BYN): String = "$amountText ${currency.name}"
+    /** Formats as an amount in [currency], e.g. `1500 BYN` or `1500.50 USD`. See [amountText]. */
+    fun format(currency: Currency, decimal: Char): String = "${amountText(decimal)} ${currency.name}"
 
     companion object {
         val ZERO = Money(0)
@@ -55,7 +63,7 @@ value class Money(val minor: Long) : Comparable<Money> {
          */
         val MAX = Money(100_000_000)
 
-        /** Builds a [Money] from a whole-ruble amount. */
+        /** Builds a [Money] from a whole-unit amount — 5 is `5,00`. */
         fun ofMajor(major: Long): Money = Money(major * 100)
     }
 }

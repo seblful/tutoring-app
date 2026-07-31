@@ -23,13 +23,13 @@ import java.util.Locale
  * - `WeekStart.kt` maps `fw` itself. It would otherwise be a preference the app could read on some Androids
  *   and not others, which is the worst of both.
  * - **Material's `DatePicker` cannot be made to follow it.** It takes no `firstDayOfWeek` and reads
- *   `WeekFields.of(composition locale)`, so pinning the keyword onto the locale in [inRussian] would change
+ *   `WeekFields.of(composition locale)`, so pinning the keyword onto the locale in [inLanguage] would change
  *   nothing: the picker's month keeps starting on Monday even where the schedule starts on Sunday. A
  *   date-picker dialog is a different surface from the schedule and both are internally consistent, so this
  *   is left alone rather than worked around.
  *
  * If this test ever fails, the platform has started honouring `fw` — at which point the keyword can be
- * passed through [inRussian] to make both calendars agree, and this file has done its job.
+ * passed through [inLanguage] to make both calendars agree, and this file has done its job.
  */
 @HiltAndroidTest
 class WeekStartKeywordTest {

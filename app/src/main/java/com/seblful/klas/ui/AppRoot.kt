@@ -34,6 +34,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.notifications.TrayNavigation
 import com.seblful.klas.ui.common.LocalCurrency
+import com.seblful.klas.ui.common.ProvideLocalizedResources
 import com.seblful.klas.ui.theme.KlasTheme
 import com.seblful.klas.ui.backup.BackupScreen
 import com.seblful.klas.ui.diagnostics.DiagnosticsScreen
@@ -77,17 +78,26 @@ fun AppRoot(rootViewModel: RootViewModel = hiltViewModel()) {
         darkTheme = darkTheme,
         dynamicColor = settings?.dynamicColorEnabled == true,
     ) {
-        CompositionLocalProvider(LocalCurrency provides (settings?.currency ?: Currency.BYN)) {
-            when (rootViewModel.routeFor(settings)) {
-                // Reached only if the splash has already been lifted — `MainActivity` holds it until
-                // this row arrives, precisely so this state is not something the tutor sees. Kept as
-                // the honest answer for the frame in which it is still true.
-                RootRoute.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+        // **The whole composition's language, provided here** — what that provision consists of, and why it
+        // cannot be `MainActivity`'s, is [ProvideLocalizedResources]'. Resolving «follow the system» is
+        // `localeFor`'s, because that answer comes from the platform; a composable may not be the second
+        // place that knows what either of those means.
+        ProvideLocalizedResources(rootViewModel.localeFor(settings)) {
+            // The currency while the row is loading is the app's oldest, not the phone's: nothing is drawn
+            // in this state (the splash is still up), and `SettingsRepository` is the one place that knows
+            // what an unwritten row means on this device.
+            CompositionLocalProvider(LocalCurrency provides (settings?.currency ?: Currency.BYN)) {
+                when (rootViewModel.routeFor(settings)) {
+                    // Reached only if the splash has already been lifted — `MainActivity` holds it until
+                    // this row arrives, precisely so this state is not something the tutor sees. Kept as
+                    // the honest answer for the frame in which it is still true.
+                    RootRoute.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                    RootRoute.ONBOARDING ->
+                        OnboardingScreen(onFinished = { /* settings flip re-renders into MainApp */ })
+                    RootRoute.MAIN -> MainApp()
                 }
-                RootRoute.ONBOARDING ->
-                    OnboardingScreen(onFinished = { /* settings flip re-renders into MainApp */ })
-                RootRoute.MAIN -> MainApp()
             }
         }
     }

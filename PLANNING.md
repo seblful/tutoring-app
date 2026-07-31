@@ -6,10 +6,13 @@
 ## Purpose
 
 A native Android app for a **single** private tutor to manage students, groups, subjects, schedule,
-payments and debts, mirrored into the device calendar. Russian UI, Material 3, **fully offline /
-local-only** — no backend, no account, no cloud.
+payments and debts, mirrored into the device calendar. Russian and English UI, Material 3, **fully
+offline / local-only** — no backend, no account, no cloud.
 
-Money is displayed in **BYN** or **RUB**, chosen in Settings.
+The **language** is Russian, English, or whichever of the two the phone asks for (the default), chosen in
+first-run setup and in Settings. Money is displayed in **BYN**, **RUB**, **USD** or **EUR** — chosen the
+same two places, and starting from the phone's own region. The currency only *labels* amounts; nothing is
+converted at an exchange rate.
 
 ## Domain model
 

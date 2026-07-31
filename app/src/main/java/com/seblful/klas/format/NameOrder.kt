@@ -20,11 +20,18 @@ object NameOrder {
      * Case-insensitive by name, with ties broken by the raw name so the order is total and stable
      * («Аня» and «аня» never swap between emissions).
      *
-     * Deliberately `lowercase()` rather than a locale [java.text.Collator]: it is Unicode-aware,
-     * which is the part that matters here, and it gives the same answer on a device and on the JVM —
-     * which a platform collator does not guarantee.
+     * Deliberately `lowercase` rather than a locale [java.text.Collator]: it is Unicode-aware, which is the
+     * part that matters here, and it gives the same answer on a device and on the JVM — which a platform
+     * collator does not guarantee.
+     *
+     * **In [java.util.Locale.ROOT], stated rather than left to the default**, which is the phone's: Turkish
+     * maps `I` to `ı`, so a tutor with a Turkish phone would have had their Latin-named students ordered
+     * differently from everyone else's. Plain case folding is what is wanted, and it belongs to no language —
+     * the same answer, for the same reason, as `domain/PeopleSearch`, so what a name *matches* and where it
+     * *sorts* cannot disagree.
      */
-    val comparator: Comparator<String> = compareBy({ it: String -> it.lowercase() }, { it })
+    val comparator: Comparator<String> =
+        compareBy({ it: String -> it.lowercase(java.util.Locale.ROOT) }, { it })
 
     /** [items] ordered by their display [name]. */
     fun <T> sorted(items: List<T>, name: (T) -> String): List<T> =
