@@ -12,18 +12,22 @@ import androidx.compose.ui.Modifier
 /**
  * A band that **stays** while a list scrolls under it — so it is drawn as one.
  *
- * The app has two: a detail card's tab row ([StickyTabRow]) and «Люди»'s students-or-groups control.
- * Both were painted `colorScheme.surface`, which is the same value as the page under them, so a fixed
- * band read as part of the scroll: the rows travelling beneath appeared to slide out from behind
- * nothing, and at the moment the first one reached the band there was no edge for it to disappear
- * behind. The tonal ladder the app already declares has the answer one rung up (`surfaceContainer`,
- * the *section* rung — see `ContentCard`), and a divider at the base draws the edge itself.
+ * The detail cards' tab rows were painted `colorScheme.surface`, which is the same value as the page
+ * under them, so a row pinned by `stickyHeader` read as part of the scroll: the rows travelling beneath
+ * appeared to slide out from behind nothing, and at the moment the first one reached the band there was
+ * no edge for it to disappear behind. The tonal ladder the app already declares has the answer one rung
+ * up (`surfaceContainer`, the *section* rung — see `ContentCard`), and a divider at the base draws the
+ * edge itself.
  *
- * The two arrived at it differently, which is why this is one component rather than a rule stated
- * twice: the tab rows were pinned by `stickyHeader` and looked wrong, and People's segmented control
- * never scrolled at all — it sits above the list, outside it — and looked exactly as wrong for the
- * same reason. What makes a band need this is that content passes under it, not how it came to be
- * fixed there.
+ * **What earns it is that content genuinely passes underneath.** «Люди»'s students-or-groups control had
+ * this too, on the argument that a fixed band is a fixed band however it came to be fixed — but that
+ * control sits *outside* the lists rather than over them, so each list is clipped at its own top edge a
+ * few dp below and nothing ever travels under the segments. The band was drawing an edge nothing crosses,
+ * at the price of making the app's two segmented controls look like different controls on the two screens
+ * most likely to be compared. It is the schedule's plain treatment on both now.
+ *
+ * So this stays separate from [StickyTabRow] for what it *is* — the band, apart from what is standing in
+ * it — rather than for having a second caller.
  */
 @Composable
 fun PinnedHeader(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {

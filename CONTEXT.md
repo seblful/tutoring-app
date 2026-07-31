@@ -925,10 +925,13 @@ impossible**, and three of them carry a tripwire.
   swapping the set would change what that test measures.
 - **A band content passes under is drawn as one** (`PinnedHeader`, and `StickyTabRow` over it):
   `surfaceContainer` and a divider, not the page's own `surface`, which is what made rows appear to
-  slide out from behind nothing. The app has two, and they became fixed by different routes — a detail
-  card's tab row through `stickyHeader`, «Люди»'s segmented control by sitting outside the lists
-  entirely — which is why the shared thing is the *band* rather than the tab row: what earns it is that
-  something scrolls underneath, not how it came to be up there.
+  slide out from behind nothing. **What earns it is that content genuinely passes underneath** — the
+  detail cards' tab rows, pinned by `stickyHeader`, and nothing else. «Люди»'s segmented control had one
+  too, on the argument that a fixed band is a fixed band however it came to be fixed; but it sits
+  *outside* the two lists, which are clipped at their own top edge a few dp below, so nothing ever
+  travelled under it. It was drawing an edge nothing crosses, and costing the app's two segmented
+  controls a shared appearance on the two screens most likely to be compared. Both are the schedule's
+  plain treatment now.
 - **«Готово» closes a picker; «Сохранить» writes; «Вернуть» undoes.** All three modals confirmed with
   «Сохранить», so booking a lesson asked for a save twice in a row — and the undo action was «Отменить»
   in an app where «Отменено» is a lesson *status*.

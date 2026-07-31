@@ -30,7 +30,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.KlasScreen
-import com.seblful.klas.ui.common.PinnedHeader
 import com.seblful.klas.ui.common.ScreenSearch
 import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.Spacing
@@ -128,22 +127,25 @@ fun PeopleScreen(
         // sides of «Люди» are one screen showing the same people two ways, and every part of it should turn
         // the page. Neither list owns a horizontal gesture, so nothing here competes for the drag.
         Column(modifier.swipeBetweenSegments(PeopleTab.entries, tab) { tab = it }) {
-            // **Fixed, and drawn as fixed.** The control sits above the lists rather than inside them,
-            // so it never scrolls — but it was painted the page's own colour, which is what made rows
-            // appear to slide out from behind nothing as either list moved under it. [PinnedHeader] is
-            // the same band the detail cards' tab rows use, and for the same reason.
-            PinnedHeader {
-                SegmentedChoice(
-                    options = PeopleTab.entries,
-                    selected = tab,
-                    onSelect = { tab = it },
-                    modifier = Modifier.padding(
-                        horizontal = Spacing.gutter,
-                        vertical = Spacing.inline,
-                    ),
-                    label = { entry -> stringResource(entry.labelRes) },
-                )
-            }
+            // **On the page, like the schedule's.** It sits above the lists rather than inside them, so it
+            // never scrolls — and it used to say so with a tonal band and a divider ([PinnedHeader], the
+            // detail cards' one). That band is what a *sticky* header needs, where content genuinely
+            // travels under a row that stays: it draws the edge the rows disappear behind. Here the lists
+            // are clipped to their own bounds a few dp below and the rows are cards a rung off the page
+            // already, so the band was drawing an edge nothing crosses — and it made the app's two
+            // segmented controls look like different controls, on the two screens most likely to be
+            // compared. The chrome is the same on both now, and the tonal ladder is left to say what it is
+            // for.
+            SegmentedChoice(
+                options = PeopleTab.entries,
+                selected = tab,
+                onSelect = { tab = it },
+                modifier = Modifier.padding(
+                    horizontal = Spacing.gutter,
+                    vertical = Spacing.inline,
+                ),
+                label = { entry -> stringResource(entry.labelRes) },
+            )
             Box(Modifier.fillMaxSize()) {
                 // `query` is the visible side's, so either list's "empty because nothing matched"
                 // reads the same search its rows were filtered by.
