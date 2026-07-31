@@ -371,29 +371,32 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   nothing else, is `exported="false"`, and hands out only the per-file read grant that travels with an
   `ACTION_SEND` intent and dies with it. A provider pointing at `.` would have made `klas.db` requestable
   by authority alone.
-- **The database is at v5, and migrates.** The rename changed both the application id and the file name
-  (`tutoring.db` → `klas.db`), and Android never upgrades one application id into another, so no device
-  can hold a pre-v1 `klas.db` — v1 shipped with no migrations for that reason. **v2 splits `classes` into
-  `lessons` + `attendance` and migrates anyway** (`MIGRATION_1_2`), because "no released baseline" is not
-  the same as "no data": the v1 databases that exist are on development phones with real students in
-  them. `MigrationTest` runs it against a real v1 database and asserts every row, rate and charge
-  survives — including that a taught lesson whose absentee was cancelled becomes a taught lesson with an
-  absentee. **v3 adds one nullable column** (`settings.lastExportMillis`, `MIGRATION_2_3`); null is what
-  an upgrade lands on and is the honest answer — the app was not recording it, so it cannot say when that
-  tutor last made a copy. **v4 adds one boolean** (`settings.dynamicColorEnabled`, `MIGRATION_3_4`),
-  `NOT NULL DEFAULT 0` — an existing install has been looking at the app's own palette all along, so
-  backfilling "off" changes nothing about how their phone looks the moment they upgrade. **v5 adds the
-  five digest columns** (`MIGRATION_4_5`): both switches backfill **off**, because these are notifications
-  the app did not previously send and an upgrade must not start sending a tutor a message every morning;
-  the times backfill to 09:00 and Monday, so switching one on lands on a sensible hour rather than midnight.
+- **The database is at v5, and v5 is the baseline** (`AppDatabase.BASELINE_VERSION`) — the oldest version
+  any `klas.db` can be at, so there are no migrations and `data/local/Migrations.kt` does not exist. It did:
+  a chain of four, v1 → v5, squashed before the first release because every step of it was dead code.
+  `com.seblful.klas` v0.2.0 (`versionCode` 3) declared schema **v1** and reached nobody — it is a tag, not a
+  shipped artifact; v2–v5 were all written after it, so no device ever held an intermediate version; and the
+  one database holding real students, the author's own `.debug` install, was already at v5. The rename is
+  why none of it was ever needed: `com.seblful.repetit` is a **different application id**, which Android
+  never upgrades from, so its `tutoring.db` is unreachable whatever version it is at. The only bridge out of
+  the old app is the **JSON export**, which is `BackupData`'s job and not a migration's — which is why
+  `splitIntoLessons` stays (a file on somebody's disk outlives the schema it came from) while its SQL twin
+  went.
+- **The baseline stops being free the moment a v5 build ships.** It is then the version in tutors' hands, so
+  a bump to v6 owes a migration from it. `MigrationChainTest` reads the constant and fails a bump that does
+  not ship one — verified by bumping the version and watching it fail, which is the only way to know a
+  tripwire is one. Raising the baseline is a promise that no database below it exists **anywhere**, which
+  after a release means every install has been upgraded past it: not a thing to assume.
 - **The destructive fallback is debug-only.** A release build **refuses to open** a database it cannot
   migrate: a crash leaves every row on disk for the next build, and is recoverable in the way a wipe
   is not.
-- **Every schema change bumps the version and ships a migration**, with an entity's `defaultValue` and
-  the migration's `DEFAULT` kept in step; `MigrationChainTest` makes that a rule rather than a habit.
-  **`BackupData.version` (currently 6) is the other half of the compatibility story** — the only bridge
-  out of `com.seblful.repetit`, and the reason v6 still reads a v1–v5 file's flat `classes` list and
-  splits it on the way in, by the same rule the migration applies to the table.
+- **Every schema change past the baseline bumps the version and ships a migration**, with an entity's
+  `defaultValue` and the migration's `DEFAULT` kept in step; `MigrationChainTest` makes that a rule rather
+  than a habit. **`BackupData.version` (currently 6) is the other half of the compatibility story, and the
+  two are now independent** — it is the only bridge out of `com.seblful.repetit`, and the reason v6 still
+  reads a v1–v5 file's flat `classes` list and splits it on the way in (`splitIntoLessons`). A backup
+  **file** version is not a schema version: files written by old builds keep existing after the migrations
+  that matched them are gone, so this number may never be squashed the way the schema's chain was.
 - **Backup = full DB snapshot → JSON via SAF.** Ids preserved, import is one transaction. The format
   is versioned: an **older** file still imports (missing tables come back empty, missing columns take
   their default), a **newer** one is refused. A restored file is reproduced as given.
@@ -849,8 +852,10 @@ impossible**, and three of them carry a tripwire.
   "`imePadding()` before the scroll" is a rule in one place instead of a habit in fifteen.
   `KlasScreenSurfaceTest` pins it three ways — no `Scaffold(`, no `ArrowBack`, no `SnackbarHost(`
   outside it — plus a fourth assertion that the shell is really used, so the first three cannot pass by
-  there being no screens left. It matches **code with comments stripped**, or documenting the rule would
-  fail the test that enforces it.
+  there being no screens left. It matches **code with comments stripped** (`testutil/SourceText.code`,
+  shared with `MigrationChainTest` since two tripwires need it), or documenting the rule would fail the test
+  that enforces it — which is exactly what happened the moment `DatabaseModule`'s KDoc had to explain why it
+  no longer calls `addMigrations`.
 - **`Spacing` is the app's rhythm** — `tight` 4, `inline` 8, `itemGap` 12, `gutter` 16, `leading` 16,
   `sectionGap` 24. Fourteen distinct gap values existed, four of them off Material's 4 dp grid, and
   the same pattern ("cards in a scrolling list") was drawn four ways. **The list owns the gutter**, via
@@ -1033,10 +1038,10 @@ read and nothing that owns a lesson after it exists.
 - Nine tests are **tripwires against silent drift**, all deriving expectations from a real artifact
   rather than restating them: `BackupSchemaCoverageTest` (a new table must be carried or named
   device-local), `MappersTest` (a new column must be mapped), `BackupSplitTest` (the pre-v2 lesson-status
-  precedence is `LessonStatus.PRECEDENCE`, and the SQL saying it too is read out of `MIGRATION_1_2`'s source
-  — it *was* `entries.firstOrNull`, i.e. the enum's declaration order, which `StoredEnumNamesTest` compares
-  as a set and so cannot see; reordering the constants would have made every old backup import a mixed group
-  lesson as **completed**), `StoredEnumNamesTest` (a renamed enum
+  precedence is `LessonStatus.PRECEDENCE` and not the enum's declaration order — it *was* `entries.firstOrNull`,
+  which `StoredEnumNamesTest` compares as a set and so cannot see; reordering the constants would have made
+  every old backup import a mixed group lesson as **completed**. `splitIntoLessons` is the last reader of that
+  rule now that the SQL twin in `MIGRATION_1_2` has gone, so this is the only thing holding it), `StoredEnumNamesTest` (a renamed enum
   constant is a migration — it reads the DAO source, since `@Query` is not retained at runtime, *and*
   `FakeDaos.kt`, which had restated three of the same predicates as bare strings and so sat outside the
   very scan built for the risk), `WholeTableWritesTest` (a whole-table delete belongs to `SnapshotDao`,
@@ -1045,9 +1050,9 @@ read and nothing that owns a lesson after it exists.
   `KlasScreenSurfaceTest` (the screen shell does too — no `Scaffold(`, no back arrow and no
   `SnackbarHost(` outside `KlasScreen.kt`; the `Scaffold(` match is word-bounded so `AppRoot`'s
   `NavigationSuiteScaffold` does not count) and
-  `MigrationChainTest` (a bumped schema version must ship a migration for every step from v1 *and* wire
-  it into the builder, and the destructive fallback must stay debug-only — it reads `AppDatabase.kt`,
-  since `@Database` is `BINARY`-retained). The first eight are acknowledgement lists; the last is the
+  `MigrationChainTest` (a schema version bumped **past the baseline** must ship a migration for every step
+  *and* wire it into the builder, the baseline must not exceed the declared version, and the destructive
+  fallback must stay debug-only — it reads `AppDatabase.kt`, since `@Database` is `BINARY`-retained). The first eight are acknowledgement lists; the last is the
   upgrade path, and it sits in the **unit** suite precisely because instrumented tests need a device CI
   does not have. Two more guard structure: one asserts the booking form leaves **no query open** once
   nothing collects it, one asserts a save is launched into the application scope.
@@ -1060,9 +1065,8 @@ read and nothing that owns a lesson after it exists.
 - **CI** (`.github/workflows/ci.yml`) runs the unit suite, `lintDebug`, the debug APK and the
   *compilation* of the instrumented tests on every PR and every push to `main`/`develop` — a tripwire
   nobody runs is not a tripwire. The instrumented tests themselves still need a device.
-- **Instrumented tests** (`src/androidTest`, 13 classes) cover Room integration — including the FK
-  cascade and restrict rules (`SubjectDeletionCascadeTest`) and the **migration chain** (`MigrationTest`,
-  see below) — backup round-trip and restore, calendar
+- **Instrumented tests** (`src/androidTest`, 12 classes) cover Room integration — including the FK
+  cascade and restrict rules (`SubjectDeletionCascadeTest`) — backup round-trip and restore, calendar
   sync, auto-completion, and the questions that need real rendering: text measurement
   (`BottomBarLabelTest` for the tab labels, `StatRowAutoSizeTest` for a stat tile's amount — both through
   the shared `testutil/textLayoutOf`, since an autosized `Text`'s settled size is *not* in its layout
@@ -1081,14 +1085,14 @@ read and nothing that owns a lesson after it exists.
   a Hilt component, or a WorkManager `Configuration` — and the process dies without it, so the *whole
   run* reports **zero tests** rather than a failure. It looked like flakiness in whichever test was
   unlucky. The argument lives in `androidTest/KlasTestApp.kt`; the rules are what make it hold.
-- **The migration chain is run for real, end to end** (`androidTest/.../MigrationTest`): a v1 database
-  built from the exported `schemas/1.json`, migrated **v1 → v2 → v3 → v4** against `MigrationTestHelper`
-  (one `migrateToCurrent()` helper, so the next step is added in one place), with
-  the rows asserted and `runMigrationsAndValidate` refusing a result that does not match the exported
-  schema column for column. That validation is the half a hand-written `ALTER TABLE` needs — a `DEFAULT`
-  on one side and not the other fails there rather than on a phone. It is instrumented, so **CI only
-  compiles it**; `MigrationChainTest` is the unit-suite half, and it guards the chain's *existence* and
-  wiring rather than its behaviour. Every new step needs a case here, not just a `Migration` object.
+- **There is no migration test, because there is no migration** — `androidTest/.../MigrationTest` went with
+  the chain it exercised. What it did is worth restating, because the next migration owes it: a real v1
+  database built from an exported schema, migrated against `MigrationTestHelper` with the rows asserted, and
+  `runMigrationsAndValidate` refusing a result that does not match the exported schema column for column.
+  That validation is the half a hand-written `ALTER TABLE` needs — a `DEFAULT` on one side and not the other
+  fails there rather than on a phone. It is instrumented, so CI can only ever compile it; `MigrationChainTest`
+  is the unit-suite half that runs on every push, and it guards a migration's *existence* and wiring rather
+  than its behaviour.
 - Notification display and real calendar writes can only be observed on a device.
 
 ---

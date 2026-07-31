@@ -2,7 +2,6 @@ package com.seblful.klas.data.backup
 
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
-import com.seblful.klas.testutil.ProjectFiles
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -12,12 +11,13 @@ import org.junit.Test
  * Splitting a v1–v5 file's flat `classes` list into `lessons` + `attendance` — the test `splitIntoLessons`
  * has always cited and never had.
  *
- * **Why this matters more than its size suggests.** The same split exists twice: in SQL as
- * `MIGRATION_1_2`, against a live database, and in Kotlin here, over parsed JSON. They cannot share an
- * implementation, so what they share has to be pinned instead. Until this file existed the Kotlin half's
- * *output* was asserted nowhere at all — the three legacy-version cases in `BackupSerializationTest`
- * check only that such a file parses, and never call `toSnapshot()`; the function otherwise ran only
- * inside `BackupIntegrity.check`, whose whole purpose is to decide whether to **refuse** the rows.
+ * **Why this matters more than its size suggests.** This is now the **only** implementation of the split:
+ * its SQL twin, `MIGRATION_1_2`, went with the migration squash (no database is below the schema baseline
+ * any more — see `AppDatabase.BASELINE_VERSION`), while a v1–v5 backup *file* is still a thing that exists
+ * on somebody's disk and still has to import. Until this file existed the output was asserted nowhere at
+ * all — the three legacy-version cases in `BackupSerializationTest` check only that such a file parses, and
+ * never call `toSnapshot()`; the function otherwise ran only inside `BackupIntegrity.check`, whose whole
+ * purpose is to decide whether to **refuse** the rows.
  *
  * And the rule it applies decides money. A group lesson with one scheduled member and one completed one
  * is *scheduled* — the hour has not happened — and reading it the other way round recognises income the
@@ -53,38 +53,15 @@ class BackupSplitTest {
     /**
      * The precedence itself, as a literal. Deliberately not derived from `LessonStatus.entries`: the
      * whole point of [LessonStatus.PRECEDENCE] is that it stopped *being* the declaration order, and a
-     * test that read the enum back would pin nothing.
+     * test that read the enum back would pin nothing. Reordering the constants is an ordinary refactor
+     * that `StoredEnumNamesTest` compares as a set and therefore cannot see — and it would make every
+     * old backup import a mixed group lesson as **completed**, recognising income the app never earned.
      */
     @Test
     fun `the lesson-status precedence is scheduled, then completed, then cancelled`() {
         assertEquals(
             listOf(LessonStatus.SCHEDULED, LessonStatus.COMPLETED, LessonStatus.CANCELLED),
             LessonStatus.PRECEDENCE,
-        )
-    }
-
-    /**
-     * The SQL half says the same thing, in the same order.
-     *
-     * Read out of the migration's source because a `CASE` expression inside an `execSQL` string is
-     * reachable no other way, and because *this* is the pairing that can drift: the two halves are
-     * separate implementations of one rule, and only one of them has a Kotlin compiler checking it.
-     */
-    @Test
-    fun `the migration's SQL applies the same precedence in the same order`() {
-        val sql = ProjectFiles.sourceFile("data/local/Migrations.kt").readText()
-        val order = Regex("""WHEN SUM\(c\.status = '(\w+)'\) > 0 THEN '(\w+)'""")
-            .findAll(sql)
-            .map { it.groupValues[1] to it.groupValues[2] }
-            .toList()
-
-        assertTrue("MIGRATION_1_2's status CASE was not found — has it moved?", order.isNotEmpty())
-        // Each arm tests for a status and yields the same one, in precedence order...
-        assertEquals(LessonStatus.PRECEDENCE.dropLast(1).map { it.name to it.name }, order)
-        // ...and the last one is the ELSE, which is why it is not in the list above.
-        assertTrue(
-            "the fallback arm must be the last of the precedence",
-            sql.contains("ELSE '${LessonStatus.PRECEDENCE.last().name}'"),
         )
     }
 
@@ -145,7 +122,7 @@ class BackupSplitTest {
     @Test
     fun `a taught lesson whose absentee was cancelled keeps the absence`() {
         // The correction the old model could only express by cancelling one member's class — which also
-        // stopped charging them. It comes back as a taught lesson with an absentee, per `MIGRATION_1_2`.
+        // stopped charging them. It comes back as a taught lesson with an absentee.
         val (lessons, attendance) = listOf(
             legacy(id = 1, studentId = 1, status = LessonStatus.COMPLETED, groupId = 7, chargeMinor = 3_000_00),
             legacy(id = 2, studentId = 2, status = LessonStatus.CANCELLED, groupId = 7),

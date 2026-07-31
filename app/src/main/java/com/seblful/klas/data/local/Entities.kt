@@ -245,8 +245,10 @@ data class AttendanceEntity(
  * unchanged from when that was a table: the columns are the same columns. Writes go to the two tables
  * (`LessonDao`, `AttendanceDao`) — the point of the split being that each fact has one home.
  *
- * **Its SQL is duplicated in `MIGRATION_1_2`**, which has to create it, and Room validates the two are
- * identical on every upgrade (`schemas/2.json` is the arbiter).
+ * **Its SQL is stated once, here.** It used to be written out a second time in `MIGRATION_1_2`, which had
+ * to create the view as part of the upgrade, with Room validating the two were identical against
+ * `schemas/2.json`. That migration went with the squash (see `AppDatabase.BASELINE_VERSION`), so there is
+ * no second copy left to drift — and none of the duplication's cost either.
  */
 @DatabaseView(
     viewName = "classes",

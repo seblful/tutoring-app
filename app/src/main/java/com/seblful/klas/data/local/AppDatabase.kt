@@ -39,12 +39,34 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         // Renamed with the app (was "tutoring.db"). Safe only because the application id changed in
         // the same breath: every install is a fresh one, so there is no old file left to look for.
-        // That same fact is why this database started again at version 1 — the only released builds are
-        // `com.seblful.repetit`, a different app Android never upgrades from.
-        //
-        // v2 splits `classes` into `lessons` + `attendance` and migrates rather than dropping, even
-        // though no release has to be upgraded from v1: the databases that do exist are the ones on the
-        // author's own phone, holding real students. See [MIGRATION_1_2].
         const val NAME = "klas.db"
+
+        /**
+         * **The oldest schema version any `klas.db` can be at**, and therefore the version Room needs no
+         * way *into*. Equal to the version `@Database` declares means: there are no migrations, because
+         * there is nothing to migrate from.
+         *
+         * This is a claim about **releases**, not about the schema, and it is the reason
+         * `data/local/Migrations.kt` no longer exists. It was 1, with a chain of four migrations up to v5,
+         * and every one of them was dead code:
+         *
+         * - `com.seblful.klas` v0.2.0 (`versionCode` 3) declared schema v1 and reached nobody — it is a
+         *   tag, not a shipped artifact. `com.seblful.repetit` is a *different application id*, which
+         *   Android never upgrades from, so its `tutoring.db` is unreachable by this app whatever version
+         *   it is at (the JSON export is the only bridge, and that is `BackupData`'s, not a migration's).
+         * - v2, v3, v4 and v5 were all written after that tag, so no device has ever held one of the
+         *   intermediate versions — they existed only between unreleased commits.
+         * - The one database that holds real students, the author's own `.debug` install, was already at
+         *   v5 when this was squashed.
+         *
+         * So the chain migrated nothing, and every step of it was code that could only ever be wrong in
+         * silence. Deleting it is safe exactly once — before the first release of a v5 build.
+         *
+         * **After that release this number stops being free.** It is the version in tutors' hands, so a
+         * bump to v6 owes a migration from it, and `MigrationChainTest` reads this constant to say so.
+         * Raising it is a promise that no database below it exists anywhere, which after a release means
+         * *every* install has been upgraded past it — not a thing to assume.
+         */
+        const val BASELINE_VERSION = 5
     }
 }

@@ -47,9 +47,10 @@ enum class LessonStatus {
         /**
          * The order a lesson's status is decided in when **only its members' statuses are known**:
          * scheduled if any member still is, else completed if any is, else cancelled. Nothing in the app
-         * derives a status this way any more — the lesson holds its own — except the two readers of the
-         * *pre-v2* model, where it was the only answer there was: `MIGRATION_1_2` in SQL and
-         * `splitIntoLessons` over a v1–v5 backup file.
+         * derives a status this way any more — the lesson holds its own — except the one remaining reader of
+         * the *pre-v2* model, where it was the only answer there was: `splitIntoLessons`, over a v1–v5
+         * backup **file**. (Its SQL twin in `MIGRATION_1_2` went with the migration squash; a file on
+         * somebody's disk outlives the schema it came from, which is why this half stays.)
          *
          * **Stated as a list because it was the enum's declaration order.** `entries.firstOrNull { … }`
          * reproduced the SQL only by accident of how the constants happen to be written down, and

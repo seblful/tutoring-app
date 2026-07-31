@@ -74,9 +74,9 @@ data class BackupData(
          *
          * Older files still import — a v1 has no groups at all, a v2's groups come back priced at 0
          * for the tutor to re-price, a v3's come back with no subject, a v4's arrive with no rate
-         * history (an empty log), and a v5's classes are split on the way in ([splitIntoLessons]),
-         * exactly as `MIGRATION_1_2` splits the table they came from. A restore otherwise reproduces the
-         * file rather than inventing rows it doesn't contain, so each of those gaps stays a gap.
+         * history (an empty log), and a v5's classes are split on the way in ([splitIntoLessons]).
+         * A restore otherwise reproduces the file rather than inventing rows it doesn't contain, so each
+         * of those gaps stays a gap.
          *
          * The bump is for the other direction: a v6 file *would* parse in a build that predates the
          * split — its `classes` list is empty, so it would restore a database with no lessons in it at
@@ -96,11 +96,14 @@ data class BackupData(
 /**
  * The v1–v5 classes of a file, as the lessons and attendance rows they describe.
  *
- * **The same rule as `MIGRATION_1_2`**, which does this to the table these rows were read from, and for
- * the same reason: one lesson per `(groupId, startMillis)`, its status the strictest thing true of all
- * its members, and each member's attendance read off the pair of statuses. The two are separate because
- * one is SQL against a live database and the other is Kotlin over parsed JSON; `BackupSplitTest` pins
- * that they agree on the cases that matter.
+ * One lesson per `(groupId, startMillis)`, its status the strictest thing true of all its members
+ * ([LessonStatus.PRECEDENCE]), and each member's attendance read off the pair of statuses.
+ *
+ * **This is the last reader of the pre-v2 shape.** It had a twin in SQL — `MIGRATION_1_2`, doing the same
+ * thing to the table these rows were read from — and that went with the migration squash, because no
+ * database is below the schema baseline any more (`AppDatabase.BASELINE_VERSION`). A backup **file** is
+ * different: one written by an older build is a file on somebody's disk, and it still has to import.
+ * `BackupSplitTest` pins what this produces.
  *
  * Ids are preserved: a lesson takes the lowest id of its classes, and every attendance row keeps its
  * class's id, so a charge, a calendar event and any id noted elsewhere all still point where they did.
@@ -140,8 +143,8 @@ fun List<LegacyClass>.splitIntoLessons(): Pair<List<LessonEntity>, List<Attendan
 
 /**
  * The lesson's status: **scheduled if any member still is**, else completed if any is, else cancelled —
- * [LessonStatus.PRECEDENCE], which is where that order is stated and pinned against the SQL that says it
- * too. It used to be `entries.firstOrNull`, i.e. the order the constants happen to be declared in.
+ * [LessonStatus.PRECEDENCE], which is where that order is stated and pinned. It used to be
+ * `entries.firstOrNull`, i.e. the order the constants happen to be declared in.
  *
  * An unreadable status counts as none of the three, and is left to `BackupIntegrity` to refuse — this
  * only has to not crash on it.

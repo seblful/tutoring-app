@@ -7,10 +7,6 @@ import com.seblful.klas.data.local.AttendanceDao
 import com.seblful.klas.data.local.ClassDao
 import com.seblful.klas.data.local.GroupDao
 import com.seblful.klas.data.local.LessonDao
-import com.seblful.klas.data.local.MIGRATION_1_2
-import com.seblful.klas.data.local.MIGRATION_2_3
-import com.seblful.klas.data.local.MIGRATION_3_4
-import com.seblful.klas.data.local.MIGRATION_4_5
 import com.seblful.klas.data.local.PaymentDao
 import com.seblful.klas.data.local.PriceDao
 import com.seblful.klas.data.local.RateHistoryDao
@@ -32,20 +28,18 @@ import javax.inject.Singleton
 object DatabaseModule {
 
     /**
-     * Every schema version this app has ever had, and the way from each to the next
-     * (`MigrationChainTest` fails the build if one is missing).
-     *
-     * v2 — splitting `classes` into `lessons` + `attendance` — is migrated rather than dropped even
-     * though no *released* build holds a v1 database: the ones that exist are on development phones with
-     * real students in them, and "no released baseline" is not the same as "no data".
+     * **No `addMigrations`, because there is nothing below the schema to migrate from** — see
+     * [AppDatabase.BASELINE_VERSION], which states that claim and why it holds. A fresh install creates
+     * the current schema outright. `MigrationChainTest` fails the build the moment the version is bumped
+     * past that baseline without a migration, so this staying empty is checked rather than remembered.
      *
      * The destructive fallback is **gated on the debug build**, because that is the only case it was
-     * ever meant for: a dev device carrying a pre-release schema, which the squash to v1 makes every
-     * `.debug` install on hand. Room applies that fallback to *any* version it cannot find a path for,
-     * though, so left unconditional it also answers "the version was bumped and the migration
-     * forgotten" — by recreating a released database empty, silently, on first launch after an
-     * ordinary Play update, with nothing to recover from but whatever backup the tutor last exported.
-     * The tutor's students, lessons and payments live only here; there is no backend and no cloud copy.
+     * ever meant for: a dev device carrying a schema from some earlier point in development. Room applies
+     * that fallback to *any* version it cannot find a path for, though, so left unconditional it would
+     * also answer "the version was bumped and the migration forgotten" — by recreating a released
+     * database empty, silently, on first launch after an ordinary Play update, with nothing to recover
+     * from but whatever backup the tutor last exported. The tutor's students, lessons and payments live
+     * only here; there is no backend and no cloud copy.
      *
      * A release build therefore **refuses to open** a database it cannot migrate. That throws where
      * every row is still on disk and the next build can still migrate it properly — a crash is
@@ -58,7 +52,6 @@ object DatabaseModule {
         @DebugBuild debugBuild: Boolean,
     ): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.NAME)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .apply { if (debugBuild) fallbackToDestructiveMigration(dropAllTables = true) }
             .build()
 

@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.common
 
 import com.seblful.klas.testutil.ProjectFiles
+import com.seblful.klas.testutil.SourceText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -23,17 +24,8 @@ class KlasScreenSurfaceTest {
     private fun uiSources() = ProjectFiles.sources()
         .filter { "ui" in it.path.split(java.io.File.separator) }
 
-    /**
-     * The file's **code**, with comments stripped.
-     *
-     * This test scans source text, and the things it scans for are exactly the things the KDoc next to
-     * them has to be able to name: `KlasScreen`'s own doc explains what it replaced, and every screen
-     * that used to carry a `Scaffold` says so in a comment. Matching raw text would make writing that
-     * explanation fail the build — a tripwire that punishes documenting the rule it enforces.
-     */
-    private fun code(file: java.io.File): String = file.readText()
-        .replace(Regex("""/\*.*?\*/""", RegexOption.DOT_MATCHES_ALL), "")
-        .replace(Regex("""//[^\n]*"""), "")
+    /** The file's **code**, with comments stripped — see [SourceText.code] for why that matters here. */
+    private fun code(file: java.io.File): String = SourceText.code(file.readText())
 
     /**
      * Matches `Scaffold(` as a *call* — so `NavigationSuiteScaffold(` in `AppRoot.kt` does not count.
