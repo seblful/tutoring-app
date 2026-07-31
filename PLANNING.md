@@ -1,6 +1,6 @@
 # Klas — Product Goal
 
-> Status: **v1 scope is built and shipping** (`0.2.0`). This file holds the *goal* and the *success
+> Status: **v1 scope is built and shipping** (`0.3.0`). This file holds the *goal* and the *success
 > criteria*; `CONTEXT.md` holds the architecture and the decisions.
 
 ## Purpose

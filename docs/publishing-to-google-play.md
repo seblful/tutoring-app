@@ -44,7 +44,7 @@ contributors without the key are unaffected.
 Play requires an **App Bundle** (`.aab`), not an APK.
 
 1. **Bump `versionCode`** in `app/build.gradle.kts` — every upload needs a higher value
-   (currently `3`). `versionName` (currently `0.2.0`) is cosmetic.
+   (currently `4`). `versionName` (currently `0.3.0`) is cosmetic.
 
    > Nothing has been uploaded to Play yet. The earlier `0.1.0-beta` / `0.1.1` builds were sideloaded
    > under the old `com.seblful.repetit` id, so the first Play upload creates a **new** app entry

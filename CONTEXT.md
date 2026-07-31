@@ -382,8 +382,10 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   the old app is the **JSON export**, which is `BackupData`'s job and not a migration's — which is why
   `splitIntoLessons` stays (a file on somebody's disk outlives the schema it came from) while its SQL twin
   went.
-- **The baseline stops being free the moment a v5 build ships.** It is then the version in tutors' hands, so
-  a bump to v6 owes a migration from it. `MigrationChainTest` reads the constant and fails a bump that does
+- **The baseline is no longer free: `0.3.0` (`versionCode` 4) is the v5 build that shipped.** It is now the
+  version in tutors' hands, so a bump to v6 owes a migration from it. The squash was the one chance to
+  delete a chain, and it has been spent — everything below is what the next schema change has to do
+  instead. `MigrationChainTest` reads the constant and fails a bump that does
   not ship one — verified by bumping the version and watching it fail, which is the only way to know a
   tripwire is one. Raising the baseline is a promise that no database below it exists **anywhere**, which
   after a release means every install has been upgraded past it: not a thing to assume.
@@ -1102,7 +1104,7 @@ read and nothing that owns a lesson after it exists.
 - Kotlin 2.3.21, AGP 9.3.1, Gradle 9.6.1, JDK 21 (Android Studio JBR). compileSdk 37, targetSdk 36,
   minSdk 24. Hilt 2.60.1, Room 2.8.4, WorkManager, Navigation Compose, kotlinx-serialization,
   core-splashscreen, material3-adaptive-navigation-suite (BOM-managed, like material3) — versions
-  in `gradle/libs.versions.toml`. Current release: `0.2.0` (`versionCode` 3).
+  in `gradle/libs.versions.toml`. Current release: `0.3.0` (`versionCode` 4).
 - **AGP 9 compiles Kotlin itself**: the `kotlin.android` plugin is not applied, and the root
   `build.gradle.kts` pins the built-in KGP so it matches the Compose/serialization plugins and KSP.
   That pin repeats the catalog's `kotlin` because `libs` accessors do not exist inside `buildscript {}`,

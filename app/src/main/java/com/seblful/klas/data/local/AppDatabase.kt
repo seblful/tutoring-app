@@ -62,7 +62,8 @@ abstract class AppDatabase : RoomDatabase() {
          * So the chain migrated nothing, and every step of it was code that could only ever be wrong in
          * silence. Deleting it is safe exactly once — before the first release of a v5 build.
          *
-         * **After that release this number stops being free.** It is the version in tutors' hands, so a
+         * **That release has happened: 0.3.0 (`versionCode` 4).** So the window is shut, and this number
+         * is no longer free. It is the version in tutors' hands, so a
          * bump to v6 owes a migration from it, and `MigrationChainTest` reads this constant to say so.
          * Raising it is a promise that no database below it exists anywhere, which after a release means
          * *every* install has been upgraded past it — not a thing to assume.
