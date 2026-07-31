@@ -9,6 +9,7 @@ import com.seblful.klas.data.repository.LessonWrite
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.CalendarLayout
+import com.seblful.klas.domain.Captions
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.DaySummary
 import com.seblful.klas.domain.GroupRules
@@ -102,6 +103,23 @@ data class ScheduleRow(
      * because some of it did happen — which is exactly what [ClassSession.status] answers.
      */
     val recedes: Boolean get() = session.status == LessonStatus.CANCELLED
+
+    companion object {
+        /**
+         * [session] captioned by [captions] — the whole of turning a stored lesson into a drawable row.
+         *
+         * Here rather than in the view model's private helper because the rule it carries is small,
+         * shared and easy to get subtly wrong: a group lesson is titled by its **group** and names its
+         * members, an individual one is titled by its **student** and names nobody. It was reachable only
+         * through 1,352 lines of `ScheduleViewModelTest` before, being private to the view model.
+         */
+        fun of(session: ClassSession, captions: Captions): ScheduleRow = ScheduleRow(
+            session = session,
+            title = captions.titleOf(session),
+            subjectName = captions.subjectOf(session),
+            members = captions.membersOf(session),
+        )
+    }
 }
 
 /**
@@ -513,9 +531,9 @@ class ScheduleViewModel @Inject constructor(
                     // so the sheet's actions still act on the session the lesson consists of.
                     val visibleClasses =
                         filter?.let { GroupRules.lessonsWith(readClasses, it.studentId) } ?: readClasses
-                    val studentsById = studentList.associateBy { it.id }
-                    val subjectsById = subjectList.associateBy { it.id }
-                    val groupsById = groupList.associateBy { it.id }
+                    // Built once per emission and asked per lesson — the three `associateBy` maps this
+                    // replaces, plus the rule about which name titles a lesson. See [Captions].
+                    val captions = Captions.of(studentList, subjectList, groupList)
                     if (isWeek) {
                         // Sessions are collapsed per day, not across the week: grouping first would
                         // let a group lesson's members land in one row even if the days differed.
@@ -526,12 +544,12 @@ class ScheduleViewModel @Inject constructor(
                                 .groupBy { it.start.atZone(zone).toLocalDate() }
                                 .toSortedMap()
                                 .map { (day, dayClasses) ->
-                                    val rows = sessionRows(dayClasses, studentsById, subjectsById, groupsById)
+                                    val rows = sessionRows(dayClasses, captions)
                                     WeekSection(date = day, rows = rows, summary = rows.summarised())
                                 },
                         )
                     } else {
-                        val rows = sessionRows(visibleClasses, studentsById, subjectsById, groupsById)
+                        val rows = sessionRows(visibleClasses, captions)
                         ScheduleContent.Day(rows = rows, summary = rows.summarised())
                     }
                 }
@@ -752,29 +770,8 @@ class ScheduleViewModel @Inject constructor(
      * agenda, so a group lesson reads as one lesson in both — not as one row per member in one view
      * and a single row in the other.
      */
-    private fun sessionRows(
-        dayClasses: List<TutoringClass>,
-        students: Map<Long, Student>,
-        subjects: Map<Long, Subject>,
-        groups: Map<Long, Group>,
-    ): List<ScheduleRow> =
-        GroupRules.sessions(dayClasses).map { session ->
-            val subjectName = subjects[session.first.subjectId]?.name ?: ""
-            if (session.isGroup) {
-                ScheduleRow(
-                    session = session,
-                    title = groups[session.groupId]?.name ?: "",
-                    subjectName = subjectName,
-                    members = session.classes.map { students[it.studentId]?.name ?: "" },
-                )
-            } else {
-                ScheduleRow(
-                    session = session,
-                    title = students[session.first.studentId]?.name ?: "",
-                    subjectName = subjectName,
-                )
-            }
-        }
+    private fun sessionRows(dayClasses: List<TutoringClass>, captions: Captions): List<ScheduleRow> =
+        GroupRules.sessions(dayClasses).map { ScheduleRow.of(it, captions) }
 
     /** What these rows come to — [DaySummary] over the lessons they stand for. */
     private fun List<ScheduleRow>.summarised(): DaySummary = DaySummary.of(map { it.session })

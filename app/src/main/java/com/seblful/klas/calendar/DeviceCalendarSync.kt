@@ -1,12 +1,9 @@
 package com.seblful.klas.calendar
 
-import android.Manifest
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
-import android.content.pm.PackageManager
 import android.provider.CalendarContract
-import androidx.core.content.ContextCompat
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.TutoringClass
@@ -28,6 +25,17 @@ import javax.inject.Singleton
 @Singleton
 class DeviceCalendarSync @Inject constructor(
     @param:ApplicationContext private val context: Context,
+    /**
+     * The app's one answer to "may we touch the calendar", rather than a private copy.
+     *
+     * This class used to ask `ContextCompat.checkSelfPermission` itself, in two private methods, while
+     * [CalendarPermission] sat in the same package answering the same question for the settings screen.
+     * Two consequences: the definition could drift, and — because the check and the writing were joined
+     * only inside this untestable class — nothing above could observe that a revoked grant stops the
+     * mirror. `CalendarMirror` takes a [CalendarSync], so with the check hidden in here there was no seam
+     * at which "the tutor revoked the permission while the app was away" could be set up at all.
+     */
+    private val permission: CalendarPermission,
 ) : CalendarSync {
 
     override suspend fun upsert(klass: TutoringClass, title: String, guest: Guest?, reminderLeadMinutes: Int): String? = withContext(Dispatchers.IO) {
@@ -49,7 +57,9 @@ class DeviceCalendarSync @Inject constructor(
         // re-add so an updated time/lead doesn't accumulate stale reminders.
         upsertEmailReminder(eventId, reminderLeadMinutes)
         // Invite the student so the account emails them about the class (and its reminder) — or
-        // withdraw that invitation if the tutor has since turned invites off.
+        // withdraw that invitation if the tutor has since turned invites off. The guard is a read
+        // optimisation and not the rule: `guestAction` answers `None` for a missing address anyway, so
+        // this only decides whether the provider is worth asking.
         guest?.takeIf { it.email.isNotBlank() }?.let { syncGuest(eventId, it) }
 
         eventId.toString()
@@ -73,20 +83,37 @@ class DeviceCalendarSync @Inject constructor(
     }
 
     /**
-     * Brings the event's attendees in line with [guest] — invited means present, uninvited means
-     * gone — idempotently in both directions, so re-syncing after the tutor flips the setting
-     * either sends the invitation or withdraws it. Only ever touches that one address, leaving
-     * guests the tutor added themselves in their calendar alone. Best-effort.
+     * Brings the event's attendees in line with [guest]. Best-effort.
+     *
+     * What that comes to — add, withdraw, or leave alone — is [guestAction], including the two properties
+     * worth having a test for: only ever this one address, and idempotent in both directions.
      */
     private fun syncGuest(eventId: Long, guest: Guest) {
         runCatching {
-            if (guest.invited) addGuest(eventId, guest.email) else removeGuest(eventId, guest.email)
+            when (val action = guestAction(attendees(eventId), guest)) {
+                GuestAction.None -> Unit
+                is GuestAction.Add -> addGuest(eventId, action.email)
+                is GuestAction.Remove -> removeGuest(eventId, action.email)
+            }
         }
     }
 
-    /** Adds [email] as an attendee if not already present. */
+    /** Every address currently on the event, the tutor's own guests included. */
+    private fun attendees(eventId: Long): List<String> =
+        context.contentResolver.query(
+            CalendarContract.Attendees.CONTENT_URI,
+            arrayOf(CalendarContract.Attendees.ATTENDEE_EMAIL),
+            "${CalendarContract.Attendees.EVENT_ID} = ?",
+            arrayOf(eventId.toString()),
+            null,
+        )?.use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) cursor.getString(0)?.let(::add)
+            }
+        }.orEmpty()
+
+    /** Adds [email] as an attendee. Whether it was needed is [guestAction]'s answer, not this one's. */
     private fun addGuest(eventId: Long, email: String) {
-        if (isAttendee(eventId, email)) return
         val values = ContentValues().apply {
             put(CalendarContract.Attendees.EVENT_ID, eventId)
             put(CalendarContract.Attendees.ATTENDEE_EMAIL, email)
@@ -114,15 +141,6 @@ class DeviceCalendarSync @Inject constructor(
             arrayOf(eventId.toString(), email),
         )
     }
-
-    private fun isAttendee(eventId: Long, email: String): Boolean =
-        context.contentResolver.query(
-            CalendarContract.Attendees.CONTENT_URI,
-            arrayOf(CalendarContract.Attendees._ID),
-            ATTENDEE_SELECTION,
-            arrayOf(eventId.toString(), email),
-            null,
-        )?.use { it.count > 0 } ?: false
 
     override suspend fun delete(eventId: String) {
         withContext(Dispatchers.IO) {
@@ -161,39 +179,45 @@ class DeviceCalendarSync @Inject constructor(
     }
 
     /**
-     * The id of a calendar we can add events to, or null if none exists. Requires only
-     * [CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR] — the lowest level that may insert
-     * events — because a synced Google account calendar is often reported as EDITOR/CONTRIBUTOR
-     * rather than OWNER; demanding OWNER matched nothing on those devices, so every event
-     * silently no-opped. Prefers the account's primary, then a visible, then a more-privileged
-     * calendar.
+     * The id of a calendar we can add events to, or null if none exists.
+     *
+     * The **rule** — which levels may be written to, and primary before visible before more-privileged —
+     * is [CalendarChoice.preferred], where a test can reach it. What is left here is the read: every
+     * calendar the phone has, unfiltered and unordered, since a handful of rows is not worth a `WHERE` at
+     * the cost of putting the decision back in a `ContentResolver` call.
      */
-    private fun writableCalendarId(): Long? {
-        val projection = arrayOf(CalendarContract.Calendars._ID)
-        val selection = "${CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL} >= ?"
-        val args = arrayOf(CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR.toString())
-        val order = "${CalendarContract.Calendars.IS_PRIMARY} DESC, " +
-            "${CalendarContract.Calendars.VISIBLE} DESC, " +
-            "${CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL} DESC"
-        return runCatching {
-            context.contentResolver.query(
-                CalendarContract.Calendars.CONTENT_URI, projection, selection, args, order,
-            )?.use { cursor ->
-                if (cursor.moveToFirst()) cursor.getLong(0) else null
+    private fun writableCalendarId(): Long? = runCatching {
+        val projection = arrayOf(
+            CalendarContract.Calendars._ID,
+            CalendarContract.Calendars.IS_PRIMARY,
+            CalendarContract.Calendars.VISIBLE,
+            CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL,
+        )
+        context.contentResolver.query(CalendarContract.Calendars.CONTENT_URI, projection, null, null, null)
+            ?.use { cursor ->
+                buildList {
+                    while (cursor.moveToNext()) {
+                        add(
+                            CalendarRow(
+                                id = cursor.getLong(0),
+                                isPrimary = cursor.getInt(1) != 0,
+                                visible = cursor.getInt(2) != 0,
+                                accessLevel = cursor.getInt(3),
+                            ),
+                        )
+                    }
+                }
             }
-        }.getOrNull()
-    }
+            .orEmpty()
+    }.getOrNull()?.let(CalendarChoice::preferred)
 
     // Reading the calendar list needs READ_CALENDAR; writing events needs WRITE_CALENDAR. Both are
-    // required, and both must be requested — granting one does not imply the other.
-    private fun hasPermission(): Boolean =
-        isGranted(Manifest.permission.READ_CALENDAR) && isGranted(Manifest.permission.WRITE_CALENDAR)
-
-    private fun isGranted(permission: String): Boolean =
-        ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+    // required, and both must be requested — granting one does not imply the other. Asked of the port, so
+    // this class and the settings row cannot disagree about what "granted" means.
+    private fun hasPermission(): Boolean = permission.isGranted()
 
     private companion object {
-        /** One attendee of one event, by address — shared so add and remove can't target differently. */
+        /** One attendee of one event, by address — what a withdrawal targets. */
         const val ATTENDEE_SELECTION =
             "${CalendarContract.Attendees.EVENT_ID} = ? AND ${CalendarContract.Attendees.ATTENDEE_EMAIL} = ?"
     }

@@ -6,6 +6,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -309,5 +310,92 @@ class DigestsTest {
 
         assertFalse(Digests.stillOwed(arranged = nine, planned = nine, now = past))
         assertFalse(Digests.stillOwed(arranged = nine, planned = nine.minusSeconds(60), now = past))
+    }
+
+    // ── arrangementFor ───────────────────────────────────────────────────────────────────────────
+    // What should happen to the queue. These three were `if`s inside `WorkScheduler.arrange`, under a
+    // KDoc claiming nothing there was a decision — 160 lines of WorkManager with no test in either
+    // source set, holding the two branches that had already produced a defect.
+
+    private val daily = Duration.ofDays(1)
+
+    /** A digest that is off must have its pending run taken away, not merely be left un-renewed. */
+    @Test
+    fun `no plan means take down what is enqueued`() {
+        val now = Instant.parse("2026-09-01T09:10:00Z")
+
+        assertEquals(
+            Digests.Arrangement.Cancel,
+            Digests.arrangementFor(planned = null, arranged = now.plusSeconds(600), now = now, every = daily),
+        )
+    }
+
+    /** Switching it off cancels even a run that is already due — see [Digests.stillOwed]. */
+    @Test
+    fun `no plan cancels a due run too`() {
+        val nine = Instant.parse("2026-09-01T09:00:00Z")
+        val past = nine.plusSeconds(720)
+
+        assertEquals(
+            Digests.Arrangement.Cancel,
+            Digests.arrangementFor(planned = null, arranged = nine, now = past, every = daily),
+        )
+    }
+
+    /**
+     * The arm that turns *late* into *arrived*. A 09:00 agenda WorkManager had not run yet at 09:12 was
+     * re-planned for tomorrow and the pending run cancelled on the way, so today's never came.
+     */
+    @Test
+    fun `a run already due is left exactly where it is`() {
+        val nine = Instant.parse("2026-09-01T09:00:00Z")
+        val past = nine.plusSeconds(720)
+
+        assertEquals(
+            Digests.Arrangement.LeaveAlone,
+            Digests.arrangementFor(planned = nine.plusSeconds(86_400), arranged = nine, now = past, every = daily),
+        )
+    }
+
+    @Test
+    fun `an ordinary plan is enqueued at its own delay`() {
+        val now = Instant.parse("2026-09-01T07:00:00Z")
+        val nine = Instant.parse("2026-09-01T09:00:00Z")
+
+        assertEquals(
+            Digests.Arrangement.Enqueue(delay = Duration.ofHours(2), every = daily),
+            Digests.arrangementFor(planned = nine, arranged = null, now = now, every = daily),
+        )
+    }
+
+    /** The repeat interval is the caller's — a week for the debt digest, not this module's business. */
+    @Test
+    fun `the repeat interval is carried through untouched`() {
+        val now = Instant.parse("2026-09-01T07:00:00Z")
+        val weekly = Duration.ofDays(7)
+
+        val arrangement = Digests.arrangementFor(
+            planned = now.plusSeconds(3_600),
+            arranged = null,
+            now = now,
+            every = weekly,
+        )
+
+        assertEquals(Digests.Arrangement.Enqueue(delay = Duration.ofHours(1), every = weekly), arrangement)
+    }
+
+    /**
+     * A plan the caller read a few moments ago can already be past. A negative delay is not a thing to
+     * hand a scheduler, so [Digests.delayUntil] clamps and this reports "due now".
+     */
+    @Test
+    fun `a plan that has just gone past is enqueued with no delay`() {
+        val now = Instant.parse("2026-09-01T09:00:05Z")
+        val nine = Instant.parse("2026-09-01T09:00:00Z")
+
+        assertEquals(
+            Digests.Arrangement.Enqueue(delay = Duration.ZERO, every = daily),
+            Digests.arrangementFor(planned = nine, arranged = null, now = now, every = daily),
+        )
     }
 }

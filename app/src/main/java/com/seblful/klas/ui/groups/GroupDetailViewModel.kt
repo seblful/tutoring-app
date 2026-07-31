@@ -8,6 +8,7 @@ import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
+import com.seblful.klas.domain.Attendance
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.Billing
 import com.seblful.klas.domain.GroupRules
@@ -43,18 +44,21 @@ data class GroupMemberRow(val student: Student, val attended: Int)
 /**
  * One of the group's lessons: the classes of a single session, plus what it came to.
  *
- * @param members how many students the lesson is for.
- * @param present how many of them were actually in it — equal to [members] unless somebody was marked
- *   absent. Only worth saying for a lesson that happened; before then everybody is merely expected.
  * @param charge the whole lesson's recognized income — the sum over its members, since each of them
  *   is billed the group's rate separately (see `Group.price`).
  */
 data class GroupLessonRow(
     val session: ClassSession,
-    val members: Int,
-    val present: Int,
     val charge: Money,
-)
+) {
+    /**
+     * How the members read on this row.
+     *
+     * The row used to carry `members` and `present` as two counts and leave the screen to work out which
+     * sentence they made. [ClassSession.attendance] is that decision, named once and tested.
+     */
+    val attendance: Attendance get() = session.attendance
+}
 
 data class GroupDetailState(
     val group: Group? = null,
@@ -122,8 +126,6 @@ class GroupDetailViewModel @Inject constructor(
             lessons = sessions.map { session ->
                 GroupLessonRow(
                     session = session,
-                    members = session.size,
-                    present = session.present,
                     charge = Billing.charged(session.classes),
                 )
             },

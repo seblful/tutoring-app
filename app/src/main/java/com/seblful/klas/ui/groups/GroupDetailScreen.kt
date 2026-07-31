@@ -42,6 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
+import com.seblful.klas.domain.Attendance
 import com.seblful.klas.format.formatHours
 import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.ConfirmDialog
@@ -385,10 +386,19 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
                     // only place their attendance is visible. Said as "who came" only for a lesson that
                     // happened: until then everybody is expected, and a count of that is just the roster.
                     Text(
-                        if (status.isBillable && row.present < row.members) {
-                            stringResource(R.string.group_lesson_present, row.present, row.members)
-                        } else {
-                            pluralStringResource(R.plurals.group_lesson_attended, row.members, row.members)
+                        when (val attendance = row.attendance) {
+                            is Attendance.All ->
+                                pluralStringResource(
+                                    R.plurals.group_lesson_attended,
+                                    attendance.count,
+                                    attendance.count,
+                                )
+                            is Attendance.Some ->
+                                stringResource(
+                                    R.string.group_lesson_present,
+                                    attendance.present,
+                                    attendance.of,
+                                )
                         },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

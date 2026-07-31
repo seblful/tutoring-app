@@ -4,6 +4,7 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.Instant
 
@@ -220,5 +221,34 @@ class TaughtTest {
         )
 
         assertEquals(Taught.byGroup(classes), Taught.bySessions(GroupRules.sessions(classes)))
+    }
+
+    // ── Totals.hint ──────────────────────────────────────────────────────────────────────────────
+    // The one line under the «Занятий» count. This lived in a @Composable shared by the student and the
+    // group card, so the rule both cards depend on was the one neither could assert.
+
+    private fun totals(upcoming: Int = 0, cancelled: Int = 0) =
+        Taught.Totals(lessons = 4, upcoming = upcoming, cancelled = cancelled, minutes = 240, earned = Money.ZERO)
+
+    @Test
+    fun `lessons still to come are what the hint says`() {
+        assertEquals(Taught.Hint.Upcoming(3), totals(upcoming = 3).hint)
+    }
+
+    /** «впереди 3» is something to act on; «отменено 3» is not. Only one line fits, so upcoming wins. */
+    @Test
+    fun `upcoming beats cancelled when there is both`() {
+        assertEquals(Taught.Hint.Upcoming(2), totals(upcoming = 2, cancelled = 5).hint)
+    }
+
+    @Test
+    fun `cancelled is said only when nothing is still to come`() {
+        assertEquals(Taught.Hint.Cancelled(5), totals(cancelled = 5).hint)
+    }
+
+    /** A card with neither says nothing rather than printing a zero. */
+    @Test
+    fun `neither leaves the hint unsaid`() {
+        assertNull(totals().hint)
     }
 }

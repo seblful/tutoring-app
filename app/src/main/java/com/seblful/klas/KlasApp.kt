@@ -6,10 +6,10 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.diagnostics.CrashLogger
+import com.seblful.klas.domain.ReminderScheduler
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.work.Maintenance
-import com.seblful.klas.work.WorkScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -20,7 +20,9 @@ class KlasApp : Application(), Configuration.Provider {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var notifier: Notifier
-    @Inject lateinit var workScheduler: WorkScheduler
+    // The port, not the WorkManager adapter behind it: this was the one place in the app naming a `work/`
+    // class, and it did so only because `ensurePeriodicMaintenance` was missing from the interface.
+    @Inject lateinit var scheduler: ReminderScheduler
     @Inject lateinit var crashLogger: CrashLogger
     @Inject lateinit var maintenance: Maintenance
 
@@ -52,7 +54,7 @@ class KlasApp : Application(), Configuration.Provider {
         // hands off to the platform default, so Google Play (Android Vitals) keeps reporting them.
         crashLogger.install()
         notifier.ensureChannels()
-        workScheduler.ensurePeriodicMaintenance()
+        scheduler.ensurePeriodicMaintenance()
 
         // Catch up **in process**, not by enqueueing a worker.
         //

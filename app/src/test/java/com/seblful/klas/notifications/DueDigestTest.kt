@@ -210,7 +210,7 @@ class DueDigestTest {
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject, rate = Money.ofMajor(30))
         env.fixtures.completedLesson(subject, listOf(anya), start = at(11))
-        env.paymentRepo.add(Payment(studentId = anya, date = morning, amount = Money.ofMajor(30)))
+        env.paymentRepo.restore(Payment(studentId = anya, date = morning, amount = Money.ofMajor(30)))
 
         assertFalse(env.dueDigest.postDebts())
         assertTrue(env.notifier.debts.isEmpty())
@@ -245,7 +245,7 @@ class DueDigestTest {
         val boris = env.fixtures.pricedStudent("Боря", subject, rate = Money.ofMajor(30))
         env.fixtures.completedLesson(subject, listOf(anya), start = at(11))
         // Boris has paid for a lesson he has not had.
-        env.paymentRepo.add(Payment(studentId = boris, date = morning, amount = Money.ofMajor(50)))
+        env.paymentRepo.restore(Payment(studentId = boris, date = morning, amount = Money.ofMajor(50)))
 
         env.dueDigest.postDebts()
 

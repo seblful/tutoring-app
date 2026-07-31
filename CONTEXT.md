@@ -36,17 +36,17 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, `Recurrence`/`Repeat` (what a repeating booking's dates are), calendar layout, `CalendarSyncPolicy`, reminders, `Digests` (the two summaries: when each fires, whether one already due is still owed, and whether it is worth sending), reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught`, `DaySummary`/`NowMarker` (what a day comes to, and where "now" falls in it), `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, models (incl. `Currency`, `AppLanguage` — the two settings that are about *reading* the app rather than about a lesson — and the report-only id types, `model/Ids.kt`), and the `ReminderScheduler`/`DigestScheduler` ports. All JVM-tested. |
+| `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, `Recurrence`/`Repeat` (what a repeating booking's dates are), calendar layout, `CalendarSyncPolicy`, reminders, `Digests` (the two summaries: when each fires, whether one already due is still owed, whether it is worth sending, and `Arrangement` — what should become of the queue), reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught` (+ `Hint`, which of "still to come" and "called off" the stat tile says), `DaySummary`/`NowMarker` (what a day comes to, **which clauses its sentence has** — `parts` — and where "now" falls in it), `Captions` (the names a lesson is captioned with), `Attendance` (what a lesson's roster comes to), `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, `PaymentDate`, models (incl. `Balance` — settled, credit or owed — `Currency`, `AppLanguage` — the two settings that are about *reading* the app rather than about a lesson — and the report-only id types, `model/Ids.kt`), and the `ReminderScheduler`/`DigestScheduler` ports. All JVM-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`, `Migrations` (every way *into* the current schema), the `Transactor` port, and `upsertedId` — the one statement of `@Upsert`'s -1-on-update sentinel (the fakes reproduce it, so the fallback branch runs on the JVM too). Entities are also `@Serializable`, for the backup. `SnapshotDao` is the **separate** whole-table seam (see *Two interfaces onto the same tables*). |
 | `data/Mappers.kt` | Entities ⇄ domain models. Where a stored enum is parsed back. |
 | `data/repository/` | One invariant each, end to end, written in one transaction (see *Ownership*). Display **name ordering** is applied here. |
 | `data/backup/` | The **file format**: export, transactional replace-all import, `BackupIntegrity` (what a file must be readable as before any of it is written), `BackupFailure` (which refusal it was) and `BackupRestore` (everything a *restore* means beyond the rows). What tables exist and the order they may be emptied and filled in is `SnapshotDao`'s. |
-| `calendar/` | `CalendarSync` + `CalendarPermission` ports and a `CalendarContract` adapter. |
-| `notifications/` | `Notifier`, `NotificationPermission` and `ExactAlarmPermission` ports + Android adapters, `DueReminder` and `DueDigest` (what each notification says, and whether it is still owed), `ReminderActions`/`TrayNavigation` (what a tray entry's buttons and taps do) and `ReminderAlarms`/`ReminderReceiver`/`ReminderActionReceiver` — reminders are **alarms**, not deferrable work. |
+| `calendar/` | `CalendarSync` + `CalendarPermission` ports and a `CalendarContract` adapter — which **takes the permission port** rather than checking for itself, and whose two decisions are pure and beside it: `CalendarChoice.preferred` (which calendar may be written to, and in what order of preference) and `guestAction` (add the student, withdraw them, or leave the event alone). |
+| `notifications/` | `Notifier`, `NotificationPermission` and `ExactAlarmPermission` ports + Android adapters, `DueReminder` and `DueDigest` (what each notification says, and whether it is still owed), `TrayContent` (**how much of it fits** — the agenda's cap and its «+N»), `ReminderActions`/`TrayNavigation` (what a tray entry's buttons and taps do) and `ReminderAlarms`/`ReminderReceiver`/`ReminderActionReceiver` — reminders are **alarms**, not deferrable work. |
 | `work/` | WorkManager's half: the periodic `MaintenanceWorker`, the two `DigestWorkers`, `WorkScheduler`, `BootReceiver` (alarms die on reboot), and `Maintenance` — what an upkeep pass decides, kept out of the worker. |
 | `diagnostics/` | `CrashLogger` over `CrashLogStore`/`DeviceInfo` ports; the pure half is `domain/Diagnostics`. Viewed and exported from `ui/diagnostics`. |
 | `storage/` | `DocumentStore` port + SAF adapter over an opaque `DocumentRef`, and `DocumentSharing` + its `ACTION_SEND`/`FileProvider` adapter — so no view model touches a `Uri`, an `Intent` or a `Context`. Two ports because the acts differ: one writes where the tutor pointed, the other hands a file to another app. |
-| `format/` | Date/time/money formatting in the app's chosen language (with `LocalDate`/`LocalTime` faces, so no caller restates the zone), `AppLocale` — the one published answer to *which* language, and the decimal separator that goes with it — `MoneyField` (what a money input is — each `Kind` carries its own zero rule), `NameOrder` (the one definition of how names are listed). |
+| `format/` | Date/time/money formatting in the app's chosen language (with `LocalDate`/`LocalTime` faces, so no caller restates the zone), `AppLocale` — the one published answer to *which* language, and the decimal separator that goes with it — `MoneyField` (what a money input is — each `Kind` carries its own zero rule), `NameOrder` (the one definition of how names are listed), `bulletJoin` (the app's one « · » separator, shared by a day's summary and a tray entry), and `DayText` — a **wording table** over `DaySummary.parts` and the only file here taking a `Resources`. |
 | `ui/` | Compose screens + `@HiltViewModel`s, `navigation/` (routes, tab items, screen transitions), shared `common/` atoms, **one concern per file** — the screen shell (`KlasScreen`), the spacing scale (`Spacing`) and the three fixed figures beside it (`Metrics`), `Loadable`/`Skeleton` (the loaded-yet distinction), `Surfaces`, `Fields`, `Dialogs`, `Avatars`, `Badges`, `EmptyStates`, `DomainText`, `Segments` (`SegmentedChoice` and the `ChoiceRow` a setting is asked with), `Currency`/`Language` (the words for the two stored choices), `LocalizedResources` (the whole composition's language), `HeroCard`, `PinnedHeader` (and `StickyTabRow` over it) — plus `onboarding/` and `RootViewModel` gating onboarding vs. the tabs. **Settings and About live in `ui/more/`.** The theme (`ui/theme/`) owns the two colour schemes, `KlasColors`, the type scale and `dynamicColorAvailable`. |
 | `preview/` (debug only) | `@Preview`s of the shared `ui/common/` vocabulary and the `@KlasPreview` multipreview that renders each in light, dark and 1.5× text. In `src/debug/` so neither the previews nor their sample data reach a release APK. |
 | `di/` | The database module, the `@DebugBuild` flag, `@ApplicationScope`/`@Computation` (`CoroutinesModule`), the `Clock` and `@FirstDayOfWeek` (`TimeModule`) — which every defaulted `now` in the engine reads (`Maintenance`, `DueReminder`, `RateHistoryRepository`, `CrashLogger`), so the tested path is the shipped one — and `@DeviceLocales` (`LocaleModule`), the phone's own list, which is what «follow the system» and a fresh install's currency are resolved against. Other Hilt modules live beside their adapters. |
@@ -70,7 +70,12 @@ flowchart TB
 - `GroupRepository` — the only writer of group membership; a group is saved with its exact roster,
   and `save` hands back `Saved(id, dropped)` — who the subject rule left out — so the form reports
   what the write did instead of predicting it with a second intersection.
-- `PaymentRepository` — a payment's own date, and correcting one in place.
+- `PaymentRepository` — a payment's own date, and correcting one in place. **The instant is derived here**
+  (`record`/`correct` take the *day* the tutor named and apply `PaymentDate` against the injected clock), so
+  no caller can write a payment stamped with a time nobody chose. It used to be a pure pass-through — five
+  methods, five one-line delegates, a `PaymentDao` of the same shape and no behavioural test — while the rule
+  it was documented as owning was applied by the view model on the way in, twice. `restore` is the one write
+  that does **not** derive an instant: an undo reproduces a fact rather than recording one.
 - `RateHistoryRepository` — what a *rate change* is, since two repositories set rates.
 - `SettingsRepository` — one `update { it.copy(...) }` rather than a setter per field, serialized —
   returning `SettingsChange`, which classifies what the move owes the world (calendar re-earned,
@@ -209,8 +214,17 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   `ScheduleEmpty`, `NotificationsIntent`, `RootRoute`, `ThemeChoice`,
   `OnboardingViewModel.restoreNeedsConfirming`, `ReportCsv.linesFor`, `PaymentDate.instantFor` (and
   `.today`), `ScheduleRow.statusChoices`/`canSwipeComplete`/`recedes`, `Reports.Line.share`,
-  `Trend.shareOf` and the three picker defaults on `ClassEditViewModel` are the named answers; the
-  screen holds only the words and the layout. A `@Composable` can be exercised
+  `Trend.shareOf`, `Balance`, `Taught.Totals.hint`, `ClassSession.attendance` and the three picker
+  defaults on `ClassEditViewModel` are the named answers; the screen holds only the words and the layout.
+  - **The last four went the same way as the first, and for the same reason.** A **balance** was read
+    straight off `Money.isZero`/`isNegative` by four askers — a sentence, a colour, a card's hero label and
+    the archive warning — with the flip that turns a negative into «Переплата» written out twice. `Balance`
+    (Settled | Credit | Owed) decides it once and carries an already-positive amount, which is also what
+    makes the hero's «Долг 0» for a settled student a *stated* decision rather than the by-product of a
+    missing third arm. `Taught.Totals.hint` is "upcoming beats cancelled, and neither prints a zero" — the
+    one rule the student and group cards genuinely share, and the one neither could test.
+    `ClassSession.attendance` is «N из M» versus the whole roster, decided inside a `LazyColumn` item
+    lambda before. A `@Composable` can be exercised
   only on a device, so a decision that lives in one is a decision with no test — and the eight sites
   these replaced included which rows the CSV export contains and what instant a payment is stored at.
 - **`PaymentDate` was the app's one exception to the injected `Clock`.** It called `LocalDate.now()`
@@ -348,6 +362,15 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 - **A session is a lesson's classes**, grouped by its id. Its status is the lesson's, read rather than
   derived; who missed it is each member's `attended`. Badges, tallies and the sheet's segmented control
   all show the lesson's own status, and none of them reports on the roster.
+- **A lesson is captioned by one module** (`domain/Captions`, built per emission from the whole-table
+  lists and asked per lesson). A lesson is stored as ids, and the rule that turns them back into words is
+  small but real: **a group lesson is titled by its group and an individual one by its student** — the
+  difference between «11 «А», 18:00» and «Иван, 18:00» on the busiest screen in the app. Three view models
+  did it for themselves, two with `associateBy` maps and one with a linear scan per emission; on the
+  schedule it was private to the view model, so it was reachable only through that view model's 1,352-line
+  test. `ScheduleRow.of` is the whole of turning a lesson into a drawable row now. An unknown name comes
+  back **blank** rather than absent, because a row with a hole in it is worse than one with a gap — except
+  for a group, where null is a real and different answer from "a group whose name I do not know".
 - **A group earns a report line of its own** (`Reports.incomeByGroup`) — the only line that answers
   whether running the group is worth the evening.
 - Groups are **archive-only once they have lessons**. A group lesson mirrors as **one calendar event
@@ -448,7 +471,20 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 - **Inviting students by email is its own setting**, separate from sync and **off by default**. Turning
   it off and re-syncing **withdraws** invitations already sent.
 - **The calendar-permission rule sits behind the view model**, not behind the switch: sync cannot be
-  enabled without the grant.
+  enabled without the grant. **The adapter asks the same port** rather than calling
+  `checkSelfPermission` itself, which it did in two private methods while `CalendarPermission` sat in the
+  same package answering the same question for the settings row. Two definitions could drift; worse, the
+  check and the writing were joined only inside a class no test can construct, so "a grant revoked while
+  the app was away stops the mirror" could not be set up at any seam — `CalendarMirror` takes a
+  `CalendarSync` and had no way to make the fake refuse.
+- **Which calendar an event lands in is a rule, and it has shipped wrong once** (`CalendarChoice.preferred`).
+  Anything at or above `CAL_ACCESS_CONTRIBUTOR` is eligible — the account's primary first, then a visible
+  one, then a more privileged one. Demanding `OWNER` matched nothing on devices reporting a synced Google
+  calendar as EDITOR or CONTRIBUTOR, so on those phones every event the app believed it mirrored silently
+  no-opped: the failure a best-effort port hides best. It was a `WHERE` and a three-key `ORDER BY` inside
+  the adapter; the query is now unfiltered and the ranking is pure. `guestAction` went the same way — add,
+  withdraw, or leave alone — which is where "touches exactly one address" and "idempotent in both
+  directions" are now asserted rather than distributed across three private methods.
 - **A lesson mirrors as one batch, under one snapshot of the settings** (`CalendarMirror`), so
   a lesson cannot mirror half under an old invite setting and half under a new one.
 - **A rename re-mirrors.** An event's title and guest are read from the student, subject and group
@@ -474,7 +510,10 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
     `cancel` takes `FLAG_NO_CREATE`, the cancel-side flag — it was `FLAG_UPDATE_CURRENT`, which *creates* the
     intent it is about to cancel.
 - **Upkeep also runs in process at startup** (`KlasApp`), not only as an enqueued worker, because
-  auto-completion is what *bills* a finished lesson.
+  auto-completion is what *bills* a finished lesson. Arranging the **standing** pass is
+  `ReminderScheduler.ensurePeriodicMaintenance` — on the port beside `refreshNow`, which is the same pass
+  on demand. It was on the adapter alone, which made `KlasApp` the one place in the app injecting a `work/`
+  class by name.
 - **Turning auto-completion on is an action, not just a flag.** It sweeps the whole backlog — every
   lesson that has already finished, however long ago — so the switch runs the pass itself, asks first
   whenever that would complete anything at all, and reports what it settled. Both counts are in
@@ -517,12 +556,29 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
     one; changing the hour lets today's already-due one through once, because it was owed under the setting in
     force when it came due. The adapter reads the clock **once**, through the injected `Clock`, and takes its
     delay from `Digests.delayUntil` — this was the last `Instant.now()` in `main/`.
+  - **What should happen to the queue is one value, decided above the port** (`Digests.Arrangement`:
+    `Cancel | LeaveAlone | Enqueue`). `WorkScheduler.arrange` made all three calls itself, under a KDoc
+    asserting that *nothing here is a decision* — inside 160 lines of WorkManager with **no test reference
+    in either source set**, and two of the three are the branches that produced the defect above. The
+    adapter is now a `when` that maps each answer to the platform call for it. Whether the queue is worth
+    asking about is still the adapter's, but only as a **read**: a digest that is off is taken down without
+    the round trip, and `arrangementFor` answers `Cancel` either way.
 - **A digest says nothing rather than saying nothing happened.** An empty day, a day whose only lesson was
   called off, a week with no debts: no notification at all. The agenda prints the **same** `DaySummary`
   sentence the schedule puts under that day (`format/daySummaryText`, one rule, two readers) and lists the
   lessons that summary counts — a cancelled one is named by the summary and given no line, exactly as on
   the screen. It covers the **whole** day and not the rest of it, because the total it prints is a whole-day
   total and two day-lengths in one notification would both look right.
+  - **The sentence's rules are `DaySummary.parts`; only its words are Android-bound.** Which clauses a day
+    has, in what order, and the two cases where it is not the ordinary one — nothing at all for an empty
+    day, and *only* the cancellation for a day entirely called off — lived inside `daySummaryText`, which
+    takes a `Resources` and so could not be called from a JVM test. The agreement the function exists to
+    guarantee therefore rested on a rule nothing could check. `format/DayText` is a wording table over the
+    parts now, and it is still the only file in `format/` importing an Android type.
+  - **How much of the agenda fits is `TrayContent`** — the six-line cap and the «ещё N» that follows it.
+    That arithmetic was in `AndroidNotifier`, as was the « · » join (now `format/bulletJoin`, shared with
+    the day summary so a screen and the tray entry summarising it cannot separate). The port's own contract
+    already said decisions belong on this side of it; the wording was the part that had been left out.
 - **A notification is a stale view of the lesson by construction**, so acting on one asks the same
   legality question the actions sheet asks (`GroupRules.sessionTransitions`): it can sit in the tray for
   hours while the lesson is cancelled, deleted or completed by hand. A cancelled lesson is never
@@ -1167,7 +1223,11 @@ read and nothing that owns a lesson after it exists.
   count so it can only fall: a new direct write fails there, and a migration has to bring the cap down
   with it. Reaching for a DAO to build what the repositories deliberately refuse is still legitimate —
   lowering the cap by hand is how such a call gets acknowledged rather than absorbed.
-- **Fixtures pin the clock, not `now()`.** Seed a fixed hour and pick days by excluding today.
+- **Fixtures pin the clock, not `now()`.** Seed a fixed hour and pick days by excluding today. **The clock
+  belongs to the `TestEnv`**, not to a view model a test happens to build: it is what the engine's
+  defaulted `now`s read, and now also what a payment's instant is derived from, so a test that hands its
+  own clock to a view model while the repository writes against another is a test asserting about two
+  different days.
 - Nine tests are **tripwires against silent drift**, all deriving expectations from a real artifact
   rather than restating them: `BackupSchemaCoverageTest` (a new table must be carried or named
   device-local), `MappersTest` (a new column must be mapped), `BackupSplitTest` (the pre-v2 lesson-status

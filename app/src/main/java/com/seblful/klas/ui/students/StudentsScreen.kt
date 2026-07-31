@@ -103,9 +103,9 @@ fun StudentsList(
                     Column(Modifier.weight(1f)) {
                         Text(row.student.name, style = MaterialTheme.typography.titleMedium)
                         Text(
-                            text = balanceDescription(row.balance),
+                            text = balanceDescription(row.state),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = balanceColor(row.balance),
+                            color = balanceColor(row.state),
                         )
                     }
                     // A [StatusBadge], like every other state the app shows. This was an italic grey

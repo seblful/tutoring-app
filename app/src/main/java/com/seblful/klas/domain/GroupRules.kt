@@ -66,6 +66,18 @@ data class ClassSession(
     val present: Int get() = classes.count { it.attended.wasThere }
 
     /**
+     * How this lesson's roster reads — see [Attendance].
+     *
+     * The rule is that «N из M» is only ever said about a lesson that **happened**: before then nobody has
+     * missed anything and everybody is merely expected, so a count of who "came" would just be the roster
+     * with a smaller-looking number next to it. It was two facts (`present`, `size`) published side by side
+     * and combined by an `if` inside a `LazyColumn` item lambda, which is the shape `DeleteWarning` exists
+     * to replace: the combining is the part that can be wrong, and there it had no test.
+     */
+    val attendance: Attendance
+        get() = if (status.isBillable && present < size) Attendance.Some(present, size) else Attendance.All(size)
+
+    /**
      * The rate every class in the session was booked at, or null when they differ. One lesson now
      * has one rate (a group's own, or the student's), so this is normally just "the lesson's rate" —
      * it can only come back null for a lesson booked before groups had a rate of their own, whose
@@ -86,6 +98,24 @@ data class ClassSession(
          */
         fun of(klass: TutoringClass): ClassSession = ClassSession(klass.groupId, listOf(klass))
     }
+}
+
+/**
+ * What a lesson's roster comes to, as the **case** rather than the two numbers it is picked from — see
+ * [ClassSession.attendance].
+ *
+ * Two cases and not "present out of members", because the two are said differently and one of them is a
+ * plural: a full lesson names its size once («3 ученика»), a lesson somebody missed names both («2 из 3»).
+ * A screen holding the two raw counts has to re-derive which sentence applies, and both group cards would
+ * have to agree about it independently.
+ */
+sealed interface Attendance {
+
+    /** Everybody the lesson is for, [count] of them — either it has not happened yet, or nobody missed it. */
+    data class All(val count: Int) : Attendance
+
+    /** Somebody was marked absent from a lesson that happened: [present] of [of] were there. */
+    data class Some(val present: Int, val of: Int) : Attendance
 }
 
 /**

@@ -131,4 +131,7 @@ data class StudentBalance(
     val paid: Money,
 ) {
     val balance: Money get() = charged - paid
+
+    /** Which of the three cases [balance] is — see [Balance], where the sign is read once. */
+    val state: Balance get() = Balance.of(balance)
 }

@@ -123,6 +123,65 @@ object Digests {
         arranged != null && planned != null && !arranged.isAfter(now) && planned.isAfter(arranged)
 
     /**
+     * What should become of one digest's arrangement — the whole of the decision, in one value.
+     *
+     * The scheduler adapter used to make three of these calls itself, under a KDoc asserting that
+     * "**nothing here is a decision**": that a null instant means *take down what is enqueued*, that
+     * [stillOwed] means *do not touch it*, and — implicitly, by being the only remaining path — that
+     * anything else is a re-enqueue. Two of those three are the branches that have already produced a
+     * defect (see [stillOwed]), and none of them had a test, because the module they lived in is 160 lines
+     * of WorkManager that no JVM test can reach.
+     *
+     * They are named here instead. The adapter is left with a `when` that turns each answer into the
+     * platform call for it and decides nothing.
+     *
+     * @param planned when this digest should next fire, or null when it is switched off.
+     * @param arranged when the run already enqueued is next due, or null when nothing is waiting. Only
+     *   consulted for the leave-alone rule.
+     * @param every how often the digest repeats after its first run — a day for the agenda, a week for the
+     *   debts. Carried through rather than decided here: it is a property of *which* digest this is, and
+     *   the caller is the one that knows.
+     */
+    fun arrangementFor(
+        planned: Instant?,
+        arranged: Instant?,
+        now: Instant,
+        every: Duration,
+    ): Arrangement = when {
+        planned == null -> Arrangement.Cancel
+        stillOwed(arranged = arranged, planned = planned, now = now) -> Arrangement.LeaveAlone
+        else -> Arrangement.Enqueue(delay = delayUntil(planned, now), every = every)
+    }
+
+    /** What [arrangementFor] came to. Three answers, because three different things happen to the queue. */
+    sealed interface Arrangement {
+
+        /**
+         * Take down whatever is enqueued: the digest is off.
+         *
+         * Not "do nothing" — a digest switched off has to have its pending run removed, or it goes on
+         * arriving after the switch that governs it was turned off.
+         */
+        data object Cancel : Arrangement
+
+        /**
+         * Leave the queue exactly as it is: a run is already due and has not happened.
+         *
+         * This is the arm that turns *late* into *arrived* rather than into *never* — see [stillOwed].
+         */
+        data object LeaveAlone : Arrangement
+
+        /**
+         * Replace what is enqueued with a run in [delay], repeating every [every].
+         *
+         * A delay rather than an instant because that is what a scheduler takes, and it is computed here
+         * from the one clock read the caller made — the adapter reading its own `Instant.now()` a few
+         * moments later was the mistake [delayUntil] exists to prevent.
+         */
+        data class Enqueue(val delay: Duration, val every: Duration) : Arrangement
+    }
+
+    /**
      * The next instant a daily digest set for [minuteOfDay] fires, **strictly after** [now].
      *
      * Strictly, because this is called from the worker that has just fired one: an inclusive comparison

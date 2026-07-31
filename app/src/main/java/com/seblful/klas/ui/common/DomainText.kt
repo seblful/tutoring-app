@@ -9,7 +9,7 @@ import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
-import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.ui.theme.klasColors
 
@@ -49,19 +49,25 @@ fun moneyErrorText(field: MoneyField): String? = field.error?.let { error ->
  */
 fun supportingTextOf(error: String? = null, hint: String? = null): (@Composable () -> Unit)? =
     (error ?: hint)?.let { text -> { Text(text) } }
-/** Human-readable balance line: debt, credit, or settled. */
+/**
+ * Human-readable balance line: debt, credit, or settled.
+ *
+ * Takes the case and not the amount: which of the three it is was decided by [Balance.of] and tested there,
+ * so this holds only the sentence. Both arms print [Balance.Credit.amount] and [Balance.Owed.amount] as
+ * given — they are already positive, so nothing here flips a sign.
+ */
 @Composable
-fun balanceDescription(balance: Money): String = when {
-    balance.isZero -> stringResource(R.string.balance_settled)
-    balance.isNegative -> stringResource(R.string.balance_credit, (Money.ZERO - balance).text())
-    else -> stringResource(R.string.balance_owes, balance.text())
+fun balanceDescription(balance: Balance): String = when (balance) {
+    Balance.Settled -> stringResource(R.string.balance_settled)
+    is Balance.Credit -> stringResource(R.string.balance_credit, balance.amount.text())
+    is Balance.Owed -> stringResource(R.string.balance_owes, balance.amount.text())
 }
 /** Colour for a balance: red for debt, theme primary for credit, muted when settled. */
 @Composable
-fun balanceColor(balance: Money): Color = when {
-    balance.isZero -> MaterialTheme.colorScheme.onSurfaceVariant
-    balance.isNegative -> MaterialTheme.colorScheme.primary
-    else -> MaterialTheme.colorScheme.error
+fun balanceColor(balance: Balance): Color = when (balance) {
+    Balance.Settled -> MaterialTheme.colorScheme.onSurfaceVariant
+    is Balance.Credit -> MaterialTheme.colorScheme.primary
+    is Balance.Owed -> MaterialTheme.colorScheme.error
 }
 @Composable
 fun classStatusLabel(status: LessonStatus): String = stringResource(

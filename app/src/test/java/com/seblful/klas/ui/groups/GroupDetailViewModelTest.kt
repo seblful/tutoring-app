@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.groups
 
 import androidx.lifecycle.SavedStateHandle
+import com.seblful.klas.domain.Attendance
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
@@ -144,8 +145,9 @@ class GroupDetailViewModelTest {
         val lessons = vm.state.current.lessons
         assertEquals("four classes are two lessons", 2, lessons.size)
         assertEquals("newest first", at(2_000), lessons.first().session.start)
-        assertEquals(2, lessons.first().members)
-        assertEquals("and both were in it, nobody having been marked absent", 2, lessons.first().present)
+        // The row publishes the case rather than the two counts: with nobody marked absent, a lesson of
+        // two reads as its whole roster and never as «2 из 2». See [Attendance].
+        assertEquals(Attendance.All(2), lessons.first().attendance)
         assertEquals("both members' charges", Money.ofMajor(40), lessons.first().charge)
     }
 

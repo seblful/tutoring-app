@@ -63,6 +63,7 @@ import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.LessonFilter
+import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
@@ -429,15 +430,23 @@ private fun studentStats(state: StudentDetailState): List<Stat> {
  * Debt and credit swap label rather than printing a negative: «Долг −50» is a puzzle, «Переплата 50» is
  * the fact. A settled balance still reads «Долг 0» — the card always answers the same question in the
  * same place, and «0» is an answer.
+ *
+ * The `when` is over [Balance] and exhaustive, so that last rule is now *stated*: [Balance.Settled] is
+ * listed beside [Balance.Owed] under the debt label because that is the decision, where before it was a
+ * two-armed `isNegative` check that produced it by omission. The sign flip is [Balance]'s and is gone
+ * from here.
  */
 @Composable
 private fun BalanceHero(state: StudentDetailState, modifier: Modifier = Modifier) {
     val balance = state.balance
     HeroCard(
         label = stringResource(
-            if (balance.isNegative) R.string.stat_credit else R.string.stat_debt
+            when (balance) {
+                is Balance.Credit -> R.string.stat_credit
+                Balance.Settled, is Balance.Owed -> R.string.stat_debt
+            }
         ),
-        value = if (balance.isNegative) (Money.ZERO - balance).text() else balance.text(),
+        value = balance.amount.text(),
         modifier = modifier,
         tonal = true,
     ) {

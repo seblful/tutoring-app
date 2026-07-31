@@ -30,8 +30,15 @@ class RecordingReminderScheduler : ReminderScheduler {
 
     val schedules = mutableListOf<List<Reminders.Plan>>()
 
+    var periodicCount = 0
+        private set
+
     override fun refreshNow() {
         refreshCount++
+    }
+
+    override fun ensurePeriodicMaintenance() {
+        periodicCount++
     }
 
     override fun schedule(plans: List<Reminders.Plan>) {

@@ -53,6 +53,55 @@ data class DaySummary(
     /** Whether there is nothing at all to report — no lesson on, none called off. */
     val isEmpty: Boolean get() = lessons == 0 && cancelled == 0
 
+    /**
+     * What this day's sentence is made of, in order — «4 занятия · 5 ч · 240 BYN» as four decisions rather
+     * than as a string.
+     *
+     * Two rules live here and nowhere else, and both used to be buried in the function that did the
+     * wording (`format/daySummaryText`), which takes `Resources` and therefore could not be reached from a
+     * JVM test:
+     *
+     * - **Empty is empty.** A day with nothing on and nothing called off returns no parts at all, so a
+     *   caller has to decide what "nothing to say" looks like rather than being handed «0 занятий · 0 ч».
+     * - **A day that was entirely called off says only that.** There are no hours and no money on such a
+     *   day, and printing zeroes for them would dress a cancelled day up as a counted one.
+     *
+     * This matters more than an ordinary extraction because the sentence has **two readers** — the
+     * schedule's day heading and the morning digest — and a digest that added a day up differently from
+     * the screen it summarises would be the worst kind of wrong: both numbers plausible, one of them the
+     * tutor's actual morning. That agreement is now a property of a pure value the two share, rather than
+     * of one Android-bound function they both happen to call.
+     */
+    val parts: List<Part>
+        get() = when {
+            isEmpty -> emptyList()
+            lessons > 0 -> listOfNotNull(
+                Part.Lessons(lessons),
+                Part.Hours(minutes),
+                Part.Earned(money),
+                Part.Cancelled(cancelled).takeIf { cancelled > 0 },
+            )
+            else -> listOf(Part.Cancelled(cancelled))
+        }
+
+    /**
+     * One clause of a day's sentence — the figure and which figure it is, leaving the words to whichever
+     * surface is printing it (`format/daySummaryText` for both of them today).
+     */
+    sealed interface Part {
+        /** How many lessons the day holds. Printed through `<plurals>`, so it carries its own count. */
+        data class Lessons(val count: Int) : Part
+
+        /** How long they run, in minutes — the tutor's time. */
+        data class Hours(val minutes: Int) : Part
+
+        /** What they come to, billed or not yet. */
+        data class Earned(val money: Money) : Part
+
+        /** How many were called off. Only ever present when [count] is above zero. */
+        data class Cancelled(val count: Int) : Part
+    }
+
     companion object {
         val NONE = DaySummary(lessons = 0, minutes = 0, money = Money.ZERO, cancelled = 0)
 

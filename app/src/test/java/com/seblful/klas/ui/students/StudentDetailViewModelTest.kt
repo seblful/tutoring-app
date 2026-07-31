@@ -9,6 +9,7 @@ import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.domain.Scheduling
+import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
@@ -39,12 +40,14 @@ class StudentDetailViewModelTest {
     @get:Rule
     val mainRule = MainDispatcherRule()
 
-    private val env = TestEnv()
-
     // A pinned clock, because the hour a payment lands at is derived from "today" — see `PaymentDate`.
+    // It goes into the environment rather than into the view model: the instant is derived by
+    // `PaymentRepository`, which is the module that owns it, so this is the clock the write reads.
     private val zone: ZoneId = ZoneId.of("Europe/Minsk")
     private val today: LocalDate = LocalDate.of(2026, 5, 17)
     private val clock = MutableClock(today.atTime(14, 30).atZone(zone).toInstant(), zone)
+
+    private val env = TestEnv(clock = clock)
 
     private fun vm(id: Long) = StudentDetailViewModel(
         savedStateHandle = SavedStateHandle(mapOf("id" to id)),
@@ -55,7 +58,6 @@ class StudentDetailViewModelTest {
         payments = env.paymentRepo,
         enrollment = env.enrollmentRepo,
         rateHistory = env.rateHistoryRepo,
-        clock = clock,
         appScope = mainRule.appScope,
         computation = mainRule.dispatcher,
     )
@@ -71,13 +73,13 @@ class StudentDetailViewModelTest {
         env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor)
         env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 90, status = "COMPLETED", chargeMinor = Money.ofMajor(45).minor)
         env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = "CANCELLED", chargeMinor = 0)
-        env.paymentRepo.add(Payment(studentId = sid, date = Instant.ofEpochMilli(10), amount = Money.ofMajor(50)))
+        env.paymentRepo.restore(Payment(studentId = sid, date = Instant.ofEpochMilli(10), amount = Money.ofMajor(50)))
 
         val vm = vm(sid)
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(Money.ofMajor(25), vm.state.current.balance)
+        assertEquals(Balance.Owed(Money.ofMajor(25)), vm.state.current.balance)
     }
 
     @Test
@@ -405,7 +407,7 @@ class StudentDetailViewModelTest {
             advanceUntilIdle()
 
             val both = vm.state.current.archiveIntent as ArchiveIntent.Confirm
-            assertEquals(Money.ofMajor(30), both.openBalance)
+            assertEquals(Balance.Owed(Money.ofMajor(30)), both.openBalance)
             assertEquals(1, both.upcomingLessons)
 
             // Paid up, but a lesson still booked: one part, not none.
@@ -428,7 +430,9 @@ class StudentDetailViewModelTest {
         advanceUntilIdle()
 
         val confirm = vm.state.current.archiveIntent as ArchiveIntent.Confirm
-        assertEquals(Money.ofMajor(-25), confirm.openBalance)
+        // Positive, and named as credit: the sign flip is `Balance.of`'s, so what reaches the dialog is
+        // already «Переплата 25» rather than a −25 each caller had to know to turn round.
+        assertEquals(Balance.Credit(Money.ofMajor(25)), confirm.openBalance)
         assertEquals(0, confirm.upcomingLessons)
     }
 
@@ -615,7 +619,7 @@ class StudentDetailViewModelTest {
     fun `restoring a deleted payment is launched into the application scope`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent()
         val payment = Payment(studentId = sid, date = Instant.ofEpochMilli(10), amount = Money.ofMajor(50))
-        env.paymentRepo.add(payment)
+        env.paymentRepo.restore(payment)
         val vm = vm(sid)
         observing(vm.state)
         advanceUntilIdle()

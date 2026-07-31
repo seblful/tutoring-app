@@ -222,4 +222,35 @@ class FormattersTest {
         assertEquals(Money.ofMajor(30), parseMoneyOrNull("30"))
         assertEquals(Money.ofMajor(2_500), parseMoneyOrNull("2500"))
     }
+
+    // ── bulletJoin ───────────────────────────────────────────────────────────────────────────────
+    // The app's one separator. It was private to `AndroidNotifier`, where the schedule's day summary
+    // could not reach it and so spelled the same " · " for itself.
+
+    @Test
+    fun `facts about a lesson go on one line, separated by a bullet`() {
+        assertEquals("21:00 · Математика · Иван Петров", bulletJoin("21:00", "Математика", "Иван Петров"))
+    }
+
+    /** What makes it safe to pass everything that *might* be known — an unnamed group, say. */
+    @Test
+    fun `a blank part is dropped rather than leaving a stranded separator`() {
+        assertEquals("21:00 · Математика", bulletJoin("21:00", "", "Математика"))
+        assertEquals("21:00 · Математика", bulletJoin("21:00", "   ", "Математика"))
+    }
+
+    @Test
+    fun `one part needs no separator and none needs no string`() {
+        assertEquals("21:00", bulletJoin("21:00"))
+        assertEquals("", bulletJoin())
+        assertEquals("", bulletJoin("", " "))
+    }
+
+    @Test
+    fun `a list joins the same way the arguments do`() {
+        assertEquals(
+            bulletJoin("4 занятия", "5 ч", "240 BYN"),
+            bulletJoin(listOf("4 занятия", "5 ч", "240 BYN")),
+        )
+    }
 }

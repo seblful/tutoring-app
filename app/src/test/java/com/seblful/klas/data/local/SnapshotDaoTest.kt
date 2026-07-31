@@ -78,7 +78,7 @@ class SnapshotDaoTest {
         val anya = env.fixtures.pricedStudent("Аня", subjectId)
         val group = env.fixtures.group("11 «А»", subjectId = subjectId, members = setOf(anya))
         env.fixtures.completedLesson(subjectId, listOf(anya), Instant.parse("2026-05-04T10:00:00Z"), groupId = group)
-        env.paymentRepo.add(
+        env.paymentRepo.restore(
             Payment(studentId = anya, date = Instant.parse("2026-05-05T10:00:00Z"), amount = Money.ofMajor(10)),
         )
 

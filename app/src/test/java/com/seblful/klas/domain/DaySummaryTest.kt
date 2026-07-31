@@ -161,6 +161,68 @@ class DaySummaryTest {
         // Two owe for it: the one who came, and the late cancellation. The plain absence does not.
         assertEquals(Money.ofMajor(60), summary.money)
     }
+
+    // ── parts ────────────────────────────────────────────────────────────────────────────────────
+    // Which clauses the sentence has. These rules used to sit inside `format/daySummaryText`, which
+    // takes `Resources` — so the two surfaces that must agree about a day (the schedule's heading and
+    // the morning digest) rested on a function no JVM test could call.
+
+    private fun summary(lessons: Int, minutes: Int, money: Money, cancelled: Int) =
+        DaySummary(lessons = lessons, minutes = minutes, money = money, cancelled = cancelled)
+
+    @Test
+    fun `an ordinary day counts its lessons, its hours and its money`() {
+        val parts = summary(4, 300, Money.ofMajor(240), cancelled = 0).parts
+
+        assertEquals(
+            listOf(
+                DaySummary.Part.Lessons(4),
+                DaySummary.Part.Hours(300),
+                DaySummary.Part.Earned(Money.ofMajor(240)),
+            ),
+            parts,
+        )
+    }
+
+    @Test
+    fun `a day with something called off names it last`() {
+        val parts = summary(2, 120, Money.ofMajor(60), cancelled = 1).parts
+
+        assertEquals(DaySummary.Part.Cancelled(1), parts.last())
+        assertEquals(4, parts.size)
+    }
+
+    /**
+     * There are no hours and no money on a day that was entirely called off, and printing zeroes for
+     * them would dress a cancelled day up as a counted one.
+     */
+    @Test
+    fun `a day that was entirely called off says only that`() {
+        val parts = summary(0, 0, Money.ZERO, cancelled = 3).parts
+
+        assertEquals(listOf(DaySummary.Part.Cancelled(3)), parts)
+    }
+
+    /** Nothing on and nothing called off is nothing to say — not «0 занятий · 0 ч». */
+    @Test
+    fun `an empty day has no parts at all`() {
+        assertEquals(emptyList<DaySummary.Part>(), DaySummary.NONE.parts)
+    }
+
+    /** A day whose lessons earn nothing still counts them: free lessons are lessons. */
+    @Test
+    fun `a day that earned nothing still names its lessons and hours`() {
+        val parts = summary(1, 60, Money.ZERO, cancelled = 0).parts
+
+        assertEquals(
+            listOf(
+                DaySummary.Part.Lessons(1),
+                DaySummary.Part.Hours(60),
+                DaySummary.Part.Earned(Money.ZERO),
+            ),
+            parts,
+        )
+    }
 }
 
 /**

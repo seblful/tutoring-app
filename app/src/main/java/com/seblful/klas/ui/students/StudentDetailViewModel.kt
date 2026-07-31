@@ -14,9 +14,10 @@ import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.format.NameOrder
 import com.seblful.klas.domain.Billing
-import com.seblful.klas.domain.PaymentDate
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.domain.Taught
+import com.seblful.klas.domain.Captions
+import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
@@ -38,7 +39,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
@@ -78,7 +78,8 @@ data class ClassRow(
 
 data class StudentDetailState(
     val student: Student? = null,
-    val balance: Money = Money.ZERO,
+    /** Where the student stands — the case, not the signed amount. See [Balance]. */
+    val balance: Balance = Balance.Settled,
     /** How much has been taught and earned — the card's stat row. */
     val totals: Taught.Totals = Taught.Totals.NONE,
     val subjects: List<SubjectPrice> = emptyList(),
@@ -133,17 +134,17 @@ sealed interface ArchiveIntent {
     /**
      * Ask first, and say what it costs.
      *
-     * @param openBalance the balance that would leave the reports, or null when it is settled. Either
-     *   sign counts: an over-payment is credit the tutor owes back, and it disappears from the reports
-     *   just as a debt does.
+     * @param openBalance the balance that would leave the reports, or null when it is [Balance.Settled].
+     *   Either case counts: an over-payment is credit the tutor owes back, and it disappears from the
+     *   reports just as a debt does — which is why this is "not settled" rather than "owes".
      * @param upcomingLessons how many planned lessons would be called off; 0 when none would.
      */
-    data class Confirm(val openBalance: Money?, val upcomingLessons: Int) : ArchiveIntent
+    data class Confirm(val openBalance: Balance?, val upcomingLessons: Int) : ArchiveIntent
 
     companion object {
         /** [Archive] when archiving costs nothing worth naming, [Confirm] with the parts that apply. */
-        fun of(balance: Money, upcoming: Int): ArchiveIntent {
-            val open = balance.takeUnless { it.isZero }
+        fun of(balance: Balance, upcoming: Int): ArchiveIntent {
+            val open = balance.takeIf { it != Balance.Settled }
             return if (open == null && upcoming <= 0) Archive
             else Confirm(openBalance = open, upcomingLessons = upcoming.coerceAtLeast(0))
         }
@@ -176,8 +177,6 @@ class StudentDetailViewModel @Inject constructor(
     private val payments: PaymentRepository,
     private val enrollment: EnrollmentRepository,
     rateHistory: RateHistoryRepository,
-    /** What "today" is, so the hour a payment lands at can be moved in a test. See `TimeModule`. */
-    private val clock: Clock,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
@@ -210,7 +209,15 @@ class StudentDetailViewModel @Inject constructor(
         rateHistory.observeForStudent(studentId),
     ) { student, allSubjects, priceList, classList, changes ->
         val subjectsById = allSubjects.associateBy { it.id }
-        val historyBySubject = changes.groupBy { (it.owner as RateOwner.StudentSubject).subjectId }
+        // `as?`, not `as`: `price_history` is **one table for two kinds of rate** discriminated by
+        // `RateOwner`, and `observeForStudent` selects on `studentId` alone. A hard cast therefore rested
+        // on no row of a student's ever carrying a group id — a property of the queries as they stand
+        // today rather than of the schema, and a `ClassCastException` inside a `Flow` on the card that
+        // shows a student's money if it ever stopped holding. A row that is not a student's price is not
+        // this card's history, so it is skipped.
+        val historyBySubject = changes
+            .mapNotNull { change -> (change.owner as? RateOwner.StudentSubject)?.subjectId?.to(change) }
+            .groupBy({ it.first }, { it.second })
         Partial(
             student = student,
             allSubjects = allSubjects,
@@ -239,20 +246,16 @@ class StudentDetailViewModel @Inject constructor(
         payments.observeForStudent(studentId),
         groups.observeAll(),
     ) { partial, paymentList, groupList ->
-        val subjectsById = partial.allSubjects.associateBy { it.id }
-        val groupNames = groupList.associate { it.id to it.name }
+        // No students: this card is one student's, and never captions a name. See [Captions].
+        val captions = Captions.of(students = emptyList(), subjects = partial.allSubjects, groups = groupList)
         StudentDetailState(
             student = partial.student,
-            balance = Billing.balanceOf(studentId, partial.classes, paymentList).balance,
+            balance = Billing.balanceOf(studentId, partial.classes, paymentList).state,
             totals = Taught.byStudent(partial.classes),
             subjects = partial.subjects,
             allSubjects = partial.allSubjects,
             classes = partial.classes.map { c ->
-                ClassRow(
-                    klass = c,
-                    subjectName = subjectsById[c.subjectId]?.name ?: "",
-                    groupName = c.groupId?.let { groupNames[it] },
-                )
+                ClassRow(klass = c, subjectName = captions.subjectOf(c), groupName = captions.groupOf(c))
             },
             payments = paymentList,
             lessonKinds = LessonKind.tally(partial.classes),
@@ -354,12 +357,11 @@ class StudentDetailViewModel @Inject constructor(
      */
     fun addPayment(amount: Money, day: LocalDate) {
         if (amount.isZero) return
-        val date = PaymentDate.instantFor(day, clock)
-        write { payments.add(Payment(studentId = studentId, date = date, amount = amount)) }
+        write { payments.record(studentId, amount, day) }
     }
 
-    /** The day the payment dialog opens on — [PaymentDate.today], off the clock that stamps the save. */
-    fun paymentDay(): LocalDate = PaymentDate.today(clock)
+    /** The day the payment dialog opens on — off the same clock that will stamp the save. */
+    fun paymentDay(): LocalDate = payments.today()
 
     /**
      * Corrects a payment already recorded, keeping its id.
@@ -370,10 +372,7 @@ class StudentDetailViewModel @Inject constructor(
      */
     fun editPayment(payment: Payment, amount: Money, day: LocalDate) {
         if (amount.isZero) return
-        // Re-derived from the day, as recording one is: a correction that leaves the date alone still
-        // re-stamps the hour, which is only visible as two payments of the same day swapping places.
-        val date = PaymentDate.instantFor(day, clock)
-        write { payments.update(payment.copy(amount = amount, date = date)) }
+        write { payments.correct(payment, amount, day) }
     }
 
     fun deletePayment(payment: Payment) {
@@ -387,6 +386,6 @@ class StudentDetailViewModel @Inject constructor(
      * all: the undo is offered by a snackbar, so it is tapped *while* the tutor may be leaving the card.
      */
     fun restorePayment(payment: Payment) {
-        write { payments.add(payment) }
+        write { payments.restore(payment) }
     }
 }

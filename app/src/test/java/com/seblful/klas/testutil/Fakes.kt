@@ -44,8 +44,16 @@ class RecordingReminderScheduler : ReminderScheduler {
     /** The reminders currently armed — the last plan scheduled, or empty if none ever was. */
     val armed: List<Reminders.Plan> get() = schedules.lastOrNull().orEmpty()
 
+    /** How many times the standing upkeep pass was asked for — `KlasApp` does this once, on start. */
+    var periodicCount = 0
+        private set
+
     override fun refreshNow() {
         refreshCount++
+    }
+
+    override fun ensurePeriodicMaintenance() {
+        periodicCount++
     }
 
     override fun schedule(plans: List<Reminders.Plan>) {
@@ -335,6 +343,19 @@ val RussianMinskPhone: List<java.util.Locale> = listOf(java.util.Locale.forLangu
 class TestEnv(
     val transactor: RecordingTransactor = RecordingTransactor(),
     val deviceLocales: List<java.util.Locale> = RussianMinskPhone,
+    /**
+     * The environment's clock, pinned — what the engine's defaulted `now`s read in a test, so the shipped
+     * default path is the one being exercised. Move it when a test needs time to pass.
+     *
+     * A parameter rather than only a property, because it is now the clock a **payment's instant** is
+     * derived from (`PaymentRepository`): a test about which hour a payment lands at has to be able to say
+     * what "today" is before the repositories are built, rather than handing its own clock to a view model
+     * and leaving the writer on a different one.
+     */
+    val clock: MutableClock = MutableClock(
+        java.time.Instant.parse("2026-06-01T12:00:00Z"),
+        java.time.ZoneId.of("Europe/Minsk"),
+    ),
 ) {
     val subjectDao = FakeSubjectDao()
     val studentDao = FakeStudentDao()
@@ -367,14 +388,8 @@ class TestEnv(
     val calendarMirror =
         CalendarMirror(classDao, attendanceDao, studentDao, subjectDao, groupDao, calendar, settingsRepo)
 
-    /**
-     * The environment's clock, pinned — what the engine's defaulted `now`s read in a test, so the
-     * shipped default path is the one being exercised. Move it when a test needs time to pass.
-     */
-    val clock = MutableClock(java.time.Instant.parse("2026-06-01T12:00:00Z"), java.time.ZoneId.of("Europe/Minsk"))
-
     val rateHistoryRepo = RateHistoryRepository(rateHistoryDao, groupDao, priceDao, clock)
-    val paymentRepo = PaymentRepository(paymentDao)
+    val paymentRepo = PaymentRepository(paymentDao, clock)
 
     // Declared before the four repositories below it, all of which ask it whether anything is still
     // taught somewhere rather than counting rows in the class table themselves.

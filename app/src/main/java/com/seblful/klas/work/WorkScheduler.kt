@@ -42,7 +42,7 @@ class WorkScheduler @Inject constructor(
     private val workManager get() = WorkManager.getInstance(context)
 
     /** Enqueues the recurring maintenance job. Idempotent — safe to call on every app start. */
-    fun ensurePeriodicMaintenance() {
+    override fun ensurePeriodicMaintenance() {
         val request = PeriodicWorkRequestBuilder<MaintenanceWorker>(30, TimeUnit.MINUTES).build()
         workManager.enqueueUniquePeriodicWork(
             PERIODIC_MAINTENANCE,
@@ -102,37 +102,52 @@ class WorkScheduler @Inject constructor(
      * switched off has to have what is already enqueued taken away, or it would go on arriving after the
      * switch that governs it was turned off.
      *
-     * **Nothing here is a decision.** The instant comes from `Digests.plan`, the delay from
-     * [Digests.delayUntil], and whether a pending run is still owed from [Digests.stillOwed] — this reads
-     * the clock **once**, through the injected [Clock] every other defaulted `now` in the app reads, and
-     * does what it is told. It used to compute the delay against an `Instant.now()` of its own, which was
-     * both a second clock read and the last thing in `main/` that no JVM test could reach.
+     * **Nothing here is a decision**, and that is now true rather than asserted. Which of the three things
+     * should happen to the queue is [Digests.arrangementFor] — cancel, leave alone, or re-enqueue — and
+     * this turns each answer into the WorkManager call for it. The three used to be `if`s in this body,
+     * under this same claim, where no JVM test could reach them; two of them are the branches that had
+     * already produced a defect.
+     *
+     * The clock is read **once**, through the injected [Clock] every other defaulted `now` in the app
+     * reads, and handed to the decision.
      */
     private suspend inline fun <reified W : androidx.work.ListenableWorker> arrange(
         name: String,
         at: Instant?,
         every: Duration,
     ) {
-        if (at == null) {
-            workManager.cancelUniqueWork(name)
-            return
-        }
-        val now = clock.instant()
-        // A run that is already due and has not happened yet is left alone: applying a new plan replaces
-        // what is enqueued, and replacing a *due* digest is how a late one became one that never arrived.
-        if (Digests.stillOwed(arranged = nextDue(name), planned = at, now = now)) return
-        // Millis and a `TimeUnit`, not the `java.time.Duration` overloads: those are `@RequiresApi(26)` on
-        // WorkManager's own builders, and `minSdk` is 24. Core-library desugaring makes `Duration` itself
-        // fine to *hold* — it is the library methods taking one that are gated, which desugaring cannot help
-        // with. The plan is still decided in instants; only this last hand-off is in milliseconds.
-        val request = PeriodicWorkRequestBuilder<W>(every.toMillis(), TimeUnit.MILLISECONDS)
-            .setInitialDelay(Digests.delayUntil(at, now).toMillis(), TimeUnit.MILLISECONDS)
-            .build()
-        workManager.enqueueUniquePeriodicWork(
-            name,
-            ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
-            request,
+        // Only the leave-alone rule consults what is already arranged, and that rule cannot apply without a
+        // plan to compare against — so a digest that is off is taken down without a round trip to
+        // WorkManager. `arrangementFor` answers `Cancel` either way; this only decides when to ask.
+        val arranged = if (at == null) null else nextDue(name)
+        val arrangement = Digests.arrangementFor(
+            planned = at,
+            arranged = arranged,
+            now = clock.instant(),
+            every = every,
         )
+        when (arrangement) {
+            Digests.Arrangement.Cancel -> workManager.cancelUniqueWork(name)
+            Digests.Arrangement.LeaveAlone -> Unit
+            is Digests.Arrangement.Enqueue -> {
+                // Millis and a `TimeUnit`, not the `java.time.Duration` overloads: those are
+                // `@RequiresApi(26)` on WorkManager's own builders, and `minSdk` is 24. Core-library
+                // desugaring makes `Duration` itself fine to *hold* — it is the library methods taking one
+                // that are gated, which desugaring cannot help with. The plan is still decided in instants;
+                // only this last hand-off is in milliseconds.
+                val request = PeriodicWorkRequestBuilder<W>(
+                    arrangement.every.toMillis(),
+                    TimeUnit.MILLISECONDS,
+                )
+                    .setInitialDelay(arrangement.delay.toMillis(), TimeUnit.MILLISECONDS)
+                    .build()
+                workManager.enqueueUniquePeriodicWork(
+                    name,
+                    ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
+                    request,
+                )
+            }
+        }
     }
 
     /**

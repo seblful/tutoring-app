@@ -171,6 +171,25 @@ fun formatHours(minutes: Int): String {
     return if (fraction == 0) "$whole" else "$whole${AppLocale.decimalSeparator}$fraction"
 }
 
+/**
+ * The app's one way of putting facts about a lesson on one line: «21:00 · Математика · Иван Петров».
+ *
+ * Blank parts are dropped rather than leaving a stranded separator, which is what makes it safe to hand it
+ * everything that *might* be known — a lesson with no group name, a day with nothing called off.
+ *
+ * Here rather than in the notification adapter that used to own it (`AndroidNotifier.joined`, applied at
+ * four sites): the schedule's day summary joins its clauses the same way, so a separator chosen in two
+ * places is a separator that can differ between the screen and the tray entry summarising it. Language
+ * plays no part — the bullet is the same in both — so this is a plain function and not one of the
+ * locale-aware formats above.
+ */
+fun bulletJoin(parts: List<String>): String = parts.filter { it.isNotBlank() }.joinToString(BULLET)
+
+/** [bulletJoin] for a caller that has its parts as arguments rather than as a list. */
+fun bulletJoin(vararg parts: String): String = bulletJoin(parts.asList())
+
+private const val BULLET = " · "
+
 /** Formats an epoch-month key (year * 12 + monthIndex) as e.g. "Июнь 2026" / "June 2026". */
 fun formatMonthKey(key: Int): String {
     val year = key / 12

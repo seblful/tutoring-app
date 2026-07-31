@@ -40,9 +40,37 @@ object Taught {
             earned = earned + other.earned,
         )
 
+        /**
+         * What the «Занятий» tile says under its headline number, or null when there is nothing to add.
+         *
+         * **Lessons still to come beat lessons that fell through**, and neither is said when it is zero:
+         * «впереди 3» is something to act on, «отменено 3» is not, and only one line fits under the count.
+         * That precedence was an `if/else if/else` inside a `@Composable` (`ui/common/LessonsStat.kt`),
+         * shared by the student and the group card — so the one rule the two cards genuinely agree on was
+         * the one neither could test.
+         *
+         * A card is free to put something else in the slot when this is null; the student's puts the hours
+         * there and the group's deliberately does not. That choice is the card's, not this rule's.
+         */
+        val hint: Hint?
+            get() = when {
+                upcoming > 0 -> Hint.Upcoming(upcoming)
+                cancelled > 0 -> Hint.Cancelled(cancelled)
+                else -> null
+            }
+
         companion object {
             val NONE = Totals(lessons = 0, upcoming = 0, cancelled = 0, minutes = 0, earned = Money.ZERO)
         }
+    }
+
+    /** What [Totals.hint] came to — the case, leaving the wording to whichever card is drawing it. */
+    sealed interface Hint {
+        /** [count] lessons are still scheduled. */
+        data class Upcoming(val count: Int) : Hint
+
+        /** [count] lessons were called off, and none is still to come. */
+        data class Cancelled(val count: Int) : Hint
     }
 
     /** A student's card: every one of their classes is one lesson of theirs. */
@@ -55,6 +83,20 @@ object Taught {
             minutes = completed.sumOf { it.durationMinutes },
             earned = Billing.charged(classes),
         )
+    }
+
+    /**
+     * Everything the tutor taught, both kinds at once — what the reports screen leads with.
+     *
+     * Neither rule above covers a mixed set: counting every class would report a group evening as
+     * three lessons and nine hours, and counting every session would collapse two students' separate
+     * Tuesdays into one only because a session of one carries no group. So each half is counted by
+     * its own rule and the two are added — which is the whole reason [byStudent] and [byGroup] differ
+     * in the first place, applied to the one list that genuinely holds both.
+     */
+    fun overall(classes: List<TutoringClass>): Totals {
+        val (group, individual) = classes.partition { it.groupId != null }
+        return byStudent(individual) + byGroup(group)
     }
 
     /**
@@ -72,20 +114,6 @@ object Taught {
      * rather than a lost one; it is cancelled only when every member's class is. Duration comes from
      * the session's first class, since every class of one lesson shares it by construction.
      */
-    /**
-     * Everything the tutor taught, both kinds at once — what the reports screen leads with.
-     *
-     * Neither rule above covers a mixed set: counting every class would report a group evening as
-     * three lessons and nine hours, and counting every session would collapse two students' separate
-     * Tuesdays into one only because a session of one carries no group. So each half is counted by
-     * its own rule and the two are added — which is the whole reason [byStudent] and [byGroup] differ
-     * in the first place, applied to the one list that genuinely holds both.
-     */
-    fun overall(classes: List<TutoringClass>): Totals {
-        val (group, individual) = classes.partition { it.groupId != null }
-        return byStudent(individual) + byGroup(group)
-    }
-
     fun byGroup(classes: List<TutoringClass>): Totals = bySessions(GroupRules.sessions(classes))
 
     /**

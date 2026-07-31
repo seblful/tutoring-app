@@ -15,6 +15,7 @@ import com.seblful.klas.domain.Digests
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.daySummaryText
 import com.seblful.klas.format.formatTime
 import com.seblful.klas.format.money
@@ -119,7 +120,7 @@ class AndroidNotifier @Inject constructor(
         // first pass at following the system clock drew the line there and missed this. A lesson booked
         // at 9:00 PM was announced as «21:00»: one clock to set it on and another to be reminded of it.
         val time = klass.start.formatTime(hour12 = hour12())
-        val headline = joined(time, subjectName, whoName)
+        val headline = bulletJoin(time, subjectName, whoName)
 
         val notification = NotificationCompat.Builder(context, CHANNEL_REMINDERS)
             .setSmallIcon(R.drawable.ic_stat_reminder)
@@ -178,16 +179,18 @@ class AndroidNotifier @Inject constructor(
         if (!permission.isGranted()) return
         ensureChannels()
 
-        val lines = agenda.lessons.map { joined(it.start.formatTime(hour12 = hour12()), it.subject, it.who) }
-        // InboxStyle rather than BigTextStyle: this is a *list*, and the platform draws each line as one
-        // and elides the ones that do not fit rather than truncating the middle of a sentence. It shows
-        // about six, so a fuller day says how many more it is not naming instead of stopping mid-morning.
+        // Which lessons fit and how many are left over is [TrayContent]'s — the clock face and the words
+        // are what this class still owns. InboxStyle rather than BigTextStyle: this is a *list*, and the
+        // platform draws each line whole and elides the ones that do not fit rather than truncating the
+        // middle of a sentence.
+        val posting = TrayContent.agenda(agenda)
         val style = NotificationCompat.InboxStyle()
-        lines.take(MAX_AGENDA_LINES).forEach { style.addLine(it) }
-        if (lines.size > MAX_AGENDA_LINES) {
-            style.setSummaryText(
-                words.getString(R.string.agenda_more, lines.size - MAX_AGENDA_LINES),
-            )
+        val hour12 = hour12()
+        posting.lines.forEach { entry ->
+            style.addLine(bulletJoin(entry.start.formatTime(hour12 = hour12), entry.subject, entry.who))
+        }
+        if (posting.more > 0) {
+            style.setSummaryText(words.getString(R.string.agenda_more, posting.more))
         }
 
         // The same sentence the schedule prints under the day it names — see [daySummaryText]. Never
@@ -211,7 +214,7 @@ class AndroidNotifier @Inject constructor(
         if (!permission.isGranted()) return
         ensureChannels()
 
-        val body = joined(
+        val body = bulletJoin(
             words.resources.getQuantityString(R.plurals.students_count, debts.students, debts.students),
             debts.total.money(currency),
         )
@@ -233,7 +236,7 @@ class AndroidNotifier @Inject constructor(
         if (!permission.isGranted()) return
         ensureChannels()
 
-        val body = joined(
+        val body = bulletJoin(
             words.resources.getQuantityString(R.plurals.lessons_count, lessons, lessons),
             billed.money(currency),
         )
@@ -260,10 +263,6 @@ class AndroidNotifier @Inject constructor(
             // Notification permission was revoked — nothing to show.
         }
     }
-
-    /** «21:00 · Математика · Иван Петров», skipping whatever is not known. */
-    private fun joined(vararg parts: String): String =
-        parts.filter { it.isNotBlank() }.joinToString(" · ")
 
     /** The phone's clock, asked here because a notification has no composition to ask it in. */
     private fun hour12(): Boolean = !DateFormat.is24HourFormat(context)
@@ -341,9 +340,6 @@ class AndroidNotifier @Inject constructor(
         private const val ID_AGENDA = -2
         private const val ID_DEBTS = -3
         private const val ID_UPKEEP = -4
-
-        /** About what an `InboxStyle` actually draws before the platform starts eliding lines. */
-        private const val MAX_AGENDA_LINES = 6
 
         /**
          * `UPDATE_CURRENT` so a re-posted reminder carries the lesson's current id in its extras rather

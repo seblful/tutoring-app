@@ -9,6 +9,7 @@ import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.format.NameOrder
 import com.seblful.klas.domain.Billing
 import com.seblful.klas.domain.PeopleSearch
+import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.ui.common.Loadable
@@ -25,7 +26,15 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import javax.inject.Inject
 
-data class StudentRow(val student: Student, val balance: Money)
+data class StudentRow(val student: Student, val balance: Money) {
+    /**
+     * Where this student stands, as a case rather than a sign — what the row prints and tints.
+     *
+     * The raw [balance] stays beside it because [StudentSort.DEBT] orders by the signed amount, which is
+     * a question about magnitude and not about which of the three cases it is.
+     */
+    val state: Balance get() = Balance.of(balance)
+}
 
 /**
  * How the students list is ordered.

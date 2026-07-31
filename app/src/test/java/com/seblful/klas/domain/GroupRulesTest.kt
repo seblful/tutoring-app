@@ -646,4 +646,57 @@ class GroupRulesTest {
             GroupRules.offeredRoster(reversed, memberIds = setOf(3L, 4L), alreadyIn = setOf(2L)).map { it.id },
         )
     }
+
+    // ── ClassSession.attendance ──────────────────────────────────────────────────────────────────
+    // «N из M» is said only about a lesson that happened. This was an `if` combining `present` and
+    // `size` inside a LazyColumn item lambda on the group card, where nothing could reach it.
+
+    private fun session(status: LessonStatus, vararg attended: Attended) = ClassSession(
+        groupId = 7,
+        classes = attended.mapIndexed { i, a ->
+            klass(id = i + 1L, studentId = i + 1L, groupId = 7, status = status, attended = a)
+        },
+    )
+
+    @Test
+    fun `a lesson still to come names its whole roster`() {
+        // Nobody has missed anything yet, so counting who "came" would just be the roster with a
+        // smaller-looking number beside it.
+        val scheduled = session(LessonStatus.SCHEDULED, Attended.EXPECTED, Attended.EXPECTED, Attended.EXPECTED)
+
+        assertEquals(Attendance.All(3), scheduled.attendance)
+    }
+
+    @Test
+    fun `a taught lesson everybody attended names its whole roster`() {
+        val taught = session(LessonStatus.COMPLETED, Attended.PRESENT, Attended.PRESENT)
+
+        assertEquals(Attendance.All(2), taught.attendance)
+    }
+
+    @Test
+    fun `a taught lesson somebody missed says how many of how many`() {
+        val taught = session(LessonStatus.COMPLETED, Attended.PRESENT, Attended.ABSENT, Attended.PRESENT)
+
+        assertEquals(Attendance.Some(present = 2, of = 3), taught.attendance)
+    }
+
+    /**
+     * Absent and charged anyway is still absent: [Attended.ABSENT_BILLED] is a fact about the money, not
+     * about who was in the room.
+     */
+    @Test
+    fun `being billed for missing it does not make you present`() {
+        val taught = session(LessonStatus.COMPLETED, Attended.PRESENT, Attended.ABSENT_BILLED)
+
+        assertEquals(Attendance.Some(present = 1, of = 2), taught.attendance)
+    }
+
+    /** A called-off lesson names the roster it was for — nobody attended it, and that is not news. */
+    @Test
+    fun `a cancelled lesson names its roster rather than counting nobody`() {
+        val cancelled = session(LessonStatus.CANCELLED, Attended.EXPECTED, Attended.EXPECTED)
+
+        assertEquals(Attendance.All(2), cancelled.attendance)
+    }
 }
