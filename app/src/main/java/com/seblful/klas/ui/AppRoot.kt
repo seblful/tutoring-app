@@ -1,5 +1,6 @@
 package com.seblful.klas.ui
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
@@ -107,6 +108,13 @@ fun AppRoot(rootViewModel: RootViewModel = hiltViewModel()) {
  * `NavigationSuiteScaffold` is built to wrap content that brings its own `Scaffold`, so the nesting that
  * caused it does not exist any more.
  */
+// `currentBackStack` is `@RestrictedApi` — navigation exposes it for its own group, not for apps. It is
+// read here for one reason, spelled out below: which tab is lit is a question only the stack can answer.
+// The alternative in public API is `visibleEntries`, which is the wrong list — a pushed screen that has
+// finished arriving covers its tab, so the tab stops being visible and the bar would go dead the moment
+// the transition ended, which is the bug this replaced. Suppressed at the one call site rather than
+// lint-baselined, so anything else restricted that lands in this file still fails the build.
+@SuppressLint("RestrictedApi")
 @Composable
 private fun MainApp() {
     val navController = rememberNavController()
