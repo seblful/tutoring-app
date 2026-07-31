@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.common
 
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -9,10 +10,15 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.takeOrElse
+import kotlin.math.abs
 
 /**
  * **One control for a choice between a fixed, mutually exclusive few**, wherever the app asks for one.
@@ -99,3 +105,111 @@ private val MinSegmentFontSize = 10.sp
 
 /** Material's label size for a segmented button; used only if the style leaves the size unspecified. */
 private val FallbackSegmentFontSize = 14.sp
+
+/**
+ * **The other way to move between segments: drag the page sideways.**
+ *
+ * Applied to a screen's body, so the tutor changes what they are looking at from wherever their thumb
+ * already is instead of reaching back up to the control. Drag left for the next option, right for the
+ * previous — the direction the app is read in. It is offered on the two screens whose whole content is one
+ * of a fixed few views of the same thing: «Люди» (Ученики ⇄ Группы) and «Расписание» (День → Неделя →
+ * Месяц).
+ *
+ * **The segments stay, and stay primary.** This adds a shortcut, never the only way in: a gesture has no
+ * affordance, announces nothing to a screen reader and cannot be discovered by looking, so the control it
+ * duplicates is what makes the screen usable and this is what makes it quick. That is also why the tick is
+ * [rememberSegmentTickFeedback] — the same effect a tap on the control gives, because it is the same move,
+ * and the app's rule is that one act feels the same whichever way it was made.
+ *
+ * **A child that wants the drag keeps it, and that is the design rather than a limitation.** The schedule's
+ * lesson cards own their own horizontal gesture ([SwipeToConfirmBox], which *bills* a lesson), and a child
+ * consumes past touch slop before an ancestor is ever offered the event. So the page turns from the free
+ * space around the cards — the gutters, the gaps, the headers, the calendar grid, an empty day — and a drag
+ * that starts on a lesson still marks that lesson taught. Neither gesture had to be given up for the other,
+ * and neither needs to know the other exists. A vertical scroll is unaffected for the mirror-image reason:
+ * a `LazyColumn` reaches *its* slop first and consumes, so a flick down the list never changes the view.
+ *
+ * **The content does not follow the finger, and cannot.** The obvious shape for this is a `HorizontalPager`,
+ * with the incoming view sliding in under the thumb. The schedule assembles only the active view's lessons
+ * and markers — both flows are `flatMapLatest`-keyed on the view mode, deliberately, so no off-screen view
+ * holds a live query — so the neighbouring page has nothing to draw until the switch has already happened.
+ * A pager would drag a skeleton into view and fill it in afterwards, which is a worse answer than not
+ * moving at all. The same gesture is used on both screens rather than the nicer one on the one screen that
+ * could support it: a drag that tracks the finger here and jumps there is two gestures wearing one name.
+ *
+ * @param options the segments, in the order they are drawn — the same list handed to [SegmentedChoice].
+ * @param selected which one the screen is on now.
+ * @param onSelect told the neighbour the drag landed on. Never called with [selected].
+ */
+@Composable
+fun <T> Modifier.swipeBetweenSegments(
+    options: List<T>,
+    selected: T,
+    onSelect: (T) -> Unit,
+): Modifier {
+    val tick = rememberSegmentTickFeedback()
+    // Read through `rememberUpdatedState` so the detector below can be keyed on `Unit`. This is not a
+    // saving — it is the correctness of "one gesture, one step". Keying the `pointerInput` on `selected`
+    // would tear the detector down and rebuild it at the instant the selection moves, which is to say
+    // *mid-drag*: the new one starts from the pointer where it is, having never seen the distance already
+    // travelled, and one long swipe would walk День → Неделя → Месяц a threshold at a time.
+    val current by rememberUpdatedState(selected)
+    val choices by rememberUpdatedState(options)
+    val select by rememberUpdatedState(onSelect)
+
+    return this.pointerInput(Unit) {
+        val threshold = SegmentSwipeDistance.toPx()
+        // Net displacement, so a wobble that ends where it began is not a swipe, and a drag taken back
+        // half way costs nothing.
+        var travelled = 0f
+        // Whether this gesture has had its answer. Set even where the answer was "nowhere to go", so a
+        // tutor already on the last segment cannot drag on and reverse into the previous one.
+        var decided = false
+        detectHorizontalDragGestures(
+            onDragStart = { travelled = 0f; decided = false },
+            onHorizontalDrag = { _, delta ->
+                if (decided) return@detectHorizontalDragGestures
+                travelled += delta
+                if (abs(travelled) < threshold) return@detectHorizontalDragGestures
+                decided = true
+                // Dragging **left** is negative and moves forward: the page being pulled off to the left
+                // is the next one arriving, which is the direction the app is read in.
+                segmentAfterSwipe(choices, current, forward = travelled < 0f)?.let { next ->
+                    tick()
+                    select(next)
+                }
+            },
+        )
+    }
+}
+
+/**
+ * Where a swipe lands: the neighbour of [selected] in [options], or **null at either end**.
+ *
+ * **It does not wrap**, which is the whole of the rule and the reason it is a function. A segmented control
+ * is a row of detents and not a carousel: the pill sits somewhere along a line the tutor can see, so
+ * dragging on past «Месяц» and arriving at «День» would be the selection jumping the full width of the
+ * control in the direction opposite to the thumb. Running out is the honest answer, and it is the same
+ * answer tapping the segment you are already on gives — nothing, in silence.
+ *
+ * Pure and outside the [Modifier], for the reason [swipeArmed] is: a rule that lives inside a gesture
+ * callback is a rule only a device can ask about. Null for a [selected] that is not in [options] rather
+ * than an assumed first — a swipe is not the place to discover that a caller's two lists disagree.
+ */
+internal fun <T> segmentAfterSwipe(options: List<T>, selected: T, forward: Boolean): T? {
+    val at = options.indexOf(selected)
+    if (at < 0) return null
+    return options.getOrNull(if (forward) at + 1 else at - 1)
+}
+
+/**
+ * How far the page has to travel before it turns.
+ *
+ * A **fixed distance**, not a fraction of the screen the way [swipeArmed]'s mark is a fraction of its row:
+ * that mark is about a row the thumb has to cross, whereas this is one act — "next view" — and it should
+ * not cost twice the drag on a tablet that it costs on a phone. 56dp sits past the touch slop that starts
+ * the drag, so a sideways wobble while scrolling the schedule cannot turn the page, and well inside a
+ * thumb's reach on a 360dp phone, since this is a shortcut and a shortcut that needs the whole hand is not
+ * one.
+ */
+private val SegmentSwipeDistance = 56.dp

@@ -105,6 +105,7 @@ import com.seblful.klas.ui.common.popsOnChange
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRejectFeedback
 import com.seblful.klas.ui.common.rememberConfirmFeedback
+import com.seblful.klas.ui.common.swipeBetweenSegments
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.common.valueOrNull
 import com.seblful.klas.ui.theme.klasColors
@@ -229,7 +230,12 @@ fun ScheduleScreen(
             }
         },
     ) { modifier ->
-        Column(modifier) {
+        // **The view also turns by dragging the page sideways** — see [swipeBetweenSegments]. It reaches the
+        // whole body, including the list, and the lesson cards keep their own swipe regardless: a child
+        // consumes the drag before an ancestor is offered it, so a gesture begun on a lesson still marks
+        // that lesson taught and one begun in the space around them turns the page. The two never arbitrate,
+        // because they never meet.
+        Column(modifier.swipeBetweenSegments(ScheduleViewMode.entries, viewMode, viewModel::setViewMode)) {
             // Which view, said out loud. It used to hide behind an unlabelled calendar icon that
             // opened a menu — two taps to switch, and the icon never told you which of the three you
             // were in. A segmented control is one tap and is its own label; the app already picks

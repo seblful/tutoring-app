@@ -568,9 +568,11 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   named moments and no others: `GestureThresholdActivate` at a drag's mark («now»), `Confirm` when an action
   lands («done»), `Reject` when one is refused («no»), `ToggleOn`/`ToggleOff` when a stored fact flips, and
   `SegmentTick` moving between the segments of a fixed choice. Each is chosen in one place and wired into
-  the shared atom that owns the moment — `SwitchRow`, `SegmentedChoice`, `SwipeToConfirmBox` — never per
+  the shared atom that owns the moment — `SwitchRow`, `SegmentedChoice`, `swipeBetweenSegments`,
+  `SwipeToConfirmBox` — never per
   screen, so a switch cannot buzz "on" while turning off and a re-tap on the segment already chosen is
-  silent. All go through `LocalHapticFeedback`, which honours the system touch-feedback setting and degrades
+  silent. Two atoms share `SegmentTick` because they are two routes into one act: tapping a segment and
+  dragging the page to it. All go through `LocalHapticFeedback`, which honours the system touch-feedback setting and degrades
   an effect the phone is too old to know. No `Vibrator`, no `VIBRATE` permission.
 - **What does *not* buzz is the point of the list**: an ordinary button, a list row, a tab, a navigation.
   The platform reserves haptics for state changes, thresholds and confirmations and leaves a plain tap to its
@@ -883,6 +885,24 @@ impossible**, and three of them carry a tripwire.
   student-or-group was a pair of chips. `SegmentLabel`'s one-line shrink rule came with it, so the
   settings rows get it too. **Chips stay for a shortlist with an escape hatch**, which is what the
   duration chips are.
+  - **Where the segments choose what the whole screen is, the page also turns by dragging it sideways**
+    (`Modifier.swipeBetweenSegments`, same file): «Люди» (Ученики ⇄ Группы) and «Расписание» (День →
+    Неделя → Месяц), left for the next and right for the previous. A shortcut and never the only way in —
+    a gesture has no affordance and announces nothing to a screen reader, so the control it duplicates is
+    what makes the screen usable. It ticks with the same `SegmentTick` a tap gives, one act feeling the
+    same whichever way it was made. **One gesture decides once** (`segmentAfterSwipe`, pure and JVM-tested)
+    and **the ends do not wrap**: a row of detents is not a carousel, and arriving at «День» by dragging on
+    past «Месяц» would be the pill jumping the control's full width against the thumb.
+  - **It is on the screen body, and a child that wants the drag keeps it.** That is the design, not a
+    limitation: the schedule's lesson cards own the same axis for swipe-to-complete, and a child consumes
+    past touch slop before an ancestor is offered anything — so the page turns from the space *around* the
+    cards and a drag begun on a lesson still bills it. A `LazyColumn` reaches its own slop first, so a
+    flick down the list is still a scroll. Neither gesture knows the other exists.
+  - **Deliberately not a `HorizontalPager`.** The schedule assembles only the active view's lessons and
+    markers — both flows `flatMapLatest`-keyed on the view mode — so the neighbouring page has nothing to
+    draw until the switch has happened, and a pager would slide a skeleton in under the thumb. The same
+    plain gesture is used on both screens rather than the nicer one where it would work: a drag that tracks
+    the finger here and jumps there is two gestures wearing one name.
 - **One empty-state language** (`EmptyState`, with `compact` for inside a tab). The detail tabs drew a
   bare grey `Text` through a private `TabEmptyState` defined **twice, identically**, in the two card
   files — so five screens met a designed empty state and five tabs met an unstyled sentence with

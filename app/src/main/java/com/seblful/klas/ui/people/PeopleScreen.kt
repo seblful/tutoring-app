@@ -34,6 +34,7 @@ import com.seblful.klas.ui.common.PinnedHeader
 import com.seblful.klas.ui.common.ScreenSearch
 import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.common.swipeBetweenSegments
 import com.seblful.klas.ui.groups.GroupsList
 import com.seblful.klas.ui.groups.GroupsViewModel
 import com.seblful.klas.ui.students.StudentSort
@@ -122,7 +123,11 @@ fun PeopleScreen(
             }
         },
     ) { modifier ->
-        Column(modifier) {
+        // The segments are the control; the drag is the shortcut — see [swipeBetweenSegments]. On the whole
+        // body rather than on the lists alone, so the gesture is available over the band as well: the two
+        // sides of «Люди» are one screen showing the same people two ways, and every part of it should turn
+        // the page. Neither list owns a horizontal gesture, so nothing here competes for the drag.
+        Column(modifier.swipeBetweenSegments(PeopleTab.entries, tab) { tab = it }) {
             // **Fixed, and drawn as fixed.** The control sits above the lists rather than inside them,
             // so it never scrolls — but it was painted the page's own colour, which is what made rows
             // appear to slide out from behind nothing as either list moved under it. [PinnedHeader] is
