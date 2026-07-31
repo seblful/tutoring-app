@@ -72,6 +72,7 @@ import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.HeroCard
+import com.seblful.klas.ui.common.KeepTypedInput
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LessonFilterChips
 import com.seblful.klas.ui.common.LessonKindIcon
@@ -683,7 +684,7 @@ private fun RepriceDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         // As every dialog the tutor types into: a stray tap outside must not discard the amount.
-        properties = DialogProperties(dismissOnClickOutside = false),
+        properties = KeepTypedInput,
         title = { Text(subjectPrice.subject.name) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
@@ -743,7 +744,7 @@ private fun PaymentDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(dismissOnClickOutside = false),
+        properties = KeepTypedInput,
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
@@ -923,8 +924,8 @@ private fun AddSubjectPriceDialog(
     var price by remember { mutableStateOf(MoneyField(kind = MoneyField.Kind.RATE)) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        // A stray tap beside the dialog must not throw away the price just typed — see `KeepTypedInput`.
-        properties = DialogProperties(dismissOnClickOutside = false),
+        // A stray tap beside the dialog must not throw away the price just typed.
+        properties = KeepTypedInput,
         title = { Text(stringResource(R.string.student_add_subject)) },
         text = {
             Column {

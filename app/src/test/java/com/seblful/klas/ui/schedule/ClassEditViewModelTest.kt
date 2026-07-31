@@ -104,6 +104,9 @@ class ClassEditViewModelTest {
      * form reads the names it shows. `state.students.firstOrNull { it.id == form.studentId }?.name` over a
      * list that has merely not been read yet is an empty «Ученик» field on a lesson that has one, which is
      * the same lie one frame later. So the first thing the screen is ever handed already names its lesson.
+     *
+     * The name is now on the state rather than looked up out of `students` — see
+     * [ClassFormState.studentName] — so this asks the field the screen actually draws.
      */
     @Test
     fun `the form's first Ready state already names the lesson's student`() = runTest(mainRule.dispatcher) {
@@ -116,11 +119,52 @@ class ClassEditViewModelTest {
 
         val state = vm.state.current
         assertEquals(studentId, state.form.studentId)
-        assertEquals(
-            "the picker the field reads the name out of has arrived with it",
-            "Борис",
-            state.students.firstOrNull { it.id == state.form.studentId }?.name,
-        )
+        assertEquals("the field says who the lesson is for", "Борис", state.studentName)
+        assertEquals("Математика", state.subjectName)
+    }
+
+    /**
+     * **An archived student's lesson still names them.**
+     *
+     * Archiving cancels what was still planned and leaves the rest, and editing is allowed in any status,
+     * so a retired student's lessons remain openable. The picker read `observeActive()`, so the form had
+     * no row to resolve the name from and drew «Ученик» blank over a lesson that has one — with
+     * `canSave` still true, i.e. offering to re-save a lesson it was misrepresenting. Groups were already
+     * spared this by re-adding the edited lesson's own group; students now are too.
+     */
+    @Test
+    fun `an archived student's lesson still names them`() = runTest(mainRule.dispatcher) {
+        val date = LocalDate.now(zone).plusDays(2)
+        val (studentId, id) = seedLesson(date, LocalTime.of(14, 0), studentName = "Аня")
+        env.studentRepo.setArchived(env.studentRepo.getById(studentId)!!, archived = true)
+
+        val vm = vm(id)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        val state = vm.state.current
+        assertEquals(studentId, state.form.studentId)
+        assertEquals("Аня", state.studentName)
+        assertTrue("and is still offered, so the picker can show its own selection", state.students.any { it.id == studentId })
+    }
+
+    /**
+     * The allowance is exactly the lesson being edited: every *other* archived student stays out, or the
+     * picker would offer people the tutor has retired.
+     */
+    @Test
+    fun `another archived student is still left out of the picker`() = runTest(mainRule.dispatcher) {
+        val date = LocalDate.now(zone).plusDays(2)
+        val (studentId, id) = seedLesson(date, LocalTime.of(14, 0), studentName = "Аня")
+        val other = env.fixtures.student("Глеб")
+        env.studentRepo.setArchived(env.studentRepo.getById(studentId)!!, archived = true)
+        env.studentRepo.setArchived(env.studentRepo.getById(other)!!, archived = true)
+
+        val vm = vm(id)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        assertEquals(listOf(studentId), vm.state.current.students.map { it.id })
     }
 
     /** A new booking is [Loadable.Ready] at once: a blank form is what booking a lesson starts as. */

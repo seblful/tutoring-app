@@ -70,26 +70,64 @@ class SettingsViewModelTest {
             observing(vm.reminderDelivery)
             advanceUntilIdle()
 
-            assertEquals("switching off asks nothing", NotificationsIntent.Nothing, vm.notificationsIntent(on = false))
+            assertEquals(
+                "switching off asks nothing",
+                NotificationsIntent.Nothing,
+                vm.setNotificationsEnabled(on = false),
+            )
             assertEquals(
                 "already granted, so nothing to ask",
                 NotificationsIntent.Nothing,
-                vm.notificationsIntent(on = true),
+                vm.setNotificationsEnabled(on = true),
             )
 
             env.notificationPermission.granted = false
             vm.refreshPermissions()
             advanceUntilIdle()
             assertEquals(
-                NotificationsIntent.Request(arrayOf("POST_NOTIFICATIONS")),
-                vm.notificationsIntent(on = true),
+                NotificationsIntent.Request(listOf("POST_NOTIFICATIONS")),
+                vm.setNotificationsEnabled(on = true),
             )
 
             // Notifications off for the whole app: there is no permission to request, so asking would
             // show a dialog that can never be granted. Say so instead.
-            env.notificationPermission.required = emptyArray()
-            assertEquals(NotificationsIntent.BlockedBySystem, vm.notificationsIntent(on = true))
+            env.notificationPermission.required = emptyList()
+            assertEquals(NotificationsIntent.BlockedBySystem, vm.setNotificationsEnabled(on = true))
         }
+
+    /**
+     * **The setting is stored by the same call that asks.**
+     *
+     * This is the assertion that could not be written before: storing and asking were two calls the screen
+     * made in sequence over one argument, so a test could exercise either and never the pair. Both halves
+     * failing silently is what made it worth binding — asking without storing requests a permission for a
+     * setting nobody saved, and storing without asking leaves reminders reading «включено» with no
+     * permission and no dialog, which is the very state `reminderDelivery` exists to report.
+     */
+    @Test
+    fun `asking for the permission and storing the setting are one act`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        observing(vm.state)
+        observing(vm.reminderDelivery)
+        env.notificationPermission.granted = false
+        advanceUntilIdle()
+
+        val intent = vm.setNotificationsEnabled(on = true)
+        advanceUntilIdle()
+
+        assertEquals(NotificationsIntent.Request(listOf("POST_NOTIFICATIONS")), intent)
+        assertTrue("and the setting it asked about was stored", vm.state.current.notificationsEnabled)
+        assertEquals(
+            "so the row reports the state the app is actually in",
+            ReminderDelivery.BLOCKED,
+            vm.reminderDelivery.value,
+        )
+
+        // And off again: no request, and the setting follows.
+        assertEquals(NotificationsIntent.Nothing, vm.setNotificationsEnabled(on = false))
+        advanceUntilIdle()
+        assertFalse(vm.state.current.notificationsEnabled)
+    }
 
     @Test
     fun `setters persist each setting`() = runTest(mainRule.dispatcher) {

@@ -36,6 +36,19 @@ data class ClassSession(
 
     val start: Instant get() = first.start
 
+    val durationMinutes: Int get() = first.durationMinutes
+
+    /**
+     * Every class id of the lesson — what an overlap check has to skip so a lesson cannot be found
+     * standing in its own way (`Scheduling.conflicts`, and every write that re-occupies time).
+     *
+     * Here rather than at each call site because it was derived by hand at four of them, each also
+     * choosing its own start-and-length pair to ask about. Three of those hand copies shipped as a
+     * double booking, and the fourth way in shipped as another: a group lesson has to exclude *every*
+     * member's class, not just the one the tutor tapped, and "every member" is a fact about the session.
+     */
+    val ids: Set<Long> get() = classes.mapTo(mutableSetOf()) { it.id }
+
     val size: Int get() = classes.size
 
     /**
@@ -124,6 +137,28 @@ data class RosterChange(
     val billedDropped: List<TutoringClass> get() = Billing.billable(dropped)
 }
 
+/**
+ * One lesson edit, resolved whole: [lesson] carries the **lesson row's** own fields afterwards — its
+ * hour, length, subject, mode and status — and the three lists are what becomes of the people in it.
+ * [updated] stay and are rewritten in place, [joining] arrive with no row yet, [dropped] leave.
+ *
+ * **[lesson] is its own field rather than "the first of [updated]", and that is the whole point of the
+ * type.** A roster can be swapped *whole* — every member unticked, different ones ticked — and then
+ * there is no updated class left to read the lesson's new hour off. The write that projected the lesson
+ * row out of that list therefore stored the roster and silently kept the **old time**, while the hour
+ * check had already reserved the new one and the calendar had already mirrored it there; the joiners
+ * were re-billed from the new length against the stored old one, so a day's takings and the report
+ * disagreed. Any class of the lesson is a truthful carrier of these fields (they are all shared, and
+ * [ClassRules.edit] derives the status from the move alone), so there is always one to name — which is
+ * exactly why leaving it implied was possible.
+ */
+data class LessonEdit(
+    val lesson: TutoringClass,
+    val updated: List<TutoringClass>,
+    val joining: List<TutoringClass> = emptyList(),
+    val dropped: List<TutoringClass> = emptyList(),
+)
+
 /** Rules for groups: who a group's lesson covers, and how its classes read as one lesson. */
 object GroupRules {
 
@@ -131,8 +166,12 @@ object GroupRules {
      * The per-class edit that [changes] implies for [c]: the lesson's shared fields as given — its
      * one [SessionEdit.price] included — and the class's own student, or [SessionEdit.studentId] when
      * an individual class is being re-attributed to somebody else.
+     *
+     * Private: it is a step of [editsFor], and calling it directly walks past the one thing [editsFor]
+     * refuses — re-attributing a lesson of more than one class. It was public with no caller but its
+     * own test, which is a hole in this module's guarantee kept open by nothing.
      */
-    fun editFor(c: TutoringClass, changes: SessionEdit): ClassEdit = ClassEdit(
+    private fun editFor(c: TutoringClass, changes: SessionEdit): ClassEdit = ClassEdit(
         studentId = changes.studentId ?: c.studentId,
         subjectId = changes.subjectId,
         durationMinutes = changes.durationMinutes,
@@ -194,6 +233,65 @@ object GroupRules {
                 )
             },
         )
+    }
+
+    /**
+     * The whole of what one edit does to one lesson: its own row's new fields, and what becomes of every
+     * member — [rosterChange], [editsFor] and [ClassRules.edit] composed in the one order they compose in.
+     *
+     * **The composition is this module's, not its caller's.** These three used to be assembled at the one
+     * call site that needs them, and the assembly is where the rule went wrong: the lesson's own fields
+     * were read out of the surviving classes, so a total roster swap left no class to read them from. See
+     * [LessonEdit] for what that cost. Naming the sequence here is also what makes it testable at all —
+     * the parts each had tests, and the thing between them had none.
+     *
+     * [roster] says who the lesson covers afterwards; null leaves it exactly as it is, which is all an
+     * individual lesson can mean. [now] is the caller's clock, as everywhere in the domain: whether the
+     * move re-plans the lesson is decided against it.
+     */
+    fun lessonEdit(
+        session: ClassSession,
+        changes: SessionEdit,
+        newStart: Instant,
+        now: Instant,
+        roster: Set<Long>? = null,
+    ): LessonEdit {
+        val change = roster?.let { rosterChange(session, it, changes, newStart) } ?: RosterChange()
+        val leaving = change.dropped.mapTo(mutableSetOf()) { it.id }
+        // editsFor runs over the whole session, so its refusal to re-attribute a group lesson is decided
+        // by what the lesson *is* rather than by whoever happens to be staying in it.
+        val resolved = editsFor(session, changes).map { (c, edit) -> c.id to ClassRules.edit(c, edit, newStart, now) }
+        return LessonEdit(
+            // The representative class, resolved, whether or not it is staying: the lesson's row holds
+            // only fields every class of it shares, so any of them states them correctly.
+            lesson = resolved.first().second,
+            updated = resolved.filterNot { (id, _) -> id in leaving }.map { (_, c) -> c },
+            joining = change.joining,
+            dropped = change.dropped,
+        )
+    }
+
+    /**
+     * Who a lesson may be offered to: the group's **bookable** members (archived students left out),
+     * plus anybody the lesson [alreadyIn] — a member archived, or dropped from the group, since it was
+     * booked is still in that lesson, so they must still be listed and still be untickable.
+     *
+     * Filtered out of [everyone] rather than concatenated, so the union keeps the caller's name ordering
+     * instead of listing the strays at the end.
+     *
+     * This set algebra was spelled five times inside one view model — twice as a flow, twice as a
+     * suspend read, once as its complement — while every other roster rule lived here. Two of the copies
+     * had already drifted: one applied [bookableMembers] to a list that was already active-only, so the
+     * archiving half of the rule was really being applied at exactly one of them.
+     */
+    fun offeredRoster(
+        everyone: List<Student>,
+        memberIds: Set<Long>,
+        alreadyIn: Set<Long> = emptySet(),
+    ): List<Student> {
+        val offered = bookableMembers(everyone.filter { it.id in memberIds })
+            .mapTo(mutableSetOf()) { it.id } + alreadyIn
+        return everyone.filter { it.id in offered }
     }
 
     /**

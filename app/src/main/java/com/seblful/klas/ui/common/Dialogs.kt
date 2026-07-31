@@ -1,0 +1,175 @@
+package com.seblful.klas.ui.common
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.window.DialogProperties
+import com.seblful.klas.R
+import com.seblful.klas.domain.model.ClassMode
+
+/**
+ * The app's dialogs, and the one rule they share.
+ *
+ * A dialog the tutor **types into** does not close on a stray tap beside it ([KeepTypedInput]): losing a
+ * half-typed price to a mis-tap is worse than an extra tap on «Отмена». It is `internal` rather than private
+ * precisely because four dialogs elsewhere in the app need it — while it was private, two of them pointed at
+ * it in a comment and re-spelled the properties by hand, which is a named rule kept only by whoever
+ * remembered to read the comment.
+ */
+
+@Composable
+fun ConfirmDialog(
+    text: String,
+    confirmLabel: String = stringResource(R.string.action_delete),
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        text = { Text(text) },
+        confirmButton = { TextButton(onClick = { onConfirm(); onDismiss() }) { Text(confirmLabel) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
+}
+/**
+ * Dialog behaviour for every dialog the tutor **types into**: a tap outside no longer closes it.
+ *
+ * The full-screen forms answer the same problem by asking «Сохранить изменения?» on the way out (see
+ * `ui/common/UnsavedChanges.kt`). A dialog does not need the question — it already shows «Отмена» and
+ * «Сохранить», so leaving it is a deliberate tap — it only needs to stop being closed *by accident*.
+ */
+internal val KeepTypedInput = DialogProperties(dismissOnClickOutside = false)
+/** A dialog to edit a student's name, phone, email, optional note and default class mode. */
+@Composable
+fun StudentEditDialog(
+    title: String,
+    initialName: String,
+    initialPhone: String,
+    initialEmail: String,
+    initialNote: String,
+    initialMode: ClassMode,
+    onConfirm: (name: String, phone: String, email: String, note: String, mode: ClassMode) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var name by remember { mutableStateOf(initialName) }
+    var phone by remember { mutableStateOf(initialPhone) }
+    var email by remember { mutableStateOf(initialEmail) }
+    var note by remember { mutableStateOf(initialNote) }
+    var mode by remember { mutableStateOf(initialMode) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        properties = KeepTypedInput,
+        title = { Text(title) },
+        text = {
+            // Five controls is the tallest dialog in the app, so it scrolls: with the keyboard up — or at
+            // a large font scale — «Место» and the note fell off the bottom with no way to reach them,
+            // an `AlertDialog`'s text slot having no scroll of its own.
+            Column(
+                Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Spacing.inline),
+            ) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(R.string.student_name_label)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text(stringResource(R.string.student_phone_label)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text(stringResource(R.string.student_email_label)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = note,
+                    onValueChange = { note = it },
+                    label = { Text(stringResource(R.string.student_note_label)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                ModeField(
+                    label = stringResource(R.string.student_mode_label),
+                    selected = mode,
+                    onSelect = { mode = it },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(name.trim(), phone.trim(), email.trim(), note.trim(), mode); onDismiss() },
+                enabled = name.isNotBlank(),
+            ) { Text(stringResource(R.string.action_save)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
+}
+/**
+ * A dialog with a single text field. Used for naming subjects, entering amounts, etc.
+ *
+ * @param keyboardType numeric for amounts, text otherwise.
+ * @param validate gates the confirm button (in addition to non-blank). For amounts this prevents
+ *   silently dismissing on an unparseable value — the action stays disabled until the input is valid.
+ */
+@Composable
+fun TextFieldDialog(
+    title: String,
+    label: String,
+    initial: String,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    validate: (String) -> Boolean = { true },
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var value by remember { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        // A stray tap beside the dialog must not throw away what was typed into it — the same rule
+        // the full-screen forms follow with their «Сохранить изменения?» prompt, kept cheap here:
+        // a dialog already has «Отмена», so the fix is to stop *accidental* dismissal rather than to
+        // ask about a deliberate one. Back still closes it, as it closes any dialog.
+        properties = KeepTypedInput,
+        title = { Text(title) },
+        text = {
+            OutlinedTextField(
+                value = value,
+                onValueChange = { value = it },
+                label = { Text(label) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(value); onDismiss() },
+                enabled = value.isNotBlank() && validate(value),
+            ) { Text(stringResource(R.string.action_save)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
+}

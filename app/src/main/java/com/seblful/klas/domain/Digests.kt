@@ -2,6 +2,7 @@ package com.seblful.klas.domain
 
 import com.seblful.klas.domain.model.Money
 import java.time.DayOfWeek
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -76,6 +77,50 @@ object Digests {
             null
         },
     )
+
+    /**
+     * How long from [now] until [at] — what an adapter arranging a [Plan] has to hand its platform, and
+     * therefore the last piece of *when* that was living outside this module.
+     *
+     * **Clamped at zero**, which is a decision rather than defensiveness: an instant already past means
+     * "this one is due now". [plan] cannot produce one (it only ever looks forward), but a caller acting on
+     * a plan it read some moments ago can, and a negative delay is not a thing to hand a scheduler.
+     *
+     * It exists because the alternative was the adapter computing `Duration.between(Instant.now(), at)` —
+     * a **second clock read**, some moments after the one the plan was decided from, and the exact mistake
+     * `Plan` carries instants to avoid (see the class KDoc, and `Reminders.Plan.fireAt`). That read was
+     * also the app's only remaining `Instant.now()`, which is to say the one place the shipped path could
+     * not be the tested one.
+     */
+    fun delayUntil(at: Instant, now: Instant): Duration =
+        Duration.between(now, at).coerceAtLeast(Duration.ZERO)
+
+    /**
+     * Whether something already arranged for [arranged] should be **left to happen** rather than cancelled
+     * and replaced by [planned] — the "a digest may be late" rule, stated where the rest of *when* lives.
+     *
+     * True exactly when the arrangement is **due and has not happened yet** (at or before [now]) and the
+     * plan has merely rolled past it. That is the whole of it, and it is the case the app was getting
+     * wrong: [plan] looks strictly forward, and [Maintenance] re-plans on every app start, every thirty
+     * minutes, after a reboot and behind every write — so a 09:00 agenda that WorkManager had not run yet
+     * at 09:12 (Doze, or a restricted battery bucket) was re-planned for *tomorrow*, and the policy that
+     * applies a new plan cancelled the pending run on its way. Today's agenda then never arrived, nothing
+     * recorded that it was owed, and the most likely trigger was the tutor opening the app. For the debt
+     * digest it lost a whole week.
+     *
+     * That inverts this module's own argument. These are workers precisely because «сегодня 4 занятия» is
+     * still true at twenty past; turning *late* into *never* is the one outcome the choice was made to
+     * avoid.
+     *
+     * Two consequences worth stating, because both are deliberate:
+     * - **Switching a digest off still cancels a due one.** [planned] is null then, so this is false.
+     * - **Changing the hour lets the old one through, once.** Moving 09:00 to 10:00 at 09:12 leaves this
+     *   morning's 09:00 digest to arrive late; the new hour applies from the next occurrence. It was owed
+     *   under the setting in force when it came due, and delivering it late is closer to the tutor's
+     *   instruction than dropping it.
+     */
+    fun stillOwed(arranged: Instant?, planned: Instant?, now: Instant): Boolean =
+        arranged != null && planned != null && !arranged.isAfter(now) && planned.isAfter(arranged)
 
     /**
      * The next instant a daily digest set for [minuteOfDay] fires, **strictly after** [now].

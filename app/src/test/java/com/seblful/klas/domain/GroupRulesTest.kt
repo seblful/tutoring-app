@@ -256,7 +256,11 @@ class GroupRulesTest {
         assertFalse(ClassRules.canTransition(LessonStatus.COMPLETED, LessonStatus.SCHEDULED))
     }
 
-    // --- editFor ---
+    // --- the per-class edit, asked through `editsFor` ---
+    //
+    // Through `editsFor` rather than the per-class step it is made of: that step is private now, because
+    // reaching it directly is the one way past the refusal to re-attribute a group lesson. These two
+    // tests were the only callers it had.
 
     @Test
     fun `a session edit puts every member on the lesson's one rate`() {
@@ -271,13 +275,14 @@ class GroupRulesTest {
             price = Money.ofMajor(20),
         )
 
-        assertEquals(Money.ofMajor(20), GroupRules.editFor(ann, changes).price)
-        assertEquals(Money.ofMajor(20), GroupRules.editFor(bob, changes).price)
+        val edits = GroupRules.editsFor(ClassSession(7, listOf(ann, bob)), changes).map { it.second }
+
+        assertEquals(listOf(Money.ofMajor(20), Money.ofMajor(20)), edits.map { it.price })
         // Shared fields come from the edit; the student is never re-attributed by a session edit.
-        assertEquals(9L, GroupRules.editFor(ann, changes).subjectId)
-        assertEquals(90, GroupRules.editFor(ann, changes).durationMinutes)
-        assertEquals(ClassMode.REMOTE, GroupRules.editFor(ann, changes).mode)
-        assertEquals(1L, GroupRules.editFor(ann, changes).studentId)
+        assertEquals(9L, edits.first().subjectId)
+        assertEquals(90, edits.first().durationMinutes)
+        assertEquals(ClassMode.REMOTE, edits.first().mode)
+        assertEquals(listOf(1L, 2L), edits.map { it.studentId })
     }
 
     @Test
@@ -291,7 +296,8 @@ class GroupRulesTest {
             mode = ClassMode.IN_PERSON,
             price = Money.ZERO,
         )
-        assertEquals(Money.ZERO, GroupRules.editFor(ann, changes).price)
+        val edit = GroupRules.editsFor(ClassSession(7, listOf(ann)), changes).single().second
+        assertEquals(Money.ZERO, edit.price)
     }
 
     // --- editsFor: one edit, fanned out over the lesson ---
@@ -529,5 +535,115 @@ class GroupRulesTest {
         val all = group + theirOwn + someoneElses
 
         assertEquals(group + theirOwn, GroupRules.lessonsWith(all, studentId = 1))
+    }
+
+    // --- lessonEdit: the composition, which is what had no test ---
+
+    private val edit90 = SessionEdit(
+        subjectId = 9,
+        durationMinutes = 90,
+        mode = ClassMode.REMOTE,
+        price = Money.ofMajor(20),
+    )
+
+    @Test
+    fun `a lesson edit states the lesson's own row, whoever stays in it`() {
+        // The whole roster leaves: Ann and Bob out, Cara in. There is no *updated* class left, which is
+        // the case that used to leave the lesson row unwritten — and so left the lesson at its old hour.
+        val session = groupSession(1L to 1L, 2L to 2L)
+
+        val edit = GroupRules.lessonEdit(session, edit90, newStart = t1, now = t0, roster = setOf(3L))
+
+        assertEquals("nobody stayed", emptyList<TutoringClass>(), edit.updated)
+        assertEquals(listOf(1L, 2L), edit.dropped.map { it.studentId })
+        assertEquals(listOf(3L), edit.joining.map { it.studentId })
+        // And the lesson still says what it now is.
+        assertEquals(t1, edit.lesson.start)
+        assertEquals(90, edit.lesson.durationMinutes)
+        assertEquals(9L, edit.lesson.subjectId)
+        assertEquals(ClassMode.REMOTE, edit.lesson.mode)
+        assertEquals(session.lessonId, edit.lesson.lessonId)
+    }
+
+    @Test
+    fun `the lesson row a partial roster change states matches the one a total change states`() {
+        // The lesson's own fields are shared by every class, so which classes survive must not change
+        // them. This is the invariant that makes naming `lesson` separately safe rather than arbitrary.
+        val session = groupSession(1L to 1L, 2L to 2L)
+
+        val partial = GroupRules.lessonEdit(session, edit90, t1, t0, roster = setOf(1L))
+        val total = GroupRules.lessonEdit(session, edit90, t1, t0, roster = setOf(3L))
+        val untouched = GroupRules.lessonEdit(session, edit90, t1, t0, roster = null)
+
+        val lessonFacts = { c: TutoringClass ->
+            listOf(c.lessonId, c.start, c.durationMinutes, c.subjectId, c.mode, c.status, c.groupId)
+        }
+        assertEquals(lessonFacts(untouched.lesson), lessonFacts(partial.lesson))
+        assertEquals(lessonFacts(untouched.lesson), lessonFacts(total.lesson))
+    }
+
+    @Test
+    fun `a null roster edits every class and drops nobody`() {
+        val session = groupSession(1L to 1L, 2L to 2L)
+
+        val edit = GroupRules.lessonEdit(session, edit90, newStart = t0, now = t1, roster = null)
+
+        assertEquals(listOf(1L, 2L), edit.updated.map { it.studentId })
+        assertTrue(edit.dropped.isEmpty())
+        assertTrue(edit.joining.isEmpty())
+        assertEquals("every class carries the edit", listOf(90, 90), edit.updated.map { it.durationMinutes })
+    }
+
+    @Test
+    fun `a lesson edit refuses to re-attribute a group lesson`() {
+        // The refusal is `editsFor`'s and it still applies through the composed call — which is the
+        // reason the per-class step is private.
+        val session = groupSession(1L to 1L, 2L to 2L)
+        val reattributed = edit90.copy(studentId = 3L)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            GroupRules.lessonEdit(session, reattributed, newStart = t0, now = t1)
+        }
+    }
+
+    // --- offeredRoster: one union, five call sites ---
+
+    private val everyone = listOf(
+        Student(1, "Аня"),
+        Student(2, "Борис", archived = true),
+        Student(3, "Вера"),
+        Student(4, "Глеб"),
+    )
+
+    @Test
+    fun `a new lesson is offered the group's bookable members only`() {
+        // Borís is archived: a group they are in must stop billing them.
+        assertEquals(
+            listOf(1L, 3L),
+            GroupRules.offeredRoster(everyone, memberIds = setOf(1L, 2L, 3L)).map { it.id },
+        )
+    }
+
+    @Test
+    fun `an existing lesson is also offered whoever it already covers`() {
+        // Borís was in this lesson and has since been archived; Gleb was in it and has since left the
+        // group. Both stay listed, so both can still be *unticked* — which is what removes their class.
+        assertEquals(
+            listOf(1L, 2L, 3L, 4L),
+            GroupRules.offeredRoster(everyone, memberIds = setOf(1L, 3L), alreadyIn = setOf(2L, 4L))
+                .map { it.id },
+        )
+    }
+
+    @Test
+    fun `the offer keeps the order it was given, not the order it was assembled in`() {
+        // Filtered out of the full list rather than concatenated: the caller's list is name-ordered, and
+        // a union that appended the strays would list them after everyone else.
+        val reversed = everyone.reversed()
+
+        assertEquals(
+            listOf(4L, 3L, 2L),
+            GroupRules.offeredRoster(reversed, memberIds = setOf(3L, 4L), alreadyIn = setOf(2L)).map { it.id },
+        )
     }
 }

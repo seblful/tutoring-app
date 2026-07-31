@@ -16,6 +16,7 @@ import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -37,14 +38,19 @@ class ReportsViewModelTest {
     val mainRule = MainDispatcherRule()
 
     private val env = TestEnv()
-    private val zone: ZoneId = ZoneId.systemDefault()
+    private val zone: ZoneId = ZoneId.of("Europe/Minsk")
 
     /**
-     * The year the screen opens on. Income is filtered by period now, so a fixture dated at the epoch
-     * would be invisible in every default-period assertion — the dates below are anchored to *this*
-     * year on purpose, and the day of the month is fixed so nothing depends on the time of day.
+     * **The clock is pinned, not read.** The view model takes a [Clock] now, so the year the screen opens
+     * on is a fact of this test rather than of the day it runs. It used to read `ZoneId.systemDefault()`
+     * and `LocalDate.now()` itself, which forced everything here to be relative to *today*: fixtures
+     * anchored to the current year, a shift computed from the current month, and — worst — the opening
+     * period asserted by re-evaluating the production expression, an assertion that could not fail.
      */
-    private val thisYear = LocalDate.now(zone).year
+    private val clock: Clock = Clock.fixed(Instant.parse("2026-06-15T09:00:00Z"), zone)
+
+    /** The year the screen opens on, from the pinned clock. Mid-June, so there are months either side. */
+    private val thisYear = LocalDate.now(clock).year
 
     /** The report's CSV export writes here; the report assertions below never touch it. */
     private val documents = FakeDocumentStore()
@@ -55,7 +61,7 @@ class ReportsViewModelTest {
     private fun vm() =
         ReportsViewModel(
             env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo,
-            documents, sharing, mainRule.dispatcher,
+            documents, sharing, mainRule.dispatcher, clock,
         )
 
     /** Local midnight on a date, as the millis a class entity stores. */
@@ -79,7 +85,10 @@ class ReportsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(ReportPeriod.currentYear(LocalDate.now(zone)), vm.state.current.period)
+        // A literal, not `ReportPeriod.currentYear(LocalDate.now(zone))`: asserting the opening period by
+        // re-running the production expression is an assertion that holds whatever the expression says.
+        assertEquals(ReportPeriod.currentYear(LocalDate.of(2026, 6, 15)), vm.state.current.period)
+        assertEquals(2026, vm.state.current.period.anchor.year)
         assertEquals(ReportPeriod.Kind.YEAR, vm.period.value.kind)
     }
 
@@ -107,6 +116,43 @@ class ReportsViewModelTest {
         assertEquals(Money.ofMajor(100), vm.state.current.totalIncome)
     }
 
+    /**
+     * **A report across the turn of the year** — the case that could not be written at all while this view
+     * model read the wall clock itself, because every fixture had to be relative to whenever the suite
+     * happened to run.
+     *
+     * December and January are adjacent months and different *years*, and the screen opens on a year. So
+     * the last lesson of December and the first of January must not be counted together by the period the
+     * screen opens on, and stepping one month back from January has to cross into the previous year.
+     */
+    @Test
+    fun `a report opening in January does not count last December`() = runTest(mainRule.dispatcher) {
+        val newYear = Clock.fixed(Instant.parse("2027-01-05T09:00:00Z"), zone)
+        val subj = env.fixtures.subject("Математика")
+        val sid = env.fixtures.pricedStudent("Аня", subj)
+        completed(sid, subj, at(2026, 12, 28), 90)
+        completed(sid, subj, at(2027, 1, 3), 40)
+
+        val vm = ReportsViewModel(
+            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo,
+            documents, sharing, mainRule.dispatcher, newYear,
+        )
+        observing(vm.state)
+        advanceUntilIdle()
+
+        assertEquals(2027, vm.period.value.anchor.year)
+        assertEquals("December belongs to the year that has ended", Money.ofMajor(40), vm.state.current.totalIncome)
+
+        // A month at a time, then one step back: out of January 2027 and into December 2026.
+        vm.setKind(ReportPeriod.Kind.MONTH)
+        vm.shift(-1)
+        advanceUntilIdle()
+
+        assertEquals(12, vm.state.current.period.anchor.monthValue)
+        assertEquals(2026, vm.state.current.period.anchor.year)
+        assertEquals(Money.ofMajor(90), vm.state.current.totalIncome)
+    }
+
     @Test
     fun `narrowing to a month keeps the month the tutor stepped to`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
@@ -120,9 +166,8 @@ class ReportsViewModelTest {
 
         vm.setKind(ReportPeriod.Kind.MONTH)
         advanceUntilIdle()
-        // The anchor was this year's current month; step to May and only May's lesson counts.
-        val toMay = 5 - LocalDate.now(zone).monthValue
-        vm.shift(toMay)
+        // The anchor is the pinned clock's month, June; one step back is May, and only May's lesson counts.
+        vm.shift(-1)
         advanceUntilIdle()
 
         assertEquals(5, vm.state.current.period.anchor.monthValue)
@@ -392,7 +437,7 @@ class ReportsViewModelTest {
 
             val vm = ReportsViewModel(
                 env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo,
-                documents, sharing, counting,
+                documents, sharing, counting, clock,
             )
             observing(vm.state)
             advanceUntilIdle()

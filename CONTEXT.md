@@ -36,7 +36,7 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, `Recurrence`/`Repeat` (what a repeating booking's dates are), calendar layout, `CalendarSyncPolicy`, reminders, `Digests` (the two summaries: when each fires and whether it is worth sending), reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught`, `DaySummary`/`NowMarker` (what a day comes to, and where "now" falls in it), `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, models (incl. `Currency` and the report-only id types, `model/Ids.kt`), and the `ReminderScheduler`/`DigestScheduler` ports. All JVM-tested. |
+| `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, `Recurrence`/`Repeat` (what a repeating booking's dates are), calendar layout, `CalendarSyncPolicy`, reminders, `Digests` (the two summaries: when each fires, whether one already due is still owed, and whether it is worth sending), reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught`, `DaySummary`/`NowMarker` (what a day comes to, and where "now" falls in it), `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, models (incl. `Currency` and the report-only id types, `model/Ids.kt`), and the `ReminderScheduler`/`DigestScheduler` ports. All JVM-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`, the `Transactor` port, and `upsertedId` — the one statement of `@Upsert`'s -1-on-update sentinel (the fakes reproduce it, so the fallback branch runs on the JVM too). Entities are also `@Serializable`, for the backup. `SnapshotDao` is the **separate** whole-table seam (see *Two interfaces onto the same tables*). |
 | `data/Mappers.kt` | Entities ⇄ domain models. Where a stored enum is parsed back. |
 | `data/repository/` | One invariant each, end to end, written in one transaction (see *Ownership*). Display **name ordering** is applied here. |
@@ -47,7 +47,7 @@ flowchart TB
 | `diagnostics/` | `CrashLogger` over `CrashLogStore`/`DeviceInfo` ports; the pure half is `domain/Diagnostics`. Viewed and exported from `ui/diagnostics`. |
 | `storage/` | `DocumentStore` port + SAF adapter over an opaque `DocumentRef`, and `DocumentSharing` + its `ACTION_SEND`/`FileProvider` adapter — so no view model touches a `Uri`, an `Intent` or a `Context`. Two ports because the acts differ: one writes where the tutor pointed, the other hands a file to another app. |
 | `format/` | `ru`-locale date/time/money formatting (with `LocalDate`/`LocalTime` faces, so no caller restates the zone), `MoneyField` (what a money input is — each `Kind` carries its own zero rule), `NameOrder` (the one definition of how names are listed). |
-| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/` (routes, tab items, screen transitions), shared `common/` atoms — the screen shell (`KlasScreen`), the spacing scale (`Spacing`), `Loadable`/`Skeleton` (the loaded-yet distinction), `SegmentedChoice`, `HeroCard`, `PinnedHeader` (and `StickyTabRow` over it) — plus `onboarding/` and `RootViewModel` gating onboarding vs. the tabs. **Settings and About live in `ui/more/`.** The theme (`ui/theme/`) owns the two colour schemes, `KlasColors`, the type scale and `dynamicColorAvailable`. |
+| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/` (routes, tab items, screen transitions), shared `common/` atoms, **one concern per file** — the screen shell (`KlasScreen`), the spacing scale (`Spacing`) and the three fixed figures beside it (`Metrics`), `Loadable`/`Skeleton` (the loaded-yet distinction), `Surfaces`, `Fields`, `Dialogs`, `Avatars`, `Badges`, `EmptyStates`, `DomainText`, `SegmentedChoice`, `HeroCard`, `PinnedHeader` (and `StickyTabRow` over it) — plus `onboarding/` and `RootViewModel` gating onboarding vs. the tabs. **Settings and About live in `ui/more/`.** The theme (`ui/theme/`) owns the two colour schemes, `KlasColors`, the type scale and `dynamicColorAvailable`. |
 | `preview/` (debug only) | `@Preview`s of the shared `ui/common/` vocabulary and the `@KlasPreview` multipreview that renders each in light, dark and 1.5× text. In `src/debug/` so neither the previews nor their sample data reach a release APK. |
 | `di/` | The database module, the `@DebugBuild` flag, `@ApplicationScope`/`@Computation` (`CoroutinesModule`) and the `Clock` (`TimeModule`) — which every defaulted `now` in the engine reads (`Maintenance`, `DueReminder`, `RateHistoryRepository`, `CrashLogger`), so the tested path is the shipped one. Other Hilt modules live beside their adapters. |
 
@@ -57,7 +57,9 @@ flowchart TB
   and the **one-tutor-one-lesson refusal itself**: every write that would (re)occupy time checks the
   hour and returns `LessonWrite.Written | HourTaken(clash)` rather than trusting its callers to have
   asked (three used to, each with its own ignoring set; the fourth way in shipped as a double
-  booking). Every write takes a whole **lesson** (`ClassSession`), so there is no single-class path
+  booking). **The exclusion set is `ClassSession.ids`', not a caller's** — `holdingHour(session, …)`
+  derives it, and `observeConflicts` takes the lesson being edited rather than a set of ids, so the last
+  piece of that invariant living outside the module stopped having four hand-written copies. Every write takes a whole **lesson** (`ClassSession`), so there is no single-class path
   to drift. **`bookSeries` is the one write that reports instead of refusing** (`SeriesWrite`) — it
   answers about a term rather than an hour, and one taken Monday must not turn down the other eleven.
 - `CalendarMirror` — what a mirrored event *shows*, and every table that decides it. A title is built
@@ -184,7 +186,8 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 ### A screen draws, it does not decide
 
 - **Every branch a screen takes is a value the module behind it returned.** `ArchiveIntent`,
-  `SaveIntent`, `DeleteWarning`, `NotificationsIntent`, `RootRoute`, `ThemeChoice`,
+  `SaveIntent`, `DeleteWarning` (its four **cases**, not the two facts they are combined from — see below),
+  `ScheduleEmpty`, `NotificationsIntent`, `RootRoute`, `ThemeChoice`,
   `OnboardingViewModel.restoreNeedsConfirming`, `ReportCsv.linesFor`, `PaymentDate.instantFor` (and
   `.today`), `ScheduleRow.statusChoices`/`canSwipeComplete`/`recedes`, `Reports.Line.share`,
   `Trend.shareOf` and the three picker defaults on `ClassEditViewModel` are the named answers; the
@@ -192,7 +195,20 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   only on a device, so a decision that lives in one is a decision with no test — and the eight sites
   these replaced included which rows the CSV export contains and what instant a payment is stored at.
 - **`PaymentDate` was the app's one exception to the injected `Clock`.** It called `LocalDate.now()`
-  and `Instant.now()` directly, in a composable, on the path that records money.
+  and `Instant.now()` directly, in a composable, on the path that records money. Two more had the same
+  shape and are gone the same way: «Перенести» combined its picked date and time into an instant inside a
+  composable, so `ScheduleViewModel.moveTo(session, day, time)` takes the two the tutor chose and the zone
+  is the injected clock's; and `ReportsViewModel` read `ZoneId.systemDefault()` for the period anchor, on
+  the screen where a month boundary decides the money — which also meant its test asserted the opening
+  period by re-running the production expression, and a year-boundary report could not be written at all.
+  `format/Formatters` still reads the ambient zone deliberately: rendering an instant on this phone has one
+  possible answer, unlike `hour12`, which is why that one has no default.
+- **A named answer says which case it is, not the facts it was picked from.** `DeleteWarning` published
+  `billed` and `group` and left the four-armed `when` combining them in the composable — so what had moved
+  out was two extractions, not the *picking*, which is the part that can be wrong and the part no test could
+  reach. And "why is this schedule empty" was decided twice, in two composables: the day and month views
+  weighed three cases, the week view two, and the week had never grown the no-students arm — so a tutor with
+  nothing set up met «Добавить ученика» on «День» and a dead end on «Неделя».
 - **The condition that enables a save is named `canSave`, on a `LeavableForm`.** `leaveIntent` takes the
   form rather than two booleans: with booleans, one screen passed its full save condition and two passed
   only field validity, and nothing said which the shared rule meant.
@@ -248,6 +264,13 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 - **A lesson is the unit of change.** Every write takes a `ClassSession`: a group lesson's *n* classes,
   or one student's class as a session of one. Re-attributing a class is expressible only for a
   session of one. The one exception is `setAttendance`, which is about one person rather than the hour.
+  - **An edit to a lesson is one value, and `GroupRules.lessonEdit` composes it** (`LessonEdit`): the
+    lesson row's own new fields, plus what becomes of every member. The three rules it is made of used to be
+    assembled at the one call site that needs them, and the lesson's own fields read out of the classes that
+    were *staying* — so replacing a roster **whole** left none to read them from, and the save wrote the new
+    members while silently keeping the old hour, with the calendar already mirrored at the new one and the
+    joiners re-billed from the new length against the stored old one. `lesson` is a field of the returned
+    value, which is what makes that unrepresentable rather than fixed.
 - **One tutor, one lesson at a time.** An overlapping slot is refused, not warned about. Back-to-back
   is fine, a cancelled class gives its slot back, and the lesson being edited is excluded by every one
   of its class ids. Booking in the **past is allowed**. The rule is pure (`Scheduling.conflicts`); the
@@ -409,9 +432,16 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   read. `ReminderAlarms` arms what it is handed and decides nothing.
 - **A reminder is an alarm; upkeep is a worker** — split by whether being late is acceptable.
   Reminders ride `AlarmManager` (`ReminderAlarms`): exact where `SCHEDULE_EXACT_ALARM` allows,
-  `setAndAllowWhileIdle` where it does not, never prompting for the permission. Armed ids are kept in
-  preferences because `AlarmManager` has no cancel-all. `BootReceiver` re-derives the plan after a
+  `setAndAllowWhileIdle` where it does not, never prompting for the permission. Armed ids are kept
+  because `AlarmManager` has no cancel-all. `BootReceiver` re-derives the plan after a
   reboot. `refreshNow` and the periodic upkeep stay on WorkManager.
+  - **The replacement discipline is above the platform, behind two ports** (`AlarmClock`,
+    `ArmedReminders`) — the same split `CrashLogger` draws over `CrashLogStore`. "Re-arming replaces exactly
+    the previous set" and "an alarm set yesterday is cancellable after a restart" are the two things
+    `ReminderAlarms` exists to guarantee, and while the `PendingIntent` building and the preferences read sat
+    in the same class they were also the two things only a device could check: it had no test at all.
+    `cancel` takes `FLAG_NO_CREATE`, the cancel-side flag — it was `FLAG_UPDATE_CURRENT`, which *creates* the
+    intent it is about to cancel.
 - **Upkeep also runs in process at startup** (`KlasApp`), not only as an enqueued worker, because
   auto-completion is what *bills* a finished lesson.
 - **Turning auto-completion on is an action, not just a flag.** It sweeps the whole backlog — every
@@ -448,6 +478,14 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   spending the exact-alarm budget here would put the one feature that needs punctuality behind two that do
   not. The firing instant is pure (a wall-clock promise through `ZoneId`, so a DST day still lands at nine),
   and re-derived by every pass, which is what corrects WorkManager's periodic drift.
+  - **A digest that is late is still owed** (`Digests.stillOwed`). Re-planning that often against a policy
+    that cancels what is enqueued turned *late* into *never*: `plan` looks strictly forward, so a 09:00
+    agenda WorkManager had not run yet at 09:12 was re-planned for tomorrow and the pending run was cancelled
+    on the way — the most likely trigger being the tutor opening the app, and for the weekly digest the cost
+    being a whole week. A run already due is now left alone. Switching a digest **off** still cancels a due
+    one; changing the hour lets today's already-due one through once, because it was owed under the setting in
+    force when it came due. The adapter reads the clock **once**, through the injected `Clock`, and takes its
+    delay from `Digests.delayUntil` — this was the last `Instant.now()` in `main/`.
 - **A digest says nothing rather than saying nothing happened.** An empty day, a day whose only lesson was
   called off, a week with no debts: no notification at all. The agenda prints the **same** `DaySummary`
   sentence the schedule puts under that day (`format/daySummaryText`, one rule, two readers) and lists the
@@ -992,9 +1030,13 @@ read and nothing that owns a lesson after it exists.
   with it. Reaching for a DAO to build what the repositories deliberately refuse is still legitimate —
   lowering the cap by hand is how such a call gets acknowledged rather than absorbed.
 - **Fixtures pin the clock, not `now()`.** Seed a fixed hour and pick days by excluding today.
-- Eight tests are **tripwires against silent drift**, all deriving expectations from a real artifact
+- Nine tests are **tripwires against silent drift**, all deriving expectations from a real artifact
   rather than restating them: `BackupSchemaCoverageTest` (a new table must be carried or named
-  device-local), `MappersTest` (a new column must be mapped), `StoredEnumNamesTest` (a renamed enum
+  device-local), `MappersTest` (a new column must be mapped), `BackupSplitTest` (the pre-v2 lesson-status
+  precedence is `LessonStatus.PRECEDENCE`, and the SQL saying it too is read out of `MIGRATION_1_2`'s source
+  — it *was* `entries.firstOrNull`, i.e. the enum's declaration order, which `StoredEnumNamesTest` compares
+  as a set and so cannot see; reordering the constants would have made every old backup import a mixed group
+  lesson as **completed**), `StoredEnumNamesTest` (a renamed enum
   constant is a migration — it reads the DAO source, since `@Query` is not retained at runtime, *and*
   `FakeDaos.kt`, which had restated three of the same predicates as bare strings and so sat outside the
   very scan built for the risk), `WholeTableWritesTest` (a whole-table delete belongs to `SnapshotDao`,
@@ -1005,7 +1047,7 @@ read and nothing that owns a lesson after it exists.
   `NavigationSuiteScaffold` does not count) and
   `MigrationChainTest` (a bumped schema version must ship a migration for every step from v1 *and* wire
   it into the builder, and the destructive fallback must stay debug-only — it reads `AppDatabase.kt`,
-  since `@Database` is `BINARY`-retained). The first seven are acknowledgement lists; the last is the
+  since `@Database` is `BINARY`-retained). The first eight are acknowledgement lists; the last is the
   upgrade path, and it sits in the **unit** suite precisely because instrumented tests need a device CI
   does not have. Two more guard structure: one asserts the booking form leaves **no query open** once
   nothing collects it, one asserts a save is launched into the application scope.

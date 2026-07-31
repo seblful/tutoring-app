@@ -26,7 +26,26 @@ object TrayNavigation {
      */
     const val ACTION_OPEN_LESSON = "com.seblful.klas.action.OPEN_LESSON"
     const val ACTION_OPEN_DEBTS = "com.seblful.klas.action.OPEN_DEBTS"
+
+    /**
+     * The extra every notification intent carries its lesson in — **declared once**.
+     *
+     * It was declared three times with the same literal, here and in the two receivers, which is the shape
+     * a wire format should never have: the value is inside `PendingIntent`s already sitting in people's
+     * trays, so it is not free to change, and three copies is three places to fail to not change it.
+     */
     const val EXTRA_CLASS_ID = "classId"
+
+    /**
+     * The lesson an intent names, or **null** when it names none — the one definition of "is this a real
+     * class id", for the activity and both `BroadcastReceiver`s.
+     *
+     * Row ids are positive `AUTOINCREMENT` values, so anything else is a missing extra arriving as whatever
+     * default its reader happened to pass. The three readers had two different rules: the receivers read a
+     * `-1L` default and refused `< 0`, so **zero passed both of them**, while this object refused it. Zero
+     * is precisely the value the booking form reads as "a new lesson", which is why it is the one to refuse.
+     */
+    fun lessonIdOrNull(raw: Long): Long? = raw.takeIf { it > 0 }
 
     /** Somewhere a notification can send the tutor. */
     sealed interface Destination {
@@ -51,7 +70,7 @@ object TrayNavigation {
      *   here rather than being navigated to as lesson zero — which the booking form reads as "new lesson".
      */
     fun destinationFor(action: String?, classId: Long): Destination? = when {
-        action == ACTION_OPEN_LESSON && classId > 0 -> Destination.Lesson(classId)
+        action == ACTION_OPEN_LESSON -> lessonIdOrNull(classId)?.let { Destination.Lesson(it) }
         action == ACTION_OPEN_DEBTS -> Destination.Debts
         else -> null
     }

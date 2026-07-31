@@ -23,6 +23,8 @@ import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.notifications.DueDigest
+import com.seblful.klas.notifications.AlarmClock
+import com.seblful.klas.notifications.ArmedReminders
 import com.seblful.klas.notifications.ExactAlarmPermission
 import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.notifications.Notifier
@@ -63,7 +65,7 @@ class RecordingDigestScheduler : DigestScheduler {
     /** The plan currently in force — the last one scheduled, or nothing arranged if none ever was. */
     val planned: Digests.Plan get() = plans.lastOrNull() ?: Digests.Plan(null, null)
 
-    override fun schedule(plan: Digests.Plan) {
+    override suspend fun schedule(plan: Digests.Plan) {
         plans += plan
     }
 }
@@ -197,7 +199,7 @@ class RecordingTransactor(var failAt: Int? = null) : Transactor {
 /** Stands in for the device's calendar permission; flip [granted] to drive either branch. */
 class FakeCalendarPermission(var granted: Boolean = true) : CalendarPermission {
     override fun isGranted(): Boolean = granted
-    override val required: Array<String> get() = arrayOf("READ_CALENDAR", "WRITE_CALENDAR")
+    override val required: List<String> get() = listOf("READ_CALENDAR", "WRITE_CALENDAR")
 }
 
 /**
@@ -211,9 +213,54 @@ class FakeCalendarPermission(var granted: Boolean = true) : CalendarPermission {
  */
 class FakeNotificationPermission(
     var granted: Boolean = true,
-    override var required: Array<String> = arrayOf("POST_NOTIFICATIONS"),
+    override var required: List<String> = listOf("POST_NOTIFICATIONS"),
 ) : NotificationPermission {
     override fun isGranted(): Boolean = granted
+}
+
+/**
+ * Records what was armed and what was cancelled, in order — the two halves of the reminder replacement
+ * discipline, which is what `ReminderAlarms` exists to get right and what `AlarmManager` cannot be asked
+ * about. [exact] is which of the port's two set methods was taken.
+ */
+class RecordingAlarmClock : AlarmClock {
+
+    data class Armed(val classId: Long, val atMillis: Long, val exact: Boolean)
+
+    val armed = mutableListOf<Armed>()
+    val cancelled = mutableListOf<Long>()
+
+    override fun setExact(classId: Long, atMillis: Long) {
+        armed += Armed(classId, atMillis, exact = true)
+    }
+
+    override fun setInexact(classId: Long, atMillis: Long) {
+        armed += Armed(classId, atMillis, exact = false)
+    }
+
+    override fun cancel(classId: Long) {
+        cancelled += classId
+    }
+
+    /** Forgets the calls so far, for a test asserting what a *second* arming did. */
+    fun clear() {
+        armed.clear()
+        cancelled.clear()
+    }
+}
+
+/**
+ * The armed-id record, in memory.
+ *
+ * Deliberately its own object rather than a field on [RecordingAlarmClock]: the point of the split is that
+ * the record outlives the process, so a test hands the *same* store to a second `ReminderAlarms` to stand in
+ * for a restart.
+ */
+class FakeArmedReminders(private var ids: Set<Long> = emptySet()) : ArmedReminders {
+    override fun read(): Set<Long> = ids
+    override fun write(ids: Set<Long>) {
+        this.ids = ids
+    }
 }
 
 /**

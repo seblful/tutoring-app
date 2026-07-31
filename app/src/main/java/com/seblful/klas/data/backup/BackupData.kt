@@ -139,12 +139,15 @@ fun List<LegacyClass>.splitIntoLessons(): Pair<List<LessonEntity>, List<Attendan
 }
 
 /**
- * The lesson's status: **scheduled if any member still is**, else completed if any is, else cancelled.
+ * The lesson's status: **scheduled if any member still is**, else completed if any is, else cancelled —
+ * [LessonStatus.PRECEDENCE], which is where that order is stated and pinned against the SQL that says it
+ * too. It used to be `entries.firstOrNull`, i.e. the order the constants happen to be declared in.
+ *
  * An unreadable status counts as none of the three, and is left to `BackupIntegrity` to refuse — this
  * only has to not crash on it.
  */
 private fun lessonStatusOf(members: List<LegacyClass>): LessonStatus =
-    LessonStatus.entries.firstOrNull { status -> members.any { it.status == status.name } }
+    LessonStatus.PRECEDENCE.firstOrNull { status -> members.any { it.status == status.name } }
         ?: LessonStatus.SCHEDULED
 
 /**

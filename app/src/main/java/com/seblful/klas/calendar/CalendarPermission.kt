@@ -20,5 +20,5 @@ interface CalendarPermission {
      * importing `AndroidCalendarPermission` — the one thing that used to make the UI layer depend
      * on which adapter is installed.
      */
-    val required: Array<String>
+    val required: List<String>
 }

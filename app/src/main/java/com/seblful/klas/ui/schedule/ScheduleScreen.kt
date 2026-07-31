@@ -67,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
@@ -109,7 +110,6 @@ import com.seblful.klas.ui.common.valueOrNull
 import com.seblful.klas.ui.theme.klasColors
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -144,6 +144,9 @@ fun ScheduleScreen(
     // value, so the schedule can never be quietly narrowed with nothing saying so.
     val studentFilter by viewModel.studentFilter.collectAsState()
     val filterableStudents by viewModel.filterableStudents.collectAsState()
+    // Why an empty schedule is empty — one answer for all three views, so they cannot disagree about
+    // whether the tutor is looking at a quiet week or a narrowed one. See [ScheduleEmpty].
+    val emptyReason by viewModel.emptyReason.collectAsState()
 
     /**
      * **A change of view is a new page, and a page starts at the top.**
@@ -299,8 +302,7 @@ fun ScheduleScreen(
                     // The day list stands alone under its stepper.
                     ScheduleViewMode.DAY -> dayList(
                         state = dayContent.map { it.rows },
-                        canAddClass = canAddClass,
-                        filtered = studentFilter != null,
+                        emptyReason = emptyReason,
                         nowMark = nowMark,
                         onRowClick = { sheetFor = it },
                         onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
@@ -329,15 +331,14 @@ fun ScheduleScreen(
                             item(key = "loading") { LessonsSkeleton() }
                         } else if (week.sections.isEmpty()) {
                             item(key = "empty") {
-                                EmptyState(
-                                    // A week empty because a filter is on is not a quiet week, and the
-                                    // same rule the searchable lists follow applies: say which it is.
-                                    title = stringResource(
-                                        if (studentFilter != null) R.string.schedule_filter_empty
-                                        else R.string.schedule_week_empty
-                                    ),
-                                    icon = Icons.Outlined.EventBusy,
-                                    modifier = Modifier.heightIn(min = 200.dp),
+                                // The same three answers the day list gets, from the same place — this
+                                // branch used to weigh two of them itself and offer nothing either way.
+                                ScheduleEmptyState(
+                                    reason = emptyReason,
+                                    whole = ScheduleEmptySpan.WEEK,
+                                    onAddClass = onAddClass,
+                                    onAddStudent = onAddStudent,
+                                    minHeight = 200.dp,
                                 )
                             }
                         } else {
@@ -384,8 +385,7 @@ fun ScheduleScreen(
                         }
                         dayList(
                             state = dayContent.map { it.rows },
-                            canAddClass = canAddClass,
-                            filtered = studentFilter != null,
+                            emptyReason = emptyReason,
                             nowMark = nowMark,
                             onRowClick = { sheetFor = it },
                             onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
@@ -417,7 +417,7 @@ fun ScheduleScreen(
     movingRow?.let { row ->
         MoveClassFlow(
             start = row.klass.start,
-            onMoved = { newStart -> viewModel.move(row.session, newStart) },
+            onMoved = { day, at -> viewModel.moveTo(row.session, day, at) },
             onDone = { movingRow = null },
         )
     }
@@ -445,16 +445,18 @@ fun ScheduleScreen(
     }
 
     deletingRow?.let { row ->
-        // Which warning applies is `row.deleteWarning`'s — see [DeleteWarning]. The four strings for it
-        // are this screen's, and that is all this `when` says.
+        // Which warning applies is `row.deleteWarning`'s — see [DeleteWarning]. This `when` maps a named
+        // case to a string and combines nothing, which is the difference between drawing and deciding: it
+        // used to weigh the two facts itself, four ways, with the picking untestable in here.
         val warning = row.deleteWarning
         val count = warning.classes
-        val confirmText = when {
-            warning.billed && warning.group ->
+        val confirmText = when (warning.kind) {
+            DeleteWarning.Kind.BILLED_GROUP ->
                 pluralStringResource(R.plurals.class_delete_group_completed_confirm, count, count)
-            warning.billed -> stringResource(R.string.class_delete_completed_confirm)
-            warning.group -> pluralStringResource(R.plurals.class_delete_group_confirm, count, count)
-            else -> stringResource(R.string.class_delete_confirm)
+            DeleteWarning.Kind.BILLED -> stringResource(R.string.class_delete_completed_confirm)
+            DeleteWarning.Kind.GROUP ->
+                pluralStringResource(R.plurals.class_delete_group_confirm, count, count)
+            DeleteWarning.Kind.PLAIN -> stringResource(R.string.class_delete_confirm)
         }
         ConfirmDialog(
             text = confirmText,
@@ -464,27 +466,64 @@ fun ScheduleScreen(
     }
 }
 
+/** Whether an empty stretch of schedule is one day or a whole week — all that differs in the wording. */
+private enum class ScheduleEmptySpan { DAY, WEEK }
+
 /**
- * The selected day's classes, or an empty state. Shared by the day and month views.
+ * What the schedule says when it has nothing to show — the **words** for a [ScheduleEmpty], and nothing
+ * else. Which of the three applies is the view model's ([ScheduleViewModel.emptyReason]); a day whose
+ * lessons have not been read yet is not an empty day at all, and that is `Loadable`'s.
  *
- * The empty state depends on **why** it is empty, and there are now four reasons rather than two. A day
- * whose lessons have not been read yet is not an empty day: «Нет занятий» over the tutor's actual
- * morning, with a book-a-lesson button under it, was what the initial `ScheduleContent.Day(emptyList())`
- * produced on every cold start. Beyond that: a day with no lessons is an ordinary day and offers to book
- * one; an app with no students cannot book anything yet, and offers the step that unblocks it instead of
- * naming it and stopping there.
- *
- * The fourth is [filtered], and it takes precedence over the other two — a day emptied by narrowing the
- * schedule to one student is not a free day, and the way out of it is the chip rather than anything on
- * this page. It offers **no action**, deliberately: «Записать занятие» here would book into the day being
- * looked at and not for the student being looked *for*, which is not what a tutor standing in front of
- * this page has asked about. That matches the rule the searchable lists already follow — a list empty
- * because nothing matched says so and offers nothing.
+ * One composable for all three views. The day and month views used to weigh three cases here and the week
+ * view two, twenty lines apart, and they had already drifted: the week never grew the no-students arm, so
+ * a tutor with nothing set up met «Добавить ученика» on «День» and a dead end on «Неделя».
  */
+@Composable
+private fun ScheduleEmptyState(
+    reason: ScheduleEmpty,
+    whole: ScheduleEmptySpan,
+    onAddClass: () -> Unit,
+    onAddStudent: () -> Unit,
+    minHeight: Dp,
+) {
+    val modifier = Modifier.heightIn(min = minHeight)
+    when (reason) {
+        ScheduleEmpty.FILTERED -> EmptyState(
+            title = stringResource(R.string.schedule_filter_empty),
+            detail = stringResource(R.string.schedule_filter_empty_detail),
+            icon = Icons.Outlined.EventBusy,
+            modifier = modifier,
+        )
+
+        ScheduleEmpty.QUIET -> EmptyState(
+            title = stringResource(
+                when (whole) {
+                    ScheduleEmptySpan.DAY -> R.string.schedule_empty
+                    ScheduleEmptySpan.WEEK -> R.string.schedule_week_empty
+                },
+            ),
+            detail = stringResource(R.string.schedule_empty_detail),
+            icon = Icons.Outlined.EventBusy,
+            actionLabel = stringResource(R.string.schedule_add_class),
+            onAction = onAddClass,
+            modifier = modifier,
+        )
+
+        ScheduleEmpty.NEEDS_STUDENT -> EmptyState(
+            title = stringResource(R.string.schedule_empty_no_setup),
+            detail = stringResource(R.string.schedule_empty_no_setup_detail),
+            icon = Icons.Outlined.PersonAddAlt,
+            actionLabel = stringResource(R.string.schedule_add_student),
+            onAction = onAddStudent,
+            modifier = modifier,
+        )
+    }
+}
+
+/** The selected day's classes, or an empty state. Shared by the day and month views. */
 private fun LazyListScope.dayList(
     state: Loadable<List<ScheduleRow>>,
-    canAddClass: Boolean,
-    filtered: Boolean,
+    emptyReason: ScheduleEmpty,
     nowMark: Int?,
     onRowClick: (ScheduleRow) -> Unit,
     onComplete: (ScheduleRow) -> Unit,
@@ -500,32 +539,13 @@ private fun LazyListScope.dayList(
     }
     if (rows.isEmpty()) {
         item(key = "empty") {
-            if (filtered) {
-                EmptyState(
-                    title = stringResource(R.string.schedule_filter_empty),
-                    detail = stringResource(R.string.schedule_filter_empty_detail),
-                    icon = Icons.Outlined.EventBusy,
-                    modifier = Modifier.heightIn(min = 260.dp),
-                )
-            } else if (canAddClass) {
-                EmptyState(
-                    title = stringResource(R.string.schedule_empty),
-                    detail = stringResource(R.string.schedule_empty_detail),
-                    icon = Icons.Outlined.EventBusy,
-                    actionLabel = stringResource(R.string.schedule_add_class),
-                    onAction = onAddClass,
-                    modifier = Modifier.heightIn(min = 260.dp),
-                )
-            } else {
-                EmptyState(
-                    title = stringResource(R.string.schedule_empty_no_setup),
-                    detail = stringResource(R.string.schedule_empty_no_setup_detail),
-                    icon = Icons.Outlined.PersonAddAlt,
-                    actionLabel = stringResource(R.string.schedule_add_student),
-                    onAction = onAddStudent,
-                    modifier = Modifier.heightIn(min = 260.dp),
-                )
-            }
+            ScheduleEmptyState(
+                reason = emptyReason,
+                whole = ScheduleEmptySpan.DAY,
+                onAddClass = onAddClass,
+                onAddStudent = onAddStudent,
+                minHeight = 260.dp,
+            )
         }
     } else {
         // A row at a time rather than `items(rows)`, so the mark can be its own item *between* two
@@ -1143,11 +1163,18 @@ private fun SheetAction(
     }
 }
 
-/** Picks a new date then time, then reports the combined instant. */
+/**
+ * Picks a new date, then a new time, and reports **the two the tutor chose**.
+ *
+ * It used to combine them here — `date.atTime(time).atZone(ZoneId.systemDefault()).toInstant()` — which put
+ * a wall-clock-to-instant conversion, and a third definition of the app's zone, inside a composable on the
+ * path that changes when a lesson happens. `ScheduleViewModel.moveTo` does it now, against the injected
+ * clock's zone; see `domain/PaymentDate` for the same argument made about the path that records money.
+ */
 @Composable
 private fun MoveClassFlow(
     start: java.time.Instant,
-    onMoved: (java.time.Instant) -> Unit,
+    onMoved: (LocalDate, java.time.LocalTime) -> Unit,
     onDone: () -> Unit,
 ) {
     var pickedDate by remember { mutableStateOf<LocalDate?>(null) }
@@ -1165,7 +1192,7 @@ private fun MoveClassFlow(
         TimePickerModal(
             initial = start.toLocalTime(),
             onConfirm = { time ->
-                onMoved(date.atTime(time).atZone(ZoneId.systemDefault()).toInstant())
+                onMoved(date, time)
                 onDone()
             },
             onDismiss = onDone,

@@ -58,6 +58,8 @@ import com.seblful.klas.format.toAmountInput
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.data.repository.AppSettings
 import com.seblful.klas.ui.common.ConfirmDialog
+import com.seblful.klas.ui.common.DisabledAlpha
+import com.seblful.klas.ui.common.KeepTypedInput
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
@@ -178,9 +180,9 @@ fun SettingsScreen(
                 reminderDelivery = reminderDelivery,
                 calendarPermitted = calendarPermitted,
                 viewModel = viewModel,
-                onRequestNotifications = { permissions -> notificationPermission.launch(permissions) },
+                onRequestNotifications = { permissions -> notificationPermission.launch(permissions.toTypedArray()) },
                 onNotificationsBlocked = reportBlocked,
-                onRequestCalendar = { calendarPermission.launch(viewModel.calendarPermissionsRequired) },
+                onRequestCalendar = { calendarPermission.launch(viewModel.calendarPermissionsRequired.toTypedArray()) },
                 onFixExactAlarms = {
                     launchExternally(context, exactAlarmSettings(context), noSettingsPageMsg, messages)
                 },
@@ -229,7 +231,7 @@ private fun SettingsList(
     reminderDelivery: ReminderDelivery,
     calendarPermitted: Boolean,
     viewModel: SettingsViewModel,
-    onRequestNotifications: (Array<String>) -> Unit,
+    onRequestNotifications: (List<String>) -> Unit,
     onNotificationsBlocked: () -> Unit,
     onRequestCalendar: () -> Unit,
     onFixExactAlarms: () -> Unit,
@@ -255,11 +257,12 @@ private fun SettingsList(
             },
             checked = settings.notificationsEnabled,
             onCheckedChange = { on ->
-                viewModel.update { it.copy(notificationsEnabled = on) }
-                // Asked here, where the tutor has just said they want reminders — rather than over
-                // the first screen of a first launch, before they had met the feature. Which of the
-                // three things to do is [NotificationsIntent]'s.
-                when (val intent = viewModel.notificationsIntent(on)) {
+                // One call: it stores the setting *and* says what that owes the platform. Two calls the
+                // screen had to make in order over the same argument is how either half could be left out
+                // — see [SettingsViewModel.setNotificationsEnabled]. Asked here, where the tutor has just
+                // said they want reminders, rather than over the first screen of a first launch, before
+                // they had met the feature. Which of the three things to do is [NotificationsIntent]'s.
+                when (val intent = viewModel.setNotificationsEnabled(on)) {
                     is NotificationsIntent.Request -> onRequestNotifications(intent.permissions)
                     NotificationsIntent.BlockedBySystem -> onNotificationsBlocked()
                     NotificationsIntent.Nothing -> Unit
@@ -493,15 +496,12 @@ private fun SwitchRow(
             ListItemDefaults.colors()
         } else {
             ListItemDefaults.colors(
-                headlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA),
-                supportingColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DISABLED_ALPHA),
+                headlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledAlpha),
+                supportingColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
             )
         },
     )
 }
-
-/** Material's standard opacity for disabled content. */
-private const val DISABLED_ALPHA = 0.38f
 
 /**
  * A row holding one **time of day**, stored as minutes past local midnight and edited in the app's own
@@ -620,7 +620,7 @@ private fun ValueRow(
                 color = if (enabled) {
                     MaterialTheme.colorScheme.primary
                 } else {
-                    MaterialTheme.colorScheme.primary.copy(alpha = DISABLED_ALPHA)
+                    MaterialTheme.colorScheme.primary.copy(alpha = DisabledAlpha)
                 },
             )
         },
@@ -628,7 +628,7 @@ private fun ValueRow(
             ListItemDefaults.colors()
         } else {
             ListItemDefaults.colors(
-                headlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA),
+                headlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledAlpha),
             )
         },
         modifier = Modifier.clickable(enabled = enabled, onClick = onClick),
@@ -676,11 +676,10 @@ private fun MoneyRow(
         }
         AlertDialog(
             onDismissRequest = { editing = false },
-            // The rule every dialog the tutor types into follows, and the one place that was missing
-            // it: a stray tap beside the box must not throw away the amount just entered. See
-            // `KeepTypedInput` in ui/common/Components.kt for the reasoning; «Отмена» is still there
-            // for leaving on purpose, and back still closes it.
-            properties = DialogProperties(dismissOnClickOutside = false),
+            // The rule every dialog the tutor types into follows: a stray tap beside the box must not
+            // throw away the amount just entered. See `KeepTypedInput`, where the reasoning is —
+            // «Отмена» is still there for leaving on purpose, and back still closes it.
+            properties = KeepTypedInput,
             title = { Text(title) },
             text = {
                 OutlinedTextField(

@@ -47,6 +47,7 @@ import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
 import javax.inject.Inject
@@ -108,17 +109,86 @@ data class ScheduleRow(
  *
  * Two facts decide it, and both are about the lesson rather than about the screen: whether any of its
  * classes has **billed**, because deleting a completed lesson takes recognized income with it, and
- * whether it is a group's, because then it is several students' classes at once. `ScheduleScreen` used
- * to read both off the session in a composable and pick a string from a four-armed `when` — the picking
- * being the decision, and the strings being all that actually belongs there.
+ * whether it is a group's, because then it is several students' classes at once.
+ *
+ * **[kind] is the decision; the four strings are the screen's.** This type used to publish the two facts
+ * instead, and the four-armed `when` combining them stayed in the composable — so what had moved out was
+ * the two extractions, not the *picking*, which is the part that can be got wrong and the part no test
+ * could reach. Named cases make the screen's `when` exhaustive over an answer somebody else gave, which
+ * is the shape `SaveIntent` and `SubjectNotice` already have.
  */
-data class DeleteWarning(val billed: Boolean, val group: Boolean, val classes: Int) {
+data class DeleteWarning(val kind: Kind, val classes: Int) {
+
+    /** What deleting this lesson costs, in the four combinations that read differently. */
+    enum class Kind {
+        /** One student's class, nothing billed: the ordinary case. */
+        PLAIN,
+
+        /** One student's class that has billed — deleting it removes recognized income. */
+        BILLED,
+
+        /** A group's lesson, nothing billed: several students' classes at once. */
+        GROUP,
+
+        /** A group's lesson that has billed: both at once, and the only case naming both. */
+        BILLED_GROUP,
+    }
+
     companion object {
-        fun of(session: ClassSession): DeleteWarning = DeleteWarning(
-            billed = session.classes.any { it.status == LessonStatus.COMPLETED },
-            group = session.isGroup,
-            classes = session.size,
-        )
+        fun of(session: ClassSession): DeleteWarning {
+            val billed = session.classes.any { it.status == LessonStatus.COMPLETED }
+            return DeleteWarning(
+                kind = when {
+                    billed && session.isGroup -> Kind.BILLED_GROUP
+                    billed -> Kind.BILLED
+                    session.isGroup -> Kind.GROUP
+                    else -> Kind.PLAIN
+                },
+                classes = session.size,
+            )
+        }
+    }
+}
+
+/**
+ * **Why the schedule has nothing to show** — and therefore what, if anything, to offer instead.
+ *
+ * One answer for every view, because the two that ask were answering it separately and had already
+ * drifted: the day and month views weighed three cases and the week view two, so a tutor with no students
+ * met «Добавить ученика» on «День» and a dead end on «Неделя». An empty list carrying no way out of
+ * itself is the defect `EmptyState` exists to prevent, and it was shipping on one of the app's three
+ * busiest surfaces.
+ *
+ * Both copies lived in composables, so neither could be tested; this can be, and is.
+ */
+enum class ScheduleEmpty {
+    /**
+     * A filter is on. **Takes precedence over the other two** — a schedule narrowed to one student is not
+     * a quiet one, and the way out is the chip rather than anything on the page. It offers no action
+     * deliberately: «Записать занятие» here would book into the day being *looked at* and not for the
+     * student being looked *for*, which is not what the tutor asked. The searchable lists follow the same
+     * rule — a list empty because nothing matched says so and offers nothing.
+     */
+    FILTERED,
+
+    /** Genuinely nothing booked, and something can be: the ordinary case, offering to book one. */
+    QUIET,
+
+    /**
+     * Nothing booked and nothing bookable — there is no student, or no priced subject, yet. Naming the
+     * emptiness and stopping there would leave the tutor to find the step that unblocks it, so this
+     * offers that step instead.
+     */
+    NEEDS_STUDENT,
+    ;
+
+    companion object {
+        /** @param filtered whether the schedule is narrowed to one student — see [StudentFilter]. */
+        fun of(filtered: Boolean, canAddClass: Boolean): ScheduleEmpty = when {
+            filtered -> FILTERED
+            canAddClass -> QUIET
+            else -> NEEDS_STUDENT
+        }
     }
 }
 
@@ -329,6 +399,19 @@ class ScheduleViewModel @Inject constructor(
             studentList.isNotEmpty() && subjectList.isNotEmpty()
         }
             .derive(this, computation, false)
+
+    /**
+     * What an empty schedule means right now — asked by whichever view finds itself with nothing to show,
+     * so day, month and week cannot answer it differently. See [ScheduleEmpty].
+     *
+     * A `StateFlow` rather than something the empty branch computes, because both facts behind it are
+     * already live here and neither is a fact about drawing.
+     */
+    val emptyReason: StateFlow<ScheduleEmpty> =
+        combine(studentFilter, canAddClass) { filter, bookable ->
+            ScheduleEmpty.of(filtered = filter != null, canAddClass = bookable)
+        }
+            .derive(this, computation, ScheduleEmpty.of(filtered = false, canAddClass = false))
 
     val monthGrid: StateFlow<CalendarLayout.MonthGrid> =
         _visibleMonth.map { CalendarLayout.monthGrid(it, weekStart) }
@@ -593,12 +676,21 @@ class ScheduleViewModel @Inject constructor(
     }
 
     /**
-     * Reschedules a whole lesson, unless that hour is already taken — one tutor cannot teach two
-     * lessons at once, so the repository refuses a move onto an occupied slot ([LessonWrite]) rather
-     * than silently doing nothing, and the refusal is reported through [timeConflict]. The lesson's
+     * Reschedules a whole lesson to [day] at [at], unless that hour is already taken — one tutor cannot
+     * teach two lessons at once, so the repository refuses a move onto an occupied slot ([LessonWrite])
+     * rather than silently doing nothing, and the refusal is reported through [timeConflict]. The lesson's
      * **own** classes never stand in their own way, so nudging it by ten minutes is fine.
+     *
+     * **It takes a date and a wall-clock time, not an `Instant`.** «Перенести» asks the tutor for those
+     * two, and an `Instant` parameter obliged the caller to turn them into one — which `MoveClassFlow` duly
+     * did, inside a composable, with `ZoneId.systemDefault()` of its own. That was a third definition of
+     * "which zone" (against `clock.zone` here and in `ClassEditViewModel`), on the path that changes *when*
+     * a lesson happens, and it is exactly what `domain/PaymentDate` was extracted to stop being possible on
+     * the path that records money. The conversion crosses the seam as the values the tutor picked, and the
+     * one statement of the zone is this class's.
      */
-    fun move(session: ClassSession, newStart: Instant) {
+    fun moveTo(session: ClassSession, day: LocalDate, at: LocalTime) {
+        val newStart = day.atTime(at).atZone(zone).toInstant()
         write {
             when (val moved = classes.move(session, newStart, now = clock.instant())) {
                 is LessonWrite.HourTaken -> reportHourTaken(moved.clash)

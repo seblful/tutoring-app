@@ -29,8 +29,9 @@ class ReminderActionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_COMPLETE) return
-        val classId = intent.getLongExtra(EXTRA_CLASS_ID, -1L)
-        if (classId < 0) return
+        // One definition of a real class id, shared with the tray's other two readers.
+        val classId = TrayNavigation.lessonIdOrNull(intent.getLongExtra(TrayNavigation.EXTRA_CLASS_ID, 0L))
+            ?: return
 
         val pending = goAsync()
         appScope.launch {
@@ -44,6 +45,5 @@ class ReminderActionReceiver : BroadcastReceiver() {
 
     companion object {
         const val ACTION_COMPLETE = "com.seblful.klas.action.COMPLETE"
-        const val EXTRA_CLASS_ID = "classId"
     }
 }

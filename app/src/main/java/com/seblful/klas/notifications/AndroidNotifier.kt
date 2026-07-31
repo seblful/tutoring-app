@@ -274,7 +274,7 @@ class AndroidNotifier @Inject constructor(
     private fun completeAction(classId: Long): NotificationCompat.Action {
         val intent = Intent(context, ReminderActionReceiver::class.java)
             .setAction(ReminderActionReceiver.ACTION_COMPLETE)
-            .putExtra(ReminderActionReceiver.EXTRA_CLASS_ID, classId)
+            .putExtra(TrayNavigation.EXTRA_CLASS_ID, classId)
         return action(
             R.string.class_status_completed,
             PendingIntent.getBroadcast(context, classId.toInt(), intent, FLAGS),

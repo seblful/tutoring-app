@@ -24,5 +24,5 @@ interface NotificationPermission {
      * What to request when [isGranted] is false — empty below Android 13, where there is nothing to
      * ask for. On the port rather than the adapter so the settings screen needs no import from here.
      */
-    val required: Array<String>
+    val required: List<String>
 }

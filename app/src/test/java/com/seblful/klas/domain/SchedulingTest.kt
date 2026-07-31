@@ -195,6 +195,41 @@ class SchedulingTest {
     }
 
     /**
+     * The many-slot window — what booking a whole term reads over, `ClassRepository.bookSeries`' one
+     * read for twelve occurrences.
+     *
+     * It used to be spelled by hand at that call site, so the **write** path shaped its own window while
+     * only the read path used this module's. They agreed on the figure and not on the shape, which is the
+     * half a later change to [Scheduling.windowFor] would have broken silently — and silently on the path
+     * that persists.
+     */
+    @Test
+    fun `one window covers every slot of a term, reaching back from the first`() {
+        val week = Duration.ofDays(7)
+        val term = (0..11).map { Scheduling.Slot(tenToEleven.start.plus(week.multipliedBy(it.toLong())), 60) }
+
+        val window = Scheduling.windowFor(term)
+
+        assertEquals(Duration.ofDays(1), Duration.between(window.from, term.first().start))
+        assertEquals(term.last().end, window.toExclusive)
+        // And it is a superset of each occurrence's own window, which is what makes one read enough.
+        term.forEach { slot ->
+            val own = Scheduling.windowFor(slot)
+            assertTrue("covers ${slot.start}", window.from <= own.from && window.toExclusive >= own.toExclusive)
+        }
+    }
+
+    @Test
+    fun `a single slot's window is the one-slot case of the same rule`() {
+        assertEquals(Scheduling.windowFor(tenToEleven), Scheduling.windowFor(listOf(tenToEleven)))
+    }
+
+    @Test
+    fun `a window over no slots is a caller's bug`() {
+        assertThrows(IllegalArgumentException::class.java) { Scheduling.windowFor(emptyList()) }
+    }
+
+    /**
      * A slot of no length is now refused outright, rather than tolerated and asked about.
      *
      * This test used to pin the tolerant behaviour — a zero-length slot inside a lesson did report the

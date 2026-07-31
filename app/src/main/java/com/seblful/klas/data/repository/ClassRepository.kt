@@ -10,8 +10,8 @@ import com.seblful.klas.data.toLessonEntity
 import com.seblful.klas.domain.ClassRules
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.GroupRules
+import com.seblful.klas.domain.LessonEdit
 import com.seblful.klas.domain.ReminderScheduler
-import com.seblful.klas.domain.RosterChange
 import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.SessionEdit
 import com.seblful.klas.domain.model.Attended
@@ -113,15 +113,20 @@ class ClassRepository @Inject constructor(
 
     /**
      * The lessons already occupying [slot] — [Scheduling.conflicts] over the classes around it — so a
-     * booking form can show the clash as the tutor picks a time. [ignoring] names the classes of the
-     * lesson being edited, which must not collide with itself.
+     * booking form can show the clash as the tutor picks a time. [editing] is the lesson **being
+     * edited**, which must not be found colliding with itself; null while booking something new.
+     *
+     * It takes the lesson rather than a set of class ids because that derivation is the invariant, not
+     * the caller's arithmetic — see [ClassSession.ids]. Handing over ids let the one caller here restate
+     * the fourth copy of a rule whose earlier three shipped as a double booking.
      *
      * This is a **read**, for saying the clash out loud while the form is still open. The writes
      * below make the same check again themselves and refuse ([LessonWrite.HourTaken]) — the form's
      * live answer can be stale by the time save is tapped, and the invariant cannot hang on it.
      */
-    fun observeConflicts(slot: Scheduling.Slot, ignoring: Set<Long> = emptySet()): Flow<List<ClassSession>> {
+    fun observeConflicts(slot: Scheduling.Slot, editing: ClassSession? = null): Flow<List<ClassSession>> {
         val window = Scheduling.windowFor(slot)
+        val ignoring = editing?.ids.orEmpty()
         return observeBetween(window.from, window.toExclusive).map { Scheduling.conflicts(slot, it, ignoring) }
     }
 
@@ -139,10 +144,14 @@ class ClassRepository @Inject constructor(
     }
 
     /**
-     * The lesson already holding the hour at [start] for [minutes], if any — asked by every write
+     * The lesson already holding the hour [session] is being written into, if any — asked by every write
      * that would (re)occupy time, before its transaction (a read that only decides whether to write
-     * stays outside it). [ignoring] names the lesson's own classes, which cannot stand in their own
-     * way.
+     * stays outside it).
+     *
+     * **It derives its own exclusions.** The classes [session] consists of cannot stand in their own way,
+     * and that set is [ClassSession.ids]' to state. Every caller used to assemble it by hand alongside a
+     * start-and-length pair of its own choosing — three copies here and a fourth in a view model, for one
+     * question — so a fifth write could get any of the three arguments wrong and be refused nothing.
      *
      * A non-positive [minutes] answers "nobody" rather than asking: such a row occupies no time by
      * its own arithmetic — `Scheduling.Slot` refuses to exist for it, and [Scheduling.conflicts]
@@ -150,9 +159,13 @@ class ClassRepository @Inject constructor(
      * (`BackupIntegrity` refuses a backup carrying one), but a status change on it has to come back
      * as an answer, not a crash.
      */
-    private suspend fun holdingHour(start: Instant, minutes: Int, ignoring: Set<Long>): ClassSession? =
+    private suspend fun holdingHour(session: ClassSession, start: Instant, minutes: Int): ClassSession? =
         if (minutes <= 0) null
-        else conflictsWith(Scheduling.Slot(start, minutes), ignoring).firstOrNull()
+        else conflictsWith(Scheduling.Slot(start, minutes), session.ids).firstOrNull()
+
+    /** The hour [session] already holds — for a write that re-occupies its time without moving it. */
+    private suspend fun holdingHour(session: ClassSession): ClassSession? =
+        holdingHour(session, session.start, session.durationMinutes)
 
     /**
      * The classes starting within [horizon] of [now] — what a reminder plan is derived from, rather
@@ -355,14 +368,11 @@ class ClassRepository @Inject constructor(
         require(starts.isNotEmpty()) { "A booking needs at least one start" }
 
         val slots = starts.map { Scheduling.Slot(it, durationMinutes) }
-        // One read for the whole term rather than one per occurrence. The union of the per-slot windows
-        // is a superset of each, and `Scheduling.conflicts` applies the real overlap test to every one —
-        // handing over more classes than a given slot needs is the safe direction, as `startingWithin`
-        // relies on too.
-        val around = getBetween(
-            from = slots.minOf { it.start }.minus(Scheduling.LONGEST_LESSON),
-            to = slots.maxOf { it.end },
-        )
+        // One read for the whole term rather than one per occurrence — the window is
+        // `Scheduling.windowFor`'s to shape, for every slot at once, so the write path and the read path
+        // ask the same module which classes a clash scan has to be given.
+        val window = Scheduling.windowFor(slots)
+        val around = getBetween(window.from, window.toExclusive)
         val free = mutableListOf<Scheduling.Slot>()
         val skipped = mutableListOf<SeriesWrite.Skipped>()
         slots.forEach { slot ->
@@ -454,23 +464,14 @@ class ClassRepository @Inject constructor(
         now: Instant,
         roster: Set<Long>? = null,
     ): LessonWrite<List<TutoringClass>> {
-        holdingHour(newStart, changes.durationMinutes, session.classes.map { it.id }.toSet())
+        holdingHour(session, newStart, changes.durationMinutes)
             ?.let { return LessonWrite.HourTaken(it) }
-        val change = roster?.let { GroupRules.rosterChange(session, it, changes, newStart) } ?: RosterChange()
-        val leaving = change.dropped.map { it.id }.toSet()
-        return LessonWrite.Written(
-            persist(
-                // editsFor runs over the whole session, so its refusal to re-attribute a group lesson is
-                // decided by what the lesson *is* rather than by whoever happens to be staying in it.
-                resolved = GroupRules.editsFor(session, changes)
-                    .filterNot { (c, _) -> c.id in leaving }
-                    .map { (c, edit) -> ClassRules.edit(c, edit, newStart, now) },
-                joining = change.joining,
-                // Leavers are dropped inside the same transaction as the edit, which is what stops a
-                // member being billed on their way out: the delete and the re-bill cannot half-happen.
-                dropped = change.dropped,
-            ),
-        )
+        // The rules are one call, and the sequence they compose in is theirs — see [GroupRules.lessonEdit].
+        // This used to assemble three of them here and read the lesson's own new fields out of the
+        // surviving classes, which is how swapping a roster whole kept the lesson at its old time.
+        // Leavers are dropped inside the same transaction as the edit, which is what stops a member being
+        // billed on their way out: the delete and the re-bill cannot half-happen.
+        return LessonWrite.Written(persist(GroupRules.lessonEdit(session, changes, newStart, now, roster)))
     }
 
     /**
@@ -484,7 +485,7 @@ class ClassRepository @Inject constructor(
         newStart: Instant,
         now: Instant,
     ): LessonWrite<List<TutoringClass>> {
-        holdingHour(newStart, session.first.durationMinutes, session.classes.map { it.id }.toSet())
+        holdingHour(session, newStart, session.durationMinutes)
             ?.let { return LessonWrite.HourTaken(it) }
         return LessonWrite.Written(persist(session.classes.map { ClassRules.move(it, newStart, now) }))
     }
@@ -506,8 +507,7 @@ class ClassRepository @Inject constructor(
     suspend fun setStatus(session: ClassSession, to: LessonStatus): LessonWrite<List<TutoringClass>> {
         if (session.status == to) return LessonWrite.Written(emptyList())
         if (to.occupiesTime && !session.status.occupiesTime) {
-            holdingHour(session.first.start, session.first.durationMinutes, session.classes.map { it.id }.toSet())
-                ?.let { return LessonWrite.HourTaken(it) }
+            holdingHour(session)?.let { return LessonWrite.HourTaken(it) }
         }
         return LessonWrite.Written(persist(session.classes.map { ClassRules.applyStatus(it, to) }))
     }
@@ -536,39 +536,47 @@ class ClassRepository @Inject constructor(
     }
 
     /**
-     * The one place an existing lesson is written: every class in [resolved] is updated **in place**,
-     * so an edit can't double-count income; then the whole lesson is mirrored and reminders refreshed
-     * **once**. One lesson earns one reminder, so refreshing per class would repeat the same work n
-     * times.
+     * The one place an existing lesson is written: [LessonEdit.lesson] states the lesson's own row and
+     * every class in [LessonEdit.updated] is rewritten **in place**, so an edit can't double-count
+     * income; then the whole lesson is mirrored and reminders refreshed **once**. One lesson earns one
+     * reminder, so refreshing per class would repeat the same work n times.
      *
-     * [joining] are members arriving in the lesson, who have no row to update yet. They are inserted
-     * and billed by [ClassRules.rebill] — the same rule the others' charges come from — so joining a
-     * completed lesson costs what having been in it costs, and no caller can insert an unbilled class
-     * into a lesson that has already earned. [dropped] are members leaving it, whose rows go.
+     * [LessonEdit.joining] are members arriving in the lesson, who have no row to update yet. They are
+     * inserted and billed by [ClassRules.rebill] — the same rule the others' charges come from — so
+     * joining a completed lesson costs what having been in it costs, and no caller can insert an unbilled
+     * class into a lesson that has already earned. [LessonEdit.dropped] are members leaving it, whose
+     * rows go.
      *
-     * All three happen in **one** transaction, so the lesson a caller describes is the lesson the
+     * All of it happens in **one** transaction, so the lesson a caller describes is the lesson the
      * database ends up with. Mirroring follows the commit, per [write]; a joiner is mirrored with the
      * id its insert returned, so the event id lands back on the right row.
      */
-    private suspend fun persist(
-        resolved: List<TutoringClass>,
-        joining: List<TutoringClass> = emptyList(),
-        dropped: List<TutoringClass> = emptyList(),
-    ): List<TutoringClass> = write {
+    private suspend fun persist(edit: LessonEdit): List<TutoringClass> = write {
         // Leavers go first, so the updates below have nobody left to re-bill on their way out.
-        dropped.forEach { attendance.deleteById(it.id) }
-        // The lesson's own row **once**, from any of its classes — they carry the same lesson, and a
-        // caller cannot hand over classes that do not (`ClassSession`). Writing it per class is what
-        // stored a status n times and let the copies drift.
-        resolved.firstOrNull()?.let { lessons.update(it.toLessonEntity()) }
-        resolved.forEach { attendance.update(it.toAttendanceEntity()) }
-        val joined = joining.map { ClassRules.rebill(it) }.map { klass ->
+        edit.dropped.forEach { attendance.deleteById(it.id) }
+        // The lesson's own row **once**, and from the edit's own statement of it rather than from
+        // whichever class happens to be first in the list — a roster swapped whole leaves that list empty
+        // and used to leave the lesson at its old time. Writing it per class is what stored a status n
+        // times and let the copies drift.
+        lessons.update(edit.lesson.toLessonEntity())
+        edit.updated.forEach { attendance.update(it.toAttendanceEntity()) }
+        val joined = edit.joining.map { ClassRules.rebill(it) }.map { klass ->
             klass.copy(id = attendance.upsert(klass.toAttendanceEntity()))
         }
         // A lesson nobody is left in is not a lesson. Only reachable through a roster change, and only
         // inside this transaction, so a half-emptied lesson is never something another read can see.
-        if (dropped.isNotEmpty()) lessons.deleteEmpty()
-        Committed(resolved + joined, mirror = resolved + joined, drop = dropped)
+        if (edit.dropped.isNotEmpty()) lessons.deleteEmpty()
+        val touched = edit.updated + joined
+        Committed(touched, mirror = touched, drop = edit.dropped)
+    }
+
+    /**
+     * [persist] for a write that keeps the lesson's roster exactly as it is — a move, a status change, one
+     * member's attendance. Every class of it is being rewritten, so any of them states the lesson's row.
+     */
+    private suspend fun persist(resolved: List<TutoringClass>): List<TutoringClass> {
+        require(resolved.isNotEmpty()) { "A write touches at least one class of the lesson" }
+        return persist(LessonEdit(lesson = resolved.first(), updated = resolved))
     }
 
     /**

@@ -17,7 +17,13 @@ interface DigestScheduler {
      * one has anything already arranged for it cancelled.
      *
      * Replace rather than diff, as `ReminderAlarms.set` does and for the same reason — the plan is
-     * authoritative and tiny, while a diff would have to be right about *why* two plans differ.
+     * authoritative and tiny, while a diff would have to be right about *why* two plans differ. The one
+     * exception is a digest that is **due and has not happened yet**, which is left to happen:
+     * [Digests.stillOwed] states that rule and says what it cost to be missing.
+     *
+     * `suspend` because an adapter has to ask its scheduler what is currently arranged before it can honour
+     * that exception, and the platform's answer is asynchronous. Every caller is already in a coroutine —
+     * `Maintenance.run` is the only one.
      */
-    fun schedule(plan: Digests.Plan)
+    suspend fun schedule(plan: Digests.Plan)
 }

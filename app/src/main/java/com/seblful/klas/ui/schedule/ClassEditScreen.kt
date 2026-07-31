@@ -155,7 +155,7 @@ private fun ClassEditForm(
             when (form.target) {
                 ClassTarget.STUDENT -> DropdownField(
                     label = stringResource(R.string.class_student_label),
-                    selectedText = state.students.firstOrNull { it.id == form.studentId }?.name ?: "",
+                    selectedText = state.studentName,
                     options = state.students.map { it.id to it.name },
                     onSelect = { id -> viewModel.change(BookingIntent.ChooseStudent(id)) },
                 )
@@ -166,7 +166,7 @@ private fun ClassEditForm(
                 // a group, and a grey line saying so reads as advice.
                 ClassTarget.GROUP -> DropdownField(
                     label = stringResource(R.string.class_group_label),
-                    selectedText = state.groups.firstOrNull { it.id == form.groupId }?.name ?: "",
+                    selectedText = state.groupName,
                     options = state.groups.map { it.id to it.name },
                     onSelect = { id -> viewModel.change(BookingIntent.ChooseGroup(id)) },
                     // A booked lesson can't be handed to another group: its members' classes are
@@ -180,7 +180,7 @@ private fun ClassEditForm(
 
             DropdownField(
                 label = stringResource(R.string.class_subject_label),
-                selectedText = state.subjects.firstOrNull { it.id == form.subjectId }?.name ?: "",
+                selectedText = state.subjectName,
                 options = state.subjects.map { it.id to it.name },
                 onSelect = { id -> viewModel.change(BookingIntent.ChooseSubject(id)) },
                 enabled = state.subjectPickerEnabled,
@@ -610,5 +610,5 @@ private fun durationLabel(minutes: Int): String = when (minutes) {
     else -> stringResource(R.string.minutes_short, minutes)
 }
 
-// PickerField and DropdownField live in ui/common/Components.kt — every screen that hides a value
+// PickerField and DropdownField live in ui/common/Fields.kt — every screen that hides a value
 // behind a tap has to draw it the same way, which is exactly what this form was not doing.

@@ -90,7 +90,23 @@ object Scheduling {
      * began earlier and is still running when [slot] opens starts outside any window bounded by the slot
      * itself.
      */
-    fun windowFor(slot: Slot): Window = Window(slot.start.minus(LONGEST_LESSON), slot.end)
+    fun windowFor(slot: Slot): Window = windowFor(listOf(slot))
+
+    /**
+     * One window covering **every** slot in [slots] — what a booking that writes a whole term reads over.
+     *
+     * The union of the per-slot windows is a superset of each, and [conflicts] applies the real overlap
+     * test to every one, so handing it more classes than a given slot needs is the safe direction.
+     *
+     * Here rather than at the call site because that is where [windowFor]'s single-slot shape was being
+     * restated by hand — and restated on the **write** path, so every booking in the app checked its hour
+     * against a hand-rolled window while only the read path used the tested one. They agreed on the
+     * figure; what they did not share was the shape, which is the half a later change would break.
+     */
+    fun windowFor(slots: List<Slot>): Window {
+        require(slots.isNotEmpty()) { "A window covers at least one slot" }
+        return Window(slots.minOf { it.start }.minus(LONGEST_LESSON), slots.maxOf { it.end })
+    }
 
     /**
      * The lessons already in the schedule that a lesson at [slot] would collide with. Empty means the

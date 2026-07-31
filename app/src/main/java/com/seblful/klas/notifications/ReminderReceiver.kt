@@ -31,8 +31,11 @@ class ReminderReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_REMIND) return
-        val classId = intent.getLongExtra(EXTRA_CLASS_ID, -1L)
-        if (classId < 0) return
+        // Which ids are real is `TrayNavigation`'s, not this receiver's — see [TrayNavigation.lessonIdOrNull].
+        // This used to read a `-1L` default and refuse `< 0`, so lesson **zero** passed the guard here and
+        // was refused one layer up: two rules for one question, in the place a notification arrives.
+        val classId = TrayNavigation.lessonIdOrNull(intent.getLongExtra(TrayNavigation.EXTRA_CLASS_ID, 0L))
+            ?: return
 
         val pending = goAsync()
         appScope.launch {
@@ -46,6 +49,5 @@ class ReminderReceiver : BroadcastReceiver() {
 
     companion object {
         const val ACTION_REMIND = "com.seblful.klas.action.REMIND"
-        const val EXTRA_CLASS_ID = "classId"
     }
 }

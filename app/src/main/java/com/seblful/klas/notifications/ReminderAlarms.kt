@@ -1,12 +1,6 @@
 package com.seblful.klas.notifications
 
-import android.app.AlarmManager
-import android.app.PendingIntent
-import android.content.Context
-import android.content.Intent
-import androidx.core.content.edit
 import com.seblful.klas.domain.Reminders
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -38,72 +32,44 @@ import javax.inject.Singleton
  * **Why the ids are remembered.** The plan is re-derived from scratch on every change, so arming it
  * means disarming whatever was armed before — and `AlarmManager` has no "cancel everything of mine".
  * An alarm can only be cancelled by rebuilding the `PendingIntent` that set it, which needs the class
- * id, so the ids currently armed are kept in preferences. They survive the process, which is the point:
- * an alarm set yesterday must be cancellable after a restart.
+ * id, so the ids currently armed are kept by [ArmedReminders]. They survive the process, which is the
+ * point: an alarm set yesterday must be cancellable after a restart.
+ *
+ * **What is left in this class is exactly that discipline.** The `PendingIntent` building and the
+ * preferences read went behind [AlarmClock] and [ArmedReminders], which is the split `CrashLogger` and
+ * `CrashLogStore` already draw: everything worth getting wrong is here, and the platform calls are on the
+ * other side. Before that, "re-arming replaces exactly the previous set" and "an alarm set yesterday is
+ * cancellable after a restart" were the two things this class exists to guarantee and the two things only a
+ * device could check — the class had no test of any kind.
  *
  * Alarms do **not** survive a reboot — [BootReceiver] re-derives the plan instead.
  */
 @Singleton
 class ReminderAlarms @Inject constructor(
-    @param:ApplicationContext private val context: Context,
+    private val alarms: AlarmClock,
+    private val armed: ArmedReminders,
     private val exactAlarms: ExactAlarmPermission,
 ) {
-    private val alarmManager: AlarmManager
-        get() = context.getSystemService(AlarmManager::class.java)
-
-    private val armedIds: Set<Long>
-        get() = prefs().getStringSet(KEY_ARMED, emptySet())
-            .orEmpty()
-            .mapNotNull { it.toLongOrNull() }
-            .toSet()
-
     /**
      * Replaces every armed reminder with exactly [plans].
      *
      * Cancel-then-set rather than a diff: the plan is authoritative and small (one lesson a reminder,
      * inside a week's horizon), and a diff would have to be right about *why* two plans differ — a
      * lesson whose time moved by a minute is a different alarm at the same id.
+     *
+     * The **order** matters and is the whole of what this function is: everything previously recorded is
+     * cancelled first, then the new plan is armed, then the record is replaced. Writing the record before
+     * arming would lose the old ids on a failure partway and leave alarms nobody can reach; arming before
+     * cancelling would cancel an id the new plan had just re-armed.
      */
     fun set(plans: List<Reminders.Plan>) {
-        armedIds.forEach { cancel(it) }
-        // The plan carries the firing instant itself — nothing here reads a clock or decides.
-        plans.forEach { plan -> arm(plan.classId, at = plan.fireAt.toEpochMilli()) }
-        prefs().edit { putStringSet(KEY_ARMED, plans.map { it.classId.toString() }.toSet()) }
-    }
-
-    private fun arm(classId: Long, at: Long) {
-        val intent = pendingIntent(classId)
-        if (exactAlarms.isGranted()) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent)
-        } else {
-            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent)
+        armed.read().forEach { alarms.cancel(it) }
+        // The plan carries the firing instant itself — nothing here reads a clock.
+        plans.forEach { plan ->
+            val at = plan.fireAt.toEpochMilli()
+            // The one decision here, and it is read from the port rather than answered privately.
+            if (exactAlarms.isGranted()) alarms.setExact(plan.classId, at) else alarms.setInexact(plan.classId, at)
         }
-    }
-
-    private fun cancel(classId: Long) {
-        alarmManager.cancel(pendingIntent(classId))
-    }
-
-    /**
-     * `RTC_WAKEUP` because a reminder is about a wall-clock time and has to wake the device; the
-     * request code is the class id, which is what makes one lesson's alarm addressable on its own.
-     */
-    private fun pendingIntent(classId: Long): PendingIntent {
-        val intent = Intent(context, ReminderReceiver::class.java)
-            .setAction(ReminderReceiver.ACTION_REMIND)
-            .putExtra(ReminderReceiver.EXTRA_CLASS_ID, classId)
-        return PendingIntent.getBroadcast(
-            context,
-            classId.toInt(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-    }
-
-    private fun prefs() = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-
-    private companion object {
-        const val PREFS = "reminder-alarms"
-        const val KEY_ARMED = "armed-class-ids"
+        armed.write(plans.mapTo(mutableSetOf()) { it.classId })
     }
 }

@@ -102,7 +102,7 @@ class SettingsViewModel @Inject constructor(
         }.hold(this, ReminderDelivery.ON_TIME)
 
     /** What to request when [notificationsPermitted] is false; empty where there is nothing to ask. */
-    val notificationPermissionsRequired: Array<String> get() = notificationPermission.required
+    val notificationPermissionsRequired: List<String> get() = notificationPermission.required
 
     /**
      * Whether the calendar may actually be written to — the platform's answer, beside the tutor's intent
@@ -125,7 +125,7 @@ class SettingsViewModel @Inject constructor(
         .hold(this, true)
 
     /**
-     * What has to happen, besides storing the setting, when the tutor turns reminders [on].
+     * Turns reminders [on] — **storing the setting and saying what that owes the platform, in one call.**
      *
      * Three outcomes, and the screen used to work them out in a nest of three `if`s inside the toggle's
      * `onCheckedChange`: turning it off asks nothing, turning it on with the permission already granted
@@ -133,15 +133,27 @@ class SettingsViewModel @Inject constructor(
      * which means notifications are off for the whole app in system settings and only the tutor can undo
      * it. That last arm is the one worth naming: it looks like the permission case and behaves like a
      * dead end, and getting it wrong shows a dialog that can never appear.
+     *
+     * **The store and the ask used to be two calls the screen had to make, in order, over the same
+     * argument** — `update { it.copy(notificationsEnabled = on) }` and then `notificationsIntent(on)` —
+     * with nothing binding them. Either half could be omitted: asking without storing requests a permission
+     * for a setting that was never saved, and storing without asking leaves reminders reading «включено»
+     * with no permission and no dialog, which is precisely the defect [reminderDelivery] was added to
+     * report. An ordering constraint that lives only in a composable is also one no test can reach, and
+     * `SettingsViewModelTest` could exercise either half and never the pair. Its sibling
+     * [setCalendarSyncEnabled] had the right shape all along: one call, one outcome.
      */
-    fun notificationsIntent(on: Boolean): NotificationsIntent = when {
-        // Asked of the port directly rather than read off [reminderDelivery], for the reason
-        // [setCalendarSyncEnabled] asks directly too: this is a decision made at the moment of the tap,
-        // and a `WhileSubscribed` flow's `.value` is only as fresh as its last collection.
-        !on || notificationPermission.isGranted() -> NotificationsIntent.Nothing
-        notificationPermissionsRequired.isNotEmpty() ->
-            NotificationsIntent.Request(notificationPermissionsRequired)
-        else -> NotificationsIntent.BlockedBySystem
+    fun setNotificationsEnabled(on: Boolean): NotificationsIntent {
+        update { it.copy(notificationsEnabled = on) }
+        return when {
+            // Asked of the port directly rather than read off [reminderDelivery], for the reason
+            // [setCalendarSyncEnabled] asks directly too: this is a decision made at the moment of the tap,
+            // and a `WhileSubscribed` flow's `.value` is only as fresh as its last collection.
+            !on || notificationPermission.isGranted() -> NotificationsIntent.Nothing
+            notificationPermissionsRequired.isNotEmpty() ->
+                NotificationsIntent.Request(notificationPermissionsRequired)
+            else -> NotificationsIntent.BlockedBySystem
+        }
     }
 
     /** Re-asks the platform. Called on resume and after a permission dialog closes. */
@@ -153,7 +165,7 @@ class SettingsViewModel @Inject constructor(
      * The permissions the screen must request after a [CalendarSyncToggle.PERMISSION_NEEDED].
      * Surfaced here so the screen needs no import from `calendar/` at all.
      */
-    val calendarPermissionsRequired: Array<String> get() = calendarPermission.required
+    val calendarPermissionsRequired: List<String> get() = calendarPermission.required
 
     /**
      * Stores a changed setting, e.g. `update { it.copy(currency = Currency.RUB) }` — and discharges
@@ -320,14 +332,16 @@ sealed interface NotificationsIntent {
     /** Nothing to ask: it was switched off, or the permission is already granted. */
     data object Nothing : NotificationsIntent
 
-    /** Ask the platform for these. */
-    data class Request(val permissions: Array<String>) : NotificationsIntent {
-        // Array equality is identity, which would make this data class lie about being equal.
-        override fun equals(other: Any?): Boolean =
-            this === other || (other is Request && permissions.contentEquals(other.permissions))
-
-        override fun hashCode(): Int = permissions.contentHashCode()
-    }
+    /**
+     * Ask the platform for these.
+     *
+     * A `List` and not an `Array`. The ports below hand out arrays because that is what
+     * `ActivityResultContracts.RequestMultiplePermissions` takes, and carrying one up here meant this
+     * `data class` had to hand-write `equals`/`hashCode` over `contentEquals` — the standard symptom of an
+     * array inside a value type, since array equality is identity and the generated one would have lied.
+     * The conversion is now one `toTypedArray()` at the single launcher call site.
+     */
+    data class Request(val permissions: List<String>) : NotificationsIntent
 
     /**
      * There is nothing the app may ask for: notifications are off for the whole app in system settings,

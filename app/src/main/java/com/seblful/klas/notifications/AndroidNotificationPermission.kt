@@ -31,12 +31,12 @@ class AndroidNotificationPermission @Inject constructor(
      * reference is inlined and touching it on an older version is harmless — and it is only ever
      * *returned* above Android 13, where it exists to be granted.
      */
-    override val required: Array<String>
+    override val required: List<String>
         @SuppressLint("InlinedApi")
         get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            arrayOf(Manifest.permission.POST_NOTIFICATIONS)
+            listOf(Manifest.permission.POST_NOTIFICATIONS)
         } else {
-            emptyArray()
+            emptyList()
         }
 
     private fun hasRuntimePermission(): Boolean =

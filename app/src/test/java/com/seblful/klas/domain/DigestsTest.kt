@@ -233,4 +233,81 @@ class DigestsTest {
         assertFalse(Digests.Debts(students = 0, total = Money.ZERO).isWorthPosting)
         assertTrue(Digests.Debts(students = 1, total = Money.ofMajor(30)).isWorthPosting)
     }
+
+    // --- What an adapter is handed: the delay, and whether to leave a due run alone ---
+
+    @Test
+    fun `the delay to a future instant is the distance to it`() {
+        val now = Instant.parse("2026-09-01T06:00:00Z")
+
+        assertEquals(
+            java.time.Duration.ofMinutes(90),
+            Digests.delayUntil(at = now.plusSeconds(90 * 60), now = now),
+        )
+    }
+
+    /**
+     * A plan read some moments ago can name an instant that has since passed. Zero, not negative: "this one
+     * is due now" is the honest reading, and a negative delay is not a thing to hand a scheduler.
+     */
+    @Test
+    fun `the delay to an instant already past is zero, not negative`() {
+        val now = Instant.parse("2026-09-01T06:00:00Z")
+
+        assertEquals(java.time.Duration.ZERO, Digests.delayUntil(at = now.minusSeconds(600), now = now))
+        assertEquals(java.time.Duration.ZERO, Digests.delayUntil(at = now, now = now))
+    }
+
+    /**
+     * **The case that turned a late digest into a missing one.**
+     *
+     * `plan` looks strictly forward and `Maintenance` re-plans on every app start, every thirty minutes,
+     * after a reboot and behind every write — so a 09:00 agenda WorkManager had not run yet at 09:12 was
+     * re-planned for tomorrow, and applying that plan cancelled the pending run. Today's never arrived.
+     */
+    @Test
+    fun `a due digest that has not happened is still owed`() {
+        val nine = Instant.parse("2026-09-01T09:00:00Z")
+        val past = nine.plusSeconds(12 * 60)
+
+        assertTrue(
+            Digests.stillOwed(arranged = nine, planned = nine.plusSeconds(24 * 3600), now = past),
+        )
+    }
+
+    @Test
+    fun `an arrangement still in the future is replaced, not kept`() {
+        val now = Instant.parse("2026-09-01T08:00:00Z")
+        val nine = Instant.parse("2026-09-01T09:00:00Z")
+
+        // Nothing is owed yet, so a new plan simply applies — which is what corrects drift.
+        assertFalse(Digests.stillOwed(arranged = nine, planned = nine.plusSeconds(3600), now = now))
+    }
+
+    @Test
+    fun `switching a digest off cancels even one that is due`() {
+        val nine = Instant.parse("2026-09-01T09:00:00Z")
+
+        assertFalse(Digests.stillOwed(arranged = nine, planned = null, now = nine.plusSeconds(600)))
+    }
+
+    @Test
+    fun `nothing arranged is nothing to protect`() {
+        val now = Instant.parse("2026-09-01T09:10:00Z")
+
+        assertFalse(Digests.stillOwed(arranged = null, planned = now.plusSeconds(3600), now = now))
+    }
+
+    /**
+     * The plan must be *later* than what is arranged. An equal or earlier plan is not the schedule rolling
+     * past a missed firing — it is a different arrangement, and it applies.
+     */
+    @Test
+    fun `a plan that is not later than the arrangement replaces it`() {
+        val nine = Instant.parse("2026-09-01T09:00:00Z")
+        val past = nine.plusSeconds(600)
+
+        assertFalse(Digests.stillOwed(arranged = nine, planned = nine, now = past))
+        assertFalse(Digests.stillOwed(arranged = nine, planned = nine.minusSeconds(60), now = past))
+    }
 }

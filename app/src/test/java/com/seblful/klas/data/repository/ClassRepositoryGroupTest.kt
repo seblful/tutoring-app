@@ -4,6 +4,7 @@ import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.ClassSession
+import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.SessionEdit
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
@@ -425,6 +426,52 @@ class ClassRepositoryGroupTest {
         assertEquals(groupId, after.groupId)
         assertEquals(listOf(bob), after.classes.map { it.studentId })
         assertEquals("one lesson, one reminder refresh", 2, env.reminders.refreshCount)
+    }
+
+    /**
+     * The whole roster replaced **and** the lesson moved, in one save.
+     *
+     * The regression the sibling test above could not see, because it passed the lesson's current start
+     * and duration back unchanged. The lesson's own row used to be written from the classes that were
+     * *staying*, and a total swap leaves none — so the roster changed and the hour did not, while
+     * `holdingHour` had already reserved the new one and the calendar had already mirrored it there. The
+     * joiner was then re-billed from the new length against the stored old one, which is how a day's
+     * takings and the same lesson in a report came to disagree.
+     */
+    @Test
+    fun `swapping the whole roster still moves the lesson and re-times it`() = runTest {
+        seed()
+        val ids = bookSession(members = listOf(ann))
+        // Taught, so the charge below is a real one: this is the case where a wrong stored duration
+        // becomes wrong income rather than a zero either way.
+        repo.setStatus(repo.getSessionFor(ids.first())!!, LessonStatus.COMPLETED).written()
+        val moved = start.plusSeconds(3600)
+
+        val written = repo.apply(
+            repo.getSessionFor(ids.first())!!,
+            SessionEdit(algebra, 30, ClassMode.REMOTE, groupRate),
+            newStart = moved,
+            // After the new start, so the correction keeps the lesson taught instead of re-planning it.
+            now = moved.plusSeconds(3600),
+            roster = setOf(bob),
+        ).written()
+
+        // Read back through the session, so this is the lesson row as stored rather than as returned.
+        val after = repo.getSessionFor(written.single().id)!!
+        assertEquals("the lesson moved", moved, after.start)
+        assertEquals("and took its new length", 30, after.durationMinutes)
+        assertEquals(ClassMode.REMOTE, after.first.mode)
+        assertEquals(LessonStatus.COMPLETED, after.status)
+        assertEquals(listOf(bob), after.classes.map { it.studentId })
+        // 20/h for half an hour. This is only 10 if the duration the lesson *stored* is 30.
+        assertEquals(
+            "the joiner is billed from the length the lesson actually has",
+            Money.ofMajor(10),
+            after.classes.single().charge,
+        )
+        // The hour it left is free again, and the hour it took is not.
+        assertTrue(repo.conflictsWith(Scheduling.Slot(start, 60)).isEmpty())
+        assertEquals(1, repo.conflictsWith(Scheduling.Slot(moved, 30)).size)
     }
 
     @Test

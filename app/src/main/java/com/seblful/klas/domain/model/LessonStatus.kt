@@ -43,6 +43,23 @@ enum class LessonStatus {
          * row the import can no longer have let through.
          */
         fun parse(stored: String): LessonStatus? = entries.firstOrNull { it.name == stored }
+
+        /**
+         * The order a lesson's status is decided in when **only its members' statuses are known**:
+         * scheduled if any member still is, else completed if any is, else cancelled. Nothing in the app
+         * derives a status this way any more — the lesson holds its own — except the two readers of the
+         * *pre-v2* model, where it was the only answer there was: `MIGRATION_1_2` in SQL and
+         * `splitIntoLessons` over a v1–v5 backup file.
+         *
+         * **Stated as a list because it was the enum's declaration order.** `entries.firstOrNull { … }`
+         * reproduced the SQL only by accident of how the constants happen to be written down, and
+         * `StoredEnumNamesTest` — the acknowledgement list built for exactly "renaming one of these is a
+         * migration" — compares them as a **set**, so it is order-insensitive by construction. Reordering
+         * an enum is an ordinary refactor that no test here would have failed, and it would have made
+         * every old backup import a mixed group lesson as **completed**: income the app never recognised,
+         * arriving silently, on the one path a tutor reaches for after losing a phone.
+         */
+        val PRECEDENCE: List<LessonStatus> = listOf(SCHEDULED, COMPLETED, CANCELLED)
     }
 }
 

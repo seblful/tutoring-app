@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
@@ -48,11 +49,28 @@ class ReportsViewModel @Inject constructor(
     private val documents: DocumentStore,
     private val sharing: DocumentSharing,
     @param:Computation private val computation: CoroutineDispatcher,
+    private val clock: Clock,
 ) : ViewModel() {
 
-    private val zone: ZoneId = ZoneId.systemDefault()
+    /**
+     * The zone the report's dates are read in — **the injected [Clock]'s**, like `ScheduleViewModel`'s and
+     * `ClassEditViewModel`'s.
+     *
+     * It was `ZoneId.systemDefault()`, which made this the one view model outside the app's own clock seam
+     * — on the screen where a month boundary decides the money. `di/TimeModule` states the rule and
+     * `domain/PaymentDate` exists entirely because one surface broke it. The cost was visible in the test:
+     * `ReportsViewModelTest` had to re-declare the zone, derive its fixtures from the real current year and
+     * assert the opening period by **re-evaluating the production expression**, which is an assertion that
+     * cannot fail. A report across a year boundary could not be written at all.
+     */
+    private val zone: ZoneId get() = clock.zone
 
-    private val _period = MutableStateFlow(ReportPeriod.currentYear(LocalDate.now(zone)))
+    /**
+     * The period on screen, opening on **the year in progress** — re-read from the clock rather than fixed
+     * at construction, so a phone left on this screen over midnight on 31 December does not go on reporting
+     * last year.
+     */
+    private val _period = MutableStateFlow(ReportPeriod.currentYear(LocalDate.now(clock)))
     val period: StateFlow<ReportPeriod> = _period.asStateFlow()
 
     /** Everything a report is assembled from — five flows, so the period can be a sixth. */

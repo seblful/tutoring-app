@@ -51,6 +51,22 @@ private val dateTime12Fmt = DateTimeFormatterBuilder()
     .append(time12Fmt)
     .toFormatter(RU)
 
+/**
+ * The zone an instant is **rendered** in: the phone's, read per call so a device that changes zone
+ * mid-session prints the new one.
+ *
+ * Deliberately ambient, and deliberately *unlike* [hour12], which has no default at all. The distinction is
+ * whether there is a second possible answer. Which clock face to use is the phone owner's preference and the
+ * app must not guess it, so no surface may pick one by saying nothing. "Where is this phone" has exactly one
+ * answer at render time, and threading it through seventeen display functions would be ceremony with no
+ * decision behind it.
+ *
+ * It is also not the ambient read that mattered. `ScheduleViewModel.moveTo` and `ReportsViewModel` both used
+ * to read `ZoneId.systemDefault()` themselves, and both are **write** paths — deciding which instant to
+ * store, deciding which period the money is counted in — where the shipped path has to be the tested one
+ * and a fixture has to be able to pin it. Those read the injected `Clock`'s zone now. This is a projection
+ * of an instant onto a screen, and there is nothing here for a test to pin that a `Clock` would help with.
+ */
 private val zone: ZoneId get() = ZoneId.systemDefault()
 
 fun Instant.toLocalDate(): LocalDate = atZone(zone).toLocalDate()

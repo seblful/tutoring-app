@@ -678,8 +678,7 @@ class ScheduleViewModelTest {
         env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(15, 0)), durationMinutes = 60, status = "SCHEDULED")
 
         val vm = vm()
-        val target = day.atTime(15, 30).atZone(zone).toInstant()
-        vm.move(env.classRepo.getSessionFor(moving)!!, target)
+        vm.moveTo(env.classRepo.getSessionFor(moving)!!, day, LocalTime.of(15, 30))
         advanceUntilIdle()
 
         assertEquals("Борис", vm.timeConflict.value?.who)
@@ -844,7 +843,7 @@ class ScheduleViewModelTest {
 
         val vm = vm()
         // Ten minutes later overlaps where it currently is — it must not block itself.
-        vm.move(env.classRepo.getSessionFor(id)!!, day.atTime(9, 10).atZone(zone).toInstant())
+        vm.moveTo(env.classRepo.getSessionFor(id)!!, day, LocalTime.of(9, 10))
         advanceUntilIdle()
 
         assertNull(vm.timeConflict.value)
@@ -866,14 +865,14 @@ class ScheduleViewModelTest {
         env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId)
 
         val vm = vm()
-        val target = day.atTime(12, 30).atZone(zone).toInstant()
-        vm.move(env.classRepo.getSessionFor(first)!!, target)
+        vm.moveTo(env.classRepo.getSessionFor(first)!!, day, LocalTime.of(12, 30))
         advanceUntilIdle()
 
         assertNull(vm.timeConflict.value)
+        val moved = startMillisOn(day, LocalTime.of(12, 30))
         assertEquals(
             "both members moved together",
-            listOf(target.toEpochMilli(), target.toEpochMilli()),
+            listOf(moved, moved),
             env.classDao.items.value.map { it.startMillis },
         )
     }
@@ -994,15 +993,15 @@ class ScheduleViewModelTest {
             suspend fun warningFor(ids: List<Long>) =
                 DeleteWarning.of(env.classRepo.getSessionFor(ids.first())!!)
 
-            assertEquals(DeleteWarning(billed = false, group = false, classes = 1), warningFor(scheduled))
-            assertEquals(DeleteWarning(billed = true, group = false, classes = 1), warningFor(completed))
+            assertEquals(DeleteWarning(DeleteWarning.Kind.PLAIN, classes = 1), warningFor(scheduled))
+            assertEquals(DeleteWarning(DeleteWarning.Kind.BILLED, classes = 1), warningFor(completed))
             assertEquals(
                 "a group lesson is several students' classes at once",
-                DeleteWarning(billed = false, group = true, classes = 2),
+                DeleteWarning(DeleteWarning.Kind.GROUP, classes = 2),
                 warningFor(groupScheduled),
             )
             assertEquals(
-                DeleteWarning(billed = true, group = true, classes = 2),
+                DeleteWarning(DeleteWarning.Kind.BILLED_GROUP, classes = 2),
                 warningFor(groupCompleted),
             )
         }
@@ -1287,4 +1286,67 @@ class ScheduleViewModelTest {
             assertEquals("Аня", vm.studentFilter.value?.name)
             assertFalse(vm.filterableStudents.value.any { it.id == ann })
         }
+
+    // --- Why an empty schedule is empty ---
+
+    /**
+     * The three cases, as a rule rather than as two copies in two composables.
+     *
+     * The day and month views weighed three of these and the week view two, so a tutor with nothing set
+     * up met «Добавить ученика» on «День» and a dead end on «Неделя» — an empty list carrying no way out
+     * of itself, which is the one thing `EmptyState` exists to prevent. Neither copy could be tested.
+     */
+    @Test
+    fun `an empty schedule says which kind of empty it is`() {
+        assertEquals(
+            ScheduleEmpty.NEEDS_STUDENT,
+            ScheduleEmpty.of(filtered = false, canAddClass = false),
+        )
+        assertEquals(ScheduleEmpty.QUIET, ScheduleEmpty.of(filtered = false, canAddClass = true))
+        // A narrowed schedule is not a quiet one, and says so however much could be booked.
+        assertEquals(ScheduleEmpty.FILTERED, ScheduleEmpty.of(filtered = true, canAddClass = true))
+        assertEquals(
+            "a filter outranks having nothing set up: the way out is the chip either way",
+            ScheduleEmpty.FILTERED,
+            ScheduleEmpty.of(filtered = true, canAddClass = false),
+        )
+    }
+
+    @Test
+    fun `an app with nothing set up offers the step that unblocks it`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        observing(vm.emptyReason)
+        advanceUntilIdle()
+
+        assertEquals(ScheduleEmpty.NEEDS_STUDENT, vm.emptyReason.value)
+    }
+
+    @Test
+    fun `a quiet day in a set-up app offers to book a lesson`() = runTest(mainRule.dispatcher) {
+        val subject = env.fixtures.subject("Математика")
+        env.fixtures.pricedStudent("Аня", subject)
+
+        val vm = vm()
+        observing(vm.emptyReason)
+        advanceUntilIdle()
+
+        assertEquals(ScheduleEmpty.QUIET, vm.emptyReason.value)
+    }
+
+    @Test
+    fun `a narrowed schedule reports being narrowed, not quiet`() = runTest(mainRule.dispatcher) {
+        val today = LocalDate.now(zone)
+        val (ann, _) = seedTwoStudentsOn(today)
+
+        val vm = vm()
+        observing(vm.emptyReason)
+        observing(vm.filterableStudents)
+        advanceUntilIdle()
+        assertEquals(ScheduleEmpty.QUIET, vm.emptyReason.value)
+
+        vm.setStudentFilter(ann)
+        advanceUntilIdle()
+
+        assertEquals(ScheduleEmpty.FILTERED, vm.emptyReason.value)
+    }
 }
