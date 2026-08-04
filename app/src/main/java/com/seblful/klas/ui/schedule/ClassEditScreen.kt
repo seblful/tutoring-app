@@ -40,6 +40,7 @@ import com.seblful.klas.ui.common.CountPickerModal
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.DurationPickerModal
+import com.seblful.klas.ui.common.durationLabel
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.LoadingFormScreen
@@ -617,15 +618,6 @@ private fun endsAtText(ends: ClassForm.Ending): String {
     } else {
         stringResource(R.string.class_duration_ends_at, time)
     }
-}
-
-/** «1 ч», «1,5 ч», «45 мин» — whole and half hours read better than a minute count. */
-@Composable
-private fun durationLabel(minutes: Int): String = when (minutes) {
-    60 -> stringResource(R.string.hours_one)
-    90 -> stringResource(R.string.hours_one_and_half)
-    120 -> stringResource(R.string.hours_two)
-    else -> stringResource(R.string.minutes_short, minutes)
 }
 
 // PickerField and DropdownField live in ui/common/Fields.kt — every screen that hides a value

@@ -107,3 +107,19 @@ fun classModeLabel(mode: ClassMode): String = stringResource(
         ClassMode.REMOTE -> R.string.class_mode_remote
     }
 )
+
+/**
+ * «1 ч», «1,5 ч», «45 мин» — whole and half hours read better than a minute count.
+ *
+ * Here rather than private to the booking form, which is where it was written: Settings asks the same
+ * question about a reminder's lead, and a length that read one way on one screen and another way on the
+ * next would be the app disagreeing with itself about what an hour is called. The same argument that
+ * moved `ChoiceRow` and `AddRow` into this package.
+ */
+@Composable
+fun durationLabel(minutes: Int): String = when (minutes) {
+    60 -> stringResource(R.string.hours_one)
+    90 -> stringResource(R.string.hours_one_and_half)
+    120 -> stringResource(R.string.hours_two)
+    else -> stringResource(R.string.minutes_short, minutes)
+}

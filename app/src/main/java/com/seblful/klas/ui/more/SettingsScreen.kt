@@ -68,6 +68,8 @@ import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.ChoiceRow
+import com.seblful.klas.ui.common.DurationPickerModal
+import com.seblful.klas.ui.common.durationLabel
 import com.seblful.klas.ui.common.currencyLabel
 import com.seblful.klas.ui.common.languageLabel
 import com.seblful.klas.ui.common.launchExternally
@@ -258,6 +260,32 @@ private fun SettingsList(
     onDiagnostics: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Whether the custom-lead picker is up. Held here rather than hoisted: nothing outside this list
+    // needs to know, and the value it writes goes straight to the settings row.
+    var showLeadPicker by remember { mutableStateOf(false) }
+    if (showLeadPicker) {
+        DurationPickerModal(
+            initialMinutes = settings.reminderLeadMinutes,
+            title = stringResource(R.string.settings_reminder_lead),
+            onConfirm = { minutes ->
+                viewModel.update { it.copy(reminderLeadMinutes = minutes) }
+                showLeadPicker = false
+            },
+            onDismiss = { showLeadPicker = false },
+        )
+    }
+    var showLessonPicker by remember { mutableStateOf(false) }
+    if (showLessonPicker) {
+        DurationPickerModal(
+            initialMinutes = settings.defaultLessonMinutes,
+            title = stringResource(R.string.settings_default_lesson),
+            onConfirm = { minutes ->
+                viewModel.update { it.copy(defaultLessonMinutes = minutes) }
+                showLessonPicker = false
+            },
+            onDismiss = { showLessonPicker = false },
+        )
+    }
     Column(modifier.verticalScroll(rememberScrollState())) {
         // Grouped by what each setting governs, so a glance tells you where to look:
         // reminders, then calendar sync, class behaviour, money, the menu, and look.
@@ -329,13 +357,29 @@ private fun SettingsList(
         }
         ChoiceRow(
             title = stringResource(R.string.settings_reminder_lead),
-            options = listOf(
-                30 to stringResource(R.string.minutes_short, 30),
-                60 to stringResource(R.string.hours_one),
-                120 to stringResource(R.string.hours_two),
-            ),
-            selected = settings.reminderLeadMinutes,
-            onSelect = { minutes -> viewModel.update { it.copy(reminderLeadMinutes = minutes) } },
+            // Three presets and a way out of them. The fourth option is not a *value* — it opens the
+            // same hours-and-minutes picker the booking form uses for «Другая», so any lead is
+            // expressible rather than only the three somebody guessed at. A tutor who wants twenty
+            // minutes, or three hours to cross town, had no way to say so.
+            //
+            // While the stored lead **is** custom, the fourth segment is labelled with it and reads as
+            // selected: the row must show the setting in force, not «Другое» over an answer it is
+            // hiding. `MaxSegments` is 4, so this still draws as segments rather than falling back to
+            // a dropdown.
+            options = LeadPresets.map { it to durationLabel(it) } +
+                (
+                    CustomMinutes to
+                        if (settings.reminderLeadMinutes in LeadPresets) {
+                            stringResource(R.string.settings_reminder_lead_custom)
+                        } else {
+                            durationLabel(settings.reminderLeadMinutes)
+                        }
+                    ),
+            selected = settings.reminderLeadMinutes.takeIf { it in LeadPresets } ?: CustomMinutes,
+            onSelect = { minutes ->
+                if (minutes == CustomMinutes) showLeadPicker = true
+                else viewModel.update { it.copy(reminderLeadMinutes = minutes) }
+            },
         )
 
         // Its own section, not more rows under «Напоминания»: a reminder is about one lesson and
@@ -416,16 +460,29 @@ private fun SettingsList(
             // decide. It answers through [SettingsViewModel.pendingSweep], below.
             onCheckedChange = { on -> viewModel.setAutoCompleteEnabled(on) },
         )
+        // The same way out the reminder lead has, and for the same reason: a few guessed lengths are not
+        // every tutor's lesson. A 50-minute academic hour and an 80-minute double were both unsayable.
+        //
+        // Three presets, not four — «2 ч» gave up its place to «Другое», which reaches it in two taps
+        // and everything else besides. That keeps the row inside `MaxSegments` and drawn as segments,
+        // so both duration settings look and behave alike instead of one being a strip and the other a
+        // dropdown.
         ChoiceRow(
             title = stringResource(R.string.settings_default_lesson),
-            options = listOf(
-                45 to stringResource(R.string.minutes_short, 45),
-                60 to stringResource(R.string.hours_one),
-                90 to stringResource(R.string.hours_one_and_half),
-                120 to stringResource(R.string.hours_two),
-            ),
-            selected = settings.defaultLessonMinutes,
-            onSelect = { minutes -> viewModel.update { it.copy(defaultLessonMinutes = minutes) } },
+            options = LessonPresets.map { it to durationLabel(it) } +
+                (
+                    CustomMinutes to
+                        if (settings.defaultLessonMinutes in LessonPresets) {
+                            stringResource(R.string.settings_reminder_lead_custom)
+                        } else {
+                            durationLabel(settings.defaultLessonMinutes)
+                        }
+                    ),
+            selected = settings.defaultLessonMinutes.takeIf { it in LessonPresets } ?: CustomMinutes,
+            onSelect = { minutes ->
+                if (minutes == CustomMinutes) showLessonPicker = true
+                else viewModel.update { it.copy(defaultLessonMinutes = minutes) }
+            },
         )
 
         SectionHeader(stringResource(R.string.settings_section_money))
@@ -513,6 +570,20 @@ private fun SettingsList(
 }
 
 /** Roughly a `SwitchRow`: a title over a line of description, at a `ListItem`'s own padding. */
+/** The reminder leads offered as one tap. Anything else is reachable through [CustomMinutes]. */
+private val LeadPresets = listOf(30, 60, 120)
+
+/** The lesson lengths offered as one tap. Anything else is reachable through [CustomMinutes]. */
+private val LessonPresets = listOf(45, 60, 90)
+
+/**
+ * The «Другое» option of both duration rows — an *act*, not a length.
+ *
+ * Negative so it can never collide with a real one: a lead is a positive number of minutes, and
+ * `DurationPickerModal` refuses zero.
+ */
+private const val CustomMinutes = -1
+
 private val SettingsRowHeight = 72.dp
 
 /**

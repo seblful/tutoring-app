@@ -120,13 +120,16 @@ fun DurationPickerModal(
     initialMinutes: Int,
     onConfirm: (Int) -> Unit,
     onDismiss: () -> Unit,
+    // What length is being asked about. Defaulted to the lesson's, which is what this was written for;
+    // Settings asks the same hours-and-minutes question about how far ahead a reminder should arrive.
+    title: String? = null,
 ) {
     var hours by remember { mutableStateOf((initialMinutes / 60).toString()) }
     var minutes by remember { mutableStateOf((initialMinutes % 60).toString()) }
     val total = (hours.toIntOrNull() ?: 0) * 60 + (minutes.toIntOrNull() ?: 0)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.class_duration_label)) },
+        title = { Text(title ?: stringResource(R.string.class_duration_label)) },
         text = {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
                 CountField(

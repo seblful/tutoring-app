@@ -431,6 +431,9 @@
     <string name="settings_email_invites">Invite students by email</string>
     <string name="settings_email_invites_desc">Add a student with an email to the lesson\'s event — the invitation and a reminder go to their inbox</string>
     <string name="settings_reminder_lead">How far ahead to remind</string>
+    <!-- The fourth segment of settings_reminder_lead: opens the hours-and-minutes picker.
+         Replaced by the lead itself whenever the stored one is not a preset. -->
+    <string name="settings_reminder_lead_custom">Custom</string>
 
     <!--
       Digests: summaries sent at an hour the tutor picked, as opposed to a reminder, which arrives
