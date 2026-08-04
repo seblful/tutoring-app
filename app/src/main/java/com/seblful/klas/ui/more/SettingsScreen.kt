@@ -17,8 +17,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -186,6 +186,20 @@ fun SettingsScreen(
                 viewModel = viewModel,
                 onRequestNotifications = { permissions -> notificationPermission.launch(permissions.toTypedArray()) },
                 onNotificationsBlocked = reportBlocked,
+                // The way out of «Уведомления запрещены», which for a long time was a sentence and nothing
+                // else. Which of the two things a tap owes is the view model's — ask the platform, or send
+                // the tutor to the one page that can undo it. Straight to that page rather than through
+                // [reportBlocked]'s snackbar: this row *is* the tutor asking to fix it, and answering a tap
+                // with a message offering another tap is the dead end one layer further out.
+                onFixNotifications = {
+                    when (val intent = viewModel.unblockNotifications()) {
+                        is NotificationsIntent.Request ->
+                            notificationPermission.launch(intent.permissions.toTypedArray())
+                        NotificationsIntent.BlockedBySystem ->
+                            launchExternally(context, appNotificationSettings(context), noSettingsPageMsg, messages)
+                        NotificationsIntent.Nothing -> Unit
+                    }
+                },
                 onRequestCalendar = { calendarPermission.launch(viewModel.calendarPermissionsRequired.toTypedArray()) },
                 onFixExactAlarms = {
                     launchExternally(context, exactAlarmSettings(context), noSettingsPageMsg, messages)
@@ -237,6 +251,7 @@ private fun SettingsList(
     viewModel: SettingsViewModel,
     onRequestNotifications: (List<String>) -> Unit,
     onNotificationsBlocked: () -> Unit,
+    onFixNotifications: () -> Unit,
     onRequestCalendar: () -> Unit,
     onFixExactAlarms: () -> Unit,
     onPickCurrency: (Currency) -> Unit,
@@ -273,21 +288,43 @@ private fun SettingsList(
                 }
             },
         )
-        // Only while there is something to say, and only where it can be said: a reminder that will
-        // arrive late, and the system page that grants the exact alarm it needs.
+        // **One row, one label, whichever of the two grants the platform is withholding.**
         //
-        // A row of its own rather than more words under the switch, because a report the tutor cannot
-        // act on is exactly the dead end this screen was just fixed for — and a `SwitchRow` toggles
-        // when tapped anywhere, so it cannot also be a link. It cannot appear below Android 12, where
-        // there is no such permission to withhold.
-        if (reminderDelivery == ReminderDelivery.LATE) {
+        // A reminder needs two permissions and they fail differently, but that is a fact about Android
+        // and not about the tutor's morning: what they have is reminders that do not work, and what they
+        // want is one thing to tap. The two states are mutually exclusive anyway — `ReminderDelivery.of`
+        // stacks the checks, so a reminder nothing can post never also reports being late — so only one
+        // of these was ever on screen. What changed was its wording, which made one control read as two.
+        // The title is now fixed and only the line underneath says which problem it is.
+        //
+        // One tap cannot fix both, and that is the platform's doing: the grants live on different system
+        // pages and Android publishes no combined one. When both are missing this fixes the notification
+        // first — the one that decides whether anything appears at all — and becomes the punctuality row
+        // on return, which is the order `of` already puts them in.
+        //
+        // **It is also the only path that ever asks for `POST_NOTIFICATIONS` in Settings.** The setting is
+        // on by default and the permission is not, so the switch — the previous sole caller — could never
+        // fire the request: it was already on, and turning on what is on is not a change. Reminders read
+        // «включено» while every one of them was dropped, for good.
+        //
+        // A row of its own rather than more words under the switch, because a report the tutor cannot act
+        // on is a better-worded silence — and a `SwitchRow` toggles when tapped anywhere, so it cannot
+        // also be a link.
+        val reminderProblem: Pair<Int, () -> Unit>? = when (reminderDelivery) {
+            ReminderDelivery.BLOCKED -> R.string.settings_reminders_fix_blocked to onFixNotifications
+            ReminderDelivery.LATE -> R.string.settings_reminders_fix_late to onFixExactAlarms
+            // Nothing to fix, or nothing the tutor asked for — see the OFF arm of [ReminderDelivery].
+            ReminderDelivery.OFF, ReminderDelivery.ON_TIME -> null
+        }
+        reminderProblem?.let { (descriptionRes, fix) ->
             ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_exact_alarm_allow)) },
-                supportingContent = { Text(stringResource(R.string.settings_exact_alarm_desc)) },
-                leadingContent = { Icon(Icons.Outlined.Alarm, null) },
-                modifier = Modifier.clickable {
-                    onFixExactAlarms()
-                },
+                headlineContent = { Text(stringResource(R.string.settings_reminders_fix)) },
+                supportingContent = { Text(stringResource(descriptionRes)) },
+                // The gear, not a bell with a stroke through it or an alarm clock: both of those name the
+                // *mechanism* the row deliberately stopped naming, and one icon is the other half of one
+                // control — a row whose symbol changed with its subtitle would read as two rows again.
+                leadingContent = { Icon(Icons.Outlined.Settings, null) },
+                modifier = Modifier.clickable(onClick = fix),
             )
         }
         ChoiceRow(

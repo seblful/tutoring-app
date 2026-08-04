@@ -132,7 +132,8 @@ class SettingsViewModel @Inject constructor(
      * asks nothing, turning it on without it asks the platform — unless the platform has nothing to ask,
      * which means notifications are off for the whole app in system settings and only the tutor can undo
      * it. That last arm is the one worth naming: it looks like the permission case and behaves like a
-     * dead end, and getting it wrong shows a dialog that can never appear.
+     * dead end, and getting it wrong shows a dialog that can never appear. All three past the first are
+     * [unblockNotifications], because the blocked row owes the tutor the same answer this does.
      *
      * **The store and the ask used to be two calls the screen had to make, in order, over the same
      * argument** — `update { it.copy(notificationsEnabled = on) }` and then `notificationsIntent(on)` —
@@ -145,15 +146,39 @@ class SettingsViewModel @Inject constructor(
      */
     fun setNotificationsEnabled(on: Boolean): NotificationsIntent {
         update { it.copy(notificationsEnabled = on) }
-        return when {
-            // Asked of the port directly rather than read off [reminderDelivery], for the reason
-            // [setCalendarSyncEnabled] asks directly too: this is a decision made at the moment of the tap,
-            // and a `WhileSubscribed` flow's `.value` is only as fresh as its last collection.
-            !on || notificationPermission.isGranted() -> NotificationsIntent.Nothing
-            notificationPermissionsRequired.isNotEmpty() ->
-                NotificationsIntent.Request(notificationPermissionsRequired)
-            else -> NotificationsIntent.BlockedBySystem
-        }
+        // Turning it off asks nothing; turning it on owes exactly what the blocked row owes, so the two
+        // share one definition rather than spelling the same three arms twice.
+        return if (!on) NotificationsIntent.Nothing else unblockNotifications()
+    }
+
+    /**
+     * How the platform can be asked to let a reminder through — **what the [ReminderDelivery.BLOCKED] row
+     * does when tapped**, and what [setNotificationsEnabled] returns once it has stored an `on`.
+     *
+     * This exists because the setting is **on by default and the permission is not**, which left no path
+     * through the app that ever requested `POST_NOTIFICATIONS`. The only caller was the switch, and a switch
+     * already reading «включено» cannot be turned on — so a fresh install had reminders enabled, every
+     * notification dropped by `AndroidNotifier`'s permission check, and a row that *described* the dead end
+     * without offering a way out. [reminderDelivery] was added to report that state; nothing was added to
+     * leave it. This is that, and it is the same shape [ReminderDelivery.LATE] already had: the report and
+     * the way out, together, or the report is just a better-worded silence.
+     *
+     * **Stores nothing**, unlike its sibling. The tutor is unblocking the setting they already have rather
+     * than changing it, so there is nothing here to write — which is also why this is safe to call from a
+     * row that is only drawn while the setting is on.
+     *
+     * Asked of the port directly rather than read off [reminderDelivery], for the reason
+     * [setCalendarSyncEnabled] asks directly too: this is a decision made at the moment of the tap, and a
+     * `WhileSubscribed` flow's `.value` is only as fresh as its last collection.
+     */
+    fun unblockNotifications(): NotificationsIntent = when {
+        notificationPermission.isGranted() -> NotificationsIntent.Nothing
+        notificationPermissionsRequired.isNotEmpty() ->
+            NotificationsIntent.Request(notificationPermissionsRequired)
+        // Nothing left to ask: notifications are off for the whole app in system settings, or the
+        // permission is denied for good. Both are undoable only by the tutor and only from that page,
+        // so a dialog here would close itself and read as the app doing nothing.
+        else -> NotificationsIntent.BlockedBySystem
     }
 
     /** Re-asks the platform. Called on resume and after a permission dialog closes. */

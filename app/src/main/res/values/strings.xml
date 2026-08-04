@@ -396,20 +396,34 @@
     <string name="settings_notifications">Reminders</string>
     <string name="settings_notifications_desc">Notify me before a lesson</string>
     <!-- Shown in place of the description when the setting is on but the platform will not show
-         anything. The switch used to read on while no reminder could ever appear. -->
-    <string name="settings_notifications_blocked">Notifications are blocked in your phone\'s settings — no reminder will arrive</string>
+         anything. The switch used to read on while no reminder could ever appear. States the outcome
+         rather than the cause — the cause is on the row below, which is the thing that can act on it. -->
+    <string name="settings_notifications_blocked">Reminders are not arriving right now</string>
     <!-- The other way the platform can differ from the switch: the reminder will be shown, but not
-         necessarily on time. See ui/more/ReminderDelivery. -->
-    <string name="settings_notifications_inexact">Exact alarms are not allowed — a reminder may arrive late</string>
+         necessarily on time. See ui/more/ReminderDelivery.
+
+         Says nothing about *alarms*. That is Android's word for the timer behind the notification, and
+         the tutor never meets one — they asked for a reminder an hour before the lesson and the only
+         thing they can observe is whether it turned up then. Naming the mechanism made the row read as
+         belonging to the Clock app; what it is actually reporting is lateness. -->
+    <string name="settings_notifications_inexact">A reminder can arrive later than asked</string>
     <!-- Said in a snackbar, not in the row: the tutor has just asked for reminders and the platform
          has refused. It carries action_open_settings. -->
     <string name="settings_notifications_denied">Without permission, no reminder will arrive</string>
     <string name="action_open_settings">Open settings</string>
     <!-- No activity behind a system settings action — rare, but real on some OEM builds. -->
     <string name="settings_page_missing">Could not open settings</string>
-    <!-- The way out of settings_notifications_inexact. Shown only while that is what the row says. -->
-    <string name="settings_exact_alarm_allow">Allow exact alarms</string>
-    <string name="settings_exact_alarm_desc">So a reminder arrives exactly when promised</string>
+    <!-- The one row that fixes whichever grant is missing, shown only while one is. Its title never
+         changes: a reminder needs two permissions, but that is a fact about Android and not about the
+         tutor's morning, and a control whose words changed with the diagnosis read as two controls. Only
+         the line underneath says which problem it is. See SettingsScreen's reminderProblem. -->
+    <string name="settings_reminders_fix">Set up reminders</string>
+    <!-- Blocked: the tap requests the permission where there is one to request and opens the app's
+         notification page where there is not, so this cannot promise either — see
+         SettingsViewModel.unblockNotifications. -->
+    <string name="settings_reminders_fix_blocked">Your phone is blocking them</string>
+    <!-- Late: this one always leaves for the system page, so it can say so. -->
+    <string name="settings_reminders_fix_late">Opens your phone\'s settings</string>
     <string name="settings_calendar_sync">Calendar sync</string>
     <string name="settings_calendar_sync_desc">Show lessons in this device\'s calendar</string>
     <!-- Sync is on and the permission has since been revoked, so nothing is being mirrored. -->

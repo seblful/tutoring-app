@@ -478,14 +478,20 @@
       Shown in place of the description when the setting is on but the platform will not show anything.
       The switch used to read on while no reminder could ever appear, and nothing said so.
     -->
-    <string name="settings_notifications_blocked">Уведомления запрещены в настройках телефона — напоминания не придут</string>
+    <string name="settings_notifications_blocked">Сейчас напоминания не приходят</string>
     <!--
       The other way the platform can differ from the switch, and the one the app was silent about: the
       reminder will be shown, but not necessarily on time. Without SCHEDULE_EXACT_ALARM — absent by
       default on Android 14+ — the alarm is inexact and Doze may hold it until its next window, so an
       hour's warning can arrive during the lesson. See ui/more/ReminderDelivery.
+
+      Says nothing about *alarms*. «Будильник» is an alarm clock — the thing that wakes you at seven —
+      and a tutor reading it in a tutoring app has no way to connect it to a lesson reminder; it reads as
+      belonging to the Clock app. It is Android's word for the timer behind the notification, and the
+      tutor never meets a timer: they asked to be told an hour before the lesson, and the only thing they
+      can observe is whether they were. So the row reports lateness and names no mechanism.
     -->
-    <string name="settings_notifications_inexact">Точные будильники запрещены — напоминание может прийти позже</string>
+    <string name="settings_notifications_inexact">Напоминание может прийти позже, чем нужно</string>
     <!--
       Said in a snackbar, not in the row: the tutor has just asked for reminders and the platform has
       refused. Worded for both ways of getting here — a denied request and notifications switched off
@@ -497,9 +503,23 @@
     <string name="action_open_settings">Открыть настройки</string>
     <!-- No activity behind a system settings action — rare, but real on some OEM builds. -->
     <string name="settings_page_missing">Не удалось открыть настройки</string>
-    <!-- The way out of settings_notifications_inexact. Shown only while that is what the row says. -->
-    <string name="settings_exact_alarm_allow">Разрешить точные будильники</string>
-    <string name="settings_exact_alarm_desc">Чтобы напоминание приходило точно в срок</string>
+    <!--
+      The one row that fixes whichever grant is missing, shown only while one is. Its title never changes:
+      a reminder needs two permissions, but that is a fact about Android and not about the tutor's morning,
+      and a control whose words changed with the diagnosis read as two controls. Only the line underneath
+      says which problem it is. It is also the only path in Settings that ever asks for POST_NOTIFICATIONS,
+      since the setting is on by default and a switch already on cannot be turned on. See SettingsScreen's
+      reminderProblem.
+    -->
+    <string name="settings_reminders_fix">Настроить напоминания</string>
+    <!--
+      Blocked: the tap requests the permission where there is one to request and opens the app's
+      notification page where there is not, so this cannot promise either — see
+      SettingsViewModel.unblockNotifications.
+    -->
+    <string name="settings_reminders_fix_blocked">Телефон их не пропускает</string>
+    <!-- Late: this one always leaves for the system page, so it can say so. -->
+    <string name="settings_reminders_fix_late">Откроются настройки телефона</string>
     <string name="settings_calendar_sync">Синхронизация с календарём</string>
     <string name="settings_calendar_sync_desc">Показывать занятия в календаре устройства</string>
     <!--

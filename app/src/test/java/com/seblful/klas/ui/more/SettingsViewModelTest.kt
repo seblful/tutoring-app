@@ -565,6 +565,80 @@ class SettingsViewModelTest {
         assertEquals(ReminderDelivery.ON_TIME, vm.reminderDelivery.value)
     }
 
+    /**
+     * **The defect the blocked row exists for**, stated as the state every fresh Android 13+ install was in.
+     *
+     * `notificationsEnabled` defaults to true and `POST_NOTIFICATIONS` defaults to denied, and the only
+     * caller that ever requested it was the switch — which cannot be turned on when it is already on. So
+     * there was no path through the app that asked, ever: reminders read «включено», `AndroidNotifier`
+     * dropped every notification at its permission check, and the row said so and offered nothing. The fix
+     * is not a new rule but a second caller for the one that was already there.
+     */
+    @Test
+    fun `a fresh install can ask for the permission without touching the switch`() =
+        runTest(mainRule.dispatcher) {
+            env.notificationPermission.granted = false
+            val vm = vm()
+            observing(vm.state, vm.reminderDelivery)
+            advanceUntilIdle()
+
+            // Precisely the untouched state: nobody has flipped anything.
+            assertTrue("reminders are on by default", vm.state.current.notificationsEnabled)
+            assertEquals(ReminderDelivery.BLOCKED, vm.reminderDelivery.value)
+
+            assertEquals(
+                "and the row can ask for what the switch never could",
+                NotificationsIntent.Request(listOf("POST_NOTIFICATIONS")),
+                vm.unblockNotifications(),
+            )
+        }
+
+    /**
+     * Nothing left to ask — notifications off for the whole app, or denied for good. A dialog here would
+     * close itself, so the row has to send the tutor to the page instead. Same last arm
+     * [setNotificationsEnabled] has, which is the point of the two sharing one definition.
+     */
+    @Test
+    fun `the blocked row says so when there is nothing left to ask`() = runTest(mainRule.dispatcher) {
+        env.notificationPermission.granted = false
+        env.notificationPermission.required = emptyList()
+        val vm = vm()
+        observing(vm.reminderDelivery)
+        advanceUntilIdle()
+
+        assertEquals(NotificationsIntent.BlockedBySystem, vm.unblockNotifications())
+    }
+
+    /**
+     * **Unblocking stores nothing** — the distinction from [setNotificationsEnabled], which is why it is a
+     * second method rather than the switch's call reused. The tutor is clearing the platform's refusal of a
+     * setting they already have; writing the row again on the way past would make a permission prompt into
+     * a settings write, and the row is only ever drawn while the setting is on.
+     */
+    @Test
+    fun `unblocking does not write the setting`() = runTest(mainRule.dispatcher) {
+        env.notificationPermission.granted = false
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+        val before = env.settingsRepo.get()
+
+        vm.unblockNotifications()
+        advanceUntilIdle()
+
+        assertEquals("no write went out", before, env.settingsRepo.get())
+    }
+
+    /** Once granted there is nothing to unblock, so a stale tap does nothing rather than re-asking. */
+    @Test
+    fun `a granted permission has nothing to unblock`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        observing(vm.reminderDelivery)
+        advanceUntilIdle()
+
+        assertEquals(NotificationsIntent.Nothing, vm.unblockNotifications())
+    }
+
     /** And revoked the same way: a permission can be taken away while the app is in the background. */
     @Test
     fun `revoking the permission is picked up too`() = runTest(mainRule.dispatcher) {
