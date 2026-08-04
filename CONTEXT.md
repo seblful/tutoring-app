@@ -586,7 +586,14 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   way — "nothing to do" and "done" look identical from outside, and a button that visibly does nothing
   reads as broken.
 - **The notification permission is asked for where reminders are**, in settings, never over a first
-  launch — and the row shows the **platform's** answer beside the tutor's intent. «May a reminder be
+  launch — and the row shows the **platform's** answer beside the tutor's intent.
+  - **And once at the tutor's first booking** (`ClassEditViewModel.notificationsToAskFor`,
+    `ClassRepository.anyLessons`), which is the same rule reaching the one moment Settings could not: a
+    reminder is a promise about a lesson, and until a lesson exists the promise is abstract. It stays out
+    of first-run setup for exactly the reason this bullet gives — asking over an empty schedule is asking
+    about a feature nobody has met. **Only the first**, because on Android 13+ a second denial is
+    permanent and no dialog can appear afterwards; every later chance is the Settings row, which is a
+    place the tutor goes on purpose. Silent while reminders are switched off, and never on an edit. «May a reminder be
   shown» has one definition, the port's: `AndroidNotifier` asks `NotificationPermission` too, instead
   of a weaker private copy that ignored the app-wide system switch. Deliberately *not*
   the calendar's rule: that flag gates a mirror, this one is only a preference, so it is never refused.
@@ -610,6 +617,32 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   auto-denied and the switch reads as doing nothing. The guarded launch is shared with the student card's
   contact actions (`ui/common/launchExternally`), because an `ACTION_*_SETTINGS` with no activity behind it
   is as real on an OEM build as a tablet with no dialler.
+  - **BLOCKED earned the row LATE already had** (`SettingsViewModel.unblockNotifications`), and until it
+    did, *nothing in the app ever asked for `POST_NOTIFICATIONS`.* The setting is on by default and the
+    permission is not, and the only caller was the switch — which cannot be turned on when it is already
+    on. So a fresh install had reminders reading «включено», `AndroidNotifier` dropping every notification
+    at its permission check, and a row describing the dead end without a way out; `ReminderDelivery` was
+    added to *report* that state and nothing was added to *leave* it. Found on a real phone, where all four
+    kinds were silently absent while the alarms and both digest workers were correctly armed — the
+    scheduling half had never been the problem. The tap **requests** where there is something to request and
+    **opens the notification page** where there is not, which is the same three-armed answer the switch
+    needs, so the two share one definition rather than restating it. It stores nothing: unblocking clears
+    the platform's refusal of a setting the tutor already has.
+  - **Both platform answers now share one row with one title** (`SettingsScreen.reminderProblem`). Two
+    grants failing differently is a fact about Android, not about the tutor's morning: what they have is
+    reminders that do not work and what they want is one thing to tap. The states were already mutually
+    exclusive, so only one row was ever on screen — but its wording changed with the diagnosis, which made
+    one control read as two. The title is fixed and only the line under it says which problem it is. One
+    tap cannot fix both because the grants live on different system pages and Android publishes no
+    combined one; when both are missing this takes the notification first and becomes the punctuality row
+    on return, the order `ReminderDelivery.of` already stacks them in.
+  - **No user-visible string says «будильник».** It means *alarm clock* — the thing that wakes you at
+    seven — so a tutor meeting it in a tutoring app has no way to connect it to a lesson reminder, and the
+    row read as belonging to the Clock app. It is Android's word for the timer behind the notification and
+    the tutor never meets a timer: they asked to be told an hour before the lesson, and all they can
+    observe is whether they were. So the row reports **lateness** and names no mechanism. The system page
+    it opens is «Будильники и напоминания», which is why «напоминания» is the half of that title worth
+    sharing.
 - **Crash diagnostics are local + Play, no backend**: chains to the platform handler (so Android Vitals
   still reports) and appends to a size-capped file (`Diagnostics.appendBounded`, 64 000 chars, trimmed
   on entry boundaries), exportable from **Ещё → Настройки → Диагностика**. No Crashlytics/Sentry.

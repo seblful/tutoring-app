@@ -30,6 +30,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -58,6 +59,7 @@ class ClassEditViewModelTest {
         subjectsRepo = env.subjectRepo,
         enrollment = env.enrollmentRepo,
         settingsRepo = env.settingsRepo,
+        notificationPermission = env.notificationPermission,
         appScope = mainRule.appScope,
         computation = mainRule.dispatcher,
         clock = Clock.systemDefaultZone(),
@@ -1012,6 +1014,104 @@ class ClassEditViewModelTest {
                 vm.events.stream.first(),
             )
         }
+
+    // --- Asking to be allowed to remind, at the first booking ---
+
+    /**
+     * **Where the notification permission is finally asked for.** It is on by default and the permission
+     * is not, and the only caller used to be the settings switch — which cannot be turned on when it is
+     * already on, so nothing ever asked and every reminder was dropped in silence. The first lesson is the
+     * moment the promise stops being abstract: the tutor has just written down a time they mean to keep.
+     */
+    @Test
+    fun `the first booking asks to be allowed to show reminders`() = runTest(mainRule.dispatcher) {
+        env.notificationPermission.granted = false
+        val (ann, subject) = seedStudentWithPricedSubject()
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        val asked = asksOf(vm)
+        vm.fillFor(ann, subject, LocalDate.now(zone).plusDays(3), LocalTime.of(10, 0), 60)
+        vm.save {}
+        advanceUntilIdle()
+
+        assertEquals(listOf(listOf("POST_NOTIFICATIONS")), asked)
+    }
+
+    /**
+     * **Only the first.** On Android 13+ a second denial is permanent, after which no dialog can ever
+     * appear again — so a tutor who said no once is not asked by every booking afterwards. The row in
+     * Settings is the way back, and it is somewhere they go on purpose.
+     */
+    @Test
+    fun `a later booking does not ask again`() = runTest(mainRule.dispatcher) {
+        env.notificationPermission.granted = false
+        val (ann, subject) = seedStudentWithPricedSubject()
+        val date = LocalDate.now(zone).plusDays(3)
+        seedLesson(date, LocalTime.of(8, 0))
+
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+        val asked = asksOf(vm)
+        vm.fillFor(ann, subject, date, LocalTime.of(10, 0), 60)
+        vm.save {}
+        advanceUntilIdle()
+
+        assertTrue(
+            "the schedule was not empty, so this is not the first lesson",
+            asked.isEmpty(),
+        )
+    }
+
+    /** Nothing to ask for once it is granted — the dialog would close itself. */
+    @Test
+    fun `a granted permission is not asked for again`() = runTest(mainRule.dispatcher) {
+        val (ann, subject) = seedStudentWithPricedSubject()
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        val asked = asksOf(vm)
+        vm.fillFor(ann, subject, LocalDate.now(zone).plusDays(3), LocalTime.of(10, 0), 60)
+        vm.save {}
+        advanceUntilIdle()
+
+        assertTrue(asked.isEmpty())
+    }
+
+    /**
+     * Reminders switched off means the tutor has said they do not want them, and a permission for a
+     * feature nobody asked for is exactly the unprompted dialog this rule exists to avoid.
+     */
+    @Test
+    fun `reminders switched off ask for nothing`() = runTest(mainRule.dispatcher) {
+        env.notificationPermission.granted = false
+        env.settingsRepo.update { it.copy(notificationsEnabled = false) }
+        val (ann, subject) = seedStudentWithPricedSubject()
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        val asked = asksOf(vm)
+        vm.fillFor(ann, subject, LocalDate.now(zone).plusDays(3), LocalTime.of(10, 0), 60)
+        vm.save {}
+        advanceUntilIdle()
+
+        assertTrue(asked.isEmpty())
+    }
+
+    /**
+     * Every permission request the view model made, newest last — collected in the background because
+     * `UiEvents.stream` is a channel flow, so `first()` on one that never emits waits for ever and the
+     * three assertions below are all about nothing being emitted.
+     */
+    private fun TestScope.asksOf(vm: ClassEditViewModel): List<List<String>> {
+        val asked = mutableListOf<List<String>>()
+        backgroundScope.launch { vm.askForNotifications.stream.collect { asked += it } }
+        return asked
+    }
 
     @Test
     fun `save does nothing for an invalid form`() = runTest(mainRule.dispatcher) {

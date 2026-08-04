@@ -18,6 +18,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -101,6 +103,22 @@ private fun ClassEditForm(
                 ClassEditViewModel.Event.SAVE_FAILED -> saveFailedMsg
             }
             messages.show(message)
+        }
+    }
+
+    // **Where the app asks to be allowed to remind at all**, once, after the tutor's first lesson is in
+    // the database — see [ClassEditViewModel.notificationsToAskFor] for why here and why only then.
+    //
+    // The screen owns the launcher and nothing else: which permissions to ask for arrives with the event.
+    // The result is deliberately unhandled — a denial is not refused, corrected or explained here, because
+    // the tutor has just booked a lesson and is on their way out of this screen, and the place that reports
+    // reminders not working is the one row in Settings that can also do something about it.
+    val notificationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { }
+    LaunchedEffect(Unit) {
+        viewModel.askForNotifications.stream.collect { permissions ->
+            notificationPermission.launch(permissions.toTypedArray())
         }
     }
 

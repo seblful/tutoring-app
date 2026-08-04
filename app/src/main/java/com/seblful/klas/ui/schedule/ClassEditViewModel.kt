@@ -9,6 +9,7 @@ import com.seblful.klas.data.repository.EnrollmentRepository
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.LessonWrite
 import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.ClassSession
@@ -451,6 +452,7 @@ class ClassEditViewModel @Inject constructor(
     private val subjectsRepo: SubjectRepository,
     private val enrollment: EnrollmentRepository,
     private val settingsRepo: SettingsRepository,
+    private val notificationPermission: NotificationPermission,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: Clock,
@@ -1029,10 +1031,52 @@ class ClassEditViewModel @Inject constructor(
         data class Refused(val reason: Event) : SaveOutcome
     }
 
+    /**
+     * The permissions to ask for once the tutor's **first** lesson is in the database, or empty when
+     * there is nothing to ask — see [notificationsToAskFor].
+     *
+     * A one-shot event rather than state, and carrying the permission list rather than a bare signal, so
+     * the screen owns only the launcher: which permissions exist to be asked for is the port's answer, the
+     * same one `SettingsScreen` takes from `notificationPermissionsRequired`.
+     */
+    val askForNotifications = UiEvents<List<String>>()
+
+    /**
+     * What to request after a first booking: the notification permissions, or nothing.
+     *
+     * **Why here and not on first launch.** A reminder is the app's promise to warn the tutor before a
+     * lesson, and until a lesson exists that promise is abstract — the permission dialog over an empty
+     * schedule asks about a feature they have not met, which is what `CONTEXT.md` means by *asked where
+     * reminders are*. The booking is where it stops being abstract: they have just written down a time
+     * they intend to be somewhere, and the app is offering to remind them of it.
+     *
+     * **Why only the first.** On Android 13+ a second denial is permanent, after which the dialog never
+     * appears again and even the Settings row can only open the system page. So this asks once, at the
+     * best moment there is, and every later chance is the row in Settings — which is a place the tutor
+     * goes deliberately, not a dialog thrown at them for booking a lesson.
+     *
+     * Silent when reminders are switched off: the tutor has said they do not want them, and a permission
+     * for a feature nobody asked for is the dialog this whole rule exists to avoid.
+     */
+    /** Emits the request, or nothing at all when there is nothing to ask for. */
+    private suspend fun askToBeAllowedToRemind() {
+        notificationsToAskFor().takeIf { it.isNotEmpty() }?.let { askForNotifications.send(it) }
+    }
+
+    private suspend fun notificationsToAskFor(): List<String> =
+        if (settingsRepo.get().notificationsEnabled && !notificationPermission.isGranted()) {
+            notificationPermission.required
+        } else {
+            emptyList()
+        }
+
     fun save(onDone: () -> Unit) {
         val valid = ValidForm.of(currentForm, zone) ?: return
 
         viewModelScope.launch {
+            // Read **before** the write, or the lesson just booked is the one that makes the answer false.
+            // Editing an existing lesson is never a first booking, so it never asks.
+            val wouldBeFirst = session.value == null && !classes.anyLessons()
             // The write runs in the application scope, not this one: going back the instant after
             // tapping save would otherwise cancel it partway, between the committed rows and the
             // calendar mirror that follows them. Awaiting it here is what makes leaving abandon only
@@ -1052,11 +1096,17 @@ class ClassEditViewModel @Inject constructor(
                 // the partial one hands that to the dialog it raises.
                 is SaveOutcome.SavedPartly -> {
                     booking.value = booking.value.copy(touched = false)
+                    // Before the dialog, so the two do not arrive on top of each other: the skipped
+                    // dates are what the tutor has to act on, and they are still there afterwards.
+                    if (wouldBeFirst) askToBeAllowedToRemind()
                     _seriesOutcome.value = settled.outcome
                 }
                 SaveOutcome.Saved -> {
                     // Nothing is unsaved any more, so leaving must not ask about it.
                     booking.value = booking.value.copy(touched = false)
+                    // The lesson is written, so the reminder it earns is a real one — ask now, while the
+                    // screen is still up to host the dialog, and leave only once it has been answered.
+                    if (wouldBeFirst) askToBeAllowedToRemind()
                     onDone()
                 }
             }

@@ -342,6 +342,8 @@ class FakeLessonDao(private val store: FakeClassStore) : LessonDao {
 
     override suspend fun countForGroup(groupId: Long): Int = items.value.count { it.groupId == groupId }
 
+    override suspend fun anyExist(): Boolean = items.value.isNotEmpty()
+
     override suspend fun upsert(lesson: LessonEntity): Long {
         val id = store.lessonId(lesson.id)
         items.value = items.value.filterNot { it.id == id } + lesson.copy(id = id)

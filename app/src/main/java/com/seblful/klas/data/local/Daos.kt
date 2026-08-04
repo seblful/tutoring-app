@@ -256,6 +256,17 @@ interface LessonDao {
     @Query("SELECT COUNT(*) FROM lessons WHERE groupId = :groupId")
     suspend fun countForGroup(groupId: Long): Int
 
+    /**
+     * Whether the tutor has booked anything at all. `LIMIT 1` rather than a count: the only question
+     * asked of it is yes-or-no, and it is asked on the way into a write.
+     *
+     * A whole-table read in the sense that it names no id, but not one in the sense `SnapshotDao` owns —
+     * it returns a single scalar and no rows, so nothing here can void an invariant the way a
+     * `deleteAll()` on this DAO would. See *Two interfaces onto the same tables*.
+     */
+    @Query("SELECT EXISTS(SELECT 1 FROM lessons LIMIT 1)")
+    suspend fun anyExist(): Boolean
+
     @Upsert
     suspend fun upsert(lesson: LessonEntity): Long
 

@@ -226,6 +226,18 @@ class ClassRepository @Inject constructor(
      */
     suspend fun anyForGroup(groupId: Long): Boolean = lessons.countForGroup(groupId) > 0
 
+    /**
+     * Whether the tutor has booked **anything, ever** — asked on the way into a booking, so that the one
+     * that finds this false is knowably their first.
+     *
+     * Not a guard like the three above it: nothing is refused on the strength of this answer. It exists
+     * because a lesson is the first moment a *reminder* becomes a real thing about to happen, which is
+     * when the app asks to be allowed to show one — see `ClassEditViewModel.save`. Asking earlier means
+     * asking before the tutor has met the feature, and asking never is what left the permission denied on
+     * every install (`SettingsViewModel.unblockNotifications`).
+     */
+    suspend fun anyLessons(): Boolean = lessons.anyExist()
+
     // ---- Writes --------------------------------------------------------------------------------
     // Every write below takes a **lesson**, never a bare class. A group lesson is n classes sharing a
     // group id and a start; an individual class is the same thing with one member ([ClassSession.of]).
