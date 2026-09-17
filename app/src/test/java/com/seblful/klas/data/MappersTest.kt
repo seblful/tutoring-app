@@ -146,6 +146,7 @@ class MappersTest {
         chargeMinor = attendance.chargeMinor,
         groupId = lesson.groupId,
         mode = lesson.mode,
+        notes = lesson.notes,
         calendarEventId = attendance.calendarEventId,
     ).toDomain()
 
@@ -157,7 +158,8 @@ class MappersTest {
             durationMinutes = 90, price = Money.ofMajor(30),
             status = LessonStatus.COMPLETED, attended = Attended.ABSENT_BILLED,
             charge = Money.ofMajor(45),
-            groupId = null, mode = ClassMode.REMOTE, calendarEventId = "evt-1",
+            groupId = null, mode = ClassMode.REMOTE, notes = "§12, упр. 4–7",
+            calendarEventId = "evt-1",
         )
         assertEquals(c, c.roundTrip())
     }
@@ -171,12 +173,13 @@ class MappersTest {
             durationMinutes = 90, price = Money.ofMajor(30),
             status = LessonStatus.COMPLETED, attended = Attended.PRESENT,
             charge = Money.ofMajor(45), groupId = 5, mode = ClassMode.REMOTE,
-            calendarEventId = "evt-1",
+            notes = "§12, упр. 4–7", calendarEventId = "evt-1",
         )
 
         val lesson = c.toLessonEntity()
         assertEquals(4L, lesson.id)
         assertEquals(LessonStatus.COMPLETED.name, lesson.status)
+        assertEquals("the note describes the hour, so it is the lesson's", "§12, упр. 4–7", lesson.notes)
         assertEquals(5L, lesson.groupId)
         assertEquals(90, lesson.durationMinutes)
 
@@ -228,7 +231,7 @@ class MappersTest {
             ),
             "PaymentEntity" to setOf("id", "studentId", "dateMillis", "amountMinor"),
             "LessonEntity" to setOf(
-                "id", "subjectId", "startMillis", "durationMinutes", "status", "groupId", "mode",
+                "id", "subjectId", "startMillis", "durationMinutes", "status", "groupId", "mode", "notes",
             ),
             "AttendanceEntity" to setOf(
                 "id", "lessonId", "studentId", "state", "priceMinor", "chargeMinor", "calendarEventId",

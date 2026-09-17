@@ -384,7 +384,7 @@ private fun SettingsList(
 
         // Its own section, not more rows under «Напоминания»: a reminder is about one lesson and
         // arrives because that lesson is about to start, while a digest is a summary the tutor asked to
-        // be sent at an hour they chose. Both switches are off by default — the app sends nothing
+        // be sent at an hour they chose. All three switches are off by default — the app sends nothing
         // unasked that it was not already sending.
         SectionHeader(stringResource(R.string.settings_section_digests))
         SwitchRow(
@@ -401,6 +401,22 @@ private fun SettingsList(
             // time is worth seeing before deciding whether to switch the thing on.
             enabled = settings.dailyAgendaEnabled,
             onSet = { minutes -> viewModel.update { it.copy(agendaMinuteOfDay = minutes) } },
+        )
+        // Between the two, in the order of the day rather than of the feature: morning agenda, evening
+        // wrap-up, then the weekly money one. It is the counterpart of «Автозавершение» two sections up
+        // — with that on there is nothing left unmarked for this to name — and the description says so,
+        // because a tutor with both on and nothing arriving should be able to see why.
+        SwitchRow(
+            title = stringResource(R.string.settings_unfinished_digest),
+            description = stringResource(R.string.settings_unfinished_digest_desc),
+            checked = settings.unfinishedDigestEnabled,
+            onCheckedChange = { on -> viewModel.update { it.copy(unfinishedDigestEnabled = on) } },
+        )
+        TimeRow(
+            title = stringResource(R.string.settings_unfinished_digest_time),
+            minuteOfDay = settings.unfinishedMinuteOfDay,
+            enabled = settings.unfinishedDigestEnabled,
+            onSet = { minutes -> viewModel.update { it.copy(unfinishedMinuteOfDay = minutes) } },
         )
         SwitchRow(
             title = stringResource(R.string.settings_debt_digest),

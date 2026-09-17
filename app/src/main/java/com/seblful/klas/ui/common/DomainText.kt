@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
+import com.seblful.klas.domain.LessonPhase
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Balance
@@ -99,6 +100,32 @@ fun classStatusColor(status: LessonStatus): Color = when (status) {
     LessonStatus.COMPLETED -> klasColors.success
     LessonStatus.CANCELLED -> MaterialTheme.colorScheme.error
 }
+
+/**
+ * What a lesson's badge **says**: its status, or «Идёт» while the lesson is being taught.
+ *
+ * [running] is a fact about the clock and is decided elsewhere — [LessonPhase.of], re-derived every minute
+ * by `ScheduleViewModel.running` — so what is here is only the wording, which is this file's whole job. It
+ * arrives as a boolean rather than as a whole [LessonPhase] because that is genuinely what a badge needs:
+ * the other three phases are already said by [status], and a badge handed both would have two sources for
+ * one word.
+ *
+ * [LessonPhase.OVERDUE] therefore reads exactly as [LessonPhase.UPCOMING] does, deliberately: a lesson
+ * whose hour has passed and that nobody has marked **is** still scheduled, and saying anything else on the
+ * card would be a fourth state the tutor never set. What that lesson is owed is a nudge at the end of the
+ * day — the evening digest's job (`Digests.Unfinished`), not this badge's.
+ *
+ * Two functions rather than one, matching [classStatusLabel] and [classStatusColor] beside them: a badge
+ * takes a word and a colour separately.
+ */
+@Composable
+fun lessonBadgeLabel(status: LessonStatus, running: Boolean): String =
+    if (running) stringResource(R.string.class_status_in_progress) else classStatusLabel(status)
+
+/** The tint [lessonBadgeLabel] is said in — amber for a lesson in progress, see `KlasColors.live`. */
+@Composable
+fun lessonBadgeColor(status: LessonStatus, running: Boolean): Color =
+    if (running) klasColors.live else classStatusColor(status)
 /** Localized label for a class mode: «Очно» / «Удалённо». */
 @Composable
 fun classModeLabel(mode: ClassMode): String = stringResource(

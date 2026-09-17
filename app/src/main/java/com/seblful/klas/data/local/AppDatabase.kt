@@ -18,7 +18,7 @@ import androidx.room.RoomDatabase
         SettingsEntity::class,
     ],
     views = [ClassRow::class],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -44,8 +44,8 @@ abstract class AppDatabase : RoomDatabase() {
         /**
          * **The oldest schema version any `klas.db` can be at**, and therefore the version Room needs no
          * way *into*. Equal to the version `@Database` declares would mean: there are no migrations,
-         * because there is nothing to migrate from. It is one below it — the app is at v6 — so
-         * `data/local/Migrations.kt` holds exactly one step.
+         * because there is nothing to migrate from. It is two below it — the app is at v7 — so
+         * `data/local/Migrations.kt` holds exactly two steps.
          *
          * This is a claim about **releases**, not about the schema, and it is why that file was deleted
          * once already. It was 1, with a chain of four migrations up to v5, and every one of them was dead
@@ -66,7 +66,9 @@ abstract class AppDatabase : RoomDatabase() {
          * **That release has happened: 0.3.0 (`versionCode` 4).** So the window is shut, and this number
          * is no longer free. It is the version in tutors' hands, and the v6 bump that added
          * `settings.language` duly shipped [Migrations.MIGRATION_5_6] from it — the first real migration
-         * this app has ever had. `MigrationChainTest` reads this constant to demand one per step.
+         * this app has ever had. [Migrations.MIGRATION_6_7] is the second, adding `lessons.notes` and the
+         * evening digest's two settings columns. `MigrationChainTest` reads this constant to demand one
+         * per step.
          *
          * Raising it is a promise that no database below it exists anywhere, which after a release means
          * *every* install has been upgraded past it — not a thing to assume, and not a thing v6 changes.

@@ -40,6 +40,12 @@ class DueDigestTest {
     private suspend fun enableDebts() =
         env.settingsRepo.update { it.copy(debtDigestEnabled = true) }
 
+    private suspend fun enableUnfinished() =
+        env.settingsRepo.update { it.copy(unfinishedDigestEnabled = true) }
+
+    /** Monday 15 June 2026, 21:00 in Minsk — the evening digest's default hour. */
+    private val evening: Instant = at(21)
+
     // --- The morning agenda -------------------------------------------------------------------------
 
     @Test
@@ -183,6 +189,124 @@ class DueDigestTest {
 
         assertFalse("off by default", env.dueDigest.postAgenda(morning))
         assertTrue(env.notifier.agendas.isEmpty())
+    }
+
+    // --- The evening list of unmarked lessons -------------------------------------------------------
+
+    @Test
+    fun `the evening digest names the lessons still not marked`() = runTest(mainRule.dispatcher) {
+        enableUnfinished()
+        val algebra = env.fixtures.subject("Алгебра")
+        val physics = env.fixtures.subject("Физика")
+        val anya = env.fixtures.pricedStudent("Аня Петрова", algebra)
+        val boris = env.fixtures.pricedStudent("Боря Иванов", physics)
+        env.fixtures.lesson(physics, listOf(boris), start = at(17))
+        env.fixtures.lesson(algebra, listOf(anya), start = at(11))
+
+        assertTrue(env.dueDigest.postUnfinished(evening))
+
+        val digest = env.notifier.unfinished.single()
+        assertEquals(
+            "in start order, like the morning's",
+            listOf(at(11) to "Аня Петрова", at(17) to "Боря Иванов"),
+            digest.lessons.map { it.start to it.who },
+        )
+    }
+
+    /** A lesson the tutor already marked is not something to be asked about at nine in the evening. */
+    @Test
+    fun `a lesson already marked is not listed`() = runTest(mainRule.dispatcher) {
+        enableUnfinished()
+        val subject = env.fixtures.subject("Алгебра")
+        val anya = env.fixtures.pricedStudent("Аня", subject)
+        env.fixtures.completedLesson(subject, listOf(anya), start = at(11))
+        env.fixtures.cancelledLesson(subject, listOf(anya), start = at(14))
+        env.fixtures.lesson(subject, listOf(anya), start = at(17))
+
+        env.dueDigest.postUnfinished(evening)
+
+        assertEquals(listOf(at(17)), env.notifier.unfinished.single().lessons.map { it.start })
+    }
+
+    /**
+     * **A lesson still running is not unmarked yet.** The digest fires at an hour the tutor chose, and a
+     * 20:30 lesson is still being taught at nine — asking about it would be asking them to mark a lesson
+     * they are in the middle of. This is the boundary `LessonPhase` exists to state once.
+     */
+    @Test
+    fun `a lesson still in progress is not asked about`() = runTest(mainRule.dispatcher) {
+        enableUnfinished()
+        val subject = env.fixtures.subject("Алгебра")
+        val anya = env.fixtures.pricedStudent("Аня", subject)
+        env.fixtures.lesson(subject, listOf(anya), start = at(20), minutes = 90)
+
+        assertFalse("nothing to say yet", env.dueDigest.postUnfinished(evening))
+        assertTrue(env.notifier.unfinished.isEmpty())
+    }
+
+    /** A lesson later this evening has not happened, so there is nothing to mark about it either. */
+    @Test
+    fun `a lesson still to come is not asked about`() = runTest(mainRule.dispatcher) {
+        enableUnfinished()
+        val subject = env.fixtures.subject("Алгебра")
+        val anya = env.fixtures.pricedStudent("Аня", subject)
+        env.fixtures.lesson(subject, listOf(anya), start = at(22))
+
+        assertFalse(env.dueDigest.postUnfinished(evening))
+    }
+
+    /** A group's hour is one lesson of the tutor's to mark, named by the group — as in the morning. */
+    @Test
+    fun `a group lesson is one entry, named by the group`() = runTest(mainRule.dispatcher) {
+        enableUnfinished()
+        val subject = env.fixtures.subject("Химия")
+        val members = listOf("Аня", "Боря", "Вера").map { env.fixtures.pricedStudent(it, subject) }
+        val group = env.fixtures.group("11 «А»", subjectId = subject, members = members.toSet())
+        env.fixtures.lesson(subject, members, start = at(17), groupId = group)
+
+        env.dueDigest.postUnfinished(evening)
+
+        val digest = env.notifier.unfinished.single()
+        assertEquals(1, digest.count)
+        assertEquals("11 «А»", digest.lessons.single().who)
+    }
+
+    /** An evening with everything marked says nothing at all — the ordinary evening. */
+    @Test
+    fun `an evening with nothing unmarked posts nothing`() = runTest(mainRule.dispatcher) {
+        enableUnfinished()
+        val subject = env.fixtures.subject("Алгебра")
+        val anya = env.fixtures.pricedStudent("Аня", subject)
+        env.fixtures.completedLesson(subject, listOf(anya), start = at(11))
+
+        assertFalse(env.dueDigest.postUnfinished(evening))
+        assertTrue(env.notifier.unfinished.isEmpty())
+    }
+
+    /**
+     * **Today's, not the whole backlog.** Yesterday's forgotten lesson is not what closing down this
+     * evening is about, and a digest that accumulated them would arrive every night with no way to
+     * clear it.
+     */
+    @Test
+    fun `a lesson left unmarked on another day is not dragged in`() = runTest(mainRule.dispatcher) {
+        enableUnfinished()
+        val subject = env.fixtures.subject("Алгебра")
+        val anya = env.fixtures.pricedStudent("Аня", subject)
+        env.fixtures.lesson(subject, listOf(anya), start = at(11).minusSeconds(24 * 60 * 60))
+
+        assertFalse(env.dueDigest.postUnfinished(evening))
+    }
+
+    /** The switch is authoritative at the moment of posting, as it is for the other two. */
+    @Test
+    fun `nothing is posted while the evening digest is switched off`() = runTest(mainRule.dispatcher) {
+        val subject = env.fixtures.subject("Алгебра")
+        val anya = env.fixtures.pricedStudent("Аня", subject)
+        env.fixtures.lesson(subject, listOf(anya), start = at(11))
+
+        assertFalse(env.dueDigest.postUnfinished(evening))
+        assertTrue(env.notifier.unfinished.isEmpty())
     }
 
     // --- The weekly debt summary --------------------------------------------------------------------

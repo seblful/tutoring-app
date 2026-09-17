@@ -7,6 +7,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
@@ -165,6 +166,35 @@ class MigrationChainTest {
      * The `(from, to)` step of every migration the project declares, ascending — empty while
      * `Migrations.kt` does not exist, which is the state a schema sitting *at* its baseline is in.
      */
+    /**
+     * **A migration that changes the `classes` view's columns must recreate the view**, and this is the
+     * cheap half of enforcing it.
+     *
+     * Room validates views after a migration and recreates none of them, so a view left projecting the old
+     * columns is compared against the new schema and the upgrade dies with `Migration didn't properly
+     * handle: classes` - on first launch after an update, with the whole step rolled back. `MIGRATION_6_7`
+     * shipped that way onto one phone before this existed.
+     *
+     * What is asserted is the *shape* of the fix rather than when it is needed, because "did this step
+     * change a projected column" is not answerable from source text: a step that recreates the view must
+     * do it from [CLASSES_VIEW_SQL], never from a second copy of the `SELECT` that is free to drift by a
+     * space. Whether a given step *needs* to is the instrumented tests' question - they run the real
+     * migration and let Room do the comparing.
+     */
+    @Test
+    fun `a migration that recreates the classes view builds it from the shared constant`() {
+        val code = SourceText.code(
+            ProjectFiles.sourceFileOrNull("data/local/Migrations.kt")?.readText().orEmpty(),
+        )
+        if (!code.contains("CREATE VIEW")) return
+        assertTrue(
+            "A migration writes out the `classes` view's SELECT by hand. Room validates views against " +
+                "the schema and never recreates them, so the recreated view has to be character-for-" +
+                "character the declared one - use CLASSES_VIEW_SQL, which @DatabaseView also reads.",
+            code.contains("CREATE VIEW `classes` AS \$CLASSES_VIEW_SQL"),
+        )
+    }
+
     private fun migrationSteps(): List<Pair<Int, Int>> {
         val source = ProjectFiles.sourceFileOrNull("data/local/Migrations.kt") ?: return emptyList()
         return Regex("""Migration\((\d+)\s*,\s*(\d+)\)""")

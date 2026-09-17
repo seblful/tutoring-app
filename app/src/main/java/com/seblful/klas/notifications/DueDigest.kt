@@ -7,9 +7,11 @@ import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.Billing
+import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.DaySummary
 import com.seblful.klas.domain.Digests
 import com.seblful.klas.domain.GroupRules
+import com.seblful.klas.domain.LessonPhase
 import com.seblful.klas.domain.Reminders
 import com.seblful.klas.domain.Reports
 import com.seblful.klas.domain.model.LessonStatus
@@ -20,7 +22,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Everything the two digests do when they come due, except the firing: read what they are about, decide
+ * Everything the three digests do when they come due, except the firing: read what they are about, decide
  * whether they are still worth posting, and post them.
  *
  * Outside the worker for the reason [DueReminder] is: a `CoroutineWorker` can only be driven with a
@@ -77,24 +79,70 @@ class DueDigest @Inject constructor(
             summary = DaySummary.of(sessions),
             lessons = sessions
                 .filter { it.status != LessonStatus.CANCELLED }
-                .map { session ->
-                    Digests.Agenda.Entry(
-                        start = session.start,
-                        subject = subjects.getById(session.first.subjectId)?.name.orEmpty(),
-                        // The same rule a reminder is announced by: the group's name when there is one,
-                        // since a lesson taught to four is not one student's.
-                        who = Reminders.announcedBy(
-                            groupName = session.first.groupId?.let { groups.getById(it)?.name },
-                            studentName = students.getById(session.first.studentId)?.name,
-                        ),
-                    )
-                },
+                .map { session -> entryFor(session) },
         )
 
         if (!agenda.isWorthPosting) return false
         notifier.showAgenda(agenda, current.currency)
         return true
     }
+
+    /**
+     * Posts the evening list of today's **unfinished** lessons, and reports whether it did.
+     *
+     * Unfinished is [LessonPhase.OVERDUE] — the lesson ended and its status is still `SCHEDULED` — asked
+     * of the same rule auto-completion asks (`ClassRules.shouldAutoComplete`), so the two can never
+     * disagree about which lessons those are. Read at the instant the digest fires rather than for the
+     * whole evening: a lesson that ends at 21:30 is not yet unmarked at 21:00, and saying it is would be
+     * asking the tutor about a lesson they are still teaching.
+     *
+     * **Today's, not every lesson ever left unmarked.** The day is the unit the tutor closes down, and a
+     * digest that dragged in last month's forgotten Tuesday would be a backlog report arriving nightly
+     * with no way to dismiss it. The backlog has an owner already: turning auto-completion on sweeps it,
+     * and says what it settled.
+     *
+     * Posts nothing when there is nothing unmarked, by the rule every digest here follows — an evening
+     * with no notification is the app saying the day is closed.
+     */
+    suspend fun postUnfinished(now: Instant = clock.instant()): Boolean {
+        val current = settings.get()
+        if (!current.unfinishedDigestEnabled) return false
+
+        val zone = clock.zone
+        val day = now.atZone(zone).toLocalDate()
+        val dayClasses = classes.observeBetween(
+            day.atStartOfDay(zone).toInstant(),
+            day.plusDays(1).atStartOfDay(zone).toInstant(),
+        ).first()
+
+        val digest = Digests.Unfinished(
+            lessons = GroupRules.sessions(dayClasses)
+                .filter { LessonPhase.of(it, now).isUnfinished }
+                .map { session -> entryFor(session) },
+        )
+
+        if (!digest.isWorthPosting) return false
+        notifier.showUnfinished(digest)
+        return true
+    }
+
+    /**
+     * One line about one lesson — when it was, what it was, and who it was with.
+     *
+     * Shared by the morning and evening digests because it is the same sentence: the agenda listed the
+     * day's lessons this way first, and an evening list that named them differently would be the app
+     * describing one lesson two ways in one day.
+     */
+    private suspend fun entryFor(session: ClassSession): Digests.Agenda.Entry = Digests.Agenda.Entry(
+        start = session.start,
+        subject = subjects.getById(session.first.subjectId)?.name.orEmpty(),
+        // The same rule a reminder is announced by: the group's name when there is one, since a lesson
+        // taught to four is not one student's.
+        who = Reminders.announcedBy(
+            groupName = session.first.groupId?.let { groups.getById(it)?.name },
+            studentName = students.getById(session.first.studentId)?.name,
+        ),
+    )
 
     /**
      * Posts the weekly summary of who owes money, and reports whether it did.

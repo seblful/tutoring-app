@@ -51,6 +51,21 @@ data class AppSettings(
     val debtDayOfWeek: Int = 1,
     /** What time the debt digest is posted, minutes since local midnight. See [agendaMinuteOfDay]. */
     val debtMinuteOfDay: Int = 9 * 60,
+    /**
+     * Whether the evening digest naming the day's **unfinished** lessons is posted — the lessons that
+     * have finished and that nobody has said happened or not ([com.seblful.klas.domain.LessonPhase.OVERDUE]).
+     *
+     * Off by default, as [dailyAgendaEnabled]. It is the counterpart of [autoCompleteEnabled] rather than
+     * a companion to it: with auto-completion on there is nothing left unfinished by the time this fires,
+     * so the two are the app's two answers to "the lesson ended and nobody said anything" — assume it
+     * happened, or ask. Both may be on; the digest then simply has nothing to post.
+     */
+    val unfinishedDigestEnabled: Boolean = false,
+    /**
+     * What time the evening digest is posted, minutes since local midnight — 1260 is 21:00. See
+     * [agendaMinuteOfDay] for why this is an `Int`.
+     */
+    val unfinishedMinuteOfDay: Int = 21 * 60,
     val autoCompleteEnabled: Boolean = false,
     val themeMode: String = "SYSTEM",
     /**
@@ -140,11 +155,11 @@ data class SettingsChange(val before: AppSettings, val after: AppSettings) {
     val replansReminders: Boolean get() = moved { it.reminderLeadMinutes }
 
     /**
-     * Whether the two digests have to be re-planned: each is a single piece of work enqueued for the next
+     * Whether the digests have to be re-planned: each is a single piece of work enqueued for the next
      * time it is due, so **every** field that decides when — or whether — it fires invalidates what is
      * already enqueued.
      *
-     * All five in one arm rather than one arm each, because they discharge to the same call and splitting
+     * All seven in one arm rather than one arm each, because they discharge to the same call and splitting
      * them would only invite a caller to discharge half. Switching a digest **off** counts too: the work
      * already enqueued would otherwise still fire, and a notification arriving after the switch that
      * governs it was turned off is the same class of defect as [sweepsDueLessons] — a setting whose tail
@@ -155,7 +170,9 @@ data class SettingsChange(val before: AppSettings, val after: AppSettings) {
             moved { it.agendaMinuteOfDay } ||
             moved { it.debtDigestEnabled } ||
             moved { it.debtDayOfWeek } ||
-            moved { it.debtMinuteOfDay }
+            moved { it.debtMinuteOfDay } ||
+            moved { it.unfinishedDigestEnabled } ||
+            moved { it.unfinishedMinuteOfDay }
 
     /**
      * Whether the lessons already waiting have to be settled now: turning auto-completion **on** owes
@@ -260,6 +277,8 @@ class SettingsRepository @Inject constructor(
             debtDigestEnabled = debtDigestEnabled,
             debtDayOfWeek = debtDayOfWeek,
             debtMinuteOfDay = debtMinuteOfDay,
+            unfinishedDigestEnabled = unfinishedDigestEnabled,
+            unfinishedMinuteOfDay = unfinishedMinuteOfDay,
             autoCompleteEnabled = autoCompleteEnabled,
             themeMode = themeMode,
             dynamicColorEnabled = dynamicColorEnabled,
@@ -294,6 +313,8 @@ class SettingsRepository @Inject constructor(
         debtDigestEnabled = debtDigestEnabled,
         debtDayOfWeek = debtDayOfWeek,
         debtMinuteOfDay = debtMinuteOfDay,
+        unfinishedDigestEnabled = unfinishedDigestEnabled,
+        unfinishedMinuteOfDay = unfinishedMinuteOfDay,
         autoCompleteEnabled = autoCompleteEnabled,
         themeMode = themeMode,
         dynamicColorEnabled = dynamicColorEnabled,

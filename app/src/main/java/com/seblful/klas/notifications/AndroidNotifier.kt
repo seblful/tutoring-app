@@ -78,6 +78,14 @@ class AndroidNotifier @Inject constructor(
         )
         manager.createNotificationChannel(
             channel(
+                CHANNEL_UNFINISHED,
+                R.string.unfinished_channel_name,
+                R.string.unfinished_channel_desc,
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ),
+        )
+        manager.createNotificationChannel(
+            channel(
                 CHANNEL_DEBTS,
                 R.string.debts_channel_name,
                 R.string.debts_channel_desc,
@@ -210,6 +218,43 @@ class AndroidNotifier @Inject constructor(
         post(ID_AGENDA, notification)
     }
 
+    override fun showUnfinished(unfinished: Digests.Unfinished) {
+        if (!permission.isGranted()) return
+        ensureChannels()
+
+        // The same list the morning agenda is drawn as, capped the same way — see [TrayContent].
+        val posting = TrayContent.unfinished(unfinished)
+        val style = NotificationCompat.InboxStyle()
+        val hour12 = hour12()
+        posting.lines.forEach { entry ->
+            style.addLine(bulletJoin(entry.start.formatTime(hour12 = hour12), entry.subject, entry.who))
+        }
+        if (posting.more > 0) {
+            style.setSummaryText(words.getString(R.string.agenda_more, posting.more))
+        }
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_UNFINISHED)
+            .setSmallIcon(R.drawable.ic_stat_reminder)
+            .setContentTitle(words.getString(R.string.unfinished_title))
+            // The count, not a total: nothing here has billed, so there is no money to print beside it.
+            .setContentText(
+                words.resources.getQuantityString(
+                    R.plurals.unfinished_lessons,
+                    unfinished.count,
+                    unfinished.count,
+                ),
+            )
+            .setStyle(style)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setAutoCancel(true)
+            // Straight to today's schedule, where each of these is one swipe from being marked. No
+            // action buttons: «Проведено» on a list of five lessons could only guess, and this one bills.
+            .setContentIntent(openApp(ID_UNFINISHED, TrayNavigation.ACTION_OPEN_TODAY))
+            .build()
+
+        post(ID_UNFINISHED, notification)
+    }
+
     override fun showDebts(debts: Digests.Debts, currency: Currency) {
         if (!permission.isGranted()) return
         ensureChannels()
@@ -324,6 +369,7 @@ class AndroidNotifier @Inject constructor(
     companion object {
         const val CHANNEL_REMINDERS = "class_reminders"
         const val CHANNEL_AGENDA = "daily_agenda"
+        const val CHANNEL_UNFINISHED = "unfinished_digest"
         const val CHANNEL_DEBTS = "debt_digest"
         const val CHANNEL_UPKEEP = "upkeep_report"
 
@@ -340,6 +386,7 @@ class AndroidNotifier @Inject constructor(
         private const val ID_AGENDA = -2
         private const val ID_DEBTS = -3
         private const val ID_UPKEEP = -4
+        private const val ID_UNFINISHED = -5
 
         /**
          * `UPDATE_CURRENT` so a re-posted reminder carries the lesson's current id in its extras rather

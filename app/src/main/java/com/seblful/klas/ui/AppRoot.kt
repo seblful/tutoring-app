@@ -17,7 +17,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -147,7 +149,18 @@ private fun MainApp() {
         .lastOrNull { it.destination.route in TopDestination.routes }
         ?.destination?.route
 
-    OpensTheLessonAReminderNames(navController)
+    /**
+     * A ticket the evening digest punches to say «and put the schedule on today».
+     *
+     * A counter rather than a boolean, so a second tap on the same notification is a second ticket —
+     * `LaunchedEffect` restarts on a changed key and a boolean already true would key the same value.
+     * Hoisted here because the navigation it accompanies is hoisted here, and it is not a route argument
+     * because [Routes.SCHEDULE] is the graph's start destination: giving it a parameter would mean every
+     * arrival, including the launcher's, having to state a day.
+     */
+    var openToday by remember { mutableIntStateOf(0) }
+
+    OpensTheLessonAReminderNames(navController) { openToday++ }
 
     // **The chrome leaves with the screen, not ahead of it.** Whether the tabs apply is settled the
     // instant `navigate` is called, but the screen they belong to takes the length of a fade to go
@@ -191,6 +204,7 @@ private fun MainApp() {
         ) {
             screen(Routes.SCHEDULE) {
                 ScheduleScreen(
+                    openTodayTicket = openToday,
                     onAddClass = { navController.navigate(Routes.classEdit(0)) },
                     onEditClass = { navController.navigate(Routes.classEdit(it)) },
                     // The way out of "nothing can be booked yet": the schedule's empty state offers
@@ -296,7 +310,7 @@ private fun MainApp() {
 
 /**
  * Sends the tutor where a notification they tapped asks them to go — a lesson for a reminder's
- * «Перенести», the reports for the weekly debt digest.
+ * «Перенести», the reports for the weekly debt digest, today's schedule for the evening one.
  *
  * A notification cannot show a date picker or list who owes what, so each carries an action and this is
  * where it becomes navigation. **Which** destination an intent asks for is [TrayNavigation.destinationFor]'s
@@ -312,7 +326,7 @@ private fun MainApp() {
  * launch intent, which without it would re-open the lesson the tutor had already navigated away from.
  */
 @Composable
-private fun OpensTheLessonAReminderNames(navController: NavHostController) {
+private fun OpensTheLessonAReminderNames(navController: NavHostController, onOpenToday: () -> Unit) {
     val activity = LocalActivity.current as? ComponentActivity
 
     val open: (Intent) -> Unit = { intent ->
@@ -331,6 +345,18 @@ private fun OpensTheLessonAReminderNames(navController: NavHostController) {
                 popUpTo(navController.graph.startDestinationId) { saveState = true }
                 launchSingleTop = true
                 restoreState = true
+            }
+            // The schedule tab, switched to the way the bottom bar switches to it — and then put on
+            // today, which is the day the digest is about. Restoring the tab's saved state alone would
+            // land the tutor on whatever day they were last browsing, which for a notification saying
+            // «3 занятия не отмечены» would show a week with none of them in it.
+            TrayNavigation.Destination.Today -> {
+                navController.navigate(Routes.SCHEDULE) {
+                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+                onOpenToday()
             }
             null -> Unit
         }

@@ -109,18 +109,27 @@ data class KlasColors(
     val successContainer: Color,
     /** What is legible on [successContainer]. */
     val onSuccessContainer: Color,
+    /**
+     * The amber a lesson **in progress** is badged «Идёт» in (`classPhaseColor`).
+     *
+     * Here rather than in the Material scheme for [success]'s reason, and unaffected by dynamic colour
+     * for the same one: "the tutor is in this lesson right now" is an answer, not a matter of taste.
+     */
+    val live: Color,
 )
 
 private val LightKlasColors = KlasColors(
     success = md_success,
     successContainer = md_successContainer,
     onSuccessContainer = md_onSuccessContainer,
+    live = md_live,
 )
 
 private val DarkKlasColors = KlasColors(
     success = md_success_d,
     successContainer = md_successContainer_d,
     onSuccessContainer = md_onSuccessContainer_d,
+    live = md_live_d,
 )
 
 private val LocalKlasColors = staticCompositionLocalOf { LightKlasColors }

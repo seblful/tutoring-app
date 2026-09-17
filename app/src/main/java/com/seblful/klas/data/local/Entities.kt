@@ -200,6 +200,21 @@ data class LessonEntity(
     /** The group whose lesson this is, or null for one student's. */
     val groupId: Long? = null,
     val mode: String = "IN_PERSON",
+    /**
+     * What the tutor wrote about this hour: what was covered, what was set for home.
+     *
+     * **On the lesson and not on [AttendanceEntity]**, for the reason [status] is: it describes the hour,
+     * so a group's three members share one note rather than three copies of it that could drift. A note
+     * addressed to one student is a different feature and would want its own column beside their
+     * attendance; nothing in the app asks for one yet.
+     *
+     * Added by the v6 → v7 migration, whose `DEFAULT ''` this `defaultValue` must match exactly or Room's
+     * schema validation fails the instant the upgrade finishes. Empty is the honest backfill: a lesson
+     * taught before the app could hold a note has none, and inventing text for it would be the app
+     * claiming to remember something.
+     */
+    @ColumnInfo(defaultValue = "''")
+    val notes: String = "",
 )
 
 /**
@@ -238,6 +253,28 @@ data class AttendanceEntity(
 )
 
 /**
+ * The `classes` view's `SELECT`, **stated once and read twice**: by [ClassRow]'s `@DatabaseView` and by
+ * whichever migration last changed the columns it projects.
+ *
+ * It has to be shared, because **Room validates views on migration and does not recreate them.** A
+ * migration that adds a column the view projects must drop and recreate the view itself, or Room compares
+ * the old view against the new schema and throws `Migration didn't properly handle: classes` — on first
+ * launch after a Play update, with the upgrade rolled back. That is exactly what `MIGRATION_6_7` did on a
+ * real phone before this constant existed, `lessons.notes` having been added to the view here and nowhere
+ * else. A second copy written out in the migration would have worked and would have been free to drift by
+ * a space; this cannot.
+ *
+ * `const`, because `@DatabaseView` is an annotation argument and so needs a compile-time constant.
+ */
+const val CLASSES_VIEW_SQL: String =
+    "SELECT a.id AS id, a.lessonId AS lessonId, a.studentId AS studentId, " +
+        "a.state AS state, a.priceMinor AS priceMinor, a.chargeMinor AS chargeMinor, " +
+        "a.calendarEventId AS calendarEventId, l.subjectId AS subjectId, " +
+        "l.startMillis AS startMillis, l.durationMinutes AS durationMinutes, " +
+        "l.status AS status, l.groupId AS groupId, l.mode AS mode, l.notes AS notes " +
+        "FROM attendance a JOIN lessons l ON l.id = a.lessonId"
+
+/**
  * One student's class: their [AttendanceEntity] row with its lesson's facts alongside it.
  *
  * A **view**, so the two tables are joined by SQLite once rather than by every caller. It is what the
@@ -245,20 +282,13 @@ data class AttendanceEntity(
  * unchanged from when that was a table: the columns are the same columns. Writes go to the two tables
  * (`LessonDao`, `AttendanceDao`) — the point of the split being that each fact has one home.
  *
- * **Its SQL is stated once, here.** It used to be written out a second time in `MIGRATION_1_2`, which had
- * to create the view as part of the upgrade, with Room validating the two were identical against
- * `schemas/2.json`. That migration went with the squash (see `AppDatabase.BASELINE_VERSION`), so there is
- * no second copy left to drift — and none of the duplication's cost either.
+ * **Its SQL is stated once, in [CLASSES_VIEW_SQL].** A migration that changes the columns it projects has
+ * to recreate the view — Room validates views and never recreates them — so there are genuinely two
+ * readers of this `SELECT`, and they share the constant rather than each writing it out. `MIGRATION_1_2`
+ * used to write out its own copy; that migration went with the squash (see `AppDatabase.BASELINE_VERSION`),
+ * and when the need came back with `MIGRATION_6_7` it came back as one string rather than two.
  */
-@DatabaseView(
-    viewName = "classes",
-    value = "SELECT a.id AS id, a.lessonId AS lessonId, a.studentId AS studentId, " +
-        "a.state AS state, a.priceMinor AS priceMinor, a.chargeMinor AS chargeMinor, " +
-        "a.calendarEventId AS calendarEventId, l.subjectId AS subjectId, " +
-        "l.startMillis AS startMillis, l.durationMinutes AS durationMinutes, " +
-        "l.status AS status, l.groupId AS groupId, l.mode AS mode " +
-        "FROM attendance a JOIN lessons l ON l.id = a.lessonId",
-)
+@DatabaseView(viewName = "classes", value = CLASSES_VIEW_SQL)
 data class ClassRow(
     val id: Long = 0,
     val lessonId: Long = 0,
@@ -274,6 +304,8 @@ data class ClassRow(
     val chargeMinor: Long = 0,
     val groupId: Long? = null,
     val mode: String = "IN_PERSON",
+    /** The **lesson's** note — see [LessonEntity.notes]. */
+    val notes: String = "",
     val calendarEventId: String? = null,
 )
 
@@ -333,6 +365,23 @@ data class SettingsEntity(
 
     @ColumnInfo(defaultValue = "540")
     val debtMinuteOfDay: Int = 9 * 60,
+    /**
+     * Whether the evening digest naming the day's **unfinished** lessons is posted, and at what minute
+     * past local midnight (1260 = 21:00).
+     *
+     * Added by the v6 → v7 migration, whose `DEFAULT`s these `defaultValue`s must match exactly. **Off by
+     * default**, like the two digests above and for the same reason: a notification the tutor did not ask
+     * for is one the app should not start sending, and an install being upgraded has never had this one.
+     *
+     * 21:00 rather than a later hour because it is the end of a tutoring day rather than the end of the
+     * day: lessons run into the evening, and a digest at midnight would be read the next morning about
+     * yesterday. It is the tutor's to move, which is the whole reason it is a column.
+     */
+    @ColumnInfo(defaultValue = "0")
+    val unfinishedDigestEnabled: Boolean = false,
+
+    @ColumnInfo(defaultValue = "1260")
+    val unfinishedMinuteOfDay: Int = 21 * 60,
     /**
      * Whether finished classes auto-complete (and bill) without manual confirmation. **Off by
      * default**: billing a class the tutor hasn't confirmed risks over-stating a student's debt, so

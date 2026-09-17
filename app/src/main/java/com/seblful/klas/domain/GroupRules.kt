@@ -130,6 +130,11 @@ data class SessionEdit(
     /** The hourly rate every class of the lesson is (re)billed at. */
     val price: Money,
     /**
+     * What the tutor wrote about the hour — see [TutoringClass.notes]. Shared like every other field
+     * here: one lesson, one note, whoever was in it.
+     */
+    val notes: String = "",
+    /**
      * Who the lesson belongs to after the edit. An **individual** class may be re-attributed to
      * another student, which credits the new owner at [price].
      *
@@ -207,6 +212,7 @@ object GroupRules {
         durationMinutes = changes.durationMinutes,
         price = changes.price,
         mode = changes.mode,
+        notes = changes.notes,
     )
 
     /**
@@ -260,6 +266,10 @@ object GroupRules {
                     attended = if (session.status.isBillable) Attended.PRESENT else Attended.EXPECTED,
                     groupId = session.groupId,
                     mode = changes.mode,
+                    // The lesson's note, not a blank one: a joiner joins *this hour*, and the hour's note
+                    // is one of the things it consists of. A row carrying "" for a lesson whose other rows
+                    // carry text would be the `classes` view disagreeing with itself about one lesson.
+                    notes = changes.notes,
                 )
             },
         )

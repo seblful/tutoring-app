@@ -81,8 +81,8 @@ class Maintenance @Inject constructor(
                 horizon = horizon,
             ),
         )
-        // The digests are re-planned by the same pass and from the same settings read, for the reason the
-        // reminder plan is: this runs at every app start, after a reboot, on every periodic tick and
+        // The three digests are re-planned by the same pass and from the same settings read, for the
+        // reason the reminder plan is: this runs at every app start, after a reboot, on every periodic tick and
         // behind every settings change, so there is exactly one place where "what the tutor has asked for"
         // becomes "what is arranged". A digest whose time was changed while the app was closed is put
         // right by the next pass rather than staying wrong until something happened to touch it.
@@ -92,6 +92,8 @@ class Maintenance @Inject constructor(
                 zone = clock.zone,
                 agendaEnabled = s.dailyAgendaEnabled,
                 agendaMinuteOfDay = s.agendaMinuteOfDay,
+                unfinishedEnabled = s.unfinishedDigestEnabled,
+                unfinishedMinuteOfDay = s.unfinishedMinuteOfDay,
                 debtsEnabled = s.debtDigestEnabled,
                 debtDayOfWeek = s.debtDayOfWeek,
                 debtMinuteOfDay = s.debtMinuteOfDay,

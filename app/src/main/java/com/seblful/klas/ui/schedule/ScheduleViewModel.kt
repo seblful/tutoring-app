@@ -13,6 +13,7 @@ import com.seblful.klas.domain.Captions
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.DaySummary
 import com.seblful.klas.domain.GroupRules
+import com.seblful.klas.domain.LessonPhase
 import com.seblful.klas.domain.NowMarker
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
@@ -263,6 +264,21 @@ sealed interface ScheduleContent {
 
     /** The visible week's sections, earliest day first; each day carries its own summary. */
     data class Week(val sections: List<WeekSection>) : ScheduleContent
+
+    /**
+     * Every lesson row this content holds, whichever shape it is.
+     *
+     * **Not the defaults that were deleted**, and the difference is the whole of why this is allowed to
+     * be on the interface: `rows` and `sections` were each a question only *one* shape could answer, so
+     * the other answered it with an empty list and the screen believed it. "Which lessons are on screen"
+     * is a question both shapes genuinely answer, and nothing narrowing depends on it — it is asked only
+     * by [ScheduleViewModel.running], which is about the clock and not about the view.
+     */
+    val rowsShown: List<ScheduleRow>
+        get() = when (this) {
+            is Day -> rows
+            is Week -> sections.flatMap { it.rows }
+        }
 }
 
 /**
@@ -628,6 +644,34 @@ class ScheduleViewModel @Inject constructor(
             NowMarker.positionIn(rows.map { it.session }, date, now, zone)
         }
             .derive(this, computation, null)
+
+    /**
+     * The lessons **happening right now**, by lesson id — what the schedule badges «Идёт».
+     *
+     * A set of ids rather than a phase per row, for the reason [nowMark] is an index rather than a
+     * re-assembled list: the tick fires every minute and a `StateFlow` conflates an equal value, so an
+     * hour of ticks over an unchanged set costs sixty comparisons and no recomposition at all. Rebuilding
+     * the rows each minute to carry their own phase would instead redraw the whole day, sixty times an
+     * hour, for a word that changes twice.
+     *
+     * A **set** and not a single id, although one tutor teaching one lesson at a time is an invariant the
+     * repository enforces on every write ([ClassRepository] refuses an occupied hour): a restored backup
+     * is reproduced as given and is not checked for overlaps, so two rows can overlap in a database this
+     * app did not write. A set says that without needing the guarantee to hold.
+     *
+     * Derived over the rows the active view is showing, so it covers all three: a week agenda badges the
+     * running lesson in the day it belongs to, and the month's day list badges it like the day view.
+     *
+     * **A test that collects this must advance time by a stated amount, never `advanceUntilIdle()`** —
+     * see [nowMark], which has the same clock underneath it.
+     */
+    val running: StateFlow<Set<Long>> =
+        combine(content, minutes) { loaded, now ->
+            loaded.valueOrNull()?.rowsShown.orEmpty()
+                .filter { LessonPhase.of(it.session, now).isRunning }
+                .mapTo(mutableSetOf()) { it.session.lessonId }
+        }
+            .derive(this, computation, emptySet())
 
     /**
      * Switches view. Opening a calendar view on a page that doesn't contain the selected day would

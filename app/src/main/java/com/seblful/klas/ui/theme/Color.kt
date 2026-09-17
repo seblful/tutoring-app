@@ -44,6 +44,23 @@ val md_success = Color(0xFF146C2E)
 val md_successContainer = Color(0xFFA6F2B5)
 val md_onSuccessContainer = Color(0xFF00210A)
 
+/*
+ * The amber a lesson **happening right now** is said in — the second role Material's scheme has no slot
+ * for, carried beside it for [KlasColors]' reason rather than borrowed from an accent.
+ *
+ * Every accent is already spoken for, and each would say the wrong thing: `primary` is the indigo of a
+ * lesson *still to come*, which is precisely the state «Идёт» has to be told apart from; `tertiary` is
+ * the teal of the individual-lesson icon (`LessonKindUi`), so a one-to-one lesson and a running one would
+ * be one colour; `success` is green and means *taught*, which a lesson in progress is not yet; `error`
+ * red is a cancellation and a debt. Amber is the colour "live" is written in outside this app, it is
+ * unclaimed inside it, and it sits between the blue of what is coming and the green of what is done — the
+ * order the lesson actually moves in.
+ *
+ * One tone, not a pair: this is only ever a *word* (the badge tints its own pill from it), and there is
+ * no panel that means "in progress" the way the swipe's panel means "taught".
+ */
+val md_live = Color(0xFF8B5000)
+
 val md_background = Color(0xFFFBF8FF)
 val md_onBackground = Color(0xFF1B1B21)
 val md_surface = Color(0xFFFBF8FF)
@@ -98,6 +115,9 @@ val md_onErrorContainer_d = Color(0xFFFFDAD6)
 val md_success_d = Color(0xFF8BD99A)
 val md_successContainer_d = Color(0xFF005322)
 val md_onSuccessContainer_d = Color(0xFFA6F2B5)
+
+/** The same amber after dark: lightened so the word reads on a dark surface, as [md_success_d] is. */
+val md_live_d = Color(0xFFFFB86E)
 
 val md_background_d = Color(0xFF121318)
 val md_onBackground_d = Color(0xFFE3E1E9)

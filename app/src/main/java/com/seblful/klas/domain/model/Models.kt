@@ -80,6 +80,10 @@ data class Price(
  * @param charge recognized income: [Money.ZERO] unless [isBillable].
  * @param groupId the [Group] whose lesson this is, or null for an individual one.
  * @param mode in person or remote; pre-filled from the student's default, editable per lesson.
+ * @param notes what the tutor wrote down about the hour — what was covered, and what was set for home.
+ *   **The lesson's**, like [status]: one note for one hour, shared by every class of it, because it
+ *   describes the room rather than a person in it. Blank means nothing was written, which is why there
+ *   is no null to tell apart from it.
  * @param calendarEventId id of the mirrored Google Calendar event, if synced. Per student: a group
  *   lesson mirrors as one event each, so each keeps their own invitation.
  */
@@ -96,6 +100,7 @@ data class TutoringClass(
     val charge: Money = Money.ZERO,
     val groupId: Long? = null,
     val mode: ClassMode = ClassMode.IN_PERSON,
+    val notes: String = "",
     val calendarEventId: String? = null,
 ) {
     val end: Instant get() = start.plusSeconds(durationMinutes * 60L)

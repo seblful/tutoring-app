@@ -267,7 +267,10 @@ class MaintenanceTest {
     fun `a pass plans nothing for a digest that is off`() = runTest(mainRule.dispatcher) {
         maintenance().run(now)
 
-        assertEquals(Digests.Plan(agendaAt = null, debtsAt = null), env.digestScheduler.planned)
+        assertEquals(
+            Digests.Plan(agendaAt = null, unfinishedAt = null, debtsAt = null),
+            env.digestScheduler.planned,
+        )
     }
 
     @Test

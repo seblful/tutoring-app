@@ -17,7 +17,8 @@ import com.seblful.klas.domain.Digests
 object TrayContent {
 
     /**
-     * How many lessons the morning agenda names before it starts counting the rest.
+     * How many lessons a digest that *lists* lessons names before it starts counting the rest — the
+     * morning agenda and the evening unfinished list both.
      *
      * `InboxStyle` draws each line whole and elides the ones that do not fit rather than truncating the
      * middle of a sentence, and it shows about six. So a fuller day says how many more it is not naming
@@ -39,5 +40,19 @@ object TrayContent {
     fun agenda(agenda: Digests.Agenda): AgendaPosting = AgendaPosting(
         lines = agenda.lessons.take(MAX_AGENDA_LINES),
         more = (agenda.lessons.size - MAX_AGENDA_LINES).coerceAtLeast(0),
+    )
+
+    /**
+     * What [unfinished] comes to on screen — the same cap and the same «ещё N», because it is the same
+     * `InboxStyle` list drawn by the same platform at the other end of the day.
+     *
+     * Stated as its own function rather than by the caller reaching for [agenda] with a hand-built
+     * `Agenda`: the two digests are different things that happen to be listed alike, and coupling them
+     * through a type neither of them is would make the evening list carry a `DaySummary` it has no use
+     * for. The shared part is the constant.
+     */
+    fun unfinished(unfinished: Digests.Unfinished): AgendaPosting = AgendaPosting(
+        lines = unfinished.lessons.take(MAX_AGENDA_LINES),
+        more = (unfinished.lessons.size - MAX_AGENDA_LINES).coerceAtLeast(0),
     )
 }

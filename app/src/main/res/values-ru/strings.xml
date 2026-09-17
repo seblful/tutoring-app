@@ -165,6 +165,9 @@
     <string name="class_student_label">Ученик</string>
     <string name="class_subject_label">Предмет</string>
     <string name="class_no_subjects_for_student">У ученика нет предметов с ценой. Укажите цену в карточке ученика.</string>
+    <string name="class_notes_label">Заметки и домашнее задание</string>
+    <!-- Пример, а не инструкция: что сюда писать, понятно с первой заполненной строки. -->
+    <string name="class_notes_placeholder">Квадратные уравнения. Дома: §12, упр. 4–7</string>
     <string name="class_date_label">Дата</string>
     <string name="class_time_from_label">Начало</string>
     <!--
@@ -267,6 +270,12 @@
     <string name="class_status_scheduled">В плане</string>
     <string name="class_status_completed">Проведено</string>
     <string name="class_status_cancelled">Отменено</string>
+    <!--
+      Не четвёртый статус: занятие «идёт» по часам, а не потому, что так сказал репетитор, — значит,
+      это вычисляется (domain/LessonPhase) и нигде не хранится. На время занятия заменяет «В плане» и
+      единственное в приложении пишется янтарным цветом KlasColors.live.
+    -->
+    <string name="class_status_in_progress">Идёт</string>
 
     <!--
       Individual vs group lessons: one vocabulary for the distinction, used everywhere it is drawn —
@@ -543,6 +552,13 @@
     <string name="settings_agenda">Расписание на день</string>
     <string name="settings_agenda_desc">Утром присылать список занятий на сегодня</string>
     <string name="settings_agenda_time">Когда присылать</string>
+    <!--
+      Вечерняя пара к автозавершению: когда оно включено, к этому часу неотмеченных занятий уже нет —
+      поэтому описание говорит, зачем это, а не только что оно делает.
+    -->
+    <string name="settings_unfinished_digest">Неотмеченные занятия</string>
+    <string name="settings_unfinished_digest_desc">Вечером присылать занятия, которые не отмечены как проведённые или отменённые</string>
+    <string name="settings_unfinished_digest_time">Когда присылать</string>
     <string name="settings_debt_digest">Сводка по долгам</string>
     <string name="settings_debt_digest_desc">Раз в неделю присылать, кто сколько должен</string>
     <string name="settings_debt_digest_day">День недели</string>
@@ -690,6 +706,20 @@
     <string name="agenda_title">Сегодня</string>
     <!-- An InboxStyle draws about six lines; a fuller day says how many it is not naming. -->
     <string name="agenda_more">Ещё %1$d</string>
+
+    <string name="unfinished_channel_name">Неотмеченные занятия</string>
+    <string name="unfinished_channel_desc">Вечерняя сводка: занятия без отметки «проведено» или «отменено»</string>
+    <string name="unfinished_title">Занятия без отметки</string>
+    <!--
+      Занятия, а не деньги: ни одно из них ничего не начислило, так что рядом со счётчиком нечего
+      напечатать, не объявив доход, которого отчёты ещё не признают.
+    -->
+    <plurals name="unfinished_lessons">
+        <item quantity="one">%1$d занятие без отметки</item>
+        <item quantity="few">%1$d занятия без отметки</item>
+        <item quantity="many">%1$d занятий без отметки</item>
+        <item quantity="other">%1$d занятия без отметки</item>
+    </plurals>
 
     <string name="debts_channel_name">Задолженности</string>
     <string name="debts_channel_desc">Еженедельная сводка: кто сколько должен</string>

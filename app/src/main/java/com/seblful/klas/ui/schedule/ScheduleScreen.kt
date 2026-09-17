@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -98,8 +99,9 @@ import com.seblful.klas.ui.common.SwipeToConfirmBox
 import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.armedPop
 import com.seblful.klas.ui.common.classModeLabel
-import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
+import com.seblful.klas.ui.common.lessonBadgeColor
+import com.seblful.klas.ui.common.lessonBadgeLabel
 import com.seblful.klas.ui.common.map
 import com.seblful.klas.ui.common.popsOnChange
 import com.seblful.klas.ui.common.rememberMessages
@@ -118,8 +120,18 @@ fun ScheduleScreen(
     onAddClass: () -> Unit,
     onEditClass: (Long) -> Unit,
     onAddStudent: () -> Unit,
+    /**
+     * Bumped when the evening digest's tray entry asks for today — see `AppRoot`.
+     *
+     * A ticket rather than a flag the screen has to clear: this screen is the graph's start destination
+     * and its view model outlives every arrival at it, so "put it on today" has to be an *event*. Zero
+     * is "nobody has asked", which is the launcher's ordinary case and every recomposition after one.
+     */
+    openTodayTicket: Int = 0,
     viewModel: ScheduleViewModel = hiltViewModel(),
 ) {
+    LaunchedEffect(openTodayTicket) { if (openTodayTicket > 0) viewModel.goToToday() }
+
     // One state for the body: only the active view's lessons are assembled (see ScheduleContent).
     val contentState by viewModel.content.collectAsState()
     // **Narrowed to the day rather than read for its day half.** The state can legitimately hold the
@@ -141,6 +153,8 @@ fun ScheduleScreen(
     val timeConflict by viewModel.timeConflict.collectAsState()
     // Where "now" falls in the selected day's list, or null when that day is not today — see [NowMarker].
     val nowMark by viewModel.nowMark.collectAsState()
+    // Which lessons are being taught right this minute — see [ScheduleViewModel.running].
+    val running by viewModel.running.collectAsState()
     // Whose lessons are on screen, or null for everyone's. Both the chip and the queries read this one
     // value, so the schedule can never be quietly narrowed with nothing saying so.
     val studentFilter by viewModel.studentFilter.collectAsState()
@@ -310,6 +324,7 @@ fun ScheduleScreen(
                         state = dayContent.map { it.rows },
                         emptyReason = emptyReason,
                         nowMark = nowMark,
+                        running = running,
                         onRowClick = { sheetFor = it },
                         onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
                         onAddClass = onAddClass,
@@ -359,6 +374,7 @@ fun ScheduleScreen(
                                 items(section.rows, key = { it.klass.id }) { row ->
                                     SwipeToCompleteCard(
                                         row = row,
+                                        running = row.session.lessonId in running,
                                         onClick = { sheetFor = row },
                                         onComplete = {
                                             viewModel.setStatus(row.session, LessonStatus.COMPLETED)
@@ -393,6 +409,7 @@ fun ScheduleScreen(
                             state = dayContent.map { it.rows },
                             emptyReason = emptyReason,
                             nowMark = nowMark,
+                            running = running,
                             onRowClick = { sheetFor = it },
                             onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
                             onAddClass = onAddClass,
@@ -407,6 +424,7 @@ fun ScheduleScreen(
     sheetFor?.let { row ->
         ClassActionsSheet(
             row = row,
+            running = row.session.lessonId in running,
             sheetState = rememberModalBottomSheetState(),
             onEdit = { onEditClass(row.klass.id); sheetFor = null },
             // **The same «done» the swipe gives**, because it is the same act. Marking a lesson taught by
@@ -531,6 +549,7 @@ private fun LazyListScope.dayList(
     state: Loadable<List<ScheduleRow>>,
     emptyReason: ScheduleEmpty,
     nowMark: Int?,
+    running: Set<Long>,
     onRowClick: (ScheduleRow) -> Unit,
     onComplete: (ScheduleRow) -> Unit,
     onAddClass: () -> Unit,
@@ -563,6 +582,7 @@ private fun LazyListScope.dayList(
             item(key = row.klass.id, contentType = "lesson") {
                 SwipeToCompleteCard(
                     row = row,
+                    running = row.session.lessonId in running,
                     onClick = { onRowClick(row) },
                     onComplete = { onComplete(row) },
                 )
@@ -700,12 +720,13 @@ private fun viewModeLabel(mode: ScheduleViewMode): Int = when (mode) {
 @Composable
 private fun LazyItemScope.SwipeToCompleteCard(
     row: ScheduleRow,
+    running: Boolean,
     onClick: () -> Unit,
     onComplete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (!row.canSwipeComplete) {
-        ScheduleCard(row, onClick, modifier.animateItem())
+        ScheduleCard(row, running, onClick, modifier.animateItem())
         return
     }
     SwipeToConfirmBox(
@@ -741,12 +762,17 @@ private fun LazyItemScope.SwipeToCompleteCard(
             }
         },
     ) {
-        ScheduleCard(row, onClick)
+        ScheduleCard(row, running, onClick)
     }
 }
 
 @Composable
-private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun ScheduleCard(
+    row: ScheduleRow,
+    running: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     // Whether the card recedes is the row's own answer — see [ScheduleRow.recedes]: a day with
     // four lessons and three cancellations must not look like a full day.
     val cancelled = row.recedes
@@ -803,7 +829,7 @@ private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit, modifier: Modifi
                 }
             }
             Spacer(Modifier.width(Spacing.inline))
-            SessionStatusBadge(row)
+            SessionStatusBadge(row, running)
         }
     }
 }
@@ -818,12 +844,15 @@ private fun ScheduleCard(row: ScheduleRow, onClick: () -> Unit, modifier: Modifi
  * corrected from the sheet too: the same fact changed under them, by a different route.
  */
 @Composable
-private fun SessionStatusBadge(row: ScheduleRow) {
+private fun SessionStatusBadge(row: ScheduleRow, running: Boolean) {
     val status = row.session.status
     StatusBadge(
-        text = classStatusLabel(status),
-        color = classStatusColor(status),
-        modifier = Modifier.popsOnChange(status),
+        text = lessonBadgeLabel(status, running),
+        color = lessonBadgeColor(status, running),
+        // Keyed on **what the badge says**, not on the status alone: a lesson beginning changes the word
+        // without changing the status, and a pill that changed silently at four o'clock would be the one
+        // moment in the app where a state change is not announced.
+        modifier = Modifier.popsOnChange(status to running),
     )
 }
 
@@ -1041,6 +1070,7 @@ private val NowDotSize = 6.dp
 @Composable
 private fun ClassActionsSheet(
     row: ScheduleRow,
+    running: Boolean,
     sheetState: androidx.compose.material3.SheetState,
     onEdit: () -> Unit,
     onStatus: (LessonStatus) -> Unit,
@@ -1068,13 +1098,23 @@ private fun ClassActionsSheet(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                SessionStatusBadge(row)
+                SessionStatusBadge(row, running)
             }
 
             // The lesson's state, as a state: every status it can be in, with the current one shown
             // selected. Offering only the transitions (as a list of actions did) meant the sheet never
             // said what the lesson *is* — the tutor had to infer it from which verbs were absent.
             StatusSelector(row = row, onStatus = onStatus)
+
+            // **The note, where it is read.** This is the one screen a tutor is already on between
+            // lessons, and a homework line locked inside the edit form would be something to go and find
+            // — so «Проверить» would cost the same two taps as «Изменить», which is what makes a written
+            // note not worth writing. It is shown only when there is one: an empty block on every lesson
+            // would be four lines of nothing on the app's busiest sheet, and the form is where a note is
+            // *added*.
+            if (klass.notes.isNotBlank()) {
+                LessonNotes(klass.notes)
+            }
 
             HorizontalDivider(Modifier.padding(vertical = Spacing.inline))
 
@@ -1098,6 +1138,37 @@ private fun ClassActionsSheet(
         }
     }
 }
+
+/**
+ * What the tutor wrote about this lesson, read-only, under its status.
+ *
+ * Selectable, because the commonest thing to do with «§ 12, упр. 4–7» is send it to the student — and a
+ * lesson's note is one of the few places in the app holding text the tutor typed rather than picked. It
+ * is capped at a handful of lines: the sheet is a set of actions and a note long enough to scroll would
+ * push them off the screen, so a long one is read in full on the lesson's own form.
+ */
+@Composable
+private fun LessonNotes(notes: String) {
+    Column(Modifier.padding(horizontal = SheetGutter, vertical = Spacing.inline)) {
+        Text(
+            stringResource(R.string.class_notes_label),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = Spacing.tight),
+        )
+        SelectionContainer {
+            Text(
+                notes,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = SheetNoteLines,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/** How much of a note the actions sheet shows before «Изменить» is the way to read the rest. */
+private const val SheetNoteLines = 4
 
 /**
  * The lesson's status as a segmented control.

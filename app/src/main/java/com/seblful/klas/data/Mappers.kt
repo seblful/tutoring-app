@@ -114,6 +114,7 @@ fun ClassRow.toDomain() = TutoringClass(
     charge = Money(chargeMinor),
     groupId = groupId,
     mode = modeOf(mode),
+    notes = notes,
     calendarEventId = calendarEventId,
 )
 
@@ -133,6 +134,7 @@ fun TutoringClass.toLessonEntity() = LessonEntity(
     status = status.name,
     groupId = groupId,
     mode = mode.name,
+    notes = notes,
 )
 
 fun TutoringClass.toAttendanceEntity() = AttendanceEntity(

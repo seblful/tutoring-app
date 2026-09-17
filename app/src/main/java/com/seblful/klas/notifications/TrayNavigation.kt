@@ -5,9 +5,10 @@ package com.seblful.klas.notifications
  *
  * It began as `ReminderNavigation`, about the single thing a reminder can ask the app to open: a lesson,
  * because «Перенести» needs a screen a notification cannot draw. The weekly debt digest is the second
- * such ask, and it is not a reminder at all — so the name and the answer are the tray's now rather than
- * one notification kind's. What a *move* is remains unencoded: the tutor is simply put in front of the
- * lesson, where a date and time are changed and where a clash on the new hour is already refused.
+ * such ask and the evening digest the third, and neither is a reminder at all — so the name and the
+ * answer are the tray's now rather than one notification kind's. What a *move* is remains unencoded: the
+ * tutor is simply put in front of the lesson, where a date and time are changed and where a clash on the
+ * new hour is already refused.
  *
  * [destinationFor] is a function of two plain values rather than of an `Intent`, and that is the whole
  * point of it: an `Intent` can only be built on a device, so "which intents mean go somewhere" is exactly
@@ -15,8 +16,8 @@ package com.seblful.klas.notifications
  * launcher intent far more often than by a notification, and answering that one wrongly would yank the
  * tutor onto a lesson every single time they open the app.
  *
- * A **sealed** answer rather than a nullable id per destination, so adding a third tray entry cannot
- * quietly add a third boolean to the composable that reads this: every arm has to be handled there.
+ * A **sealed** answer rather than a nullable id per destination, so adding a further tray entry cannot
+ * quietly add another boolean to the composable that reads this: every arm has to be handled there.
  */
 object TrayNavigation {
 
@@ -26,6 +27,7 @@ object TrayNavigation {
      */
     const val ACTION_OPEN_LESSON = "com.seblful.klas.action.OPEN_LESSON"
     const val ACTION_OPEN_DEBTS = "com.seblful.klas.action.OPEN_DEBTS"
+    const val ACTION_OPEN_TODAY = "com.seblful.klas.action.OPEN_TODAY"
 
     /**
      * The extra every notification intent carries its lesson in — **declared once**.
@@ -59,6 +61,22 @@ object TrayNavigation {
          * to the screen that can.
          */
         data object Debts : Destination
+
+        /**
+         * The schedule, **on today** — where the evening digest's unmarked lessons are, and where the
+         * swipe that marks one taught already lives.
+         *
+         * Today rather than "wherever the schedule was left": the digest is about this day, and landing
+         * on last Tuesday because that is the page the tutor last browsed would be an answer to a
+         * different question. It is the tab rather than a pushed screen, for [Debts]'s reason — a
+         * notification that pushed a screen on top of wherever they were would leave a back arrow and no
+         * tab selected.
+         *
+         * Deliberately **not a lesson**: there are several, and «Проведено» from the tray is a reminder's
+         * button about one lesson. Billing a whole evening's lessons from a tray entry that may be hours
+         * stale is the one thing this digest must not offer.
+         */
+        data object Today : Destination
     }
 
     /**
@@ -72,6 +90,7 @@ object TrayNavigation {
     fun destinationFor(action: String?, classId: Long): Destination? = when {
         action == ACTION_OPEN_LESSON -> lessonIdOrNull(classId)?.let { Destination.Lesson(it) }
         action == ACTION_OPEN_DEBTS -> Destination.Debts
+        action == ACTION_OPEN_TODAY -> Destination.Today
         else -> null
     }
 }

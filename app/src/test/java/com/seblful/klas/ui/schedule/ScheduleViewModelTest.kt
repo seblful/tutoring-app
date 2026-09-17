@@ -218,6 +218,47 @@ class ScheduleViewModelTest {
         assertEquals("once it has started, the mark is below it", 1, vm.nowMark.value)
     }
 
+    /**
+     * «Идёт» arrives and leaves on its own — which is the whole claim of not storing it.
+     *
+     * The badge is drawn from this set, so what the schedule says about a lesson in progress is decided
+     * here, once a minute, against the injected clock. A test that only checked the middle of the lesson
+     * would miss the half that matters: nothing writes an end, so the word has to *stop* by itself too.
+     *
+     * As `the now mark follows the clock past a lesson`: **no `advanceUntilIdle()`**, the tick never ends.
+     */
+    @Test
+    fun `a lesson is marked as running only while it is running`() = runTest(mainRule.dispatcher) {
+        val subj = env.fixtures.subject("Математика")
+        val sid = env.fixtures.pricedStudent("Аня", subj)
+        val day = LocalDate.of(2026, 5, 18)
+        // 08:59, one minute before an hour-long lesson at nine.
+        val clock = MutableClock(day.atTime(8, 59).atZone(zone).toInstant(), zone)
+        env.fixtures.lesson(
+            subjectId = subj,
+            students = listOf(sid),
+            start = day.atTime(9, 0).atZone(zone).toInstant(),
+            minutes = 60,
+        )
+
+        val vm = vm(clock)
+        observing(vm.content)
+        observing(vm.running)
+        val minute = java.time.Duration.ofMinutes(1).toMillis()
+        advanceTimeBy(minute)
+        assertEquals("not yet", emptySet<Long>(), vm.running.value)
+
+        val lessonId = vm.content.dayContent.rows.single().session.lessonId
+        clock.advanceBy(minute)
+        advanceTimeBy(minute)
+        assertEquals("on now", setOf(lessonId), vm.running.value)
+
+        // Through to the far side of the hour: nothing wrote an end, so the word has to stop by itself.
+        clock.advanceBy(60 * minute)
+        advanceTimeBy(60 * minute)
+        assertEquals("over, and unmarked rather than running", emptySet<Long>(), vm.running.value)
+    }
+
     /** A day that is not today has no "now" in it, and must not have one drawn at either end. */
     @Test
     fun `another day gets no now mark`() = runTest(mainRule.dispatcher) {

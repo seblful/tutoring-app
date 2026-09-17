@@ -36,13 +36,13 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, `Recurrence`/`Repeat` (what a repeating booking's dates are), calendar layout, `CalendarSyncPolicy`, reminders, `Digests` (the two summaries: when each fires, whether one already due is still owed, whether it is worth sending, and `Arrangement` — what should become of the queue), reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught` (+ `Hint`, which of "still to come" and "called off" the stat tile says), `DaySummary`/`NowMarker` (what a day comes to, **which clauses its sentence has** — `parts` — and where "now" falls in it), `Captions` (the names a lesson is captioned with), `Attendance` (what a lesson's roster comes to), `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, `PaymentDate`, models (incl. `Balance` — settled, credit or owed — `Currency`, `AppLanguage` — the two settings that are about *reading* the app rather than about a lesson — and the report-only id types, `model/Ids.kt`), and the `ReminderScheduler`/`DigestScheduler` ports. All JVM-tested. |
+| `domain/` | Pure Kotlin, no Android deps. Billing, class/group rules, scheduling, `Recurrence`/`Repeat` (what a repeating booking's dates are), calendar layout, `CalendarSyncPolicy`, reminders, `LessonPhase` (where a lesson stands *now* — the derived «Идёт», and the one definition of "finished and unmarked"), `Digests` (the three summaries: when each fires, whether one already due is still owed, whether it is worth sending, and `Arrangement` — what should become of the queue), reports (+ `ReportPeriod`, `ReportCsv`), `PeopleSearch`, `Taught` (+ `Hint`, which of "still to come" and "called off" the stat tile says), `DaySummary`/`NowMarker` (what a day comes to, **which clauses its sentence has** — `parts` — and where "now" falls in it), `Captions` (the names a lesson is captioned with), `Attendance` (what a lesson's roster comes to), `LessonKind`/`LessonFilter`, `AvatarPalette`, `Diagnostics`, `PaymentDate`, models (incl. `Balance` — settled, credit or owed — `Currency`, `AppLanguage` — the two settings that are about *reading* the app rather than about a lesson — and the report-only id types, `model/Ids.kt`), and the `ReminderScheduler`/`DigestScheduler` ports. All JVM-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`, `Migrations` (every way *into* the current schema), the `Transactor` port, and `upsertedId` — the one statement of `@Upsert`'s -1-on-update sentinel (the fakes reproduce it, so the fallback branch runs on the JVM too). Entities are also `@Serializable`, for the backup. `SnapshotDao` is the **separate** whole-table seam (see *Two interfaces onto the same tables*). |
 | `data/Mappers.kt` | Entities ⇄ domain models. Where a stored enum is parsed back. |
 | `data/repository/` | One invariant each, end to end, written in one transaction (see *Ownership*). Display **name ordering** is applied here. |
 | `data/backup/` | The **file format**: export, transactional replace-all import, `BackupIntegrity` (what a file must be readable as before any of it is written), `BackupFailure` (which refusal it was) and `BackupRestore` (everything a *restore* means beyond the rows). What tables exist and the order they may be emptied and filled in is `SnapshotDao`'s. |
 | `calendar/` | `CalendarSync` + `CalendarPermission` ports and a `CalendarContract` adapter — which **takes the permission port** rather than checking for itself, and whose two decisions are pure and beside it: `CalendarChoice.preferred` (which calendar may be written to, and in what order of preference) and `guestAction` (add the student, withdraw them, or leave the event alone). |
-| `notifications/` | `Notifier`, `NotificationPermission` and `ExactAlarmPermission` ports + Android adapters, `DueReminder` and `DueDigest` (what each notification says, and whether it is still owed), `TrayContent` (**how much of it fits** — the agenda's cap and its «+N»), `ReminderActions`/`TrayNavigation` (what a tray entry's buttons and taps do) and `ReminderAlarms`/`ReminderReceiver`/`ReminderActionReceiver` — reminders are **alarms**, not deferrable work. |
+| `notifications/` | `Notifier`, `NotificationPermission` and `ExactAlarmPermission` ports + Android adapters, `DueReminder` and `DueDigest` (what each notification says, and whether it is still owed), `TrayContent` (**how much of it fits** — the listing digests' cap and their «+N»), `ReminderActions`/`TrayNavigation` (what a tray entry's buttons and taps do) and `ReminderAlarms`/`ReminderReceiver`/`ReminderActionReceiver` — reminders are **alarms**, not deferrable work. |
 | `work/` | WorkManager's half: the periodic `MaintenanceWorker`, the two `DigestWorkers`, `WorkScheduler`, `BootReceiver` (alarms die on reboot), and `Maintenance` — what an upkeep pass decides, kept out of the worker. |
 | `diagnostics/` | `CrashLogger` over `CrashLogStore`/`DeviceInfo` ports; the pure half is `domain/Diagnostics`. Viewed and exported from `ui/diagnostics`. |
 | `storage/` | `DocumentStore` port + SAF adapter over an opaque `DocumentRef`, and `DocumentSharing` + its `ACTION_SEND`/`FileProvider` adapter — so no view model touches a `Uri`, an `Intent` or a `Context`. Two ports because the acts differ: one writes where the tutor pointed, the other hands a file to another app. |
@@ -136,7 +136,8 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   never touches existing classes.
 - **Balances and income are derived**, never stored.
 - **Status**: `scheduled → completed | cancelled`, with corrections. Auto-completes once the end time
-  passes (opt-in). Cancelling voids the charge — there is no "missed" status.
+  passes (opt-in). Cancelling voids the charge — there is no "missed" status. **«Идёт» is not a fourth
+  one** — see *A lesson's phase is derived, never stored*.
 - **Reports cover active students only**, so archiving hides a debt — the app warns first.
 - **A report is read inside a period** (`domain/ReportPeriod`): a month, a year, or all time, opening
   on the **year in progress**. **Debts are the deliberate exception** — a balance spans a student's
@@ -294,6 +295,40 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   - What made rows one lesson used to be a `(groupId, start)` pair no schema could hold: edit one member's
     time and the lesson silently became two, each blocking the other's hour. It is a foreign key now, and
     a move is one row's update.
+- **A lesson's phase is derived, never stored** (`domain/LessonPhase`): `UPCOMING | IN_PROGRESS | OVERDUE
+  | SETTLED`, from the stored status and the injected clock. It is what the schedule badges «Идёт» with,
+  and it is deliberately **not** a fourth `LessonStatus`. A status is something the tutor decides;
+  "the lesson is on right now" is something the clock knows, and storing it would need a writer at each
+  start — an alarm, or the upkeep pass — which can only ever be *late*: a phone switched off over the
+  lesson, a Doze window, a boot mid-hour, and the row says «В плане» while the tutor is in the room, or
+  «Идёт» the next morning. Derived, it cannot be wrong and cannot get stuck, and `LessonStatus`, its
+  transition table, the billing rule, the backup format and `StoredEnumNamesTest` are all untouched.
+  - **`OVERDUE` is the same sentence auto-completion was already saying.** "Finished, and still
+    scheduled" decides both `ClassRules.shouldAutoComplete` and what the evening digest counts, and two
+    hand-written boundary comparisons could disagree by an instant — which would mean the notification
+    naming lessons the upkeep pass had already settled, or staying silent about ones it had not. The
+    half-open `[start, end)` is `Scheduling.Slot`'s, so back-to-back lessons are never both running.
+  - **Cheap by construction.** The schedule publishes the *running lesson ids* once a minute
+    (`ScheduleViewModel.running`), not a phase per row: a `StateFlow` conflates an equal set, so an hour
+    of ticks costs sixty comparisons and no recomposition — the argument `NowMarker`'s index already
+    makes. A **set** and not one id, because a restored backup is reproduced as given and is not checked
+    for overlaps, so two rows can overlap in a database this app did not write.
+  - The badge shows it and nothing else does. `OVERDUE` reads exactly as `UPCOMING` does on the card —
+    such a lesson *is* still scheduled, and a fourth word there would be a state the tutor never set;
+    what it is owed is a nudge at the end of the day. «Идёт» is the one place `KlasColors.live` (amber)
+    is used, every other accent being already spoken for — see that colour's own note.
+- **A lesson carries a note** (`lessons.notes`, v7): what was covered, what was set for home. **The
+  lesson's**, like its status — one note for one hour, shared by every class of it, because it describes
+  the room rather than a person in it. So a joiner added to a group lesson gets the lesson's note
+  (`GroupRules.rosterChange`), or the `classes` view would hand one lesson's rows two different answers.
+  Blank is "nothing written"; there is no null to tell apart from it.
+  - **It rides the ordinary edit** (`ClassEdit`/`SessionEdit`) rather than having a writer of its own, so
+    it cannot bypass the rebill that an edit owes. A run of bookings copies it to every occurrence and
+    each is editable afterwards, like every other field a series copies.
+  - **It is read where the tutor already is.** The form is where a note is *added*; the schedule's
+    actions sheet is where it is *checked*, under the status, selectable and capped at four lines — a
+    homework line locked inside the edit form would cost the same two taps to read as to change, which is
+    what makes a written note not worth writing. Shown only when there is one.
 - **A lesson is the unit of change.** Every write takes a `ClassSession`: a group lesson's *n* classes,
   or one student's class as a session of one. Re-attributing a class is expressible only for a
   session of one. The one exception is `setAttendance`, which is about one person rather than the hour.
@@ -413,8 +448,8 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   nothing else, is `exported="false"`, and hands out only the per-file read grant that travels with an
   `ACTION_SEND` intent and dies with it. A provider pointing at `.` would have made `klas.db` requestable
   by authority alone.
-- **The database is at v6 and the baseline is v5** (`AppDatabase.BASELINE_VERSION`) — the oldest version
-  any `klas.db` can be at, so `data/local/Migrations.kt` holds exactly one step. That file was deleted once
+- **The database is at v7 and the baseline is v5** (`AppDatabase.BASELINE_VERSION`) — the oldest version
+  any `klas.db` can be at, so `data/local/Migrations.kt` holds exactly two steps. That file was deleted once
   already: a chain of four, v1 → v5, squashed before the first release because every step of it was dead code.
   `com.seblful.klas` v0.2.0 (`versionCode` 3) declared schema **v1** and reached nobody — it is a tag, not a
   shipped artifact; v2–v5 were all written after it, so no device ever held an intermediate version; and the
@@ -438,12 +473,18 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
     real states, a populated settings row and no row at all, since an `ADD COLUMN` with the wrong `DEFAULT`
     hides on an empty table. It asserts the row's *other* columns too: a migration that dropped and
     recreated the table would validate against the schema perfectly.
+  - **v7 (`MIGRATION_6_7`) is the second, and the first to touch a table with history in it**:
+    `lessons.notes`, plus the evening digest's two settings columns. `LessonNotesMigrationTest` is its
+    device half and adds the check a settings migration does not need — that the **`classes` view** comes
+    back projecting the new column. Room drops and recreates its views after the migrations run, from the
+    `@DatabaseView` declaration, so every read of a lesson in the app depends on something that is true by
+    construction right up until it is not.
 - **The destructive fallback is debug-only.** A release build **refuses to open** a database it cannot
   migrate: a crash leaves every row on disk for the next build, and is recoverable in the way a wipe
   is not.
 - **Every schema change past the baseline bumps the version and ships a migration**, with an entity's
   `defaultValue` and the migration's `DEFAULT` kept in step; `MigrationChainTest` makes that a rule rather
-  than a habit. **`BackupData.version` (currently 6) is the other half of the compatibility story, and the
+  than a habit. **`BackupData.version` (currently 7) is the other half of the compatibility story, and the
   two are now independent** — it is the only bridge out of `com.seblful.repetit`, and the reason v6 still
   reads a v1–v5 file's flat `classes` list and splits it on the way in (`splitIntoLessons`). A backup
   **file** version is not a schema version: files written by old builds keep existing after the migrations
@@ -563,6 +604,21 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
     adapter is now a `when` that maps each answer to the platform call for it. Whether the queue is worth
     asking about is still the adapter's, but only as a **read**: a digest that is off is taken down without
     the round trip, and `arrangementFor` answers `Cancel` either way.
+  - **The evening one is the counterpart of auto-completion, not a companion to it.** Both answer "the
+    lesson ended and nobody said anything": auto-completion assumes it happened and bills it, this one
+    asks. So a tutor with auto-completion on gets nothing from it, which is correct and is what the
+    setting's own description says. It counts **lessons and nothing else** — no money line, unlike the
+    other two — because nothing in it has billed, and printing what the evening *would* have come to
+    would state income the reports do not recognise. It names today's, not every lesson ever left
+    unmarked: the day is the unit a tutor closes down, and the backlog already has an owner (turning
+    auto-completion on sweeps it and says what it settled). A lesson still **running** at nine is not
+    unmarked yet — that boundary is `LessonPhase`'s, shared with auto-completion.
+  - **It lands on today's schedule** (`TrayNavigation.Destination.Today`), where each of those lessons is
+    one swipe from being marked, and it carries **no action button**: «Проведено» on a list of five could
+    only guess which, and it bills. Today rather than the day the schedule was last left on — `AppRoot`
+    passes a ticket into `ScheduleScreen`, because the schedule is the graph's start destination and its
+    view model outlives every arrival at it, so "put it on today" has to be an event rather than an
+    argument every arrival including the launcher's would have to state.
 - **A digest says nothing rather than saying nothing happened.** An empty day, a day whose only lesson was
   called off, a week with no debts: no notification at all. The agenda prints the **same** `DaySummary`
   sentence the schedule puts under that day (`format/daySummaryText`, one rule, two readers) and lists the
@@ -1136,6 +1192,12 @@ impossible**, and three of them carry a tripwire.
 
 - **`ui/theme/`**: curated Material 3 palette (indigo + teal), light/dark with a SYSTEM/LIGHT/DARK
   setting, dynamic colour off for a consistent brand.
+- **Amber means *on now*** (`KlasColors.live`), the second role Material's scheme has no slot for. Every
+  accent was spoken for and each would have said the wrong thing: `primary` is the indigo of a lesson
+  *still to come*, which is exactly what «Идёт» has to be told apart from; `tertiary` is the individual
+  lesson's teal; `success` is green and means *taught*, which a running lesson is not yet; `error` red is
+  a cancellation and a debt. One tone rather than a pair — this is only ever a word, and no panel means
+  "in progress" the way the swipe's panel means "taught". Unaffected by dynamic colour, like the green.
 - **Green means *taught*, and it is the app's own colour role** (`KlasColors`, handed down by `KlasTheme`
   beside the Material scheme). «Проведено» used to be `tertiary` — the palette's teal — so it read as a
   second blue next to the indigo of a lesson still to come, and the panel the swipe revealed
@@ -1291,7 +1353,7 @@ read and nothing that owns a lesson after it exists.
 - **CI** (`.github/workflows/ci.yml`) runs the unit suite, `lintDebug`, the debug APK and the
   *compilation* of the instrumented tests on every PR and every push to `main`/`develop` — a tripwire
   nobody runs is not a tripwire. The instrumented tests themselves still need a device.
-- **Instrumented tests** (`src/androidTest`, 12 classes) cover Room integration — including the FK
+- **Instrumented tests** (`src/androidTest`, 13 classes) cover Room integration — including the FK
   cascade and restrict rules (`SubjectDeletionCascadeTest`) — backup round-trip and restore, calendar
   sync, auto-completion, and the questions that need real rendering: text measurement
   (`BottomBarLabelTest` for the tab labels, `StatRowAutoSizeTest` for a stat tile's amount — both through
@@ -1311,14 +1373,16 @@ read and nothing that owns a lesson after it exists.
   a Hilt component, or a WorkManager `Configuration` — and the process dies without it, so the *whole
   run* reports **zero tests** rather than a failure. It looked like flakiness in whichever test was
   unlucky. The argument lives in `androidTest/KlasTestApp.kt`; the rules are what make it hold.
-- **There is no migration test, because there is no migration** — `androidTest/.../MigrationTest` went with
-  the chain it exercised. What it did is worth restating, because the next migration owes it: a real v1
-  database built from an exported schema, migrated against `MigrationTestHelper` with the rows asserted, and
-  `runMigrationsAndValidate` refusing a result that does not match the exported schema column for column.
-  That validation is the half a hand-written `ALTER TABLE` needs — a `DEFAULT` on one side and not the other
-  fails there rather than on a phone. It is instrumented, so CI can only ever compile it; `MigrationChainTest`
-  is the unit-suite half that runs on every push, and it guards a migration's *existence* and wiring rather
-  than its behaviour.
+- **Every migration owes a device test, and both have one** (`SettingsLanguageMigrationTest`,
+  `LessonNotesMigrationTest`). The shape is fixed: a real database at the old version built from its
+  exported schema, rows written as **SQL** (the old entity no longer exists to write them with), migrated
+  under `MigrationTestHelper`, and `runMigrationsAndValidate` refusing a result that does not match the
+  exported schema column for column. That validation is the half a hand-written `ALTER TABLE` needs — a
+  `DEFAULT` on one side and not the other fails there rather than on a phone. Each also asserts the
+  **other** columns of a row it migrated, because a migration that dropped and recreated the table would
+  validate perfectly; and each covers the empty table, where a wrong `DEFAULT` has no row to be visible on.
+  They are instrumented, so CI can only ever compile them; `MigrationChainTest` is the unit-suite half that
+  runs on every push, guarding a migration's *existence* and wiring rather than its behaviour.
 - Notification display and real calendar writes can only be observed on a device.
 
 ---

@@ -55,13 +55,60 @@ class ClassRepositoryTest {
     /** The lesson class [id] belongs to — a session of one, for an individual class. */
     private suspend fun session(id: Long) = repo.getSessionFor(id)!!
 
-    private fun edit(price: Money = Money.ofMajor(30)) = SessionEdit(
+    private fun edit(price: Money = Money.ofMajor(30), notes: String = "") = SessionEdit(
         subjectId = 1,
         durationMinutes = 60,
         mode = ClassMode.IN_PERSON,
         price = price,
+        notes = notes,
         studentId = STUDENT,
     )
+
+    // --- The lesson's note --------------------------------------------------------------------------
+
+    @Test
+    fun `a note typed while booking is stored with the lesson`() = runTest {
+        val id = repo.book(
+            subjectId = 1,
+            start = defaultStart,
+            durationMinutes = 60,
+            mode = ClassMode.IN_PERSON,
+            studentIds = listOf(STUDENT),
+            price = Money.ofMajor(30),
+            notes = "§12, упр. 4–7",
+        ).written().single()
+
+        assertEquals("§12, упр. 4–7", repo.getById(id)!!.notes)
+    }
+
+    /** A lesson booked without one has no note, rather than a null the readers would have to handle. */
+    @Test
+    fun `a lesson booked without a note has a blank one`() = runTest {
+        assertEquals("", repo.getById(book())!!.notes)
+    }
+
+    /**
+     * The commonest way a note is written: after the lesson, on a row that already exists. It rides the
+     * ordinary edit rather than a writer of its own, so it cannot bypass the rebill that edit owes.
+     */
+    @Test
+    fun `a note can be added to a lesson that is already booked`() = runTest {
+        val id = book()
+
+        repo.apply(session(id), edit(notes = "Прошли квадратные уравнения"), defaultStart, now)
+
+        assertEquals("Прошли квадратные уравнения", repo.getById(id)!!.notes)
+    }
+
+    @Test
+    fun `an edit can clear a note back to nothing`() = runTest {
+        val id = book()
+        repo.apply(session(id), edit(notes = "черновик"), defaultStart, now)
+
+        repo.apply(session(id), edit(notes = ""), defaultStart, now)
+
+        assertEquals("", repo.getById(id)!!.notes)
+    }
 
     @Test
     fun `booking persists the class and refreshes reminders, but skips the calendar while sync is off`() = runTest {

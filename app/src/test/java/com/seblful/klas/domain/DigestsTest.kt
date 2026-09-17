@@ -195,6 +195,8 @@ class DigestsTest {
             zone = minsk,
             agendaEnabled = true,
             agendaMinuteOfDay = nine,
+            unfinishedEnabled = false,
+            unfinishedMinuteOfDay = nine,
             debtsEnabled = false,
             debtDayOfWeek = 1,
             debtMinuteOfDay = nine,
@@ -202,6 +204,32 @@ class DigestsTest {
 
         assertEquals(Instant.parse("2026-06-15T06:00:00Z"), plan.agendaAt)
         assertEquals("nothing arranged, which is what cancels it", null, plan.debtsAt)
+        assertEquals("and the same for the evening one", null, plan.unfinishedAt)
+    }
+
+    /**
+     * The evening digest is a second *daily* one, so it rolls forward exactly as the morning's does — and
+     * the two are planned from the same read, each at its own hour. Nine and nine is not the interesting
+     * case; nine and twenty-one is, because it is the one where passing the two minute values in each
+     * other's place would still produce a plausible-looking plan.
+     */
+    @Test
+    fun `the morning and evening digests are planned at their own hours`() {
+        val plan = Digests.plan(
+            // 15:00 UTC = 18:00 in Minsk: the morning's has gone, the evening's has not.
+            now = Instant.parse("2026-06-15T15:00:00Z"),
+            zone = minsk,
+            agendaEnabled = true,
+            agendaMinuteOfDay = nine,
+            unfinishedEnabled = true,
+            unfinishedMinuteOfDay = 21 * 60,
+            debtsEnabled = false,
+            debtDayOfWeek = 1,
+            debtMinuteOfDay = nine,
+        )
+
+        assertEquals("tomorrow at nine", Instant.parse("2026-06-16T06:00:00Z"), plan.agendaAt)
+        assertEquals("tonight at nine", Instant.parse("2026-06-15T18:00:00Z"), plan.unfinishedAt)
     }
 
     // --- Whether a digest is worth sending ----------------------------------------------------------
@@ -227,6 +255,28 @@ class DigestsTest {
         val oneOn = DaySummary(lessons = 1, minutes = 60, money = Money.ofMajor(30), cancelled = 1)
 
         assertTrue(Digests.Agenda(oneOn, lessons = emptyList()).isWorthPosting)
+    }
+
+    /**
+     * An evening with nothing left unmarked posts nothing — which is the ordinary evening for a tutor who
+     * marks lessons as they go, and the whole reason this is a nudge rather than a nightly report.
+     */
+    @Test
+    fun `an evening with nothing unmarked is not announced`() {
+        assertFalse(Digests.Unfinished(lessons = emptyList()).isWorthPosting)
+    }
+
+    @Test
+    fun `an evening with an unmarked lesson is announced, and counts them`() {
+        val digest = Digests.Unfinished(
+            lessons = listOf(
+                Digests.Agenda.Entry(Instant.parse("2026-06-15T13:00:00Z"), "Математика", "Иван"),
+                Digests.Agenda.Entry(Instant.parse("2026-06-15T15:00:00Z"), "Физика", "11 «А»"),
+            ),
+        )
+
+        assertTrue(digest.isWorthPosting)
+        assertEquals(2, digest.count)
     }
 
     @Test

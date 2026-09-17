@@ -265,6 +265,7 @@ class FakeClassStore {
                     chargeMinor = a.chargeMinor,
                     groupId = l.groupId,
                     mode = l.mode,
+                    notes = l.notes,
                     calendarEventId = a.calendarEventId,
                 )
             }

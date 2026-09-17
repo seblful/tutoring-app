@@ -9,8 +9,9 @@ import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
 
 /**
- * The app's two **digests** — a morning summary of the day's lessons, and a weekly summary of who owes
- * money — and everything about them that is a decision rather than a platform call.
+ * The app's three **digests** — a morning summary of the day's lessons, an evening list of the ones
+ * nobody marked, and a weekly summary of who owes money — and everything about them that is a decision
+ * rather than a platform call.
  *
  * ### Why these are workers and the lesson reminder is an alarm
  *
@@ -45,12 +46,12 @@ object Digests {
      * When each digest should next fire — **null meaning "not at all"**, which is how a switched-off digest
      * is expressed rather than as a separate cancel call.
      *
-     * One value carrying both, for the reason `SettingsChange.replansDigests` is one arm covering five
-     * fields: the two are always planned together from one settings read, and a plan that could describe
-     * one of them and stay silent about the other would let a caller re-plan half. An adapter handed this
-     * arranges exactly what it says and cancels whatever it does not.
+     * One value carrying all three, for the reason `SettingsChange.replansDigests` is one arm covering
+     * seven fields: they are always planned together from one settings read, and a plan that could
+     * describe one of them and stay silent about another would let a caller re-plan part of it. An
+     * adapter handed this arranges exactly what it says and cancels whatever it does not.
      */
-    data class Plan(val agendaAt: Instant?, val debtsAt: Instant?)
+    data class Plan(val agendaAt: Instant?, val unfinishedAt: Instant?, val debtsAt: Instant?)
 
     /**
      * Works out [Plan] from the tutor's settings — the whole of *when the digests happen*, in one pure
@@ -58,19 +59,24 @@ object Digests {
      *
      * The parameters are the settings fields rather than the settings object, on the rule that keeps this
      * package free of Android and of the data layer (`Reminders.plan` takes a lead and a horizon the same
-     * way). It is six of them because that is genuinely how many facts decide this; naming them at the
-     * call site is what stops the two minutes-past-midnight values being passed in each other's place.
+     * way). It is eight of them because that is genuinely how many facts decide this; naming them at the
+     * call site is what stops the three minutes-past-midnight values being passed in each other's place.
      */
     fun plan(
         now: Instant,
         zone: ZoneId,
         agendaEnabled: Boolean,
         agendaMinuteOfDay: Int,
+        unfinishedEnabled: Boolean,
+        unfinishedMinuteOfDay: Int,
         debtsEnabled: Boolean,
         debtDayOfWeek: Int,
         debtMinuteOfDay: Int,
     ): Plan = Plan(
         agendaAt = if (agendaEnabled) nextDaily(now, zone, agendaMinuteOfDay) else null,
+        // The evening digest is a second daily one and shares [nextDaily] with the morning's: which hour
+        // it is set to is the tutor's, and nothing here privileges 21:00 over 09:00.
+        unfinishedAt = if (unfinishedEnabled) nextDaily(now, zone, unfinishedMinuteOfDay) else null,
         debtsAt = if (debtsEnabled) {
             nextWeekly(now, zone, dayOfWeekOf(debtDayOfWeek), debtMinuteOfDay)
         } else {
@@ -252,6 +258,34 @@ object Digests {
          * did not need to be sent.
          */
         val isWorthPosting: Boolean get() = summary.lessons > 0
+    }
+
+    /**
+     * What the evening digest has to say: the lessons that ended today and that nobody has marked.
+     *
+     * "Unfinished" is [LessonPhase.OVERDUE] — finished and still `SCHEDULED` — which is the same question
+     * auto-completion asks (`ClassRules.shouldAutoComplete`). The two are the app's two answers to it: with
+     * auto-completion on the app assumes the lesson happened and bills it, and with it off the lesson sits
+     * there being neither taught nor called off, which is money the reports do not yet know about. Until
+     * now nothing ever mentioned that; the tutor had to notice.
+     *
+     * **A count and the lessons, not a summary.** [Agenda] prints `DaySummary` because the morning
+     * question is "how big is today"; this one is a to-do list, and a total of what the day *would* come
+     * to would be stating income that has not been recognised.
+     *
+     * @param lessons the unmarked lessons in start order, one entry per lesson — the same [Agenda.Entry]
+     *   the morning digest lists, because a line naming a lesson reads the same way at either end of the
+     *   day and two shapes for it would be two ways to word one thing.
+     */
+    data class Unfinished(val lessons: List<Agenda.Entry>) {
+
+        val count: Int get() = lessons.size
+
+        /**
+         * Nothing unmarked, nothing to say — the ordinary evening for a tutor who marks lessons as they
+         * go, and the whole reason this is not a fixed daily report.
+         */
+        val isWorthPosting: Boolean get() = lessons.isNotEmpty()
     }
 
     /**

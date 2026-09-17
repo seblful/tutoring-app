@@ -125,6 +125,9 @@
     <string name="class_student_label">Student</string>
     <string name="class_subject_label">Subject</string>
     <string name="class_no_subjects_for_student">This student has no priced subjects. Set a price on their card.</string>
+    <string name="class_notes_label">Notes and homework</string>
+    <!-- An example rather than an instruction: what to write here is obvious once one thing is in it. -->
+    <string name="class_notes_placeholder">Quadratic equations. Homework: §12, ex. 4–7</string>
     <string name="class_date_label">Date</string>
     <string name="class_time_from_label">Starts</string>
     <!--
@@ -209,6 +212,12 @@
     <string name="class_status_scheduled">Planned</string>
     <string name="class_status_completed">Taught</string>
     <string name="class_status_cancelled">Cancelled</string>
+    <!--
+      Not a fourth status: a lesson is "on now" because of the clock, not because the tutor said so, so
+      this is derived (domain/LessonPhase) and never stored. It replaces the "Planned" badge for the
+      length of the lesson and is the only place in the app written in the amber of KlasColors.live.
+    -->
+    <string name="class_status_in_progress">On now</string>
 
     <!-- Individual vs group lessons: one vocabulary for the distinction, used everywhere it is drawn. -->
     <string name="lesson_kind_all">All</string>
@@ -443,6 +452,13 @@
     <string name="settings_agenda">Today\'s schedule</string>
     <string name="settings_agenda_desc">Send this morning\'s list of lessons</string>
     <string name="settings_agenda_time">When to send</string>
+    <!--
+      The evening counterpart of auto-completion: with that on nothing is left unmarked for this to
+      name, so the description says what it is for rather than only what it does.
+    -->
+    <string name="settings_unfinished_digest">Unmarked lessons</string>
+    <string name="settings_unfinished_digest_desc">In the evening, list the lessons still not marked as taught or cancelled</string>
+    <string name="settings_unfinished_digest_time">When to send</string>
     <string name="settings_debt_digest">Debt summary</string>
     <string name="settings_debt_digest_desc">Once a week, send who owes what</string>
     <string name="settings_debt_digest_day">Day of the week</string>
@@ -572,6 +588,18 @@
     <string name="agenda_title">Today</string>
     <!-- An InboxStyle draws about six lines; a fuller day says how many it is not naming. -->
     <string name="agenda_more">%1$d more</string>
+
+    <string name="unfinished_channel_name">Unmarked lessons</string>
+    <string name="unfinished_channel_desc">Evening summary: lessons not marked as taught or cancelled</string>
+    <string name="unfinished_title">Lessons not marked</string>
+    <!--
+      Lessons rather than money: none of these has billed anything, so there is no amount to print
+      beside the count without stating income the reports do not recognise.
+    -->
+    <plurals name="unfinished_lessons">
+        <item quantity="one">%1$d lesson still not marked</item>
+        <item quantity="other">%1$d lessons still not marked</item>
+    </plurals>
 
     <string name="debts_channel_name">Debts</string>
     <string name="debts_channel_desc">Weekly summary: who owes what</string>

@@ -328,6 +328,7 @@ class ClassRepository @Inject constructor(
         studentIds: Collection<Long>,
         price: Money,
         groupId: Long? = null,
+        notes: String = "",
     ): LessonWrite<List<Long>> {
         val written = bookSeries(
             subjectId = subjectId,
@@ -337,6 +338,7 @@ class ClassRepository @Inject constructor(
             studentIds = studentIds,
             price = price,
             groupId = groupId,
+            notes = notes,
         )
         return written.skipped.firstOrNull()
             ?.let { LessonWrite.HourTaken(it.clash) }
@@ -374,6 +376,7 @@ class ClassRepository @Inject constructor(
         studentIds: Collection<Long>,
         price: Money,
         groupId: Long? = null,
+        notes: String = "",
     ): SeriesWrite {
         require(studentIds.isNotEmpty()) { "A lesson needs at least one student" }
         require(durationMinutes > 0) { "A lesson lasts a positive number of minutes, not $durationMinutes" }
@@ -406,6 +409,10 @@ class ClassRepository @Inject constructor(
                     studentIds = studentIds,
                     price = price,
                     groupId = groupId,
+                    // Every occurrence of a run gets the same note, which is the only thing a note typed
+                    // once about a term can mean. It is per lesson afterwards, like every other field a
+                    // series copies — editing one Monday's note leaves the other eleven alone.
+                    notes = notes,
                 )
             }
             Committed(rows, mirror = rows)
@@ -430,6 +437,7 @@ class ClassRepository @Inject constructor(
         studentIds: Collection<Long>,
         price: Money,
         groupId: Long?,
+        notes: String,
     ): List<TutoringClass> {
         // The lesson first, once: its hour, subject and status are one fact, and the ids of the rows
         // below are what tie the students to it.
@@ -441,6 +449,7 @@ class ClassRepository @Inject constructor(
             price = price,
             mode = mode,
             groupId = groupId,
+            notes = notes,
         )
         val lessonId = lessons.upsert(lesson.toLessonEntity())
         return studentIds.map { studentId ->

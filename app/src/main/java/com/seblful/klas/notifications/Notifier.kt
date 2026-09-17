@@ -12,9 +12,9 @@ import com.seblful.klas.domain.model.TutoringClass
  * Best-effort, like the calendar mirror: an adapter with no notification permission no-ops rather than
  * throwing, so a missing permission never fails a worker.
  *
- * **Four kinds, four channels** (see [ensureChannels]). They differ in what being late would cost, and
+ * **Five kinds, five channels** (see [ensureChannels]). They differ in what being late would cost, and
  * the app's scheduling follows that rather than the other way round: the reminder is an alarm because an
- * hour's warning delivered during the lesson is wrong rather than late, and the other three are ordinary
+ * hour's warning delivered during the lesson is wrong rather than late, and the other four are ordinary
  * deferrable work (`domain/Digests`, `work/`).
  *
  * Amounts are printed in a [Currency] passed **in**, not read here. Currency is a display setting, and an
@@ -60,6 +60,15 @@ interface Notifier {
      * at all are decisions, and decisions live where a JVM test can reach them ([DueDigest]).
      */
     fun showAgenda(agenda: Digests.Agenda, currency: Currency)
+
+    /**
+     * Posts the evening list of the day's lessons nobody has marked.
+     *
+     * **No currency**, unlike the other two digests, and that is the decision rather than an omission: an
+     * unfinished lesson has recognised nothing, so the only honest figure here would be what the day
+     * *would* come to — a number the reports do not agree with yet. It counts lessons and names them.
+     */
+    fun showUnfinished(unfinished: Digests.Unfinished)
 
     /** Posts the weekly summary of who owes money. */
     fun showDebts(debts: Digests.Debts, currency: Currency)

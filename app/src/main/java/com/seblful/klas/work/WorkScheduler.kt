@@ -71,7 +71,7 @@ class WorkScheduler @Inject constructor(
     }
 
     /**
-     * Arranges the two digests, or cancels one whose instant is null.
+     * Arranges the three digests, or cancels one whose instant is null.
      *
      * **Periodic work with an initial delay**, rather than the alarms the reminders ride: a digest is a
      * summary, and «сегодня 4 занятия» is still true and still useful twenty minutes after nine. Spending
@@ -94,6 +94,7 @@ class WorkScheduler @Inject constructor(
      */
     override suspend fun schedule(plan: Digests.Plan) {
         arrange<AgendaWorker>(AGENDA_DIGEST, plan.agendaAt, Duration.ofDays(1))
+        arrange<UnfinishedDigestWorker>(UNFINISHED_DIGEST, plan.unfinishedAt, Duration.ofDays(1))
         arrange<DebtDigestWorker>(DEBT_DIGEST, plan.debtsAt, Duration.ofDays(7))
     }
 
@@ -170,6 +171,7 @@ class WorkScheduler @Inject constructor(
         const val PERIODIC_MAINTENANCE = "maintenance-periodic"
         const val MAINTENANCE_NOW = "maintenance-now"
         const val AGENDA_DIGEST = "digest-agenda"
+        const val UNFINISHED_DIGEST = "digest-unfinished"
         const val DEBT_DIGEST = "digest-debts"
     }
 }

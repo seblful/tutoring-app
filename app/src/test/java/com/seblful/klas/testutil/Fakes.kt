@@ -71,7 +71,7 @@ class RecordingDigestScheduler : DigestScheduler {
     val plans = mutableListOf<Digests.Plan>()
 
     /** The plan currently in force — the last one scheduled, or nothing arranged if none ever was. */
-    val planned: Digests.Plan get() = plans.lastOrNull() ?: Digests.Plan(null, null)
+    val planned: Digests.Plan get() = plans.lastOrNull() ?: Digests.Plan(null, null, null)
 
     override suspend fun schedule(plan: Digests.Plan) {
         plans += plan
@@ -145,6 +145,13 @@ class RecordingNotifier : Notifier {
 
     override fun showAgenda(agenda: Digests.Agenda, currency: Currency) {
         agendas += agenda
+    }
+
+    /** The evening lists of unmarked lessons posted. */
+    val unfinished = mutableListOf<Digests.Unfinished>()
+
+    override fun showUnfinished(unfinished: Digests.Unfinished) {
+        this.unfinished += unfinished
     }
 
     /** The weekly debt summaries posted. */

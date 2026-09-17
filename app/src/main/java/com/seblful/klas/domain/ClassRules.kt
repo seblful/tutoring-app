@@ -11,6 +11,10 @@ import java.time.Instant
  * The user-editable fields of a class. Everything else — status and the recognized [charge] — is
  * *derived* from these (and the new start) by [ClassRules.edit], never set by the caller, so an
  * edit can't leave a class with a charge that no longer matches its price/duration/status.
+ *
+ * Most of these are the **lesson's** shared fields carried per class ([subjectId], [durationMinutes],
+ * [mode] and now [notes] are all columns of `lessons`), which is what lets one edit fan out over a
+ * group's roster without any class of it being able to disagree with the others.
  */
 data class ClassEdit(
     val studentId: Long,
@@ -18,6 +22,8 @@ data class ClassEdit(
     val durationMinutes: Int,
     val price: Money,
     val mode: ClassMode,
+    /** What was covered and what was set — see [TutoringClass.notes]. Blank is "nothing written". */
+    val notes: String = "",
 )
 
 /** Rules governing a class's status: transitions, billing on completion, auto-completion. */
@@ -62,9 +68,14 @@ object ClassRules {
     /**
      * A scheduled class auto-completes once its end time is at or before [now].
      * The app cannot see attendance, so a finished class is assumed to have happened.
+     *
+     * **Which is [LessonPhase.OVERDUE], and is asked that way.** "Finished, and still scheduled" is also
+     * exactly what the evening digest counts (`Digests.Unfinished`), and the two used to be two
+     * hand-written boundary comparisons: one of them off by an instant would have the notification
+     * naming lessons the upkeep pass had already settled, or staying silent about ones it had not.
      */
     fun shouldAutoComplete(c: TutoringClass, now: Instant): Boolean =
-        c.status == LessonStatus.SCHEDULED && !c.end.isAfter(now)
+        LessonPhase.of(c, now).isUnfinished
 
     /**
      * Applies a lesson's status change to one of its classes, capturing or voiding the charge — **and
@@ -158,6 +169,7 @@ object ClassRules {
             durationMinutes = changes.durationMinutes,
             price = changes.price,
             mode = changes.mode,
+            notes = changes.notes,
         )
         return rebill(move(edited, newStart, now))
     }
