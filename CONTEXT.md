@@ -328,7 +328,8 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
   - **It is read where the tutor already is.** The form is where a note is *added*; the schedule's
     actions sheet is where it is *checked*, under the status, selectable and capped at four lines — a
     homework line locked inside the edit form would cost the same two taps to read as to change, which is
-    what makes a written note not worth writing. Shown only when there is one.
+    what makes a written note not worth writing. Shown only when there is one. The field itself has
+    **no placeholder**: an example sentence in an empty note reads as text already written.
 - **A lesson is the unit of change.** Every write takes a `ClassSession`: a group lesson's *n* classes,
   or one student's class as a session of one. Re-attributing a class is expressible only for a
   session of one. The one exception is `setAttendance`, which is about one person rather than the hour.

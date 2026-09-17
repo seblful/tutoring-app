@@ -370,7 +370,6 @@ private fun ClassEditForm(
                 value = form.notes,
                 onValueChange = { text -> viewModel.change(BookingIntent.Edit { it.copy(notes = text) }) },
                 label = { Text(stringResource(R.string.class_notes_label)) },
-                placeholder = { Text(stringResource(R.string.class_notes_placeholder)) },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 minLines = NoteFieldLines,
                 modifier = Modifier.fillMaxWidth(),

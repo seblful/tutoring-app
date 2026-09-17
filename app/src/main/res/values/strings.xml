@@ -126,8 +126,6 @@
     <string name="class_subject_label">Subject</string>
     <string name="class_no_subjects_for_student">This student has no priced subjects. Set a price on their card.</string>
     <string name="class_notes_label">Notes and homework</string>
-    <!-- An example rather than an instruction: what to write here is obvious once one thing is in it. -->
-    <string name="class_notes_placeholder">Quadratic equations. Homework: §12, ex. 4–7</string>
     <string name="class_date_label">Date</string>
     <string name="class_time_from_label">Starts</string>
     <!--

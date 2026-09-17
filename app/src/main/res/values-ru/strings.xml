@@ -166,8 +166,6 @@
     <string name="class_subject_label">Предмет</string>
     <string name="class_no_subjects_for_student">У ученика нет предметов с ценой. Укажите цену в карточке ученика.</string>
     <string name="class_notes_label">Заметки и домашнее задание</string>
-    <!-- Пример, а не инструкция: что сюда писать, понятно с первой заполненной строки. -->
-    <string name="class_notes_placeholder">Квадратные уравнения. Дома: §12, упр. 4–7</string>
     <string name="class_date_label">Дата</string>
     <string name="class_time_from_label">Начало</string>
     <!--
