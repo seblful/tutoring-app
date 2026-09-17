@@ -185,8 +185,13 @@ class ClassRepositoryTest {
         assertNull(repo.getById(id)!!.calendarEventId)
     }
 
+    /**
+     * Completing bills the class and **creates nothing** in the calendar. The event it already has is
+     * refreshed rather than left frozen (`CalendarSyncPolicy.Action.REFRESH`), which is what keeps a
+     * note written after the lesson — the usual moment — from stopping at the database.
+     */
     @Test
-    fun `completing a class captures the charge and leaves the calendar event untouched`() = runTest {
+    fun `completing a class captures the charge and creates no calendar event`() = runTest {
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         val id = book() // 1 upsert so far
         env.calendar.calls.clear()
@@ -194,8 +199,67 @@ class ClassRepositoryTest {
         val completed = repo.setStatus(session(id), LessonStatus.COMPLETED).written().single()
 
         assertEquals(Money.ofMajor(30), completed.charge)
-        assertTrue("a completed (past) class's event is history, not re-written", env.calendar.upserts.isEmpty())
+        assertTrue("a past lesson never earns a new event", env.calendar.upserts.isEmpty())
         assertTrue(env.calendar.deletes.isEmpty())
+        assertEquals("the one it has is kept in step", 1, env.calendar.refreshes.size)
+    }
+
+    /**
+     * **A note written after the lesson reaches the calendar.** The sequence is the everyday one and
+     * every step of it used to end here: the hour passes, auto-completion marks it taught, and only
+     * then does the tutor write down what was set for home.
+     */
+    @Test
+    fun `a note added to a completed lesson refreshes its event`() = runTest {
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
+        val id = book()
+        repo.setStatus(session(id), LessonStatus.COMPLETED)
+        env.calendar.refreshes.clear()
+        env.calendar.calls.clear() // the booking's own upsert, which is not what this is about
+
+        repo.apply(session(id), edit(notes = "§12, упр. 4–7"), defaultStart, now)
+
+        assertEquals(
+            "the note the tutor typed is what the event is refreshed with",
+            "§12, упр. 4–7",
+            env.calendar.refreshes.last().klass.notes,
+        )
+        assertTrue("and no second event was invented for a past hour", env.calendar.upserts.isEmpty())
+    }
+
+    /**
+     * A lesson with no event — booked while sync was off, or simply never mirrored — gains none by
+     * being edited after it is over. The fake enforces the adapter's own guard, so this is the rule
+     * "history is kept true, never written" reaching all the way down.
+     */
+    @Test
+    fun `editing a completed lesson that was never mirrored touches nothing`() = runTest {
+        val id = book() // sync off: nothing mirrored
+        repo.setStatus(session(id), LessonStatus.COMPLETED)
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
+
+        repo.apply(session(id), edit(notes = "написано после"), defaultStart, now)
+
+        assertTrue(env.calendar.upserts.isEmpty())
+        assertTrue(env.calendar.refreshes.isEmpty())
+        assertTrue(env.calendar.deletes.isEmpty())
+    }
+
+    /**
+     * Moving a lesson that has already been taught — correcting the hour it was actually at — carries
+     * its event with it. Under the old rule the database moved and the calendar stayed where it was.
+     */
+    @Test
+    fun `correcting a completed lesson's hour carries its event`() = runTest {
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
+        val id = book()
+        repo.setStatus(session(id), LessonStatus.COMPLETED)
+        env.calendar.refreshes.clear()
+        val corrected = defaultStart.plusSeconds(3600)
+
+        repo.move(session(id), corrected, now).written()
+
+        assertEquals(corrected, env.calendar.refreshes.last().klass.start)
     }
 
     @Test

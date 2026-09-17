@@ -91,7 +91,11 @@ class FakeCalendarSync(var available: Boolean = true) : CalendarSync {
         val reminderLeadMinutes: Int,
     )
 
+    /** One recorded refresh: the lesson as it now stands, and the title it is being retitled to. */
+    data class Refresh(val klass: TutoringClass, val title: String)
+
     val calls = mutableListOf<Upsert>()
+    val refreshes = mutableListOf<Refresh>()
     val deletes = mutableListOf<String>()
     private var nextEventId = 1
 
@@ -110,6 +114,20 @@ class FakeCalendarSync(var available: Boolean = true) : CalendarSync {
         if (!available) return null
         calls += Upsert(klass, title, guest, reminderLeadMinutes)
         return klass.calendarEventId ?: "evt-${nextEventId++}"
+    }
+
+    /**
+     * A refresh is recorded apart from [calls], because it is a different claim about the world: an
+     * upsert says an event exists *because the app made one*, a refresh says one was brought in line
+     * if it happened to be there. A test asserting "booking mirrored once" must not be satisfied by a
+     * completed lesson's refresh, and vice versa.
+     */
+    override suspend fun refresh(klass: TutoringClass, title: String) {
+        if (!available) return
+        // The real adapter no-ops without an event id, and a fake that recorded the call anyway would
+        // let a test claim the calendar was touched where the device would have done nothing.
+        if (klass.calendarEventId == null) return
+        refreshes += Refresh(klass, title)
     }
 
     override suspend fun delete(eventId: String) {

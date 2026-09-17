@@ -36,6 +36,26 @@ interface CalendarSync {
         reminderLeadMinutes: Int = 60,
     ): String?
 
+    /**
+     * Writes [klass]'s current fields to the event it is already mirrored by — and does **nothing at
+     * all** if there is no such event.
+     *
+     * The narrow half of [upsert], for a lesson that has already been taught (`CalendarSyncPolicy`
+     * decides which is which). Three things it deliberately cannot do, each of which would be wrong
+     * about a past hour:
+     *
+     * - **create an event**, so turning sync on never backfills the tutor's history into their
+     *   calendar, and an event they deleted from it themselves is not put back by an edit;
+     * - **return an id**, because no id can have changed — which is what lets the caller skip a write
+     *   back to `classes.calendarEventId` rather than guard one;
+     * - **touch attendees or reminders**, since re-adding the student to a lesson that is over would
+     *   email them an invitation to an hour that has passed.
+     *
+     * Best-effort like everything else here: a missing permission, a missing calendar or an event the
+     * tutor has since deleted are all silent no-ops.
+     */
+    suspend fun refresh(klass: TutoringClass, title: String)
+
     /** Removes the mirrored event if it still exists. */
     suspend fun delete(eventId: String)
 }

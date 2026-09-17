@@ -330,6 +330,8 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
     homework line locked inside the edit form would cost the same two taps to read as to change, which is
     what makes a written note not worth writing. Shown only when there is one. The field itself has
     **no placeholder**: an example sentence in an empty note reads as text already written.
+  - **It is also the calendar event's description**, so it is legible from outside the app — which is
+    what `CalendarSyncPolicy.Action.REFRESH` exists for, a note being written after the lesson is over.
 - **A lesson is the unit of change.** Every write takes a `ClassSession`: a group lesson's *n* classes,
   or one student's class as a session of one. Re-attributing a class is expressible only for a
   session of one. The one exception is `setAttendance`, which is about one person rather than the hour.
@@ -507,7 +509,23 @@ edit but a broken one. Reads that only *decide* whether to write stay outside th
 - **Calendar sync via `CalendarContract`, not the Google REST API** — the OS syncs to Google, so there
   is no cloud project or OAuth. Opt-in, behind the `CalendarSync` port. What a status change means for
   the event is pure (`domain/CalendarSyncPolicy`: scheduled → upsert, cancelled → delete, completed →
-  leave history alone).
+  refresh).
+- **The mirror runs one way: app → calendar.** Every write goes through `ClassRepository.write`'s
+  phase 3, so booking, editing, moving, cancelling, deleting, a roster change and a rename all reach
+  the event. Nothing reads the calendar back. A lesson dragged in Google Calendar is not a lesson the
+  app knows moved — and the reverse direction is not a missing line but a different app: `classes`
+  would stop being the source of truth, a deleted event (or an account removed, or a permission
+  revoked) would have to be told apart from a tutor's intent before it deleted real billed history,
+  and a drag onto a taken hour would meet `Scheduling`'s refusal *after* the calendar had accepted it.
+- **A completed lesson's event is kept true, and never created** (`Action.REFRESH`). It used to be
+  left alone entirely, which was wrong in the one case that matters most: **a note is usually written
+  after the lesson**, by which time auto-completion has marked it taught — so the note, and any
+  correction to the hour beside it, reached the database and stopped there. `refresh` is the narrow
+  half of `upsert`: no insert (turning sync on never backfills the tutor's past, and an event they
+  deleted themselves is not resurrected), no id back to write, and no attendees or reminders —
+  re-inviting a student to an hour that has passed would email them about it.
+- **The lesson's note is the event's description**, verbatim and unconditionally — written even when
+  blank, so clearing a note clears the description instead of leaving last week's homework standing.
 - **Email reminders ride on the calendar**: a synced event adds the student as an attendee with an
   email reminder, and the calendar account does the sending.
 - **Inviting students by email is its own setting**, separate from sync and **off by default**. Turning

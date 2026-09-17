@@ -202,6 +202,10 @@ class ClassRepositoryAtomicityTest {
                 return "event-${depths.size}"
             }
 
+            override suspend fun refresh(klass: TutoringClass, title: String) {
+                depths += env.transactor.depth
+            }
+
             override suspend fun delete(eventId: String) {
                 depths += env.transactor.depth
             }

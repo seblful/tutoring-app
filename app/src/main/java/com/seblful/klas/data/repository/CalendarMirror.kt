@@ -140,6 +140,10 @@ class CalendarMirror @Inject constructor(
     /**
      * Reflects [klass]'s status into the calendar. Only reached through [mirror], which is what has
      * already established that sync is on.
+     *
+     * Which of the three arms a lesson takes is `CalendarSyncPolicy`'s and not this module's: what is
+     * here is the four reads each one needs. The completed arm needs only the student's name, having
+     * no guest to invite.
      */
     private suspend fun mirrorOne(klass: TutoringClass, settings: AppSettings) {
         when (CalendarSyncPolicy.actionFor(klass.status)) {
@@ -157,8 +161,13 @@ class CalendarMirror @Inject constructor(
                     attendanceDao.update(klass.copy(calendarEventId = eventId).toAttendanceEntity())
                 }
             }
+            // A lesson already taught: its event is kept true, and none is brought into being. No id
+            // can come back, so there is nothing to write to `classes` either — see `CalendarSync.refresh`.
+            CalendarSyncPolicy.Action.REFRESH -> calendarSync.refresh(
+                klass = klass,
+                title = titleFor(klass, studentDao.getById(klass.studentId)?.name.orEmpty()),
+            )
             CalendarSyncPolicy.Action.DELETE -> detach(klass)
-            CalendarSyncPolicy.Action.NONE -> Unit
         }
     }
 

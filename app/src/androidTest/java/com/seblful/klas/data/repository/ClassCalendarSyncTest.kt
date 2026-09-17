@@ -13,6 +13,7 @@ import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.SessionEdit
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
@@ -41,11 +42,16 @@ class ClassCalendarSyncTest {
     /** Records calendar operations; hands back a stable id so updates reuse the same event. */
     private class FakeCalendarSync : CalendarSync {
         val upserts = mutableListOf<TutoringClass>()
+        val refreshes = mutableListOf<TutoringClass>()
         val deletes = mutableListOf<String>()
         private var nextId = 100L
         override suspend fun upsert(klass: TutoringClass, title: String, guest: Guest?, reminderLeadMinutes: Int): String {
             upserts += klass
             return klass.calendarEventId ?: (nextId++).toString()
+        }
+        /** Only ever an update in place, so a refreshed lesson is recorded apart from an upserted one. */
+        override suspend fun refresh(klass: TutoringClass, title: String) {
+            if (klass.calendarEventId != null) refreshes += klass
         }
         override suspend fun delete(eventId: String) { deletes += eventId }
     }
@@ -122,6 +128,8 @@ class ClassCalendarSyncTest {
         val id = book(start, price = Money(5000))
         repo.setStatus(session(id), LessonStatus.COMPLETED)
 
+        calendar.upserts.clear()
+
         val now = Instant.parse("2026-07-15T09:00:00Z")
         val newStart = Instant.parse("2026-07-12T10:00:00Z") // still in the past relative to now
         repo.move(session(id), newStart, now)
@@ -129,6 +137,35 @@ class ClassCalendarSyncTest {
         assertEquals(newStart, repo.getById(id)?.start)
         assertEquals(LessonStatus.COMPLETED, repo.getById(id)?.status) // status unchanged
         assertEquals(Money(5000), repo.getById(id)?.charge) // charge kept
+        // The event follows the correction without being re-created: a lesson already taught is
+        // refreshed, never upserted (`CalendarSyncPolicy.Action.REFRESH`).
+        assertTrue(calendar.upserts.isEmpty())
+        assertEquals(newStart, calendar.refreshes.last().start)
+    }
+
+    @Test fun aNoteWrittenAfterTheLessonReachesItsEvent() = runTest {
+        val start = Instant.parse("2026-07-10T13:00:00Z")
+        val id = book(start, price = Money(5000))
+        repo.setStatus(session(id), LessonStatus.COMPLETED)
+        calendar.upserts.clear()
+        calendar.refreshes.clear()
+
+        repo.apply(
+            session = session(id),
+            changes = SessionEdit(
+                subjectId = 1,
+                durationMinutes = 60,
+                mode = ClassMode.IN_PERSON,
+                price = Money(5000),
+                notes = "§12, упр. 4–7",
+                studentId = 1,
+            ),
+            newStart = start,
+            now = Instant.parse("2026-07-10T20:00:00Z"),
+        )
+
+        assertEquals("§12, упр. 4–7", calendar.refreshes.last().notes)
+        assertTrue("a past hour never earns a new event", calendar.upserts.isEmpty())
     }
 
     @Test fun cancellingClassDeletesItsEvent() = runTest {

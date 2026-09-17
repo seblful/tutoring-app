@@ -44,14 +44,10 @@ class DeviceCalendarSync @Inject constructor(
         val values = eventValues(klass, title, calendarId)
 
         val existingId = klass.calendarEventId?.toLongOrNull()
-        val eventId = if (existingId != null) {
-            val uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, existingId)
-            val updated = runCatching { context.contentResolver.update(uri, values, null, null) }.getOrDefault(0)
-            // The user may have deleted the event from their calendar — recreate it if so.
-            if (updated > 0) existingId else insert(values)?.toLongOrNull()
-        } else {
-            insert(values)?.toLongOrNull()
-        } ?: return@withContext null
+        // The user may have deleted the event from their calendar — recreate it if so. A lesson still
+        // to come is the only kind this happens for; `refresh` is the arm that must not recreate.
+        val eventId = (existingId?.takeIf { write(it, values) } ?: insert(values)?.toLongOrNull())
+            ?: return@withContext null
 
         // Email reminder before the class, sent by the calendar account. Idempotent: drop and
         // re-add so an updated time/lead doesn't accumulate stale reminders.
@@ -142,6 +138,32 @@ class DeviceCalendarSync @Inject constructor(
         )
     }
 
+    /**
+     * The event, brought in line with the lesson — or nothing, if there is no event.
+     *
+     * Everything this does *not* do is the point, and the reasons are on [CalendarSync.refresh]: no
+     * insert, no id back, no attendees, no reminders. What is left is one [ContentValues] written over
+     * one row, which is also why it shares [eventValues] with [upsert] — a past lesson and a future one
+     * put the same fields on an event, and two copies of that list would be two events that disagree
+     * about what a lesson looks like.
+     */
+    override suspend fun refresh(klass: TutoringClass, title: String) {
+        withContext(Dispatchers.IO) {
+            if (!hasPermission()) return@withContext
+            val eventId = klass.calendarEventId?.toLongOrNull() ?: return@withContext
+            val calendarId = writableCalendarId() ?: return@withContext
+            write(eventId, eventValues(klass, title, calendarId))
+        }
+    }
+
+    /** One update over one event row; false when the provider wrote nothing — the usual cause being
+     *  that the tutor deleted the event. What that *means* is the caller's, which is the difference
+     *  between [upsert] (recreate it) and [refresh] (let it be). */
+    private fun write(eventId: Long, values: ContentValues): Boolean {
+        val uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId)
+        return runCatching { context.contentResolver.update(uri, values, null, null) }.getOrDefault(0) > 0
+    }
+
     override suspend fun delete(eventId: String) {
         withContext(Dispatchers.IO) {
             if (!hasPermission()) return@withContext
@@ -163,6 +185,15 @@ class DeviceCalendarSync @Inject constructor(
         put(CalendarContract.Events.DTSTART, klass.start.toEpochMilli())
         put(CalendarContract.Events.DTEND, klass.end.toEpochMilli())
         put(CalendarContract.Events.EVENT_TIMEZONE, ZoneId.systemDefault().id)
+        // What was covered and what was set for home, verbatim — the note is already the tutor's own
+        // words about the hour, so there is nothing here to assemble or translate (contrast the title,
+        // which is three tables' names, and the location, which is one of the app's own).
+        //
+        // **Written every time, empty string included.** Clearing a note has to clear the description:
+        // an unconditional put is what makes "the calendar says what the app says" true in both
+        // directions, where skipping the blank case would leave last week's homework standing on an
+        // event whose note the tutor deliberately emptied.
+        put(CalendarContract.Events.DESCRIPTION, klass.notes)
         // The one **word** this class writes, so it is the one thing read in the tutor's chosen language
         // rather than off the application context (which is pinned to the phone's — see `KlasApp`). An event
         // keeps the language it was mirrored in until something re-mirrors it, which is why changing the
