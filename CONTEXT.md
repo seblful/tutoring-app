@@ -279,9 +279,7 @@ repeating booking writes lessons and keeps no rule — see *Lessons*).
   Room 2.8.4, WorkManager, Navigation Compose, kotlinx-serialization — versions in `gradle/libs.versions.toml`.
   Current release: `0.3.0` (`versionCode` 4).
 - Kotlin version is capped by KSP's supported line (Room/Hilt codegen) — do not bump past it.
-- Needs `JAVA_HOME` on JDK 21 and `local.properties` pointing at the Android SDK — or only Docker:
-  `docker compose run --rm android <tasks>` builds in `docker/Dockerfile`'s image (JDK 21 + the pinned SDK
-  packages), with the Gradle cache in a named volume and `local.properties` overridden inside the container.
+- Needs `JAVA_HOME` on JDK 21 and `local.properties` pointing at the Android SDK.
 - Common commands: `./gradlew :app:testDebugUnitTest`, `:app:assembleDebug`, `:app:assembleDebugAndroidTest`,
   `:app:lintDebug`, `:app:bundleRelease`.
 - Debug build installs beside release (`.debug` app id, own DB). Release is minified/shrunk (R8); signing
