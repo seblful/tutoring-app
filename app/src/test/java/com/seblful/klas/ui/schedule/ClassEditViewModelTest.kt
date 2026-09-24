@@ -5,7 +5,7 @@ import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
-import com.seblful.klas.domain.ClassSession
+import com.seblful.klas.data.toDomain
 import com.seblful.klas.domain.Repeat
 import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.model.Attended
@@ -21,6 +21,7 @@ import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.valueOrNull
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -51,8 +52,8 @@ class ClassEditViewModelTest {
     private val env = TestEnv()
     private val zone: ZoneId = ZoneId.systemDefault()
 
-    private fun vm(id: Long = 0L, groupId: Long = 0L) = ClassEditViewModel(
-        savedStateHandle = SavedStateHandle(mapOf("id" to id, "group" to groupId)),
+    private fun vm(id: Long = 0L, groupId: Long = 0L, day: LocalDate? = null) = ClassEditViewModel(
+        savedStateHandle = SavedStateHandle(mapOf("id" to id, "group" to groupId, "day" to day?.toString())),
         classes = env.classRepo,
         studentsRepo = env.studentRepo,
         groupsRepo = env.groupRepo,
@@ -631,6 +632,26 @@ class ClassEditViewModelTest {
         assertEquals(50, vm.durationPickerDefault())
     }
 
+    /**
+     * Opened for a lesson deleted since — a stale reminder's «Перенести» — the form says so instead of
+     * opening blank, and a save from it books nothing: it used to go down the booking path.
+     */
+    @Test
+    fun `a lesson that is gone opens as gone and saves nothing`() = runTest(mainRule.dispatcher) {
+        seedStudentWithPricedSubject()
+        val vm = vm(id = 4242)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        assertTrue(vm.gone.value)
+        var saved = false
+        vm.save { saved = true }
+        advanceUntilIdle()
+
+        assertFalse(saved)
+        assertTrue("nothing was booked in its place", env.classRepo.getAll().isEmpty())
+    }
+
     /** The last picker default the platform used to answer from inside a composable. */
     @Test
     fun `the date picker opens on the chosen date, or today`() = runTest(mainRule.dispatcher) {
@@ -642,6 +663,24 @@ class ClassEditViewModelTest {
 
         vm.change(BookingIntent.Edit { it.copy(date = LocalDate.of(2026, 8, 9)) })
         assertEquals(LocalDate.of(2026, 8, 9), vm.datePickerDefault(today = today))
+    }
+
+    /**
+     * The add button books into the day the schedule is on: paged to next Thursday, the picker opens on
+     * next Thursday. The date itself still starts empty — the day is where the picker opens, not an answer.
+     */
+    @Test
+    fun `a booking opened from a day opens the date picker on that day`() = runTest(mainRule.dispatcher) {
+        val thursday = LocalDate.of(2026, 10, 1)
+        val vm = vm(day = thursday)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        assertEquals(thursday, vm.datePickerDefault(today = LocalDate.of(2026, 9, 24)))
+        assertNull("the date is still the tutor's to choose", vm.state.value.valueOrNull()?.form?.date)
+
+        vm.change(BookingIntent.Edit { it.copy(date = LocalDate.of(2026, 10, 5)) })
+        assertEquals(LocalDate.of(2026, 10, 5), vm.datePickerDefault(today = LocalDate.of(2026, 9, 24)))
     }
 
     @Test
@@ -1081,6 +1120,28 @@ class ClassEditViewModelTest {
             advanceUntilIdle()
             assertEquals(listOf(ClassEditViewModel.Event.SAVE_REFUSED_TIME_TAKEN), sent)
         }
+
+    /** Nobody to tick is not a form that can be saved and then refused for having nobody ticked. */
+    @Test
+    fun `a group whose members are all archived cannot be booked`() = runTest(mainRule.dispatcher) {
+        val (groupId, ann, bob) = seedGroup()
+        // Through the repository, as the card archives them.
+        env.studentRepo.setArchived(env.studentDao.getById(ann)!!.toDomain(), true)
+        env.studentRepo.setArchived(env.studentDao.getById(bob)!!.toDomain(), true)
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        vm.change(BookingIntent.ChooseTarget(ClassTarget.GROUP))
+        vm.change(BookingIntent.ChooseGroup(groupId))
+        vm.change(BookingIntent.Edit {
+            it.copy(date = LocalDate.now(zone).plusDays(3), timeFrom = LocalTime.of(10, 0), durationMinutes = 60)
+        })
+        advanceUntilIdle()
+
+        assertTrue(vm.state.current.groupHasNoMembers)
+        assertFalse(vm.state.current.canSave)
+    }
 
     @Test
     fun `a group lesson with every member unticked is refused out loud`() =

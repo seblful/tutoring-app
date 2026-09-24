@@ -2,7 +2,6 @@ package com.seblful.klas.ui.schedule
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +10,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,14 +23,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.CalendarLayout
+import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.shortName
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.classStatusColor
@@ -44,6 +49,9 @@ private val CellHeight = 46.dp
 
 /** The disc hugs the day number only, leaving the tally row the cell's full width to print in. */
 private val NumberDiscSize = 28.dp
+
+/** [NumberDiscSize] against `bodyMedium`'s 20 sp line — how much wider than its number a disc is. */
+private const val DiscToLineHeight = 1.4f
 
 /** Reserved for the tally row whether or not the day has classes — `labelSmall`'s line height. */
 private val TallyRowHeight = 16.dp
@@ -169,24 +177,45 @@ private fun DayCell(
         // Padding days from the neighbouring months stay legible but clearly secondary.
         else -> scheme.onSurfaceVariant.copy(alpha = 0.5f)
     }
-    // Spoken as "15, 2 занятия, 1 Запланировано, 1 Отменено" — the tallies carry that breakdown
-    // visually through colour alone, which a screen reader cannot convey, so it must be said. A cell
-    // whose counts have not arrived says only its date, which is all that is known about it.
+    // Spoken as «Четверг, 15 октября, 2 занятия, В плане: 1, Отменено: 1» — the tallies carry that
+    // breakdown visually through colour alone, which a screen reader cannot convey, so it must be said,
+    // and the day is said in full rather than as a bare «15». A cell whose counts have not arrived says
+    // only its date, which is all that is known about it. Which day is selected, and which is today, are
+    // said as the cell's state — see the semantics below.
+    val day = date.formatDay()
     val cellDescription = load.valueOrNull()?.let { dayLoad ->
         val total = pluralStringResource(R.plurals.lessons_count, dayLoad.total, dayLoad.total)
-        val breakdown = dayLoad.tallies.map { "${it.count} ${classStatusLabel(it.status)}" }
-        (listOf(date.dayOfMonth.toString(), total) + breakdown).joinToString(", ")
-    }
+        val breakdown = dayLoad.tallies.map {
+            stringResource(R.string.calendar_status_tally, classStatusLabel(it.status), it.count)
+        }
+        (listOf(day, total) + breakdown).joinToString(", ")
+    } ?: day
+    val todayLabel = stringResource(R.string.schedule_today)
 
     // The whole cell is the touch target, not just the disc drawn inside it — but press feedback
     // bounded to that rectangle reads as a grey square behind the day, so the cell hands its
     // interactions to the round disc below and draws no indication of its own.
     val interactionSource = remember { MutableInteractionSource() }
+    // The disc grows with the number it rounds: 28 dp at the default font size, and a circle around a
+    // larger digit rather than a 28 dp crop of it at a large one.
+    val discSize = with(LocalDensity.current) {
+        maxOf(NumberDiscSize, (MaterialTheme.typography.bodyMedium.lineHeight * DiscToLineHeight).toDp())
+    }
     Box(
         modifier
-            .height(CellHeight)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .semantics { if (cellDescription != null) contentDescription = cellDescription },
+            // At least, not exactly: a cell and its tally row sized in dp around text sized in sp cut the
+            // tallies off, and then the numbers, once the phone's font was turned up.
+            .heightIn(min = CellHeight)
+            .selectable(
+                selected = isSelected,
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
+            .semantics {
+                contentDescription = cellDescription
+                if (isToday) stateDescription = todayLabel
+            },
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -195,7 +224,7 @@ private fun DayCell(
         ) {
             Box(
                 Modifier
-                    .size(NumberDiscSize)
+                    .size(discSize)
                     .clip(CircleShape)
                     .then(if (isSelected) Modifier.background(scheme.primary) else Modifier)
                     .then(
@@ -239,7 +268,7 @@ private fun DayCell(
 private fun DayTallies(load: Loadable<CalendarLayout.DayLoad?>) {
     if (load is Loadable.Loading) {
         Row(
-            Modifier.fillMaxWidth().height(TallyRowHeight),
+            Modifier.fillMaxWidth().heightIn(min = TallyRowHeight),
             horizontalArrangement = Arrangement.spacedBy(TallySpacing, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -257,7 +286,7 @@ private fun DayTallies(load: Loadable<CalendarLayout.DayLoad?>) {
         // two-digit tallies at a large font scale measured wider than a seventh of a phone and drew
         // over the neighbouring day. Centred within the cell, so a one-tally day still sits under its
         // own number.
-        Modifier.fillMaxWidth().height(TallyRowHeight),
+        Modifier.fillMaxWidth().heightIn(min = TallyRowHeight),
         horizontalArrangement = Arrangement.spacedBy(TallySpacing, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {

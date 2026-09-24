@@ -393,11 +393,20 @@ data class ClassFormState(
     val hasNoGroups: Boolean get() = form.target == ClassTarget.GROUP && groups.isEmpty()
 
     /**
+     * A group is chosen and nobody in it can be booked — every member archived, or gone from it. The
+     * roster simply did not draw, the save stayed enabled, and tapping it was refused with «Отметьте хотя
+     * бы одного участника» over a form with nobody to tick.
+     */
+    val groupHasNoMembers: Boolean
+        get() = form.target == ClassTarget.GROUP && form.groupId != null && members.isEmpty()
+
+    /**
      * Whether saving may be attempted. A taken slot is as disqualifying as a missing field: the
      * lesson could not happen. The save re-checks against the database regardless, since the slot
      * can be taken between here and there.
      */
-    override val canSave: Boolean get() = form.isValid && conflict == null && !allMembersExcluded
+    override val canSave: Boolean
+        get() = form.isValid && conflict == null && !allMembersExcluded && !groupHasNoMembers
 
     /**
      * What tapping save should do: save, or ask about the income it would destroy first.
@@ -464,6 +473,12 @@ class ClassEditViewModel @Inject constructor(
     /** Non-zero when the form was opened from a group, to book that group straight away. */
     private val preselectedGroupId: Long = savedStateHandle["group"] ?: 0L
 
+    /**
+     * The day the schedule was on when its add button was tapped — where the date picker opens, and
+     * nothing more: the date itself still starts empty (see [ClassForm]). Null from anywhere else.
+     */
+    private val openedOnDay: LocalDate? = savedStateHandle.get<String>("day")?.let(LocalDate::parse)
+
     val isNew: Boolean = classId == 0L
 
     /**
@@ -521,6 +536,15 @@ class ClassEditViewModel @Inject constructor(
      * error red, over a lesson that has all five. See [Loadable].
      */
     private val filled = MutableStateFlow(isNew)
+
+    private val _gone = MutableStateFlow(false)
+
+    /**
+     * Whether the lesson this form was opened for is no longer there — deleted since the reminder, card
+     * or list that opened it was drawn. It used to open as a blank «Изменить занятие», and a save from it
+     * went down the booking path and wrote a new lesson.
+     */
+    val gone: StateFlow<Boolean> = _gone.asStateFlow()
 
     /**
      * The form and every rule about how it moves — see [BookingForm], which is pure. This class holds
@@ -816,7 +840,10 @@ class ClassEditViewModel @Inject constructor(
     }
 
     private suspend fun loadExisting() {
-        val loaded = classes.getSessionFor(classId) ?: return
+        val loaded = classes.getSessionFor(classId) ?: run {
+            _gone.value = true
+            return
+        }
         session.value = loaded
         val c = loaded.first
         val local = c.start.atZone(zone)
@@ -939,12 +966,13 @@ class ClassEditViewModel @Inject constructor(
     }
 
     /**
-     * What the date picker opens on: the date already chosen, or today — by the injected clock, like
-     * the two time defaults below it. This was the one picker default left reading the platform in a
-     * composable.
+     * What the date picker opens on: the date already chosen, else the day the schedule was showing when
+     * the booking was opened (paged to next Thursday, the add button books into next Thursday), else
+     * today — by the injected clock, like the two time defaults below it. This was the one picker default
+     * left reading the platform in a composable.
      */
     fun datePickerDefault(today: LocalDate = LocalDate.now(clock)): LocalDate =
-        currentForm.date ?: today
+        currentForm.date ?: openedOnDay ?: today
 
     /**
      * What the start-time picker opens on: the start already chosen, or — for a lesson whose time is
@@ -1088,7 +1116,8 @@ class ClassEditViewModel @Inject constructor(
         }
 
     fun save(onDone: () -> Unit) {
-        if (saving.value) return
+        // A lesson that is gone has nothing to save into, and booking one in its place is not what was asked.
+        if (saving.value || _gone.value) return
         val valid = ValidForm.of(currentForm, zone) ?: return
         saving.value = true
 

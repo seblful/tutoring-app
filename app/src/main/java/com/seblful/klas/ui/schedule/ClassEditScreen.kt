@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -40,6 +42,7 @@ import com.seblful.klas.ui.common.CountPickerModal
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.DurationPickerModal
+import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.durationLabel
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.Loadable
@@ -65,7 +68,21 @@ fun ClassEditScreen(
     viewModel: ClassEditViewModel = hiltViewModel(),
 ) {
     val screenState by viewModel.state.collectAsState()
+    val gone by viewModel.gone.collectAsState()
     val title = stringResource(if (viewModel.isNew) R.string.class_add_title else R.string.class_edit_title)
+
+    // Said, with the way back, rather than drawn as an empty form over a lesson that no longer exists.
+    if (gone) {
+        KlasScreen(title = title, onBack = onBack) { modifier ->
+            EmptyState(
+                title = stringResource(R.string.class_gone),
+                detail = stringResource(R.string.class_gone_detail),
+                icon = Icons.Outlined.EventBusy,
+                modifier = modifier,
+            )
+        }
+        return
+    }
 
     // A lesson being edited waits for itself. Drawn from a blank `ClassForm` this screen states that the
     // lesson has no student, no subject and — for a group booking — that there are no groups at all, in
@@ -160,8 +177,10 @@ private fun ClassEditForm(
     ) { modifier ->
         Column(
             modifier
-                .padding(Spacing.gutter)
-                .verticalScroll(rememberScrollState()),
+                // The gutter inside the scroll, as the student form has it: padded outside, the fields
+                // scrolled within a box 16 dp short of the bar instead of passing under it.
+                .verticalScroll(rememberScrollState())
+                .padding(Spacing.gutter),
             verticalArrangement = Arrangement.spacedBy(Spacing.gutter),
         ) {
             // Who the lesson is for. Only offered while booking: an existing lesson already is one
@@ -285,6 +304,13 @@ private fun ClassEditForm(
                 // booked or corrected afterwards. Someone away this week is not off the roster, so
                 // the tick lives on the lesson and the group is untouched. This is the one place a
                 // lesson's attendance is set: the schedule's action menu changes the whole lesson.
+                if (state.groupHasNoMembers) {
+                    Text(
+                        stringResource(R.string.class_group_no_active_members),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
                 if (members.isNotEmpty()) {
                     Text(
                         stringResource(R.string.class_group_members_title),
@@ -475,7 +501,9 @@ private fun DurationPicker(
     onCustom: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // A flow, so the consequence moves to a line of its own whole rather than being squeezed into a
+        // column beside the label — «Длительность · до 00:00 (следующего дня)» at a large font scale.
+        FlowRow(itemVerticalAlignment = Alignment.CenterVertically) {
             Text(
                 stringResource(R.string.class_duration_label),
                 style = MaterialTheme.typography.labelLarge,
@@ -531,7 +559,9 @@ private fun RepeatPicker(
     onCustomCount: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // A flow, so the consequence moves to a line of its own whole rather than being squeezed into a
+        // column beside the label — «Длительность · до 00:00 (следующего дня)» at a large font scale.
+        FlowRow(itemVerticalAlignment = Alignment.CenterVertically) {
             Text(
                 stringResource(R.string.class_repeat_label),
                 style = MaterialTheme.typography.labelLarge,

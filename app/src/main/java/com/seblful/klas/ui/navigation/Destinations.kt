@@ -14,6 +14,7 @@ import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.seblful.klas.R
+import java.time.LocalDate
 
 /** Route constants for the whole app. */
 object Routes {
@@ -51,18 +52,20 @@ object Routes {
     const val GROUP_EDIT = "group/{id}/edit"
     fun groupEdit(id: Long) = "group/$id/edit"
 
-    const val CLASS_EDIT = "class/{id}?group={group}"
+    const val CLASS_EDIT = "class/{id}?group={group}&day={day}"
 
     /**
      * id = 0 means "new class". [groupId] (non-zero) opens the form already booking for that group —
      * an entry point the form still honours, though **no screen passes it today**: booking lives on
      * the schedule, which is the one place that knows what else the hour holds.
      *
-     * There is deliberately no date argument: the booking form starts with an empty date on purpose
-     * (see [com.seblful.klas.ui.schedule.ClassForm]), so the one that used to be declared here
-     * was passed by the schedule and read by nobody.
+     * [day] is the day the schedule is on, and it is only where the date **picker** opens: the booking
+     * form still starts with an empty date on purpose (see [com.seblful.klas.ui.schedule.ClassForm]).
+     * A date argument used to be declared here, passed by the schedule and read by nobody, so paging to
+     * next Thursday and tapping + opened the picker on today.
      */
-    fun classEdit(id: Long, groupId: Long = 0) = "class/$id?group=$groupId"
+    fun classEdit(id: Long, groupId: Long = 0, day: LocalDate? = null): String =
+        "class/$id?group=$groupId" + day?.let { "&day=$it" }.orEmpty()
 }
 
 /**

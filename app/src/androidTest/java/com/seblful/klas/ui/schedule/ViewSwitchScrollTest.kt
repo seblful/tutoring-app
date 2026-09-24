@@ -25,7 +25,9 @@ import org.junit.Test
 
 /**
  * **A change of view is a new page, and a page starts at the top** — `ScheduleScreen`'s
- * `LaunchedEffect(viewMode) { listState.scrollToItem(0) }`, and the reason it has to exist.
+ * `LaunchedEffect(viewMode)` that scrolls the list to its first item, and the reason it has to exist.
+ * (Only on an actual change of view: the screen keeps which view it last reset for, so a return to the
+ * schedule keeps where the tutor had scrolled.)
  *
  * The schedule's three views share one `LazyColumn`, and the month grid and the week strip are `item`s
  * *in* it: tapping «Месяц» prepends one, tapping «День» takes it away. A `LazyColumn` deliberately keeps
