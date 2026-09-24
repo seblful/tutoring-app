@@ -47,6 +47,12 @@ class Captions private constructor(
     fun subjectOf(klass: TutoringClass): String = subjects[klass.subjectId].orEmpty()
 
     /**
+     * Whose one class is — for a row naming a group lesson's members one by one, each beside something of
+     * their own (a homework verdict), where [membersOf]'s bare names would leave the pairing to an index.
+     */
+    fun studentOf(klass: TutoringClass): String = students[klass.studentId].orEmpty()
+
+    /**
      * The group [klass] was taught in, or **null when it was an individual lesson**.
      *
      * Null is the meaningful answer here, not a missing name: a student's own lesson list mixes both

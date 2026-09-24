@@ -11,6 +11,7 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
+import com.seblful.klas.domain.model.HomeworkResult
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
@@ -148,6 +149,8 @@ class MappersTest {
         mode = lesson.mode,
         notes = lesson.notes,
         calendarEventId = attendance.calendarEventId,
+        homework = lesson.homework,
+        homeworkResult = attendance.homeworkResult,
     ).toDomain()
 
     @Test
@@ -158,10 +161,35 @@ class MappersTest {
             durationMinutes = 90, price = Money.ofMajor(30),
             status = LessonStatus.COMPLETED, attended = Attended.ABSENT_BILLED,
             charge = Money.ofMajor(45),
-            groupId = null, mode = ClassMode.REMOTE, notes = "§12, упр. 4–7",
-            calendarEventId = "evt-1",
+            groupId = null, mode = ClassMode.REMOTE, notes = "Дроби, повторить",
+            calendarEventId = "evt-1", homework = "§12, упр. 4–7", homeworkResult = HomeworkResult.PARTIAL,
         )
         assertEquals(c, c.roundTrip())
+    }
+
+    /**
+     * The homework is the lesson's, like its note — a group is set one assignment — and the verdict is the
+     * student's, on their own row, like their attendance.
+     */
+    @Test
+    fun `homework goes to the lesson's row and its verdict to the student's`() {
+        val c = TutoringClass(
+            id = 9, lessonId = 4, studentId = 1, subjectId = 2,
+            start = Instant.ofEpochMilli(1_700_000_000_000), durationMinutes = 60,
+            homework = "§12", homeworkResult = HomeworkResult.NOT_DONE,
+        )
+
+        assertEquals("§12", c.toLessonEntity().homework)
+        assertEquals(HomeworkResult.NOT_DONE.name, c.toAttendanceEntity().homeworkResult)
+    }
+
+    /** Not checked yet is null on the row, and null back — not a fourth verdict. */
+    @Test
+    fun `an unchecked verdict is stored as null`() {
+        val c = TutoringClass(studentId = 1, subjectId = 2, start = Instant.ofEpochMilli(0), durationMinutes = 60)
+
+        assertNull(c.toAttendanceEntity().homeworkResult)
+        assertNull(c.roundTrip().homeworkResult)
     }
 
     /** Which row each fact is written to — the split itself, asserted rather than assumed. */
@@ -232,9 +260,11 @@ class MappersTest {
             "PaymentEntity" to setOf("id", "studentId", "dateMillis", "amountMinor"),
             "LessonEntity" to setOf(
                 "id", "subjectId", "startMillis", "durationMinutes", "status", "groupId", "mode", "notes",
+                "homework",
             ),
             "AttendanceEntity" to setOf(
                 "id", "lessonId", "studentId", "state", "priceMinor", "chargeMinor", "calendarEventId",
+                "homeworkResult",
             ),
         )
         val actual = listOf(
@@ -298,6 +328,21 @@ class MappersTest {
         assertTrue("it fails rather than guessing", failure is IllegalStateException)
         assertTrue("and says which row: ${failure?.message}", failure!!.message!!.contains("42"))
         assertTrue(failure.message!!.contains("MISSED"))
+    }
+
+    /**
+     * A verdict carries no money, so like a mode it falls back rather than failing the read — to "not
+     * checked", which costs one verdict to give again.
+     */
+    @Test
+    fun `an unreadable homework verdict reads as not checked`() {
+        val klass = rejoin(
+            LessonEntity(1, 1, 1_900_000_000_000, 60, LessonStatus.COMPLETED.name, homework = "§12"),
+            AttendanceEntity(1, 1, 1, Attended.PRESENT.name, homeworkResult = "EXCELLENT"),
+        )
+
+        assertNull(klass.homeworkResult)
+        assertEquals("the rest of the row survives", "§12", klass.homework)
     }
 
     /** And so does an attendance, for the same reason: it is the other half of what bills. */

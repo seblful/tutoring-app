@@ -40,8 +40,16 @@ interface Notifier {
      *
      * @param whoName who the lesson is with — the student, or the **group** when it is a group lesson,
      *   since one lesson earns one reminder and is announced by whoever is in the room.
+     * @param homeworkToCheck the homework this lesson checks, while somebody's is still unmarked — so the
+     *   hour's warning is also the reminder of what was set last time, the one thing a tutor with twenty
+     *   students cannot hold in their head. Null when there is nothing to check.
      */
-    fun showClassReminder(klass: TutoringClass, whoName: String, subjectName: String)
+    fun showClassReminder(
+        klass: TutoringClass,
+        whoName: String,
+        subjectName: String,
+        homeworkToCheck: String? = null,
+    )
 
     /**
      * Takes the reminder for [classId] out of the tray.

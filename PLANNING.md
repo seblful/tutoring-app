@@ -26,6 +26,9 @@ converted at an exchange rate.
   lesson.
 - **Payment** — date + amount per student, correctable in place.
 - **Balance** = Σ(charges on completed classes) − Σ(payments).
+- **Homework** — text set at a lesson, plus each student's verdict (done / partly / not done). Due at the
+  next lesson on its track — the group's, or the same student's in the same subject — which is derived,
+  never stored.
 
 ## Behavior
 
@@ -64,6 +67,9 @@ Multi-user/login, cloud sync across devices, web/iOS, in-app payments, recurring
 | 7 | A reminder fires ahead of a `scheduled` class, and never on booking | `domain/RemindersTest`, `notifications/DueReminderTest` |
 | 8 | Two lessons cannot claim the same hour, by any route in | `domain/SchedulingTest`, `ui/schedule/ScheduleViewModelTest` |
 | 9 | A multi-table write lands whole or not at all | `data/repository/*AtomicityTest` |
+| 10 | Homework is due at the next non-cancelled lesson on its track, and the tab lists only the latest open one per track | `domain/HomeworkTest`, `ui/homework/HomeworkViewModelTest` |
+| 11 | A homework verdict is one student's and touches nothing else on their row | `data/repository/ClassRepositoryHomeworkTest` |
+| 12 | A lesson's calendar event carries its homework and never its private note | `calendar/CalendarEventTest`, `androidTest .../ClassCalendarSyncTest` |
 
 ## Decisions superseded since planning
 

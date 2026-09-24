@@ -13,6 +13,7 @@ import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
+import com.seblful.klas.domain.model.HomeworkResult
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Price
@@ -49,6 +50,12 @@ private fun statusOf(stored: String, classId: Long): LessonStatus =
 
 private fun attendedOf(stored: String, classId: Long): Attended =
     Attended.parse(stored) ?: error("Class $classId has an unreadable attendance \"$stored\"")
+
+/**
+ * A homework verdict carries no money either, so an unreadable one reads as **not checked** — one verdict
+ * to give again, rather than a schedule that will not draw.
+ */
+private fun homeworkResultOf(stored: String?): HomeworkResult? = stored?.let(HomeworkResult::parse)
 
 fun SubjectEntity.toDomain() = Subject(id = id, name = name)
 fun Subject.toEntity() = SubjectEntity(id = id, name = name)
@@ -116,6 +123,8 @@ fun ClassRow.toDomain() = TutoringClass(
     mode = modeOf(mode),
     notes = notes,
     calendarEventId = calendarEventId,
+    homework = homework,
+    homeworkResult = homeworkResultOf(homeworkResult),
 )
 
 /**
@@ -135,6 +144,7 @@ fun TutoringClass.toLessonEntity() = LessonEntity(
     groupId = groupId,
     mode = mode.name,
     notes = notes,
+    homework = homework,
 )
 
 fun TutoringClass.toAttendanceEntity() = AttendanceEntity(
@@ -145,4 +155,5 @@ fun TutoringClass.toAttendanceEntity() = AttendanceEntity(
     priceMinor = price.minor,
     chargeMinor = charge.minor,
     calendarEventId = calendarEventId,
+    homeworkResult = homeworkResult?.name,
 )

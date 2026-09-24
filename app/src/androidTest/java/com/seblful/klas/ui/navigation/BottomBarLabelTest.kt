@@ -28,11 +28,10 @@ import org.junit.Test
 /**
  * Every tab label has to read as one whole word on one line.
  *
- * The bar carries **four** tabs now — students and groups became one «Люди» — which relieves the case
- * this test was written for: «Расписание» used to take all but a few pixels of its fifth of a 360dp
- * screen and wrapped, stranding its last letter on a second line. The tests stay, because that is the
- * point of them: the fifth tab is the kind of thing that comes back, and it should come back with the
- * layout still proven rather than assumed.
+ * The bar carries **five** tabs — the case this test was written for, back: «Группы» was the fifth once,
+ * until students and groups became one «Люди», and «Задания» is the fifth now. With five, «Расписание»
+ * takes all but a few pixels of its fifth of a 360dp screen and used to wrap, stranding its last letter
+ * on a second line; this is what proves it no longer does, rather than assuming so.
  *
  * Font scale is pinned to 1 throughout: these are assertions about the *layout*, and the device's own
  * font setting would otherwise decide whether they hold.

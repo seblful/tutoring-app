@@ -22,8 +22,10 @@ data class ClassEdit(
     val durationMinutes: Int,
     val price: Money,
     val mode: ClassMode,
-    /** What was covered and what was set — see [TutoringClass.notes]. Blank is "nothing written". */
+    /** What was covered and how it went — see [TutoringClass.notes]. Blank is "nothing written". */
     val notes: String = "",
+    /** What was set for home — see [TutoringClass.homework]. Blank is "none set". */
+    val homework: String = "",
 )
 
 /** Rules governing a class's status: transitions, billing on completion, auto-completion. */
@@ -170,6 +172,7 @@ object ClassRules {
             price = changes.price,
             mode = changes.mode,
             notes = changes.notes,
+            homework = changes.homework,
         )
         return rebill(move(edited, newStart, now))
     }

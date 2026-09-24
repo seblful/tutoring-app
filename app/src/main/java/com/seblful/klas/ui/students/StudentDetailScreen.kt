@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -64,11 +65,14 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.LessonFilter
 import com.seblful.klas.domain.model.Balance
+import com.seblful.klas.domain.model.HomeworkResult
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
+import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.ui.homework.HomeworkResultSelector
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.EmptyState
@@ -107,7 +111,7 @@ import com.seblful.klas.format.toLocalDate
 import java.time.LocalDate
 
 /**
- * The three things a student's card is *about*, each its own tab.
+ * The four things a student's card is *about*, each its own tab.
  *
  * They used to be three stacked sections in one scroll, which meant reaching a payment scrolled past
  * every subject and every lesson — and the lesson list, the longest of the three by far, had to be
@@ -118,6 +122,12 @@ private enum class StudentTab(val labelRes: Int) {
     SUBJECTS(R.string.student_subjects_title),
     CLASSES(R.string.student_classes_title),
     PAYMENTS(R.string.student_payments_title),
+
+    /**
+     * Every piece of homework they were set, with its verdict — the record a parent asks about. The app's
+     * «Задания» tab lists only what is open; the whole history is this student's, so it is here.
+     */
+    HOMEWORK(R.string.student_homework_title),
 }
 
 /**
@@ -310,6 +320,7 @@ private fun StudentCard(
                     onEdit = { editingPayment = it },
                     onDelete = ::deletePaymentWithUndo,
                 )
+                StudentTab.HOMEWORK -> homeworkTab(state = state, onResult = viewModel::setHomeworkResult)
             }
         }
     }
@@ -406,13 +417,22 @@ private fun StudentCard(
 @Composable
 private fun studentStats(state: StudentDetailState): List<Stat> {
     val totals = state.totals
-    return listOf(
+    return listOfNotNull(
         // Hours as the hint, in place of the tile they used to have. `lessonsStat` prefers «впереди N»
         // when there are lessons still to come — that is something to act on and outranks a total.
         lessonsStat(totals).let { stat ->
             stat.copy(hint = stat.hint ?: formatHours(totals.minutes))
         },
         Stat(label = stringResource(R.string.stat_earned), value = totals.earned.text()),
+        // Done out of checked, «частично» as the hint; no tile at all until something has a verdict — see
+        // `Homework.Record.hasVerdicts`.
+        state.homeworkRecord.takeIf { it.hasVerdicts }?.let { record ->
+            Stat(
+                label = stringResource(R.string.stat_homework),
+                value = stringResource(R.string.stat_homework_value, record.done, record.checked),
+                hint = record.partial.takeIf { it > 0 }?.let { stringResource(R.string.stat_homework_partial, it) },
+            )
+        },
     )
 }
 
@@ -894,6 +914,43 @@ private fun LazyListScope.paymentsTab(
             // Tapping the row corrects it; the bin still removes it. Editing is the commoner of the
             // two — a wrong amount is a typo, not a payment that did not happen.
             modifier = Modifier.clickable { onEdit(payment) }.animateItem(),
+        )
+    }
+}
+
+/**
+ * The homework this student was set, newest first, each with its verdict — correctable here, since a
+ * verdict given late (a parent's message a week on) is most naturally given on the card of the student
+ * it is about. Read-only otherwise: homework is set and edited on its lesson.
+ */
+private fun LazyListScope.homeworkTab(
+    state: StudentDetailState,
+    onResult: (TutoringClass, HomeworkResult) -> Unit,
+) {
+    if (state.homework.isEmpty()) {
+        item(key = StudentDetailKeys.HOMEWORK_EMPTY) {
+            // No action: homework is set on a lesson, from the schedule.
+            EmptyState(
+                title = stringResource(R.string.student_homework_empty),
+                icon = Icons.AutoMirrored.Outlined.Assignment,
+                compact = true,
+            )
+        }
+        return
+    }
+    items(state.homework, key = { StudentDetailKeys.homework(it.klass.id) }) { row ->
+        ListItem(
+            leadingContent = { LessonKindIcon(row.kind) },
+            headlineContent = { Text("${row.subjectName} · ${row.klass.start.formatDate()}") },
+            supportingContent = {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
+                    Text(row.klass.homework)
+                    HomeworkResultSelector(
+                        result = row.klass.homeworkResult,
+                        onResult = { result -> onResult(row.klass, result) },
+                    )
+                }
+            },
         )
     }
 }

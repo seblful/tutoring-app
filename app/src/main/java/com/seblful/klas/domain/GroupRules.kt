@@ -134,6 +134,8 @@ data class SessionEdit(
      * here: one lesson, one note, whoever was in it.
      */
     val notes: String = "",
+    /** What was set for home — see [TutoringClass.homework]. The lesson's, like [notes]. */
+    val homework: String = "",
     /**
      * Who the lesson belongs to after the edit. An **individual** class may be re-attributed to
      * another student, which credits the new owner at [price].
@@ -213,6 +215,7 @@ object GroupRules {
         price = changes.price,
         mode = changes.mode,
         notes = changes.notes,
+        homework = changes.homework,
     )
 
     /**
@@ -270,6 +273,9 @@ object GroupRules {
                     // is one of the things it consists of. A row carrying "" for a lesson whose other rows
                     // carry text would be the `classes` view disagreeing with itself about one lesson.
                     notes = changes.notes,
+                    // The homework too, for the same reason — and no verdict, since nobody has checked a
+                    // joiner's yet.
+                    homework = changes.homework,
                 )
             },
         )

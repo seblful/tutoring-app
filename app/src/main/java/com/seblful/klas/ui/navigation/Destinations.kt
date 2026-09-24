@@ -2,6 +2,8 @@ package com.seblful.klas.ui.navigation
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.MoreHoriz
@@ -19,6 +21,9 @@ object Routes {
 
     /** Students and groups, as one tab with two views inside it. */
     const val PEOPLE = "people"
+
+    /** Every student's homework: what to check, and what is handed out. */
+    const val HOMEWORK = "homework"
     const val REPORTS = "reports"
     const val MORE = "more"
 
@@ -62,9 +67,15 @@ object Routes {
 
 /**
  * The top-level tabs of the bottom bar, **in the order they appear**: who is taught first («Люди» —
- * students and their groups, which are the same people seen as rosters), then when («Расписание»),
- * then the money («Отчёты») and the rest. The app still *opens* on the schedule; this order is only
- * where each tab sits.
+ * students and their groups, which are the same people seen as rosters), then what they were set
+ * («Задания»), then when («Расписание»), then the money («Отчёты») and the rest. The app still *opens* on
+ * the schedule; this order is only where each tab sits — and with five, it puts that tab in the middle.
+ *
+ * **Five again**, which is what folding «Группы» into «Люди» got the bar down from, and on purpose: that
+ * tab was a second view of the same people, where homework is a question none of the other four answers —
+ * "what do I check today", across every student. `TabLabel` already holds a label to one line and shrinks
+ * it where «Расписание» would not fit a fifth of a 360dp screen, and `BottomBarLabelTest` is what proves
+ * that on a device.
  *
  * **Every entry is a tab, always.** There used to be five, one of which («Группы») could be switched
  * off in Settings — which meant the bar, the route set and «Ещё» all had to be derived from a boolean
@@ -84,6 +95,12 @@ enum class TopDestination(
     val iconOutlined: ImageVector,
 ) {
     PEOPLE(Routes.PEOPLE, R.string.nav_people, Icons.Filled.People, Icons.Outlined.People),
+    HOMEWORK(
+        Routes.HOMEWORK,
+        R.string.nav_homework,
+        Icons.AutoMirrored.Filled.Assignment,
+        Icons.AutoMirrored.Outlined.Assignment,
+    ),
     SCHEDULE(Routes.SCHEDULE, R.string.nav_schedule, Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
     REPORTS(Routes.REPORTS, R.string.nav_reports, Icons.Filled.BarChart, Icons.Outlined.BarChart),
     MORE(Routes.MORE, R.string.nav_more, Icons.Filled.MoreHoriz, Icons.Outlined.MoreHoriz);

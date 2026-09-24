@@ -30,7 +30,7 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps: billing, class/group rules, scheduling, recurrence, calendar policy, reminders, `LessonPhase`, `Digests`, reports, search, formatting-adjacent models (`Balance`, `Currency`, `AppLanguage`). All JVM-tested. |
+| `domain/` | Pure Kotlin, no Android deps: billing, class/group rules, scheduling, recurrence, calendar policy, reminders, `LessonPhase`, `Homework`, `Digests`, reports, search, formatting-adjacent models (`Balance`, `Currency`, `AppLanguage`). All JVM-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`, `Migrations`, `Transactor` port. `SnapshotDao` is the separate whole-table seam. |
 | `data/Mappers.kt` | Entities ⇄ domain models. |
 | `data/repository/` | One invariant each, end to end, one transaction (see *Ownership*). |
@@ -41,7 +41,7 @@ flowchart TB
 | `diagnostics/` | `CrashLogger` over local storage; viewed/exported from `ui/diagnostics`. |
 | `storage/` | `DocumentStore` (SAF) and `DocumentSharing` (`ACTION_SEND`) ports. |
 | `format/` | Date/time/money formatting, `AppLocale`, `MoneyField`, `NameOrder`. |
-| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` atoms, `onboarding/`, `RootViewModel`. Settings/About in `ui/more/`. Theme in `ui/theme/`. |
+| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` atoms, `onboarding/`, `RootViewModel`. The «Задания» tab and the homework parts the schedule and student card share in `ui/homework/`. Settings/About in `ui/more/`. Theme in `ui/theme/`. |
 | `preview/` (debug only) | `@Preview`s of `ui/common/`. |
 | `di/` | DB module, scopes/dispatchers, `Clock`, week-start, device locales. |
 
@@ -109,9 +109,27 @@ flowchart TB
   `ABSENT_BILLED` = absent but charged; only an explicit absence stops a charge.
 - A lesson's phase is derived, never stored (`domain/LessonPhase`: `UPCOMING|IN_PROGRESS|OVERDUE|SETTLED`),
   from status + injected clock — not a fourth `LessonStatus`.
-- A lesson carries one note (`lessons.notes`), shared by every class in it; rides the ordinary edit; is
-  also the calendar event's description.
-- A lesson is the unit of change — every write takes a `ClassSession` (except `setAttendance`, per person).
+- A lesson carries one note (`lessons.notes`), shared by every class in it; rides the ordinary edit. It is
+  the tutor's own and **never leaves the app** — the calendar event carries the homework instead.
+- A lesson is the unit of change — every write takes a `ClassSession` (except `setAttendance` and
+  `setHomeworkResult`, per person).
+
+### Homework
+
+- Set at a lesson (`lessons.homework`, the lesson's like the note), checked at the next one **on its
+  track**: the group's next lesson in that subject, or the same student's next individual lesson in the
+  same subject; a cancelled lesson is skipped. That lesson is **derived, never stored** (`domain/Homework`),
+  because with no series the next lesson is often not booked yet, and it can move.
+- Each student's verdict (`DONE|PARTIAL|NOT_DONE`, null = not checked) is on their `attendance` row **of
+  the lesson it was set at**, written as one column (`AttendanceDao.setHomeworkResult`) — no calendar
+  mirror, no reminder re-plan; the reminder reads what is left to check as it fires.
+- Set on the lesson's form (edit only — a booking, and a repeating one especially, sets none) or from the
+  schedule's sheet; checked on the next lesson's sheet, in the tab, or on the student's card.
+- The «Задания» tab is a worklist, not an archive: the latest homework per track, set within
+  `Homework.FOLLOWED_UP_FOR` (60 days), for active students and groups — «Проверить» (due today, then
+  overdue) and «Выдано» (due later, then no next lesson booked). The whole record is the student card's.
+- Sent through the share sheet, worded with the due lesson's date. Not in v1: photos/files, grades, due
+  dates independent of lessons, anything student-facing.
 - **One tutor, one lesson at a time**: overlap refused, not warned; back-to-back fine; cancelled frees the
   slot; past booking allowed. Pure rule in `Scheduling.conflicts`, enforced by the repository
   (`LessonWrite.HourTaken`).
@@ -144,7 +162,7 @@ flowchart TB
 
 - Settings live in Room (single row), device-local, not backed up, written under a `Mutex`.
 - Platform auto-backup is off; the app's own JSON export (SAF) is the only way data moves between devices.
-- DB is at v7, baseline v5 (`AppDatabase.BASELINE_VERSION`); `Migrations.kt` holds exactly the steps since
+- DB is at v8, baseline v5 (`AppDatabase.BASELINE_VERSION`); `Migrations.kt` holds exactly the steps since
   baseline. Every schema change past baseline bumps the version and ships a migration
   (`MigrationChainTest` enforces wiring; each migration also gets a device test against the exported schema).
 - Destructive fallback (wipe-on-unmigratable) is debug-only; release refuses to open such a database.
@@ -158,8 +176,9 @@ flowchart TB
 
 - Sync via `CalendarContract` (OS handles Google sync), opt-in. Mirror runs **one way**, app → calendar,
   through `ClassRepository.write`'s post-commit phase; nothing reads the calendar back.
-- A completed lesson's event is kept true but never (re)created (`Action.REFRESH`); the note is the event
-  description, written verbatim even when blank.
+- A completed lesson's event is kept true but never (re)created (`Action.REFRESH`); the **homework** is the
+  event description (`CalendarEvent.description`), written verbatim even when blank — never the note, since
+  an invited student is an attendee of the same event.
 - Email invites are a separate, off-by-default setting; turning it off and re-syncing withdraws invites.
 - Reminders are alarms (`AlarmManager`), not workers — exact where the OS allows, inexact fallback
   otherwise; re-derived from scratch over a fixed horizon on every change; re-armed after reboot.
@@ -194,9 +213,9 @@ flowchart TB
   identity → `StatRow` → sticky tabs. One control per kind of question: `SegmentedChoice` (fixed few,
   swipeable), `ChoiceRow` (settings-shaped choice, segments up to 4 then a field), chips (shortlist +
   escape hatch).
-- **Navigation**: bottom bar «Люди·Расписание·Отчёты·Ещё», opens on the schedule; Students+Groups share one
-  tab via a segmented control. Which tab is marked is read off the back stack. Destinations cross-fade;
-  predictive back is on.
+- **Navigation**: bottom bar «Люди·Задания·Расписание·Отчёты·Ещё», opens on the schedule (the middle tab);
+  Students+Groups share one tab via a segmented control. Which tab is marked is read off the back stack.
+  Destinations cross-fade; predictive back is on.
 - **Lists**: shared search rule (`domain/PeopleSearch`) across the three list screens — case-insensitive,
   substring, terms in any order. Empty lists always carry the way out (`EmptyState`). State is a
   `StatusBadge`, never a font style.
@@ -271,7 +290,7 @@ app/src/main/java/com/seblful/klas/
 ├── calendar/  notifications/  diagnostics/  work/  format/  storage/  di/
 ├── Coroutines.kt      # runCatchingCancellable
 ├── Localization.kt    # Context.inLanguage() + deviceLocales()
-├── ui/{schedule,people,students,groups,subjects,reports,backup,more,
+├── ui/{schedule,people,homework,students,groups,subjects,reports,backup,more,
 │       onboarding,diagnostics,common,navigation,theme}/
 ├── MainActivity.kt    # @AndroidEntryPoint → AppRoot()
 └── KlasApp.kt         # @HiltAndroidApp, WorkManager config, in-process startup upkeep

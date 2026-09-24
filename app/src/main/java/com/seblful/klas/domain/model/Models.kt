@@ -80,12 +80,18 @@ data class Price(
  * @param charge recognized income: [Money.ZERO] unless [isBillable].
  * @param groupId the [Group] whose lesson this is, or null for an individual one.
  * @param mode in person or remote; pre-filled from the student's default, editable per lesson.
- * @param notes what the tutor wrote down about the hour — what was covered, and what was set for home.
- *   **The lesson's**, like [status]: one note for one hour, shared by every class of it, because it
- *   describes the room rather than a person in it. Blank means nothing was written, which is why there
- *   is no null to tell apart from it.
+ * @param notes what the tutor wrote down about the hour — what was covered, how it went. **The
+ *   lesson's**, like [status]: one note for one hour, shared by every class of it, because it describes
+ *   the room rather than a person in it. Blank means nothing was written, which is why there is no null
+ *   to tell apart from it. Private: unlike [homework], it never leaves the app.
  * @param calendarEventId id of the mirrored Google Calendar event, if synced. Per student: a group
  *   lesson mirrors as one event each, so each keeps their own invitation.
+ * @param homework what was set for home at this lesson — «§ 12, упр. 4–7». The lesson's, like [notes]:
+ *   a group is set one assignment. Apart from the note because the two are written for different
+ *   people: this one is for the student (the calendar event carries it, and it is what gets sent), the
+ *   note is the tutor's own.
+ * @param homeworkResult how **this student** did it, or null until the tutor checks — see
+ *   [HomeworkResult] for why it sits on the lesson the homework was set at.
  */
 data class TutoringClass(
     val id: Long = 0,
@@ -102,6 +108,8 @@ data class TutoringClass(
     val mode: ClassMode = ClassMode.IN_PERSON,
     val notes: String = "",
     val calendarEventId: String? = null,
+    val homework: String = "",
+    val homeworkResult: HomeworkResult? = null,
 ) {
     val end: Instant get() = start.plusSeconds(durationMinutes * 60L)
 

@@ -119,7 +119,12 @@ class AndroidNotifier @Inject constructor(
             .apply { description = words.getString(descRes) }
 
     /** No-ops silently if notification permission is missing. */
-    override fun showClassReminder(klass: TutoringClass, whoName: String, subjectName: String) {
+    override fun showClassReminder(
+        klass: TutoringClass,
+        whoName: String,
+        subjectName: String,
+        homeworkToCheck: String?,
+    ) {
         if (!permission.isGranted()) return
         ensureChannels()
 
@@ -129,12 +134,17 @@ class AndroidNotifier @Inject constructor(
         // at 9:00 PM was announced as «21:00»: one clock to set it on and another to be reminded of it.
         val time = klass.start.formatTime(hour12 = hour12())
         val headline = bulletJoin(time, subjectName, whoName)
+        // In the expanded text only: the collapsed line stays the lesson, which is what the tray is sorted by
+        // at a glance, and the homework is what the tutor opens it to read.
+        val expanded = homeworkToCheck
+            ?.let { "$headline\n${words.getString(R.string.reminder_homework_to_check, it)}" }
+            ?: headline
 
         val notification = NotificationCompat.Builder(context, CHANNEL_REMINDERS)
             .setSmallIcon(R.drawable.ic_stat_reminder)
             .setContentTitle(words.getString(R.string.reminder_title))
             .setContentText(headline)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(headline))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(expanded))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)

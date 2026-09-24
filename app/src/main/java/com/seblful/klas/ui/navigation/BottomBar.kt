@@ -64,9 +64,9 @@ private fun TabIcon(dest: TopDestination, selected: Boolean) {
 /**
  * A tab label on **one line**.
  *
- * With «Группы» shown there are five tabs, and «Расписание» then wants all but a few pixels of its
- * share of a 360dp screen — close enough to the edge that it used to wrap, stranding its last letter
- * on a second line. Holding the label to one line is what fixes that; the type additionally shrinks
+ * With five tabs — «Группы» once, «Задания» now — «Расписание» wants all but a few pixels of its share
+ * of a 360dp screen, close enough to the edge that it used to wrap, stranding its last letter on a
+ * second line. Holding the label to one line is what fixes that; the type additionally shrinks
  * (never below [MinLabelFontSize]) on the narrower screens and larger font scales where the word
  * really does not fit, so it stays whole where a fixed size would have to cut it short.
  *

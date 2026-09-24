@@ -10,6 +10,7 @@ or **EUR**.
 ## Features
 
 - **People** — students and groups in one tab, searchable; students also sortable by who owes the most.
+- **Homework** — set on a lesson and checked at the next one on its track (the same student and subject, or the group), which the app works out itself. Its own tab lists what to check today and what is handed out, with a send button; the lesson's sheet and its reminder say what to check; each student's card keeps the whole record.
 - **Students & subjects** — per-student subjects, each with an hourly price and a change log; archive-only (history is protected).
 - **Groups** — a named roster taught one subject at the group's own hourly rate. Booking one lesson books it for every member, so the schedule shows one card while billing stays per-student — including "this one didn't come".
 - **Schedule** — day / week / month views of one-off classes, with a `scheduled → completed | cancelled` lifecycle, swipe-to-complete, and optional auto-complete once a class ends. One tutor, one lesson at a time: an overlapping slot is refused.
@@ -54,7 +55,6 @@ full architecture, module map, and design decisions.
 The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk` and installs without any signing
 setup. It carries a `.debug` application id, so it sits beside a release install with its own database.
 
-CI (`.github/workflows/ci.yml`) runs the unit suite, `lintDebug`, the debug APK and the *compilation*
 ### Building with Docker
 
 No JDK or Android SDK on the machine? `docker/Dockerfile` is the toolchain as an image — JDK 21 and the
@@ -79,6 +79,7 @@ reads slowly — expect several minutes per build, where a clone inside WSL is m
 three analysis passes can crash in the Kotlin analysis layer (`Error while resolving … RAW_FIR`) when they
 run in parallel in one daemon; run it on its own worker: `:app:lintDebug --no-parallel --max-workers=1`.
 
+CI (`.github/workflows/ci.yml`) runs the unit suite, `lintDebug`, the debug APK and the *compilation*
 of the instrumented tests on every PR and every push to `main`/`develop`. Running the instrumented
 tests themselves needs a connected device (`./gradlew :app:connectedDebugAndroidTest`).
 

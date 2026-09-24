@@ -137,7 +137,12 @@ class FakeCalendarSync(var available: Boolean = true) : CalendarSync {
 
 /** Records everything posted to the tray, so tests can assert what the app announced and to whom. */
 class RecordingNotifier : Notifier {
-    data class Posted(val klass: TutoringClass, val whoName: String, val subjectName: String)
+    data class Posted(
+        val klass: TutoringClass,
+        val whoName: String,
+        val subjectName: String,
+        val homeworkToCheck: String? = null,
+    )
 
     val posted = mutableListOf<Posted>()
     var channelsEnsured = 0
@@ -147,8 +152,13 @@ class RecordingNotifier : Notifier {
         channelsEnsured++
     }
 
-    override fun showClassReminder(klass: TutoringClass, whoName: String, subjectName: String) {
-        posted += Posted(klass, whoName, subjectName)
+    override fun showClassReminder(
+        klass: TutoringClass,
+        whoName: String,
+        subjectName: String,
+        homeworkToCheck: String?,
+    ) {
+        posted += Posted(klass, whoName, subjectName, homeworkToCheck)
     }
 
     /** Which reminders were taken back out of the tray, in the order they were. */

@@ -36,6 +36,7 @@ class StoredEnumNamesTest {
     private val storedModes = setOf("IN_PERSON", "REMOTE")
     private val storedCurrencies = setOf("BYN", "RUB", "USD", "EUR")
     private val storedLanguages = setOf("SYSTEM", "RUSSIAN", "ENGLISH")
+    private val storedHomeworkResults = setOf("DONE", "PARTIAL", "NOT_DONE")
 
     @Test
     fun `the stored status names are the ones the database holds`() {
@@ -93,6 +94,21 @@ class StoredEnumNamesTest {
                 "then update this list.",
             storedLanguages,
             com.seblful.klas.domain.model.AppLanguage.entries.map { it.name }.toSet(),
+        )
+    }
+
+    /**
+     * `attendance.homeworkResult`, another word that carries no money: an unrecognized one reads as not
+     * checked (`data/Mappers.kt`), so a rename would quietly un-mark every verdict a tutor ever gave.
+     */
+    @Test
+    fun `the stored homework result names are the ones the attendance rows hold`() {
+        assertEquals(
+            "A HomeworkResult constant was renamed, added or removed. `attendance.homeworkResult` stores " +
+                "these names — rows holding the old text will silently read as not checked. Migrate the " +
+                "column, then update this list.",
+            storedHomeworkResults,
+            com.seblful.klas.domain.model.HomeworkResult.entries.map { it.name }.toSet(),
         )
     }
 

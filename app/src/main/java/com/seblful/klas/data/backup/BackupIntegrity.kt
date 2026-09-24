@@ -7,6 +7,7 @@ import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
+import com.seblful.klas.domain.model.HomeworkResult
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 
@@ -79,6 +80,13 @@ object BackupIntegrity {
     private fun checkAttendance(a: AttendanceEntity) {
         if (Attended.parse(a.state) == null) {
             refuse("class ${a.id} has attendance \"${a.state}\"")
+        }
+        // Refused like a mode, for the same reason: the read would fall back (to "not checked") rather than
+        // fail, but a file carrying a verdict this build cannot name is not one to restore as if it could.
+        a.homeworkResult?.let { stored ->
+            if (HomeworkResult.parse(stored) == null) {
+                refuse("class ${a.id} has homework result \"$stored\"")
+            }
         }
         checkAmount(a.priceMinor, "class ${a.id}'s rate")
         checkAmount(a.chargeMinor, "class ${a.id}'s charge")

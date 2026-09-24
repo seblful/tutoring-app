@@ -143,7 +143,12 @@ class ClassCalendarSyncTest {
         assertEquals(newStart, calendar.refreshes.last().start)
     }
 
-    @Test fun aNoteWrittenAfterTheLessonReachesItsEvent() = runTest {
+    /**
+     * Homework is written walking out of the room, on a lesson already marked taught — and the event,
+     * which is what an invited student sees, has to follow it. (It carries the homework and never the
+     * note: `CalendarEvent.description`.)
+     */
+    @Test fun homeworkSetAfterTheLessonReachesItsEvent() = runTest {
         val start = Instant.parse("2026-07-10T13:00:00Z")
         val id = book(start, price = Money(5000))
         repo.setStatus(session(id), LessonStatus.COMPLETED)
@@ -157,14 +162,15 @@ class ClassCalendarSyncTest {
                 durationMinutes = 60,
                 mode = ClassMode.IN_PERSON,
                 price = Money(5000),
-                notes = "§12, упр. 4–7",
+                notes = "устала к концу",
+                homework = "§12, упр. 4–7",
                 studentId = 1,
             ),
             newStart = start,
             now = Instant.parse("2026-07-10T20:00:00Z"),
         )
 
-        assertEquals("§12, упр. 4–7", calendar.refreshes.last().notes)
+        assertEquals("§12, упр. 4–7", calendar.refreshes.last().homework)
         assertTrue("a past hour never earns a new event", calendar.upserts.isEmpty())
     }
 

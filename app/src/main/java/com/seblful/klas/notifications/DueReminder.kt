@@ -44,7 +44,13 @@ class DueReminder @Inject constructor(
             groupName = klass.groupId?.let { groups.getById(it)?.name },
             studentName = students.getById(klass.studentId)?.name,
         )
-        notifier.showClassReminder(klass, who, subjects.getById(klass.subjectId)?.name.orEmpty())
+        // Read now rather than when the reminder was planned, which is what lets a verdict skip re-planning
+        // (`ClassRepository.setHomeworkResult`): the reminder says what is left to check as it fires.
+        val toCheck = classes.getSessionFor(klass.id)
+            ?.let { classes.homeworkDueAt(it) }
+            ?.takeIf { it.open }
+            ?.text
+        notifier.showClassReminder(klass, who, subjects.getById(klass.subjectId)?.name.orEmpty(), toCheck)
         return true
     }
 }

@@ -42,6 +42,7 @@ import com.seblful.klas.ui.backup.BackupScreen
 import com.seblful.klas.ui.diagnostics.DiagnosticsScreen
 import com.seblful.klas.ui.groups.GroupDetailScreen
 import com.seblful.klas.ui.groups.GroupFormScreen
+import com.seblful.klas.ui.homework.HomeworkScreen
 import com.seblful.klas.ui.more.AboutScreen
 import com.seblful.klas.ui.more.MoreScreen
 import com.seblful.klas.ui.more.SettingsScreen
@@ -229,6 +230,20 @@ private fun MainApp() {
                     onAddStudent = { navController.navigate(Routes.STUDENT_ADD) },
                     onGroupClick = { navController.navigate(Routes.groupDetail(it)) },
                     onAddGroup = { navController.navigate(Routes.GROUP_ADD) },
+                )
+            }
+            screen(Routes.HOMEWORK) {
+                HomeworkScreen(
+                    onOpenLesson = { navController.navigate(Routes.classEdit(it)) },
+                    // A **tab**, switched to the way the bar switches to it — homework is set on a lesson,
+                    // and an empty list's way out is the place lessons are.
+                    onOpenSchedule = {
+                        navController.navigate(Routes.SCHEDULE) {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                 )
             }
 

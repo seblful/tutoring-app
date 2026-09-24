@@ -177,6 +177,31 @@ class BackupSerializationTest {
         assertEquals("the price itself is intact", 5000L, parsed.prices.single().amountMinor)
     }
 
+    /**
+     * A v7 backup predates homework: its lessons come back with none set and its students with no verdict,
+     * and the note — which then held homework too — comes back exactly as written, not split by guesswork.
+     */
+    @Test
+    fun `a version 7 backup still parses, with no homework`() {
+        val v7 = """
+            {
+              "version": 7,
+              "subjects": [{"id": 1, "name": "Математика"}],
+              "students": [{"id": 1, "name": "Иван"}],
+              "lessons": [{"id": 4, "subjectId": 1, "startMillis": 1, "durationMinutes": 60,
+                           "status": "COMPLETED", "notes": "§12, упр. 4–7"}],
+              "attendance": [{"id": 9, "lessonId": 4, "studentId": 1, "state": "PRESENT"}]
+            }
+        """.trimIndent()
+
+        val parsed = json.decodeFromString<BackupData>(v7)
+
+        assertTrue(BackupData.isSupported(parsed.version))
+        assertEquals("§12, упр. 4–7", parsed.lessons.single().notes)
+        assertEquals("", parsed.lessons.single().homework)
+        assertEquals(null, parsed.attendance.single().homeworkResult)
+    }
+
     @Test
     fun `only current-or-older backup versions are importable`() {
         assertTrue(BackupData.isSupported(BackupData.CURRENT_VERSION))

@@ -21,6 +21,12 @@
       auto-shrinking to fit.
     -->
     <string name="nav_people">Люди</string>
+    <!--
+      Every student's homework: what to check and what is handed out. «Задания» rather than «Домашка»: it
+      sits in the bar beside «Отчёты» and «Расписание» and should read like them. Right after «Люди», which
+      puts «Расписание» — the tab the app opens on — in the middle of the bar.
+    -->
+    <string name="nav_homework">Задания</string>
     <string name="nav_reports">Отчёты</string>
     <string name="nav_more">Ещё</string>
 
@@ -165,7 +171,12 @@
     <string name="class_student_label">Ученик</string>
     <string name="class_subject_label">Предмет</string>
     <string name="class_no_subjects_for_student">У ученика нет предметов с ценой. Укажите цену в карточке ученика.</string>
-    <string name="class_notes_label">Заметки и домашнее задание</string>
+    <!--
+      The tutor's own: what was covered, how it went. It used to be «Заметки и домашнее задание», and its
+      text went to the calendar event, where an invited student reads it. Homework has its own field now,
+      and the note never leaves the app.
+    -->
+    <string name="class_notes_label">Заметки</string>
     <string name="class_date_label">Дата</string>
     <string name="class_time_from_label">Начало</string>
     <!--
@@ -331,6 +342,16 @@
     </plurals>
     <string name="student_payments_title">Платежи</string>
     <string name="student_classes_title">Занятия</string>
+    <string name="student_homework_title">Задания</string>
+    <string name="student_homework_empty">Заданий пока не было</string>
+    <!--
+      The tile: %1$d done of %2$d checked. «Частично» does not count as done — this is the number a tutor
+      quotes to a parent, so it has to be the honest one. «ДЗ» because the tile is a third of a phone wide.
+    -->
+    <string name="stat_homework">ДЗ сделано</string>
+    <string name="stat_homework_value">%1$d из %2$d</string>
+    <!-- The tile's hint, when some of it was only partly done. -->
+    <string name="stat_homework_partial">частично %1$d</string>
 
     <!-- Stat tiles at the top of a student's and a group's card -->
     <string name="stat_debt">Долг</string>
@@ -698,6 +719,11 @@
     <string name="reminder_channel_name">Напоминания о занятиях</string>
     <string name="reminder_channel_desc">Уведомления перед началом занятия</string>
     <string name="reminder_title">Скоро занятие</string>
+    <!--
+      The expanded reminder's second line. %1$s: the homework set at the lesson before, still unmarked. An
+      hour before the lesson is exactly when the tutor needs to remember what was set.
+    -->
+    <string name="reminder_homework_to_check">Проверить: %1$s</string>
 
     <string name="agenda_channel_name">Расписание на день</string>
     <string name="agenda_channel_desc">Утренняя сводка: занятия на сегодня</string>
@@ -843,6 +869,43 @@
     <string name="backup_error_file">Не удалось открыть файл — возможно, он перемещён или недоступен</string>
     <string name="backup_error_malformed">Это не похоже на резервную копию Klas</string>
     <string name="backup_error_version">Копия создана более новой версией Klas (%1$d) — обновите приложение. Эта версия читает копии до %2$d</string>
+
+    <!--
+      Homework. Set at a lesson and checked at the next one on its track — the same student's next lesson in
+      that subject, or the group's — which the app works out itself, so none of these strings ever asks the
+      tutor to pick a due date.
+    -->
+    <string name="homework_label">Домашнее задание</string>
+    <string name="homework_set">Задать домашнее задание</string>
+    <string name="homework_edit">Изменить домашнее задание</string>
+    <!-- The block on a lesson's sheet. %1$s: the date of the lesson it was set at. -->
+    <string name="homework_to_check_from">Проверить · задано %1$s</string>
+    <!-- Three verdicts in one row of segments, hence short. -->
+    <string name="homework_result_done">Сделано</string>
+    <string name="homework_result_partial">Частично</string>
+    <string name="homework_result_not_done">Не сделано</string>
+    <!-- The tab's two sides. The count is added only when there is one. -->
+    <string name="homework_side_to_check">Проверить</string>
+    <string name="homework_side_handed_out">Выдано</string>
+    <!-- %1$s: the side's name, %2$d: how many are on it -->
+    <string name="homework_side_count">%1$s · %2$d</string>
+    <string name="homework_section_today">Сегодня</string>
+    <string name="homework_section_overdue">Раньше, не отмечено</string>
+    <string name="homework_section_unbooked">Следующий урок не назначен</string>
+    <!-- %1$s: when the lesson that checks it starts -->
+    <string name="homework_due">К %1$s</string>
+    <!-- %1$s: the date of the lesson it was set at -->
+    <string name="homework_set_on">Задано %1$s</string>
+    <string name="homework_empty_to_check">Проверять нечего</string>
+    <string name="homework_empty_handed_out">Выданных заданий нет</string>
+    <string name="homework_empty_detail">Задание задаётся на уроке — откройте его в расписании.</string>
+    <string name="homework_open_schedule">К расписанию</string>
+    <!-- Sending the homework to the student, through the phone's share sheet. -->
+    <string name="homework_send">Отправить</string>
+    <!-- %1$s: the date of the lesson it is due at, %2$s: the homework -->
+    <string name="homework_share_due">Домашнее задание к %1$s: %2$s</string>
+    <!-- No lesson is booked to bring it to yet. %1$s: the homework -->
+    <string name="homework_share">Домашнее задание: %1$s</string>
 
     <!-- Diagnostics -->
     <string name="diagnostics_title">Диагностика</string>

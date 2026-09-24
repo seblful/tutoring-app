@@ -162,6 +162,39 @@ class BackupIntegrityTest {
         assertTrue(refusalFor(data) != null)
     }
 
+    // --- The v8 homework verdict ------------------------------------------------------------------
+
+    private val taughtLesson =
+        LessonEntity(4, subjectId = 1, startMillis = 1L, durationMinutes = 60, status = "COMPLETED", homework = "§12")
+
+    @Test
+    fun `a homework verdict the build cannot name is refused, naming the class`() {
+        val data = BackupData(
+            lessons = listOf(taughtLesson),
+            attendance = listOf(AttendanceEntity(9, 4, 1, state = "PRESENT", homeworkResult = "EXCELLENT")),
+        )
+
+        val refusal = refusalFor(data)
+
+        assertTrue("refused", refusal != null)
+        assertTrue("says which row: ${refusal?.reason}", refusal!!.reason.contains("class 9"))
+        assertTrue(refusal.reason.contains("EXCELLENT"))
+    }
+
+    /** Not checked yet is the usual state of a verdict, not a malformed one. */
+    @Test
+    fun `homework with no verdict passes, and so does one with a verdict`() {
+        BackupIntegrity.check(
+            BackupData(
+                lessons = listOf(taughtLesson),
+                attendance = listOf(
+                    AttendanceEntity(9, 4, 1, state = "PRESENT"),
+                    AttendanceEntity(10, 4, 2, state = "PRESENT", homeworkResult = "PARTIAL"),
+                ),
+            ),
+        )
+    }
+
     @Test
     fun `a rate change belonging to neither a student nor a group is refused`() {
         val orphan = RateChangeEntity(id = 1, toMinor = 5000, atMillis = 1_900_000_000_000)

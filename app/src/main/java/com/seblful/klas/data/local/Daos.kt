@@ -304,6 +304,17 @@ interface AttendanceDao {
     @Update
     suspend fun update(row: AttendanceEntity)
 
+    /**
+     * Records one student's homework verdict, and **only** that column.
+     *
+     * A targeted `UPDATE` rather than [update] with a copied row: a verdict is tapped from lists that can be
+     * an emission behind — the tab, a student's card — and writing the whole row back from one of those
+     * would restore whatever charge or calendar event id it held at the time, over a newer one. Nothing
+     * else about the row is this write's business. Null clears it back to "not checked".
+     */
+    @Query("UPDATE attendance SET homeworkResult = :result WHERE id = :id")
+    suspend fun setHomeworkResult(id: Long, result: String?)
+
     @Query("DELETE FROM attendance WHERE id = :id")
     suspend fun deleteById(id: Long)
 }

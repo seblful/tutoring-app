@@ -71,22 +71,25 @@ data class BackupData(
          * **4 gave a group its subject** (`student_groups.subjectId`); **5 carries the rate log**
          * (`price_history`); **6 splits a class into a lesson and an attendance** — the lesson's hour and
          * status once per lesson, who was in it and what they owe once per student; **7 carries a
-         * lesson's note** (`lessons.notes`).
+         * lesson's note** (`lessons.notes`); **8 carries homework** — what a lesson set
+         * (`lessons.homework`) and how each student did it (`attendance.homeworkResult`).
          *
          * Older files still import — a v1 has no groups at all, a v2's groups come back priced at 0
          * for the tutor to re-price, a v3's come back with no subject, a v4's arrive with no rate
-         * history (an empty log), a v5's classes are split on the way in ([splitIntoLessons]), and a
-         * v6's lessons come back with no note. A restore otherwise reproduces the file rather than
-         * inventing rows it doesn't contain, so each of those gaps stays a gap.
+         * history (an empty log), a v5's classes are split on the way in ([splitIntoLessons]), a
+         * v6's lessons come back with no note, and a v7's with no homework. A restore otherwise
+         * reproduces the file rather than inventing rows it doesn't contain, so each of those gaps stays
+         * a gap.
          *
          * The bump is for the other direction: a v6 file *would* parse in a build that predates the
          * split — its `classes` list is empty, so it would restore a database with no lessons in it at
          * all — so that build refuses it instead (see [isSupported]). A v7 file in a v6 build is the
          * milder version of the same thing: the parser ignores unknown keys, so every note in it would
          * be dropped in silence. Dropping a tutor's own writing without saying so is exactly what a
-         * version is for, and it is the reason each of 3, 4 and 5 bumped for a single column too.
+         * version is for, and it is the reason each of 3, 4 and 5 bumped for a single column too — and
+         * 8, whose homework and verdicts a v7 build would drop the same way.
          */
-        const val CURRENT_VERSION = 7
+        const val CURRENT_VERSION = 8
 
         /**
          * Whether a backup of [version] can be safely imported by this build. A newer version may

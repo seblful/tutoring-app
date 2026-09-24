@@ -12,11 +12,17 @@ import org.junit.Test
 class TopDestinationTest {
 
     @Test
-    fun `the tabs read who, then when, then the money`() {
+    fun `the tabs read who, then what they were set, then when, then the money`() {
         assertEquals(
-            listOf(Routes.PEOPLE, Routes.SCHEDULE, Routes.REPORTS, Routes.MORE),
+            listOf(Routes.PEOPLE, Routes.HOMEWORK, Routes.SCHEDULE, Routes.REPORTS, Routes.MORE),
             TopDestination.entries.map { it.route },
         )
+    }
+
+    /** The app opens on the schedule, and with five tabs the middle one is the easiest to reach. */
+    @Test
+    fun `the tab the app opens on sits in the middle of the bar`() {
+        assertEquals(TopDestination.entries.size / 2, TopDestination.SCHEDULE.ordinal)
     }
 
     @Test

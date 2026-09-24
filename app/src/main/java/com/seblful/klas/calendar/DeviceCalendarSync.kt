@@ -185,15 +185,14 @@ class DeviceCalendarSync @Inject constructor(
         put(CalendarContract.Events.DTSTART, klass.start.toEpochMilli())
         put(CalendarContract.Events.DTEND, klass.end.toEpochMilli())
         put(CalendarContract.Events.EVENT_TIMEZONE, ZoneId.systemDefault().id)
-        // What was covered and what was set for home, verbatim — the note is already the tutor's own
-        // words about the hour, so there is nothing here to assemble or translate (contrast the title,
-        // which is three tables' names, and the location, which is one of the app's own).
+        // What was set for home, verbatim, and not the note — which one is `CalendarEvent.description`'s
+        // rule, since an invited student reads this event too.
         //
-        // **Written every time, empty string included.** Clearing a note has to clear the description:
-        // an unconditional put is what makes "the calendar says what the app says" true in both
-        // directions, where skipping the blank case would leave last week's homework standing on an
-        // event whose note the tutor deliberately emptied.
-        put(CalendarContract.Events.DESCRIPTION, klass.notes)
+        // **Written every time, empty string included.** Clearing the homework has to clear the
+        // description: an unconditional put is what makes "the calendar says what the app says" true in
+        // both directions, where skipping the blank case would leave last week's homework standing on an
+        // event whose homework the tutor deliberately emptied.
+        put(CalendarContract.Events.DESCRIPTION, CalendarEvent.description(klass))
         // The one **word** this class writes, so it is the one thing read in the tutor's chosen language
         // rather than off the application context (which is pinned to the phone's — see `KlasApp`). An event
         // keeps the language it was mirrored in until something re-mirrors it, which is why changing the

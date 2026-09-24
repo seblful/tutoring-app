@@ -267,6 +267,8 @@ class FakeClassStore {
                     mode = l.mode,
                     notes = l.notes,
                     calendarEventId = a.calendarEventId,
+                    homework = l.homework,
+                    homeworkResult = a.homeworkResult,
                 )
             }
         }.sortedBy { it.id }
@@ -392,6 +394,12 @@ class FakeAttendanceDao(private val store: FakeClassStore) : AttendanceDao {
         // that inserted the missing row would let a test pass against behaviour the real DAO
         // does not have.
         items.value = items.value.map { if (it.id == row.id) row else it }
+        store.refresh()
+    }
+
+    /** One column of one row, as the real `UPDATE` touches — and nothing when no row has [id]. */
+    override suspend fun setHomeworkResult(id: Long, result: String?) {
+        items.value = items.value.map { if (it.id == id) it.copy(homeworkResult = result) else it }
         store.refresh()
     }
 

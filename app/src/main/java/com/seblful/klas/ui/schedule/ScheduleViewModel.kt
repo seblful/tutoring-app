@@ -15,6 +15,7 @@ import com.seblful.klas.domain.DaySummary
 import com.seblful.klas.domain.GroupRules
 import com.seblful.klas.domain.LessonPhase
 import com.seblful.klas.domain.NowMarker
+import com.seblful.klas.domain.model.HomeworkResult
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Student
@@ -28,6 +29,7 @@ import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.hold
 import com.seblful.klas.ui.common.ready
 import com.seblful.klas.ui.common.valueOrNull
+import com.seblful.klas.ui.homework.HomeworkRow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -41,6 +43,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
@@ -225,6 +228,12 @@ data class WeekSection(
 )
 
 /**
+ * A lesson's homework as its sheet draws it: [checks], set at the lesson before and marked here, and
+ * [sets], given at this one — see `Homework.AtLesson`. Either is null when there is none.
+ */
+data class SheetHomework(val checks: HomeworkRow? = null, val sets: HomeworkRow? = null)
+
+/**
  * How the schedule presents its classes: one day at a time, a whole week's agenda, or a month grid
  * over the selected day's list.
  */
@@ -314,7 +323,7 @@ private inline fun <reified T : ScheduleContent> Loadable<ScheduleContent>.narro
 class ScheduleViewModel @Inject constructor(
     private val classes: ClassRepository,
     private val students: StudentRepository,
-    subjects: SubjectRepository,
+    private val subjects: SubjectRepository,
     private val groups: GroupRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
@@ -781,6 +790,37 @@ class ScheduleViewModel @Inject constructor(
 
     fun delete(session: ClassSession) {
         write { classes.delete(session) }
+    }
+
+    /**
+     * The homework [session]'s sheet shows — the one it checks and the one it set, captioned.
+     *
+     * A flow per sheet rather than a `StateFlow` here: it is keyed on the lesson the sheet was opened for,
+     * lives exactly as long as that sheet, and the schedule's own state has no use for it. Off the main
+     * thread like everything derived here, since it walks the lessons on the track either side.
+     */
+    fun homeworkAt(session: ClassSession): Flow<SheetHomework> =
+        combine(
+            classes.observeHomeworkAt(session),
+            students.observeAll(),
+            subjects.observeAll(),
+            groups.observeAll(),
+        ) { at, studentList, subjectList, groupList ->
+            val captions = Captions.of(studentList, subjectList, groupList)
+            SheetHomework(
+                checks = at.checks?.let { HomeworkRow.of(it, captions) },
+                sets = at.sets?.let { HomeworkRow.of(it, captions) },
+            )
+        }.flowOn(computation)
+
+    /** Sets what [session] gave for home — the sheet's quick way in; the lesson's form is the other. */
+    fun setHomework(session: ClassSession, homework: String) {
+        write { classes.setHomework(session, homework) }
+    }
+
+    /** Records how the student [klass] belongs to did the homework set at its lesson. */
+    fun setHomeworkResult(klass: TutoringClass, result: HomeworkResult) {
+        write { classes.setHomeworkResult(klass, result) }
     }
 
     /**

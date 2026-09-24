@@ -82,6 +82,27 @@ object Migrations {
         }
     }
 
+    /**
+     * v7 → v8: homework — the lesson learns what was set at it, and each student's row learns how they did.
+     *
+     * Two `ADD COLUMN`s, no rebuild. `lessons.homework` defaults to `''`, the twin of its entity's
+     * `defaultValue`, and starts empty on every existing lesson rather than being copied out of the note:
+     * the note was «Заметки и домашнее задание», and guessing which half is which would hand a tutor's
+     * private remarks to the student the homework is now sent to. `attendance.homeworkResult` is nullable
+     * with no `DEFAULT`, which is how Room declares it and what "not checked yet" is stored as.
+     *
+     * **Both columns are projected by the `classes` view, so it is recreated** — the rule [MIGRATION_6_7]
+     * learned on a real phone. `HomeworkMigrationTest` reads a lesson back through the view.
+     */
+    val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE lessons ADD COLUMN homework TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE attendance ADD COLUMN homeworkResult TEXT")
+            db.execSQL("DROP VIEW IF EXISTS `classes`")
+            db.execSQL("CREATE VIEW `classes` AS $CLASSES_VIEW_SQL")
+        }
+    }
+
     /** Everything above, in the order Room should be handed it. See `di/DatabaseModule`. */
-    val ALL: Array<Migration> = arrayOf(MIGRATION_5_6, MIGRATION_6_7)
+    val ALL: Array<Migration> = arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
 }

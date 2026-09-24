@@ -121,13 +121,22 @@ data class ClassForm(
      */
     val excludedMemberIds: Set<Long> = emptySet(),
     /**
-     * What the tutor wrote about the lesson: what was covered, what was set for home.
+     * What the tutor wrote about the lesson: what was covered, how it went.
      *
      * Never part of what makes the form **valid** — a lesson with no note is an ordinary lesson, and
      * requiring one would turn a convenience into a chore at the point of booking. It is typed after the
      * lesson as often as before it, which is why the same field is on both the booking and the edit form.
      */
     val notes: String = "",
+    /**
+     * What was set for home at this lesson — see [TutoringClass.homework]. Never part of validity, like
+     * [notes].
+     *
+     * **On the edit form only.** Homework is set at a lesson that is happening or has happened, so a new
+     * booking has none to give — and a repeating one would copy the same assignment onto every week of a
+     * term, which is the one thing homework is not. Booking therefore always writes it blank.
+     */
+    val homework: String = "",
     /**
      * Whether this booking writes the one lesson or a run of them — see [Repeat].
      *
@@ -234,6 +243,8 @@ internal data class ValidForm(
     val excludedMemberIds: Set<Long>,
     /** What the tutor wrote about the lesson — see [ClassForm.notes]. Blank is a lesson with no note. */
     val notes: String,
+    /** What was set for home — see [ClassForm.homework]. Written by an edit, never by a booking. */
+    val homework: String,
     /**
      * Every start this booking writes a lesson at — [slot]'s first, then the rest of the series. A single
      * booking is the one-element list, so the save has one shape rather than a branch.
@@ -275,6 +286,7 @@ internal data class ValidForm(
             // multi-line field collects; trimming at the write is what keeps `isNotBlank` — the question
             // every reader asks — from being true of a string that draws as nothing.
             notes = form.notes.trim(),
+            homework = form.homework.trim(),
             // Non-empty exactly when `slot` is: both are null-guarded on the same date and time, so a form
             // that produced a slot produced a series with that slot's start at the head of it.
             starts = form.starts(zone),
@@ -837,6 +849,7 @@ class ClassEditViewModel @Inject constructor(
             price = MoneyField.of(loaded.sharedPrice ?: groupRate(c.groupId) ?: c.price),
             mode = c.mode,
             notes = c.notes,
+            homework = c.homework,
             // Group members who are *not* in this lesson start unticked, so the ticks say what the
             // lesson is rather than who the group is now: opening a booked lesson and saving it again
             // has to change nothing, even after somebody joined the group since it was taught.
@@ -1151,6 +1164,7 @@ class ClassEditViewModel @Inject constructor(
                     mode = valid.mode,
                     price = valid.price,
                     notes = valid.notes,
+                    homework = valid.homework,
                     // An individual class may be re-attributed to another student, which credits
                     // the new owner; a group lesson's members are reconciled by [roster] instead,
                     // and [ValidForm.studentId] is null for one by construction.

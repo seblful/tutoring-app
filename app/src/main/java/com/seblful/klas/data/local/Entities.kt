@@ -201,7 +201,8 @@ data class LessonEntity(
     val groupId: Long? = null,
     val mode: String = "IN_PERSON",
     /**
-     * What the tutor wrote about this hour: what was covered, what was set for home.
+     * What the tutor wrote about this hour: what was covered, how it went. Homework has its own column
+     * ([homework]) since v8, and a note written before then may still hold some — it was one field.
      *
      * **On the lesson and not on [AttendanceEntity]**, for the reason [status] is: it describes the hour,
      * so a group's three members share one note rather than three copies of it that could drift. A note
@@ -215,6 +216,17 @@ data class LessonEntity(
      */
     @ColumnInfo(defaultValue = "''")
     val notes: String = "",
+    /**
+     * What was set for home at this hour. The lesson's, like [notes] and for the same reason — a group is
+     * set one assignment — and apart from it because the two go to different people: this is what the
+     * calendar event carries and what gets sent to the student, and the note never leaves the app.
+     *
+     * Added by the v7 → v8 migration with `DEFAULT ''`, which this `defaultValue` must match. Empty rather
+     * than a copy of the note: the note was «Заметки и домашнее задание», and splitting a tutor's own text
+     * into two by guesswork would put their private remarks in front of a student.
+     */
+    @ColumnInfo(defaultValue = "''")
+    val homework: String = "",
 )
 
 /**
@@ -250,6 +262,13 @@ data class AttendanceEntity(
     val priceMinor: Long = 0,
     val chargeMinor: Long = 0,
     val calendarEventId: String? = null,
+    /**
+     * How this student did the homework set at **this** lesson — a `HomeworkResult` name, or null until
+     * the tutor checks. Here and not on the lesson that checks it, because that lesson is derived and
+     * often not booked yet (see `domain/Homework`). Added by the v7 → v8 migration; null is its backfill,
+     * which is the truth about every lesson from before the app could hold a verdict.
+     */
+    val homeworkResult: String? = null,
 )
 
 /**
@@ -271,7 +290,8 @@ const val CLASSES_VIEW_SQL: String =
         "a.state AS state, a.priceMinor AS priceMinor, a.chargeMinor AS chargeMinor, " +
         "a.calendarEventId AS calendarEventId, l.subjectId AS subjectId, " +
         "l.startMillis AS startMillis, l.durationMinutes AS durationMinutes, " +
-        "l.status AS status, l.groupId AS groupId, l.mode AS mode, l.notes AS notes " +
+        "l.status AS status, l.groupId AS groupId, l.mode AS mode, l.notes AS notes, " +
+        "l.homework AS homework, a.homeworkResult AS homeworkResult " +
         "FROM attendance a JOIN lessons l ON l.id = a.lessonId"
 
 /**
@@ -307,6 +327,10 @@ data class ClassRow(
     /** The **lesson's** note — see [LessonEntity.notes]. */
     val notes: String = "",
     val calendarEventId: String? = null,
+    /** The **lesson's** homework — see [LessonEntity.homework]. */
+    val homework: String = "",
+    /** This student's verdict on it — see [AttendanceEntity.homeworkResult]. */
+    val homeworkResult: String? = null,
 )
 
 /**

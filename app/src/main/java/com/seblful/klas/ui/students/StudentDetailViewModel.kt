@@ -14,11 +14,13 @@ import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.format.NameOrder
 import com.seblful.klas.domain.Billing
+import com.seblful.klas.domain.Homework
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.domain.Taught
 import com.seblful.klas.domain.Captions
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.ClassMode
+import com.seblful.klas.domain.model.HomeworkResult
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.RateChange
@@ -88,6 +90,13 @@ data class StudentDetailState(
     val payments: List<Payment> = emptyList(),
     /** How many lessons of each kind, for the lessons tab's chips. A kind with none is absent. */
     val lessonKinds: Map<LessonKind, Int> = emptyMap(),
+    /**
+     * Every lesson that set this student homework, newest first — the card's «Задания» tab, and the one
+     * place the whole record is kept (the tab lists only what is open). See [Homework.setFor].
+     */
+    val homework: List<ClassRow> = emptyList(),
+    /** How they have done it — the stat row's homework tile. */
+    val homeworkRecord: Homework.Record = Homework.Record(done = 0, partial = 0, notDone = 0, unchecked = 0),
 ) {
     /**
      * Whether narrowing the lesson list by kind means anything here. A student taught only one way
@@ -172,7 +181,7 @@ class StudentDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val students: StudentRepository,
     subjects: SubjectRepository,
-    classes: ClassRepository,
+    private val classes: ClassRepository,
     groups: GroupRepository,
     private val payments: PaymentRepository,
     private val enrollment: EnrollmentRepository,
@@ -259,6 +268,10 @@ class StudentDetailViewModel @Inject constructor(
             },
             payments = paymentList,
             lessonKinds = LessonKind.tally(partial.classes),
+            homework = Homework.setFor(partial.classes).map { c ->
+                ClassRow(klass = c, subjectName = captions.subjectOf(c), groupName = captions.groupOf(c))
+            },
+            homeworkRecord = Homework.Record.of(partial.classes),
         )
     }
         .ready()
@@ -387,5 +400,13 @@ class StudentDetailViewModel @Inject constructor(
      */
     fun restorePayment(payment: Payment) {
         write { payments.restore(payment) }
+    }
+
+    /**
+     * Records how this student did the homework set at [klass]'s lesson — from their card, which is where
+     * a verdict given late (a parent's message a week on) is most naturally corrected.
+     */
+    fun setHomeworkResult(klass: TutoringClass, result: HomeworkResult) {
+        write { classes.setHomeworkResult(klass, result) }
     }
 }

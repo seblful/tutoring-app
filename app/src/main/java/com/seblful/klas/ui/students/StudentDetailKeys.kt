@@ -27,8 +27,12 @@ internal object StudentDetailKeys {
     const val CLASSES_EMPTY = "classes:empty"
     const val PAYMENTS_ADD = "payments:add"
     const val PAYMENTS_EMPTY = "payments:empty"
+    const val HOMEWORK_EMPTY = "homework:empty"
 
     fun subject(id: Long): String = "subject:$id"
     fun payment(id: Long): String = "payment:$id"
     fun klass(id: Long): String = "class:$id"
+
+    /** A homework row is its class's, like a lesson row — and namespaced apart from one. */
+    fun homework(id: Long): String = "homework:$id"
 }
