@@ -1,0 +1,24 @@
+# Build and test without a local JDK or Android SDK:
+#
+#   docker compose run --rm android :app:testDebugUnitTest
+#   docker compose run --rm android :app:assembleDebug
+#
+# The source is mounted, so the APK and the test reports land in `app/build/` on the host as usual.
+services:
+  android:
+    build: docker
+    image: klas-android-build
+    volumes:
+      - .:/workspace
+      - ./docker/sdk.properties:/workspace/local.properties:ro
+      # Downloaded dependencies and the Gradle distribution, kept between runs.
+      - gradle-home:/root/.gradle
+      # The project's own Gradle and Kotlin state holds absolute paths, so the container keeps its own
+      # rather than sharing the host's with an IDE build.
+      - project-gradle:/workspace/.gradle
+      - project-kotlin:/workspace/.kotlin
+
+volumes:
+  gradle-home:
+  project-gradle:
+  project-kotlin:

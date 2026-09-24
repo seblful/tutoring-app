@@ -55,6 +55,30 @@ The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk` and installs 
 setup. It carries a `.debug` application id, so it sits beside a release install with its own database.
 
 CI (`.github/workflows/ci.yml`) runs the unit suite, `lintDebug`, the debug APK and the *compilation*
+### Building with Docker
+
+No JDK or Android SDK on the machine? `docker/Dockerfile` is the toolchain as an image — JDK 21 and the
+SDK packages the build compiles against — and `compose.yaml` runs Gradle in it on the mounted source:
+
+```bash
+docker compose run --rm android :app:testDebugUnitTest
+docker compose run --rm android :app:assembleDebug :app:lintDebug
+```
+
+The APK and the reports land in `app/build/` as usual. The Gradle cache lives in a named volume, so only
+the first run downloads anything. Building the image accepts the Android SDK licenses. For repeated runs,
+keep one container up so the Gradle daemon stays warm:
+
+```bash
+docker compose run -d --name klas-build --entrypoint sleep android infinity
+docker exec klas-build ./gradlew :app:testDebugUnitTest
+```
+
+Two things worth knowing on Windows. The source is a bind mount from the Windows filesystem, which Docker
+reads slowly — expect several minutes per build, where a clone inside WSL is much faster. And lint's
+three analysis passes can crash in the Kotlin analysis layer (`Error while resolving … RAW_FIR`) when they
+run in parallel in one daemon; run it on its own worker: `:app:lintDebug --no-parallel --max-workers=1`.
+
 of the instrumented tests on every PR and every push to `main`/`develop`. Running the instrumented
 tests themselves needs a connected device (`./gradlew :app:connectedDebugAndroidTest`).
 
