@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
  *
  * A **top-level browsable** list uses [ContentCard]; a list *inside* a card or a settings surface uses
  * `ListItem`. The old rule was by screen genre ("settings-style lists stay plain") and decided neither of the
- * two cases that were actually wrong — see CONTEXT.md, *a card, or a row, by nesting depth*.
+ * two cases that were actually wrong — see `docs/ui-conventions.md`, *card vs. row is by nesting depth*.
  */
 
 /**

@@ -51,8 +51,8 @@ fun MoreScreen(
 /**
  * One entry of the menu: an outlined glyph for what it is, the name, and a chevron saying it opens.
  *
- * The chevron is **filled**, as the app's chevrons are (see the icon rule in `CONTEXT.md`): the leading
- * glyph is art for the row, the trailing one is a statement about what tapping does.
+ * The chevron is **filled**, as the app's chevrons are (see *Icons* in `docs/ui-conventions.md`): the
+ * leading glyph is art for the row, the trailing one is a statement about what tapping does.
  */
 @Composable
 private fun NavigationRow(icon: ImageVector, label: String, onClick: () -> Unit) {

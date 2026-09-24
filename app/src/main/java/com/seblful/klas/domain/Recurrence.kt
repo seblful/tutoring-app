@@ -19,8 +19,8 @@ import java.time.ZoneId
  * `Digests`, `Reminders`, the calendar mirror and the backup format — and the exceptions a real schedule
  * is made of ("skip the third", "the fifth moved to Thursday") would need a table of their own. All of
  * that fights what the app already is: Room is the single source of truth, and **a lesson is the unit of
- * change**. Materialising keeps both true, and it keeps `CONTEXT.md`'s "no recurring series" honest at
- * the data layer — what exists here is a booking *act*, not an entity.
+ * change**. Materialising keeps both true, and it keeps `docs/domain-rules.md`'s "no series entity"
+ * honest at the data layer — what exists here is a booking *act*, not an entity.
  *
  * The price of it is that there is no "cancel the rest of the series" in one tap. The case that would
  * actually be reached for is already covered: archiving a student calls off every lesson still planned

@@ -1063,9 +1063,9 @@ class ClassEditViewModel @Inject constructor(
      *
      * **Why here and not on first launch.** A reminder is the app's promise to warn the tutor before a
      * lesson, and until a lesson exists that promise is abstract — the permission dialog over an empty
-     * schedule asks about a feature they have not met, which is what `CONTEXT.md` means by *asked where
-     * reminders are*. The booking is where it stops being abstract: they have just written down a time
-     * they intend to be somewhere, and the app is offering to remind them of it.
+     * schedule asks about a feature they have not met, which is what `docs/calendar-and-reminders.md`
+     * means by *asked for where reminders are*. The booking is where it stops being abstract: they have
+     * just written down a time they intend to be somewhere, and the app is offering to remind them of it.
      *
      * **Why only the first.** On Android 13+ a second denial is permanent, after which the dialog never
      * appears again and even the Settings row can only open the system page. So this asks once, at the

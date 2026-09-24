@@ -21,6 +21,9 @@ database, never a source (see [architecture.md](architecture.md)).
   otherwise; re-derived from scratch over a fixed horizon on every change; re-armed after reboot.
 - Tray actions: «Проведено» bills in place via a broadcast; «Перенести» opens the lesson. Both re-check
   legality against the current lesson state (a notification can be stale).
+- The notification permission is **asked for where reminders are**: the Settings row, and once at the
+  tutor's first booking (`ClassEditViewModel.notificationsToAskFor`) — never over first launch, when there
+  is no lesson to be reminded of.
 - `ReminderDelivery` (`OFF|ON_TIME|BLOCKED|LATE`) reports the two permission grants (post-notifications,
   exact-alarm) as one settings row with a link to the right system page.
 

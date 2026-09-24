@@ -52,3 +52,7 @@ it draws with.
 - **Design system**: curated indigo+teal Material 3 palette, dynamic color off by default. Amber = "on
   now"; green = "taught" (`KlasColors`, app-owned, unaffected by dynamic color). Golos Text typeface
   (Cyrillic-first, full Latin). Avatar colors key off id, not name.
+- **Icons**: filled for actions and selected states, outlined for art and inactive glyphs. Empty-state
+  pictures, decorative glyphs beside a line of text and settings leading icons are `Icons.Outlined`;
+  buttons, menu items, chevrons and the selected tab stay filled. The two lesson-kind icons are exempt —
+  a matched pair pinned on ink height by `LessonKindIconTest`.
