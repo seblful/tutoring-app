@@ -47,4 +47,4 @@ For multi-step tasks, state a brief plan:
 
 ## Project Context
 
-`CONTEXT.md` is the authoritative reference for this project — what it does, its architecture, module map, key design decisions, and non-goals. If it does not exist, create it before starting work. Read it at the start of any non-trivial task. Keep it high-level and project-relevant, not detailed — capture decisions and structure that aren't obvious from the code, not things the code already states. Update it when modules, design decisions, non-goals, or data flow change.
+`docs/` is the reference for this project, one question per doc (listed in README → Docs). Before a non-trivial task, read the docs your change touches. Record decisions and structure the code doesn't state, and update the matching doc when modules, design decisions, non-goals, or data flow change.

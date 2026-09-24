@@ -5,12 +5,12 @@ payments and debts. **Offline-first and local-only — no backend, no account, n
 English UI (following the phone unless told otherwise), Material 3, money in **BYN**, **RUB**, **USD**
 or **EUR**.
 
-> Application ID: `com.seblful.klas` · current version: `0.3.3` (`versionCode` 7) · launcher label: **Klas**
+> Application ID: `com.seblful.klas` · launcher label: **Klas**
 
 ## Features
 
 - **People** — students and groups in one tab, searchable; students also sortable by who owes the most.
-- **Homework** — set for a student or a group from its own tab (or a student's card) and attached to their next lesson, which the app works out itself. Swipe it done and it goes to the archive; the lesson's sheet and its reminder say what was set; a send button shares it.
+- **Homework** — set for a student or a group from its own tab (or a student's or group's card) and attached to their next lesson, which the app works out itself. Swipe it done and it goes to the archive; the lesson's sheet and its reminder say what was set; a send button shares it.
 - **Students & subjects** — per-student subjects, each with an hourly price and a change log; archive-only (history is protected).
 - **Groups** — a named roster taught one subject at the group's own hourly rate. Booking one lesson books it for every member, so the schedule shows one card while billing stays per-student — including "this one didn't come".
 - **Schedule** — day / week / month views of one-off classes, with a `scheduled → completed | cancelled` lifecycle, swipe-to-complete, and optional auto-complete once a class ends. One tutor, one lesson at a time: an overlapping slot is refused.
@@ -24,13 +24,17 @@ or **EUR**.
 
 ## Tech Stack
 
-- **Kotlin 2.3.21**, **Jetpack Compose** (Material 3), Navigation Compose
-- **Room** 2.8 (single source of truth) · **Hilt** 2.60 DI · **WorkManager** + `AlarmManager`
+- **Kotlin**, **Jetpack Compose** (Material 3), Navigation Compose
+- **Room** (single source of truth) · **Hilt** DI · **WorkManager** + `AlarmManager`
 - **kotlinx-serialization** (backup) · `java.time` with core-library desugaring
-- AGP 9.3.1 (built-in Kotlin) · Gradle 9.6.1 · **JDK 21** · compileSdk 37 / targetSdk 36 · **minSdk 24**
+- AGP (built-in Kotlin) · Gradle · **JDK 21** · **minSdk 24**
 
-Architecture is MVVM over a pure, unit-tested domain layer. See **[CONTEXT.md](CONTEXT.md)** for the
-full architecture, module map, and design decisions.
+Versions live in `gradle/libs.versions.toml`, SDK levels in `app/build.gradle.kts`.
+
+Kotlin is capped by KSP's supported line (Room and Hilt codegen): stay on 2.3.x until a KSP 2.4.x
+exists — see `gradle/libs.versions.toml`.
+
+Architecture is MVVM over a pure, unit-tested domain layer — see **[docs/architecture.md](docs/architecture.md)**.
 
 ## Getting Started
 
@@ -48,7 +52,7 @@ full architecture, module map, and design decisions.
 ```bash
 ./gradlew :app:assembleDebug            # debug APK
 ./gradlew :app:testDebugUnitTest        # JVM unit tests (domain, view models, mappers, backup)
-./gradlew :app:lintDebug                # lint (release lint is off — see CONTEXT.md)
+./gradlew :app:lintDebug                # lint (release lint is off: an AGP file-locking bug on Windows, see app/build.gradle.kts)
 ./gradlew :app:assembleDebugAndroidTest # build instrumented tests (Room, calendar, backup round-trip)
 ```
 
@@ -56,67 +60,21 @@ The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk` and installs 
 setup. It carries a `.debug` application id, so it sits beside a release install with its own database.
 
 CI (`.github/workflows/ci.yml`) runs the unit suite, `lintDebug`, the debug APK and the *compilation*
-of the instrumented tests on every PR and every push to `main`/`develop`. Running the instrumented
-tests themselves needs a connected device (`./gradlew :app:connectedDebugAndroidTest`).
+of the instrumented tests on every push to `main` and every PR targeting `main` (any branch can be run
+on demand). Running the instrumented tests themselves needs a connected device
+(`./gradlew :app:connectedDebugAndroidTest`).
 
-## Building a Signed Release APK
+## Docs
 
-The `release` build type is **minified and resource-shrunk (R8)** and is signed when a
-`keystore.properties` file is present (it is gitignored). Without it, the release build is left
-unsigned so debug builds, CI, and contributors are unaffected.
+The reasoning behind a rule lives in KDoc next to the code; these docs are the map.
 
-1. **Generate an upload key** once, storing the `.jks` *outside* the repo:
-   ```bash
-   keytool -genkeypair -v -keystore ../upload-keystore.jks -alias upload \
-     -keyalg RSA -keysize 2048 -validity 10000
-   ```
-   Keep the file and its password backed up — losing them blocks future updates.
-
-2. **Create `keystore.properties`** in the repo root (copy `keystore.properties.example`):
-   ```properties
-   storeFile=../upload-keystore.jks
-   storePassword=<your keystore password>
-   keyAlias=upload
-   keyPassword=<your key password>
-   ```
-   If you pressed Enter at keytool's key-password prompt, both passwords are the same value.
-
-3. **Build:**
-   ```bash
-   ./gradlew :app:assembleRelease
-   ```
-   Output: `app/build/outputs/apk/release/app-release.apk` (a `-unsigned` suffix means signing was skipped — check `keystore.properties`).
-
-4. **Install on your own device:**
-   ```bash
-   adb install "app/build/outputs/apk/release/app-release.apk"
-   ```
-   Or copy the APK to the phone and tap it (allow "install from unknown sources").
-
-> **Note:** a sideloaded APK is signed with *your* upload key, not Google's. A later Play Store
-> install of the same app won't update over it — uninstall the sideloaded copy first.
->
-> ⚠️ The release build is minified. Verify the **backup export/import** round-trip on a release build
-> before relying on it, since serialization is reflection-driven (R8 keep rules live in
-> `app/proguard-rules.pro`).
-
-## Publishing to Google Play
-
-For the App Bundle (`.aab`), Play Console setup, and the testing/production rollout flow, see
-**[docs/publishing-to-google-play.md](docs/publishing-to-google-play.md)**.
-
-## Project Structure
-
-```
-app/src/main/java/com/seblful/klas/
-├── domain/                       # pure rules + ports + models (JVM-tested)
-├── data/                         # Mappers.kt + {local,repository,backup}/
-├── calendar/ notifications/ diagnostics/ work/ format/ storage/ di/
-├── ui/{schedule,people,students,groups,subjects,reports,backup,more,
-│       onboarding,diagnostics,common,navigation,theme}/
-├── MainActivity.kt               # @AndroidEntryPoint → AppRoot()
-└── KlasApp.kt                    # @HiltAndroidApp, WorkManager config, startup upkeep
-```
+- [Architecture](docs/architecture.md) — where code goes, and which class owns each rule
+- [Domain rules](docs/domain-rules.md) — money, lessons, homework, groups, students: what the app enforces and why
+- [Calendar and reminders](docs/calendar-and-reminders.md) — what reaches the device calendar and the notification tray
+- [Database and backup](docs/database-and-backup.md) — changing the schema or the backup file without losing data
+- [UI conventions](docs/ui-conventions.md) — how a screen is built
+- [Testing](docs/testing.md) — where a test goes, and what the test setup expects
+- [Releasing](docs/releasing.md) — a signed release APK, sideloading it, and publishing to Google Play
 
 ## License
 
