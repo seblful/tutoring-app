@@ -28,6 +28,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import com.seblful.klas.format.bulletJoin
 
 /**
  * A band that **stays** while a list scrolls under it — so it is drawn as one.
@@ -121,7 +124,7 @@ fun <T> StickyViewMenu(
                 options.forEach { option ->
                     DropdownMenuItem(
                         text = {
-                            Text(count(option)?.let { "${label(option)} · $it" } ?: label(option))
+                            Text(count(option)?.let { bulletJoin(label(option), it.toString()) } ?: label(option))
                         },
                         leadingIcon = { Icon(icon(option), contentDescription = null) },
                         trailingIcon = if (option == selected) {
@@ -130,6 +133,7 @@ fun <T> StickyViewMenu(
                             null
                         },
                         onClick = { expanded = false; onSelect(option) },
+                        modifier = Modifier.semantics { this.selected = option == selected },
                     )
                 }
             }

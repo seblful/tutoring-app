@@ -48,8 +48,16 @@
           `Theme.Klas` (its `postSplashScreenTheme`) the moment the activity is created, so the splash is
           the only thing that ever renders under it.
         -->
+        <!--
+          configChanges: turning the phone, or folding and resizing its window, is handled in place rather
+          than by rebuilding the activity. The whole UI is Compose, which re-lays itself out for a new size
+          on its own — and a rebuild threw away every dialog that was open and whatever had been typed into
+          it: a payment half-entered, a piece of homework, a question about to be answered. Theme and
+          language changes still rebuild, as they must.
+        -->
         <activity
             android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
             android:exported="true"
             android:theme="@style/Theme.Klas.Starting">
             <intent-filter>

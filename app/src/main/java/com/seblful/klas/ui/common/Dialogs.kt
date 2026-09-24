@@ -13,10 +13,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.window.DialogProperties
 import com.seblful.klas.R
@@ -66,11 +69,13 @@ fun StudentEditDialog(
     onConfirm: (name: String, phone: String, email: String, note: String, mode: ClassMode) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var name by remember { mutableStateOf(initialName) }
-    var phone by remember { mutableStateOf(initialPhone) }
-    var email by remember { mutableStateOf(initialEmail) }
-    var note by remember { mutableStateOf(initialNote) }
-    var mode by remember { mutableStateOf(initialMode) }
+    // Saveable, so turning the phone keeps what was typed — a dialog that asks not to be tapped away
+    // (`KeepTypedInput`) should not lose it to a rotation either.
+    var name by rememberSaveable { mutableStateOf(initialName) }
+    var phone by rememberSaveable { mutableStateOf(initialPhone) }
+    var email by rememberSaveable { mutableStateOf(initialEmail) }
+    var note by rememberSaveable { mutableStateOf(initialNote) }
+    var mode by rememberSaveable { mutableStateOf(initialMode) }
     AlertDialog(
         onDismissRequest = onDismiss,
         properties = KeepTypedInput,
@@ -88,6 +93,10 @@ fun StudentEditDialog(
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.student_name_label)) },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Next,
+                    ),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
@@ -95,7 +104,7 @@ fun StudentEditDialog(
                     onValueChange = { phone = it },
                     label = { Text(stringResource(R.string.student_phone_label)) },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
@@ -103,13 +112,14 @@ fun StudentEditDialog(
                     onValueChange = { email = it },
                     label = { Text(stringResource(R.string.student_email_label)) },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
                     label = { Text(stringResource(R.string.student_note_label)) },
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 ModeField(
@@ -132,6 +142,7 @@ fun StudentEditDialog(
  * A dialog with a single text field. Used for naming subjects, entering amounts, etc.
  *
  * @param keyboardType numeric for amounts, text otherwise.
+ * @param capitalization how the keyboard starts a word — a subject's name is written as one.
  * @param validate gates the confirm button (in addition to non-blank). For amounts this prevents
  *   silently dismissing on an unparseable value — the action stays disabled until the input is valid.
  */
@@ -141,11 +152,14 @@ fun TextFieldDialog(
     label: String,
     initial: String,
     keyboardType: KeyboardType = KeyboardType.Text,
+    capitalization: KeyboardCapitalization = KeyboardCapitalization.None,
     validate: (String) -> Boolean = { true },
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var value by remember { mutableStateOf(initial) }
+    var value by rememberSaveable { mutableStateOf(initial) }
+    // Its one field is the whole of it, and it opens because something was tapped to name a thing.
+    val focus = rememberRevealedFocus()
     AlertDialog(
         onDismissRequest = onDismiss,
         // A stray tap beside the dialog must not throw away what was typed into it — the same rule
@@ -160,8 +174,8 @@ fun TextFieldDialog(
                 onValueChange = { value = it },
                 label = { Text(label) },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType, capitalization = capitalization),
+                modifier = Modifier.fillMaxWidth().focusRequester(focus),
             )
         },
         confirmButton = {

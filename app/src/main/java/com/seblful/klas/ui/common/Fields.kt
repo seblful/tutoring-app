@@ -39,6 +39,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
@@ -341,7 +342,7 @@ fun MemberPickRow(
                 if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
                 else Color.Transparent
             )
-            .toggleable(value = selected, onValueChange = { on -> toggleFeedback(on); onToggle(on) })
+            .toggleable(value = selected, role = Role.Checkbox, onValueChange = { on -> toggleFeedback(on); onToggle(on) })
             .heightIn(min = MinTouchTarget)
             .padding(horizontal = Spacing.inline, vertical = Spacing.tight),
         verticalAlignment = Alignment.CenterVertically,

@@ -20,6 +20,10 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -120,12 +124,22 @@ fun SwipeToConfirmBox(
             },
         propagateMinConstraints = true,
     ) {
-        Box(Modifier.matchParentSize()) { reveal(armed) }
+        // Always composed behind the row, so cleared: a screen reader read «Проведено» before every lesson
+        // still to come. What the gesture does is offered as the row's own action instead — [swipeAction].
+        Box(Modifier.matchParentSize().clearAndSetSemantics { }) { reveal(armed) }
         // Offset in the layout phase, not by recomposing: the row is moved, not rebuilt, sixty times a
         // second.
         Box(Modifier.offset { IntOffset(dragged.roundToInt(), 0) }) { content() }
     }
 }
+
+/**
+ * The swipe, as an action a screen reader can reach: put it on the row's clickable content, so the same
+ * node that is read and tapped also offers [label]. A drag is the one gesture TalkBack cannot make, and
+ * without this a lesson could not be marked taught — nor homework done — by anyone using it.
+ */
+fun Modifier.swipeAction(label: String, onAction: () -> Unit): Modifier =
+    semantics { customActions = listOf(CustomAccessibilityAction(label) { onAction(); true }) }
 
 /**
  * Whether letting go now would confirm: the row has been dragged at least [CommitFraction] of its own

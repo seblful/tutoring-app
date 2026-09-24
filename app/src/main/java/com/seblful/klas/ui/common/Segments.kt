@@ -40,6 +40,9 @@ import kotlin.math.abs
  *   in the app shrinks its text the same way instead of only the one that happened to need it first.
  * @param enabled whether a particular option may be chosen. The default lets everything be picked; the
  *   lesson-status row uses it, since which statuses a lesson may move to is `GroupRules`'.
+ * @param onReselect a tap on the segment already selected, for the one kind of segment that is a door
+ *   rather than a value — Settings' «Другое», which opens a picker. Without it a custom reminder lead
+ *   could not be changed to another custom one: the tap on the segment showing «20 мин» did nothing.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,6 +52,7 @@ fun <T> SegmentedChoice(
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
     enabled: (T) -> Boolean = { true },
+    onReselect: ((T) -> Unit)? = null,
     label: @Composable (T) -> String,
 ) {
     // Here rather than at the eight call sites, which is the point of this composable existing: the tick is
@@ -66,6 +70,8 @@ fun <T> SegmentedChoice(
                     if (!isSelected) {
                         segmentTick()
                         onSelect(option)
+                    } else {
+                        onReselect?.invoke(option)
                     }
                 },
                 enabled = isSelected || enabled(option),
@@ -123,6 +129,8 @@ fun <T> ChoiceRow(
     selected: T,
     onSelect: (T) -> Unit,
     description: String? = null,
+    /** See [SegmentedChoice]'s `onReselect`. A field already offers every option, so only segments need it. */
+    onReselect: ((T) -> Unit)? = null,
 ) {
     if (!fitsInSegments(options.size)) {
         // A field, whose own label and supporting slot carry the two lines the segmented version draws
@@ -160,6 +168,7 @@ fun <T> ChoiceRow(
             selected = selected,
             onSelect = onSelect,
             modifier = Modifier.padding(top = Spacing.inline),
+            onReselect = onReselect,
             label = { value -> options.first { it.first == value }.second },
         )
     }

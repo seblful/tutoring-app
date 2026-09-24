@@ -16,7 +16,10 @@ it draws with.
   spinner; applies to forms too (a blank form is a real, wrong state until data arrives).
 - `derive`/`hold` end every screen flow; `ShowMessagesFor`/`rememberMessages` end one-shot snackbar events;
   the guarded-write tail is named `write` (application scope + `runCatchingCancellable` + failure report).
-- One-shot outcomes report through one snackbar helper (`ui/common/Messages`) — no `Toast`.
+- One-shot outcomes report through one snackbar helper (`ui/common/Messages`) — no `Toast`. A message
+  about a save that closes its screen is lost with the screen, so such a form asks *before* saving instead.
+- Turning the phone or resizing its window is handled in place (`configChanges` on `MainActivity`), so an
+  open dialog and what was typed into it survive; typed dialog fields are still `rememberSaveable`.
 
 ## Look and behaviour
 
@@ -56,3 +59,6 @@ it draws with.
   pictures, decorative glyphs beside a line of text and settings leading icons are `Icons.Outlined`;
   buttons, menu items, chevrons and the selected tab stay filled. The two lesson-kind icons are exempt —
   a matched pair pinned on ink height by `LessonKindIconTest`.
+- **Screen readers**: a swipe always has a twin action on the same node (`swipeAction`), and what is drawn
+  behind a swipe row is not read; selection is `selected` semantics, not a tick alone; section titles are
+  headings.

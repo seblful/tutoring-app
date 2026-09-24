@@ -7,15 +7,18 @@ import com.seblful.klas.data.repository.AppSettings
 import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.repository.SettingsChange
 import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.domain.ReminderScheduler
 import com.seblful.klas.notifications.ExactAlarmPermission
 import com.seblful.klas.notifications.NotificationPermission
+import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.hold
 import com.seblful.klas.ui.common.ready
 import com.seblful.klas.work.Maintenance
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,6 +48,7 @@ class SettingsViewModel @Inject constructor(
     private val calendarPermission: CalendarPermission,
     private val notificationPermission: NotificationPermission,
     private val exactAlarms: ExactAlarmPermission,
+    @param:ApplicationScope private val appScope: CoroutineScope,
 ) : ViewModel() {
 
     /**
@@ -64,6 +68,9 @@ class SettingsViewModel @Inject constructor(
 
     /** How many lessons a sweep just settled. Reported once, as a message — never replayed. */
     val swept = UiEvents<Int>()
+
+    /** A change that could not be stored or carried out — a database or calendar error, reported once. */
+    val failed = UiEvents<Unit>()
 
     private val _pendingSweep = MutableStateFlow<Int?>(null)
 
@@ -152,6 +159,17 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
+     * Switches a digest on or off with [transform] — and, switched on, says what the platform must be
+     * asked for it to arrive, exactly as [setNotificationsEnabled] does for reminders. A digest is a
+     * notification too: with reminders off on Android 13+, nothing had ever asked for the permission, so
+     * a digest switched on was never shown and no row said why.
+     */
+    fun setDigestEnabled(on: Boolean, transform: (AppSettings) -> AppSettings): NotificationsIntent {
+        update(transform)
+        return if (!on) NotificationsIntent.Nothing else unblockNotifications()
+    }
+
+    /**
      * How the platform can be asked to let a reminder through — **what the [ReminderDelivery.BLOCKED] row
      * does when tapped**, and what [setNotificationsEnabled] returns once it has stored an `on`.
      *
@@ -198,29 +216,38 @@ class SettingsViewModel @Inject constructor(
      * [SettingsChange], beside the fields themselves, so a setting cannot lose its tail by lacking
      * a named method here: turning invites off withdraws the invitations already sent, moving the
      * reminder lead re-mirrors the events carrying the old one and re-derives the alarm plan.
+     *
+     * **In the application scope**, tail and all: switching sync on backfills the whole history and a
+     * language change re-mirrors it, and in `viewModelScope` a back press straight after the switch
+     * cancelled that half-way — the switch said on while the calendar held half the lessons, and turning
+     * invites off could leave invitations behind. A failure is [failed], not a crash.
      */
     fun update(transform: (AppSettings) -> AppSettings) {
-        viewModelScope.launch {
-            val change = settings.update(transform)
-            when (change.calendarWork) {
-                SettingsChange.CalendarWork.RESYNC -> calendar.resyncAll()
-                SettingsChange.CalendarWork.WITHDRAW -> calendar.clear()
-                SettingsChange.CalendarWork.NONE -> Unit
-            }
-            // One call answers both, because both are discharged by an upkeep pass: it re-derives the
-            // reminder plan and re-plans the digests from the row that has just been written.
-            if (change.replansReminders || change.replansDigests) reminders.refreshNow()
-            // Run here and now, rather than by asking the scheduler to get round to it: the tutor is
-            // standing in front of the switch they just flipped, and the pass has to be able to report
-            // back. It re-derives the reminder plan too, so it subsumes the refresh above.
-            //
-            // `run` and not `runUnwatched`: this pass **is** watched, and reporting it twice — once in the
-            // snackbar the tutor is looking at and once in the notification tray — would be the app
-            // telling them something they had just been told.
-            if (change.sweepsDueLessons) {
-                val settled = maintenance.run()
-                if (settled.lessons > 0) swept.send(settled.lessons)
-            }
+        appScope.launch {
+            runCatchingCancellable { apply(transform) }.onFailure { failed.send(Unit) }
+        }
+    }
+
+    private suspend fun apply(transform: (AppSettings) -> AppSettings) {
+        val change = settings.update(transform)
+        when (change.calendarWork) {
+            SettingsChange.CalendarWork.RESYNC -> calendar.resyncAll()
+            SettingsChange.CalendarWork.WITHDRAW -> calendar.clear()
+            SettingsChange.CalendarWork.NONE -> Unit
+        }
+        // One call answers both, because both are discharged by an upkeep pass: it re-derives the
+        // reminder plan and re-plans the digests from the row that has just been written.
+        if (change.replansReminders || change.replansDigests) reminders.refreshNow()
+        // Run here and now, rather than by asking the scheduler to get round to it: the tutor is
+        // standing in front of the switch they just flipped, and the pass has to be able to report
+        // back. It re-derives the reminder plan too, so it subsumes the refresh above.
+        //
+        // `run` and not `runUnwatched`: this pass **is** watched, and reporting it twice — once in the
+        // snackbar the tutor is looking at and once in the notification tray — would be the app
+        // telling them something they had just been told.
+        if (change.sweepsDueLessons) {
+            val settled = maintenance.run()
+            if (settled.lessons > 0) swept.send(settled.lessons)
         }
     }
 

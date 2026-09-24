@@ -75,10 +75,10 @@ android {
     }
     bundle {
         language {
-            // The app is Russian-only: every string lives in the unqualified `values/`, and the
-            // resource locale is pinned to Russian so plurals decline by Russian rules (see
-            // `RussianLocale`). There is therefore no per-language split for a device to be missing
-            // — splitting by language could only ever drop the one resource set there is.
+            // The language is chosen **inside the app** (Settings → Язык), not by the phone: an English
+            // phone can be told to speak Russian, and a Russian one English. A per-language split would
+            // install only the phone's own `values-*`, so switching in the app would find the other
+            // language's strings missing. Every language ships in the base APK instead.
             enableSplit = false
         }
     }

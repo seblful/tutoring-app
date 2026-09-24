@@ -12,8 +12,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -36,6 +39,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -43,8 +47,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -64,7 +70,9 @@ import com.seblful.klas.ui.common.KeepTypedInput
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.SegmentedChoice
+import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.ChoiceRow
@@ -105,13 +113,18 @@ fun SettingsScreen(
     // and there is no state here to pre-resolve it from. This is the *provided* context, in the app's own
     // language (`ProvideLocalizedResources`), which is what makes the quantity rule the right one: a
     // plural's form comes from the configuration's locale and not from the folder it was loaded from.
+    //
+    // Read through `rememberUpdatedState`: the language can be changed on this very screen, and a collector
+    // holding the resources it started with worded the next count in the language just left.
     val context = LocalContext.current
-    val resources = context.resources
+    val resources by rememberUpdatedState(context.resources)
     LaunchedEffect(viewModel, messages) {
         viewModel.swept.stream.collect { count ->
             messages.show(resources.getQuantityString(R.plurals.settings_autocomplete_swept, count, count))
         }
     }
+    val failedMsg = stringResource(R.string.action_failed)
+    ShowMessagesFor(viewModel.failed, messages) { failedMsg }
 
     // A permission can be granted or revoked in system settings while the app is away, so the screen
     // re-asks each time it comes back rather than trusting what it learned when it opened.
@@ -161,8 +174,13 @@ fun SettingsScreen(
             // The one switch in this screen that can be **refused**, and the refusal is felt as well as
             // read: the tutor asked for sync, the permission was declined, and the switch springs back on
             // its own. `Reject` is what says that was an answer rather than a dropped tap.
+            //
+            // With the page that can still change it: once the tutor has said «Не спрашивать», the
+            // request is refused before anything is shown, and the switch alone read as broken.
             rejectFeedback()
-            messages.show(deniedMsg)
+            messages.show(deniedMsg, openSettingsLabel) {
+                launchExternally(context, appDetailsSettings(context), noSettingsPageMsg, messages)
+            }
         }
     }
 
@@ -286,6 +304,14 @@ private fun SettingsList(
             onDismiss = { showLessonPicker = false },
         )
     }
+    // What a switch that notifies owes the platform — reminders' and the three digests' alike.
+    val askFor: (NotificationsIntent) -> Unit = { intent ->
+        when (intent) {
+            is NotificationsIntent.Request -> onRequestNotifications(intent.permissions)
+            NotificationsIntent.BlockedBySystem -> onNotificationsBlocked()
+            NotificationsIntent.Nothing -> Unit
+        }
+    }
     Column(modifier.verticalScroll(rememberScrollState())) {
         // Grouped by what each setting governs, so a glance tells you where to look:
         // reminders, then calendar sync, class behaviour, money, the menu, and look.
@@ -309,11 +335,7 @@ private fun SettingsList(
                 // — see [SettingsViewModel.setNotificationsEnabled]. Asked here, where the tutor has just
                 // said they want reminders, rather than over the first screen of a first launch, before
                 // they had met the feature. Which of the three things to do is [NotificationsIntent]'s.
-                when (val intent = viewModel.setNotificationsEnabled(on)) {
-                    is NotificationsIntent.Request -> onRequestNotifications(intent.permissions)
-                    NotificationsIntent.BlockedBySystem -> onNotificationsBlocked()
-                    NotificationsIntent.Nothing -> Unit
-                }
+                askFor(viewModel.setNotificationsEnabled(on))
             },
         )
         // **One row, one label, whichever of the two grants the platform is withholding.**
@@ -380,6 +402,9 @@ private fun SettingsList(
                 if (minutes == CustomMinutes) showLeadPicker = true
                 else viewModel.update { it.copy(reminderLeadMinutes = minutes) }
             },
+            // A custom lead is already the selected segment, so a second custom one is asked for by
+            // tapping it again.
+            onReselect = { minutes -> if (minutes == CustomMinutes) showLeadPicker = true },
         )
 
         // Its own section, not more rows under «Напоминания»: a reminder is about one lesson and
@@ -391,7 +416,7 @@ private fun SettingsList(
             title = stringResource(R.string.settings_agenda),
             description = stringResource(R.string.settings_agenda_desc),
             checked = settings.dailyAgendaEnabled,
-            onCheckedChange = { on -> viewModel.update { it.copy(dailyAgendaEnabled = on) } },
+            onCheckedChange = { on -> askFor(viewModel.setDigestEnabled(on) { it.copy(dailyAgendaEnabled = on) }) },
         )
         TimeRow(
             title = stringResource(R.string.settings_agenda_time),
@@ -410,7 +435,7 @@ private fun SettingsList(
             title = stringResource(R.string.settings_unfinished_digest),
             description = stringResource(R.string.settings_unfinished_digest_desc),
             checked = settings.unfinishedDigestEnabled,
-            onCheckedChange = { on -> viewModel.update { it.copy(unfinishedDigestEnabled = on) } },
+            onCheckedChange = { on -> askFor(viewModel.setDigestEnabled(on) { it.copy(unfinishedDigestEnabled = on) }) },
         )
         TimeRow(
             title = stringResource(R.string.settings_unfinished_digest_time),
@@ -422,7 +447,7 @@ private fun SettingsList(
             title = stringResource(R.string.settings_debt_digest),
             description = stringResource(R.string.settings_debt_digest_desc),
             checked = settings.debtDigestEnabled,
-            onCheckedChange = { on -> viewModel.update { it.copy(debtDigestEnabled = on) } },
+            onCheckedChange = { on -> askFor(viewModel.setDigestEnabled(on) { it.copy(debtDigestEnabled = on) }) },
         )
         WeekdayRow(
             title = stringResource(R.string.settings_debt_digest_day),
@@ -499,6 +524,7 @@ private fun SettingsList(
                 if (minutes == CustomMinutes) showLessonPicker = true
                 else viewModel.update { it.copy(defaultLessonMinutes = minutes) }
             },
+            onReselect = { minutes -> if (minutes == CustomMinutes) showLessonPicker = true },
         )
 
         SectionHeader(stringResource(R.string.settings_section_money))
@@ -628,15 +654,12 @@ private fun SwitchRow(
     ListItem(
         headlineContent = { Text(title) },
         supportingContent = { Text(description) },
-        trailingContent = {
-            Switch(
-                checked = checked,
-                onCheckedChange = { on ->
-                    toggleFeedback(on)
-                    onCheckedChange(on)
-                },
-                enabled = enabled,
-            )
+        // The switch is a picture of the state; the **row** is the control, so a tap on the words works
+        // and TalkBack reads the title with it as one switch rather than «Switch, on» on its own.
+        trailingContent = { Switch(checked = checked, onCheckedChange = null, enabled = enabled) },
+        modifier = Modifier.toggleable(value = checked, enabled = enabled, role = Role.Switch) { on ->
+            toggleFeedback(on)
+            onCheckedChange(on)
         },
         colors = if (enabled) {
             ListItemDefaults.colors()
@@ -715,20 +738,16 @@ private fun WeekdayRow(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 // The whole row, not just the button: a 20dp radio is not a touch target.
-                                .clickable {
+                                // One control, so TalkBack stops once per day, not twice.
+                                .selectable(selected = day == selected, role = Role.RadioButton) {
                                     onSet(day.value)
                                     picking = false
                                 }
-                                .padding(vertical = Spacing.inline),
+                                .heightIn(min = MinTouchTarget)
+                                .padding(vertical = Spacing.tight),
                         ) {
-                            RadioButton(
-                                selected = day == selected,
-                                onClick = {
-                                    onSet(day.value)
-                                    picking = false
-                                },
-                            )
-                            Text(names[day.value - 1])
+                            RadioButton(selected = day == selected, onClick = null)
+                            Text(names[day.value - 1], Modifier.padding(start = Spacing.inline))
                         }
                     }
                 }
@@ -871,11 +890,12 @@ private fun appNotificationSettings(context: Context): Intent =
         Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
             .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
     } else {
-        Intent(
-            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-            Uri.fromParts("package", context.packageName, null),
-        )
+        appDetailsSettings(context)
     }
+
+/** This app's own page in system settings — where a permission refused for good is given back. */
+private fun appDetailsSettings(context: Context): Intent =
+    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
 
 /**
  * The system page where an exact alarm is granted.
@@ -905,7 +925,9 @@ private fun SectionHeader(title: String) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.gutter)
-            .padding(top = Spacing.sectionGap, bottom = Spacing.tight),
+            .padding(top = Spacing.sectionGap, bottom = Spacing.tight)
+            // Said as a heading, so the long list can be walked by section.
+            .semantics { heading() },
     )
 }
 

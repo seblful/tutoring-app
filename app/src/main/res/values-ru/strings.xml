@@ -31,7 +31,6 @@
     <string name="nav_more">Ещё</string>
 
     <!-- Generic actions -->
-    <string name="action_add">Добавить</string>
     <string name="action_edit">Изменить</string>
     <string name="action_delete">Удалить</string>
     <string name="action_save">Сохранить</string>
@@ -56,6 +55,7 @@
     <string name="action_undo">Вернуть</string>
     <!-- The action a snackbar carries when the message names something to go and look at. -->
     <string name="action_show">Показать</string>
+    <string name="action_remove">Убрать</string>
     <string name="action_more">Ещё действия</string>
 
     <!--
@@ -113,7 +113,6 @@
     <string name="schedule_empty_detail">Запишите занятие — оно появится здесь и в календаре</string>
     <string name="schedule_add_class">Записать занятие</string>
     <string name="schedule_week_empty">На эту неделю занятий нет</string>
-    <string name="schedule_view_mode">Вид расписания</string>
     <!--
       What the schedule says before anything can be booked. Both the page and the button now carry the
       fix — this empty state offers «Добавить ученика», and so does the message the add button shows (see
@@ -142,7 +141,7 @@
       A day's total, as a count of hours: «5 ч», «1,5 ч». Takes an already-formatted number
       (`formatHours`), which is why it is %1$s and not %1$d — the value carries a decimal comma.
     -->
-    <string name="hours_value">%1$s ч</string>
+    <string name="hours_value">%1$s&#160;ч</string>
     <!--
       Cancelled lessons in a day's summary. Written as a label and a number rather than as a counted
       noun, because the noun is elided: «отменено 2» would need «занятия» to agree with, and the
@@ -152,6 +151,8 @@
     <string name="schedule_view_day">День</string>
     <string name="schedule_view_week">Неделя</string>
     <string name="schedule_view_month">Месяц</string>
+    <!-- A calendar day's spoken breakdown: one status and how many lessons are in it. -->
+    <string name="calendar_status_tally">%1$s: %2$d</string>
     <string name="schedule_today">Сегодня</string>
     <string name="schedule_previous_day">Предыдущий день</string>
     <string name="schedule_next_day">Следующий день</string>
@@ -236,8 +237,10 @@
     <string name="class_mode_in_person">Очно</string>
     <string name="class_mode_remote">Удалённо</string>
     <string name="class_move">Перенести</string>
+    <string name="class_gone">Этого занятия больше нет</string>
+    <string name="class_gone_detail">Его удалили после того, как оно было открыто. Вернитесь к расписанию, чтобы найти нужное занятие.</string>
     <string name="class_delete_confirm">Удалить это занятие?</string>
-    <string name="class_delete_completed_confirm">Занятие завершено. Удаление уберёт начисленный доход из баланса ученика. Удалить?</string>
+    <string name="class_delete_completed_confirm">Занятие проведено. Удаление уберёт начисленный доход из баланса ученика. Удалить?</string>
     <string name="class_target_student">Ученик</string>
     <string name="class_target_group">Группа</string>
     <string name="class_group_label">Группа</string>
@@ -246,15 +249,16 @@
     <string name="class_no_groups">Групп пока нет. Сначала создайте группу.</string>
     <string name="class_no_subjects_for_group">Сначала добавьте предметы</string>
     <string name="class_group_members_title">Участники</string>
+    <string name="class_group_no_active_members">В группе нет активных участников — все они в архиве</string>
     <string name="class_group_no_members_left">Выберите хотя бы одного участника</string>
     <!-- Hint under the member ticks of a lesson that is already booked, where they change history. -->
     <string name="class_group_members_editable">Отметьте, кто был на занятии</string>
     <!-- %1$d: how many unticked members had already been billed for this lesson -->
     <plurals name="class_member_drop_billed_confirm">
-        <item quantity="one">%1$d ученик убран из проведённого занятия. Его занятие удалится, а начисленный доход исчезнет. Сохранить?</item>
-        <item quantity="few">%1$d ученика убраны из проведённого занятия. Их занятия удалятся, а начисленный доход исчезнет. Сохранить?</item>
-        <item quantity="many">%1$d учеников убраны из проведённого занятия. Их занятия удалятся, а начисленный доход исчезнет. Сохранить?</item>
-        <item quantity="other">%1$d ученика убраны из проведённого занятия. Их занятия удалятся, а начисленный доход исчезнет. Сохранить?</item>
+        <item quantity="one">%1$d ученик будет убран из проведённого занятия — его занятие и начисленный доход будут удалены. Сохранить?</item>
+        <item quantity="few">%1$d ученика будут убраны из проведённого занятия — их занятия и начисленный доход будут удалены. Сохранить?</item>
+        <item quantity="many">%1$d учеников будут убраны из проведённого занятия — их занятия и начисленный доход будут удалены. Сохранить?</item>
+        <item quantity="other">%1$d ученика будут убраны из проведённого занятия — их занятия и начисленный доход будут удалены. Сохранить?</item>
     </plurals>
     <string name="class_subject_from_group">Предмет задан группой</string>
     <string name="class_group_price_label">Цена за час с ученика</string>
@@ -295,10 +299,10 @@
     <!-- Students -->
     <string name="students_title">Ученики</string>
     <string name="students_empty">Пока нет учеников</string>
-    <string name="students_empty_detail">Ученик — это имя, предметы и цена за час. Дальше можно записывать занятия и вести оплату.</string>
+    <string name="students_empty_detail">Ученик — это имя, предметы и цена за час. Дальше можно записывать занятия и вести учёт оплат.</string>
     <string name="students_add">Добавить ученика</string>
     <string name="students_show_archived">Показать архив</string>
-    <string name="student_archived_badge">в архиве</string>
+    <string name="student_archived_badge">В архиве</string>
     <string name="student_add_title">Новый ученик</string>
     <string name="student_edit_title">Изменить ученика</string>
     <string name="student_name_label">Имя</string>
@@ -334,6 +338,10 @@
         <item quantity="many">Отменено %1$d занятий</item>
         <item quantity="other">Отменено %1$d занятия</item>
     </plurals>
+    <string name="student_last_payment">Последняя оплата %1$s</string>
+    <string name="student_lessons_empty">Занятий пока нет</string>
+    <string name="student_subject_remove">Убрать предмет «%1$s»</string>
+    <string name="student_subject_remove_confirm">Убрать предмет «%1$s» у ученика? Его цена и история цен будут удалены.</string>
     <string name="student_payments_title">Платежи</string>
     <string name="student_classes_title">Занятия</string>
     <string name="student_homework_title">Домашние задания</string>
@@ -385,6 +393,7 @@
     <string name="payment_add_title">Новый платёж</string>
     <string name="payment_edit_title">Изменить платёж</string>
     <string name="payment_amount_label">Сумма</string>
+    <string name="payment_delete">Удалить платёж</string>
     <string name="payment_deleted">Платёж удалён</string>
     <!--
       A payment is recorded when the tutor gets round to it, not when it was handed over — «она
@@ -406,17 +415,19 @@
     <string name="subject_add_title">Новый предмет</string>
     <string name="subject_edit_title">Изменить предмет</string>
     <string name="subject_name_label">Название</string>
+    <string name="subject_name_taken">Предмет с таким названием уже есть</string>
+    <string name="subject_delete_named">Удалить предмет «%1$s»</string>
     <string name="subject_delete_confirm">Удалить этот предмет?</string>
     <string name="subject_delete_blocked">Нельзя удалить предмет: по нему есть занятия. Сначала удалите эти занятия.</string>
     <!-- A group is taught the subject. A different fix from removing lessons — the group may have none. -->
     <string name="subject_delete_blocked_group">Нельзя удалить предмет: его изучает группа. Сначала измените предмет группы.</string>
+    <string name="subject_delete_blocked_students">Нельзя удалить предмет: его изучает ученик. Сначала уберите предмет из его карточки.</string>
 
     <!-- Groups -->
     <string name="groups_title">Группы</string>
     <string name="groups_empty">Пока нет групп</string>
     <string name="groups_empty_detail">Группа — это несколько учеников с общей ценой. Одно занятие записывается сразу на всех.</string>
     <string name="groups_add">Создать группу</string>
-    <string name="groups_show_archived">Показать архив</string>
     <string name="group_add_title">Новая группа</string>
     <string name="group_edit_title">Изменить группу</string>
     <string name="group_name_label">Название</string>
@@ -437,7 +448,12 @@
          concession to the width of a list row, and a reader has no width. -->
     <string name="roster_members">Ученики: %1$s</string>
     <!-- The save kept only the members priced for the group's subject; somebody was left out. -->
-    <string name="group_members_not_priced">Не все участники сохранены: у некоторых нет цены на предмет группы</string>
+    <plurals name="group_members_leaving_confirm">
+        <item quantity="one">У %1$d участника нет цены на предмет группы — он выйдет из группы. Сохранить?</item>
+        <item quantity="few">У %1$d участников нет цены на предмет группы — они выйдут из группы. Сохранить?</item>
+        <item quantity="many">У %1$d участников нет цены на предмет группы — они выйдут из группы. Сохранить?</item>
+        <item quantity="other">У %1$d участника нет цены на предмет группы — они выйдут из группы. Сохранить?</item>
+    </plurals>
     <string name="group_delete_confirm">Удалить эту группу? Ученики и их занятия останутся.</string>
     <string name="group_delete_blocked">Нельзя удалить группу: по ней есть занятия. Отправьте её в архив.</string>
 
@@ -476,7 +492,7 @@
     <string name="about_backup_hint">Чтобы не потерять данные при смене телефона, сделайте резервную копию.</string>
     <!-- The bundled typeface's credit, and the way to read its licence. The OFL asks that its notice
          travel with the font: res/raw/golos_text_ofl.txt is that notice, and this is what opens it. -->
-    <string name="about_typeface">Шрифт Golos Text — Paratype, лицензия OFL 1.1</string>
+    <string name="about_typeface">Шрифт Golos Text — ParaType, лицензия OFL 1.1</string>
     <string name="about_typeface_licence">Лицензия шрифта</string>
 
     <!-- Settings -->
@@ -543,7 +559,7 @@
       mirrored. The counterpart of settings_notifications_blocked, and worded the same way: what the
       platform will actually do, then why.
     -->
-    <string name="settings_calendar_sync_blocked">Доступ к календарю отозван — занятия не переносятся</string>
+    <string name="settings_calendar_sync_blocked">Доступ к календарю отозван — занятия не копируются</string>
     <string name="settings_email_invites">Приглашать учеников по email</string>
     <string name="settings_email_invites_desc">Добавлять ученика с email в событие занятия — приглашение и напоминание придут ему на почту</string>
     <string name="settings_reminder_lead">За сколько напоминать</string>
@@ -637,10 +653,10 @@
     <string name="currency_eur">EUR</string>
     <string name="settings_currency_change">Сменить</string>
     <string name="settings_currency_change_confirm">Суммы не пересчитываются по курсу: цены, платежи и отчёты просто начнут отображаться в %1$s. Сами числа останутся прежними.</string>
-    <string name="minutes_short">%1$d мин</string>
-    <string name="hours_one">1 ч</string>
-    <string name="hours_one_and_half">1,5 ч</string>
-    <string name="hours_two">2 ч</string>
+    <string name="minutes_short">%1$d&#160;мин</string>
+    <string name="hours_one">1&#160;ч</string>
+    <string name="hours_one_and_half">1,5&#160;ч</string>
+    <string name="hours_two">2&#160;ч</string>
 
     <!-- Onboarding -->
     <!--
@@ -684,10 +700,10 @@
         <item quantity="other">Удалить групповое занятие (%1$d ученика)?</item>
     </plurals>
     <plurals name="class_delete_group_completed_confirm">
-        <item quantity="one">Занятие завершено. Удаление уберёт начисленный доход у %1$d ученика. Удалить?</item>
-        <item quantity="few">Занятие завершено. Удаление уберёт начисленный доход у %1$d учеников. Удалить?</item>
-        <item quantity="many">Занятие завершено. Удаление уберёт начисленный доход у %1$d учеников. Удалить?</item>
-        <item quantity="other">Занятие завершено. Удаление уберёт начисленный доход у %1$d учеников. Удалить?</item>
+        <item quantity="one">Занятие проведено. Удаление уберёт начисленный доход у %1$d ученика. Удалить?</item>
+        <item quantity="few">Занятие проведено. Удаление уберёт начисленный доход у %1$d учеников. Удалить?</item>
+        <item quantity="many">Занятие проведено. Удаление уберёт начисленный доход у %1$d учеников. Удалить?</item>
+        <item quantity="other">Занятие проведено. Удаление уберёт начисленный доход у %1$d учеников. Удалить?</item>
     </plurals>
 
     <!--
@@ -764,9 +780,12 @@
     -->
     <string name="reports_vs_previous">%1$s к периоду «%2$s»</string>
     <string name="reports_vs_previous_from_zero">За период «%1$s» дохода не было</string>
-    <string name="reports_percent_signed_up">+%1$d %%</string>
-    <string name="reports_percent_signed_down">−%1$d %%</string>
-    <string name="reports_percent_signed_same">0 %%</string>
+    <!-- The same, while the period is still going: its days so far against as many of the previous one's. -->
+    <string name="reports_vs_previous_to_date">%1$s к тем же дням периода «%2$s»</string>
+    <string name="reports_vs_previous_from_zero_to_date">За те же дни периода «%1$s» дохода не было</string>
+    <string name="reports_percent_signed_up">+%1$d&#160;%%</string>
+    <string name="reports_percent_signed_down">−%1$d&#160;%%</string>
+    <string name="reports_percent_signed_same">0&#160;%%</string>
     <!-- Debts are the most action-shaped list in the app; each row opens the person who owes. -->
     <string name="reports_open_student">Открыть карточку</string>
     <!-- CSV, because a backup is for restoring and a spreadsheet is for the tax office. -->
@@ -807,9 +826,9 @@
     <string name="reports_previous_period">Предыдущий период</string>
     <string name="reports_next_period">Следующий период</string>
     <!-- %1$d: a line's share of the period's income -->
-    <string name="reports_percent">%1$d %%</string>
+    <string name="reports_percent">%1$d&#160;%%</string>
     <!-- %1$s: an amount, %2$d: its share of the whole — the legend under the income split -->
-    <string name="reports_amount_share">%1$s · %2$d %%</string>
+    <string name="reports_amount_share">%1$s · %2$d&#160;%%</string>
     <!-- Axis labels for the income chart: short enough for twelve of them across a phone. -->
     <string-array name="month_short_names">
         <item>янв</item>
@@ -828,7 +847,7 @@
 
     <!-- Backup -->
     <string name="backup_title">Резервная копия</string>
-    <string name="backup_filename">klas-backup.json</string>
+    <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Экспортировать данные</string>
     <!--
       Says what the file holds, because the tutor decides where it goes. The export is the app's only
@@ -844,26 +863,27 @@
     <string name="backup_last_export">Последняя копия: %1$s</string>
     <string name="backup_last_export_detail">Данные после этой даты есть только на этом телефоне</string>
     <string name="backup_never">Копий ещё не было</string>
-    <string name="backup_never_detail">Данные есть только на этом телефоне. Потеряете телефон — потеряете всё</string>
+    <string name="backup_never_detail">Данные есть только на этом телефоне. Потеряете телефон — потеряете всё.</string>
     <string name="backup_import">Импортировать данные</string>
     <string name="backup_import_desc">Восстановить данные из файла</string>
     <string name="backup_import_confirm">Импорт заменит все текущие данные. Продолжить?</string>
     <string name="backup_export_success">Данные сохранены</string>
     <string name="backup_import_success">Данные восстановлены</string>
+    <string name="backup_importing">Восстанавливаем данные…</string>
     <!--
       One message per BackupFailure. A single «Не удалось» told the tutor to check a file that may
       have been perfectly fine — a copy from a newer build needs an app update, not another look.
     -->
-    <string name="backup_error_file">Не удалось открыть файл — возможно, он перемещён или недоступен</string>
+    <string name="backup_error_file">Не удалось открыть файл — возможно, он перемещён или удалён</string>
     <string name="backup_error_malformed">Это не похоже на резервную копию Klas</string>
-    <string name="backup_error_version">Копия создана более новой версией Klas (%1$d) — обновите приложение. Эта версия читает копии до %2$d</string>
+    <string name="backup_error_version">Копия создана более новой версией Klas (%1$d) — обновите приложение. Эта версия читает копии до %2$d.</string>
 
     <!--
       Homework. Set for a student or a group and attached to their next lesson — which the app works out
       itself, so none of these strings ever asks the tutor to pick a due date. Current until swiped done.
     -->
     <string name="homework_label">Домашнее задание</string>
-    <string name="homework_add">Задать задание</string>
+    <string name="homework_add">Новое задание</string>
     <string name="homework_assignee_label">Кому</string>
     <string name="homework_text_label">Задание</string>
     <!-- Under the text of a new one. %1$s: when the lesson it will be attached to starts. -->

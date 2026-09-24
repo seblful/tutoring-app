@@ -32,7 +32,7 @@ class SettingsViewModelTest {
 
     private fun vm() = SettingsViewModel(
         env.settingsRepo, env.calendarMirror, env.reminders, env.maintenance,
-        env.calendarPermission, env.notificationPermission, env.exactAlarmPermission,
+        env.calendarPermission, env.notificationPermission, env.exactAlarmPermission, mainRule.appScope,
     )
 
     /**
@@ -63,6 +63,27 @@ class SettingsViewModelTest {
      * "ask the platform" and "the platform has nothing to ask" look identical from the setting's side and
      * behave completely differently. This was three nested `if`s inside a composable's callback.
      */
+    /** A digest is a notification: switched on, it asks for what a reminder would; switched off, nothing. */
+    @Test
+    fun `turning a digest on asks for the notification permission reminders would`() =
+        runTest(mainRule.dispatcher) {
+            val vm = vm()
+            observing(vm.state)
+            advanceUntilIdle()
+            env.notificationPermission.granted = false
+
+            assertEquals(
+                NotificationsIntent.Request(listOf("POST_NOTIFICATIONS")),
+                vm.setDigestEnabled(on = true) { it.copy(debtDigestEnabled = true) },
+            )
+            assertEquals(
+                NotificationsIntent.Nothing,
+                vm.setDigestEnabled(on = false) { it.copy(debtDigestEnabled = false) },
+            )
+            advanceUntilIdle()
+            assertEquals(false, env.settingsRepo.get().debtDigestEnabled)
+        }
+
     @Test
     fun `turning reminders on asks for the permission only when there is one to ask for`() =
         runTest(mainRule.dispatcher) {

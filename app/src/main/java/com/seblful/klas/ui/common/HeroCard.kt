@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -12,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * **The one number a screen exists to answer**, in the loudest colour the palette has.
@@ -65,7 +67,17 @@ fun HeroCard(
             verticalArrangement = Arrangement.spacedBy(Spacing.tight),
         ) {
             Text(label, style = MaterialTheme.typography.labelMedium)
-            Text(value, style = MaterialTheme.typography.headlineMedium)
+            // One line, shrinking a step at a time: «12 450,50 BYN» at a large font scale wrapped the
+            // currency onto a line of its own, which is the one number on the screen broken in two.
+            Text(
+                value,
+                style = MaterialTheme.typography.headlineMedium,
+                maxLines = 1,
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = HeroMinFontSize,
+                    maxFontSize = MaterialTheme.typography.headlineMedium.fontSize,
+                ),
+            )
             detail?.invoke(this)
         }
     }
@@ -76,3 +88,6 @@ fun HeroCard(
  * generous, and 16 all round around 28sp type reads as cramped.
  */
 private val HeroInset = 20.dp
+
+/** The smallest the hero number shrinks to — still the largest text on its screen. */
+private val HeroMinFontSize = 20.sp

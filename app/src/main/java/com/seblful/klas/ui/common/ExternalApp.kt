@@ -2,6 +2,7 @@ package com.seblful.klas.ui.common
 
 import android.content.Context
 import android.content.Intent
+import androidx.activity.result.ActivityResultLauncher
 
 /**
  * Hands something off to whichever app the platform says handles it — **guarded**, because on a real
@@ -27,4 +28,13 @@ fun launchExternally(
     messages: Messages,
 ) {
     runCatching { context.startActivity(intent) }.onFailure { messages.show(failureMessage) }
+}
+
+/**
+ * [launchExternally] for a system picker reached through an `ActivityResultLauncher` — the file picker
+ * behind «Экспорт», «Импорт» and the CSV and crash-log saves. An OEM build can ship without one, or the
+ * tutor can switch it off, and `launch` then throws the same `ActivityNotFoundException` a tap would crash on.
+ */
+fun <I> ActivityResultLauncher<I>.launchExternally(input: I, failureMessage: String, messages: Messages) {
+    runCatching { launch(input) }.onFailure { messages.show(failureMessage) }
 }

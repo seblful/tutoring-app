@@ -15,8 +15,11 @@ import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.hold
 import com.seblful.klas.ui.common.ready
+import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.Clock
@@ -104,13 +107,40 @@ class BackupViewModel @Inject constructor(
         appScope.launch { settings.update { it.copy(lastExportAt = clock.instant()) } }
     }
 
-    /** Reads the picked file through [DocumentStore] and hands the rest to [BackupRestore]. */
+    private val _importing = MutableStateFlow(false)
+
+    /**
+     * Whether a restore is under way. A large one takes seconds, and a screen with nothing moving read as
+     * a tap that had not taken — so the tutor pressed back, or tapped «Импорт» again.
+     */
+    val importing: StateFlow<Boolean> = _importing.asStateFlow()
+
+    /**
+     * Reads the picked file through [DocumentStore] and hands the rest to [BackupRestore].
+     *
+     * **In the application scope**, as every write is: the rows commit in one transaction, but the
+     * restore goes on past it — the first-run flag, the reminder plan, the calendar re-mirror — and in
+     * `viewModelScope` a back press cancelled that tail, leaving the data replaced and the reminders and
+     * calendar still describing the old one. A second tap while one is running is ignored.
+     */
     fun import(ref: DocumentRef) {
-        viewModelScope.launch {
-            val result = runCatchingCancellable { restore.restore(documents.read(ref)) }
-            events.send(result.fold({ BackupResult.ImportOk }, ::failed))
+        if (_importing.value) return
+        _importing.value = true
+        appScope.launch {
+            try {
+                val result = runCatchingCancellable { restore.restore(documents.read(ref)) }
+                events.send(result.fold({ BackupResult.ImportOk }, ::failed))
+            } finally {
+                _importing.value = false
+            }
         }
     }
+
+    /**
+     * The day an export is named for — `klas-backup-2026-09-24.json` — by the injected clock. One fixed
+     * name made every copy after the first «klas-backup (1).json», which says nothing about which is newest.
+     */
+    fun exportDay(): LocalDate = LocalDate.now(clock)
 
     private fun failed(error: Throwable): BackupResult = BackupResult.Failed(BackupFailure.of(error))
 }

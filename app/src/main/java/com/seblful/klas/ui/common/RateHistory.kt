@@ -79,6 +79,9 @@ private fun RateChangeRow(change: RateChange) {
                 stringResource(R.string.rate_history_change, from.text(), change.to.text())
             },
             style = MaterialTheme.typography.bodySmall,
+            // Takes what the date leaves, so a long «1 250,50 BYN → 1 500 BYN» wraps rather than pushing
+            // the date off the row.
+            modifier = Modifier.weight(1f),
         )
         Text(
             text = change.at?.formatDate() ?: stringResource(R.string.rate_history_unknown_date),

@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
@@ -159,7 +160,9 @@ fun LessonFilterChips(
                 count = tally[kind] ?: 0,
                 selected = selected == filter,
                 onClick = { onSelect(filter) },
-                leading = { LessonKindIcon(kind) },
+                // Decorative here: the chip's own label names the kind, and the icon's description on top of
+                // it read «Индивидуально, Индивидуальные · 8».
+                leading = { LessonKindIcon(kind, Modifier.clearAndSetSemantics { }) },
             )
         }
     }

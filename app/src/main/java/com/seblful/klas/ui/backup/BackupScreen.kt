@@ -13,6 +13,7 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,6 +39,7 @@ import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.SkeletonBlock
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.rememberMessages
 import androidx.compose.ui.unit.dp
 import java.time.Instant
@@ -57,11 +59,14 @@ fun BackupScreen(
     val messages = rememberMessages()
     var confirmImportUri by remember { mutableStateOf<android.net.Uri?>(null) }
     val lastExportAt by viewModel.lastExportAt.collectAsState()
+    val importing by viewModel.importing.collectAsState()
 
     val exportSuccess = stringResource(R.string.backup_export_success)
     val importSuccess = stringResource(R.string.backup_import_success)
-    val backupFilename = stringResource(R.string.backup_filename)
     val context = LocalContext.current
+    val noPickerMsg = stringResource(R.string.student_contact_failed)
+    // Named for the day it is made on — see [BackupViewModel.exportDay].
+    val backupFilename = stringResource(R.string.backup_filename, viewModel.exportDay().toString())
 
     ShowMessagesFor(viewModel.events, messages) { result ->
         when (result) {
@@ -85,6 +90,9 @@ fun BackupScreen(
         messages = messages,
     ) { modifier ->
         Column(modifier) {
+            // An action under way rather than a screen loading, so a bar and not a skeleton: the rows are
+            // already drawn, and what the tutor needs to know is that the tap took and to wait.
+            if (importing) LinearProgressIndicator(Modifier.fillMaxWidth())
             // **When the last copy was made, first.** This screen was two rows describing what export
             // and import *are* — and in an app whose whole promise is that the data is on this device
             // and nowhere else, the date of the last backup is the most valuable fact in the product.
@@ -105,13 +113,19 @@ fun BackupScreen(
                 leadingContent = { Icon(Icons.Outlined.Upload, null) },
                 headlineContent = { Text(stringResource(R.string.backup_export)) },
                 supportingContent = { Text(stringResource(R.string.backup_export_desc)) },
-                modifier = Modifier.clickable { exportLauncher.launch(backupFilename) },
+                modifier = Modifier.clickable(enabled = !importing) {
+                    exportLauncher.launchExternally(backupFilename, noPickerMsg, messages)
+                },
             )
             ListItem(
                 leadingContent = { Icon(Icons.Outlined.Download, null) },
                 headlineContent = { Text(stringResource(R.string.backup_import)) },
-                supportingContent = { Text(stringResource(R.string.backup_import_desc)) },
-                modifier = Modifier.clickable { importLauncher.launch(BACKUP_MIME_TYPES) },
+                supportingContent = {
+                    Text(stringResource(if (importing) R.string.backup_importing else R.string.backup_import_desc))
+                },
+                modifier = Modifier.clickable(enabled = !importing) {
+                    importLauncher.launchExternally(BACKUP_MIME_TYPES, noPickerMsg, messages)
+                },
             )
         }
     }

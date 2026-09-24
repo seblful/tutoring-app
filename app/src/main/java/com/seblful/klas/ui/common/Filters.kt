@@ -24,6 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
 
@@ -41,6 +43,9 @@ import com.seblful.klas.R
  *
  * @param name what the icon does — its description, and what a hold on it shows ([HoldToName]).
  * @param leading an option's glyph in the menu, where a list mixes kinds (a student, a group).
+ * @param narrowed whether the list is narrowed at all — true even when the one it is narrowed to is not an
+ *   option (an archived student the schedule was already showing), so «Все» is not ticked under a chip
+ *   that names somebody.
  */
 @Composable
 fun <T> FilterMenuAction(
@@ -51,6 +56,7 @@ fun <T> FilterMenuAction(
     optionLabel: (T) -> String,
     onSelect: (T?) -> Unit,
     leading: (@Composable (T) -> Unit)? = null,
+    narrowed: Boolean = selected != null,
 ) {
     var open by remember { mutableStateOf(false) }
     Box {
@@ -60,17 +66,20 @@ fun <T> FilterMenuAction(
             }
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            // The tick is a picture; `selected` is what a screen reader says — «выбрано» — about the entry.
             DropdownMenuItem(
                 text = { Text(allLabel) },
                 onClick = { onSelect(null); open = false },
-                trailingIcon = { if (selected == null) Icon(Icons.Filled.Check, null) },
+                trailingIcon = { if (!narrowed) Icon(Icons.Filled.Check, null) },
+                modifier = Modifier.semantics { this.selected = !narrowed },
             )
             options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(optionLabel(option)) },
+                    text = { Text(optionLabel(option), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     onClick = { onSelect(option); open = false },
                     leadingIcon = leading?.let { draw -> { draw(option) } },
                     trailingIcon = { if (selected == option) Icon(Icons.Filled.Check, null) },
+                    modifier = Modifier.semantics { this.selected = selected == option },
                 )
             }
         }
@@ -100,7 +109,7 @@ fun FilterChipRow(name: String, onClear: () -> Unit) {
                 Icon(
                     Icons.Filled.Close,
                     stringResource(R.string.schedule_filter_clear),
-                    Modifier.size(InputChipDefaults.AvatarSize),
+                    Modifier.size(InputChipDefaults.IconSize),
                 )
             },
         )

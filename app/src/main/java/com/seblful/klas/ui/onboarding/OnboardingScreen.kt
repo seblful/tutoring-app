@@ -1,16 +1,21 @@
 package com.seblful.klas.ui.onboarding
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Add
@@ -33,7 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +47,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -65,6 +71,7 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TextFieldDialog
 import com.seblful.klas.ui.common.currencyLabel
 import com.seblful.klas.ui.common.languageLabel
+import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.valueOrNull
 import com.seblful.klas.ui.students.StudentFormContent
@@ -114,12 +121,14 @@ fun OnboardingScreen(
     viewModel: OnboardingViewModel = hiltViewModel(),
     backupViewModel: BackupViewModel = hiltViewModel(),
 ) {
-    var step by remember { mutableStateOf(Step.WELCOME) }
+    // Saveable, so turning the phone on step 3 does not throw the tutor back to the welcome screen.
+    var step by rememberSaveable { mutableStateOf(Step.WELCOME) }
     val subjects by viewModel.subjects.collectAsState()
     val locale by viewModel.locale.collectAsState()
-    var addingSubject by remember { mutableStateOf(false) }
-    var confirmRestoreUri by remember { mutableStateOf<Uri?>(null) }
+    var addingSubject by rememberSaveable { mutableStateOf(false) }
+    var confirmRestoreUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     val messages = rememberMessages()
+    val noPickerMsg = stringResource(R.string.student_contact_failed)
 
     val context = LocalContext.current
     // Only a failure needs saying — a successful restore leaves this screen behind. It says which
@@ -167,6 +176,9 @@ fun OnboardingScreen(
         Step.SUBJECTS -> Step.LOCALE
         Step.STUDENT -> Step.SUBJECTS
     }
+    // The system back, too: the screen sits outside the `NavHost`, so without this the gesture on step 2
+    // left the app mid-setup while the arrow above went back a step.
+    BackHandler(enabled = previousStep != null) { previousStep?.let { step = it } }
 
     KlasScreen(
         // The welcome screen names the app in its own body, under the mark — repeating it in the bar
@@ -201,31 +213,40 @@ fun OnboardingScreen(
                     // instructions with the buttons pushed to the bottom by a spacer — the app
                     // explaining its setup before saying what it was. The mark and three lines of
                     // value proposition come first now; the setup is offered underneath them.
-                    Column(
-                        Modifier.fillMaxWidth().weight(1f).padding(horizontal = Spacing.sectionGap),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(Spacing.itemGap, Alignment.CenterVertically),
-                    ) {
-                        Icon(
-                            painterResource(R.drawable.ic_logo),
-                            contentDescription = null,
-                            modifier = Modifier.size(96.dp),
-                            tint = Color.Unspecified,
-                        )
-                        Text(
-                            stringResource(R.string.app_name),
-                            style = MaterialTheme.typography.headlineMedium,
-                        )
-                        Text(
-                            stringResource(R.string.onboarding_tagline),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = Spacing.inline),
-                        )
-                        ValueLine(Icons.Outlined.CalendarMonth, stringResource(R.string.onboarding_value_schedule))
-                        ValueLine(Icons.Outlined.Payments, stringResource(R.string.onboarding_value_money))
-                        ValueLine(Icons.Outlined.PhonelinkLock, stringResource(R.string.onboarding_value_offline))
+                    //
+                    // Centred while it fits, scrolled when it does not: at a large font scale, or on a phone
+                    // turned sideways, the mark and the three lines drew over the buttons below them.
+                    BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .heightIn(min = maxHeight)
+                                .padding(horizontal = Spacing.sectionGap),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap, Alignment.CenterVertically),
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.ic_logo),
+                                contentDescription = null,
+                                modifier = Modifier.size(96.dp),
+                                tint = Color.Unspecified,
+                            )
+                            Text(
+                                stringResource(R.string.app_name),
+                                style = MaterialTheme.typography.headlineMedium,
+                            )
+                            Text(
+                                stringResource(R.string.onboarding_tagline),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(bottom = Spacing.inline),
+                            )
+                            ValueLine(Icons.Outlined.CalendarMonth, stringResource(R.string.onboarding_value_schedule))
+                            ValueLine(Icons.Outlined.Payments, stringResource(R.string.onboarding_value_money))
+                            ValueLine(Icons.Outlined.PhonelinkLock, stringResource(R.string.onboarding_value_offline))
+                        }
                     }
                     Column(
                         Modifier.fillMaxWidth().padding(Spacing.gutter),
@@ -241,7 +262,7 @@ fun OnboardingScreen(
                         // above the buttons that has to describe all three at once.
                         Caption(stringResource(R.string.onboarding_welcome_desc))
                         OutlinedButton(
-                            onClick = { restoreLauncher.launch(BACKUP_MIME_TYPES) },
+                            onClick = { restoreLauncher.launchExternally(BACKUP_MIME_TYPES, noPickerMsg, messages) },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Icon(Icons.Filled.Download, null)
@@ -310,7 +331,7 @@ fun OnboardingScreen(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter),
                     ) {
                         Icon(Icons.Filled.Add, null)
-                        Text(stringResource(R.string.subject_add_title), Modifier.padding(start = Spacing.inline))
+                        Text(stringResource(R.string.subjects_add), Modifier.padding(start = Spacing.inline))
                     }
                     // «Нет предметов» is usually the truth on this screen — it runs on a fresh install —
                     // but not always: the step is reachable again once subjects have been added, and it
@@ -380,6 +401,7 @@ fun OnboardingScreen(
         TextFieldDialog(
             title = stringResource(R.string.subject_add_title),
             label = stringResource(R.string.subject_name_label),
+            capitalization = KeyboardCapitalization.Sentences,
             initial = "",
             onConfirm = { viewModel.addSubject(it) },
             onDismiss = { addingSubject = false },

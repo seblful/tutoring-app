@@ -33,6 +33,7 @@ import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.ShowMessagesFor
+import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.rememberMessages
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,6 +44,7 @@ fun DiagnosticsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val messages = rememberMessages()
+    val noPickerMsg = stringResource(R.string.student_contact_failed)
     var confirmingClear by remember { mutableStateOf(false) }
 
     val exportOk = stringResource(R.string.diagnostics_export_success)
@@ -82,7 +84,7 @@ fun DiagnosticsScreen(
                 Spacer(Modifier.weight(1f))
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-                    OutlinedButton(onClick = { exportLauncher.launch(exportFilename) }) {
+                    OutlinedButton(onClick = { exportLauncher.launchExternally(exportFilename, noPickerMsg, messages) }) {
                         Text(stringResource(R.string.diagnostics_export))
                     }
                     OutlinedButton(onClick = { confirmingClear = true }) {

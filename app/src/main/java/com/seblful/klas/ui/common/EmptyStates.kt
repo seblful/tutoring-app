@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -109,12 +110,12 @@ fun EmptyState(
             // way out is not competing with the card's own pencil for that role.
             if (compact) {
                 OutlinedButton(onClick = onAction) {
-                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Icon(Icons.Filled.Add, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
                     Text(actionLabel, Modifier.padding(start = Spacing.inline))
                 }
             } else {
                 Button(onClick = onAction, modifier = Modifier.padding(top = Spacing.tight)) {
-                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Icon(Icons.Filled.Add, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
                     Text(actionLabel, Modifier.padding(start = Spacing.inline))
                 }
             }

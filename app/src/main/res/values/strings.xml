@@ -28,7 +28,6 @@
     <string name="nav_more">More</string>
 
     <!-- Generic actions -->
-    <string name="action_add">Add</string>
     <string name="action_edit">Edit</string>
     <string name="action_delete">Delete</string>
     <string name="action_save">Save</string>
@@ -44,6 +43,7 @@
     <string name="action_undo">Undo</string>
     <!-- The action a snackbar carries when the message names something to go and look at. -->
     <string name="action_show">Show</string>
+    <string name="action_remove">Remove</string>
     <string name="action_more">More actions</string>
 
     <!-- What a field says when it is wrong, and when it is merely required. -->
@@ -84,7 +84,6 @@
     <string name="schedule_empty_detail">Book a lesson — it will appear here and in your calendar</string>
     <string name="schedule_add_class">Book a lesson</string>
     <string name="schedule_week_empty">No lessons this week</string>
-    <string name="schedule_view_mode">Schedule view</string>
     <!-- What the schedule says before anything can be booked. Both the page and the add button carry
          the way out of it, which is what the first version was missing. -->
     <string name="schedule_empty_no_setup">Nothing to plan yet</string>
@@ -104,12 +103,14 @@
       A day's total, as a count of hours: "5 h", "1.5 h". Takes an already-formatted number
       (`formatHours`), which is why it is %1$s and not %1$d — the value can carry a decimal.
     -->
-    <string name="hours_value">%1$s h</string>
+    <string name="hours_value">%1$s&#160;h</string>
     <!-- Cancelled lessons in a day's summary, written as a label and a number. -->
     <string name="schedule_summary_cancelled">cancelled: %1$d</string>
     <string name="schedule_view_day">Day</string>
     <string name="schedule_view_week">Week</string>
     <string name="schedule_view_month">Month</string>
+    <!-- A calendar day's spoken breakdown: one status and how many lessons are in it. -->
+    <string name="calendar_status_tally">%1$s: %2$d</string>
     <string name="schedule_today">Today</string>
     <string name="schedule_previous_day">Previous day</string>
     <string name="schedule_next_day">Next day</string>
@@ -145,7 +146,7 @@
       Monday and Thursday books twice, which is why there is no weekday picker here.
     -->
     <string name="class_repeat_label">Repeat</string>
-    <string name="class_repeat_none">No</string>
+    <string name="class_repeat_none">Once</string>
     <string name="class_repeat_weekly">Every week</string>
     <string name="class_repeat_fortnightly">Every 2 weeks</string>
     <string name="class_repeat_count_label">Lessons</string>
@@ -170,7 +171,7 @@
         <item quantity="other">%1$d lessons skipped — those times are already taken:</item>
     </plurals>
     <!-- Every date of a repeating booking was taken, so nothing at all was written. -->
-    <string name="class_series_refused_all_taken">Nothing booked: all of that time is already taken</string>
+    <string name="class_series_refused_all_taken">Nothing booked: all of those times are already taken</string>
     <string name="class_pick_date">Pick a date</string>
     <string name="class_pick_time">Pick a time</string>
     <!-- %1$s: the student or group, %2$s: the time of the lesson already in the schedule -->
@@ -180,25 +181,28 @@
     <!-- A write failed for a reason the tutor cannot act on (database, calendar). Not a refusal. -->
     <string name="save_failed">Could not save. Please try again</string>
     <string name="action_failed">Could not do that. Please try again</string>
-    <string name="class_location_label">Place</string>
+    <string name="class_location_label">Format</string>
     <string name="class_mode_in_person">In person</string>
     <string name="class_mode_remote">Remote</string>
     <string name="class_move">Reschedule</string>
+    <string name="class_gone">This lesson no longer exists</string>
+    <string name="class_gone_detail">It was deleted after this was opened. Go back to the schedule to find the lesson you need.</string>
     <string name="class_delete_confirm">Delete this lesson?</string>
-    <string name="class_delete_completed_confirm">This lesson is finished. Deleting it will remove the billed income from the student\'s balance. Delete?</string>
+    <string name="class_delete_completed_confirm">This lesson was taught. Deleting it will remove its charge from the student\'s balance. Delete?</string>
     <string name="class_target_student">Student</string>
     <string name="class_target_group">Group</string>
     <string name="class_group_label">Group</string>
     <string name="class_no_groups">No groups yet. Create one first.</string>
     <string name="class_no_subjects_for_group">Add subjects first</string>
     <string name="class_group_members_title">Members</string>
+    <string name="class_group_no_active_members">Nobody in this group can be booked: its members are archived</string>
     <string name="class_group_no_members_left">Pick at least one member</string>
     <!-- Hint under the member ticks of a lesson that is already booked, where they change history. -->
     <string name="class_group_members_editable">Tick who was at the lesson</string>
     <!-- %1$d: how many unticked members had already been billed for this lesson -->
     <plurals name="class_member_drop_billed_confirm">
-        <item quantity="one">%1$d student is being removed from a lesson that was taught. Their lesson will be deleted and the billed income will go. Save?</item>
-        <item quantity="other">%1$d students are being removed from a lesson that was taught. Their lessons will be deleted and the billed income will go. Save?</item>
+        <item quantity="one">%1$d student is being removed from a lesson that was taught. Their lesson will be deleted along with its charge. Save?</item>
+        <item quantity="other">%1$d students are being removed from a lesson that was taught. Their lessons will be deleted along with their charges. Save?</item>
     </plurals>
     <string name="class_subject_from_group">The group sets the subject</string>
     <string name="class_group_price_label">Price per hour, per student</string>
@@ -233,7 +237,7 @@
     <string name="students_empty_detail">A student is a name, their subjects and a price per hour. After that you can book lessons and track payments.</string>
     <string name="students_add">Add a student</string>
     <string name="students_show_archived">Show archive</string>
-    <string name="student_archived_badge">archived</string>
+    <string name="student_archived_badge">Archived</string>
     <string name="student_add_title">New student</string>
     <string name="student_edit_title">Edit student</string>
     <string name="student_name_label">Name</string>
@@ -253,7 +257,7 @@
       Archiving is assembled from the parts that actually apply, because it can cost two different
       things at once: a balance leaving the reports, and planned lessons being called off.
     -->
-    <string name="student_archive_balance_part">This student has an open balance (%1$s) — archived, they will not appear in reports.</string>
+    <string name="student_archive_balance_part">This student\'s balance is not settled (%1$s). Once archived, they will not appear in reports.</string>
     <string name="student_archive_question">Archive anyway?</string>
     <!-- %1$d: how many of the student's lessons are still merely planned, and so will be cancelled -->
     <plurals name="student_archive_lessons_part">
@@ -265,6 +269,10 @@
         <item quantity="other">%1$d lessons cancelled</item>
     </plurals>
     <string name="student_payments_title">Payments</string>
+    <string name="student_last_payment">Last payment %1$s</string>
+    <string name="student_lessons_empty">No lessons yet</string>
+    <string name="student_subject_remove">Remove %1$s</string>
+    <string name="student_subject_remove_confirm">Remove %1$s from this student? Its price and price history will be deleted.</string>
     <string name="student_classes_title">Lessons</string>
     <string name="student_homework_title">Homework</string>
     <string name="student_homework_empty">No homework set yet</string>
@@ -297,7 +305,7 @@
 
     <!-- Balance -->
     <string name="balance_settled">Nothing owed</string>
-    <string name="balance_credit">In credit %1$s</string>
+    <string name="balance_credit">%1$s in credit</string>
     <string name="balance_owes">Owes %1$s</string>
 
     <!-- Price -->
@@ -311,6 +319,7 @@
     <string name="payment_add_title">New payment</string>
     <string name="payment_edit_title">Edit payment</string>
     <string name="payment_amount_label">Amount</string>
+    <string name="payment_delete">Delete payment</string>
     <string name="payment_deleted">Payment deleted</string>
     <!-- A payment is recorded when the tutor gets round to it, not when it was handed over. -->
     <string name="payment_date_label">Payment date</string>
@@ -329,17 +338,19 @@
     <string name="subject_add_title">New subject</string>
     <string name="subject_edit_title">Edit subject</string>
     <string name="subject_name_label">Name</string>
+    <string name="subject_name_taken">A subject with this name already exists</string>
+    <string name="subject_delete_named">Delete %1$s</string>
     <string name="subject_delete_confirm">Delete this subject?</string>
     <string name="subject_delete_blocked">Cannot delete the subject: it has lessons. Delete those first.</string>
     <!-- A group is taught the subject. A different fix from removing lessons — the group may have none. -->
-    <string name="subject_delete_blocked_group">Cannot delete the subject: a group is taught it. Change the group\'s subject first.</string>
+    <string name="subject_delete_blocked_group">Cannot delete the subject: a group studies it. Change the group\'s subject first.</string>
+    <string name="subject_delete_blocked_students">Cannot delete the subject: a student takes it. Remove it from their card first.</string>
 
     <!-- Groups -->
     <string name="groups_title">Groups</string>
     <string name="groups_empty">No groups yet</string>
-    <string name="groups_empty_detail">A group is several students on one price. A single lesson is booked for all of them at once.</string>
+    <string name="groups_empty_detail">A group is several students sharing one price. One lesson is booked for all of them at once.</string>
     <string name="groups_add">Create a group</string>
-    <string name="groups_show_archived">Show archive</string>
     <string name="group_add_title">New group</string>
     <string name="group_edit_title">Edit group</string>
     <string name="group_name_label">Name</string>
@@ -359,7 +370,10 @@
          member, not just the four drawn: the "+2" is a concession to the width of a list row. -->
     <string name="roster_members">Students: %1$s</string>
     <!-- The save kept only the members priced for the group's subject; somebody was left out. -->
-    <string name="group_members_not_priced">Not every member was saved: some have no price for the group\'s subject</string>
+    <plurals name="group_members_leaving_confirm">
+        <item quantity="one">%1$d member has no price for the group\'s subject and will leave the group. Save?</item>
+        <item quantity="other">%1$d members have no price for the group\'s subject and will leave the group. Save?</item>
+    </plurals>
     <string name="group_delete_confirm">Delete this group? The students and their lessons stay.</string>
     <string name="group_delete_blocked">Cannot delete the group: it has lessons. Archive it instead.</string>
 
@@ -393,7 +407,7 @@
     <string name="about_backup_hint">Make a backup so you do not lose everything when you change phones.</string>
     <!-- The bundled typeface's credit, and the way to read its licence. The OFL asks that its notice
          travel with the font: res/raw/golos_text_ofl.txt is that notice, and this is what opens it. -->
-    <string name="about_typeface">Golos Text by Paratype, licensed under OFL 1.1</string>
+    <string name="about_typeface">Golos Text by ParaType, licensed under OFL 1.1</string>
     <string name="about_typeface_licence">Font licence</string>
 
     <!-- Settings -->
@@ -453,7 +467,7 @@
     -->
     <string name="settings_section_digests">Summaries</string>
     <string name="settings_agenda">Today\'s schedule</string>
-    <string name="settings_agenda_desc">Send this morning\'s list of lessons</string>
+    <string name="settings_agenda_desc">Every morning, send the list of today\'s lessons</string>
     <string name="settings_agenda_time">When to send</string>
     <!--
       The evening counterpart of auto-completion: with that on nothing is left unmarked for this to
@@ -487,8 +501,8 @@
       lesson bills it, which is the part the setting's own description does not say.
     -->
     <plurals name="settings_autocomplete_sweep_confirm">
-        <item quantity="one">%1$d past lesson will be marked as taught, and its income will be billed. Turn on auto-completion?</item>
-        <item quantity="other">%1$d past lessons will be marked as taught, and their income will be billed. Turn on auto-completion?</item>
+        <item quantity="one">%1$d past lesson will be marked as taught and billed. Turn on auto-completion?</item>
+        <item quantity="other">%1$d past lessons will be marked as taught and billed. Turn on auto-completion?</item>
     </plurals>
     <!-- What the sweep actually settled. Said even when it was not asked about, so no lesson is ever
          completed in silence by a switch. -->
@@ -525,10 +539,10 @@
     <string name="currency_eur">EUR</string>
     <string name="settings_currency_change">Change</string>
     <string name="settings_currency_change_confirm">Amounts are not converted at any exchange rate: prices, payments and reports will simply start showing in %1$s. The numbers themselves stay as they are.</string>
-    <string name="minutes_short">%1$d min</string>
-    <string name="hours_one">1 h</string>
-    <string name="hours_one_and_half">1.5 h</string>
-    <string name="hours_two">2 h</string>
+    <string name="minutes_short">%1$d&#160;min</string>
+    <string name="hours_one">1&#160;h</string>
+    <string name="hours_one_and_half">1.5&#160;h</string>
+    <string name="hours_two">2&#160;h</string>
 
     <!-- Onboarding -->
     <!-- The first screen says what the app is *for* before it asks for anything. -->
@@ -567,8 +581,8 @@
         <item quantity="other">Delete this group lesson (%1$d students)?</item>
     </plurals>
     <plurals name="class_delete_group_completed_confirm">
-        <item quantity="one">This lesson is finished. Deleting it will remove the billed income from %1$d student. Delete?</item>
-        <item quantity="other">This lesson is finished. Deleting it will remove the billed income from %1$d students. Delete?</item>
+        <item quantity="one">This lesson was taught. Deleting it will remove the charge from %1$d student. Delete?</item>
+        <item quantity="other">This lesson was taught. Deleting it will remove the charges from %1$d students. Delete?</item>
     </plurals>
 
     <!--
@@ -634,9 +648,12 @@
     -->
     <string name="reports_vs_previous">%1$s vs “%2$s”</string>
     <string name="reports_vs_previous_from_zero">No income in “%1$s”</string>
-    <string name="reports_percent_signed_up">+%1$d %%</string>
-    <string name="reports_percent_signed_down">−%1$d %%</string>
-    <string name="reports_percent_signed_same">0 %%</string>
+    <!-- The same, while the period is still going: its days so far against as many of the previous one's. -->
+    <string name="reports_vs_previous_to_date">%1$s vs the same days of “%2$s”</string>
+    <string name="reports_vs_previous_from_zero_to_date">No income in the same days of “%1$s”</string>
+    <string name="reports_percent_signed_up">+%1$d%%</string>
+    <string name="reports_percent_signed_down">−%1$d%%</string>
+    <string name="reports_percent_signed_same">0%%</string>
     <!-- Debts are the most action-shaped list in the app; each row opens the person who owes. -->
     <string name="reports_open_student">Open the card</string>
     <!-- CSV, because a backup is for restoring and a spreadsheet is for the tax office. -->
@@ -676,9 +693,9 @@
     <string name="reports_previous_period">Previous period</string>
     <string name="reports_next_period">Next period</string>
     <!-- %1$d: a line's share of the period's income -->
-    <string name="reports_percent">%1$d %%</string>
+    <string name="reports_percent">%1$d%%</string>
     <!-- %1$s: an amount, %2$d: its share of the whole — the legend under the income split -->
-    <string name="reports_amount_share">%1$s · %2$d %%</string>
+    <string name="reports_amount_share">%1$s · %2$d%%</string>
     <!-- Axis labels for the income chart: short enough for twelve of them across a phone. -->
     <string-array name="month_short_names">
         <item>Jan</item>
@@ -697,7 +714,7 @@
 
     <!-- Backup -->
     <string name="backup_title">Backup</string>
-    <string name="backup_filename">klas-backup.json</string>
+    <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Export your data</string>
     <!--
       Says what the file holds, because the tutor decides where it goes. The export is the app's only
@@ -713,19 +730,20 @@
     <string name="backup_last_export">Last backup: %1$s</string>
     <string name="backup_last_export_detail">Anything since then is on this phone only</string>
     <string name="backup_never">No backups yet</string>
-    <string name="backup_never_detail">Your data is on this phone only. Lose the phone and you lose all of it</string>
+    <string name="backup_never_detail">Your data is on this phone only. Lose the phone and you lose all of it.</string>
     <string name="backup_import">Import data</string>
     <string name="backup_import_desc">Restore your data from a file</string>
     <string name="backup_import_confirm">Importing will replace everything that is here. Continue?</string>
     <string name="backup_export_success">Data saved</string>
     <string name="backup_import_success">Data restored</string>
+    <string name="backup_importing">Restoring your data…</string>
     <!--
       One message per BackupFailure. A single "Could not read it" told the tutor to check a file that
       may have been perfectly fine — a copy from a newer build needs an app update, not another look.
     -->
-    <string name="backup_error_file">Could not open the file — it may have been moved or is unavailable</string>
+    <string name="backup_error_file">Could not open the file — it may have been moved or deleted</string>
     <string name="backup_error_malformed">This does not look like a Klas backup</string>
-    <string name="backup_error_version">This backup was made by a newer version of Klas (%1$d) — update the app. This version reads backups up to %2$d</string>
+    <string name="backup_error_version">This backup was made by a newer version of Klas (%1$d) — update the app. This version reads backups up to %2$d.</string>
 
     <!--
       Homework. Set for a student or a group and attached to their next lesson — which the app works out,
@@ -751,12 +769,12 @@
     <string name="homework_overdue">Overdue · was due %1$s</string>
     <string name="homework_unbooked">No lesson booked</string>
     <!-- In the archive. %1$s: the date it was set -->
-    <string name="homework_set_on">Set %1$s</string>
+    <string name="homework_set_on">Set on %1$s</string>
     <!-- What the swipe promises, behind the row: into the archive, or back out of it. -->
     <string name="homework_done">Done</string>
     <string name="homework_restore">Bring back</string>
     <string name="homework_done_message">Moved to the archive</string>
-    <string name="homework_restored_message">Back in current</string>
+    <string name="homework_restored_message">Moved back to Current</string>
     <string name="homework_deleted">Homework deleted</string>
     <string name="homework_empty_current">No current homework</string>
     <string name="homework_empty_current_detail">Set homework for a student or a group — it is attached to their next lesson.</string>
@@ -767,7 +785,7 @@
     <string name="homework_filter">Show one student or group</string>
     <string name="homework_filter_all">Everyone</string>
     <!-- %1$s: whom the tab is narrowed to -->
-    <string name="homework_filter_empty">%1$s: nothing here</string>
+    <string name="homework_filter_empty">No homework for %1$s</string>
     <string name="homework_filter_empty_detail">Clear the filter to see everyone\'s homework</string>
     <!-- Sending the homework to the student, through the phone's share sheet. -->
     <string name="homework_send">Send</string>

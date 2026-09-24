@@ -65,6 +65,7 @@ import com.seblful.klas.ui.common.SwipeToConfirmBox
 import com.seblful.klas.ui.common.armedPop
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.launchExternally
+import com.seblful.klas.ui.common.swipeAction
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.theme.klasColors
 
@@ -166,7 +167,12 @@ fun SwipeableHomework(
         modifier = modifier,
         reveal = { armed -> SwipeReveal(done = row.isCurrent, armed = armed, shape = shape) },
     ) {
-        if (nested) HomeworkListItem(row, messages, onClick) else HomeworkCard(row, messages, onClick)
+        // The swipe's twin for a screen reader, on the same node it reads and taps.
+        val swipe = Modifier.swipeAction(
+            stringResource(if (row.isCurrent) R.string.homework_done else R.string.homework_restore),
+            onSwipe,
+        )
+        if (nested) HomeworkListItem(row, messages, onClick, swipe) else HomeworkCard(row, messages, onClick, swipe)
     }
 }
 
@@ -199,8 +205,8 @@ private fun SwipeReveal(done: Boolean, armed: Boolean, shape: Shape) {
 
 /** The tab's card: who it is for, when it is for, the text — and the button that sends it. */
 @Composable
-private fun HomeworkCard(row: HomeworkRow, messages: Messages, onClick: () -> Unit) {
-    ContentCard(onClick = onClick) {
+private fun HomeworkCard(row: HomeworkRow, messages: Messages, onClick: () -> Unit, modifier: Modifier) {
+    ContentCard(onClick = onClick, modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             LessonKindIcon(
                 if (row.isGroup) LessonKind.GROUP else LessonKind.INDIVIDUAL,
@@ -217,9 +223,13 @@ private fun HomeworkCard(row: HomeworkRow, messages: Messages, onClick: () -> Un
             }
             if (row.isCurrent) SendHomeworkButton(row, messages)
         }
+        // A few lines, not the whole of a pasted exercise list: the card is also what is swiped, and a card
+        // several screens tall is a poor target. The dialog holds the full text.
         Text(
             row.text,
             style = MaterialTheme.typography.bodyMedium,
+            maxLines = HomeworkPreviewLines,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = Spacing.inline),
         )
     }
@@ -230,15 +240,18 @@ private fun HomeworkCard(row: HomeworkRow, messages: Messages, onClick: () -> Un
  * beside the day when it is a group's, since that is the one thing the card does not say.
  */
 @Composable
-private fun HomeworkListItem(row: HomeworkRow, messages: Messages, onClick: () -> Unit) {
+private fun HomeworkListItem(row: HomeworkRow, messages: Messages, onClick: () -> Unit, modifier: Modifier) {
     ListItem(
         leadingContent = { LessonKindIcon(if (row.isGroup) LessonKind.GROUP else LessonKind.INDIVIDUAL) },
-        headlineContent = { Text(row.text) },
+        headlineContent = { Text(row.text, maxLines = HomeworkPreviewLines, overflow = TextOverflow.Ellipsis) },
         supportingContent = { DueLine(row, prefix = row.title.takeIf { row.isGroup }) },
         trailingContent = if (row.isCurrent) ({ SendHomeworkButton(row, messages) }) else null,
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier = Modifier.clickable(onClick = onClick).then(modifier),
     )
 }
+
+/** How much of a piece of homework a list shows before it ellipsises — the dialog shows the rest. */
+private const val HomeworkPreviewLines = 4
 
 /**
  * When it is for, as the case it is in — [HomeworkRow.due] decides, this only words it: overdue in the

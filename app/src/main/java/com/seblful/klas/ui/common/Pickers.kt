@@ -17,7 +17,7 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -54,11 +54,16 @@ fun DatePickerModal(
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = {
-                state.selectedDateMillis?.let {
-                    onConfirm(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate())
-                }
-            }) { Text(stringResource(R.string.action_done)) }
+            TextButton(
+                onClick = {
+                    state.selectedDateMillis?.let {
+                        onConfirm(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate())
+                    }
+                },
+                // Clearing the typed date in the picker's text mode leaves nothing to hand back, and a
+                // «Готово» that then did nothing read as a dead button.
+                enabled = state.selectedDateMillis != null,
+            ) { Text(stringResource(R.string.action_done)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     ) {
@@ -124,11 +129,13 @@ fun DurationPickerModal(
     // Settings asks the same hours-and-minutes question about how far ahead a reminder should arrive.
     title: String? = null,
 ) {
-    var hours by remember { mutableStateOf((initialMinutes / 60).toString()) }
-    var minutes by remember { mutableStateOf((initialMinutes % 60).toString()) }
+    var hours by rememberSaveable { mutableStateOf((initialMinutes / 60).toString()) }
+    var minutes by rememberSaveable { mutableStateOf((initialMinutes % 60).toString()) }
     val total = (hours.toIntOrNull() ?: 0) * 60 + (minutes.toIntOrNull() ?: 0)
     AlertDialog(
         onDismissRequest = onDismiss,
+        // Typed into, so a stray tap beside it keeps what was typed — see [KeepTypedInput].
+        properties = KeepTypedInput,
         title = { Text(title ?: stringResource(R.string.class_duration_label)) },
         text = {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
@@ -179,10 +186,11 @@ fun CountPickerModal(
     onConfirm: (Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var count by remember { mutableStateOf(initial.toString()) }
+    var count by rememberSaveable { mutableStateOf(initial.toString()) }
     val total = count.toIntOrNull() ?: 0
     AlertDialog(
         onDismissRequest = onDismiss,
+        properties = KeepTypedInput,
         title = { Text(title) },
         text = {
             CountField(

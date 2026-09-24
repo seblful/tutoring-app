@@ -19,8 +19,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -87,6 +89,15 @@ fun KlasScreen(
         TitleSize.Large -> TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     }
 
+    // A large title has two lines to spend on a name while it is large; collapsed into an ordinary bar it
+    // has one, like any other — it was two there too, and a long name drew two lines of 22sp in a 64 dp
+    // bar. Derived, so a scroll recomposes the title only when the answer flips.
+    val titleLines by remember(titleSize) {
+        derivedStateOf {
+            if (titleSize == TitleSize.Large && scrollBehavior.state.collapsedFraction < 0.5f) LargeTitleLines else 1
+        }
+    }
+
     val barTitle: @Composable () -> Unit = {
         if (openSearch != null) {
             SearchField(
@@ -97,9 +108,9 @@ fun KlasScreen(
         } else if (title != null) {
             Text(
                 title,
-                // A large title has two lines to spend on a name; a compact one shares its row with a
-                // back arrow and up to three actions, and must give way rather than push them off.
-                maxLines = if (titleSize == TitleSize.Large) LargeTitleLines else 1,
+                // A compact title shares its row with a back arrow and up to three actions, and must give
+                // way rather than push them off. See [titleLines].
+                maxLines = titleLines,
                 overflow = TextOverflow.Ellipsis,
             )
         }

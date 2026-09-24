@@ -9,7 +9,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
+import com.seblful.klas.ui.theme.klasColors
 
 /**
  * How the app says what state a thing is in: a pill, never a font style.
@@ -24,6 +26,10 @@ import androidx.compose.ui.unit.dp
  * Kept deliberately tight (8dp of side padding, one line) because of where it sits: on a lesson card
  * it shares a row with the lesson's *name*, and every dp the pill takes is a dp the name loses. A
  * status is a two-word fact; the name is the thing being read.
+ *
+ * On a light page the word is [color] taken a tenth of the way to black: the strong tone on its own tint
+ * came to 4.1 : 1 for «В плане» on a section card, under AA at 11sp. The pill keeps its hue; only its ink
+ * deepens. The dark tones already clear it.
  */
 @Composable
 fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
@@ -39,7 +45,7 @@ fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
             // beside it is the primary one, so when the two compete for a phone's width the pill is
             // what gives — a status read at 11sp is still read; a name cut short is not.
             style = MaterialTheme.typography.labelSmall,
-            color = color,
+            color = if (klasColors.isDark) color else lerp(color, Color.Black, 0.1f),
             maxLines = 1,
         )
     }

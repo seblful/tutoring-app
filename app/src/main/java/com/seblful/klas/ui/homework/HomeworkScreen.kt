@@ -23,12 +23,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.FabClearance
 import com.seblful.klas.ui.common.FilterChipRow
 import com.seblful.klas.ui.common.FilterMenuAction
 import com.seblful.klas.ui.common.KlasScreen
@@ -58,7 +58,11 @@ private enum class HomeworkSide(val labelRes: Int) {
  * wanted neither.
  */
 @Composable
-fun HomeworkScreen(viewModel: HomeworkViewModel = hiltViewModel()) {
+fun HomeworkScreen(
+    /** The way out of «Сначала добавьте ученика» — the step it names, as the schedule's message carries. */
+    onAddStudent: () -> Unit,
+    viewModel: HomeworkViewModel = hiltViewModel(),
+) {
     var side by rememberSaveable { mutableStateOf(HomeworkSide.CURRENT) }
     val state by viewModel.state.collectAsState()
     // The dialog's choices are taken when it opens — see `HomeworkViewModel.choices`.
@@ -69,11 +73,12 @@ fun HomeworkScreen(viewModel: HomeworkViewModel = hiltViewModel()) {
     val failed = stringResource(R.string.action_failed)
     ShowMessagesFor(viewModel.events, messages) { failed }
     val needStudent = stringResource(R.string.homework_need_student)
+    val addStudentLabel = stringResource(R.string.schedule_add_student)
 
     fun add() {
         // Before the tab has loaded there is no answer yet, and the tap waits for the list like any other.
         val choices = viewModel.choices() ?: return
-        if (choices.isEmpty()) messages.show(needStudent) else adding = choices
+        if (choices.isEmpty()) messages.show(needStudent, addStudentLabel, onAddStudent) else adding = choices
     }
 
     val loaded = (state as? Loadable.Ready)?.value
@@ -232,6 +237,3 @@ private fun HomeworkList(
         }
     }
 }
-
-/** Room under the last card for the add button, as the schedule leaves it. */
-private val FabClearance = 88.dp

@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.AvatarPalette
+import com.seblful.klas.ui.theme.klasColors
 
 /**
  * Monograms: one student's, and a whole roster's.
@@ -75,29 +77,37 @@ fun Avatar(name: String, studentId: Long, modifier: Modifier = Modifier, size: D
 }
 /**
  * A stable (container, on-container) colour pair for the student with [studentId], picked from a
- * fixed palette by [AvatarPalette]. Same student → same colour every time; the palette tints adapt
- * to light/dark via alpha.
+ * fixed palette by [AvatarPalette]. Same student → same colour every time.
+ *
+ * A tinted container, and the letter **in the same hue, taken toward the page's ink** — darker on a light
+ * page, paler on a dark one. The letter used to be the hue itself on a tint of it, which is the same
+ * colour twice: orange on orange was 1.5 : 1 on a light card, and the best of the ten stopped at 3.7 in
+ * the dark. Mixed this way the worst of them clears 4.5 in both. Light or dark is the theme's answer
+ * ([klasColors]), not the phone's.
  */
 @Composable
 private fun avatarColors(studentId: Long): Pair<Color, Color> {
-    val palette = listOf(
-        Color(0xFF5C6BC0), // indigo
-        Color(0xFF26A69A), // teal
-        Color(0xFFEF5350), // red
-        Color(0xFFAB47BC), // purple
-        Color(0xFF42A5F5), // blue
-        Color(0xFF66BB6A), // green
-        Color(0xFFFFA726), // orange
-        Color(0xFFEC407A), // pink
-        Color(0xFF8D6E63), // brown
-        Color(0xFF78909C), // blue grey
-    )
-    val base = palette[AvatarPalette.indexFor(studentId, palette.size)]
-    val dark = androidx.compose.foundation.isSystemInDarkTheme()
-    // Tinted container with a strong, legible monogram in the same hue.
-    return if (dark) base.copy(alpha = 0.35f) to base.copy(alpha = 0.95f)
-    else base.copy(alpha = 0.22f) to base
+    val base = AvatarHues[AvatarPalette.indexFor(studentId, AvatarHues.size)]
+    return if (klasColors.isDark) {
+        base.copy(alpha = 0.35f) to lerp(base, Color.White, 0.55f)
+    } else {
+        base.copy(alpha = 0.22f) to lerp(base, Color.Black, 0.5f)
+    }
 }
+
+/** The ten hues a student can be — once, rather than a list built on every avatar's composition. */
+private val AvatarHues = listOf(
+    Color(0xFF5C6BC0), // indigo
+    Color(0xFF26A69A), // teal
+    Color(0xFFEF5350), // red
+    Color(0xFFAB47BC), // purple
+    Color(0xFF42A5F5), // blue
+    Color(0xFF66BB6A), // green
+    Color(0xFFFFA726), // orange
+    Color(0xFFEC407A), // pink
+    Color(0xFF8D6E63), // brown
+    Color(0xFF78909C), // blue grey
+)
 /**
  * A row of overlapping monograms — how a roster is shown where the *names* are not the point.
  *

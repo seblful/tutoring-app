@@ -6,7 +6,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,10 +14,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -66,12 +68,16 @@ fun SkeletonBlock(
     modifier: Modifier = Modifier,
     shape: Shape = MaterialTheme.shapes.medium,
 ) {
+    val tint = MaterialTheme.colorScheme.onSurfaceVariant
+    val alpha = placeholderAlpha()
     Column(
         modifier
             .fillMaxWidth()
             .height(height)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = placeholderAlpha())),
+            // The pulse is read in the draw, not in composition: read here it recomposed every block of
+            // every skeleton on every frame of the wait, to repaint one colour.
+            .drawBehind { drawRect(tint.copy(alpha = alpha.value)) },
     ) {}
 }
 
@@ -85,7 +91,7 @@ fun SkeletonBlock(
  * activity anyway.
  */
 @Composable
-private fun placeholderAlpha(): Float {
+private fun placeholderAlpha(): State<Float> {
     val context = LocalContext.current
     val animate = remember(context) {
         Settings.Global.getFloat(
@@ -94,10 +100,10 @@ private fun placeholderAlpha(): Float {
             1f,
         ) != 0f
     }
-    if (!animate) return (MinPlaceholderAlpha + MaxPlaceholderAlpha) / 2f
+    if (!animate) return remember { mutableFloatStateOf((MinPlaceholderAlpha + MaxPlaceholderAlpha) / 2f) }
 
     val transition = rememberInfiniteTransition(label = "skeleton")
-    val alpha by transition.animateFloat(
+    return transition.animateFloat(
         initialValue = MinPlaceholderAlpha,
         targetValue = MaxPlaceholderAlpha,
         animationSpec = infiniteRepeatable(
@@ -106,7 +112,6 @@ private fun placeholderAlpha(): Float {
         ),
         label = "skeletonAlpha",
     )
-    return alpha
 }
 
 /**

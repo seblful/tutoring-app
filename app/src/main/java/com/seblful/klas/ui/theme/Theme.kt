@@ -116,6 +116,12 @@ data class KlasColors(
      * for the same one: "the tutor is in this lesson right now" is an answer, not a matter of taste.
      */
     val live: Color,
+    /**
+     * Whether the theme in force is the dark one — *the tutor's* answer, for a colour the app mixes itself
+     * (an avatar's tint and letter). `isSystemInDarkTheme()` is the phone's, and a light app on a dark phone
+     * drew its monograms for the dark.
+     */
+    val isDark: Boolean,
 )
 
 private val LightKlasColors = KlasColors(
@@ -123,6 +129,7 @@ private val LightKlasColors = KlasColors(
     successContainer = md_successContainer,
     onSuccessContainer = md_onSuccessContainer,
     live = md_live,
+    isDark = false,
 )
 
 private val DarkKlasColors = KlasColors(
@@ -130,6 +137,7 @@ private val DarkKlasColors = KlasColors(
     successContainer = md_successContainer_d,
     onSuccessContainer = md_onSuccessContainer_d,
     live = md_live_d,
+    isDark = true,
 )
 
 private val LocalKlasColors = staticCompositionLocalOf { LightKlasColors }

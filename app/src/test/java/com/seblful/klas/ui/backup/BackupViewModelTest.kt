@@ -182,6 +182,29 @@ class BackupViewModelTest {
             assertEquals(BackupResult.Failed(BackupFailure.FileUnavailable), received)
         }
 
+    /** A restore says it is running for as long as it runs, and stops saying so when it ends. */
+    @Test
+    fun `a restore is shown as under way until it has finished`() =
+        runTest(mainRule.dispatcher) {
+            val vm = vm()
+            documents.docs[ref.value] = env.backupManager.exportJson()
+            val seen = mutableListOf<Boolean>()
+            val events = backgroundScope.launch { vm.events.stream.collect { } }
+            val watching = backgroundScope.launch { vm.importing.collect { seen += it } }
+
+            vm.import(ref)
+            advanceUntilIdle()
+            events.cancel()
+            watching.cancel()
+
+            assertEquals(listOf(false, true, false), seen)
+        }
+
+    @Test
+    fun `an export is named for the day it was made`() {
+        assertEquals(java.time.LocalDate.of(2026, 6, 20), vm().exportDay())
+    }
+
     @Test
     fun `a valid backup imports, and ends first run as part of what a restore is`() =
         runTest(mainRule.dispatcher) {

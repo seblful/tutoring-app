@@ -37,5 +37,14 @@ fun Modifier.constrainedContent(max: Dp = MaxContentWidth): Modifier =
     this.wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = max)
 /** The floor for anything tappable, per the Material accessibility guidance. */
 val MinTouchTarget = 48.dp
+/**
+ * How much empty list is left under the last row of a screen with an add button, so the button never
+ * covers one: the FAB's 56 dp and a gutter either side of it. A size, not a gap — it is measured against
+ * the FAB rather than set to the app's rhythm, which is why it is here and not in `Spacing`.
+ *
+ * Shared because the lists that did not know it left 16 dp, and the last student, group or subject sat
+ * under the button — its row unreachable, a tap on it opening «Новый» instead.
+ */
+val FabClearance = 88.dp
 /** Material's standard opacity for disabled content. */
 internal const val DisabledAlpha = 0.38f
