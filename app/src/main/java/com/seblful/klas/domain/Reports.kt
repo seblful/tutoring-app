@@ -181,6 +181,11 @@ object Reports {
          */
         val change: Change? = null,
         /**
+         * Whether [change] measured only the days the period has had so far, against as many of the
+         * previous one's — true while the period is still going, so the screen can say «за те же дни».
+         */
+        val changeToDate: Boolean = false,
+        /**
          * The period being compared against, so the screen can name it — «+12 % к периоду "Июнь 2026"».
          * The period rather than a formatted label, because naming one is a string resource.
          */
@@ -210,6 +215,8 @@ object Reports {
         subjectNames: Map<SubjectId, String>,
         groupNames: Map<GroupId, String>,
         zone: ZoneId,
+        /** Today, by the app's clock — what says whether [period] is still going. See [Report.changeToDate]. */
+        today: LocalDate,
     ): Report {
         // Reports cover active students only: an archived student is retired, so their classes, income
         // and debts should no longer appear in totals or breakdowns.
@@ -229,6 +236,14 @@ object Reports {
         // all time, which is what makes "there is nothing to compare against" the same test as "the
         // arrows do nothing" — one fact about the period, stated once.
         val previous = period.shifted(-1).takeIf { period.isNavigable }
+        // While the period is still going, both sides are measured over the days it has had so far — this
+        // one's first N days against the previous one's first N. A finished period is compared whole.
+        val elapsed = period.daysElapsed(today)
+        val changeNow = elapsed?.let { period.firstDays(it) }?.let { totalIncome(it.filter(inPeriod, zone)) } ?: total
+        val changeBefore = previous?.let { p ->
+            val days = elapsed?.let { p.firstDays(it) } ?: p.bounds
+            totalIncome(days?.filter(activeClasses, zone) ?: p.filter(activeClasses, zone))
+        }
 
         return Report(
             period = period,
@@ -258,7 +273,8 @@ object Reports {
                 )
             },
             totalOutstanding = totalOutstanding(balances),
-            change = change(total, previous?.let { totalIncome(it.filter(activeClasses, zone)) }),
+            change = change(changeNow, changeBefore),
+            changeToDate = elapsed != null && previous != null,
             previousPeriod = previous,
         )
     }

@@ -8,6 +8,7 @@ import com.seblful.klas.domain.model.StudentBalance
 import com.seblful.klas.domain.model.StudentId
 import com.seblful.klas.domain.model.SubjectId
 import com.seblful.klas.domain.model.TutoringClass
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -49,8 +50,15 @@ class ReportsTest {
     private fun lessonIdFor(groupId: Long?, start: Any, id: Long): Long =
         if (groupId == null) id else lessonIds.getOrPut(groupId to start) { 1_000L + lessonIds.size }
 
-    /** A whole report of [classes], with one student who is never archived and no payments. */
-    private fun reportOf(classes: List<TutoringClass>, period: ReportPeriod) = Reports.of(
+    /**
+     * A whole report of [classes], with one student who is never archived and no payments — read long
+     * after the period, unless [today] says otherwise, so a comparison is of whole periods.
+     */
+    private fun reportOf(
+        classes: List<TutoringClass>,
+        period: ReportPeriod,
+        today: LocalDate = LocalDate.of(2100, 1, 1),
+    ) = Reports.of(
         period = period,
         classes = classes,
         students = classes.map { it.studentId }.distinct().map { Student(id = it, name = "S$it") },
@@ -58,6 +66,7 @@ class ReportsTest {
         subjectNames = classes.associate { SubjectId(it.subjectId) to "П${it.subjectId}" },
         groupNames = classes.mapNotNull { it.groupId }.associate { GroupId(it) to "Г$it" },
         zone = zone,
+        today = today,
     )
 
     /**
@@ -390,5 +399,71 @@ class ReportsTest {
         assertEquals(0.5f, trend.shareOf(trend.bars[10]))
         assertEquals("a quiet month is an empty track", 0f, trend.shareOf(trend.bars[2]))
         assertEquals("the key's encoding is the module's to unpack", 1, trend.bars[1].monthIndex)
+    }
+
+    /**
+     * The screen opens on the year in progress, and its income so far used to be set against the whole of
+     * the year before: in September, a tutor out-earning every month of last year read a fall. While the
+     * period is going, both sides are its first N days.
+     */
+    @Test
+    fun `a year in progress is compared with the same days of the year before`() {
+        val classes = listOf(
+            klass(1, 10, "2025-03-10T10:00:00Z", 10000), // inside last year's first 267 days
+            klass(1, 10, "2025-11-10T10:00:00Z", 90000), // after them: not this year's to answer for yet
+            klass(1, 10, "2026-03-10T10:00:00Z", 12000),
+        )
+        val year = ReportPeriod(ReportPeriod.Kind.YEAR, YearMonth.of(2026, 9))
+
+        val report = reportOf(classes, year, today = LocalDate.of(2026, 9, 24))
+
+        assertEquals(Reports.Change.Percent(20), report.change)
+        assertTrue("and it says it measured the days so far", report.changeToDate)
+    }
+
+    @Test
+    fun `a finished year is compared whole`() {
+        val classes = listOf(
+            klass(1, 10, "2025-03-10T10:00:00Z", 10000),
+            klass(1, 10, "2025-11-10T10:00:00Z", 10000),
+            klass(1, 10, "2026-03-10T10:00:00Z", 30000),
+        )
+        val year = ReportPeriod(ReportPeriod.Kind.YEAR, YearMonth.of(2026, 1))
+
+        val report = reportOf(classes, year, today = LocalDate.of(2027, 2, 1))
+
+        assertEquals(Reports.Change.Percent(50), report.change)
+        assertEquals(false, report.changeToDate)
+    }
+
+    /** A month in progress, the same way — and a lesson later today is not part of "so far" yet. */
+    @Test
+    fun `a month in progress is compared with the same days of the month before`() {
+        val classes = listOf(
+            klass(1, 10, "2026-08-05T10:00:00Z", 4000),
+            klass(1, 10, "2026-08-28T10:00:00Z", 4000),
+            klass(1, 10, "2026-09-05T10:00:00Z", 6000),
+        )
+        val month = ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth.of(2026, 9))
+
+        val report = reportOf(classes, month, today = LocalDate.of(2026, 9, 24))
+
+        assertEquals(Reports.Change.Percent(50), report.change)
+    }
+
+    @Test
+    fun `the days a period has had are counted from its first, and none once it is over`() {
+        val year = ReportPeriod(ReportPeriod.Kind.YEAR, YearMonth.of(2026, 1))
+
+        assertEquals(1L, year.daysElapsed(LocalDate.of(2026, 1, 1)))
+        assertEquals(267L, year.daysElapsed(LocalDate.of(2026, 9, 24)))
+        assertNull("over", year.daysElapsed(LocalDate.of(2027, 1, 1)))
+        assertNull("not begun", year.daysElapsed(LocalDate.of(2025, 12, 31)))
+        assertNull("all time has no days", ReportPeriod(ReportPeriod.Kind.ALL, YearMonth.of(2026, 1)).daysElapsed(LocalDate.of(2026, 1, 1)))
+        assertEquals(
+            "a stretch longer than a short month stops at its end",
+            LocalDate.of(2026, 3, 1),
+            ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth.of(2026, 2)).firstDays(31)?.untilExclusive,
+        )
     }
 }

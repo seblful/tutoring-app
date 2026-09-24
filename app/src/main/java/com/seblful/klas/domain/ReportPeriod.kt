@@ -5,6 +5,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 /**
  * The slice of time a report covers — one month, one year, or everything there is.
@@ -57,7 +58,32 @@ data class ReportPeriod(val kind: Kind, val anchor: YearMonth) {
     data class Bounds(val from: LocalDate, val untilExclusive: LocalDate) {
         /** The last day actually inside the period — what names its final month. */
         val lastDay: LocalDate get() = untilExclusive.minusDays(1)
+
+        /** The classes taught inside these days, by when the lesson is — as [ReportPeriod.filter]. */
+        fun filter(classes: List<TutoringClass>, zone: ZoneId): List<TutoringClass> =
+            classes.filter {
+                val date = it.start.atZone(zone).toLocalDate()
+                !date.isBefore(from) && date.isBefore(untilExclusive)
+            }
     }
+
+    /**
+     * How many of this period's days have happened by [today], or null when the whole of it has — or none
+     * of it, or it is all time, which has no days to count.
+     *
+     * What a comparison with the period before has to measure while this one is **still going**: the
+     * screen opens on the year in progress, and on 24 September its income so far was set against the
+     * whole of the year before — so a tutor earning more every month read «−25 %» with a falling arrow.
+     */
+    fun daysElapsed(today: LocalDate): Long? {
+        val b = bounds ?: return null
+        if (today.isBefore(b.from) || !today.isBefore(b.untilExclusive)) return null
+        return ChronoUnit.DAYS.between(b.from, today) + 1
+    }
+
+    /** This period's first [days] days — never past its own end, so a short February stays February. */
+    fun firstDays(days: Long): Bounds? =
+        bounds?.let { Bounds(it.from, minOf(it.from.plusDays(days), it.untilExclusive)) }
 
     /** Whether ‹ › mean anything here: all time has nowhere to step to. */
     val isNavigable: Boolean get() = kind != Kind.ALL
