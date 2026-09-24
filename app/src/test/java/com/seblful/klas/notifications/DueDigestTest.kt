@@ -13,6 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
+import java.time.LocalDate
 
 /**
  * What each digest says when it comes due — driven without WorkManager.
@@ -67,6 +68,7 @@ class DueDigestTest {
             agenda.lessons.map { it.start to it.subject },
         )
         assertEquals(listOf("Аня Петрова", "Боря Иванов"), agenda.lessons.map { it.who })
+        assertEquals("the day a tap on it opens", LocalDate.of(2026, 6, 15), agenda.day)
     }
 
     /**
@@ -211,6 +213,8 @@ class DueDigestTest {
             listOf(at(11) to "Аня Петрова", at(17) to "Боря Иванов"),
             digest.lessons.map { it.start to it.who },
         )
+        // Carried rather than read when tapped: a tap after midnight is still about Monday.
+        assertEquals(LocalDate.of(2026, 6, 15), digest.day)
     }
 
     /** A lesson the tutor already marked is not something to be asked about at nine in the evening. */

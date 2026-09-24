@@ -15,7 +15,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 
 /**
  * The upkeep pass, driven without WorkManager. Before [Maintenance] existed these decisions sat in
@@ -201,11 +203,27 @@ class MaintenanceTest {
 
         maintenance().runUnwatched(now)
 
-        // Two hours at 30, and the count is in lessons.
+        // Two hours at 30, and the count is in lessons; 12:00Z is 15:00 in Minsk, the same day.
         assertEquals(
-            listOf(RecordingNotifier.AutoCompleted(2, Money.ofMajor(60))),
+            listOf(RecordingNotifier.AutoCompleted(2, Money.ofMajor(60), LocalDate.of(2026, 6, 15))),
             env.notifier.autoCompleted,
         )
+    }
+
+    /**
+     * The report opens the schedule on a day, and a backlog spans several — a phone that was off since
+     * Friday settles Friday's lessons and Sunday's in one pass. The latest is the one the tutor still
+     * remembers teaching, and the one a tap should show.
+     */
+    @Test
+    fun `an unwatched pass names the latest day it settled`() = runTest(mainRule.dispatcher) {
+        seedClass(now.minus(Duration.ofDays(3)))
+        seedClass(now.minus(Duration.ofDays(1)))
+        env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
+
+        maintenance().runUnwatched(now)
+
+        assertEquals(LocalDate.of(2026, 6, 14), env.notifier.autoCompleted.single().day)
     }
 
     /** Nothing settled, nothing to announce — a notification whose content is "no news". */

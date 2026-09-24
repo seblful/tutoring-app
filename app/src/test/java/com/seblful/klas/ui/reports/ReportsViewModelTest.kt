@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import com.seblful.klas.ui.navigation.Arrival
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -505,5 +506,20 @@ class ReportsViewModelTest {
         job.cancel()
 
         assertEquals(ReportsViewModel.ExportEvent.ERROR, received)
+    }
+
+    /**
+     * The debt digest's tap scrolls to the debts once. The screen hands it over every time the tab comes
+     * back, and scrolling each time would take the tutor away from wherever they had read to.
+     */
+    @Test
+    fun `the debt digest's tap is acted on once, and a new tap again`() {
+        val vm = vm()
+        val tap = Arrival(Unit)
+
+        assertTrue(vm.admitDebts(tap))
+        assertFalse("the same tap, on the tab's return", vm.admitDebts(tap))
+        assertTrue("a second tap on the notification", vm.admitDebts(Arrival(Unit)))
+        assertFalse("nobody asked", vm.admitDebts(null))
     }
 }

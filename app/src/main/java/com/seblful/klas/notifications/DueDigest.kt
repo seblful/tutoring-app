@@ -76,6 +76,7 @@ class DueDigest @Inject constructor(
         // and sorts by start, so the tray lists the tutor's morning exactly as the schedule would.
         val sessions = GroupRules.sessions(dayClasses)
         val agenda = Digests.Agenda(
+            day = day,
             summary = DaySummary.of(sessions),
             lessons = sessions
                 .filter { it.status != LessonStatus.CANCELLED }
@@ -116,6 +117,7 @@ class DueDigest @Inject constructor(
         ).first()
 
         val digest = Digests.Unfinished(
+            day = day,
             lessons = GroupRules.sessions(dayClasses)
                 .filter { LessonPhase.of(it, now).isUnfinished }
                 .map { session -> entryFor(session) },

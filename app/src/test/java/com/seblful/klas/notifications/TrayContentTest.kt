@@ -6,6 +6,7 @@ import com.seblful.klas.domain.model.Money
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.Instant
+import java.time.LocalDate
 
 /**
  * How much of a day's agenda actually reaches the tray.
@@ -19,6 +20,7 @@ class TrayContentTest {
     private val start = Instant.parse("2026-06-20T07:00:00Z")
 
     private fun agenda(lessons: Int) = Digests.Agenda(
+        day = LocalDate.of(2026, 6, 20),
         summary = DaySummary(lessons = lessons, minutes = lessons * 60, money = Money.ZERO, cancelled = 0),
         lessons = (0 until lessons).map { i ->
             Digests.Agenda.Entry(

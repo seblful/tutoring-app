@@ -4,6 +4,7 @@ import com.seblful.klas.domain.model.Money
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
@@ -239,12 +240,13 @@ object Digests {
     /**
      * What the morning digest has to say about a day.
      *
+     * @param day the day it is about — which is also where a tap on it opens the schedule.
      * @param summary the same [DaySummary] the schedule prints under its stepper — deliberately the same
      *   number, so «4 занятия · 5 ч · 240 BYN» in the tray and in the app cannot disagree.
      * @param lessons the day's lessons in start order, one entry per lesson (a group lesson is one, named
      *   by the group), so the tray shows the tutor's morning as the schedule would list it.
      */
-    data class Agenda(val summary: DaySummary, val lessons: List<Entry>) {
+    data class Agenda(val day: LocalDate, val summary: DaySummary, val lessons: List<Entry>) {
 
         data class Entry(val start: Instant, val subject: String, val who: String)
 
@@ -273,11 +275,13 @@ object Digests {
      * question is "how big is today"; this one is a to-do list, and a total of what the day *would* come
      * to would be stating income that has not been recognised.
      *
+     * @param day the day they were taught on — where a tap on the digest opens the schedule, even after
+     *   midnight.
      * @param lessons the unmarked lessons in start order, one entry per lesson — the same [Agenda.Entry]
      *   the morning digest lists, because a line naming a lesson reads the same way at either end of the
      *   day and two shapes for it would be two ways to word one thing.
      */
-    data class Unfinished(val lessons: List<Agenda.Entry>) {
+    data class Unfinished(val day: LocalDate, val lessons: List<Agenda.Entry>) {
 
         val count: Int get() = lessons.size
 

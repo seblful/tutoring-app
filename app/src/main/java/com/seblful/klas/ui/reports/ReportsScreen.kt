@@ -21,8 +21,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
@@ -49,12 +52,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -80,12 +87,15 @@ import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatRow
+import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.valueOrNull
 import com.seblful.klas.ui.common.lessonKindFill
 import com.seblful.klas.ui.common.lessonKindLabel
 import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.navigation.Arrival
+import kotlinx.coroutines.flow.first
 
 /**
  * The money screen: what the chosen period earned, where it came from, and who still owes.
@@ -111,14 +121,26 @@ import com.seblful.klas.ui.common.text
 @Composable
 fun ReportsScreen(
     onStudentClick: (Long) -> Unit,
+    /** The debt digest's latest tap, which scrolls to the debts once — see `AppRoot`. */
+    debtsArrival: Arrival<Unit>? = null,
     viewModel: ReportsViewModel = hiltViewModel(),
 ) {
+    val listState = rememberLazyListState()
+    // The debts are the last card, below every breakdown — on a busy year, several screens down. There is
+    // no list to scroll until the report has arrived, so this waits for one to have been laid out.
+    LaunchedEffect(debtsArrival) {
+        if (!viewModel.admitDebts(debtsArrival)) return@LaunchedEffect
+        val items = snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it > 0 }
+        listState.scrollToItem(items - 1)
+    }
+
     val reportState by viewModel.state.collectAsState()
     // The period is its own flow, so the navigator is live while the report behind it is still being
     // assembled — the frame is the thing the tutor steers this screen with, and it needs no data.
     val period by viewModel.period.collectAsState()
     val report = reportState.valueOrNull()
     val messages = rememberMessages()
+    val noPickerMsg = stringResource(R.string.student_contact_failed)
 
     val exportOkMsg = stringResource(R.string.reports_export_success)
     val exportErrorMsg = stringResource(R.string.reports_export_error)
@@ -179,7 +201,7 @@ fun ReportsScreen(
                     }
                 }
                 HoldToName(stringResource(R.string.reports_export)) {
-                    IconButton(onClick = { exportLauncher.launch(exportFilename) }) {
+                    IconButton(onClick = { exportLauncher.launchExternally(exportFilename, noPickerMsg, messages) }) {
                         Icon(
                             Icons.Filled.FileDownload,
                             stringResource(R.string.reports_export),
@@ -216,7 +238,7 @@ fun ReportsScreen(
                 onKind = viewModel::setKind,
             )
             HorizontalDivider()
-            ReportBody(report, onStudentClick, Modifier.weight(1f))
+            ReportBody(report, onStudentClick, listState, Modifier.weight(1f))
         }
     }
 }
@@ -266,6 +288,7 @@ private fun csvHeadings(period: ReportPeriod): ReportCsv.Headings = ReportCsv.He
 private fun ReportBody(
     state: Reports.Report,
     onStudentClick: (Long) -> Unit,
+    listState: LazyListState,
     modifier: Modifier = Modifier,
 ) {
     // Resolved here (composable scope) so the LazyListScope blocks below stay string-free.
@@ -275,6 +298,7 @@ private fun ReportBody(
 
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
+        state = listState,
         contentPadding = PaddingValues(Spacing.gutter),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
@@ -300,6 +324,7 @@ private fun ReportBody(
             rankedSection(byStudentTitle, state.byStudent)
         }
 
+        // Last, and it has to stay last: the debt digest's tap scrolls to the final item.
         item { DebtsCard(state, onStudentClick) }
     }
 }
@@ -425,10 +450,16 @@ private fun ColumnScope.ComparisonLine(state: Reports.Report) {
     val change = state.change ?: return
     val previous = state.previousPeriod ?: return
     val previousName = periodTitle(previous)
+    // While the period is still going the comparison is over the days it has had — and says so, or
+    // «+12 % к периоду «2025»» would read as the whole of last year.
+    val toDate = state.changeToDate
     val text = when (change) {
-        Reports.Change.NoBaseline -> stringResource(R.string.reports_vs_previous_from_zero, previousName)
+        Reports.Change.NoBaseline -> stringResource(
+            if (toDate) R.string.reports_vs_previous_from_zero_to_date else R.string.reports_vs_previous_from_zero,
+            previousName,
+        )
         is Reports.Change.Percent -> stringResource(
-            R.string.reports_vs_previous,
+            if (toDate) R.string.reports_vs_previous_to_date else R.string.reports_vs_previous,
             signedPercent(change.value),
             previousName,
         )
@@ -510,7 +541,9 @@ private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) 
     val filled = MaterialTheme.colorScheme.primary
     val track = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     Row(
-        Modifier.fillMaxWidth().height(ChartHeight),
+        // Not read: twelve bare month names and no amounts. The rows under the chart are its text, with
+        // the amounts, and a screen reader reads those instead.
+        Modifier.fillMaxWidth().height(ChartHeight).clearAndSetSemantics { },
         horizontalArrangement = Arrangement.spacedBy(BarGap),
     ) {
         trend.bars.forEach { bar ->
@@ -525,14 +558,15 @@ private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) 
                             .background(if (bar.key == peak.key) filled else filled.copy(alpha = 0.45f)),
                     )
                 }
+                // Shrinks rather than clipping: a twelfth of a phone at a large font scale cut «сен» to «се».
                 Text(
                     labelOf(bar),
                     style = MaterialTheme.typography.labelSmall,
-                    fontSize = AxisFontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     softWrap = false,
                     textAlign = TextAlign.Center,
+                    autoSize = TextAutoSize.StepBased(minFontSize = AxisMinFontSize, maxFontSize = AxisFontSize),
                     modifier = Modifier.padding(top = Spacing.tight),
                 )
             }
@@ -656,6 +690,8 @@ private fun DebtsCard(state: Reports.Report, onStudentClick: (Long) -> Unit) {
             label = stringResource(R.string.reports_total_outstanding),
             amount = state.totalOutstanding.text(),
             bold = true,
+            // In the column the debts below it are in, which a chevron and a touch target pull inwards.
+            alignWithLinks = true,
         )
         // Every row opens the person who owes. Reading a name here and then going to find them by
         // hand — through a list that could not be searched or sorted by debt — was the longest
@@ -685,7 +721,7 @@ private fun ReportCard(title: String, content: @Composable ColumnScope.() -> Uni
             Modifier.fillMaxWidth().padding(Spacing.gutter),
             verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() })
             content()
         }
     }
@@ -705,19 +741,21 @@ private fun AmountRow(
     bold: Boolean = false,
     color: Color = Color.Unspecified,
     onClick: (() -> Unit)? = null,
+    /** Leaves the room a linked row's chevron and inset take, so a total lines up over the rows it sums. */
+    alignWithLinks: Boolean = false,
 ) {
     Row(
         Modifier
             .fillMaxWidth()
             .then(
-                if (onClick != null) {
-                    Modifier
+                when {
+                    onClick != null -> Modifier
                         .clip(MaterialTheme.shapes.small)
                         .clickable(onClick = onClick)
                         .heightIn(min = MinTouchTarget)
                         .padding(horizontal = Spacing.tight)
-                } else {
-                    Modifier
+                    alignWithLinks -> Modifier.padding(horizontal = Spacing.tight)
+                    else -> Modifier
                 }
             ),
         verticalAlignment = Alignment.CenterVertically,
@@ -741,8 +779,10 @@ private fun AmountRow(
                 Icons.Filled.ChevronRight,
                 contentDescription = stringResource(R.string.reports_open_student),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(ChevronSize),
             )
+        } else if (alignWithLinks) {
+            Spacer(Modifier.width(ChevronSize))
         }
     }
 }
@@ -758,3 +798,5 @@ private val BarGap = 3.dp
 private val ChartHeight = 116.dp
 private val BarShape = RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)
 private val AxisFontSize = 9.sp
+private val AxisMinFontSize = 6.sp
+private val ChevronSize = 18.dp

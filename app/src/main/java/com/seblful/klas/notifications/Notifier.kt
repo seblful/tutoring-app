@@ -4,6 +4,7 @@ import com.seblful.klas.domain.Digests
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
+import java.time.LocalDate
 
 /**
  * Everything the app posts to the notification tray. A port, so what the app *decides* to announce can be
@@ -93,6 +94,8 @@ interface Notifier {
      *   member and is one lesson of the tutor's.
      * @param billed what those lessons came to, so the number that moved in the reports is on screen
      *   beside the count that moved it.
+     * @param day the latest day it settled, which a tap on it opens — the tutor's next question is "which
+     *   lessons", and the schedule is where they can see them and correct one that did not happen.
      */
-    fun showAutoCompleted(lessons: Int, billed: Money, currency: Currency)
+    fun showAutoCompleted(lessons: Int, billed: Money, day: LocalDate, currency: Currency)
 }

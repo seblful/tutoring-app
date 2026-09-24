@@ -8,6 +8,7 @@ import org.junit.Test
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
@@ -236,7 +237,7 @@ class DigestsTest {
 
     @Test
     fun `an empty day is not announced`() {
-        assertFalse(Digests.Agenda(DaySummary.NONE, lessons = emptyList()).isWorthPosting)
+        assertFalse(Digests.Agenda(Day, DaySummary.NONE, lessons = emptyList()).isWorthPosting)
     }
 
     /**
@@ -247,14 +248,14 @@ class DigestsTest {
     fun `a day of nothing but cancellations is not announced`() {
         val allOff = DaySummary(lessons = 0, minutes = 0, money = Money.ZERO, cancelled = 2)
 
-        assertFalse(Digests.Agenda(allOff, lessons = emptyList()).isWorthPosting)
+        assertFalse(Digests.Agenda(Day, allOff, lessons = emptyList()).isWorthPosting)
     }
 
     @Test
     fun `a day with a lesson on it is announced`() {
         val oneOn = DaySummary(lessons = 1, minutes = 60, money = Money.ofMajor(30), cancelled = 1)
 
-        assertTrue(Digests.Agenda(oneOn, lessons = emptyList()).isWorthPosting)
+        assertTrue(Digests.Agenda(Day, oneOn, lessons = emptyList()).isWorthPosting)
     }
 
     /**
@@ -263,12 +264,13 @@ class DigestsTest {
      */
     @Test
     fun `an evening with nothing unmarked is not announced`() {
-        assertFalse(Digests.Unfinished(lessons = emptyList()).isWorthPosting)
+        assertFalse(Digests.Unfinished(Day, lessons = emptyList()).isWorthPosting)
     }
 
     @Test
     fun `an evening with an unmarked lesson is announced, and counts them`() {
         val digest = Digests.Unfinished(
+            day = Day,
             lessons = listOf(
                 Digests.Agenda.Entry(Instant.parse("2026-06-15T13:00:00Z"), "Математика", "Иван"),
                 Digests.Agenda.Entry(Instant.parse("2026-06-15T15:00:00Z"), "Физика", "11 «А»"),
@@ -447,5 +449,10 @@ class DigestsTest {
             Digests.Arrangement.Enqueue(delay = Duration.ZERO, every = daily),
             Digests.arrangementFor(planned = nine, arranged = null, now = now, every = daily),
         )
+    }
+
+    private companion object {
+        /** The day a digest is about — which none of the worth-posting rules read. */
+        val Day: LocalDate = LocalDate.of(2026, 6, 15)
     }
 }

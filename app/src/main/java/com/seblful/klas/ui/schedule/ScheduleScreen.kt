@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
@@ -51,6 +52,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,6 +61,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.Role
@@ -65,6 +70,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.DaySummary
@@ -78,6 +84,7 @@ import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatWeekRange
 import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.format.toLocalTime
+import com.seblful.klas.ui.common.FabClearance
 import com.seblful.klas.ui.common.FilterChipRow
 import com.seblful.klas.ui.common.FilterMenuAction
 import com.seblful.klas.ui.common.ConfirmDialog
@@ -89,7 +96,9 @@ import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.SegmentedChoice
+import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.SwipeToConfirmBox
@@ -104,30 +113,36 @@ import com.seblful.klas.ui.common.popsOnChange
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRejectFeedback
 import com.seblful.klas.ui.common.rememberConfirmFeedback
+import com.seblful.klas.ui.common.swipeAction
 import com.seblful.klas.ui.common.swipeBetweenSegments
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.common.valueOrNull
+import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.theme.klasColors
 import java.time.LocalDate
 import java.time.YearMonth
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleScreen(
-    onAddClass: () -> Unit,
+    /** Books a lesson, opening its date picker on the day given — the one the schedule is on. */
+    onAddClass: (LocalDate) -> Unit,
     onEditClass: (Long) -> Unit,
     onAddStudent: () -> Unit,
     /**
-     * Bumped when the evening digest's tray entry asks for today — see `AppRoot`.
+     * The latest tap in the tray that asked for the schedule — a day, or a lesson's sheet — or null when
+     * nothing has, the launcher's ordinary case. See `AppRoot`.
      *
-     * A ticket rather than a flag the screen has to clear: this screen is the graph's start destination
-     * and its view model outlives every arrival at it, so "put it on today" has to be an *event*. Zero
-     * is "nobody has asked", which is the launcher's ordinary case and every recomposition after one.
+     * An arrival rather than a flag the screen has to clear: this screen is the graph's start destination
+     * and its view model outlives every return to it, so "put it on this day" has to be an *event* — and
+     * the view model, not this effect, remembers which one it has already honoured (see
+     * [ScheduleViewModel.arrive]).
      */
-    openTodayTicket: Int = 0,
+    arrival: Arrival<ScheduleTarget>? = null,
     viewModel: ScheduleViewModel = hiltViewModel(),
 ) {
-    LaunchedEffect(openTodayTicket) { if (openTodayTicket > 0) viewModel.goToToday() }
+    LaunchedEffect(arrival) { viewModel.arrive(arrival) }
 
     // One state for the body: only the active view's lessons are assembled (see ScheduleContent).
     val contentState by viewModel.content.collectAsState()
@@ -139,6 +154,8 @@ fun ScheduleScreen(
     val dayContent = contentState.day()
 
     val date by viewModel.selectedDate.collectAsState()
+    // Every way in to a booking — the add button, an empty day's — books into the day on screen.
+    val addClass = { onAddClass(date) }
     val canAddClass by viewModel.canAddClass.collectAsState()
     // From the view model, so it rolls over at midnight rather than being fixed at composition.
     val today by viewModel.today.collectAsState()
@@ -177,7 +194,16 @@ fun ScheduleScreen(
      * at all and the anchor survives. Waiting is about *what is drawn*; this is about *where*.
      */
     val listState = rememberLazyListState()
-    LaunchedEffect(viewMode) { listState.scrollToItem(0) }
+    // Keyed on the view the list was last put at the top *for*, and saved with it: an effect keyed on the
+    // mode alone also ran on every return to the screen, so scrolling the week to Friday, editing a lesson
+    // and coming back landed on Monday again.
+    var topFor by rememberSaveable { mutableStateOf(viewMode) }
+    LaunchedEffect(viewMode) {
+        if (viewMode != topFor) {
+            listState.scrollToItem(0)
+            topFor = viewMode
+        }
+    }
 
     // The sheet acts on the whole lesson in it, a group's included: its actions are the lesson's
     // time and status, and who is in one is changed on the lesson's own form.
@@ -185,12 +211,25 @@ fun ScheduleScreen(
     var movingRow by remember { mutableStateOf<ScheduleRow?>(null) }
     var deletingRow by remember { mutableStateOf<ScheduleRow?>(null) }
 
+    // A reminder's tap opens its lesson the way tapping the card does, once the day it is on has loaded.
+    val askedSheet by viewModel.askedSheet.collectAsState()
+    LaunchedEffect(askedSheet) {
+        askedSheet?.let { row ->
+            sheetFor = row
+            viewModel.sheetShown()
+        }
+    }
+
     // These actions are tapped in a sheet that closes as they are tapped, so a write that failed would
     // otherwise read as one that had not been tapped at all.
     val messages = rememberMessages()
     val actionFailedMsg = stringResource(R.string.action_failed)
-    LaunchedEffect(Unit) {
-        viewModel.events.stream.collect { messages.show(actionFailedMsg) }
+    val lessonGoneMsg = stringResource(R.string.class_gone)
+    ShowMessagesFor(viewModel.events, messages) { event ->
+        when (event) {
+            ScheduleViewModel.Event.ACTION_FAILED -> actionFailedMsg
+            ScheduleViewModel.Event.LESSON_GONE -> lessonGoneMsg
+        }
     }
 
     val confirmFeedback = rememberConfirmFeedback()
@@ -222,6 +261,7 @@ fun ScheduleScreen(
                     selected = filterableStudents.firstOrNull { it.id == studentFilter?.studentId },
                     optionLabel = { it.name },
                     onSelect = { viewModel.setStudentFilter(it?.id) },
+                    narrowed = studentFilter != null,
                 )
             }
         },
@@ -238,9 +278,16 @@ fun ScheduleScreen(
             // way out arrive together. The empty state below still offers the same step for a tutor who
             // reads the page instead of reaching for the button.
             FloatingActionButton(
-                onClick = { if (canAddClass) onAddClass() else messages.show(cannotBookMsg, addStudentLabel, onAddStudent) },
+                onClick = {
+                    // Before the setup has been read there is no answer yet, and the tap waits for it.
+                    when (canAddClass.valueOrNull()) {
+                        true -> addClass()
+                        false -> messages.show(cannotBookMsg, addStudentLabel, onAddStudent)
+                        null -> Unit
+                    }
+                },
             ) {
-                Icon(Icons.Filled.Add, stringResource(R.string.action_add))
+                Icon(Icons.Filled.Add, stringResource(R.string.schedule_add_class))
             }
         },
     ) { modifier ->
@@ -327,7 +374,7 @@ fun ScheduleScreen(
                         running = running,
                         onRowClick = { sheetFor = it },
                         onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
-                        onAddClass = onAddClass,
+                        onAddClass = addClass,
                         onAddStudent = onAddStudent,
                     )
 
@@ -357,7 +404,7 @@ fun ScheduleScreen(
                                 ScheduleEmptyState(
                                     reason = emptyReason,
                                     whole = ScheduleEmptySpan.WEEK,
-                                    onAddClass = onAddClass,
+                                    onAddClass = addClass,
                                     onAddStudent = onAddStudent,
                                     minHeight = 200.dp,
                                 )
@@ -412,7 +459,7 @@ fun ScheduleScreen(
                             running = running,
                             onRowClick = { sheetFor = it },
                             onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
-                            onAddClass = onAddClass,
+                            onAddClass = addClass,
                             onAddStudent = onAddStudent,
                         )
                     }
@@ -425,10 +472,18 @@ fun ScheduleScreen(
         // Keyed on the lesson, so it is one read per sheet and not one per recomposition of it.
         val homework by remember(row.session.lessonId) { viewModel.homeworkAt(row.session) }
             .collectAsState(initial = emptyList())
+        val sheetState = rememberModalBottomSheetState()
+        val sheetScope = rememberCoroutineScope()
+        // An action closes the sheet the way a swipe down does — sliding — and only then does what comes
+        // next (the date picker of a move, the question of a delete). Clearing `sheetFor` outright cut it
+        // off mid-screen.
+        fun closeSheet(then: () -> Unit = {}) {
+            sheetScope.launch { sheetState.hide() }.invokeOnCompletion { sheetFor = null; then() }
+        }
         ClassActionsSheet(
             row = row,
             running = row.session.lessonId in running,
-            sheetState = rememberModalBottomSheetState(),
+            sheetState = sheetState,
             homework = homework,
             // A tick leaves the sheet open, unlike every other action on it: a group lesson can have
             // several pieces attached, and the sheet closing after the first would be a reopening each.
@@ -438,9 +493,16 @@ fun ScheduleScreen(
             // dragging its row both buzzed and popped; doing it from this sheet only popped, so the app felt
             // different depending on which way the tutor reached the one thing that bills a lesson. The pop
             // is `popsOnChange` on the status badge and arrives either way (`ui/common/Pop`).
-            onStatus = { confirmFeedback(); viewModel.setStatus(row.session, it); sheetFor = null },
-            onMove = { movingRow = row; sheetFor = null },
-            onDelete = { deletingRow = row; sheetFor = null },
+            //
+            // Only for «Проведено»: that is the act the swipe confirms, and a cancellation buzzing the same
+            // «done» as a lesson taught said the wrong thing — the segment's own tick is enough for it.
+            onStatus = { status ->
+                if (status == LessonStatus.COMPLETED) confirmFeedback()
+                viewModel.setStatus(row.session, status)
+                closeSheet()
+            },
+            onMove = { closeSheet { movingRow = row } },
+            onDelete = { closeSheet { deletingRow = row } },
             onDismiss = { sheetFor = null },
         )
     }
@@ -511,14 +573,22 @@ private enum class ScheduleEmptySpan { DAY, WEEK }
  */
 @Composable
 private fun ScheduleEmptyState(
-    reason: ScheduleEmpty,
+    reason: Loadable<ScheduleEmpty>,
     whole: ScheduleEmptySpan,
     onAddClass: () -> Unit,
     onAddStudent: () -> Unit,
     minHeight: Dp,
 ) {
     val modifier = Modifier.heightIn(min = minHeight)
-    when (reason) {
+    // Which empty this is waits on whether anything can be booked — see [ScheduleViewModel.emptyReason].
+    val known = when (reason) {
+        Loadable.Loading -> {
+            LessonsSkeleton()
+            return
+        }
+        is Loadable.Ready -> reason.value
+    }
+    when (known) {
         ScheduleEmpty.FILTERED -> EmptyState(
             title = stringResource(R.string.schedule_filter_empty),
             detail = stringResource(R.string.schedule_filter_empty_detail),
@@ -554,7 +624,7 @@ private fun ScheduleEmptyState(
 /** The selected day's classes, or an empty state. Shared by the day and month views. */
 private fun LazyListScope.dayList(
     state: Loadable<List<ScheduleRow>>,
-    emptyReason: ScheduleEmpty,
+    emptyReason: Loadable<ScheduleEmpty>,
     nowMark: Int?,
     running: Set<Long>,
     onRowClick: (ScheduleRow) -> Unit,
@@ -699,7 +769,12 @@ private fun LazyItemScope.SwipeToCompleteCard(
             }
         },
     ) {
-        ScheduleCard(row, running, onClick)
+        ScheduleCard(
+            row,
+            running,
+            onClick,
+            Modifier.swipeAction(stringResource(R.string.class_mark_completed), onComplete),
+        )
     }
 }
 
@@ -846,7 +921,7 @@ private fun MonthNavigator(
 
 /** ‹ title › with a "jump to today" button — shared by the day stepper and the month pager. */
 @Composable
-private fun PageNavigator(
+internal fun PageNavigator(
     title: String,
     previousDescription: String,
     nextDescription: String,
@@ -861,7 +936,9 @@ private fun PageNavigator(
     ) {
         IconButton(onClick = onPrevious) { Icon(Icons.Filled.ChevronLeft, previousDescription) }
         // The title takes the space the arrows leave: a week range spanning two long month names
-        // is far wider than "Июль 2026", and must ellipsize rather than push the arrows off-screen.
+        // is far wider than "Июль 2026", and must never push the arrows off-screen. It shrinks to fit
+        // first — «Понедельник, 21 сентября» lost its month to an ellipsis on a 6.1" phone at the
+        // default font size — and ellipsizes only past the smallest size worth reading.
         Row(
             Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,
@@ -869,12 +946,17 @@ private fun PageNavigator(
         ) {
             Text(
                 title,
-                modifier = Modifier.weight(1f, fill = false),
+                // A heading, so a screen reader can jump between the page's title and its days.
+                modifier = Modifier.weight(1f, fill = false).semantics { heading() },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = NavigatorTitleMinFontSize,
+                    maxFontSize = MaterialTheme.typography.titleMedium.fontSize,
+                ),
             )
             IconButton(onClick = onToday) {
                 Icon(Icons.Filled.Today, stringResource(R.string.schedule_today))
@@ -884,6 +966,13 @@ private fun PageNavigator(
     }
 }
 
+/**
+ * The smallest a page title shrinks to before it ellipsizes — `labelSmall`'s size, the app's smallest
+ * text. What it takes for «Понедельник, 30 сентября» to fit a 320dp phone beside three icon buttons;
+ * pinned by `PageTitleFitTest`.
+ */
+private val NavigatorTitleMinFontSize = 11.sp
+
 /** Names the day the list below belongs to, since the calendar's title is the month. */
 @Composable
 private fun SelectedDayHeader(date: LocalDate, summary: DaySummary) {
@@ -892,6 +981,7 @@ private fun SelectedDayHeader(date: LocalDate, summary: DaySummary) {
             text = date.formatDay(),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.semantics { heading() },
         )
         DaySummaryLine(summary)
     }
@@ -917,6 +1007,7 @@ private fun DaySectionHeader(date: LocalDate, isSelected: Boolean, summary: DayS
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
+            modifier = Modifier.semantics { heading() },
         )
         DaySummaryLine(summary)
     }
@@ -1093,6 +1184,8 @@ private fun AttachedHomework(items: List<SheetHomework>, onDone: (Homework, Bool
                 Modifier
                     .fillMaxWidth()
                     .toggleable(value = done, role = Role.Checkbox) { onDone(item.homework, it) }
+                    // A thumb's height, like every other row the app ticks — it was the checkbox's own 24 dp.
+                    .heightIn(min = MinTouchTarget)
                     .padding(vertical = Spacing.tight),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -1157,13 +1250,6 @@ private fun StatusSelector(row: ScheduleRow, onStatus: (LessonStatus) -> Unit) {
     }
 }
 
-/**
- * How much empty list is left under the last lesson, so the add button never covers one. A size, not a
- * gap — it is measured against the FAB rather than set to the app's rhythm, which is why it is here and
- * not in `Spacing`.
- */
-private val FabClearance = 88.dp
-
 /** A bottom sheet's own gutter, wider than the screen's: Material insets sheet content further in. */
 private val SheetGutter = 24.dp
 
@@ -1178,7 +1264,8 @@ private fun SheetAction(
     Row(
         Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .clickable(role = Role.Button) { onClick() }
+            .heightIn(min = MinTouchTarget)
             .padding(horizontal = SheetGutter, vertical = Spacing.itemGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {

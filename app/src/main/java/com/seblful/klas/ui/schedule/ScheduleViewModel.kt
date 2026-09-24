@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.schedule
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.di.FirstDayOfWeek
 import com.seblful.klas.data.repository.ClassRepository
@@ -21,7 +22,6 @@ import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Student
-import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.runCatchingCancellable
@@ -29,8 +29,11 @@ import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.hold
+import com.seblful.klas.ui.common.map
 import com.seblful.klas.ui.common.ready
 import com.seblful.klas.ui.common.valueOrNull
+import com.seblful.klas.ui.navigation.Arrival
+import com.seblful.klas.ui.navigation.ArrivalGate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -244,6 +247,25 @@ data class SheetHomework(val homework: Homework, val who: String? = null)
 enum class ScheduleViewMode { DAY, WEEK, MONTH }
 
 /**
+ * Where a tap in the tray asks the schedule to be — see [ScheduleViewModel.arrive]. The view the tutor
+ * left it in is kept; what moves is the day, and for a reminder the lesson's sheet.
+ */
+sealed interface ScheduleTarget {
+
+    /** Today — the reminders' summary, and an evening digest posted before digests carried their day. */
+    data object Today : ScheduleTarget
+
+    /** A digest's day, or the latest day auto-completion settled. */
+    data class Day(val date: LocalDate) : ScheduleTarget
+
+    /**
+     * The day the lesson [classId] belongs to is on **now**, with its sheet open — a tap on its reminder.
+     * An id rather than a day, because a lesson can be moved after its reminder was posted.
+     */
+    data class Lesson(val classId: Long) : ScheduleTarget
+}
+
+/**
  * The schedule narrowed to one student — who, and the name the chip saying so is drawn from.
  *
  * **The name is carried rather than looked up by the screen**, and that is the point of the type: it is
@@ -344,6 +366,12 @@ class ScheduleViewModel @Inject constructor(
     val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
 
     /**
+     * The class whose lesson a reminder's tap asked to see, until its sheet is open — see [askedSheet].
+     * Declared this early because [selectDate] clears it, and nothing may call that before it exists.
+     */
+    private val _askedLesson = MutableStateFlow<Long?>(null)
+
+    /**
      * Today — **re-emitted when the date changes**, not read once.
      *
      * The screen used to compute `LocalDate.now()` in its own body, which is evaluated per composition
@@ -363,6 +391,7 @@ class ScheduleViewModel @Inject constructor(
     val today: StateFlow<LocalDate> = flow {
         while (true) {
             val date = LocalDate.now(clock)
+            followToday(date)
             emit(date)
             val nextMidnight = date.plusDays(1).atStartOfDay(zone).toInstant()
             // At least a tick, so a clock already past midnight cannot spin on a zero-length sleep.
@@ -434,6 +463,13 @@ class ScheduleViewModel @Inject constructor(
          * «Запланировано» with nothing to explain it.
          */
         ACTION_FAILED,
+
+        /**
+         * A reminder was tapped for a lesson that has since been deleted. Said rather than silently
+         * ignored: the tray named a lesson, and a schedule with no sign of it would read as the app
+         * having lost it.
+         */
+        LESSON_GONE,
     }
 
     val events = UiEvents<Event>()
@@ -441,12 +477,16 @@ class ScheduleViewModel @Inject constructor(
     /**
      * A class can only be booked once there is at least one student and one priced subject — a
      * class needs both, so the schedule's add button stays disabled until they exist.
+     *
+     * [Loadable], because `false` before the first read is a claim: a tap on the add button during a cold
+     * start was answered «Сначала добавьте предмет и ученика» in an app with forty students.
      */
-    val canAddClass: StateFlow<Boolean> =
+    val canAddClass: StateFlow<Loadable<Boolean>> =
         combine(students.observeActive(), subjects.observeAll()) { studentList, subjectList ->
             studentList.isNotEmpty() && subjectList.isNotEmpty()
         }
-            .derive(this, computation, false)
+            .ready()
+            .derive(this, computation, Loadable.Loading)
 
     /**
      * What an empty schedule means right now — asked by whichever view finds itself with nothing to show,
@@ -455,11 +495,13 @@ class ScheduleViewModel @Inject constructor(
      * A `StateFlow` rather than something the empty branch computes, because both facts behind it are
      * already live here and neither is a fact about drawing.
      */
-    val emptyReason: StateFlow<ScheduleEmpty> =
+    val emptyReason: StateFlow<Loadable<ScheduleEmpty>> =
         combine(studentFilter, canAddClass) { filter, bookable ->
-            ScheduleEmpty.of(filtered = filter != null, canAddClass = bookable)
+            bookable.map { ScheduleEmpty.of(filtered = filter != null, canAddClass = it) }
         }
-            .derive(this, computation, ScheduleEmpty.of(filtered = false, canAddClass = false))
+            // Loading until [canAddClass] is known, for its reason: an empty day read before the setup was
+            // offered «Нечего планировать» and «Добавить ученика» for the frame the answer took.
+            .derive(this, computation, Loadable.Loading)
 
     val monthGrid: StateFlow<CalendarLayout.MonthGrid> =
         _visibleMonth.map { CalendarLayout.monthGrid(it, weekStart) }
@@ -696,8 +738,83 @@ class ScheduleViewModel @Inject constructor(
         showPagesFor(_selectedDate.value)
     }
 
-    /** Picks the day the day list shows and the FAB books into; the calendar pages follow it. */
+    /**
+     * The today [followToday] last saw — a field rather than a local of the [today] flow, because that
+     * flow stops while the schedule is off screen, and a night spent on another tab is still a night.
+     */
+    private var lastToday: LocalDate = _selectedDate.value
+
+    /**
+     * A selection left on today moves on with it at midnight; one the tutor browsed to stays. Without it
+     * an app left open overnight opened the Day view on yesterday, with no «now» line — [today] rolled
+     * over and the selection, set once at construction, did not.
+     */
+    private fun followToday(date: LocalDate) {
+        if (date == lastToday) return
+        if (_selectedDate.value == lastToday) selectDate(date)
+        lastToday = date
+    }
+
+    private val arrivals = ArrivalGate()
+
+    /**
+     * Puts the schedule where a tap in the tray asked (see `AppRoot`), **once per tap**. The screen hands
+     * the arrival over every time it comes back, since it leaves composition whenever a lesson or another
+     * tab covers it; honouring it each time sent the tutor back to the notification's day after every
+     * edit, for the rest of the process. See [Arrival].
+     */
+    fun arrive(arrival: Arrival<ScheduleTarget>?) {
+        when (val target = arrivals.admit(arrival) ?: return) {
+            ScheduleTarget.Today -> goToToday()
+            is ScheduleTarget.Day -> selectDate(target.date)
+            is ScheduleTarget.Lesson -> viewModelScope.launch { showLesson(target.classId) }
+        }
+    }
+
+    /**
+     * The lesson [classId] is part of, on the day it is on now, with a filter that would hide it lifted —
+     * the sheet waits for a row, and a row the filter narrows away is never drawn. Lifting it is shown
+     * rather than quiet: the filter chip goes.
+     */
+    private suspend fun showLesson(classId: Long) {
+        val session = classes.getSessionFor(classId)
+        if (session == null) {
+            events.send(Event.LESSON_GONE)
+            return
+        }
+        val filter = _filterStudentId.value
+        if (filter != null && session.classes.none { it.studentId == filter }) setStudentFilter(null)
+        selectDate(session.start.atZone(zone).toLocalDate())
+        _askedLesson.value = classId
+    }
+
+    /**
+     * The row a reminder's tap asked to open, **once the page it is on has loaded** — null until then, and
+     * after [sheetShown]. A flow over the content rather than a lookup, because the page is re-queried
+     * for the day just selected and the row is not there to be found until that answers.
+     */
+    val askedSheet: StateFlow<ScheduleRow?> =
+        combine(content, _askedLesson) { loaded, classId ->
+            classId?.let { id ->
+                loaded.valueOrNull()?.rowsShown?.firstOrNull { row -> row.classes.any { it.id == id } }
+            }
+        }
+            .derive(this, computation, null)
+
+    /** The asked-for sheet is open; the ask is spent. */
+    fun sheetShown() {
+        _askedLesson.value = null
+    }
+
+    /**
+     * Picks the day the day list shows and the FAB books into; the calendar pages follow it.
+     *
+     * A lesson still waiting to have its sheet opened (see [askedSheet]) is given up: the tutor has gone
+     * somewhere else, and a sheet arriving later over a page they chose would be about a tap they have
+     * moved on from.
+     */
     fun selectDate(date: LocalDate) {
+        _askedLesson.value = null
         _selectedDate.value = date
         showPagesFor(date)
     }

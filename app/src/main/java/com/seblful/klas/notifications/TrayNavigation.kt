@@ -1,5 +1,7 @@
 package com.seblful.klas.notifications
 
+import java.time.LocalDate
+
 /**
  * Where a tap in the notification tray puts the tutor — **one rule for every notification the app posts.**
  *
@@ -10,7 +12,11 @@ package com.seblful.klas.notifications
  * tutor is simply put in front of the lesson, where a date and time are changed and where a clash on the
  * new hour is already refused.
  *
- * [destinationFor] is a function of two plain values rather than of an `Intent`, and that is the whole
+ * **Every entry asks for somewhere.** A reminder, the morning agenda and the auto-completion report used
+ * to open the app and nothing more, on whatever tab it had been left on — so a tap on «занятие через час»
+ * could land on the reports, and the tutor had to go and find the lesson the tray had just named.
+ *
+ * [destinationFor] is a function of plain values rather than of an `Intent`, and that is the whole
  * point of it: an `Intent` can only be built on a device, so "which intents mean go somewhere" is exactly
  * the kind of question that ends up decided inside a composable with no test. The app is opened by a
  * launcher intent far more often than by a notification, and answering that one wrongly would yank the
@@ -28,6 +34,11 @@ object TrayNavigation {
     const val ACTION_OPEN_LESSON = "com.seblful.klas.action.OPEN_LESSON"
     const val ACTION_OPEN_DEBTS = "com.seblful.klas.action.OPEN_DEBTS"
     const val ACTION_OPEN_TODAY = "com.seblful.klas.action.OPEN_TODAY"
+    const val ACTION_OPEN_DAY = "com.seblful.klas.action.OPEN_DAY"
+    const val ACTION_SHOW_LESSON = "com.seblful.klas.action.SHOW_LESSON"
+
+    /** The day an [ACTION_OPEN_DAY] entry is about, as `LocalDate.toEpochDay()`. */
+    const val EXTRA_DAY = "day"
 
     /**
      * The extra every notification intent carries its lesson in — **declared once**.
@@ -56,9 +67,18 @@ object TrayNavigation {
         data class Lesson(val classId: Long) : Destination
 
         /**
-         * The reports tab, which is where debts are listed and where each row opens the student who owes.
-         * The digest can say how much is owed in total and nothing at all about by whom, so it hands over
-         * to the screen that can.
+         * The schedule on the day the lesson is on **now**, with that lesson's sheet open — a tap on a
+         * reminder itself. The sheet is where the lesson is acted on (its status, the homework the reminder
+         * named, a move), and it is what tapping the lesson's card opens; the form is for changing it.
+         *
+         * An id rather than a day, because a lesson can be moved after its reminder was posted.
+         */
+        data class LessonOnSchedule(val classId: Long) : Destination
+
+        /**
+         * The reports tab, scrolled to its debts — where each row opens the student who owes. The digest
+         * can say how much is owed in total and nothing at all about by whom, so it hands over to the
+         * screen that can.
          */
         data object Debts : Destination
 
@@ -75,22 +95,39 @@ object TrayNavigation {
          * Deliberately **not a lesson**: there are several, and «Проведено» from the tray is a reminder's
          * button about one lesson. Billing a whole evening's lessons from a tray entry that may be hours
          * stale is the one thing this digest must not offer.
+         *
+         * What the evening digest said before it carried its day, and what the reminders' summary still
+         * says — several reminders, all of them about the next hour or so.
          */
         data object Today : Destination
+
+        /**
+         * The schedule on [date] — the day a digest is about, or the latest day auto-completion settled.
+         * Carried rather than read as today, because a digest tapped after midnight is still about
+         * yesterday, and today would be a page with none of its lessons on it.
+         */
+        data class Day(val date: LocalDate) : Destination
     }
 
     /**
      * Where this intent asks the app to go, or **null** when it asks for nothing — which covers the
-     * launcher, a tap on a notification's body (that opens the app and nothing more), and an intent whose
-     * id did not survive.
+     * launcher and an intent whose id did not survive.
      *
      * @param classId the extra as read, so a missing one is the caller's default (0 or -1) and is refused
      *   here rather than being navigated to as lesson zero — which the booking form reads as "new lesson".
+     * @param epochDay [EXTRA_DAY] as read, or null when the intent has none. A day that is missing or out
+     *   of `LocalDate`'s range is read as today: the activity is exported, as the launcher's is, so the
+     *   value is not only this app's to write, and a number it cannot be a date must not crash the start.
      */
-    fun destinationFor(action: String?, classId: Long): Destination? = when {
-        action == ACTION_OPEN_LESSON -> lessonIdOrNull(classId)?.let { Destination.Lesson(it) }
-        action == ACTION_OPEN_DEBTS -> Destination.Debts
-        action == ACTION_OPEN_TODAY -> Destination.Today
+    fun destinationFor(action: String?, classId: Long, epochDay: Long? = null): Destination? = when (action) {
+        ACTION_OPEN_LESSON -> lessonIdOrNull(classId)?.let { Destination.Lesson(it) }
+        ACTION_SHOW_LESSON -> lessonIdOrNull(classId)?.let { Destination.LessonOnSchedule(it) }
+        ACTION_OPEN_DEBTS -> Destination.Debts
+        ACTION_OPEN_TODAY -> Destination.Today
+        ACTION_OPEN_DAY -> epochDay
+            ?.takeIf { it in LocalDate.MIN.toEpochDay()..LocalDate.MAX.toEpochDay() }
+            ?.let { Destination.Day(LocalDate.ofEpochDay(it)) }
+            ?: Destination.Today
         else -> null
     }
 }

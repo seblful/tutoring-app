@@ -194,12 +194,12 @@ class RecordingNotifier : Notifier {
      * What each unattended upkeep pass reported billing. Empty is the assertion that matters most often:
      * a pass the tutor asked for reports through the screen instead, and must post nothing here.
      */
-    data class AutoCompleted(val lessons: Int, val billed: Money)
+    data class AutoCompleted(val lessons: Int, val billed: Money, val day: java.time.LocalDate)
 
     val autoCompleted = mutableListOf<AutoCompleted>()
 
-    override fun showAutoCompleted(lessons: Int, billed: Money, currency: Currency) {
-        autoCompleted += AutoCompleted(lessons, billed)
+    override fun showAutoCompleted(lessons: Int, billed: Money, day: java.time.LocalDate, currency: Currency) {
+        autoCompleted += AutoCompleted(lessons, billed, day)
     }
 }
 
@@ -440,7 +440,7 @@ class TestEnv(
     )
 
     val groupRepo = GroupRepository(groupDao, classRepo, studentDao, rateHistoryRepo, transactor, calendarMirror)
-    val subjectRepo = SubjectRepository(subjectDao, classRepo, groupRepo, calendarMirror)
+    val subjectRepo = SubjectRepository(subjectDao, classRepo, groupRepo, studentDao, calendarMirror)
     val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classRepo, rateHistoryRepo, transactor)
 
     // Archiving a student has to call off their planned lessons, so this reaches for the class

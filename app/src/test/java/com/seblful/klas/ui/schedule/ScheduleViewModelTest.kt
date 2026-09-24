@@ -30,6 +30,7 @@ import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.valueOrNull
+import com.seblful.klas.ui.navigation.Arrival
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.Instant
@@ -283,17 +284,18 @@ class ScheduleViewModelTest {
     @Test
     fun `add is disabled until at least one student and one subject exist`() = runTest(mainRule.dispatcher) {
         val vm = vm()
+        assertEquals("nothing is claimed before the setup has been read", Loadable.Loading, vm.canAddClass.value)
         observing(vm.canAddClass)
         advanceUntilIdle()
-        assertFalse(vm.canAddClass.value)
+        assertEquals(false, vm.canAddClass.value.valueOrNull())
 
         env.studentDao.upsert(StudentEntity(name = "Аня"))
         advanceUntilIdle()
-        assertFalse("a student without any subject still can't book", vm.canAddClass.value)
+        assertEquals("a student without any subject still can't book", false, vm.canAddClass.value.valueOrNull())
 
         env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         advanceUntilIdle()
-        assertTrue(vm.canAddClass.value)
+        assertEquals(true, vm.canAddClass.value.valueOrNull())
     }
 
     @Test
@@ -370,6 +372,133 @@ class ScheduleViewModelTest {
             start.plusDays(3),
             vm.today.value,
         )
+    }
+
+    /**
+     * Left on today overnight, the schedule is on today in the morning — the Day view opened on yesterday,
+     * with no «now» line, because the selection was set once and only `today` rolled over. A day the tutor
+     * browsed to is theirs and stays where they put it.
+     */
+    @Test
+    fun `a selection left on today follows it past midnight, a browsed one stays`() = runTest(mainRule.dispatcher) {
+        val start = LocalDate.of(2026, 7, 15)
+        val clock = MutableClock(start.atTime(22, 0).atZone(zone).toInstant(), zone)
+        val tenHours = java.time.Duration.ofHours(10).toMillis()
+
+        val vm = vm(clock)
+        observing(vm.today)
+        advanceTimeBy(1)
+
+        clock.advanceBy(tenHours)
+        advanceTimeBy(tenHours)
+        assertEquals("on today, it moves with today", start.plusDays(1), vm.selectedDate.value)
+
+        val browsed = start.plusDays(5)
+        vm.selectDate(browsed)
+        val day = java.time.Duration.ofDays(1).toMillis()
+        clock.advanceBy(day)
+        advanceTimeBy(day)
+        assertEquals("a day the tutor picked is not moved", browsed, vm.selectedDate.value)
+    }
+
+    /**
+     * A tap in the tray is an arrival, and one arrival moves the schedule once. The screen hands it over on
+     * every return — it leaves composition whenever a lesson or another tab covers it — and honouring it
+     * each time sent the tutor back to the notification's day after every edit, for the rest of the process.
+     */
+    @Test
+    fun `an arrival is honoured once, and a new one again`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        val today = LocalDate.now(zone)
+        val tapped = Arrival<ScheduleTarget>(ScheduleTarget.Today)
+
+        vm.selectDate(today.plusDays(3))
+        vm.arrive(tapped)
+        assertEquals(today, vm.selectedDate.value)
+
+        vm.selectDate(today.plusDays(3))
+        vm.arrive(tapped)
+        assertEquals("the same tap, handed over again on return", today.plusDays(3), vm.selectedDate.value)
+
+        vm.arrive(Arrival(ScheduleTarget.Today))
+        assertEquals("a second tap on the notification", today, vm.selectedDate.value)
+
+        vm.selectDate(today.plusDays(3))
+        vm.arrive(null)
+        assertEquals("no arrival is nobody asking", today.plusDays(3), vm.selectedDate.value)
+    }
+
+    /** A digest tapped after midnight is still about its own day, not the one it is tapped on. */
+    @Test
+    fun `a day's arrival opens that day`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        val yesterday = LocalDate.now(zone).minusDays(1)
+
+        vm.arrive(Arrival(ScheduleTarget.Day(yesterday)))
+
+        assertEquals(yesterday, vm.selectedDate.value)
+    }
+
+    /**
+     * A reminder's tap opens its lesson the way tapping the card does — on the day it is on **now**, which
+     * is not necessarily the day it was on when the reminder was posted — and the ask is spent once shown.
+     */
+    @Test
+    fun `a reminder's arrival opens its lesson's sheet on the day it is on`() = runTest(mainRule.dispatcher) {
+        val subj = env.fixtures.subject("Математика")
+        val ann = env.fixtures.pricedStudent("Аня", subj)
+        val day = LocalDate.now(zone).plusDays(2)
+        val id = env.fixtures.lesson(
+            subjectId = subj, students = listOf(ann), start = day.atTime(10, 0).atZone(zone).toInstant(),
+        ).single()
+        val vm = vm()
+        observing(vm.askedSheet)
+        advanceUntilIdle()
+
+        vm.arrive(Arrival(ScheduleTarget.Lesson(id)))
+        advanceUntilIdle()
+
+        assertEquals(day, vm.selectedDate.value)
+        assertEquals(id, vm.askedSheet.value?.klass?.id)
+
+        vm.sheetShown()
+        advanceUntilIdle()
+        assertNull("shown once, not again on the next page load", vm.askedSheet.value)
+    }
+
+    /** The sheet waits for a row, and a row the filter narrows away is never drawn — so the filter goes. */
+    @Test
+    fun `a reminder for somebody the schedule is not showing lifts the filter`() = runTest(mainRule.dispatcher) {
+        val today = LocalDate.now(zone)
+        val (ann, bob) = seedTwoStudentsOn(today)
+        val bobs = env.classRepo.observeBetween(
+            today.atStartOfDay(zone).toInstant(),
+            today.plusDays(1).atStartOfDay(zone).toInstant(),
+        ).first().single { it.studentId == bob }.id
+        val vm = vm()
+        observing(vm.studentFilter)
+        observing(vm.askedSheet)
+        vm.setStudentFilter(ann)
+        advanceUntilIdle()
+
+        vm.arrive(Arrival(ScheduleTarget.Lesson(bobs)))
+        advanceUntilIdle()
+
+        assertNull(vm.studentFilter.value)
+        assertEquals(bobs, vm.askedSheet.value?.klass?.id)
+    }
+
+    /** The tray named a lesson; a schedule with no sign of it would read as the app having lost it. */
+    @Test
+    fun `a reminder for a lesson since deleted says so`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        val seen = mutableListOf<ScheduleViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { seen += it } }
+
+        vm.arrive(Arrival(ScheduleTarget.Lesson(404L)))
+        advanceUntilIdle()
+
+        assertEquals(listOf(ScheduleViewModel.Event.LESSON_GONE), seen)
     }
 
     @Test
@@ -1362,7 +1491,7 @@ class ScheduleViewModelTest {
         observing(vm.emptyReason)
         advanceUntilIdle()
 
-        assertEquals(ScheduleEmpty.NEEDS_STUDENT, vm.emptyReason.value)
+        assertEquals(ScheduleEmpty.NEEDS_STUDENT, vm.emptyReason.value.valueOrNull())
     }
 
     @Test
@@ -1374,7 +1503,7 @@ class ScheduleViewModelTest {
         observing(vm.emptyReason)
         advanceUntilIdle()
 
-        assertEquals(ScheduleEmpty.QUIET, vm.emptyReason.value)
+        assertEquals(ScheduleEmpty.QUIET, vm.emptyReason.value.valueOrNull())
     }
 
     @Test
@@ -1386,12 +1515,12 @@ class ScheduleViewModelTest {
         observing(vm.emptyReason)
         observing(vm.filterableStudents)
         advanceUntilIdle()
-        assertEquals(ScheduleEmpty.QUIET, vm.emptyReason.value)
+        assertEquals(ScheduleEmpty.QUIET, vm.emptyReason.value.valueOrNull())
 
         vm.setStudentFilter(ann)
         advanceUntilIdle()
 
-        assertEquals(ScheduleEmpty.FILTERED, vm.emptyReason.value)
+        assertEquals(ScheduleEmpty.FILTERED, vm.emptyReason.value.valueOrNull())
     }
 
     // --- The homework attached to a lesson ---------------------------------------------------------

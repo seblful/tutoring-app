@@ -11,6 +11,7 @@ import com.seblful.klas.notifications.Notifier
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -102,6 +103,7 @@ class Maintenance @Inject constructor(
         return Settled(
             lessons = completed.distinctBy { it.lessonId }.size,
             billed = completed.fold(Money.ZERO) { acc, c -> acc + c.charge },
+            lastDay = completed.maxOfOrNull { it.start }?.atZone(clock.zone)?.toLocalDate(),
         )
     }
 
@@ -121,9 +123,9 @@ class Maintenance @Inject constructor(
      */
     suspend fun runUnwatched(now: Instant = clock.instant()): Settled {
         val settled = run(now)
-        if (settled.lessons > 0) {
-            notifier.showAutoCompleted(settled.lessons, settled.billed, settings.get().currency)
-        }
+        // A day exactly when something was settled — see [Settled.lastDay].
+        val day = settled.lastDay ?: return settled
+        notifier.showAutoCompleted(settled.lessons, settled.billed, day, settings.get().currency)
         return settled
     }
 
@@ -134,6 +136,10 @@ class Maintenance @Inject constructor(
      * and is one lesson of the tutor's. The money is the other half of the same fact and is carried
      * alongside because both readers need both — the switch says «завершено N занятий», the tray says what
      * that added to the income.
+     *
+     * @param lastDay the day of the latest lesson settled, or null when nothing was — where a tap on the
+     *   tray's report opens the schedule. The latest rather than the first: a pass after a phone was off
+     *   for days settles a backlog, and the most recent of it is what the tutor still remembers teaching.
      */
-    data class Settled(val lessons: Int, val billed: Money)
+    data class Settled(val lessons: Int, val billed: Money, val lastDay: LocalDate? = null)
 }

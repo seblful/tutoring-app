@@ -17,7 +17,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -46,6 +45,7 @@ import com.seblful.klas.ui.homework.HomeworkScreen
 import com.seblful.klas.ui.more.AboutScreen
 import com.seblful.klas.ui.more.MoreScreen
 import com.seblful.klas.ui.more.SettingsScreen
+import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.navigation.Routes
 import com.seblful.klas.ui.navigation.TopDestination
 import com.seblful.klas.ui.navigation.klasTabs
@@ -55,6 +55,7 @@ import com.seblful.klas.ui.people.PeopleScreen
 import com.seblful.klas.ui.reports.ReportsScreen
 import com.seblful.klas.ui.schedule.ClassEditScreen
 import com.seblful.klas.ui.schedule.ScheduleScreen
+import com.seblful.klas.ui.schedule.ScheduleTarget
 import com.seblful.klas.ui.students.StudentDetailScreen
 import com.seblful.klas.ui.students.StudentFormScreen
 import com.seblful.klas.ui.subjects.SubjectsScreen
@@ -151,17 +152,22 @@ private fun MainApp() {
         ?.destination?.route
 
     /**
-     * A ticket the evening digest punches to say «and put the schedule on today».
+     * The latest tray tap that asked a tab for something more than itself — the schedule for a day or a
+     * lesson's sheet, the reports for their debts. See [Arrival], and why each tap is its own instance.
      *
-     * A counter rather than a boolean, so a second tap on the same notification is a second ticket —
-     * `LaunchedEffect` restarts on a changed key and a boolean already true would key the same value.
-     * Hoisted here because the navigation it accompanies is hoisted here, and it is not a route argument
+     * Hoisted here because the navigation it accompanies is hoisted here, and not a route argument
      * because [Routes.SCHEDULE] is the graph's start destination: giving it a parameter would mean every
-     * arrival, including the launcher's, having to state a day.
+     * arrival, including the launcher's, having to state a day. Plain `remember`, not saveable: an
+     * arrival cannot be restored as the *same* one, and a rebuilt activity has no new tap to hand over.
      */
-    var openToday by remember { mutableIntStateOf(0) }
+    var scheduleArrival by remember { mutableStateOf<Arrival<ScheduleTarget>?>(null) }
+    var debtsArrival by remember { mutableStateOf<Arrival<Unit>?>(null) }
 
-    OpensTheLessonAReminderNames(navController) { openToday++ }
+    OpensWhatTheTrayNames(
+        navController,
+        onSchedule = { scheduleArrival = Arrival(it) },
+        onDebts = { debtsArrival = Arrival(Unit) },
+    )
 
     // **The chrome leaves with the screen, not ahead of it.** Whether the tabs apply is settled the
     // instant `navigate` is called, but the screen they belong to takes the length of a fade to go
@@ -205,8 +211,8 @@ private fun MainApp() {
         ) {
             screen(Routes.SCHEDULE) {
                 ScheduleScreen(
-                    openTodayTicket = openToday,
-                    onAddClass = { navController.navigate(Routes.classEdit(0)) },
+                    arrival = scheduleArrival,
+                    onAddClass = { day -> navController.navigate(Routes.classEdit(0, day = day)) },
                     onEditClass = { navController.navigate(Routes.classEdit(it)) },
                     // The way out of "nothing can be booked yet": the schedule's empty state offers
                     // the missing step rather than only naming it.
@@ -214,7 +220,10 @@ private fun MainApp() {
                 )
             }
             screen(Routes.REPORTS) {
-                ReportsScreen(onStudentClick = { navController.navigate(Routes.studentDetail(it)) })
+                ReportsScreen(
+                    onStudentClick = { navController.navigate(Routes.studentDetail(it)) },
+                    debtsArrival = debtsArrival,
+                )
             }
             screen(Routes.MORE) {
                 MoreScreen(
@@ -233,7 +242,7 @@ private fun MainApp() {
                 )
             }
             screen(Routes.HOMEWORK) {
-                HomeworkScreen()
+                HomeworkScreen(onAddStudent = { navController.navigate(Routes.STUDENT_ADD) })
             }
 
             screen(Routes.STUDENT_ADD) {
@@ -245,6 +254,7 @@ private fun MainApp() {
             ) {
                 StudentDetailScreen(
                     onBack = { navController.popBackStack() },
+                    onLessonClick = { navController.navigate(Routes.classEdit(it)) },
                 )
             }
 
@@ -304,6 +314,7 @@ private fun MainApp() {
                 arguments = listOf(
                     navArgument("id") { type = NavType.LongType },
                     navArgument("group") { type = NavType.LongType; defaultValue = 0L },
+                    navArgument("day") { type = NavType.StringType; nullable = true; defaultValue = null },
                 ),
             ) {
                 ClassEditScreen(onBack = { navController.popBackStack() })
@@ -313,8 +324,9 @@ private fun MainApp() {
 }
 
 /**
- * Sends the tutor where a notification they tapped asks them to go — a lesson for a reminder's
- * «Перенести», the reports for the weekly debt digest, today's schedule for the evening one.
+ * Sends the tutor where a notification they tapped asks them to go — a lesson's form for a reminder's
+ * «Перенести», the lesson's sheet for the reminder itself, the schedule on its day for the agenda, the
+ * evening digest and the auto-completion report, and the reports' debts for the weekly digest.
  *
  * A notification cannot show a date picker or list who owes what, so each carries an action and this is
  * where it becomes navigation. **Which** destination an intent asks for is [TrayNavigation.destinationFor]'s
@@ -330,38 +342,49 @@ private fun MainApp() {
  * launch intent, which without it would re-open the lesson the tutor had already navigated away from.
  */
 @Composable
-private fun OpensTheLessonAReminderNames(navController: NavHostController, onOpenToday: () -> Unit) {
+private fun OpensWhatTheTrayNames(
+    navController: NavHostController,
+    onSchedule: (ScheduleTarget) -> Unit,
+    onDebts: () -> Unit,
+) {
     val activity = LocalActivity.current as? ComponentActivity
+
+    // A **tab**, so it is switched to the way the bottom bar switches to it — popping back to the start
+    // destination with the state saved. Pushing «Отчёты» on top of wherever the tutor was would leave the
+    // reports sitting above the schedule with a back arrow and no tab selected.
+    fun toTab(route: String) = navController.navigate(route) {
+        popUpTo(navController.graph.startDestinationId) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
+
+    // The schedule tab, and then the day or the lesson the entry is about. Restoring the tab's saved state
+    // alone would land the tutor on whatever day they were last browsing, which for a notification saying
+    // «3 занятия не отмечены» would show a week with none of them in it.
+    fun toSchedule(target: ScheduleTarget) {
+        toTab(Routes.SCHEDULE)
+        onSchedule(target)
+    }
 
     val open: (Intent) -> Unit = { intent ->
         val destination = TrayNavigation.destinationFor(
             action = intent.action,
             classId = intent.getLongExtra(TrayNavigation.EXTRA_CLASS_ID, 0L),
+            epochDay = intent.takeIf { it.hasExtra(TrayNavigation.EXTRA_DAY) }
+                ?.getLongExtra(TrayNavigation.EXTRA_DAY, 0L),
         )
-        // `launchSingleTop` so two taps on the same notification do not stack the same screen twice.
         when (destination) {
+            // `launchSingleTop` so two taps on the same notification do not stack the same screen twice.
             is TrayNavigation.Destination.Lesson ->
                 navController.navigate(Routes.classEdit(destination.classId)) { launchSingleTop = true }
-            // A **tab**, so it is switched to the way the bottom bar switches to it — popping back to the
-            // start destination with the state saved. Pushing «Отчёты» on top of wherever the tutor was
-            // would leave the reports sitting above the schedule with a back arrow and no tab selected.
-            TrayNavigation.Destination.Debts -> navController.navigate(Routes.REPORTS) {
-                popUpTo(navController.graph.startDestinationId) { saveState = true }
-                launchSingleTop = true
-                restoreState = true
+            is TrayNavigation.Destination.LessonOnSchedule ->
+                toSchedule(ScheduleTarget.Lesson(destination.classId))
+            TrayNavigation.Destination.Debts -> {
+                toTab(Routes.REPORTS)
+                onDebts()
             }
-            // The schedule tab, switched to the way the bottom bar switches to it — and then put on
-            // today, which is the day the digest is about. Restoring the tab's saved state alone would
-            // land the tutor on whatever day they were last browsing, which for a notification saying
-            // «3 занятия не отмечены» would show a week with none of them in it.
-            TrayNavigation.Destination.Today -> {
-                navController.navigate(Routes.SCHEDULE) {
-                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                    launchSingleTop = true
-                    restoreState = true
-                }
-                onOpenToday()
-            }
+            TrayNavigation.Destination.Today -> toSchedule(ScheduleTarget.Today)
+            is TrayNavigation.Destination.Day -> toSchedule(ScheduleTarget.Day(destination.date))
             null -> Unit
         }
     }

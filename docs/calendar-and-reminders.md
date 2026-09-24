@@ -21,6 +21,11 @@ database, never a source (see [architecture.md](architecture.md)).
   otherwise; re-derived from scratch over a fixed horizon on every change; re-armed after reboot.
 - Tray actions: «Проведено» bills in place via a broadcast; «Перенести» opens the lesson. Both re-check
   legality against the current lesson state (a notification can be stale).
+- **Every tray entry opens what it names** (`notifications/TrayNavigation`), never just the app: a reminder →
+  the schedule on the lesson's *current* day with its sheet open; the agenda and the evening digest → the
+  schedule on the day they are about (carried in the intent, so a tap after midnight still lands there);
+  the auto-completion report → the latest day it settled; the debt digest → Reports, scrolled to the debts.
+  A tab acts on each tap once, however often it is returned to (`ui/navigation/Arrival`).
 - The notification permission is **asked for where reminders are**: the Settings row, and once at the
   tutor's first booking (`ClassEditViewModel.notificationsToAskFor`) — never over first launch, when there
   is no lesson to be reminded of.

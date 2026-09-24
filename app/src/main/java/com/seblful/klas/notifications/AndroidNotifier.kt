@@ -21,6 +21,7 @@ import com.seblful.klas.format.formatTime
 import com.seblful.klas.format.money
 import com.seblful.klas.inAppLanguage
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -148,7 +149,12 @@ class AndroidNotifier @Inject constructor(
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
-            .setContentIntent(openApp(klass.id.toInt()))
+            // The lesson on the schedule, with its sheet open — what tapping its card does in the app.
+            .setContentIntent(
+                openApp(klass.id.toInt(), TrayNavigation.ACTION_SHOW_LESSON) {
+                    putExtra(TrayNavigation.EXTRA_CLASS_ID, klass.id)
+                },
+            )
             // Reminders stack: a tutor with back-to-back lessons can have two or three in the tray at
             // once, and un-grouped they sit among everything else the phone has to say. Grouping is only
             // half of it — Android needs a *summary* to collapse them under, which is why [remindersSummary]
@@ -188,7 +194,8 @@ class AndroidNotifier @Inject constructor(
             .setGroupSummary(true)
             .setOnlyAlertOnce(true)
             .setAutoCancel(true)
-            .setContentIntent(openApp(ID_REMINDERS_SUMMARY))
+            // Several lessons, all of them within the next hour or so: today's schedule, where they all are.
+            .setContentIntent(openApp(ID_REMINDERS_SUMMARY, TrayNavigation.ACTION_OPEN_TODAY))
             .build()
         post(ID_REMINDERS_SUMMARY, summary)
     }
@@ -222,7 +229,7 @@ class AndroidNotifier @Inject constructor(
             .setStyle(style)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
-            .setContentIntent(openApp(ID_AGENDA))
+            .setContentIntent(openDay(ID_AGENDA, agenda.day))
             .build()
 
         post(ID_AGENDA, notification)
@@ -257,9 +264,9 @@ class AndroidNotifier @Inject constructor(
             .setStyle(style)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
-            // Straight to today's schedule, where each of these is one swipe from being marked. No
+            // Straight to the day's schedule, where each of these is one swipe from being marked. No
             // action buttons: «Проведено» on a list of five lessons could only guess, and this one bills.
-            .setContentIntent(openApp(ID_UNFINISHED, TrayNavigation.ACTION_OPEN_TODAY))
+            .setContentIntent(openDay(ID_UNFINISHED, unfinished.day))
             .build()
 
         post(ID_UNFINISHED, notification)
@@ -287,7 +294,7 @@ class AndroidNotifier @Inject constructor(
         post(ID_DEBTS, notification)
     }
 
-    override fun showAutoCompleted(lessons: Int, billed: Money, currency: Currency) {
+    override fun showAutoCompleted(lessons: Int, billed: Money, day: LocalDate, currency: Currency) {
         if (!permission.isGranted()) return
         ensureChannels()
 
@@ -301,7 +308,7 @@ class AndroidNotifier @Inject constructor(
             .setContentText(body)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setAutoCancel(true)
-            .setContentIntent(openApp(ID_UPKEEP))
+            .setContentIntent(openDay(ID_UPKEEP, day))
             .build()
 
         post(ID_UPKEEP, notification)
@@ -323,18 +330,25 @@ class AndroidNotifier @Inject constructor(
     private fun hour12(): Boolean = !DateFormat.is24HourFormat(context)
 
     /**
-     * Opening the app from a tray entry.
+     * Opening the app from a tray entry, **at the screen the entry is about** — see [TrayNavigation].
      *
      * `FLAG_ACTIVITY_SINGLE_TOP` so a notification never stacks a second copy of the one activity on top
-     * of the app the tutor already has open. [action] carries where to land when it is somewhere other
-     * than wherever they left off — see [TrayNavigation].
+     * of the app the tutor already has open. [action] is required: an entry that opened the app on
+     * whatever tab it had been left on was the tutor being handed the app and told to find it.
      */
-    private fun openApp(requestCode: Int, action: String? = null): PendingIntent {
+    private fun openApp(requestCode: Int, action: String, extras: Intent.() -> Unit = {}): PendingIntent {
         val intent = Intent(context, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            .apply { action?.let { setAction(it) } }
+            .setAction(action)
+            .apply(extras)
         return PendingIntent.getActivity(context, requestCode, intent, FLAGS)
     }
+
+    /** The schedule on [day] — see [TrayNavigation.Destination.Day]. */
+    private fun openDay(requestCode: Int, day: LocalDate): PendingIntent =
+        openApp(requestCode, TrayNavigation.ACTION_OPEN_DAY) {
+            putExtra(TrayNavigation.EXTRA_DAY, day.toEpochDay())
+        }
 
     /**
      * «Проведено» — marks the lesson taught without opening anything, which is the whole point of

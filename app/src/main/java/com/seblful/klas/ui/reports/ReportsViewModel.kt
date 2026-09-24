@@ -27,6 +27,8 @@ import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.ready
+import com.seblful.klas.ui.navigation.Arrival
+import com.seblful.klas.ui.navigation.ArrivalGate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -106,6 +108,15 @@ class ReportsViewModel @Inject constructor(
 
     /** Steps one period back (−1) or forward (+1). All time ignores it — it has nowhere to go. */
     fun shift(by: Int) = _period.update { it.shifted(by) }
+
+    private val arrivals = ArrivalGate()
+
+    /**
+     * Whether [arrival] — the debt digest's tap — is one the screen has not scrolled for yet. The screen
+     * hands it over every time the tab comes back, and scrolling each time would take the tutor away from
+     * wherever they had read to. See [Arrival].
+     */
+    fun admitDebts(arrival: Arrival<Unit>?): Boolean = arrivals.admit(arrival) != null
 
     /**
      * Whether the export landed. One-shot, because a file written is not a state to be in.
@@ -194,6 +205,7 @@ class ReportsViewModel @Inject constructor(
         // labelled by an id would be the only unreadable row on the screen.
         groupNames = groups.associate { GroupId(it.id) to it.name },
         zone = zone,
+        today = LocalDate.now(clock),
     )
 
     private companion object {
