@@ -13,10 +13,12 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material3.DropdownMenu
@@ -26,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -39,11 +40,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontStyle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.Attendance
 import com.seblful.klas.format.formatHours
+import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
@@ -54,7 +57,7 @@ import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatRow
-import com.seblful.klas.ui.common.StickyTabRow
+import com.seblful.klas.ui.common.StickyViewMenu
 import com.seblful.klas.ui.common.TitleSize
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.lessonsStat
@@ -62,15 +65,25 @@ import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.homework.AssigneeChoice
+import com.seblful.klas.ui.homework.HomeworkDialog
+import com.seblful.klas.ui.homework.HomeworkRow
+import com.seblful.klas.ui.homework.homeworkItems
 
 /**
- * The two things a group's card is about. Payments are **not** among them: a balance belongs to a
- * student and spans all of their lessons, so it is read on the student's card — which is exactly
- * where a member row leads.
+ * The three things a group's card is about, one shown at a time and picked from the same menu a
+ * student's card uses ([StickyViewMenu]) — the two cards are read the same way. Lessons first, as on the
+ * student's, then its homework, then the roster, which is set once and changed on the form.
+ *
+ * Payments are **not** among them: a balance belongs to a student and spans all of their lessons, so it
+ * is read on the student's card — which is exactly where a member row leads.
  */
-private enum class GroupTab(val labelRes: Int) {
-    STUDENTS(R.string.group_students_title),
-    LESSONS(R.string.group_lessons_title),
+private enum class GroupTab(val labelRes: Int, val icon: ImageVector) {
+    LESSONS(R.string.group_lessons_title, Icons.Outlined.CalendarMonth),
+
+    /** The group's own homework, current and done — where it is set for the whole group. */
+    HOMEWORK(R.string.student_homework_title, Icons.AutoMirrored.Outlined.Assignment),
+    STUDENTS(R.string.group_students_title, Icons.Outlined.Groups),
 }
 
 /**
@@ -116,12 +129,25 @@ private fun GroupCard(
 ) {
     val group = state.group
 
-    var tab by rememberSaveable { mutableStateOf(GroupTab.STUDENTS) }
+    var tab by rememberSaveable { mutableStateOf(GroupTab.LESSONS) }
     var confirmingDelete by remember { mutableStateOf(false) }
+    // Taken when the dialog opens — see `GroupDetailViewModel.homeworkChoice`.
+    var addingHomework by remember { mutableStateOf<AssigneeChoice?>(null) }
+    var openedHomework by remember { mutableStateOf<HomeworkRow?>(null) }
 
     val messages = rememberMessages()
     val deleteBlockedMsg = stringResource(R.string.group_delete_blocked)
-    ShowMessagesFor(viewModel.events, messages) { deleteBlockedMsg }
+    val writeFailedMsg = stringResource(R.string.action_failed)
+    ShowMessagesFor(viewModel.events, messages) { event ->
+        when (event) {
+            GroupDetailViewModel.Event.DELETE_BLOCKED_HAS_LESSONS -> deleteBlockedMsg
+            GroupDetailViewModel.Event.WRITE_FAILED -> writeFailedMsg
+        }
+    }
+    val homeworkDoneMsg = stringResource(R.string.homework_done_message)
+    val homeworkRestoredMsg = stringResource(R.string.homework_restored_message)
+    val homeworkDeletedMsg = stringResource(R.string.homework_deleted)
+    val undoLabel = stringResource(R.string.action_undo)
 
     // The group's name is the subject of the screen, as a student's is on theirs — the same large,
     // collapsing title, so the two cards read as one pattern.
@@ -131,8 +157,10 @@ private fun GroupCard(
         titleSize = TitleSize.Large,
         messages = messages,
         actions = {
-            IconButton(onClick = onEdit) {
-                Icon(Icons.Filled.Edit, stringResource(R.string.action_edit))
+            HoldToName(stringResource(R.string.action_edit)) {
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Filled.Edit, stringResource(R.string.action_edit))
+                }
             }
             // Retiring and removing the group, behind the overflow — where a student's already were.
             // They used to be a pair of outlined buttons under a «danger zone» heading at the foot of
@@ -175,22 +203,61 @@ private fun GroupCard(
             }
 
             stickyHeader(key = GroupDetailKeys.TABS) {
-                StickyTabRow(selectedTabIndex = tab.ordinal) {
-                    GroupTab.entries.forEach { entry ->
-                        Tab(
-                            selected = tab == entry,
-                            onClick = { tab = entry },
-                            text = { Text(stringResource(entry.labelRes)) },
-                        )
-                    }
-                }
+                StickyViewMenu(
+                    options = GroupTab.entries,
+                    selected = tab,
+                    onSelect = { tab = it },
+                    label = { stringResource(it.labelRes) },
+                    icon = { it.icon },
+                    count = { entry ->
+                        when (entry) {
+                            GroupTab.LESSONS -> state.lessons.size
+                            GroupTab.HOMEWORK -> state.homework.current.size
+                            GroupTab.STUDENTS -> state.members.size
+                        }
+                    },
+                )
             }
 
             when (tab) {
-                GroupTab.STUDENTS -> studentsTab(state, onMemberClick, onEditMembers = onEdit)
                 GroupTab.LESSONS -> lessonsTab(state, onLessonClick)
+                GroupTab.HOMEWORK -> homeworkItems(
+                    lists = state.homework,
+                    messages = messages,
+                    onAdd = { addingHomework = viewModel.homeworkChoice() },
+                    onOpen = { openedHomework = it },
+                    onDone = { item, done ->
+                        viewModel.setHomeworkDone(item, done)
+                        messages.show(if (done) homeworkDoneMsg else homeworkRestoredMsg, undoLabel) {
+                            viewModel.putHomeworkBack(item)
+                        }
+                    },
+                )
+                GroupTab.STUDENTS -> studentsTab(state, onMemberClick, onEditMembers = onEdit)
             }
         }
+    }
+
+    addingHomework?.let { choice ->
+        HomeworkDialog(
+            choices = listOf(choice),
+            onSave = { _, text -> viewModel.giveHomework(text) },
+            onDismiss = { addingHomework = null },
+            canChangeAssignee = false,
+        )
+    }
+    openedHomework?.let { row ->
+        HomeworkDialog(
+            choices = listOf(AssigneeChoice(row.homework.assignee, row.title, row.lessonAt)),
+            editing = row.homework,
+            canChangeAssignee = false,
+            onSave = { _, text -> viewModel.editHomework(row.homework, text) },
+            onDelete = {
+                viewModel.deleteHomework(row.homework)
+                messages.show(homeworkDeletedMsg, undoLabel) { viewModel.restoreHomework(row.homework) }
+            },
+            onDismiss = { openedHomework = null },
+        )
     }
 
     if (confirmingDelete) {
@@ -257,8 +324,10 @@ private fun GroupHeader(state: GroupDetailState, modifier: Modifier = Modifier) 
 private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(Icons.Filled.MoreVert, stringResource(R.string.action_more))
+        HoldToName(stringResource(R.string.action_more)) {
+            IconButton(onClick = { expanded = true }) {
+                Icon(Icons.Filled.MoreVert, stringResource(R.string.action_more))
+            }
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
@@ -414,6 +483,7 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
  * Stable keys for the group card's one `LazyColumn`. Same rule as the student card's
  * (see [com.seblful.klas.ui.students.StudentDetailKeys]): a student id and a class id both start
  * at 1, so keys are namespaced by kind, and the card's own furniture gets fixed names of its own.
+ * Homework's are `HomeworkItemKeys`, shared with the student's card.
  */
 private object GroupDetailKeys {
     const val HEADER = "header"

@@ -30,7 +30,7 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps: billing, class/group rules, scheduling, recurrence, calendar policy, reminders, `LessonPhase`, `Homework`, `Digests`, reports, search, formatting-adjacent models (`Balance`, `Currency`, `AppLanguage`). All JVM-tested. |
+| `domain/` | Pure Kotlin, no Android deps: billing, class/group rules, scheduling, recurrence, calendar policy, reminders, `LessonPhase`, `HomeworkRules`, `Digests`, reports, search, formatting-adjacent models (`Balance`, `Currency`, `AppLanguage`). All JVM-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`, `Migrations`, `Transactor` port. `SnapshotDao` is the separate whole-table seam. |
 | `data/Mappers.kt` | Entities ⇄ domain models. |
 | `data/repository/` | One invariant each, end to end, one transaction (see *Ownership*). |
@@ -41,7 +41,7 @@ flowchart TB
 | `diagnostics/` | `CrashLogger` over local storage; viewed/exported from `ui/diagnostics`. |
 | `storage/` | `DocumentStore` (SAF) and `DocumentSharing` (`ACTION_SEND`) ports. |
 | `format/` | Date/time/money formatting, `AppLocale`, `MoneyField`, `NameOrder`. |
-| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` atoms, `onboarding/`, `RootViewModel`. The «Задания» tab and the homework parts the schedule and student card share in `ui/homework/`. Settings/About in `ui/more/`. Theme in `ui/theme/`. |
+| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` atoms, `onboarding/`, `RootViewModel`. The «Задания» tab and the homework parts the student and group cards share in `ui/homework/`. Settings/About in `ui/more/`. Theme in `ui/theme/`. |
 | `preview/` (debug only) | `@Preview`s of `ui/common/`. |
 | `di/` | DB module, scopes/dispatchers, `Clock`, week-start, device locales. |
 
@@ -53,6 +53,8 @@ flowchart TB
 - `CalendarMirror` — what a mirrored event shows; owns sync on/off backfill and withdrawal.
 - `EnrollmentRepository` — the subject⇄price invariant.
 - `GroupRepository` — the only writer of group membership.
+- `HomeworkRepository` — the only writer of `homework`; its writes owe no phase 3 (no calendar, and a
+  reminder reads what is attached as it fires).
 - `PaymentRepository` — a payment's date and correcting one in place; the instant is derived here.
 - `RateHistoryRepository` — what a rate change is (two repositories set rates).
 - `SettingsRepository` — one serialized `update {}`, returning what the change owes the rest of the app.
@@ -109,27 +111,30 @@ flowchart TB
   `ABSENT_BILLED` = absent but charged; only an explicit absence stops a charge.
 - A lesson's phase is derived, never stored (`domain/LessonPhase`: `UPCOMING|IN_PROGRESS|OVERDUE|SETTLED`),
   from status + injected clock — not a fourth `LessonStatus`.
-- A lesson carries one note (`lessons.notes`), shared by every class in it; rides the ordinary edit. It is
-  the tutor's own and **never leaves the app** — the calendar event carries the homework instead.
-- A lesson is the unit of change — every write takes a `ClassSession` (except `setAttendance` and
-  `setHomeworkResult`, per person).
+- A lesson carries none of the tutor's text: the note was removed at the tutor's request (v9), and
+  homework is its own table, attached by rule.
+- A lesson is the unit of change — every write takes a `ClassSession` (except `setAttendance`, per person).
 
 ### Homework
 
-- Set at a lesson (`lessons.homework`, the lesson's like the note), checked at the next one **on its
-  track**: the group's next lesson in that subject, or the same student's next individual lesson in the
-  same subject; a cancelled lesson is skipped. That lesson is **derived, never stored** (`domain/Homework`),
-  because with no series the next lesson is often not booked yet, and it can move.
-- Each student's verdict (`DONE|PARTIAL|NOT_DONE`, null = not checked) is on their `attendance` row **of
-  the lesson it was set at**, written as one column (`AttendanceDao.setHomeworkResult`) — no calendar
-  mirror, no reminder re-plan; the reminder reads what is left to check as it fires.
-- Set on the lesson's form (edit only — a booking, and a repeating one especially, sets none) or from the
-  schedule's sheet; checked on the next lesson's sheet, in the tab, or on the student's card.
-- The «Задания» tab is a worklist, not an archive: the latest homework per track, set within
-  `Homework.FOLLOWED_UP_FOR` (60 days), for active students and groups — «Проверить» (due today, then
-  overdue) and «Выдано» (due later, then no next lesson booked). The whole record is the student card's.
-- Sent through the share sheet, worded with the due lesson's date. Not in v1: photos/files, grades, due
-  dates independent of lessons, anything student-facing.
+- Its own table (`homework`): for **one student or one group** (exactly one of `studentId`/`groupId`,
+  read back as a sealed `Assignee`), text, when it was given, and when it was done. **Current or done,
+  nothing in between** — v8's per-student verdicts and «Проверить»/«Выдано» split were more than the tutor
+  wanted.
+- **Attached to its assignee's next lesson** after it was given — a student's next lesson of any kind
+  (a group's included), a group's next lesson; cancelled ones skipped; strictly after, so homework set
+  during a lesson is for the next one. **Derived, never stored** (`domain/HomeworkRules`), because with
+  no series the next lesson is often not booked yet, and it can move.
+- Set from the «Задания» tab's add button (nobody preselected; the list puts whoever's lesson is nearest
+  now first, and the dialog names the lesson it will go to) or from a student's or group's card (fixed
+  to them). Edits keep when it was given, so they never move it to another lesson.
+- The tab: «Текущие» (in lesson order, overdue on top, unbooked last) and «Архив» (done, newest first),
+  for active students and groups, narrowable to one student (with their groups') or one group. A swipe
+  moves a piece between the two, with an undo that restores its done state exactly; a tap corrects or
+  deletes it. The lesson's sheet ticks off what is attached to it; the reminder names what is current.
+- Writes are targeted `UPDATE`s (`HomeworkDao.edit`/`setDone`), so a stale list or dialog cannot undo a
+  newer swipe or edit. Sent through the share sheet, worded with the lesson's date. Not in v1:
+  photos/files, grades, due dates independent of lessons, anything student-facing.
 - **One tutor, one lesson at a time**: overlap refused, not warned; back-to-back fine; cancelled frees the
   slot; past booking allowed. Pure rule in `Scheduling.conflicts`, enforced by the repository
   (`LessonWrite.HourTaken`).
@@ -162,16 +167,21 @@ flowchart TB
 
 - Settings live in Room (single row), device-local, not backed up, written under a `Mutex`.
 - Platform auto-backup is off; the app's own JSON export (SAF) is the only way data moves between devices.
-- DB is at v8, baseline v5 (`AppDatabase.BASELINE_VERSION`); `Migrations.kt` holds exactly the steps since
+- DB is at v9, baseline v5 (`AppDatabase.BASELINE_VERSION`); `Migrations.kt` holds exactly the steps since
   baseline. Every schema change past baseline bumps the version and ships a migration
   (`MigrationChainTest` enforces wiring; each migration also gets a device test against the exported schema).
 - A step that changes a column the `classes` view projects drops and recreates the view — Room validates
   views but never rebuilds them. The latest such step reads `CLASSES_VIEW_SQL`; earlier ones keep their own
   version's `SELECT` frozen, and `MigrationChainTest` runs every step against that version's exported view.
+- A column is left in place rather than dropped (no `DROP COLUMN` below API 31, and a table rebuild is a
+  risk to the data): `settings.showGroupsTab`, and since v9 `lessons.notes`, `lessons.homework`,
+  `attendance.homeworkResult` — emptied by `MIGRATION_8_9`, written empty ever after, read by nothing.
 - Destructive fallback (wipe-on-unmigratable) is debug-only; release refuses to open such a database.
 - `BackupData.version` is independent of the schema version — it's the only bridge out of the old app id.
 - Backup = full DB snapshot → JSON. Ids preserved, import is one transaction. Older file versions still
-  import (defaults fill gaps); newer ones are refused. Restore reproduces the file as given.
+  import (defaults fill gaps); newer ones are refused. Restore reproduces the file as given, except that
+  a v8 file's homework is converted into rows (`legacyHomework`, `MIGRATION_8_9`'s twin) and an older
+  file's notes are not restored.
 - `BackupIntegrity` checks readability before any row is written; `BackupFailure` classifies a refusal;
   `BackupRestore` owns the whole restore act (rows + first-run flag + reminders + calendar re-mirror).
 
@@ -179,9 +189,9 @@ flowchart TB
 
 - Sync via `CalendarContract` (OS handles Google sync), opt-in. Mirror runs **one way**, app → calendar,
   through `ClassRepository.write`'s post-commit phase; nothing reads the calendar back.
-- A completed lesson's event is kept true but never (re)created (`Action.REFRESH`); the **homework** is the
-  event description (`CalendarEvent.description`), written verbatim even when blank — never the note, since
-  an invited student is an attendee of the same event.
+- A completed lesson's event is kept true but never (re)created (`Action.REFRESH`). Its description is
+  **always written empty** (`CalendarEvent.DESCRIPTION`): a lesson carries no text of the tutor's, and the
+  write clears the note (v7) or homework (v8) an older build put in front of an invited student.
 - Email invites are a separate, off-by-default setting; turning it off and re-syncing withdraws invites.
 - Reminders are alarms (`AlarmManager`), not workers — exact where the OS allows, inexact fallback
   otherwise; re-derived from scratch over a fixed horizon on every change; re-armed after reboot.
@@ -213,7 +223,9 @@ flowchart TB
 - **Shell**: every screen is a `KlasScreen` (owns `Scaffold`, insets, width cap, snackbar host, back arrow,
   scroll behavior) — exactly one `Scaffold` per tree. `Spacing` is the app's rhythm (`tight`…`sectionGap`).
   Card vs. row is by nesting depth (`ContentCard` top-level, `ListItem` nested). Detail cards are all
-  identity → `StatRow` → sticky tabs. One control per kind of question: `SegmentedChoice` (fixed few,
+  identity → `StatRow` → one pinned view menu (`StickyViewMenu`, «Занятия ▾»), not a tab row — four
+  tabs were too much to read at a glance. Held, a bar's icon names itself (`HoldToName`) — top-bar
+  icons and the bottom bar's tabs. One control per kind of question: `SegmentedChoice` (fixed few,
   swipeable), `ChoiceRow` (settings-shaped choice, segments up to 4 then a field), chips (shortlist +
   escape hatch).
 - **Navigation**: bottom bar «Люди·Задания·Расписание·Отчёты·Ещё», opens on the schedule (the middle tab);
@@ -225,7 +237,7 @@ flowchart TB
 - **Schedule**: three views (Day/Week/Month) via segmented control; a day is always summarized as
   count·hours·money (`domain/DaySummary`); a "now" hairline on today only; completing a lesson is a
   revocable swipe (green panel); a cancelled lesson recedes, badge stays red. Can be narrowed to one
-  student (dismissible chip). Booking is by length, not end time.
+  student (dismissible chip — `FilterMenuAction` + `FilterChipRow`, shared with «Задания»). Booking is by length, not end time.
 - **Reports**: number only where the chart shape adds meaning (column/stacked-bar/ranked-bars/plain text);
   CSV export's delimiter follows the decimal separator; can be saved or sent.
 - **Design system**: curated indigo+teal Material 3 palette, dynamic color off by default. Amber = "on
@@ -256,14 +268,14 @@ repeating booking writes lessons and keeps no rule — see *Lessons*).
 
 ## Testing
 
-- JVM unit tests (`src/test`, ~60 classes): domain, backup format, view models, repository side effects,
+- JVM unit tests (`src/test`, ~100 classes): domain, backup format, view models, repository side effects,
   mappers, formatters — against in-memory fake DAOs. `isReturnDefaultValues` is off (a test needing
   Android has found a missing port). Seed through `testutil/Fixtures`, never DAOs directly.
 - A handful of tripwire tests guard silent drift by deriving expectations from a real artifact rather than
   restating them (schema coverage, enum names, whole-table writes, screen-state/shell surface rules,
   migration chain wiring and the view each step leaves). `MigrationChainTest` is the only one in the unit
   suite guarding the upgrade path.
-- Instrumented tests (`src/androidTest`, 13 classes) cover what needs a device: Room/FK integration,
+- Instrumented tests (`src/androidTest`, 27 classes) cover what needs a device: Room/FK integration,
   backup round-trip, calendar sync, auto-completion, text measurement, gesture behavior, plural rules,
   screen-reader semantics. Every class runs under a custom `KlasTestApp` (the app's own receivers/workers
   wake mid-run and need a real Hilt component). Every migration has a device test validating column-for-column

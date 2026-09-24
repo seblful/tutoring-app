@@ -16,37 +16,30 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditCalendar
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.PersonAddAlt
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
-import androidx.compose.material3.InputChipDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -67,6 +60,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -76,17 +70,16 @@ import com.seblful.klas.R
 import com.seblful.klas.domain.DaySummary
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.domain.NowMarker
-import com.seblful.klas.domain.model.HomeworkResult
+import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.LessonStatus
-import com.seblful.klas.domain.model.Student
-import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.format.daySummaryText
-import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatWeekRange
 import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.format.toLocalTime
+import com.seblful.klas.ui.common.FilterChipRow
+import com.seblful.klas.ui.common.FilterMenuAction
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.DatePickerModal
@@ -96,7 +89,6 @@ import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.Loadable
-import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.StatusBadge
@@ -115,10 +107,6 @@ import com.seblful.klas.ui.common.rememberConfirmFeedback
 import com.seblful.klas.ui.common.swipeBetweenSegments
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.common.valueOrNull
-import com.seblful.klas.ui.homework.HomeworkDialog
-import com.seblful.klas.ui.homework.HomeworkRow
-import com.seblful.klas.ui.homework.HomeworkVerdicts
-import com.seblful.klas.ui.homework.SendHomeworkButton
 import com.seblful.klas.ui.theme.klasColors
 import java.time.LocalDate
 import java.time.YearMonth
@@ -196,7 +184,6 @@ fun ScheduleScreen(
     var sheetFor by remember { mutableStateOf<ScheduleRow?>(null) }
     var movingRow by remember { mutableStateOf<ScheduleRow?>(null) }
     var deletingRow by remember { mutableStateOf<ScheduleRow?>(null) }
-    var settingHomeworkFor by remember { mutableStateOf<ScheduleRow?>(null) }
 
     // These actions are tapped in a sheet that closes as they are tapped, so a write that failed would
     // otherwise read as one that had not been tapped at all.
@@ -228,10 +215,13 @@ fun ScheduleScreen(
             // Offered only once there is somebody to narrow to — a menu whose every entry is «Все
             // ученики» is a control that cannot do anything.
             if (filterableStudents.isNotEmpty()) {
-                StudentFilterAction(
-                    students = filterableStudents,
-                    selected = studentFilter?.studentId,
-                    onSelect = viewModel::setStudentFilter,
+                FilterMenuAction(
+                    name = stringResource(R.string.schedule_filter_student),
+                    allLabel = stringResource(R.string.schedule_filter_all),
+                    options = filterableStudents,
+                    selected = filterableStudents.firstOrNull { it.id == studentFilter?.studentId },
+                    optionLabel = { it.name },
+                    onSelect = { viewModel.setStudentFilter(it?.id) },
                 )
             }
         },
@@ -271,7 +261,7 @@ fun ScheduleScreen(
             // name stays above it — carrying its own way out, which is the difference between a filter
             // and a mode the tutor can get stuck in.
             studentFilter?.let { filter ->
-                StudentFilterChip(
+                FilterChipRow(
                     name = filter.name,
                     onClear = { viewModel.setStudentFilter(null) },
                 )
@@ -434,17 +424,15 @@ fun ScheduleScreen(
     sheetFor?.let { row ->
         // Keyed on the lesson, so it is one read per sheet and not one per recomposition of it.
         val homework by remember(row.session.lessonId) { viewModel.homeworkAt(row.session) }
-            .collectAsState(initial = SheetHomework())
+            .collectAsState(initial = emptyList())
         ClassActionsSheet(
             row = row,
             running = row.session.lessonId in running,
             sheetState = rememberModalBottomSheetState(),
             homework = homework,
-            messages = messages,
-            // A verdict leaves the sheet open, unlike every other action on it: a group's homework is
-            // several verdicts in a row, and the sheet closing after the first would be three reopenings.
-            onHomeworkResult = viewModel::setHomeworkResult,
-            onSetHomework = { settingHomeworkFor = row; sheetFor = null },
+            // A tick leaves the sheet open, unlike every other action on it: a group lesson can have
+            // several pieces attached, and the sheet closing after the first would be a reopening each.
+            onHomeworkDone = viewModel::setHomeworkDone,
             onEdit = { onEditClass(row.klass.id); sheetFor = null },
             // **The same «done» the swipe gives**, because it is the same act. Marking a lesson taught by
             // dragging its row both buzzed and popped; doing it from this sheet only popped, so the app felt
@@ -454,14 +442,6 @@ fun ScheduleScreen(
             onMove = { movingRow = row; sheetFor = null },
             onDelete = { deletingRow = row; sheetFor = null },
             onDismiss = { sheetFor = null },
-        )
-    }
-
-    settingHomeworkFor?.let { row ->
-        HomeworkDialog(
-            initial = row.klass.homework,
-            onSave = { viewModel.setHomework(row.session, it) },
-            onDismiss = { settingHomeworkFor = null },
         )
     }
 
@@ -616,76 +596,6 @@ private fun LazyListScope.dayList(
             }
         }
         if (nowMark == rows.size) item(key = NowKey) { NowLine(Modifier.animateItem()) }
-    }
-}
-
-/**
- * The app bar's way into narrowing the schedule to one student.
- *
- * A menu rather than a second segmented row or a search box: the answer is one of a list that is as long
- * as the tutor's roster, and it is asked rarely — a filter is something you switch on to check a term of
- * bookings and then switch off again. «Все ученики» sits at the top as a real entry rather than the
- * absence of one, for the reason `LessonFilter.ALL` does: the way out has to be visible from inside.
- *
- * The icon does **not** change to mark that a filter is on. The chip under the bar says that, in words,
- * with the name in it — an icon differing by its fill is a signal a tutor has to already know how to read.
- */
-@Composable
-private fun StudentFilterAction(
-    students: List<Student>,
-    selected: Long?,
-    onSelect: (Long?) -> Unit,
-) {
-    var open by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { open = true }) {
-            Icon(Icons.Filled.FilterList, stringResource(R.string.schedule_filter_student))
-        }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.schedule_filter_all)) },
-                onClick = { onSelect(null); open = false },
-                trailingIcon = { if (selected == null) Icon(Icons.Filled.Check, null) },
-            )
-            students.forEach { student ->
-                DropdownMenuItem(
-                    text = { Text(student.name) },
-                    onClick = { onSelect(student.id); open = false },
-                    trailingIcon = { if (selected == student.id) Icon(Icons.Filled.Check, null) },
-                )
-            }
-        }
-    }
-}
-
-/**
- * Who the schedule is currently showing, and the one tap that stops.
- *
- * An `InputChip` because that is what this is in Material's vocabulary — a value the tutor put there,
- * removable — rather than a filter chip, which is a toggle among peers. It sits between the view-mode
- * segments and the navigator so that it is above every one of the three views and cannot be scrolled
- * away from: the whole point is that it is impossible to be looking at a narrowed schedule without
- * seeing why.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun StudentFilterChip(name: String, onClear: () -> Unit) {
-    Row(
-        Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.tight),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        InputChip(
-            selected = true,
-            onClick = onClear,
-            label = { Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-            trailingIcon = {
-                Icon(
-                    Icons.Filled.Close,
-                    stringResource(R.string.schedule_filter_clear),
-                    Modifier.size(InputChipDefaults.AvatarSize),
-                )
-            },
-        )
     }
 }
 
@@ -1082,8 +992,8 @@ private fun NowLine(modifier: Modifier = Modifier) {
 private val NowDotSize = 6.dp
 
 /**
- * What can be done to the lesson that was tapped: change its status, check and set its homework, edit it,
- * move it, delete it.
+ * What can be done to the lesson that was tapped: change its status, tick off the homework attached to it,
+ * edit it, move it, delete it.
  *
  * **Status comes first and is a control, not a list of verbs.** It is the most common reason the sheet
  * is open by a wide margin, and it used to be one or two ordinary rows in the middle of a flat menu,
@@ -1092,9 +1002,8 @@ private val NowDotSize = 6.dp
  *
  * Every action is the **whole lesson's**, a group's included. The sheet deliberately does not list
  * the members as a roster: who a lesson covers is picked while booking it, on the form, and a menu that
- * changes a lesson's status is not where a roster belongs. The one place it names them is the homework
- * check, because a verdict is each student's own — and it names whoever the homework was set for, which
- * is a fact about the last lesson rather than about this one's roster.
+ * changes a lesson's status is not where a roster belongs. The one place it names one is the homework, when
+ * a member's own is attached to a group's lesson — see [SheetHomework.who].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1102,10 +1011,8 @@ private fun ClassActionsSheet(
     row: ScheduleRow,
     running: Boolean,
     sheetState: androidx.compose.material3.SheetState,
-    homework: SheetHomework,
-    messages: Messages,
-    onHomeworkResult: (TutoringClass, HomeworkResult) -> Unit,
-    onSetHomework: () -> Unit,
+    homework: List<SheetHomework>,
+    onHomeworkDone: (Homework, Boolean) -> Unit,
     onEdit: () -> Unit,
     onStatus: (LessonStatus) -> Unit,
     onMove: () -> Unit,
@@ -1140,29 +1047,12 @@ private fun ClassActionsSheet(
             // said what the lesson *is* — the tutor had to infer it from which verbs were absent.
             StatusSelector(row = row, onStatus = onStatus)
 
-            // **The note, where it is read.** This is the one screen a tutor is already on between
-            // lessons, and a line locked inside the edit form would be something to go and find — so
-            // reading it would cost the same two taps as «Изменить», which is what makes a written note
-            // not worth writing. It is shown only when there is one: an empty block on every lesson would
-            // be four lines of nothing on the app's busiest sheet, and the form is where a note is *added*.
-            if (klass.notes.isNotBlank()) {
-                LessonNotes(klass.notes)
-            }
-
-            // The homework this lesson checks, **with its verdicts on the sheet**: the start of a lesson is
-            // when the tutor asks for it, and this is the screen they are on. Then what this lesson set,
-            // with the button that sends it — the end of the lesson is when that happens.
-            homework.checks?.let { due -> HomeworkToCheck(due, onHomeworkResult) }
-            homework.sets?.let { set -> LessonHomework(set, messages) }
+            // What was set for this lesson, **with its ticks on the sheet**: the start of a lesson is when
+            // the tutor asks for it, and this is the screen they are on.
+            if (homework.isNotEmpty()) AttachedHomework(homework, onHomeworkDone)
 
             HorizontalDivider(Modifier.padding(vertical = Spacing.inline))
 
-            // First among the actions, because it is the one taken at the end of nearly every lesson.
-            SheetAction(
-                stringResource(if (klass.homework.isBlank()) R.string.homework_set else R.string.homework_edit),
-                Icons.AutoMirrored.Filled.Assignment,
-                onClick = onSetHomework,
-            )
             // Editing details (student/subject/price) is allowed in any status; saving a completed
             // class re-bills it so its recognized income tracks the edit (see ClassRules.rebill).
             // A group lesson edits as a whole — every member's class moves and re-bills together.
@@ -1185,92 +1075,48 @@ private fun ClassActionsSheet(
 }
 
 /**
- * What the tutor wrote about this lesson, read-only, under its status.
- *
- * Selectable, because the commonest thing to do with «§ 12, упр. 4–7» is send it to the student — and a
- * lesson's note is one of the few places in the app holding text the tutor typed rather than picked. It
- * is capped at a handful of lines: the sheet is a set of actions and a note long enough to scroll would
- * push them off the screen, so a long one is read in full on the lesson's own form.
+ * The homework attached to this lesson (`HomeworkRules.attachedToLesson`), each with a tick — the same
+ * «done» the tab's swipe gives, kept on screen once given so a wrong tap is taken back where it was made.
+ * Capped at a handful of lines each: the sheet is a set of actions, and the tab has the whole text.
  */
 @Composable
-private fun LessonNotes(notes: String) {
+private fun AttachedHomework(items: List<SheetHomework>, onDone: (Homework, Boolean) -> Unit) {
     Column(Modifier.padding(horizontal = SheetGutter, vertical = Spacing.inline)) {
         Text(
-            stringResource(R.string.class_notes_label),
+            stringResource(R.string.homework_label),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = Spacing.tight),
         )
-        SelectionContainer {
-            Text(
-                notes,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = SheetNoteLines,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-/** How much of a note the actions sheet shows before «Изменить» is the way to read the rest. */
-private const val SheetNoteLines = 4
-
-/**
- * The homework set at the lesson before this one on its track, and a verdict per student — see
- * `domain/Homework` for which lesson that is. Shown whether or not it has been marked, so a verdict given
- * from the tab is visible here too, and correctable.
- */
-@Composable
-private fun HomeworkToCheck(due: HomeworkRow, onResult: (TutoringClass, HomeworkResult) -> Unit) {
-    Column(Modifier.padding(horizontal = SheetGutter, vertical = Spacing.inline)) {
-        Text(
-            stringResource(R.string.homework_to_check_from, due.setAt.formatDate()),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = Spacing.tight),
-        )
-        SelectionContainer {
-            Text(
-                due.text,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = SheetNoteLines,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(bottom = Spacing.inline),
-            )
-        }
-        HomeworkVerdicts(row = due, onResult = onResult)
-    }
-}
-
-/**
- * What this lesson set for home, and the button that sends it — worded for the day of the lesson it is
- * due at, when one is booked.
- */
-@Composable
-private fun LessonHomework(set: HomeworkRow, messages: Messages) {
-    Row(
-        Modifier.padding(start = SheetGutter, end = Spacing.inline, top = Spacing.inline),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                stringResource(R.string.homework_label),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = Spacing.tight),
-            )
-            SelectionContainer {
-                Text(
-                    set.text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = SheetNoteLines,
-                    overflow = TextOverflow.Ellipsis,
-                )
+        items.forEach { item ->
+            val done = item.homework.isDone
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .toggleable(value = done, role = Role.Checkbox) { onDone(item.homework, it) }
+                    .padding(vertical = Spacing.tight),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // No handler of its own: the row is the target, so the whole line ticks it.
+                Checkbox(checked = done, onCheckedChange = null)
+                Column(Modifier.weight(1f).padding(start = Spacing.inline)) {
+                    item.who?.let { Text(it, style = MaterialTheme.typography.labelLarge) }
+                    Text(
+                        item.homework.text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (done) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.onSurface,
+                        textDecoration = if (done) TextDecoration.LineThrough else null,
+                        maxLines = SheetHomeworkLines,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
-        SendHomeworkButton(set, messages)
     }
 }
+
+/** How much of one piece of homework the actions sheet shows before the tab is the way to read the rest. */
+private const val SheetHomeworkLines = 4
 
 /**
  * The lesson's status as a segmented control.

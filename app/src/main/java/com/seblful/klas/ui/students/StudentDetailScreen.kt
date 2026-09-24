@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material3.AlertDialog
@@ -37,7 +38,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -65,14 +65,16 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.LessonFilter
 import com.seblful.klas.domain.model.Balance
-import com.seblful.klas.domain.model.HomeworkResult
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
-import com.seblful.klas.domain.model.TutoringClass
-import com.seblful.klas.ui.homework.HomeworkResultSelector
+import com.seblful.klas.ui.homework.AssigneeChoice
+import com.seblful.klas.ui.homework.HomeworkDialog
+import com.seblful.klas.ui.homework.HomeworkRow
+import com.seblful.klas.ui.homework.homeworkItems
+import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.EmptyState
@@ -89,7 +91,7 @@ import com.seblful.klas.ui.common.RateHistoryList
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatRow
-import com.seblful.klas.ui.common.StickyTabRow
+import com.seblful.klas.ui.common.StickyViewMenu
 import com.seblful.klas.ui.common.StudentEditDialog
 import com.seblful.klas.ui.common.TitleSize
 import com.seblful.klas.ui.common.balanceDescription
@@ -111,23 +113,26 @@ import com.seblful.klas.format.toLocalDate
 import java.time.LocalDate
 
 /**
- * The four things a student's card is *about*, each its own tab.
+ * The four things a student's card is *about*, each its own list — **one shown at a time**, picked from a
+ * menu ([StickyViewMenu]) rather than a row of four tabs.
  *
  * They used to be three stacked sections in one scroll, which meant reaching a payment scrolled past
  * every subject and every lesson — and the lesson list, the longest of the three by far, had to be
- * capped behind a "show all" toggle to stay navigable. A tab shows one list at full length instead,
- * so nothing is hidden and each list starts at the top.
+ * capped behind a "show all" toggle to stay navigable. Then four tabs, which showed one list at full
+ * length but put four words side by side on every visit. Now the list the card opens on is the lessons —
+ * what a tutor opens a student for most — and the other three are a tap away, in this order: the money,
+ * the homework, and the subjects and rates, which are set once and rarely looked at again.
  */
-private enum class StudentTab(val labelRes: Int) {
-    SUBJECTS(R.string.student_subjects_title),
-    CLASSES(R.string.student_classes_title),
-    PAYMENTS(R.string.student_payments_title),
+private enum class StudentTab(val labelRes: Int, val icon: ImageVector) {
+    CLASSES(R.string.student_classes_title, Icons.Outlined.CalendarMonth),
+    PAYMENTS(R.string.student_payments_title, Icons.Outlined.Payments),
 
     /**
-     * Every piece of homework they were set, with its verdict — the record a parent asks about. The app's
-     * «Задания» tab lists only what is open; the whole history is this student's, so it is here.
+     * Their homework and their groups', current and done — the one place an archived student's is still
+     * listed, and where homework is set for this student without picking them first.
      */
-    HOMEWORK(R.string.student_homework_title),
+    HOMEWORK(R.string.student_homework_title, Icons.AutoMirrored.Outlined.Assignment),
+    SUBJECTS(R.string.student_subjects_title, Icons.AutoMirrored.Outlined.MenuBook),
 }
 
 /**
@@ -157,7 +162,7 @@ private fun StudentCard(
 ) {
     val student = state.student
 
-    var tab by rememberSaveable { mutableStateOf(StudentTab.SUBJECTS) }
+    var tab by rememberSaveable { mutableStateOf(StudentTab.CLASSES) }
     var lessonFilter by rememberSaveable { mutableStateOf(LessonFilter.ALL) }
     var editing by remember { mutableStateOf(false) }
     var addingSubject by remember { mutableStateOf(false) }
@@ -165,6 +170,9 @@ private fun StudentCard(
     var addingPayment by remember { mutableStateOf(false) }
     var editingPayment by remember { mutableStateOf<Payment?>(null) }
     var confirmingArchive by remember { mutableStateOf(false) }
+    // Taken when the dialog opens — see `StudentDetailViewModel.homeworkChoice`.
+    var addingHomework by remember { mutableStateOf<AssigneeChoice?>(null) }
+    var openedHomework by remember { mutableStateOf<HomeworkRow?>(null) }
 
     val messages = rememberMessages()
     val context = LocalContext.current
@@ -196,6 +204,9 @@ private fun StudentCard(
         }
     }
 
+    val homeworkDoneMsg = stringResource(R.string.homework_done_message)
+    val homeworkRestoredMsg = stringResource(R.string.homework_restored_message)
+    val homeworkDeletedMsg = stringResource(R.string.homework_deleted)
     val paymentDeletedMsg = stringResource(R.string.payment_deleted)
     val undoLabel = stringResource(R.string.action_undo)
     fun deletePaymentWithUndo(payment: Payment) {
@@ -213,8 +224,10 @@ private fun StudentCard(
         titleSize = TitleSize.Large,
         messages = messages,
         actions = {
-            IconButton(onClick = { editing = true }) {
-                Icon(Icons.Filled.Edit, stringResource(R.string.action_edit))
+            HoldToName(stringResource(R.string.action_edit)) {
+                IconButton(onClick = { editing = true }) {
+                    Icon(Icons.Filled.Edit, stringResource(R.string.action_edit))
+                }
             }
             // Archiving is behind the overflow now. It used to be a bare text button in the
             // bar — «Имя [✎] [В архив]» — which put the most consequential thing on the
@@ -289,17 +302,23 @@ private fun StudentCard(
                 )
             }
 
-            // Pinned, so the tab bar stays reachable however long the list under it runs.
+            // Pinned, so the other lists stay a tap away however long the one under it runs.
             stickyHeader(key = StudentDetailKeys.TABS) {
-                StickyTabRow(selectedTabIndex = tab.ordinal) {
-                    StudentTab.entries.forEach { entry ->
-                        Tab(
-                            selected = tab == entry,
-                            onClick = { tab = entry },
-                            text = { Text(stringResource(entry.labelRes)) },
-                        )
-                    }
-                }
+                StickyViewMenu(
+                    options = StudentTab.entries,
+                    selected = tab,
+                    onSelect = { tab = it },
+                    label = { stringResource(it.labelRes) },
+                    icon = { it.icon },
+                    count = { entry ->
+                        when (entry) {
+                            StudentTab.CLASSES -> state.classes.size
+                            StudentTab.PAYMENTS -> state.payments.size
+                            StudentTab.HOMEWORK -> state.homework.current.size
+                            StudentTab.SUBJECTS -> state.subjects.size
+                        }
+                    },
+                )
             }
 
             when (tab) {
@@ -320,7 +339,18 @@ private fun StudentCard(
                     onEdit = { editingPayment = it },
                     onDelete = ::deletePaymentWithUndo,
                 )
-                StudentTab.HOMEWORK -> homeworkTab(state = state, onResult = viewModel::setHomeworkResult)
+                StudentTab.HOMEWORK -> homeworkItems(
+                    lists = state.homework,
+                    messages = messages,
+                    onAdd = { addingHomework = viewModel.homeworkChoice() },
+                    onOpen = { openedHomework = it },
+                    onDone = { item, done ->
+                        viewModel.setHomeworkDone(item, done)
+                        messages.show(if (done) homeworkDoneMsg else homeworkRestoredMsg, undoLabel) {
+                            viewModel.putHomeworkBack(item)
+                        }
+                    },
+                )
             }
         }
     }
@@ -371,6 +401,29 @@ private fun StudentCard(
             initialDate = payment.date.toLocalDate(),
             onConfirm = { amount, date -> viewModel.editPayment(payment, amount, date) },
             onDismiss = { editingPayment = null },
+        )
+    }
+    addingHomework?.let { choice ->
+        HomeworkDialog(
+            choices = listOf(choice),
+            onSave = { _, text -> viewModel.giveHomework(text) },
+            onDismiss = { addingHomework = null },
+            canChangeAssignee = false,
+        )
+    }
+    openedHomework?.let { row ->
+        HomeworkDialog(
+            // Fixed to whoever it is for, a group included: the card is one student's, and moving a group's
+            // homework onto somebody else is the tab's to do.
+            choices = listOf(AssigneeChoice(row.homework.assignee, row.title, row.lessonAt)),
+            editing = row.homework,
+            canChangeAssignee = false,
+            onSave = { _, text -> viewModel.editHomework(row.homework, text) },
+            onDelete = {
+                viewModel.deleteHomework(row.homework)
+                messages.show(homeworkDeletedMsg, undoLabel) { viewModel.restoreHomework(row.homework) }
+            },
+            onDismiss = { openedHomework = null },
         )
     }
     val confirm = state.archiveIntent as? ArchiveIntent.Confirm
@@ -424,15 +477,6 @@ private fun studentStats(state: StudentDetailState): List<Stat> {
             stat.copy(hint = stat.hint ?: formatHours(totals.minutes))
         },
         Stat(label = stringResource(R.string.stat_earned), value = totals.earned.text()),
-        // Done out of checked, «частично» as the hint; no tile at all until something has a verdict — see
-        // `Homework.Record.hasVerdicts`.
-        state.homeworkRecord.takeIf { it.hasVerdicts }?.let { record ->
-            Stat(
-                label = stringResource(R.string.stat_homework),
-                value = stringResource(R.string.stat_homework_value, record.done, record.checked),
-                hint = record.partial.takeIf { it > 0 }?.let { stringResource(R.string.stat_homework_partial, it) },
-            )
-        },
     )
 }
 
@@ -577,8 +621,10 @@ private fun OverflowMenu(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(Icons.Filled.MoreVert, stringResource(R.string.action_more))
+        HoldToName(stringResource(R.string.action_more)) {
+            IconButton(onClick = { expanded = true }) {
+                Icon(Icons.Filled.MoreVert, stringResource(R.string.action_more))
+            }
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             // **Reaching the student, from any tab.** The contact block is the top of the card, which is
@@ -914,43 +960,6 @@ private fun LazyListScope.paymentsTab(
             // Tapping the row corrects it; the bin still removes it. Editing is the commoner of the
             // two — a wrong amount is a typo, not a payment that did not happen.
             modifier = Modifier.clickable { onEdit(payment) }.animateItem(),
-        )
-    }
-}
-
-/**
- * The homework this student was set, newest first, each with its verdict — correctable here, since a
- * verdict given late (a parent's message a week on) is most naturally given on the card of the student
- * it is about. Read-only otherwise: homework is set and edited on its lesson.
- */
-private fun LazyListScope.homeworkTab(
-    state: StudentDetailState,
-    onResult: (TutoringClass, HomeworkResult) -> Unit,
-) {
-    if (state.homework.isEmpty()) {
-        item(key = StudentDetailKeys.HOMEWORK_EMPTY) {
-            // No action: homework is set on a lesson, from the schedule.
-            EmptyState(
-                title = stringResource(R.string.student_homework_empty),
-                icon = Icons.AutoMirrored.Outlined.Assignment,
-                compact = true,
-            )
-        }
-        return
-    }
-    items(state.homework, key = { StudentDetailKeys.homework(it.klass.id) }) { row ->
-        ListItem(
-            leadingContent = { LessonKindIcon(row.kind) },
-            headlineContent = { Text("${row.subjectName} · ${row.klass.start.formatDate()}") },
-            supportingContent = {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-                    Text(row.klass.homework)
-                    HomeworkResultSelector(
-                        result = row.klass.homeworkResult,
-                        onResult = { result -> onResult(row.klass, result) },
-                    )
-                }
-            },
         )
     }
 }

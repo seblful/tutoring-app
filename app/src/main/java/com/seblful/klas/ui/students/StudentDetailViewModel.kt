@@ -8,19 +8,21 @@ import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.EnrollmentRepository
 import com.seblful.klas.data.repository.GroupRepository
+import com.seblful.klas.data.repository.HomeworkRepository
 import com.seblful.klas.data.repository.PaymentRepository
 import com.seblful.klas.data.repository.RateHistoryRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.format.NameOrder
 import com.seblful.klas.domain.Billing
-import com.seblful.klas.domain.Homework
+import com.seblful.klas.domain.HomeworkRules
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.domain.Taught
 import com.seblful.klas.domain.Captions
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.HomeworkResult
+import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.RateChange
@@ -29,6 +31,9 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.runCatchingCancellable
+import com.seblful.klas.ui.homework.AssigneeChoice
+import com.seblful.klas.ui.homework.HomeworkLists
+import com.seblful.klas.ui.homework.HomeworkRow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
@@ -41,6 +46,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
@@ -91,12 +97,10 @@ data class StudentDetailState(
     /** How many lessons of each kind, for the lessons tab's chips. A kind with none is absent. */
     val lessonKinds: Map<LessonKind, Int> = emptyMap(),
     /**
-     * Every lesson that set this student homework, newest first — the card's «Задания» tab, and the one
-     * place the whole record is kept (the tab lists only what is open). See [Homework.setFor].
+     * Their homework and their groups', current and done — the card's homework view, and the one place an
+     * archived student's is still listed (the «Задания» tab leaves them out). See [HomeworkRules.lists].
      */
-    val homework: List<ClassRow> = emptyList(),
-    /** How they have done it — the stat row's homework tile. */
-    val homeworkRecord: Homework.Record = Homework.Record(done = 0, partial = 0, notDone = 0, unchecked = 0),
+    val homework: HomeworkLists = HomeworkLists(current = emptyList(), archive = emptyList()),
 ) {
     /**
      * Whether narrowing the lesson list by kind means anything here. A student taught only one way
@@ -183,11 +187,13 @@ class StudentDetailViewModel @Inject constructor(
     subjects: SubjectRepository,
     private val classes: ClassRepository,
     groups: GroupRepository,
+    private val homework: HomeworkRepository,
     private val payments: PaymentRepository,
     private val enrollment: EnrollmentRepository,
     rateHistory: RateHistoryRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
+    private val clock: Clock,
 ) : ViewModel() {
 
     private val studentId: Long = checkNotNull(savedStateHandle["id"])
@@ -254,9 +260,15 @@ class StudentDetailViewModel @Inject constructor(
         partial,
         payments.observeForStudent(studentId),
         groups.observeAll(),
-    ) { partial, paymentList, groupList ->
-        // No students: this card is one student's, and never captions a name. See [Captions].
-        val captions = Captions.of(students = emptyList(), subjects = partial.allSubjects, groups = groupList)
+        homework.observeForStudentWithLessons(studentId),
+    ) { partial, paymentList, groupList, withLessons ->
+        // The one student is here only to title their homework; a lesson row never names them. See [Captions].
+        val captions = Captions.of(
+            students = listOfNotNull(partial.student),
+            subjects = partial.allSubjects,
+            groups = groupList,
+        )
+        val zone = clock.zone
         StudentDetailState(
             student = partial.student,
             balance = Billing.balanceOf(studentId, partial.classes, paymentList).state,
@@ -268,10 +280,14 @@ class StudentDetailViewModel @Inject constructor(
             },
             payments = paymentList,
             lessonKinds = LessonKind.tally(partial.classes),
-            homework = Homework.setFor(partial.classes).map { c ->
-                ClassRow(klass = c, subjectName = captions.subjectOf(c), groupName = captions.groupOf(c))
-            },
-            homeworkRecord = Homework.Record.of(partial.classes),
+            // Attached by everybody's lessons, not theirs: a member left out of a group lesson has no class
+            // in it, and the group's homework is still that lesson's — see `observeForStudentWithLessons`.
+            homework = HomeworkRow.of(
+                HomeworkRules.lists(withLessons.homework, withLessons.classes),
+                captions,
+                clock.instant().atZone(zone).toLocalDate(),
+                zone,
+            ),
         )
     }
         .ready()
@@ -403,10 +419,46 @@ class StudentDetailViewModel @Inject constructor(
     }
 
     /**
-     * Records how this student did the homework set at [klass]'s lesson — from their card, which is where
-     * a verdict given late (a parent's message a week on) is most naturally corrected.
+     * Who homework set from this card is for — this student, **as of now**, with the lesson it would be
+     * attached to. Taken when the dialog opens, since that lesson moves on as the day does. Null before the
+     * card has loaded.
      */
-    fun setHomeworkResult(klass: TutoringClass, result: HomeworkResult) {
-        write { classes.setHomeworkResult(klass, result) }
+    fun homeworkChoice(): AssigneeChoice? {
+        val loaded = state.value.valueOrNull() ?: return null
+        val student = loaded.student ?: return null
+        val assignee = Assignee.Student(studentId)
+        return AssigneeChoice(
+            assignee = assignee,
+            name = student.name,
+            nextLessonAt = HomeworkRules.nextLesson(assignee, clock.instant(), loaded.classes.map { it.klass })?.start,
+        )
+    }
+
+    /** Sets homework for this student — attached to their next lesson from now. */
+    fun giveHomework(text: String) {
+        write { homework.give(Assignee.Student(studentId), text) }
+    }
+
+    /** Corrects [item]'s text; who it is for is not changed from here (the card is one student's). */
+    fun editHomework(item: Homework, text: String) {
+        write { homework.edit(item, item.assignee, text) }
+    }
+
+    fun setHomeworkDone(item: Homework, done: Boolean) {
+        write { homework.setDone(item, done) }
+    }
+
+    /** Undoes a swipe, [item]'s done state back as it was — see `HomeworkRepository.putBack`. */
+    fun putHomeworkBack(item: Homework) {
+        write { homework.putBack(item) }
+    }
+
+    fun deleteHomework(item: Homework) {
+        write { homework.delete(item) }
+    }
+
+    /** Puts back a just-deleted piece of homework, for the undo — like [restorePayment]. */
+    fun restoreHomework(item: Homework) {
+        write { homework.restore(item) }
     }
 }

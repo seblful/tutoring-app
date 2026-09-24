@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -62,6 +63,9 @@ fun SwipeToConfirmBox(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
+    // Read at the lift rather than captured once: `pointerInput(Unit)` keeps its first lambda, and a caller
+    // whose action depends on the list the row is in hands over a new one when that changes.
+    val confirm by rememberUpdatedState(onConfirm)
     val armedFeedback = rememberArmedFeedback()
     val confirmFeedback = rememberConfirmFeedback()
     val scope = rememberCoroutineScope()
@@ -105,7 +109,7 @@ fun SwipeToConfirmBox(
                     onDragEnd = {
                         if (swipeArmed(dragged, width)) {
                             confirmFeedback()
-                            onConfirm()
+                            confirm()
                         }
                         springHome()
                     },

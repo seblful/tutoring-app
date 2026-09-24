@@ -233,18 +233,7 @@ private fun MainApp() {
                 )
             }
             screen(Routes.HOMEWORK) {
-                HomeworkScreen(
-                    onOpenLesson = { navController.navigate(Routes.classEdit(it)) },
-                    // A **tab**, switched to the way the bar switches to it — homework is set on a lesson,
-                    // and an empty list's way out is the place lessons are.
-                    onOpenSchedule = {
-                        navController.navigate(Routes.SCHEDULE) {
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                )
+                HomeworkScreen()
             }
 
             screen(Routes.STUDENT_ADD) {

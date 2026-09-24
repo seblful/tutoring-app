@@ -10,7 +10,8 @@ package com.seblful.klas.ui.students
  * one section at once — i.e. anyone with a completed class *and* a payment, which is exactly the
  * set of students who have a balance. Namespacing each id by its kind keeps the keys distinct.
  *
- * The fixed keys below name the card's own furniture (the stat row, the tabs, each tab's add button
+ * Homework's rows and furniture are keyed by `HomeworkItemKeys`, which shares this list. The fixed
+ * keys below name the card's own furniture (the stat row, the tabs, each tab's add button
  * and empty state). They exist for the same reason: they share the list with the id-keyed rows, so
  * they need names that no row can collide with — and a key on the sticky tab bar in particular is
  * what keeps it from being re-created, and its ripple restarted, each time a tab swaps the rows
@@ -27,12 +28,8 @@ internal object StudentDetailKeys {
     const val CLASSES_EMPTY = "classes:empty"
     const val PAYMENTS_ADD = "payments:add"
     const val PAYMENTS_EMPTY = "payments:empty"
-    const val HOMEWORK_EMPTY = "homework:empty"
 
     fun subject(id: Long): String = "subject:$id"
     fun payment(id: Long): String = "payment:$id"
     fun klass(id: Long): String = "class:$id"
-
-    /** A homework row is its class's, like a lesson row — and namespaced apart from one. */
-    fun homework(id: Long): String = "homework:$id"
 }

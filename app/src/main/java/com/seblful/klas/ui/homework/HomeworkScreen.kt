@@ -4,78 +4,104 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AssignmentTurnedIn
-import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.automirrored.outlined.Assignment
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
-import com.seblful.klas.domain.model.HomeworkResult
-import com.seblful.klas.domain.model.TutoringClass
-import com.seblful.klas.format.bulletJoin
-import com.seblful.klas.format.formatDate
-import com.seblful.klas.ui.common.ContentCard
+import com.seblful.klas.domain.LessonKind
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.FilterChipRow
+import com.seblful.klas.ui.common.FilterMenuAction
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.swipeBetweenSegments
 
-/** The tab's two questions: what do I check, and what have I handed out. */
+/** The tab's two lists: what is set and not done yet, and what is done. */
 private enum class HomeworkSide(val labelRes: Int) {
-    TO_CHECK(R.string.homework_side_to_check),
-    HANDED_OUT(R.string.homework_side_handed_out),
+    CURRENT(R.string.homework_side_current),
+    ARCHIVE(R.string.homework_side_archive),
 }
 
 /**
- * «Задания» — every student's homework, as **a list of things to do** rather than an archive.
+ * «Задания» — every student's and group's homework: **what is current, and the archive**.
  *
- * «Проверить» is the reason the tab exists: homework whose lesson is today, then homework whose lesson
- * came and went without anybody marking it, each with its verdicts right on the card. «Выдано» is what
- * is set and not due yet, with the button that sends it. What a student has done over the term is not
- * here — that is a reading about one person, and it is on their card.
- *
- * Homework is **set on a lesson**, never here: it belongs to the hour it was given at, and the schedule is
- * the one place that knows which hour that is. So the tab has no add button, and an empty one offers the
- * schedule instead.
+ * Set here, with the button, for whoever it is for: the dialog lists the student being taught about now
+ * first — preselecting nobody — and says which lesson it will be attached to. Swiped done, it goes to the archive; swiped there,
+ * it comes back. Tapped, it opens to be corrected or deleted. That is the whole of it — the first version
+ * asked for a verdict per student and split the open ones into «Проверить» and «Выдано», and the tutor
+ * wanted neither.
  */
 @Composable
-fun HomeworkScreen(
-    onOpenLesson: (Long) -> Unit,
-    onOpenSchedule: () -> Unit,
-    viewModel: HomeworkViewModel = hiltViewModel(),
-) {
-    var side by rememberSaveable { mutableStateOf(HomeworkSide.TO_CHECK) }
-    val state by viewModel.lists.collectAsState()
+fun HomeworkScreen(viewModel: HomeworkViewModel = hiltViewModel()) {
+    var side by rememberSaveable { mutableStateOf(HomeworkSide.CURRENT) }
+    val state by viewModel.state.collectAsState()
+    // The dialog's choices are taken when it opens — see `HomeworkViewModel.choices`.
+    var adding by remember { mutableStateOf<List<AssigneeChoice>?>(null) }
+    var opened by remember { mutableStateOf<Opened?>(null) }
 
     val messages = rememberMessages()
     val failed = stringResource(R.string.action_failed)
     ShowMessagesFor(viewModel.events, messages) { failed }
+    val needStudent = stringResource(R.string.homework_need_student)
 
-    KlasScreen(title = stringResource(R.string.nav_homework), messages = messages) { modifier ->
+    fun add() {
+        // Before the tab has loaded there is no answer yet, and the tap waits for the list like any other.
+        val choices = viewModel.choices() ?: return
+        if (choices.isEmpty()) messages.show(needStudent) else adding = choices
+    }
+
+    val loaded = (state as? Loadable.Ready)?.value
+    KlasScreen(
+        title = stringResource(R.string.nav_homework),
+        messages = messages,
+        actions = {
+            // Offered once there is somebody to narrow to, as the schedule's is.
+            if (loaded != null && loaded.assignees.isNotEmpty()) {
+                FilterMenuAction(
+                    name = stringResource(R.string.homework_filter),
+                    allLabel = stringResource(R.string.homework_filter_all),
+                    options = loaded.assignees,
+                    selected = loaded.filter,
+                    optionLabel = loaded.captions::titleOf,
+                    onSelect = viewModel::setFilter,
+                    leading = { who ->
+                        LessonKindIcon(if (who is Assignee.Group) LessonKind.GROUP else LessonKind.INDIVIDUAL)
+                    },
+                )
+            }
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = ::add) {
+                Icon(Icons.Filled.Add, stringResource(R.string.homework_add))
+            }
+        },
+    ) { modifier ->
         // The same two-sided shape as «Люди»: segments on the page, and a drag across the body turns it.
         Column(modifier.swipeBetweenSegments(HomeworkSide.entries, side) { side = it }) {
             SegmentedChoice(
@@ -83,155 +109,129 @@ fun HomeworkScreen(
                 selected = side,
                 onSelect = { side = it },
                 modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
-                label = { entry -> sideLabel(entry, (state as? Loadable.Ready)?.value) },
+                label = { entry -> sideLabel(entry, loaded?.lists) },
             )
+            // Above both lists and outside their scroll, as the schedule's: a narrowed tab says so.
+            loaded?.filterName?.let { name -> FilterChipRow(name, onClear = { viewModel.setFilter(null) }) }
             Box(Modifier.fillMaxSize()) {
-                when (val loaded = state) {
+                when (val ready = state) {
                     Loadable.Loading -> ListSkeleton()
                     is Loadable.Ready -> HomeworkList(
                         side = side,
-                        lists = loaded.value,
+                        lists = ready.value.lists,
+                        filterName = ready.value.filterName,
                         messages = messages,
-                        onOpenLesson = onOpenLesson,
-                        onOpenSchedule = onOpenSchedule,
-                        onResult = viewModel::setResult,
+                        viewModel = viewModel,
+                        onAdd = ::add,
+                        onOpen = { row -> opened = Opened(row, viewModel.choicesFor(row)) },
                     )
                 }
             }
         }
     }
+
+    adding?.let { choices ->
+        HomeworkDialog(
+            choices = choices,
+            onSave = viewModel::give,
+            onDismiss = { adding = null },
+        )
+    }
+    opened?.let { (row, choices) ->
+        val deletedMsg = stringResource(R.string.homework_deleted)
+        val undoLabel = stringResource(R.string.action_undo)
+        HomeworkDialog(
+            choices = choices,
+            editing = row.homework,
+            onSave = { assignee, text -> viewModel.edit(row.homework, assignee, text) },
+            onDelete = {
+                viewModel.delete(row.homework)
+                messages.show(deletedMsg, undoLabel) { viewModel.restore(row.homework) }
+            },
+            onDismiss = { opened = null },
+        )
+    }
 }
 
-/** A side's name, with how many are on it once there is a count to give. */
+/** A piece of homework opened to be corrected, with who it could be moved to, taken as it opened. */
+private data class Opened(val row: HomeworkRow, val choices: List<AssigneeChoice>)
+
+/** A side's name, with how many are current once there is a count to give; the archive only grows. */
 @Composable
 private fun sideLabel(side: HomeworkSide, lists: HomeworkLists?): String {
     val name = stringResource(side.labelRes)
-    val count = when (side) {
-        HomeworkSide.TO_CHECK -> lists?.toCheck
-        HomeworkSide.HANDED_OUT -> lists?.handedOut
-    }
-    return if (count != null && count > 0) stringResource(R.string.homework_side_count, name, count) else name
+    val count = lists?.current?.size?.takeIf { side == HomeworkSide.CURRENT && it > 0 }
+    return if (count != null) stringResource(R.string.homework_side_count, name, count) else name
 }
 
 @Composable
 private fun HomeworkList(
     side: HomeworkSide,
     lists: HomeworkLists,
+    filterName: String?,
     messages: Messages,
-    onOpenLesson: (Long) -> Unit,
-    onOpenSchedule: () -> Unit,
-    onResult: (TutoringClass, HomeworkResult) -> Unit,
+    viewModel: HomeworkViewModel,
+    onAdd: () -> Unit,
+    onOpen: (HomeworkRow) -> Unit,
 ) {
-    val empty = when (side) {
-        HomeworkSide.TO_CHECK -> lists.toCheck == 0
-        HomeworkSide.HANDED_OUT -> lists.handedOut == 0
-    }
-    if (empty) {
+    val rows = if (side == HomeworkSide.CURRENT) lists.current else lists.archive
+    if (rows.isEmpty() && filterName != null) {
+        // The way out is the chip above, which is where the tutor put the filter.
         EmptyState(
-            title = stringResource(
-                if (side == HomeworkSide.TO_CHECK) R.string.homework_empty_to_check
-                else R.string.homework_empty_handed_out,
-            ),
-            detail = stringResource(R.string.homework_empty_detail),
-            icon = if (side == HomeworkSide.TO_CHECK) Icons.Outlined.AssignmentTurnedIn else Icons.Outlined.Inbox,
-            actionLabel = stringResource(R.string.homework_open_schedule),
-            onAction = onOpenSchedule,
+            title = stringResource(R.string.homework_filter_empty, filterName),
+            detail = stringResource(R.string.homework_filter_empty_detail),
+            icon = Icons.AutoMirrored.Outlined.Assignment,
         )
         return
     }
+    if (rows.isEmpty()) {
+        when (side) {
+            HomeworkSide.CURRENT -> EmptyState(
+                title = stringResource(R.string.homework_empty_current),
+                detail = stringResource(R.string.homework_empty_current_detail),
+                icon = Icons.AutoMirrored.Outlined.Assignment,
+                actionLabel = stringResource(R.string.homework_add),
+                onAction = onAdd,
+            )
+            HomeworkSide.ARCHIVE -> EmptyState(
+                title = stringResource(R.string.homework_empty_archive),
+                detail = stringResource(R.string.homework_empty_archive_detail),
+                icon = Icons.Outlined.Inventory2,
+            )
+        }
+        return
+    }
+    val doneMsg = stringResource(R.string.homework_done_message)
+    val restoredMsg = stringResource(R.string.homework_restored_message)
+    val undoLabel = stringResource(R.string.action_undo)
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(Spacing.gutter),
+        contentPadding = PaddingValues(
+            start = Spacing.gutter,
+            end = Spacing.gutter,
+            top = Spacing.inline,
+            bottom = FabClearance,
+        ),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
-        when (side) {
-            HomeworkSide.TO_CHECK -> {
-                section(R.string.homework_section_today, lists.today, checking = true, messages, onOpenLesson, onResult)
-                section(R.string.homework_section_overdue, lists.overdue, checking = true, messages, onOpenLesson, onResult)
-            }
-            HomeworkSide.HANDED_OUT -> {
-                // Booked ones need no heading: each card says the day it is for.
-                section(null, lists.waiting, checking = false, messages, onOpenLesson, onResult)
-                section(R.string.homework_section_unbooked, lists.unbooked, checking = false, messages, onOpenLesson, onResult)
-            }
+        items(rows, key = { it.homework.id }) { row ->
+            val done = side == HomeworkSide.CURRENT
+            SwipeableHomework(
+                row = row,
+                onSwipe = {
+                    viewModel.setDone(row.homework, done)
+                    messages.show(if (done) doneMsg else restoredMsg, undoLabel) {
+                        viewModel.putBack(row.homework)
+                    }
+                },
+                onClick = { onOpen(row) },
+                messages = messages,
+                nested = false,
+                modifier = Modifier.animateItem(),
+            )
         }
     }
 }
 
-/**
- * One section of cards under an optional heading, drawn only when it has any.
- *
- * @param checking whether its cards carry the verdicts — the «Проверить» side's. «Выдано» leaves them
- *   off: homework not due yet has usually not been done yet either, and a row of verdicts under every
- *   card would invite marking it early by mistake.
- */
-private fun LazyListScope.section(
-    headingRes: Int?,
-    rows: List<HomeworkRow>,
-    checking: Boolean,
-    messages: Messages,
-    onOpenLesson: (Long) -> Unit,
-    onResult: (TutoringClass, HomeworkResult) -> Unit,
-) {
-    if (rows.isEmpty()) return
-    if (headingRes != null) {
-        item(key = "heading:$headingRes") {
-            Text(
-                stringResource(headingRes),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = Spacing.inline),
-            )
-        }
-    }
-    items(rows, key = { "homework:${it.assignment.set.lessonId}" }) { row ->
-        HomeworkCard(
-            row = row,
-            checking = checking,
-            messages = messages,
-            onOpen = { onOpenLesson(row.lessonClassId) },
-            onResult = onResult,
-            modifier = Modifier.animateItem(),
-        )
-    }
-}
-
-/**
- * One lesson's homework: who and what, when it is for and when it was set, the text itself — selectable,
- * since the next thing done with «§ 12, упр. 4–7» is often pasting it somewhere — and, on the side that
- * checks, a verdict per student. Tapping the card opens the lesson it was set at, where it is edited.
- */
-@Composable
-private fun HomeworkCard(
-    row: HomeworkRow,
-    checking: Boolean,
-    messages: Messages,
-    onOpen: () -> Unit,
-    onResult: (TutoringClass, HomeworkResult) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    ContentCard(onClick = onOpen, modifier = modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(bulletJoin(row.title, row.subjectName), style = MaterialTheme.typography.titleMedium)
-                Text(
-                    bulletJoin(
-                        row.dueAt?.let { stringResource(R.string.homework_due, it.dateTimeText()) }.orEmpty(),
-                        stringResource(R.string.homework_set_on, row.setAt.formatDate()),
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            SendHomeworkButton(row, messages)
-        }
-        SelectionContainer {
-            Text(
-                row.text,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(vertical = Spacing.inline),
-            )
-        }
-        if (checking) HomeworkVerdicts(row = row, onResult = onResult)
-    }
-}
+/** Room under the last card for the add button, as the schedule leaves it. */
+private val FabClearance = 88.dp

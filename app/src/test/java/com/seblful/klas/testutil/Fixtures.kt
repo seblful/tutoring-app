@@ -4,11 +4,14 @@ import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
+import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Money
+import java.time.Duration
 import java.time.Instant
 
 /**
@@ -193,6 +196,24 @@ class Fixtures(private val env: TestEnv) {
                 calendarEventId = calendarEventId,
             ),
         )
+    }
+
+    /**
+     * Homework for [assignee], given at [at] — through the repository, which stamps it with the clock, so
+     * the clock is moved to [at] for the write and put back after. [done] marks it done at the same moment.
+     */
+    suspend fun homework(
+        assignee: Assignee,
+        text: String = "§ 12, упр. 4–7",
+        at: Instant = env.clock.instant(),
+        done: Boolean = false,
+    ): Homework {
+        val now = env.clock.instant()
+        env.clock.advanceBy(Duration.between(now, at).toMillis())
+        val given = env.homeworkRepo.give(assignee, text)
+        if (done) env.homeworkRepo.setDone(given, done = true)
+        env.clock.advanceBy(Duration.between(at, now).toMillis())
+        return if (done) given.copy(doneAt = at) else given
     }
 
     /** Calendar mirroring on, which it is not by default. */

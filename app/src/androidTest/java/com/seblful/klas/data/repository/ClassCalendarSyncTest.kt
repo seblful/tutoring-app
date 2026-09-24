@@ -13,7 +13,6 @@ import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
-import com.seblful.klas.domain.SessionEdit
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
@@ -141,37 +140,6 @@ class ClassCalendarSyncTest {
         // refreshed, never upserted (`CalendarSyncPolicy.Action.REFRESH`).
         assertTrue(calendar.upserts.isEmpty())
         assertEquals(newStart, calendar.refreshes.last().start)
-    }
-
-    /**
-     * Homework is written walking out of the room, on a lesson already marked taught — and the event,
-     * which is what an invited student sees, has to follow it. (It carries the homework and never the
-     * note: `CalendarEvent.description`.)
-     */
-    @Test fun homeworkSetAfterTheLessonReachesItsEvent() = runTest {
-        val start = Instant.parse("2026-07-10T13:00:00Z")
-        val id = book(start, price = Money(5000))
-        repo.setStatus(session(id), LessonStatus.COMPLETED)
-        calendar.upserts.clear()
-        calendar.refreshes.clear()
-
-        repo.apply(
-            session = session(id),
-            changes = SessionEdit(
-                subjectId = 1,
-                durationMinutes = 60,
-                mode = ClassMode.IN_PERSON,
-                price = Money(5000),
-                notes = "устала к концу",
-                homework = "§12, упр. 4–7",
-                studentId = 1,
-            ),
-            newStart = start,
-            now = Instant.parse("2026-07-10T20:00:00Z"),
-        )
-
-        assertEquals("§12, упр. 4–7", calendar.refreshes.last().homework)
-        assertTrue("a past hour never earns a new event", calendar.upserts.isEmpty())
     }
 
     @Test fun cancellingClassDeletesItsEvent() = runTest {

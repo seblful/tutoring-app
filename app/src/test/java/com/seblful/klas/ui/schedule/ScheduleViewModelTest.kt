@@ -3,6 +3,7 @@ package com.seblful.klas.ui.schedule
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.Attended
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
@@ -11,9 +12,11 @@ import com.seblful.klas.testutil.MutableClock
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -49,7 +52,7 @@ class ScheduleViewModelTest {
         weekStart: DayOfWeek = DayOfWeek.MONDAY,
     ) =
         ScheduleViewModel(
-            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, mainRule.appScope,
+            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, mainRule.appScope,
             mainRule.dispatcher, clock, weekStart,
         )
 
@@ -800,7 +803,7 @@ class ScheduleViewModelTest {
                 durationMinutes = 60, status = "SCHEDULED",
             )
         val vm = ScheduleViewModel(
-            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, mainRule.appScope,
+            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, mainRule.appScope,
             mainRule.dispatcher, Clock.systemDefaultZone(),
         )
         val seen = mutableListOf<ScheduleViewModel.Event>()
@@ -824,7 +827,7 @@ class ScheduleViewModelTest {
                 durationMinutes = 60, status = "SCHEDULED",
             )
         val vm = ScheduleViewModel(
-            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, mainRule.appScope,
+            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, mainRule.appScope,
             mainRule.dispatcher, Clock.systemDefaultZone(),
         )
         val seen = mutableListOf<ScheduleViewModel.Event>()
@@ -1389,5 +1392,35 @@ class ScheduleViewModelTest {
         advanceUntilIdle()
 
         assertEquals(ScheduleEmpty.FILTERED, vm.emptyReason.value)
+    }
+
+    // --- The homework attached to a lesson ---------------------------------------------------------
+
+    /**
+     * A group lesson's sheet lists the group's homework and a member's own whose next lesson it is — the
+     * member named, since the sheet is titled by the group — and a tick given there stays, ticked.
+     */
+    @Test
+    fun `a lesson's sheet lists its homework and ticks it done in place`() = runTest(mainRule.dispatcher) {
+        val maths = env.fixtures.subject()
+        val anya = env.fixtures.pricedStudent("Аня", maths)
+        val boris = env.fixtures.pricedStudent("Борис", maths)
+        val group = env.fixtures.group(subjectId = maths, members = setOf(anya, boris))
+        val lesson = env.fixtures.lesson(
+            maths, listOf(anya, boris), Instant.parse("2026-06-03T12:00:00Z"), groupId = group,
+        ).first()
+        env.fixtures.homework(Assignee.Group(group), text = "группы")
+        env.fixtures.homework(Assignee.Student(boris), text = "Бориса", at = env.clock.instant().plusSeconds(60))
+        val vm = vm(clock = env.clock)
+        val session = env.classRepo.getSessionFor(lesson)!!
+
+        val sheet = vm.homeworkAt(session).first()
+        assertEquals(listOf("группы", "Бориса"), sheet.map { it.homework.text })
+        assertEquals(listOf(null, "Борис"), sheet.map { it.who })
+
+        vm.setHomeworkDone(sheet.first().homework, done = true)
+        runCurrent()
+
+        assertEquals(listOf(true, false), vm.homeworkAt(session).first().map { it.homework.isDone })
     }
 }

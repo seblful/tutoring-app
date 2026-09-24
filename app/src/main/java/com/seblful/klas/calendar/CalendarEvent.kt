@@ -1,7 +1,5 @@
 package com.seblful.klas.calendar
 
-import com.seblful.klas.domain.model.TutoringClass
-
 /** How a class is rendered as a calendar event. Owns the event's display shape. */
 object CalendarEvent {
 
@@ -18,15 +16,10 @@ object CalendarEvent {
     }
 
     /**
-     * The event's description: **the homework, and never the note.**
-     *
-     * The description used to be the note, which was one field for what was covered and what was set —
-     * and an invited student is an attendee of that same event, so whatever the tutor wrote about the
-     * lesson reached the student's calendar with it. The two are separate fields now because they are
-     * written for different readers: the homework is for the student, the note is the tutor's own.
-     *
-     * Verbatim, with no label: it is the tutor's text, and the event already says which lesson it is.
-     * Blank when nothing was set, which is what clears the description once the homework is deleted.
+     * The event's description: **always empty.** A lesson carries no text of the tutor's any more — the
+     * note is gone, and homework is attached to a lesson by rule rather than stored on one (`domain/
+     * HomeworkRules`). v7 wrote the note here and v8 the homework, so an event mirrored by either still
+     * holds it until its lesson is next mirrored, and writing this is what clears it.
      */
-    fun description(klass: TutoringClass): String = klass.homework
+    const val DESCRIPTION: String = ""
 }

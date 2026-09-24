@@ -5,6 +5,7 @@ import com.seblful.klas.di.Computation
 import com.seblful.klas.di.FirstDayOfWeek
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.GroupRepository
+import com.seblful.klas.data.repository.HomeworkRepository
 import com.seblful.klas.data.repository.LessonWrite
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
@@ -15,7 +16,8 @@ import com.seblful.klas.domain.DaySummary
 import com.seblful.klas.domain.GroupRules
 import com.seblful.klas.domain.LessonPhase
 import com.seblful.klas.domain.NowMarker
-import com.seblful.klas.domain.model.HomeworkResult
+import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Student
@@ -29,7 +31,6 @@ import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.hold
 import com.seblful.klas.ui.common.ready
 import com.seblful.klas.ui.common.valueOrNull
-import com.seblful.klas.ui.homework.HomeworkRow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -228,10 +229,13 @@ data class WeekSection(
 )
 
 /**
- * A lesson's homework as its sheet draws it: [checks], set at the lesson before and marked here, and
- * [sets], given at this one — see `Homework.AtLesson`. Either is null when there is none.
+ * One piece of homework attached to the lesson a sheet is open on — see `HomeworkRules.attachedToLesson`.
+ *
+ * @param who whom it is for, **only where the sheet does not already say**: a group lesson's sheet is
+ *   titled by the group, so a member's own homework attached to it names the member; the group's, and an
+ *   individual lesson's, need nobody named.
  */
-data class SheetHomework(val checks: HomeworkRow? = null, val sets: HomeworkRow? = null)
+data class SheetHomework(val homework: Homework, val who: String? = null)
 
 /**
  * How the schedule presents its classes: one day at a time, a whole week's agenda, or a month grid
@@ -325,6 +329,7 @@ class ScheduleViewModel @Inject constructor(
     private val students: StudentRepository,
     private val subjects: SubjectRepository,
     private val groups: GroupRepository,
+    private val homework: HomeworkRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: Clock,
@@ -793,34 +798,29 @@ class ScheduleViewModel @Inject constructor(
     }
 
     /**
-     * The homework [session]'s sheet shows — the one it checks and the one it set, captioned.
+     * The homework attached to [session], for its sheet — done ones included, so a tick given there stays
+     * on screen to be taken back.
      *
      * A flow per sheet rather than a `StateFlow` here: it is keyed on the lesson the sheet was opened for,
      * lives exactly as long as that sheet, and the schedule's own state has no use for it. Off the main
-     * thread like everything derived here, since it walks the lessons on the track either side.
+     * thread like everything derived here, since it walks the lessons leading up to this one.
      */
-    fun homeworkAt(session: ClassSession): Flow<SheetHomework> =
+    fun homeworkAt(session: ClassSession): Flow<List<SheetHomework>> =
         combine(
-            classes.observeHomeworkAt(session),
+            homework.observeAttachedTo(session),
             students.observeAll(),
-            subjects.observeAll(),
             groups.observeAll(),
-        ) { at, studentList, subjectList, groupList ->
-            val captions = Captions.of(studentList, subjectList, groupList)
-            SheetHomework(
-                checks = at.checks?.let { HomeworkRow.of(it, captions) },
-                sets = at.sets?.let { HomeworkRow.of(it, captions) },
-            )
+        ) { attached, studentList, groupList ->
+            val captions = Captions.of(studentList, emptyList(), groupList)
+            attached.map { item ->
+                val named = session.isGroup && item.assignee is Assignee.Student
+                SheetHomework(item, who = captions.titleOf(item.assignee).takeIf { named })
+            }
         }.flowOn(computation)
 
-    /** Sets what [session] gave for home — the sheet's quick way in; the lesson's form is the other. */
-    fun setHomework(session: ClassSession, homework: String) {
-        write { classes.setHomework(session, homework) }
-    }
-
-    /** Records how the student [klass] belongs to did the homework set at its lesson. */
-    fun setHomeworkResult(klass: TutoringClass, result: HomeworkResult) {
-        write { classes.setHomeworkResult(klass, result) }
+    /** Ticks [item] done from the sheet, or takes the tick back. */
+    fun setHomeworkDone(item: Homework, done: Boolean) {
+        write { homework.setDone(item, done) }
     }
 
     /**

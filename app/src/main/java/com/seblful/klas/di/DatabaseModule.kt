@@ -6,6 +6,7 @@ import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.AttendanceDao
 import com.seblful.klas.data.local.ClassDao
 import com.seblful.klas.data.local.GroupDao
+import com.seblful.klas.data.local.HomeworkDao
 import com.seblful.klas.data.local.LessonDao
 import com.seblful.klas.data.local.Migrations
 import com.seblful.klas.data.local.PaymentDao
@@ -68,6 +69,7 @@ object DatabaseModule {
     @Provides fun provideAttendanceDao(db: AppDatabase): AttendanceDao = db.attendanceDao()
     @Provides fun providePaymentDao(db: AppDatabase): PaymentDao = db.paymentDao()
     @Provides fun provideSettingsDao(db: AppDatabase): SettingsDao = db.settingsDao()
+    @Provides fun provideHomeworkDao(db: AppDatabase): HomeworkDao = db.homeworkDao()
     @Provides fun provideSnapshotDao(db: AppDatabase): SnapshotDao = db.snapshotDao()
 
     @Provides

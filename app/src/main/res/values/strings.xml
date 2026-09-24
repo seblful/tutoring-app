@@ -22,7 +22,7 @@
     <string name="nav_schedule">Schedule</string>
     <!-- One tab for the people, holding "Students" and "Groups" as two views of the same set. -->
     <string name="nav_people">People</string>
-    <!-- Homework to check and homework handed out, across every student. -->
+    <!-- Every student's and group's homework: what is current, and the archive. -->
     <string name="nav_homework">Homework</string>
     <string name="nav_reports">Reports</string>
     <string name="nav_more">More</string>
@@ -127,8 +127,6 @@
     <string name="class_student_label">Student</string>
     <string name="class_subject_label">Subject</string>
     <string name="class_no_subjects_for_student">This student has no priced subjects. Set a price on their card.</string>
-    <!-- The tutor's own: what was covered, how it went. Never leaves the app — homework has its own field. -->
-    <string name="class_notes_label">Notes</string>
     <string name="class_date_label">Date</string>
     <string name="class_time_from_label">Starts</string>
     <!--
@@ -270,11 +268,8 @@
     <string name="student_classes_title">Lessons</string>
     <string name="student_homework_title">Homework</string>
     <string name="student_homework_empty">No homework set yet</string>
-    <!-- The stat tile: %1$d done of %2$d checked. Partly done is not done. -->
-    <string name="stat_homework">Homework done</string>
-    <string name="stat_homework_value">%1$d of %2$d</string>
-    <!-- Its hint, when some of it was only partly done. -->
-    <string name="stat_homework_partial">%1$d partly</string>
+    <!-- The heading over the done ones, under the current. -->
+    <string name="student_homework_done">Done</string>
 
     <!-- Stat tiles at the top of a student's and a group's card -->
     <string name="stat_debt">Owes</string>
@@ -590,8 +585,8 @@
     <string name="reminder_channel_name">Lesson reminders</string>
     <string name="reminder_channel_desc">Notifications before a lesson starts</string>
     <string name="reminder_title">Lesson coming up</string>
-    <!-- The expanded reminder's second line. %1$s: the homework set at the lesson before, still unmarked. -->
-    <string name="reminder_homework_to_check">To check: %1$s</string>
+    <!-- The expanded reminder's second line. %1$s: the current homework attached to this lesson. -->
+    <string name="reminder_homework_to_check">Homework: %1$s</string>
 
     <string name="agenda_channel_name">Today\'s schedule</string>
     <string name="agenda_channel_desc">Morning summary: today\'s lessons</string>
@@ -733,33 +728,47 @@
     <string name="backup_error_version">This backup was made by a newer version of Klas (%1$d) — update the app. This version reads backups up to %2$d</string>
 
     <!--
-      Homework. Set at a lesson, checked at the next one on its track — which the app works out, so none
-      of these strings ever asks the tutor to pick a due date.
+      Homework. Set for a student or a group and attached to their next lesson — which the app works out,
+      so none of these strings ever asks the tutor to pick a due date. Current until swiped done.
     -->
     <string name="homework_label">Homework</string>
-    <string name="homework_set">Set homework</string>
-    <string name="homework_edit">Edit homework</string>
-    <!-- The block on a lesson's sheet. %1$s: the date of the lesson it was set at. -->
-    <string name="homework_to_check_from">To check · set %1$s</string>
-    <string name="homework_result_done">Done</string>
-    <string name="homework_result_partial">Partly</string>
-    <string name="homework_result_not_done">Not done</string>
-    <!-- The tab's two sides. The count is added only when there is one. -->
-    <string name="homework_side_to_check">To check</string>
-    <string name="homework_side_handed_out">Handed out</string>
+    <string name="homework_add">Set homework</string>
+    <string name="homework_assignee_label">For</string>
+    <string name="homework_text_label">Task</string>
+    <!-- Under the text of a new one. %1$s: when the lesson it will be attached to starts. -->
+    <string name="homework_attached_to">For the lesson on %1$s</string>
+    <string name="homework_attached_none">No lesson booked — it will go to the next one</string>
+    <!-- The tab's two sides. The count is added to the first only when there is one. -->
+    <string name="homework_side_current">Current</string>
+    <string name="homework_side_archive">Archive</string>
     <!-- %1$s: the side's name, %2$d: how many are on it -->
     <string name="homework_side_count">%1$s · %2$d</string>
-    <string name="homework_section_today">Today</string>
-    <string name="homework_section_overdue">Earlier, not marked</string>
-    <string name="homework_section_unbooked">No next lesson booked</string>
-    <!-- %1$s: when the lesson that checks it starts -->
+    <!-- The line under whose it is. %1$s: when the lesson it is attached to starts. -->
     <string name="homework_due">Due %1$s</string>
-    <!-- %1$s: the date of the lesson it was set at -->
+    <!-- %1$s: the time of today's lesson it is attached to -->
+    <string name="homework_due_today">Today at %1$s</string>
+    <!-- %1$s: when the lesson it was attached to started — that lesson is past and it is still not done -->
+    <string name="homework_overdue">Overdue · was due %1$s</string>
+    <string name="homework_unbooked">No lesson booked</string>
+    <!-- In the archive. %1$s: the date it was set -->
     <string name="homework_set_on">Set %1$s</string>
-    <string name="homework_empty_to_check">Nothing to check</string>
-    <string name="homework_empty_handed_out">No homework handed out</string>
-    <string name="homework_empty_detail">Homework is set on a lesson. Open one in the schedule.</string>
-    <string name="homework_open_schedule">Open the schedule</string>
+    <!-- What the swipe promises, behind the row: into the archive, or back out of it. -->
+    <string name="homework_done">Done</string>
+    <string name="homework_restore">Bring back</string>
+    <string name="homework_done_message">Moved to the archive</string>
+    <string name="homework_restored_message">Back in current</string>
+    <string name="homework_deleted">Homework deleted</string>
+    <string name="homework_empty_current">No current homework</string>
+    <string name="homework_empty_current_detail">Set homework for a student or a group — it is attached to their next lesson.</string>
+    <string name="homework_empty_archive">The archive is empty</string>
+    <string name="homework_empty_archive_detail">Done homework goes here. Swipe a piece of homework to the right to mark it done.</string>
+    <string name="homework_need_student">Add a student first</string>
+    <!-- The tab's filter: one student (with their groups') or one group. -->
+    <string name="homework_filter">Show one student or group</string>
+    <string name="homework_filter_all">Everyone</string>
+    <!-- %1$s: whom the tab is narrowed to -->
+    <string name="homework_filter_empty">%1$s: nothing here</string>
+    <string name="homework_filter_empty_detail">Clear the filter to see everyone\'s homework</string>
     <!-- Sending the homework to the student, through the phone's share sheet. -->
     <string name="homework_send">Send</string>
     <!-- %1$s: the date of the lesson it is due at, %2$s: the homework -->

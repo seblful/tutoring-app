@@ -407,21 +407,6 @@ class GroupRulesTest {
     }
 
     /**
-     * A joiner joins this hour, and the homework set at it is part of the hour — but nobody has checked
-     * theirs, so it arrives with no verdict, whatever the others were given.
-     */
-    @Test
-    fun `a joiner is set the lesson's homework, and has no verdict on it`() {
-        val session = groupSession(1L to 1L)
-
-        val change = GroupRules.rosterChange(session, wanted = setOf(1, 5), lessonEdit.copy(homework = "§12"), t1)
-
-        val joined = change.joining.single()
-        assertEquals("§12", joined.homework)
-        assertEquals(null, joined.homeworkResult)
-    }
-
-    /**
      * The point of editing attendance after the fact: somebody who was there but never ticked owes
      * for the lesson exactly as the others do, so their class joins in the status the lesson is in.
      */

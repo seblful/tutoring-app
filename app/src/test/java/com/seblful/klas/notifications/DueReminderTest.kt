@@ -26,6 +26,7 @@ class DueReminderTest {
         students = env.studentRepo,
         subjects = env.subjectRepo,
         groups = env.groupRepo,
+        homework = env.homeworkRepo,
         notifier = notifier,
         settings = env.settingsRepo,
         clock = env.clock,

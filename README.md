@@ -10,7 +10,7 @@ or **EUR**.
 ## Features
 
 - **People** — students and groups in one tab, searchable; students also sortable by who owes the most.
-- **Homework** — set on a lesson and checked at the next one on its track (the same student and subject, or the group), which the app works out itself. Its own tab lists what to check today and what is handed out, with a send button; the lesson's sheet and its reminder say what to check; each student's card keeps the whole record.
+- **Homework** — set for a student or a group from its own tab (or a student's card) and attached to their next lesson, which the app works out itself. Swipe it done and it goes to the archive; the lesson's sheet and its reminder say what was set; a send button shares it.
 - **Students & subjects** — per-student subjects, each with an hourly price and a change log; archive-only (history is protected).
 - **Groups** — a named roster taught one subject at the group's own hourly rate. Booking one lesson books it for every member, so the schedule shows one card while billing stays per-student — including "this one didn't come".
 - **Schedule** — day / week / month views of one-off classes, with a `scheduled → completed | cancelled` lifecycle, swipe-to-complete, and optional auto-complete once a class ends. One tutor, one lesson at a time: an overlapping slot is refused.

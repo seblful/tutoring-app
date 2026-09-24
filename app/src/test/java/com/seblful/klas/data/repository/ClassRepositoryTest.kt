@@ -55,60 +55,13 @@ class ClassRepositoryTest {
     /** The lesson class [id] belongs to — a session of one, for an individual class. */
     private suspend fun session(id: Long) = repo.getSessionFor(id)!!
 
-    private fun edit(price: Money = Money.ofMajor(30), notes: String = "") = SessionEdit(
+    private fun edit(price: Money = Money.ofMajor(30)) = SessionEdit(
         subjectId = 1,
         durationMinutes = 60,
         mode = ClassMode.IN_PERSON,
         price = price,
-        notes = notes,
         studentId = STUDENT,
     )
-
-    // --- The lesson's note --------------------------------------------------------------------------
-
-    @Test
-    fun `a note typed while booking is stored with the lesson`() = runTest {
-        val id = repo.book(
-            subjectId = 1,
-            start = defaultStart,
-            durationMinutes = 60,
-            mode = ClassMode.IN_PERSON,
-            studentIds = listOf(STUDENT),
-            price = Money.ofMajor(30),
-            notes = "§12, упр. 4–7",
-        ).written().single()
-
-        assertEquals("§12, упр. 4–7", repo.getById(id)!!.notes)
-    }
-
-    /** A lesson booked without one has no note, rather than a null the readers would have to handle. */
-    @Test
-    fun `a lesson booked without a note has a blank one`() = runTest {
-        assertEquals("", repo.getById(book())!!.notes)
-    }
-
-    /**
-     * The commonest way a note is written: after the lesson, on a row that already exists. It rides the
-     * ordinary edit rather than a writer of its own, so it cannot bypass the rebill that edit owes.
-     */
-    @Test
-    fun `a note can be added to a lesson that is already booked`() = runTest {
-        val id = book()
-
-        repo.apply(session(id), edit(notes = "Прошли квадратные уравнения"), defaultStart, now)
-
-        assertEquals("Прошли квадратные уравнения", repo.getById(id)!!.notes)
-    }
-
-    @Test
-    fun `an edit can clear a note back to nothing`() = runTest {
-        val id = book()
-        repo.apply(session(id), edit(notes = "черновик"), defaultStart, now)
-
-        repo.apply(session(id), edit(notes = ""), defaultStart, now)
-
-        assertEquals("", repo.getById(id)!!.notes)
-    }
 
     @Test
     fun `booking persists the class and refreshes reminders, but skips the calendar while sync is off`() = runTest {
@@ -188,7 +141,7 @@ class ClassRepositoryTest {
     /**
      * Completing bills the class and **creates nothing** in the calendar. The event it already has is
      * refreshed rather than left frozen (`CalendarSyncPolicy.Action.REFRESH`), which is what keeps a
-     * note written after the lesson — the usual moment — from stopping at the database.
+     * correction made after the lesson — the usual moment — from stopping at the database.
      */
     @Test
     fun `completing a class captures the charge and creates no calendar event`() = runTest {
@@ -205,29 +158,6 @@ class ClassRepositoryTest {
     }
 
     /**
-     * **A note written after the lesson reaches the calendar.** The sequence is the everyday one and
-     * every step of it used to end here: the hour passes, auto-completion marks it taught, and only
-     * then does the tutor write down what was set for home.
-     */
-    @Test
-    fun `a note added to a completed lesson refreshes its event`() = runTest {
-        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
-        val id = book()
-        repo.setStatus(session(id), LessonStatus.COMPLETED)
-        env.calendar.refreshes.clear()
-        env.calendar.calls.clear() // the booking's own upsert, which is not what this is about
-
-        repo.apply(session(id), edit(notes = "§12, упр. 4–7"), defaultStart, now)
-
-        assertEquals(
-            "the note the tutor typed is what the event is refreshed with",
-            "§12, упр. 4–7",
-            env.calendar.refreshes.last().klass.notes,
-        )
-        assertTrue("and no second event was invented for a past hour", env.calendar.upserts.isEmpty())
-    }
-
-    /**
      * A lesson with no event — booked while sync was off, or simply never mirrored — gains none by
      * being edited after it is over. The fake enforces the adapter's own guard, so this is the rule
      * "history is kept true, never written" reaching all the way down.
@@ -238,7 +168,7 @@ class ClassRepositoryTest {
         repo.setStatus(session(id), LessonStatus.COMPLETED)
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
 
-        repo.apply(session(id), edit(notes = "написано после"), defaultStart, now)
+        repo.apply(session(id), edit(price = Money.ofMajor(35)), defaultStart, now)
 
         assertTrue(env.calendar.upserts.isEmpty())
         assertTrue(env.calendar.refreshes.isEmpty())

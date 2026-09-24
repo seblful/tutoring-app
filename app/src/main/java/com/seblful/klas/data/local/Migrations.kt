@@ -106,17 +106,82 @@ object Migrations {
      * with no `DEFAULT`, which is how Room declares it and what "not checked yet" is stored as.
      *
      * **Both columns are projected by the `classes` view, so it is recreated** — the rule [MIGRATION_6_7]
-     * learned on a real phone. `HomeworkMigrationTest` reads a lesson back through the view.
+     * learned on a real phone. `HomeworkMigrationTest` reads a lesson back through the view. It builds v8's
+     * view ([CLASSES_VIEW_V8]), frozen when v9 took the columns back out of [CLASSES_VIEW_SQL].
      */
     val MIGRATION_7_8 = object : Migration(7, 8) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE lessons ADD COLUMN homework TEXT NOT NULL DEFAULT ''")
             db.execSQL("ALTER TABLE attendance ADD COLUMN homeworkResult TEXT")
             db.execSQL("DROP VIEW IF EXISTS `classes`")
+            db.execSQL("CREATE VIEW `classes` AS $CLASSES_VIEW_V8")
+        }
+    }
+
+    /** The `classes` view as v8 declares it, frozen for [MIGRATION_7_8]; checked against `8.json`. */
+    private const val CLASSES_VIEW_V8: String =
+        "SELECT a.id AS id, a.lessonId AS lessonId, a.studentId AS studentId, " +
+            "a.state AS state, a.priceMinor AS priceMinor, a.chargeMinor AS chargeMinor, " +
+            "a.calendarEventId AS calendarEventId, l.subjectId AS subjectId, " +
+            "l.startMillis AS startMillis, l.durationMinutes AS durationMinutes, " +
+            "l.status AS status, l.groupId AS groupId, l.mode AS mode, l.notes AS notes, " +
+            "l.homework AS homework, a.homeworkResult AS homeworkResult " +
+            "FROM attendance a JOIN lessons l ON l.id = a.lessonId"
+
+    /**
+     * v8 → v9: homework becomes its own table, and the lesson's note goes.
+     *
+     * v8 kept homework on the lesson it was set at, with a verdict per student; the tutor wanted it set
+     * for a student (or a group) from anywhere, and only ever done or not. So:
+     *
+     * - **`homework` is created** exactly as Room declares [HomeworkEntity] — `HomeworkTableMigrationTest`
+     *   validates it column for column.
+     * - **Every lesson's homework moves into it**, one row per lesson: an individual lesson's for its one
+     *   student, a group lesson's for the group. Given at the lesson's start, which attaches it to the
+     *   assignee's next lesson after that one (by v9's rule — any lesson they are in, where v8 kept to the
+     *   same subject and kind). Done if it had a verdict — any verdict, «частично» and «не сделано»
+     *   included, because each meant "checked", and checked is what done means now; for a group, once
+     *   every member had one. A cancelled lesson's is dropped, as v8 already ignored it.
+     * - **The vestigial columns are emptied** — the note, v8's homework text and its verdicts. Left
+     *   holding text, they would still ride every backup file (`BackupData` carries the rows whole) and
+     *   read like data. They are not dropped; see the class KDoc for why a column stays.
+     * - **The view is recreated**, since it stops projecting all three.
+     */
+    val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `homework` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`studentId` INTEGER, `groupId` INTEGER, `text` TEXT NOT NULL, " +
+                    "`givenAtMillis` INTEGER NOT NULL, `doneAtMillis` INTEGER, " +
+                    "FOREIGN KEY(`studentId`) REFERENCES `students`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , " +
+                    "FOREIGN KEY(`groupId`) REFERENCES `student_groups`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_homework_studentId` ON `homework` (`studentId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_homework_groupId` ON `homework` (`groupId`)")
+            db.execSQL(
+                "INSERT INTO homework (studentId, groupId, text, givenAtMillis, doneAtMillis) " +
+                    "SELECT a.studentId, NULL, l.homework, l.startMillis, " +
+                    "CASE WHEN a.homeworkResult IS NULL THEN NULL ELSE l.startMillis END " +
+                    "FROM lessons l JOIN attendance a ON a.lessonId = l.id " +
+                    "WHERE l.groupId IS NULL AND l.homework != '' AND l.status != 'CANCELLED' " +
+                    "ORDER BY l.startMillis",
+            )
+            db.execSQL(
+                "INSERT INTO homework (studentId, groupId, text, givenAtMillis, doneAtMillis) " +
+                    "SELECT NULL, l.groupId, l.homework, l.startMillis, " +
+                    "CASE WHEN EXISTS (SELECT 1 FROM attendance a WHERE a.lessonId = l.id " +
+                    "AND a.homeworkResult IS NULL) THEN NULL ELSE l.startMillis END " +
+                    "FROM lessons l " +
+                    "WHERE l.groupId IS NOT NULL AND l.homework != '' AND l.status != 'CANCELLED' " +
+                    "ORDER BY l.startMillis",
+            )
+            db.execSQL("UPDATE lessons SET notes = '', homework = '' WHERE notes != '' OR homework != ''")
+            db.execSQL("UPDATE attendance SET homeworkResult = NULL WHERE homeworkResult IS NOT NULL")
+            db.execSQL("DROP VIEW IF EXISTS `classes`")
             db.execSQL("CREATE VIEW `classes` AS $CLASSES_VIEW_SQL")
         }
     }
 
     /** Everything above, in the order Room should be handed it. See `di/DatabaseModule`. */
-    val ALL: Array<Migration> = arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+    val ALL: Array<Migration> = arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
 }

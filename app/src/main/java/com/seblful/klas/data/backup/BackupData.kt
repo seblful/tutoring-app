@@ -4,6 +4,7 @@ import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.GroupMemberCrossRef
+import com.seblful.klas.data.local.HomeworkEntity
 import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.PriceEntity
@@ -64,6 +65,11 @@ data class BackupData(
      */
     val classes: List<LegacyClass> = emptyList(),
     val payments: List<PaymentEntity> = emptyList(),
+    /**
+     * Homework — **v9 and later**. A v8 file keeps its homework on [lessons] and [attendance] instead,
+     * and [legacyHomework] is how it becomes rows of this.
+     */
+    val homework: List<HomeworkEntity> = emptyList(),
 ) {
     companion object {
         /**
@@ -72,14 +78,16 @@ data class BackupData(
          * (`price_history`); **6 splits a class into a lesson and an attendance** — the lesson's hour and
          * status once per lesson, who was in it and what they owe once per student; **7 carries a
          * lesson's note** (`lessons.notes`); **8 carries homework** — what a lesson set
-         * (`lessons.homework`) and how each student did it (`attendance.homeworkResult`).
+         * (`lessons.homework`) and how each student did it (`attendance.homeworkResult`); **9 gives
+         * homework its own list** ([homework]) and stops carrying notes.
          *
          * Older files still import — a v1 has no groups at all, a v2's groups come back priced at 0
          * for the tutor to re-price, a v3's come back with no subject, a v4's arrive with no rate
          * history (an empty log), a v5's classes are split on the way in ([splitIntoLessons]), a
-         * v6's lessons come back with no note, and a v7's with no homework. A restore otherwise
-         * reproduces the file rather than inventing rows it doesn't contain, so each of those gaps stays
-         * a gap.
+         * v6's lessons come back with no note, a v7's with no homework, and a v8's homework is moved into
+         * its own rows on the way in ([legacyHomework]). A restore otherwise reproduces the file rather
+         * than inventing rows it doesn't contain, so each of those gaps stays a gap. Notes are the one
+         * thing an older file carries that is not restored: the app no longer has them.
          *
          * The bump is for the other direction: a v6 file *would* parse in a build that predates the
          * split — its `classes` list is empty, so it would restore a database with no lessons in it at
@@ -87,9 +95,10 @@ data class BackupData(
          * milder version of the same thing: the parser ignores unknown keys, so every note in it would
          * be dropped in silence. Dropping a tutor's own writing without saying so is exactly what a
          * version is for, and it is the reason each of 3, 4 and 5 bumped for a single column too — and
-         * 8, whose homework and verdicts a v7 build would drop the same way.
+         * 8, whose homework and verdicts a v7 build would drop the same way, and 9, whose homework list a
+         * v8 build would.
          */
-        const val CURRENT_VERSION = 8
+        const val CURRENT_VERSION = 9
 
         /**
          * Whether a backup of [version] can be safely imported by this build. A newer version may
@@ -189,6 +198,8 @@ private fun attendedOf(stored: String, lesson: LessonStatus): Attended = when {
  */
 fun BackupData.toSnapshot(): DatabaseSnapshot {
     val (splitLessons, splitAttendance) = classes.splitIntoLessons()
+    val allLessons = lessons + splitLessons
+    val allAttendance = attendance + splitAttendance
     return DatabaseSnapshot(
         subjects = subjects,
         students = students,
@@ -197,10 +208,51 @@ fun BackupData.toSnapshot(): DatabaseSnapshot {
         groupMembers = groupMembers,
         prices = prices,
         rateHistory = rateHistory,
-        lessons = lessons + splitLessons,
-        attendance = attendance + splitAttendance,
+        // The vestigial columns arrive empty, as `MIGRATION_8_9` leaves them: a v8 file's homework has
+        // been read into its own rows, and an older file's notes are not the app's any more.
+        lessons = allLessons.map { it.copy(notes = "", homework = "") },
+        attendance = allAttendance.map { it.copy(homeworkResult = null) },
         payments = payments,
+        homework = homework + legacyHomework(allLessons, allAttendance),
     )
+}
+
+/**
+ * The homework a v8 file keeps on its lessons, as the rows v9 keeps it in — the file's twin of
+ * `Migrations.MIGRATION_8_9`, by the same rules: one row per lesson that set some and was not called off,
+ * a group lesson's for the group and an individual one's for its student, given at the lesson's start,
+ * and done if it had a verdict (for a group, once every member had one).
+ *
+ * Empty for anything else: no other version carries text in `lessons.homework`, v9 included, since this
+ * build writes it blank. `BackupSplitTest`'s sibling, `BackupLegacyHomeworkTest`, pins what this produces.
+ */
+fun legacyHomework(lessons: List<LessonEntity>, attendance: List<AttendanceEntity>): List<HomeworkEntity> {
+    val members = attendance.groupBy { it.lessonId }
+    return lessons
+        .filter { it.homework.isNotEmpty() && it.status != LessonStatus.CANCELLED.name }
+        .sortedBy { it.startMillis }
+        .flatMap { lesson ->
+            val rows = members[lesson.id].orEmpty()
+            if (lesson.groupId != null) {
+                listOf(
+                    HomeworkEntity(
+                        groupId = lesson.groupId,
+                        text = lesson.homework,
+                        givenAtMillis = lesson.startMillis,
+                        doneAtMillis = lesson.startMillis.takeIf { rows.all { it.homeworkResult != null } },
+                    ),
+                )
+            } else {
+                rows.map { row ->
+                    HomeworkEntity(
+                        studentId = row.studentId,
+                        text = lesson.homework,
+                        givenAtMillis = lesson.startMillis,
+                        doneAtMillis = lesson.startMillis.takeIf { row.homeworkResult != null },
+                    )
+                }
+            }
+        }
 }
 
 /** The database's rows as a backup file of this build's version. */
@@ -215,4 +267,5 @@ fun DatabaseSnapshot.toBackupData(): BackupData = BackupData(
     lessons = lessons,
     attendance = attendance,
     payments = payments,
+    homework = homework,
 )

@@ -4,6 +4,7 @@ import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.GroupMemberCrossRef
+import com.seblful.klas.data.local.HomeworkEntity
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.RateChangeEntity
@@ -51,6 +52,7 @@ class BackupSchemaCoverageTest {
         "lessons" to LessonEntity.serializer(),
         "attendance" to AttendanceEntity.serializer(),
         "payments" to PaymentEntity.serializer(),
+        "homework" to HomeworkEntity.serializer(),
     )
 
     /**

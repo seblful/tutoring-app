@@ -3,17 +3,19 @@ package com.seblful.klas.data
 import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.ClassRow
 import com.seblful.klas.data.local.GroupEntity
+import com.seblful.klas.data.local.HomeworkEntity
 import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
-import com.seblful.klas.domain.model.HomeworkResult
+import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Price
@@ -50,12 +52,6 @@ private fun statusOf(stored: String, classId: Long): LessonStatus =
 
 private fun attendedOf(stored: String, classId: Long): Attended =
     Attended.parse(stored) ?: error("Class $classId has an unreadable attendance \"$stored\"")
-
-/**
- * A homework verdict carries no money either, so an unreadable one reads as **not checked** — one verdict
- * to give again, rather than a schedule that will not draw.
- */
-private fun homeworkResultOf(stored: String?): HomeworkResult? = stored?.let(HomeworkResult::parse)
 
 fun SubjectEntity.toDomain() = Subject(id = id, name = name)
 fun Subject.toEntity() = SubjectEntity(id = id, name = name)
@@ -121,10 +117,7 @@ fun ClassRow.toDomain() = TutoringClass(
     charge = Money(chargeMinor),
     groupId = groupId,
     mode = modeOf(mode),
-    notes = notes,
     calendarEventId = calendarEventId,
-    homework = homework,
-    homeworkResult = homeworkResultOf(homeworkResult),
 )
 
 /**
@@ -134,6 +127,9 @@ fun ClassRow.toDomain() = TutoringClass(
  * - [toLessonEntity] is the **lesson's** facts, written once however many students are in it. Writing it
  *   per class would put the app back where it was, with *n* copies of one status.
  * - [toAttendanceEntity] is this student's own: whether they were there, at what rate, for what charge.
+ *
+ * Neither writes the vestigial columns (`LessonEntity.notes`, `LessonEntity.homework`,
+ * `AttendanceEntity.homeworkResult`), which keep their empty defaults.
  */
 fun TutoringClass.toLessonEntity() = LessonEntity(
     id = lessonId,
@@ -143,8 +139,6 @@ fun TutoringClass.toLessonEntity() = LessonEntity(
     status = status.name,
     groupId = groupId,
     mode = mode.name,
-    notes = notes,
-    homework = homework,
 )
 
 fun TutoringClass.toAttendanceEntity() = AttendanceEntity(
@@ -155,5 +149,29 @@ fun TutoringClass.toAttendanceEntity() = AttendanceEntity(
     priceMinor = price.minor,
     chargeMinor = charge.minor,
     calendarEventId = calendarEventId,
-    homeworkResult = homeworkResult?.name,
+)
+
+/**
+ * The one place `homework`'s nullable owner columns are read back into an [Assignee] — as
+ * [RateChangeEntity.toDomain] does for a rate, and failing as loudly for a row that is neither's.
+ */
+fun HomeworkEntity.toDomain() = Homework(
+    id = id,
+    assignee = when {
+        studentId != null -> Assignee.Student(studentId)
+        groupId != null -> Assignee.Group(groupId)
+        else -> error("Homework $id is for neither a student nor a group")
+    },
+    text = text,
+    givenAt = Instant.ofEpochMilli(givenAtMillis),
+    doneAt = doneAtMillis?.let { Instant.ofEpochMilli(it) },
+)
+
+fun Homework.toEntity() = HomeworkEntity(
+    id = id,
+    studentId = (assignee as? Assignee.Student)?.studentId,
+    groupId = (assignee as? Assignee.Group)?.groupId,
+    text = text,
+    givenAtMillis = givenAt.toEpochMilli(),
+    doneAtMillis = doneAt?.toEpochMilli(),
 )

@@ -1,9 +1,7 @@
 package com.seblful.klas.calendar
 
-import com.seblful.klas.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import java.time.Instant
 
 class CalendarEventTest {
 
@@ -32,24 +30,12 @@ class CalendarEventTest {
         assertEquals("Иван — Математика", CalendarEvent.title("Иван", "Математика", null))
     }
 
-    /** An invited student is an attendee of the same event, so what the tutor noted must not reach it. */
+    /**
+     * A lesson carries none of the tutor's text any more, and an invited student reads the event — so the
+     * description is written empty, which is also what clears a note or homework an older build put there.
+     */
     @Test
-    fun `the description is the homework and never the note`() {
-        val klass = TutoringClass(
-            studentId = 1, subjectId = 1, start = Instant.EPOCH, durationMinutes = 60,
-            notes = "Не готовился, поговорить с мамой", homework = "§12, упр. 4–7",
-        )
-
-        assertEquals("§12, упр. 4–7", CalendarEvent.description(klass))
-    }
-
-    /** No homework is a blank description — which is what clears one once the homework is deleted. */
-    @Test
-    fun `a lesson with a note and no homework has a blank description`() {
-        val klass = TutoringClass(
-            studentId = 1, subjectId = 1, start = Instant.EPOCH, durationMinutes = 60, notes = "Дроби",
-        )
-
-        assertEquals("", CalendarEvent.description(klass))
+    fun `the description is always empty`() {
+        assertEquals("", CalendarEvent.DESCRIPTION)
     }
 }

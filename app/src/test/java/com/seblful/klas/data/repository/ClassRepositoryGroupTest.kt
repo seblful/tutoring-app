@@ -401,34 +401,6 @@ class ClassRepositoryGroupTest {
     }
 
     /**
-     * **A joiner joins the hour, note and all.** The note is a column of `lessons`, so the `classes`
-     * view hands every member the same text — a joiner written with a blank one would make one lesson's
-     * rows disagree about what was covered in it, which is exactly the class of defect the lesson row
-     * exists to make unrepresentable.
-     */
-    @Test
-    fun `a member added to a lesson gets the lesson's note`() = runTest {
-        seed()
-        val ids = bookSession(members = listOf(ann))
-
-        repo.apply(
-            repo.getSessionFor(ids.first())!!,
-            SessionEdit(algebra, 60, ClassMode.IN_PERSON, groupRate, notes = "§12, упр. 4–7"),
-            newStart = start,
-            now = start,
-            roster = setOf(ann, bob),
-        )
-
-        val after = repo.getSessionFor(ids.first())!!
-        assertEquals(2, after.size)
-        assertEquals(
-            "one lesson, one note",
-            listOf("§12, упр. 4–7", "§12, упр. 4–7"),
-            after.classes.map { it.notes },
-        )
-    }
-
-    /**
      * The whole roster replaced at once — the case that would break a session rebuilt from the class
      * that was tapped, since that very class is the one leaving.
      */

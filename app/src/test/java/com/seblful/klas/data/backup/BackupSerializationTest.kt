@@ -4,6 +4,7 @@ import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.GroupMemberCrossRef
+import com.seblful.klas.data.local.HomeworkEntity
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.RateChangeEntity
@@ -77,6 +78,14 @@ class BackupSerializationTest {
         ),
         payments = listOf(
             PaymentEntity(1, studentId = 1, dateMillis = 1_899_000_000_000, amountMinor = 3000),
+        ),
+        homework = listOf(
+            // One student's, done — and a group's, current: both owners, and the null that means current.
+            HomeworkEntity(
+                1, studentId = 1, text = "§12, упр. 4–7",
+                givenAtMillis = 1_900_000_000_000, doneAtMillis = 1_900_100_000_000,
+            ),
+            HomeworkEntity(2, groupId = 7, text = "Задачи 31–35", givenAtMillis = 1_900_050_000_000),
         ),
     )
 
@@ -178,11 +187,11 @@ class BackupSerializationTest {
     }
 
     /**
-     * A v7 backup predates homework: its lessons come back with none set and its students with no verdict,
-     * and the note — which then held homework too — comes back exactly as written, not split by guesswork.
+     * A v7 backup predates homework: it restores with none, and without its notes — the one thing an older
+     * file carries that this build no longer has anywhere to put.
      */
     @Test
-    fun `a version 7 backup still parses, with no homework`() {
+    fun `a version 7 backup still restores, with no homework and no notes`() {
         val v7 = """
             {
               "version": 7,
@@ -195,11 +204,11 @@ class BackupSerializationTest {
         """.trimIndent()
 
         val parsed = json.decodeFromString<BackupData>(v7)
+        val snapshot = parsed.toSnapshot()
 
         assertTrue(BackupData.isSupported(parsed.version))
-        assertEquals("§12, упр. 4–7", parsed.lessons.single().notes)
-        assertEquals("", parsed.lessons.single().homework)
-        assertEquals(null, parsed.attendance.single().homeworkResult)
+        assertEquals("", snapshot.lessons.single().notes)
+        assertTrue(snapshot.homework.isEmpty())
     }
 
     @Test

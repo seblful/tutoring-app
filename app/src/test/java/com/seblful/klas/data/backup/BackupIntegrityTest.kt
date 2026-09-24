@@ -3,6 +3,7 @@ package com.seblful.klas.data.backup
 import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.GroupEntity
+import com.seblful.klas.data.local.HomeworkEntity
 import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
@@ -162,37 +163,37 @@ class BackupIntegrityTest {
         assertTrue(refusalFor(data) != null)
     }
 
-    // --- The v8 homework verdict ------------------------------------------------------------------
+    // --- Homework ---------------------------------------------------------------------------------
 
     private val taughtLesson =
         LessonEntity(4, subjectId = 1, startMillis = 1L, durationMinutes = 60, status = "COMPLETED", homework = "§12")
 
+    /**
+     * A v8 file's verdict is only read as "it had one" — done, now — so a name this build never had cannot
+     * fail anything, and is no reason to refuse the file.
+     */
     @Test
-    fun `a homework verdict the build cannot name is refused, naming the class`() {
-        val data = BackupData(
-            lessons = listOf(taughtLesson),
-            attendance = listOf(AttendanceEntity(9, 4, 1, state = "PRESENT", homeworkResult = "EXCELLENT")),
+    fun `a v8 verdict passes whatever it says`() {
+        BackupIntegrity.check(
+            BackupData(
+                version = 8,
+                lessons = listOf(taughtLesson),
+                attendance = listOf(
+                    AttendanceEntity(9, 4, 1, state = "PRESENT"),
+                    AttendanceEntity(10, 4, 2, state = "PRESENT", homeworkResult = "EXCELLENT"),
+                ),
+            ),
         )
+    }
+
+    @Test
+    fun `homework for neither a student nor a group is refused, naming the row`() {
+        val data = BackupData(homework = listOf(HomeworkEntity(id = 3, text = "§12", givenAtMillis = 1L)))
 
         val refusal = refusalFor(data)
 
         assertTrue("refused", refusal != null)
-        assertTrue("says which row: ${refusal?.reason}", refusal!!.reason.contains("class 9"))
-        assertTrue(refusal.reason.contains("EXCELLENT"))
-    }
-
-    /** Not checked yet is the usual state of a verdict, not a malformed one. */
-    @Test
-    fun `homework with no verdict passes, and so does one with a verdict`() {
-        BackupIntegrity.check(
-            BackupData(
-                lessons = listOf(taughtLesson),
-                attendance = listOf(
-                    AttendanceEntity(9, 4, 1, state = "PRESENT"),
-                    AttendanceEntity(10, 4, 2, state = "PRESENT", homeworkResult = "PARTIAL"),
-                ),
-            ),
-        )
+        assertTrue("says which row: ${refusal?.reason}", refusal!!.reason.contains("homework 3"))
     }
 
     @Test
@@ -322,5 +323,18 @@ class BackupIntegrityTest {
         assertNull(LessonStatus.parse("completed"))
         assertNull(LessonStatus.parse(""))
         assertNull(ClassMode.parse("IN PERSON"))
+    }
+
+    /** Both owners would read back as the student's, taking it from the group without a word. */
+    @Test
+    fun `homework for a student and a group at once is refused`() {
+        val data = BackupData(
+            homework = listOf(HomeworkEntity(id = 4, studentId = 1, groupId = 7, text = "§12", givenAtMillis = 1L)),
+        )
+
+        val refusal = refusalFor(data)
+
+        assertTrue("refused", refusal != null)
+        assertTrue("says which row: ${refusal?.reason}", refusal!!.reason.contains("homework 4"))
     }
 }

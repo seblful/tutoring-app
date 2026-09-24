@@ -10,14 +10,12 @@ import com.seblful.klas.data.toLessonEntity
 import com.seblful.klas.domain.ClassRules
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.GroupRules
-import com.seblful.klas.domain.Homework
 import com.seblful.klas.domain.LessonEdit
 import com.seblful.klas.domain.ReminderScheduler
 import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.SessionEdit
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.HomeworkResult
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
@@ -181,7 +179,8 @@ class ClassRepository @Inject constructor(
     suspend fun startingWithin(now: Instant, horizon: Duration): List<TutoringClass> =
         getBetween(now, now.plus(horizon).plusMillis(1))
 
-    private suspend fun getBetween(from: Instant, to: Instant): List<TutoringClass> =
+    /** The classes starting in [[from], [to]) — the upper bound excluded, as [ClassDao.getBetween]'s. */
+    suspend fun getBetween(from: Instant, to: Instant): List<TutoringClass> =
         dao.getBetween(from.toEpochMilli(), to.toEpochMilli()).map { it.toDomain() }
 
     suspend fun getById(id: Long): TutoringClass? = dao.getById(id)?.toDomain()
@@ -330,7 +329,6 @@ class ClassRepository @Inject constructor(
         studentIds: Collection<Long>,
         price: Money,
         groupId: Long? = null,
-        notes: String = "",
     ): LessonWrite<List<Long>> {
         val written = bookSeries(
             subjectId = subjectId,
@@ -340,7 +338,6 @@ class ClassRepository @Inject constructor(
             studentIds = studentIds,
             price = price,
             groupId = groupId,
-            notes = notes,
         )
         return written.skipped.firstOrNull()
             ?.let { LessonWrite.HourTaken(it.clash) }
@@ -411,10 +408,6 @@ class ClassRepository @Inject constructor(
                     studentIds = studentIds,
                     price = price,
                     groupId = groupId,
-                    // Every occurrence of a run gets the same note, which is the only thing a note typed
-                    // once about a term can mean. It is per lesson afterwards, like every other field a
-                    // series copies — editing one Monday's note leaves the other eleven alone.
-                    notes = notes,
                 )
             }
             Committed(rows, mirror = rows)
@@ -439,7 +432,6 @@ class ClassRepository @Inject constructor(
         studentIds: Collection<Long>,
         price: Money,
         groupId: Long?,
-        notes: String,
     ): List<TutoringClass> {
         // The lesson first, once: its hour, subject and status are one fact, and the ids of the rows
         // below are what tie the students to it.
@@ -451,7 +443,6 @@ class ClassRepository @Inject constructor(
             price = price,
             mode = mode,
             groupId = groupId,
-            notes = notes,
         )
         val lessonId = lessons.upsert(lesson.toLessonEntity())
         return studentIds.map { studentId ->
@@ -546,65 +537,6 @@ class ClassRepository @Inject constructor(
      */
     suspend fun setAttendance(klass: TutoringClass, attended: Attended): List<TutoringClass> =
         persist(listOf(ClassRules.applyAttendance(klass, attended)))
-
-    /**
-     * Sets what [session] gave for home — the lesson's, so every class of it carries the same text.
-     *
-     * The quick way in from the schedule's sheet; the lesson's form writes the same field through
-     * [apply]. Through [persist] like every other change to the lesson's row, so the calendar event, which
-     * carries the homework, is rewritten after the commit. **The lesson is re-read first**: the sheet hands
-     * over the session it last drew, and writing that back whole would restore a status or a verdict that
-     * has moved on since. Each student's verdict is left alone — correcting a typo in the assignment is not
-     * un-checking it.
-     */
-    suspend fun setHomework(session: ClassSession, homework: String): List<TutoringClass> {
-        val current = getSessionFor(session.first.id) ?: return emptyList()
-        return persist(current.classes.map { it.copy(homework = homework.trim()) })
-    }
-
-    /**
-     * Records how one student did the homework set at [klass]'s lesson, or clears the verdict with null.
-     *
-     * One column of one row ([AttendanceDao.setHomeworkResult]) — the verdicts are tapped from lists that
-     * can be an emission behind, and nothing else about the row is this write's to restate.
-     *
-     * **It owes no phase 3**, which [write] is told rather than left to infer: a verdict is on no calendar
-     * event, and a reminder reads what is left to check when it fires rather than when it is planned
-     * (`notifications/DueReminder`), so there is nothing to mirror and nothing to re-plan.
-     */
-    suspend fun setHomeworkResult(klass: TutoringClass, result: HomeworkResult?) {
-        write(refreshesReminders = false) {
-            attendance.setHomeworkResult(klass.id, result?.name)
-            Committed(Unit)
-        }
-    }
-
-    /**
-     * The homework checked at [session] — [Homework.dueAt] over the lessons leading up to it, looking back
-     * [Homework.FOLLOWED_UP_FOR]. Null when the lesson before it on its track set none.
-     *
-     * A one-shot read, for the reminder, which asks once as it posts.
-     */
-    suspend fun homeworkDueAt(session: ClassSession): Homework.Assignment? =
-        Homework.dueAt(session, getBetween(session.start.minus(Homework.FOLLOWED_UP_FOR), session.start.plusMillis(1)))
-
-    /**
-     * The homework [session] checks and the homework it set ([Homework.atLesson]), for as long as it is
-     * watched — the lesson's sheet, where marking a verdict has to redraw the one just tapped.
-     *
-     * Back [Homework.FOLLOWED_UP_FOR] for the lesson before it, and **open-ended** forward: the homework
-     * this lesson set is due at whichever lesson comes next on its track, however far ahead that is booked.
-     */
-    fun observeHomeworkAt(session: ClassSession): Flow<Homework.AtLesson> =
-        observeBetween(session.start.minus(Homework.FOLLOWED_UP_FOR), Instant.ofEpochMilli(Long.MAX_VALUE))
-            .map { Homework.atLesson(session, it) }
-
-    /**
-     * Every class [Homework.worklist] needs at [now]: from [Homework.FOLLOWED_UP_FOR] ago, **open-ended** —
-     * the homework set in that window, and every lesson after it that could be the one it is due at.
-     */
-    fun observeForHomework(now: Instant): Flow<List<TutoringClass>> =
-        observeBetween(now.minus(Homework.FOLLOWED_UP_FOR), Instant.ofEpochMilli(Long.MAX_VALUE))
 
     /**
      * Deletes every class of a lesson, with its calendar events. Deleting a completed lesson removes
@@ -725,8 +657,7 @@ class ClassRepository @Inject constructor(
      * Auto-completes every scheduled class whose end time has passed, billing its booked price.
      * Returns the classes that were completed.
      *
-     * **One of the two writes that owe no phase 3 (the other is [setHomeworkResult]), and it says so at
-     * the call to [write].** Nothing to mirror:
+     * **The one write that owes no phase 3, and says so at the call to [write].** Nothing to mirror:
      * completing a class leaves its event alone (`CalendarSyncPolicy`), the lesson being in the past
      * already. Nothing to re-plan either — the caller is `Maintenance`, which runs this *first* and
      * then derives the reminder plan from the result, so refreshing here would derive it twice and

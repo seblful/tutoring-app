@@ -107,8 +107,10 @@ fun KlasScreen(
 
     val barNavigation: @Composable () -> Unit = {
         if (onBack != null) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
+            HoldToName(stringResource(R.string.action_back)) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
+                }
             }
         }
     }
@@ -117,13 +119,17 @@ fun KlasScreen(
         if (openSearch != null) {
             // Closing search clears it. The screen's own actions stay hidden while the box is open —
             // the bar is one row, and a search field plus three icons is not a row.
-            IconButton(onClick = { searching = false; openSearch.onClose() }) {
-                Icon(Icons.Filled.SearchOff, stringResource(R.string.search_close))
+            HoldToName(stringResource(R.string.search_close)) {
+                IconButton(onClick = { searching = false; openSearch.onClose() }) {
+                    Icon(Icons.Filled.SearchOff, stringResource(R.string.search_close))
+                }
             }
         } else {
             if (search != null) {
-                IconButton(onClick = { searching = true }) {
-                    Icon(Icons.Filled.Search, stringResource(R.string.action_search))
+                HoldToName(stringResource(R.string.action_search)) {
+                    IconButton(onClick = { searching = true }) {
+                        Icon(Icons.Filled.Search, stringResource(R.string.action_search))
+                    }
                 }
             }
             actions()

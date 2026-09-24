@@ -201,29 +201,16 @@ data class LessonEntity(
     val groupId: Long? = null,
     val mode: String = "IN_PERSON",
     /**
-     * What the tutor wrote about this hour: what was covered, how it went. Homework has its own column
-     * ([homework]) since v8, and a note written before then may still hold some — it was one field.
-     *
-     * **On the lesson and not on [AttendanceEntity]**, for the reason [status] is: it describes the hour,
-     * so a group's three members share one note rather than three copies of it that could drift. A note
-     * addressed to one student is a different feature and would want its own column beside their
-     * attendance; nothing in the app asks for one yet.
-     *
-     * Added by the v6 → v7 migration, whose `DEFAULT ''` this `defaultValue` must match exactly or Room's
-     * schema validation fails the instant the upgrade finishes. Empty is the honest backfill: a lesson
-     * taught before the app could hold a note has none, and inventing text for it would be the app
-     * claiming to remember something.
+     * **Vestigial since v9 — always `''`, read by nothing.** It held the lesson's note (added by v7), which
+     * the tutor stopped wanting; the v8 → v9 migration empties it. The column stays for the reason
+     * `SettingsEntity.showGroupsTab` does: dropping one means rebuilding the table on API 24, and this is
+     * the table every lesson lives in. Its `defaultValue` must still match v7's `DEFAULT ''`.
      */
     @ColumnInfo(defaultValue = "''")
     val notes: String = "",
     /**
-     * What was set for home at this hour. The lesson's, like [notes] and for the same reason — a group is
-     * set one assignment — and apart from it because the two go to different people: this is what the
-     * calendar event carries and what gets sent to the student, and the note never leaves the app.
-     *
-     * Added by the v7 → v8 migration with `DEFAULT ''`, which this `defaultValue` must match. Empty rather
-     * than a copy of the note: the note was «Заметки и домашнее задание», and splitting a tutor's own text
-     * into two by guesswork would put their private remarks in front of a student.
+     * **Vestigial since v9, like [notes].** v8 kept a lesson's homework here; it lives in its own table now
+     * ([HomeworkEntity]), which the v8 → v9 migration moved it into before emptying this.
      */
     @ColumnInfo(defaultValue = "''")
     val homework: String = "",
@@ -263,12 +250,47 @@ data class AttendanceEntity(
     val chargeMinor: Long = 0,
     val calendarEventId: String? = null,
     /**
-     * How this student did the homework set at **this** lesson — a `HomeworkResult` name, or null until
-     * the tutor checks. Here and not on the lesson that checks it, because that lesson is derived and
-     * often not booked yet (see `domain/Homework`). Added by the v7 → v8 migration; null is its backfill,
-     * which is the truth about every lesson from before the app could hold a verdict.
+     * **Vestigial since v9 — always null.** v8's per-student verdict on the homework set at this lesson;
+     * homework is only done or not now, on [HomeworkEntity.doneAtMillis], and the v8 → v9 migration read
+     * this into it before clearing it. Left in place like [LessonEntity.notes].
      */
     val homeworkResult: String? = null,
+)
+
+/**
+ * One piece of homework: what was set, for whom, from when, and when it was done.
+ *
+ * **For one student or for a whole group** — exactly one of [studentId] and [groupId] is set, the pair
+ * [RateChangeEntity] uses for the same two owners. A group's is one row, marked done once, rather than a
+ * copy per member. `Mappers.kt` reads the pair back as a sealed `Assignee`.
+ *
+ * **Not tied to a lesson by any column.** The lesson it is checked at is derived: whoever it is for, their
+ * next lesson after [givenAtMillis] (`domain/HomeworkRules`). The next lesson is often not booked when
+ * homework is set, and can move or be cancelled once it is; a stored link would need a writer at each of
+ * those, where a derived one follows them for free.
+ *
+ * `CASCADE` on both owners: homework is not billed history, so it does not pin a group (deletable while it
+ * has no lessons) in place. Students are never deleted.
+ *
+ * @param doneAtMillis when the tutor marked it done, or null while it is current — done is the whole of
+ *   its state, and the archive is the done ones.
+ */
+@Serializable
+@Entity(
+    tableName = "homework",
+    indices = [Index("studentId"), Index("groupId")],
+    foreignKeys = [
+        ForeignKey(StudentEntity::class, ["id"], ["studentId"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(GroupEntity::class, ["id"], ["groupId"], onDelete = ForeignKey.CASCADE),
+    ],
+)
+data class HomeworkEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val studentId: Long? = null,
+    val groupId: Long? = null,
+    val text: String,
+    val givenAtMillis: Long,
+    val doneAtMillis: Long? = null,
 )
 
 /**
@@ -288,6 +310,9 @@ data class AttendanceEntity(
  * then built the v8 view onto a v7 schema — and `MigrationChainTest` holds each copy to that version's
  * exported schema, so the copies cannot drift either.
  *
+ * Since v9 it projects none of the lesson's text: the note and the homework columns are vestigial (see
+ * [LessonEntity.notes]), and homework is its own table.
+ *
  * `const`, because `@DatabaseView` is an annotation argument and so needs a compile-time constant.
  */
 const val CLASSES_VIEW_SQL: String =
@@ -295,8 +320,7 @@ const val CLASSES_VIEW_SQL: String =
         "a.state AS state, a.priceMinor AS priceMinor, a.chargeMinor AS chargeMinor, " +
         "a.calendarEventId AS calendarEventId, l.subjectId AS subjectId, " +
         "l.startMillis AS startMillis, l.durationMinutes AS durationMinutes, " +
-        "l.status AS status, l.groupId AS groupId, l.mode AS mode, l.notes AS notes, " +
-        "l.homework AS homework, a.homeworkResult AS homeworkResult " +
+        "l.status AS status, l.groupId AS groupId, l.mode AS mode " +
         "FROM attendance a JOIN lessons l ON l.id = a.lessonId"
 
 /**
@@ -330,13 +354,7 @@ data class ClassRow(
     val chargeMinor: Long = 0,
     val groupId: Long? = null,
     val mode: String = "IN_PERSON",
-    /** The **lesson's** note — see [LessonEntity.notes]. */
-    val notes: String = "",
     val calendarEventId: String? = null,
-    /** The **lesson's** homework — see [LessonEntity.homework]. */
-    val homework: String = "",
-    /** This student's verdict on it — see [AttendanceEntity.homeworkResult]. */
-    val homeworkResult: String? = null,
 )
 
 /**

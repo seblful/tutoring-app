@@ -1,50 +1,66 @@
 package com.seblful.klas.ui.homework
 
 import com.seblful.klas.domain.Captions
-import com.seblful.klas.domain.Homework
-import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.HomeworkRules
+import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.domain.model.Homework
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 /**
- * One lesson's homework as a list draws it: who it was set for, in what, and each of them beside their
- * own verdict.
+ * One piece of homework as a list draws it: who it is for, the lesson it is attached to, and where that
+ * leaves it today. Shared by the «Задания» tab and a student's card.
  *
- * Shared by the tab and the schedule's sheet, which ask the same thing of it — the tab for every lesson
- * with homework open, the sheet for the one its lesson checks.
- *
- * @param title the group's name for a group's homework, the student's for an individual lesson's.
- * @param members everybody it was set for, each named beside their class — one for an individual lesson.
- *   Their class carries the verdict ([TutoringClass.homeworkResult]) and is what a verdict is written to.
+ * @param title the group's name for a group's homework, the student's for one student's.
+ * @param lessonAt when the lesson it is attached to starts, or null while none is booked — and always
+ *   null in the archive, where which lesson it went to is no longer the question.
+ * @param due where a current one stands today, or null for a done one.
  */
 data class HomeworkRow(
-    val assignment: Homework.Assignment,
+    val homework: Homework,
     val title: String,
-    val subjectName: String,
-    val members: List<Member>,
+    val lessonAt: Instant?,
+    val due: HomeworkRules.Due?,
 ) {
-    /** One student it was set for, by name, beside their own class. */
-    data class Member(val klass: TutoringClass, val name: String)
+    val isGroup: Boolean get() = homework.assignee is Assignee.Group
 
-    val text: String get() = assignment.text
+    /** Whether it is current — swiped into the archive — rather than done and swiped back out of it. */
+    val isCurrent: Boolean get() = !homework.isDone
 
-    /** Whether it was a group's — which is when each member is named, since the title names the group. */
-    val isGroup: Boolean get() = assignment.set.isGroup
-
-    /** When the lesson it was set at was. */
-    val setAt: Instant get() = assignment.set.start
-
-    /** When the lesson it is due at starts, or null while none is booked. */
-    val dueAt: Instant? get() = assignment.due?.start
-
-    /** The class a tap opens — the lesson it was set at, where the homework itself is edited. */
-    val lessonClassId: Long get() = assignment.set.first.id
+    val text: String get() = homework.text
 
     companion object {
-        fun of(assignment: Homework.Assignment, captions: Captions): HomeworkRow = HomeworkRow(
-            assignment = assignment,
-            title = captions.titleOf(assignment.set),
-            subjectName = captions.subjectOf(assignment.set),
-            members = assignment.set.classes.map { Member(it, captions.studentOf(it)) },
-        )
+        fun current(current: HomeworkRules.Current, captions: Captions, today: LocalDate, zone: ZoneId) =
+            HomeworkRow(
+                homework = current.homework,
+                title = captions.titleOf(current.homework.assignee),
+                lessonAt = current.lesson?.start,
+                due = current.due(today, zone),
+            )
+
+        fun done(homework: Homework, captions: Captions) =
+            HomeworkRow(homework = homework, title = captions.titleOf(homework.assignee), lessonAt = null, due = null)
+
+        /** Both halves of [lists], captioned. */
+        fun of(lists: HomeworkRules.Lists, captions: Captions, today: LocalDate, zone: ZoneId): HomeworkLists =
+            HomeworkLists(
+                current = lists.current.map { current(it, captions, today, zone) },
+                archive = lists.archive.map { done(it, captions) },
+            )
     }
+}
+
+/** [HomeworkRules.Lists], captioned: the [current] homework and the [archive] of done ones. */
+data class HomeworkLists(val current: List<HomeworkRow>, val archive: List<HomeworkRow>)
+
+/**
+ * Somebody homework can be set for, as the add dialog offers them.
+ *
+ * @param name the group's name, or the student's.
+ * @param nextLessonAt when the lesson homework set for them **now** would be attached to starts, or null
+ *   while they have none booked — what the dialog says under the text, so the tutor sees where it goes.
+ */
+data class AssigneeChoice(val assignee: Assignee, val name: String, val nextLessonAt: Instant?) {
+    val isGroup: Boolean get() = assignee is Assignee.Group
 }

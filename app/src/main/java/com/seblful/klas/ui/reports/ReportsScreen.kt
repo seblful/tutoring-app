@@ -69,6 +69,7 @@ import com.seblful.klas.format.formatHours
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatMonthName
 import com.seblful.klas.storage.DocumentRef
+import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.HeroCard
 import com.seblful.klas.ui.common.KlasScreen
@@ -168,18 +169,22 @@ fun ReportsScreen(
                 // actually doing with a month is sending it — to an accountant, or to their own mail so
                 // it is somewhere other than this phone. Both stay: a file kept and a file sent are
                 // different acts, and the share sheet cannot put one on the SD card.
-                IconButton(
-                    onClick = {
-                        viewModel.share(shareFilename(period), shareSubject, csvHeader, csvLines)
-                    },
-                ) {
-                    Icon(Icons.Filled.Share, stringResource(R.string.reports_share))
+                HoldToName(stringResource(R.string.reports_share)) {
+                    IconButton(
+                        onClick = {
+                            viewModel.share(shareFilename(period), shareSubject, csvHeader, csvLines)
+                        },
+                    ) {
+                        Icon(Icons.Filled.Share, stringResource(R.string.reports_share))
+                    }
                 }
-                IconButton(onClick = { exportLauncher.launch(exportFilename) }) {
-                    Icon(
-                        Icons.Filled.FileDownload,
-                        stringResource(R.string.reports_export),
-                    )
+                HoldToName(stringResource(R.string.reports_export)) {
+                    IconButton(onClick = { exportLauncher.launch(exportFilename) }) {
+                        Icon(
+                            Icons.Filled.FileDownload,
+                            stringResource(R.string.reports_export),
+                        )
+                    }
                 }
             }
         },

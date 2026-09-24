@@ -2,11 +2,13 @@ package com.seblful.klas.ui.groups
 
 import androidx.lifecycle.SavedStateHandle
 import com.seblful.klas.domain.Attendance
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
+import com.seblful.klas.ui.homework.AssigneeChoice
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -38,7 +40,10 @@ class GroupDetailViewModelTest {
         students = env.studentRepo,
         subjects = env.subjectRepo,
         classes = env.classRepo,
+        homework = env.homeworkRepo,
+        appScope = mainRule.appScope,
         computation = mainRule.dispatcher,
+        clock = env.clock,
     )
 
     /**
@@ -287,5 +292,43 @@ class GroupDetailViewModelTest {
         assertFalse(deleted)
         assertEquals(listOf(GroupDetailViewModel.Event.DELETE_BLOCKED_HAS_LESSONS), events)
         assertNotNull("the group survives so its lessons still name it", env.groupRepo.getById(id))
+    }
+
+    // --- Homework -----------------------------------------------------------------------------------
+
+    /** The group's own homework, current and done — not a member's. */
+    @Test
+    fun `the card lists the group's homework, current and done`() = runTest(mainRule.dispatcher) {
+        val maths = fixtures.subject()
+        val anya = fixtures.pricedStudent("Аня", maths)
+        val group = fixtures.group(name = "9 «Б»", subjectId = maths, members = setOf(anya))
+        fixtures.homework(Assignee.Group(group), text = "задачи")
+        fixtures.homework(Assignee.Group(group), text = "прошлое", done = true)
+        fixtures.homework(Assignee.Student(anya), text = "Ани")
+        val vm = vm(group)
+        observing(vm.state)
+
+        assertEquals(listOf("задачи"), vm.state.current.homework.current.map { it.text })
+        assertEquals(listOf("прошлое"), vm.state.current.homework.archive.map { it.text })
+    }
+
+    @Test
+    fun `homework set from the card is the group's, for its next lesson`() = runTest(mainRule.dispatcher) {
+        val maths = fixtures.subject()
+        val anya = fixtures.pricedStudent("Аня", maths)
+        val group = fixtures.group(name = "9 «Б»", subjectId = maths, members = setOf(anya))
+        val tomorrow = env.clock.instant().plusSeconds(86_400)
+        fixtures.lesson(maths, listOf(anya), tomorrow, groupId = group)
+        val vm = vm(group)
+        observing(vm.state)
+
+        assertEquals(AssigneeChoice(Assignee.Group(group), "9 «Б»", tomorrow), vm.homeworkChoice())
+
+        vm.giveHomework("§ 12")
+        advanceUntilIdle()
+
+        val row = vm.state.current.homework.current.single()
+        assertEquals(Assignee.Group(group), row.homework.assignee)
+        assertEquals(tomorrow, row.lessonAt)
     }
 }

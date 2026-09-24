@@ -2,6 +2,7 @@ package com.seblful.klas.notifications
 
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.GroupRepository
+import com.seblful.klas.data.repository.HomeworkRepository
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
@@ -27,6 +28,7 @@ class DueReminder @Inject constructor(
     private val students: StudentRepository,
     private val subjects: SubjectRepository,
     private val groups: GroupRepository,
+    private val homework: HomeworkRepository,
     private val notifier: Notifier,
     private val settings: SettingsRepository,
     private val clock: Clock,
@@ -44,13 +46,14 @@ class DueReminder @Inject constructor(
             groupName = klass.groupId?.let { groups.getById(it)?.name },
             studentName = students.getById(klass.studentId)?.name,
         )
-        // Read now rather than when the reminder was planned, which is what lets a verdict skip re-planning
-        // (`ClassRepository.setHomeworkResult`): the reminder says what is left to check as it fires.
-        val toCheck = classes.getSessionFor(klass.id)
-            ?.let { classes.homeworkDueAt(it) }
-            ?.takeIf { it.open }
-            ?.text
-        notifier.showClassReminder(klass, who, subjects.getById(klass.subjectId)?.name.orEmpty(), toCheck)
+        // Read now rather than when the reminder was planned, which is what lets homework be set and ticked
+        // without re-planning anything (`HomeworkRepository`): the reminder names what is current as it fires.
+        val attached = classes.getSessionFor(klass.id)
+            ?.let { homework.currentAttachedTo(it) }
+            .orEmpty()
+            .joinToString("; ") { it.text }
+            .ifEmpty { null }
+        notifier.showClassReminder(klass, who, subjects.getById(klass.subjectId)?.name.orEmpty(), attached)
         return true
     }
 }

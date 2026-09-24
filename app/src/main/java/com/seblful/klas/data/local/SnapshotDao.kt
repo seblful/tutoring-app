@@ -30,6 +30,8 @@ data class DatabaseSnapshot(
     val lessons: List<LessonEntity> = emptyList(),
     val attendance: List<AttendanceEntity> = emptyList(),
     val payments: List<PaymentEntity> = emptyList(),
+    // Homework points at a student or a group, so it goes in after both and out before them.
+    val homework: List<HomeworkEntity> = emptyList(),
 )
 
 /**
@@ -68,6 +70,7 @@ abstract class SnapshotDao {
         lessons = lessons(),
         attendance = attendance(),
         payments = payments(),
+        homework = homework(),
     )
 
     /**
@@ -101,10 +104,12 @@ abstract class SnapshotDao {
         insertLessons(snapshot.lessons)
         insertAttendance(snapshot.attendance)
         insertPayments(snapshot.payments)
+        insertHomework(snapshot.homework)
     }
 
     /** Empties every table, **children before parents**, so no foreign key is ever left dangling. */
     private suspend fun clear() {
+        clearHomework()
         clearPayments()
         clearAttendance()
         clearLessons()
@@ -154,6 +159,9 @@ abstract class SnapshotDao {
     @Query("SELECT * FROM payments")
     protected abstract suspend fun payments(): List<PaymentEntity>
 
+    @Query("SELECT * FROM homework")
+    protected abstract suspend fun homework(): List<HomeworkEntity>
+
     // ---- Inserts -----------------------------------------------------------------------------------
     // Plain `@Insert`, not `@Upsert`: the tables are empty by the time these run, and a row that
     // collides is a corrupt file rather than something to quietly overwrite.
@@ -188,6 +196,9 @@ abstract class SnapshotDao {
     @Insert
     protected abstract suspend fun insertPayments(rows: List<PaymentEntity>)
 
+    @Insert
+    protected abstract suspend fun insertHomework(rows: List<HomeworkEntity>)
+
     // ---- Wipes -------------------------------------------------------------------------------------
     // The only whole-table deletes in the app. `StoredEnumNamesTest`'s sibling in
     // `data/local/WholeTableWritesTest` keeps it that way.
@@ -221,4 +232,7 @@ abstract class SnapshotDao {
 
     @Query("DELETE FROM payments")
     protected abstract suspend fun clearPayments()
+
+    @Query("DELETE FROM homework")
+    protected abstract suspend fun clearHomework()
 }

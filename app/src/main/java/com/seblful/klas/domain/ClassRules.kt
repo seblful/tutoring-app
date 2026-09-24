@@ -12,9 +12,9 @@ import java.time.Instant
  * *derived* from these (and the new start) by [ClassRules.edit], never set by the caller, so an
  * edit can't leave a class with a charge that no longer matches its price/duration/status.
  *
- * Most of these are the **lesson's** shared fields carried per class ([subjectId], [durationMinutes],
- * [mode] and now [notes] are all columns of `lessons`), which is what lets one edit fan out over a
- * group's roster without any class of it being able to disagree with the others.
+ * Most of these are the **lesson's** shared fields carried per class ([subjectId], [durationMinutes] and
+ * [mode] are all columns of `lessons`), which is what lets one edit fan out over a group's roster
+ * without any class of it being able to disagree with the others.
  */
 data class ClassEdit(
     val studentId: Long,
@@ -22,10 +22,6 @@ data class ClassEdit(
     val durationMinutes: Int,
     val price: Money,
     val mode: ClassMode,
-    /** What was covered and how it went — see [TutoringClass.notes]. Blank is "nothing written". */
-    val notes: String = "",
-    /** What was set for home — see [TutoringClass.homework]. Blank is "none set". */
-    val homework: String = "",
 )
 
 /** Rules governing a class's status: transitions, billing on completion, auto-completion. */
@@ -171,8 +167,6 @@ object ClassRules {
             durationMinutes = changes.durationMinutes,
             price = changes.price,
             mode = changes.mode,
-            notes = changes.notes,
-            homework = changes.homework,
         )
         return rebill(move(edited, newStart, now))
     }

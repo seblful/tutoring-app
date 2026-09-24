@@ -10,6 +10,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.takeOrElse
+import com.seblful.klas.ui.common.HoldToName
 
 /**
  * The app's top-level tabs, as items rather than as a bar.
@@ -50,15 +51,20 @@ fun NavigationSuiteScope.klasTabs(
  * thing saying where you were — one signal, and the weakest of the two Material gives you. Filling the
  * selected glyph is what makes the current tab readable at a glance, in a screenshot, and to someone who
  * cannot pick the pill's tint out of the background.
+ *
+ * **Held, it names its tab** in a bubble above the thumb ([HoldToName]) — the label under it is the
+ * smallest type on the screen, and on a narrow phone it has been shrunk to fit.
  */
 @Composable
 private fun TabIcon(dest: TopDestination, selected: Boolean) {
-    Icon(
-        imageVector = if (selected) dest.icon else dest.iconOutlined,
-        // Null: the label beside it says the same word, and `NavigationSuiteScaffold` already builds the
-        // item's own selected/unselected semantics. A description here would be read out twice.
-        contentDescription = null,
-    )
+    HoldToName(stringResource(dest.labelRes), above = true) {
+        Icon(
+            imageVector = if (selected) dest.icon else dest.iconOutlined,
+            // Null: the label beside it says the same word, and `NavigationSuiteScaffold` already builds
+            // the item's own selected/unselected semantics. A description here would be read out twice.
+            contentDescription = null,
+        )
+    }
 }
 
 /**

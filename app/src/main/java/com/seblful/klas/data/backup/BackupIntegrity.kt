@@ -2,12 +2,12 @@ package com.seblful.klas.data.backup
 
 import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.GroupEntity
+import com.seblful.klas.data.local.HomeworkEntity
 import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.HomeworkResult
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 
@@ -61,6 +61,7 @@ object BackupIntegrity {
         data.prices.forEach { checkAmount(it.amountMinor, "price for student ${it.studentId}") }
         data.payments.forEach { checkAmount(it.amountMinor, "payment ${it.id}") }
         data.rateHistory.forEach { checkRateChange(it) }
+        data.homework.forEach { checkHomework(it) }
     }
 
     private fun checkLesson(l: LessonEntity) {
@@ -80,13 +81,6 @@ object BackupIntegrity {
     private fun checkAttendance(a: AttendanceEntity) {
         if (Attended.parse(a.state) == null) {
             refuse("class ${a.id} has attendance \"${a.state}\"")
-        }
-        // Refused like a mode, for the same reason: the read would fall back (to "not checked") rather than
-        // fail, but a file carrying a verdict this build cannot name is not one to restore as if it could.
-        a.homeworkResult?.let { stored ->
-            if (HomeworkResult.parse(stored) == null) {
-                refuse("class ${a.id} has homework result \"$stored\"")
-            }
         }
         checkAmount(a.priceMinor, "class ${a.id}'s rate")
         checkAmount(a.chargeMinor, "class ${a.id}'s charge")
@@ -147,6 +141,17 @@ object BackupIntegrity {
         val isGroupRate = r.groupId != null
         if (!isStudentPrice && !isGroupRate) {
             refuse("rate change ${r.id} belongs to neither a student's subject nor a group")
+        }
+    }
+
+    /**
+     * Homework is for a student or a group, never neither and never both. Neither has no `Assignee` to
+     * come back as (the mapper fails, as for [checkRateChange]'s row); both would read back as the
+     * student's, quietly taking it away from the group — a guess this build will not make on a restore.
+     */
+    private fun checkHomework(h: HomeworkEntity) {
+        if ((h.studentId == null) == (h.groupId == null)) {
+            refuse("homework ${h.id} is for neither a student nor a group, or for both")
         }
     }
 

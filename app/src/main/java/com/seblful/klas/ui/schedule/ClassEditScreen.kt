@@ -30,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
@@ -358,36 +357,6 @@ private fun ClassEditForm(
                 selected = form.mode,
                 onSelect = { selected -> viewModel.change(BookingIntent.Edit { it.copy(mode = selected) }) },
             )
-
-            // **At the foot of the form, and multi-line.** With the homework under it, it is the only field
-            // as likely to be filled in *after* the lesson as before it — what was covered is written
-            // walking out of the room — so it sits below everything the booking itself needs and never
-            // gates the save. Its own height rather than the one-line default every other field here has:
-            // a note scrolling sideways inside a 56dp box is a note you cannot re-read, which is the only
-            // thing a note is for. The form is a `verticalScroll` under `imePadding()`, so the keyboard
-            // shrinks the viewport onto it instead of covering it.
-            OutlinedTextField(
-                value = form.notes,
-                onValueChange = { text -> viewModel.change(BookingIntent.Edit { it.copy(notes = text) }) },
-                label = { Text(stringResource(R.string.class_notes_label)) },
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                minLines = NoteFieldLines,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            // A lesson that exists sets homework; a booking does not — see [ClassForm.homework]. Below the
-            // note because it is written at the same moment, and apart from it because it is the half the
-            // student sees: the calendar event carries it, and «Задания» sends it.
-            if (!viewModel.isNew) {
-                OutlinedTextField(
-                    value = form.homework,
-                    onValueChange = { text -> viewModel.change(BookingIntent.Edit { it.copy(homework = text) }) },
-                    label = { Text(stringResource(R.string.homework_label)) },
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                    minLines = HomeworkFieldLines,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
         }
     }
 
@@ -653,13 +622,3 @@ private fun endsAtText(ends: ClassForm.Ending): String {
 
 // PickerField and DropdownField live in ui/common/Fields.kt — every screen that hides a value
 // behind a tap has to draw it the same way, which is exactly what this form was not doing.
-
-/**
- * How tall the note field starts — four lines, which is about a homework assignment and a remark about
- * how the lesson went. It grows with what is typed; this is the floor, so an empty field still reads as
- * somewhere to write rather than as one more one-line input.
- */
-private const val NoteFieldLines = 4
-
-/** The homework field's floor: «§ 12, упр. 4–7» and a line of what to watch for fit in two. */
-private const val HomeworkFieldLines = 2

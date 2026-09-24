@@ -1,5 +1,6 @@
 package com.seblful.klas.domain
 
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
@@ -47,10 +48,13 @@ class Captions private constructor(
     fun subjectOf(klass: TutoringClass): String = subjects[klass.subjectId].orEmpty()
 
     /**
-     * Whose one class is — for a row naming a group lesson's members one by one, each beside something of
-     * their own (a homework verdict), where [membersOf]'s bare names would leave the pairing to an index.
+     * Who a piece of homework is for, by the same rule a lesson is titled by: the group's name for a
+     * group's, the student's for one student's.
      */
-    fun studentOf(klass: TutoringClass): String = students[klass.studentId].orEmpty()
+    fun titleOf(assignee: Assignee): String = when (assignee) {
+        is Assignee.Student -> students[assignee.studentId].orEmpty()
+        is Assignee.Group -> groups[assignee.groupId].orEmpty()
+    }
 
     /**
      * The group [klass] was taught in, or **null when it was an individual lesson**.

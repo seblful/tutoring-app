@@ -1,13 +1,33 @@
 package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 
 /**
  * A band that **stays** while a list scrolls under it — so it is drawn as one.
@@ -53,5 +73,66 @@ fun StickyTabRow(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
             tabs = tabs,
         )
+    }
+}
+
+/**
+ * A detail card's lists as **one pinned control naming the list on screen**, with the others behind it —
+ * the student's card, which has four.
+ *
+ * Four tabs across a 360dp phone were four words competing for a glance on every visit, when a visit is
+ * nearly always about one of them; this shows that one, large, and keeps the rest a tap away. The menu
+ * gives each its [count] so nothing is hidden from a tutor who wants to know what is there, and ticks the
+ * one being shown.
+ *
+ * @param count how many rows [option] holds, or null to say nothing.
+ */
+@Composable
+fun <T> StickyViewMenu(
+    options: List<T>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    label: @Composable (T) -> String,
+    icon: (T) -> ImageVector,
+    count: (T) -> Int?,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    PinnedHeader(modifier) {
+        Box {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(role = Role.DropdownList) { expanded = true }
+                    .heightIn(min = MinTouchTarget)
+                    .padding(horizontal = Spacing.gutter),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(icon(selected), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Text(
+                    label(selected),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = Spacing.inline),
+                )
+                Icon(Icons.Filled.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(count(option)?.let { "${label(option)} · $it" } ?: label(option))
+                        },
+                        leadingIcon = { Icon(icon(option), contentDescription = null) },
+                        trailingIcon = if (option == selected) {
+                            { Icon(Icons.Filled.Check, contentDescription = null) }
+                        } else {
+                            null
+                        },
+                        onClick = { expanded = false; onSelect(option) },
+                    )
+                }
+            }
+        }
     }
 }

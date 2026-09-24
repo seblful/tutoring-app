@@ -22,7 +22,7 @@ object Routes {
     /** Students and groups, as one tab with two views inside it. */
     const val PEOPLE = "people"
 
-    /** Every student's homework: what to check, and what is handed out. */
+    /** Every student's and group's homework: what is current, and the archive of what is done. */
     const val HOMEWORK = "homework"
     const val REPORTS = "reports"
     const val MORE = "more"
@@ -73,7 +73,7 @@ object Routes {
  *
  * **Five again**, which is what folding «Группы» into «Люди» got the bar down from, and on purpose: that
  * tab was a second view of the same people, where homework is a question none of the other four answers —
- * "what do I check today", across every student. `TabLabel` already holds a label to one line and shrinks
+ * "what have I set, and for whom", across every student. `TabLabel` already holds a label to one line and shrinks
  * it where «Расписание» would not fit a fifth of a 360dp screen, and `BottomBarLabelTest` is what proves
  * that on a device.
  *

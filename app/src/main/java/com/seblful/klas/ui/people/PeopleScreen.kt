@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
+import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ScreenSearch
 import com.seblful.klas.ui.common.SegmentedChoice
@@ -105,13 +106,15 @@ fun PeopleScreen(
             if (tab == PeopleTab.STUDENTS) {
                 SortMenu(selected = studentSort, onSelect = studentsViewModel::setSort)
             }
-            IconButton(onClick = side::toggleArchived) {
-                Icon(
-                    Icons.Filled.Inventory2,
-                    stringResource(R.string.students_show_archived),
-                    tint = if (archived) MaterialTheme.colorScheme.primary
-                    else LocalContentColor.current,
-                )
+            HoldToName(stringResource(R.string.students_show_archived)) {
+                IconButton(onClick = side::toggleArchived) {
+                    Icon(
+                        Icons.Filled.Inventory2,
+                        stringResource(R.string.students_show_archived),
+                        tint = if (archived) MaterialTheme.colorScheme.primary
+                        else LocalContentColor.current,
+                    )
+                }
             }
         },
         floatingActionButton = {
@@ -174,15 +177,17 @@ fun PeopleScreen(
 private fun SortMenu(selected: StudentSort, onSelect: (StudentSort) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(
-                Icons.AutoMirrored.Filled.Sort,
-                stringResource(R.string.students_sort),
-                // Tinted while the list is in a non-default order, so a surprising order has a
-                // visible cause in the bar above it.
-                tint = if (selected != StudentSort.NAME) MaterialTheme.colorScheme.primary
-                else LocalContentColor.current,
-            )
+        HoldToName(stringResource(R.string.students_sort)) {
+            IconButton(onClick = { expanded = true }) {
+                Icon(
+                    Icons.AutoMirrored.Filled.Sort,
+                    stringResource(R.string.students_sort),
+                    // Tinted while the list is in a non-default order, so a surprising order has a
+                    // visible cause in the bar above it.
+                    tint = if (selected != StudentSort.NAME) MaterialTheme.colorScheme.primary
+                    else LocalContentColor.current,
+                )
+            }
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             StudentSort.entries.forEach { option ->

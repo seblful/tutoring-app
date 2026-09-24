@@ -10,6 +10,7 @@ import com.seblful.klas.data.toDomain
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.model.Balance
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
@@ -18,6 +19,7 @@ import com.seblful.klas.testutil.MutableClock
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
+import com.seblful.klas.ui.homework.AssigneeChoice
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -55,11 +57,13 @@ class StudentDetailViewModelTest {
         subjects = env.subjectRepo,
         classes = env.classRepo,
         groups = env.groupRepo,
+        homework = env.homeworkRepo,
         payments = env.paymentRepo,
         enrollment = env.enrollmentRepo,
         rateHistory = env.rateHistoryRepo,
         appScope = mainRule.appScope,
         computation = mainRule.dispatcher,
+        clock = env.clock,
     )
 
     private suspend fun seedStudent(name: String = "Аня"): Long =
@@ -690,5 +694,50 @@ class StudentDetailViewModelTest {
         val sid = env.fixtures.student("Аня")
 
         assertEquals(today, vm(sid).paymentDay())
+    }
+
+    // --- Homework -----------------------------------------------------------------------------------
+
+    /** Their own homework and their group's, the current apart from the done — and nobody else's. */
+    @Test
+    fun `the card lists the student's homework and their group's, current and done`() =
+        runTest(mainRule.dispatcher) {
+            val maths = env.fixtures.subject()
+            val anya = env.fixtures.pricedStudent("Аня", maths)
+            val boris = env.fixtures.pricedStudent("Борис", maths)
+            val group = env.fixtures.group(name = "9 «Б»", subjectId = maths, members = setOf(anya, boris))
+            val tomorrow = clock.instant().plus(1, ChronoUnit.DAYS)
+            env.fixtures.lesson(maths, listOf(anya, boris), tomorrow, groupId = group)
+            env.fixtures.homework(Assignee.Group(group), text = "группы")
+            env.fixtures.homework(Assignee.Student(anya), text = "своё", done = true)
+            env.fixtures.homework(Assignee.Student(boris), text = "Бориса")
+            val vm = vm(anya)
+            observing(vm.state)
+
+            val homework = vm.state.current.homework
+            assertEquals(listOf("группы"), homework.current.map { it.text })
+            assertEquals("9 «Б»", homework.current.single().title)
+            assertEquals(tomorrow, homework.current.single().lessonAt)
+            assertEquals(listOf("своё"), homework.archive.map { it.text })
+        }
+
+    @Test
+    fun `homework set from the card is the student's, for their next lesson`() = runTest(mainRule.dispatcher) {
+        val maths = env.fixtures.subject()
+        val anya = env.fixtures.pricedStudent("Аня", maths)
+        val tomorrow = clock.instant().plus(1, ChronoUnit.DAYS)
+        env.fixtures.lesson(maths, listOf(anya), tomorrow)
+        val vm = vm(anya)
+        observing(vm.state)
+
+        assertEquals(AssigneeChoice(Assignee.Student(anya), "Аня", tomorrow), vm.homeworkChoice())
+
+        vm.giveHomework("§ 12")
+        advanceUntilIdle()
+
+        val row = vm.state.current.homework.current.single()
+        assertEquals(Assignee.Student(anya), row.homework.assignee)
+        assertEquals("§ 12", row.text)
+        assertEquals(tomorrow, row.lessonAt)
     }
 }

@@ -4,16 +4,18 @@ import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.ClassRow
 import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.GroupEntity
+import com.seblful.klas.data.local.HomeworkEntity
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.HomeworkResult
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
+import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Price
@@ -147,10 +149,7 @@ class MappersTest {
         chargeMinor = attendance.chargeMinor,
         groupId = lesson.groupId,
         mode = lesson.mode,
-        notes = lesson.notes,
         calendarEventId = attendance.calendarEventId,
-        homework = lesson.homework,
-        homeworkResult = attendance.homeworkResult,
     ).toDomain()
 
     @Test
@@ -161,35 +160,56 @@ class MappersTest {
             durationMinutes = 90, price = Money.ofMajor(30),
             status = LessonStatus.COMPLETED, attended = Attended.ABSENT_BILLED,
             charge = Money.ofMajor(45),
-            groupId = null, mode = ClassMode.REMOTE, notes = "Дроби, повторить",
-            calendarEventId = "evt-1", homework = "§12, упр. 4–7", homeworkResult = HomeworkResult.PARTIAL,
+            groupId = null, mode = ClassMode.REMOTE,
+            calendarEventId = "evt-1",
         )
         assertEquals(c, c.roundTrip())
     }
 
     /**
-     * The homework is the lesson's, like its note — a group is set one assignment — and the verdict is the
-     * student's, on their own row, like their attendance.
+     * The note and v8's homework columns are vestigial: whatever a lesson is written with, they are written
+     * empty — which is what keeps an old note out of every backup once its lesson has been saved again.
      */
     @Test
-    fun `homework goes to the lesson's row and its verdict to the student's`() {
-        val c = TutoringClass(
-            id = 9, lessonId = 4, studentId = 1, subjectId = 2,
-            start = Instant.ofEpochMilli(1_700_000_000_000), durationMinutes = 60,
-            homework = "§12", homeworkResult = HomeworkResult.NOT_DONE,
-        )
-
-        assertEquals("§12", c.toLessonEntity().homework)
-        assertEquals(HomeworkResult.NOT_DONE.name, c.toAttendanceEntity().homeworkResult)
-    }
-
-    /** Not checked yet is null on the row, and null back — not a fourth verdict. */
-    @Test
-    fun `an unchecked verdict is stored as null`() {
+    fun `a class writes the vestigial columns empty`() {
         val c = TutoringClass(studentId = 1, subjectId = 2, start = Instant.ofEpochMilli(0), durationMinutes = 60)
 
+        assertEquals("", c.toLessonEntity().notes)
+        assertEquals("", c.toLessonEntity().homework)
         assertNull(c.toAttendanceEntity().homeworkResult)
-        assertNull(c.roundTrip().homeworkResult)
+    }
+
+    @Test
+    fun `one student's homework round-trips through its row`() {
+        val h = Homework(
+            id = 3, assignee = Assignee.Student(7), text = "§12, упр. 4–7",
+            givenAt = Instant.ofEpochMilli(1_700_000_000_000), doneAt = Instant.ofEpochMilli(1_700_086_400_000),
+        )
+
+        assertEquals(7L, h.toEntity().studentId)
+        assertNull(h.toEntity().groupId)
+        assertEquals(h, h.toEntity().toDomain())
+    }
+
+    @Test
+    fun `a group's homework round-trips through its row, current`() {
+        val h = Homework(id = 4, assignee = Assignee.Group(5), text = "Задачи", givenAt = Instant.ofEpochMilli(0))
+
+        assertNull(h.toEntity().studentId)
+        assertEquals(5L, h.toEntity().groupId)
+        assertNull(h.toEntity().doneAtMillis)
+        assertEquals(h, h.toEntity().toDomain())
+    }
+
+    /** Only a hand-edited database or file can hold one for nobody, and it says so rather than guessing. */
+    @Test
+    fun `homework for nobody fails the read, naming the row`() {
+        val failure = runCatching {
+            HomeworkEntity(id = 11, text = "§12", givenAtMillis = 0).toDomain()
+        }.exceptionOrNull()
+
+        assertTrue(failure is IllegalStateException)
+        assertTrue(failure!!.message!!.contains("11"))
     }
 
     /** Which row each fact is written to — the split itself, asserted rather than assumed. */
@@ -201,13 +221,12 @@ class MappersTest {
             durationMinutes = 90, price = Money.ofMajor(30),
             status = LessonStatus.COMPLETED, attended = Attended.PRESENT,
             charge = Money.ofMajor(45), groupId = 5, mode = ClassMode.REMOTE,
-            notes = "§12, упр. 4–7", calendarEventId = "evt-1",
+            calendarEventId = "evt-1",
         )
 
         val lesson = c.toLessonEntity()
         assertEquals(4L, lesson.id)
         assertEquals(LessonStatus.COMPLETED.name, lesson.status)
-        assertEquals("the note describes the hour, so it is the lesson's", "§12, упр. 4–7", lesson.notes)
         assertEquals(5L, lesson.groupId)
         assertEquals(90, lesson.durationMinutes)
 
@@ -328,21 +347,6 @@ class MappersTest {
         assertTrue("it fails rather than guessing", failure is IllegalStateException)
         assertTrue("and says which row: ${failure?.message}", failure!!.message!!.contains("42"))
         assertTrue(failure.message!!.contains("MISSED"))
-    }
-
-    /**
-     * A verdict carries no money, so like a mode it falls back rather than failing the read — to "not
-     * checked", which costs one verdict to give again.
-     */
-    @Test
-    fun `an unreadable homework verdict reads as not checked`() {
-        val klass = rejoin(
-            LessonEntity(1, 1, 1_900_000_000_000, 60, LessonStatus.COMPLETED.name, homework = "§12"),
-            AttendanceEntity(1, 1, 1, Attended.PRESENT.name, homeworkResult = "EXCELLENT"),
-        )
-
-        assertNull(klass.homeworkResult)
-        assertEquals("the rest of the row survives", "§12", klass.homework)
     }
 
     /** And so does an attendance, for the same reason: it is the other half of what bills. */

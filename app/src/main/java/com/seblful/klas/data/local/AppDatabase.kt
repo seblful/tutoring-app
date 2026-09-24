@@ -15,10 +15,11 @@ import androidx.room.RoomDatabase
         LessonEntity::class,
         AttendanceEntity::class,
         PaymentEntity::class,
+        HomeworkEntity::class,
         SettingsEntity::class,
     ],
     views = [ClassRow::class],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -32,6 +33,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun attendanceDao(): AttendanceDao
     abstract fun paymentDao(): PaymentDao
     abstract fun settingsDao(): SettingsDao
+    abstract fun homeworkDao(): HomeworkDao
 
     /** Whole tables at once, for backup and restore only — see [SnapshotDao]. */
     abstract fun snapshotDao(): SnapshotDao
@@ -44,8 +46,8 @@ abstract class AppDatabase : RoomDatabase() {
         /**
          * **The oldest schema version any `klas.db` can be at**, and therefore the version Room needs no
          * way *into*. Equal to the version `@Database` declares would mean: there are no migrations,
-         * because there is nothing to migrate from. It is three below it — the app is at v8 — so
-         * `data/local/Migrations.kt` holds exactly three steps.
+         * because there is nothing to migrate from. It is four below it — the app is at v9 — so
+         * `data/local/Migrations.kt` holds exactly four steps.
          *
          * This is a claim about **releases**, not about the schema, and it is why that file was deleted
          * once already. It was 1, with a chain of four migrations up to v5, and every one of them was dead
@@ -67,8 +69,9 @@ abstract class AppDatabase : RoomDatabase() {
          * is no longer free. It is the version in tutors' hands, and the v6 bump that added
          * `settings.language` duly shipped [Migrations.MIGRATION_5_6] from it — the first real migration
          * this app has ever had. [Migrations.MIGRATION_6_7] is the second, adding `lessons.notes` and the
-         * evening digest's two settings columns, and [Migrations.MIGRATION_7_8] the third, adding homework.
-         * `MigrationChainTest` reads this constant to demand one per step.
+         * evening digest's two settings columns, [Migrations.MIGRATION_7_8] the third, adding homework,
+         * and [Migrations.MIGRATION_8_9] the fourth, giving homework its own table. `MigrationChainTest`
+         * reads this constant to demand one per step.
          *
          * Raising it is a promise that no database below it exists anywhere, which after a release means
          * *every* install has been upgraded past it — not a thing to assume, and not a thing v6 changes.

@@ -7,6 +7,8 @@ import com.seblful.klas.data.local.ClassRow
 import com.seblful.klas.data.local.GroupDao
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.GroupMemberCrossRef
+import com.seblful.klas.data.local.HomeworkDao
+import com.seblful.klas.data.local.HomeworkEntity
 import com.seblful.klas.data.local.LessonDao
 import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.PaymentDao
@@ -27,6 +29,7 @@ import com.seblful.klas.data.toDomain
 import com.seblful.klas.domain.model.LessonStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 /**
@@ -265,10 +268,7 @@ class FakeClassStore {
                     chargeMinor = a.chargeMinor,
                     groupId = l.groupId,
                     mode = l.mode,
-                    notes = l.notes,
                     calendarEventId = a.calendarEventId,
-                    homework = l.homework,
-                    homeworkResult = a.homeworkResult,
                 )
             }
         }.sortedBy { it.id }
@@ -397,15 +397,54 @@ class FakeAttendanceDao(private val store: FakeClassStore) : AttendanceDao {
         store.refresh()
     }
 
-    /** One column of one row, as the real `UPDATE` touches — and nothing when no row has [id]. */
-    override suspend fun setHomeworkResult(id: Long, result: String?) {
-        items.value = items.value.map { if (it.id == id) it.copy(homeworkResult = result) else it }
+    override suspend fun deleteById(id: Long) {
+        items.value = items.value.filterNot { it.id == id }
         store.refresh()
+    }
+}
+
+/**
+ * `homework`, including its one query that reads another table: a student's card lists their groups'
+ * homework too, which the real DAO answers with a sub-select on `group_members` — here, [FakeGroupDao]'s
+ * members, so joining or leaving a group changes the answer as it does on a device.
+ */
+class FakeHomeworkDao(private val groupDao: FakeGroupDao) : HomeworkDao {
+    val items = MutableStateFlow<List<HomeworkEntity>>(emptyList())
+    private var nextId = 1L
+
+    override fun observeAll(): Flow<List<HomeworkEntity>> = items
+
+    override suspend fun getAll(): List<HomeworkEntity> = items.value
+
+    override fun observeForStudent(studentId: Long): Flow<List<HomeworkEntity>> =
+        combine(items, groupDao.members) { rows, members ->
+            val groups = members.filter { it.studentId == studentId }.mapTo(HashSet()) { it.groupId }
+            rows.filter { it.studentId == studentId || it.groupId in groups }
+        }
+
+    override fun observeForGroup(groupId: Long): Flow<List<HomeworkEntity>> =
+        items.map { rows -> rows.filter { it.groupId == groupId } }
+
+    /** As `@Insert`: a new id for 0, the given one otherwise — and a refusal, not an overwrite, on a clash. */
+    override suspend fun insert(row: HomeworkEntity): Long {
+        val id = if (row.id == 0L) nextId++ else row.id.also { nextId = maxOf(nextId, it + 1) }
+        check(items.value.none { it.id == id }) { "homework $id already exists" }
+        items.value += row.copy(id = id)
+        return id
+    }
+
+    override suspend fun edit(id: Long, studentId: Long?, groupId: Long?, text: String) {
+        items.value = items.value.map {
+            if (it.id == id) it.copy(studentId = studentId, groupId = groupId, text = text) else it
+        }
+    }
+
+    override suspend fun setDone(id: Long, doneAtMillis: Long?) {
+        items.value = items.value.map { if (it.id == id) it.copy(doneAtMillis = doneAtMillis) else it }
     }
 
     override suspend fun deleteById(id: Long) {
         items.value = items.value.filterNot { it.id == id }
-        store.refresh()
     }
 }
 
@@ -466,6 +505,7 @@ class FakeSnapshotDao(
     private val rateHistoryDao: FakeRateHistoryDao,
     private val store: FakeClassStore,
     private val paymentDao: FakePaymentDao,
+    private val homeworkDao: FakeHomeworkDao,
 ) : SnapshotDao() {
 
     override suspend fun subjects(): List<SubjectEntity> = subjectDao.items.value
@@ -478,6 +518,7 @@ class FakeSnapshotDao(
     override suspend fun lessons(): List<LessonEntity> = store.lessons.value
     override suspend fun attendance(): List<AttendanceEntity> = store.attendance.value
     override suspend fun payments(): List<PaymentEntity> = paymentDao.items.value
+    override suspend fun homework(): List<HomeworkEntity> = homeworkDao.items.value
 
     override suspend fun insertSubjects(rows: List<SubjectEntity>) {
         subjectDao.items.value += rows
@@ -521,6 +562,11 @@ class FakeSnapshotDao(
         paymentDao.items.value += rows
     }
 
+    // Through the DAO's own insert, since a v8 file's homework arrives with no ids and needs them given.
+    override suspend fun insertHomework(rows: List<HomeworkEntity>) {
+        rows.forEach { homeworkDao.insert(it) }
+    }
+
     override suspend fun clearSubjects() {
         subjectDao.items.value = emptyList()
     }
@@ -561,5 +607,9 @@ class FakeSnapshotDao(
 
     override suspend fun clearPayments() {
         paymentDao.items.value = emptyList()
+    }
+
+    override suspend fun clearHomework() {
+        homeworkDao.items.value = emptyList()
     }
 }

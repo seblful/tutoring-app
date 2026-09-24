@@ -10,6 +10,7 @@ import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.EnrollmentRepository
 import com.seblful.klas.data.repository.GroupRepository
+import com.seblful.klas.data.repository.HomeworkRepository
 import com.seblful.klas.data.repository.PaymentRepository
 import com.seblful.klas.data.repository.RateHistoryRepository
 import com.seblful.klas.data.repository.SettingsRepository
@@ -405,10 +406,11 @@ class TestEnv(
     val attendanceDao = FakeAttendanceDao(classStore)
     val settingsDao = FakeSettingsDao()
     val paymentDao = FakePaymentDao()
+    val homeworkDao = FakeHomeworkDao(groupDao)
 
     /** The same rows again, whole tables at a time — what backup and restore see. */
     val snapshotDao = FakeSnapshotDao(
-        subjectDao, studentDao, groupDao, priceDao, rateHistoryDao, classStore, paymentDao,
+        subjectDao, studentDao, groupDao, priceDao, rateHistoryDao, classStore, paymentDao, homeworkDao,
     )
 
     val calendar = FakeCalendarSync()
@@ -444,6 +446,8 @@ class TestEnv(
     // Archiving a student has to call off their planned lessons, so this reaches for the class
     // repository rather than restating any of what a class change owes.
     val studentRepo = StudentRepository(studentDao, classRepo, calendarMirror)
+
+    val homeworkRepo = HomeworkRepository(homeworkDao, classRepo, clock)
 
     /**
      * The real backup manager and restore, on the same fake DAOs. Reachable in a JVM test because

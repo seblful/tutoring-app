@@ -3,28 +3,42 @@ package com.seblful.klas.ui.groups
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.GroupRepository
+import com.seblful.klas.data.repository.HomeworkRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.Attendance
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.Billing
+import com.seblful.klas.domain.Captions
 import com.seblful.klas.domain.GroupRules
+import com.seblful.klas.domain.HomeworkRules
 import com.seblful.klas.domain.Taught
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Group
+import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
+import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.ready
+import com.seblful.klas.ui.common.valueOrNull
+import com.seblful.klas.ui.homework.AssigneeChoice
+import com.seblful.klas.ui.homework.HomeworkLists
+import com.seblful.klas.ui.homework.HomeworkRow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import java.time.Clock
 import javax.inject.Inject
 
 /**
@@ -68,6 +82,8 @@ data class GroupDetailState(
     val totals: Taught.Totals = Taught.Totals.NONE,
     val members: List<GroupMemberRow> = emptyList(),
     val lessons: List<GroupLessonRow> = emptyList(),
+    /** The group's own homework, current and done — the card's homework view. See [HomeworkRules.lists]. */
+    val homework: HomeworkLists = HomeworkLists(current = emptyList(), archive = emptyList()),
 )
 
 /**
@@ -91,17 +107,28 @@ class GroupDetailViewModel @Inject constructor(
     students: StudentRepository,
     subjects: SubjectRepository,
     classes: ClassRepository,
+    private val homework: HomeworkRepository,
+    @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
+    private val clock: Clock,
 ) : ViewModel() {
 
-    /** One-shot signals: a deletion refused because the group already has lessons. */
-    enum class Event { DELETE_BLOCKED_HAS_LESSONS }
+    /** One-shot signals: a deletion refused because the group already has lessons, or a failed write. */
+    enum class Event {
+        DELETE_BLOCKED_HAS_LESSONS,
+
+        /** A homework write failed — a database error rather than a rule. */
+        WRITE_FAILED,
+    }
 
     val events = UiEvents<Event>()
 
     val groupId: Long = checkNotNull(savedStateHandle["id"])
 
-    val state: StateFlow<Loadable<GroupDetailState>> = combine(
+    /** The card without its homework, and the group's classes it is attached by — five sources is `combine`'s most. */
+    private data class Base(val state: GroupDetailState, val classes: List<TutoringClass>)
+
+    private val base = combine(
         groups.observeById(groupId),
         groups.observeMemberIds(groupId),
         // Every student, not just active ones: an archived member still explains a past lesson.
@@ -114,7 +141,7 @@ class GroupDetailViewModel @Inject constructor(
         val sessions = GroupRules.sessions(groupClasses).reversed()
         val attendedByStudent = groupClasses.groupingBy { it.studentId }.eachCount()
         val roster = memberIds.toSet()
-        GroupDetailState(
+        val card = GroupDetailState(
             group = group,
             subjectName = group?.subjectId?.let { id -> allSubjects.firstOrNull { it.id == id }?.name },
             // The sessions already collapsed above, rather than collapsing the same classes again.
@@ -129,6 +156,22 @@ class GroupDetailViewModel @Inject constructor(
                     charge = Billing.charged(session.classes),
                 )
             },
+        )
+        Base(card, groupClasses)
+    }
+
+    val state: StateFlow<Loadable<GroupDetailState>> = combine(
+        base,
+        homework.observeForGroup(groupId),
+    ) { base, homeworkList ->
+        val captions = Captions.of(students = emptyList(), subjects = emptyList(), groups = listOfNotNull(base.state.group))
+        base.state.copy(
+            homework = HomeworkRow.of(
+                HomeworkRules.lists(homeworkList, base.classes),
+                captions,
+                clock.instant().atZone(clock.zone).toLocalDate(),
+                clock.zone,
+            ),
         )
     }
         .ready()
@@ -157,6 +200,44 @@ class GroupDetailViewModel @Inject constructor(
             val group = groups.getById(groupId)
             if (group != null && groups.delete(group)) onDeleted()
             else events.send(Event.DELETE_BLOCKED_HAS_LESSONS)
+        }
+    }
+
+    /**
+     * Who homework set from this card is for — the group, **as of now**, with the lesson it would be
+     * attached to. Taken when the dialog opens, as the student card's is. Null before the card has loaded.
+     */
+    fun homeworkChoice(): AssigneeChoice? {
+        val loaded = state.value.valueOrNull() ?: return null
+        val group = loaded.group ?: return null
+        val assignee = Assignee.Group(groupId)
+        val classes = loaded.lessons.flatMap { it.session.classes }
+        return AssigneeChoice(
+            assignee = assignee,
+            name = group.name,
+            nextLessonAt = HomeworkRules.nextLesson(assignee, clock.instant(), classes)?.start,
+        )
+    }
+
+    /** Sets homework for the whole group — attached to its next lesson from now. */
+    fun giveHomework(text: String) = write { homework.give(Assignee.Group(groupId), text) }
+
+    /** Corrects [item]'s text; it stays the group's. */
+    fun editHomework(item: Homework, text: String) = write { homework.edit(item, item.assignee, text) }
+
+    fun setHomeworkDone(item: Homework, done: Boolean) = write { homework.setDone(item, done) }
+
+    /** Undoes a swipe, [item]'s done state back as it was — see `HomeworkRepository.putBack`. */
+    fun putHomeworkBack(item: Homework) = write { homework.putBack(item) }
+
+    fun deleteHomework(item: Homework) = write { homework.delete(item) }
+
+    fun restoreHomework(item: Homework) = write { homework.restore(item) }
+
+    /** In [appScope], as every homework write: a swipe or a dialog closing must not cut it short. */
+    private fun write(block: suspend () -> Unit) {
+        appScope.launch {
+            runCatchingCancellable { block() }.onFailure { events.send(Event.WRITE_FAILED) }
         }
     }
 }
