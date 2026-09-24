@@ -66,6 +66,7 @@ class SubjectDeletionCascadeTest {
             guest: Guest?,
             reminderLeadMinutes: Int,
         ): String? = null
+        override suspend fun refresh(klass: TutoringClass, title: String) = Unit
         override suspend fun delete(eventId: String) = Unit
     }
 
