@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
+import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.testutil.RussianMinskPhone
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.data.repository.CalendarMirror
@@ -32,7 +33,6 @@ import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -46,8 +46,8 @@ import java.time.Instant
  *
  * Deleting a subject used to CASCADE-delete its classes — including COMPLETED ones (earned income) —
  * while payments survived, flipping an owing student into a false credit. [SubjectRepository.delete]
- * refuses a subject that still has classes, or that a group is taught (each for its own reason), and
- * takes only its rate log with it. (Needs a device/emulator for Room.)
+ * refuses a subject that still has classes, that a group is taught, or that a student takes (each for its
+ * own reason), and takes only its rate log with it. (Needs a device/emulator for Room.)
  */
 @RunWith(AndroidJUnit4::class)
 @HiltAndroidTest
@@ -97,7 +97,7 @@ class SubjectDeletionCascadeTest {
         val groups = GroupRepository(
             db.groupDao(), classes, db.studentDao(), rateHistory, transactor, mirror,
         )
-        subjects = SubjectRepository(db.subjectDao(), classes, groups, mirror)
+        subjects = SubjectRepository(db.subjectDao(), classes, groups, db.studentDao(), mirror)
     }
 
     @After fun tearDown() = db.close()
@@ -160,6 +160,22 @@ class SubjectDeletionCascadeTest {
         // group that has taught none.
         assertEquals(SubjectRepository.Delete.TaughtToGroup, deleted)
         assertEquals(2, db.snapshotDao().read().subjects.size) // both subjects still there
+    }
+
+    /**
+     * A student who takes the subject, with no lesson in it yet. Their price and the link cascade with the
+     * subject, so before this was checked the delete went through and quietly took the subject off them.
+     */
+    @Test fun deletingSubjectAStudentTakesIsBlocked() = runTest {
+        db.priceDao().upsert(PriceEntity(1, 2, amountMinor = 4000))
+        db.studentDao().addSubjectLink(StudentSubjectCrossRef(studentId = 1, subjectId = 2))
+
+        val deleted = subjects.delete(Subject(id = 2, name = "Физика"))
+
+        assertEquals(SubjectRepository.Delete.TakenByStudents, deleted)
+        val rows = db.snapshotDao().read()
+        assertEquals(2, rows.subjects.size) // both subjects still there
+        assertEquals(2, rows.prices.size) // and the student still priced for both
     }
 
     /**

@@ -17,12 +17,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
+import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.Loadable
@@ -90,12 +95,28 @@ private fun GroupForm(
 ) {
     val form = state.form
 
-    // Back — the arrow or the system gesture — asks before throwing away edits to a group.
-    val requestLeave = leaveGuard(form = state, onLeave = onBack, onSave = { viewModel.save { onBack() } })
+    // A save that would take somebody off the roster — no price for the group's subject — asks first.
+    var confirmingDrops by rememberSaveable { mutableStateOf(false) }
+    fun requestSave() {
+        if (state.leavingOnSave > 0) confirmingDrops = true else viewModel.save { onBack() }
+    }
+
+    // Back — the arrow or the system gesture — asks before throwing away edits to a group, and saving on
+    // the way out owes the same question as the save button.
+    val requestLeave = leaveGuard(form = state, onLeave = onBack, onSave = ::requestSave)
 
     val messages = rememberMessages()
-    val notPricedMsg = stringResource(R.string.group_members_not_priced)
-    ShowMessagesFor(viewModel.events, messages) { notPricedMsg }
+    val saveFailedMsg = stringResource(R.string.save_failed)
+    ShowMessagesFor(viewModel.events, messages) { saveFailedMsg }
+
+    if (confirmingDrops) {
+        ConfirmDialog(
+            text = pluralStringResource(R.plurals.group_members_leaving_confirm, state.leavingOnSave, state.leavingOnSave),
+            confirmLabel = stringResource(R.string.action_save),
+            onConfirm = { viewModel.save { onBack() } },
+            onDismiss = { confirmingDrops = false },
+        )
+    }
 
     KlasScreen(
         title = title,
@@ -104,7 +125,7 @@ private fun GroupForm(
         // The rate field and the roster are at the bottom of a long form, and under edge-to-edge the
         // IME is an inset rather than a resize — the shell composes it in ahead of the scroll.
         imeAware = true,
-        actions = { SaveAction(enabled = state.canSave, onSave = { viewModel.save { onBack() } }) },
+        actions = { SaveAction(enabled = state.canSave, onSave = ::requestSave) },
     ) { modifier ->
         LazyColumn(
             modifier,

@@ -22,7 +22,7 @@ class SubjectsViewModelTest {
 
     private val env = TestEnv()
 
-    private fun vm() = SubjectsViewModel(env.subjectRepo, mainRule.dispatcher)
+    private fun vm() = SubjectsViewModel(env.subjectRepo, mainRule.appScope, mainRule.dispatcher)
 
     @Test
     fun `save trims the name and ignores a blank one`() = runTest(mainRule.dispatcher) {
@@ -66,5 +66,21 @@ class SubjectsViewModelTest {
 
         assertEquals(listOf(SubjectsViewModel.Event.DELETE_BLOCKED_HAS_CLASSES), events)
         assertEquals(1, env.subjectDao.items.value.size) // not deleted
+    }
+
+    @Test
+    fun `a name another subject already has is refused and said`() = runTest(mainRule.dispatcher) {
+        env.fixtures.subject("Математика")
+        val vm = vm()
+        val events = mutableListOf<SubjectsViewModel.Event>()
+        observing(vm.subjects)
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+        advanceUntilIdle()
+
+        vm.save(id = 0, name = " математика ")
+        advanceUntilIdle()
+
+        assertEquals(listOf(SubjectsViewModel.Event.NAME_TAKEN), events)
+        assertEquals(1, env.subjectDao.items.value.size)
     }
 }

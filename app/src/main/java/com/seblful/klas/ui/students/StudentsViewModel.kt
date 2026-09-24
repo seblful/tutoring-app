@@ -1,7 +1,6 @@
 package com.seblful.klas.ui.students
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.PaymentRepository
@@ -89,7 +88,10 @@ class StudentsViewModel @Inject constructor(
                 val balances = Billing.balancesFor(studentList, allClasses, allPayments)
                 studentList.zip(balances) { student, balance -> StudentRow(student, balance.balance) }
                     .filter { PeopleSearch.matches(it.student.name, query) }
-                    .sortedWith(sort.comparator)
+                    // The archive after everyone taught now, as the groups list keeps it: sorting by name
+                    // alone threaded the retired through the list, and «Показать архив» turned the page
+                    // into one where the current students had to be picked out.
+                    .sortedWith(compareBy<StudentRow> { it.student.archived }.then(sort.comparator))
             }
         }
             .ready()

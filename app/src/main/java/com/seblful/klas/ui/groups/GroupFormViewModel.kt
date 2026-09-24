@@ -3,6 +3,7 @@ package com.seblful.klas.ui.groups
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.RateHistoryRepository
@@ -17,6 +18,7 @@ import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
+import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.LeavableForm
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
@@ -24,7 +26,9 @@ import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.valueOrNull
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -61,6 +65,7 @@ class GroupFormViewModel @Inject constructor(
     students: StudentRepository,
     subjects: SubjectRepository,
     rateHistory: RateHistoryRepository,
+    @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
 
@@ -106,6 +111,11 @@ class GroupFormViewModel @Inject constructor(
          */
         val archived: Boolean = false,
         /**
+         * Everybody priced for [Form.subjectId], archived students included — the set `GroupRepository.save`
+         * keeps a roster to — or null while no subject is chosen, when it keeps everyone.
+         */
+        val pricedIds: Set<Long>? = null,
+        /**
          * Whether the form differs from the group as it was loaded (or, for a new one, from the
          * prefilled blank) — what leaving without saving would throw away.
          *
@@ -138,13 +148,23 @@ class GroupFormViewModel @Inject constructor(
          * longer priced for its subject.
          *
          * The exclusion above is right, and doing it in silence was not — this is the same fact said out
-         * loud (see [Event.MEMBERS_NOT_PRICED_FOR_SUBJECT]). The tutor need not have touched the roster
+         * loud (see [leavingOnSave]). The tutor need not have touched the roster
          * to get here: un-enrolling somebody from the subject one-to-one is allowed while the group has
          * taught no lesson, and the next save of the group — a rename is enough — is what drops them.
          * Keeping them in [Form.memberIds] is what lets flipping the subject back restore the roster,
          * so this is a report rather than a reason to prune.
          */
         val strandedMemberIds: Set<Long> get() = form.memberIds - selectedMemberIds
+
+        /**
+         * How many of the roster the save would take off it, for want of a price for the subject — asked
+         * about **before** the save, not reported after it. The report was a snackbar sent as the form
+         * closed, so it went with the screen and the roster shrank in silence after all.
+         *
+         * Not [strandedMemberIds]: an archived member is out of the candidates but still priced, and the
+         * save keeps them.
+         */
+        val leavingOnSave: Int get() = pricedIds?.let { (form.memberIds - it).size } ?: 0
 
         /** A group needs a name, a rate and at least one member; without those there is nothing to book. */
         override val canSave: Boolean
@@ -153,13 +173,8 @@ class GroupFormViewModel @Inject constructor(
 
     /** One-shot UI signals. */
     enum class Event {
-        /**
-         * The save kept only the members priced for the group's subject, and left somebody out. Said
-         * out loud because the alternative is a roster that quietly shrank — and because the tutor may
-         * not have touched it: un-enrolling a member from the subject one-to-one is what makes the next
-         * save drop them.
-         */
-        MEMBERS_NOT_PRICED_FOR_SUBJECT,
+        /** The write failed — a database error, not anything the form got wrong. The form stays open. */
+        SAVE_FAILED,
     }
 
     val events = UiEvents<Event>()
@@ -221,6 +236,7 @@ class GroupFormViewModel @Inject constructor(
             candidates = if (priced == null) activeStudents else activeStudents.filter { it.id in priced },
             subjects = allSubjects,
             archived = isArchived,
+            pricedIds = priced,
             isDirty = dirty,
         )
     }
@@ -293,16 +309,23 @@ class GroupFormViewModel @Inject constructor(
         form.value = form.value.copy(subjectId = subjectId)
     }
 
+    /** Set on the tap and cleared only by a failure — see [save]. */
+    private var saving = false
+
     /**
      * Saves the group and its roster in one step (see `GroupRepository.save`) and reports the group's
      * id, so a freshly created group can go straight on to booking its first lesson.
      *
-     * A group with a subject only keeps the members priced for it, and this says so when it happens
-     * ([Event.MEMBERS_NOT_PRICED_FOR_SUBJECT]) instead of letting them disappear. The tutor need not
-     * have touched the roster at all: un-enrolling somebody from the subject one-to-one is allowed, and
-     * the next save of the group — a rename included — is what drops them.
+     * A group with a subject only keeps the members priced for it; the screen asks first when that would
+     * leave somebody out ([UiState.leavingOnSave]). The tutor need not have touched the roster at all:
+     * un-enrolling somebody from the subject one-to-one is allowed, and the next save of the group — a
+     * rename included — is what drops them.
+     *
+     * **In the application scope, once.** A back press straight after the tap used to cancel the write,
+     * a database error closed the app, and a double tap saved a new group twice and popped two screens.
      */
     fun save(onSaved: (Long) -> Unit) {
+        if (saving) return
         // A form that has not loaded holds nothing to save — and the screen offers no save button while
         // it is drawing a skeleton, so this is the belt to that braces.
         val s = state.value.valueOrNull() ?: return
@@ -320,17 +343,22 @@ class GroupFormViewModel @Inject constructor(
             defaultMode = f.mode,
             archived = archived.value,
         )
+        saving = true
         viewModelScope.launch {
             // The whole ticked set goes down, stranded members included: which of them a
-            // subject-bound group may keep is the save's own rule, and who was left out comes back
-            // as data ([GroupRepository.Saved]) instead of being predicted here from a second copy
-            // of the intersection — the report and the write can no longer disagree.
-            val saved = groups.save(group, f.memberIds)
-            // Saved is the new baseline, so a save that leaves the screen open (or a slow navigation)
-            // cannot be followed by "you have unsaved changes".
-            pristine.value = f
-            if (saved.dropped.isNotEmpty()) events.send(Event.MEMBERS_NOT_PRICED_FOR_SUBJECT)
-            onSaved(saved.id)
+            // subject-bound group may keep is the save's own rule.
+            val saved = appScope.async { runCatchingCancellable { groups.save(group, f.memberIds) } }.await()
+            saved
+                .onSuccess {
+                    // Saved is the new baseline, so a save that leaves the screen open (or a slow
+                    // navigation) cannot be followed by "you have unsaved changes".
+                    pristine.value = f
+                    onSaved(it.id)
+                }
+                .onFailure {
+                    saving = false
+                    events.send(Event.SAVE_FAILED)
+                }
         }
     }
 

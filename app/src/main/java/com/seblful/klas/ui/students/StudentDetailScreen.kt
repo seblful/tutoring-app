@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.outlined.Assignment
@@ -46,6 +49,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.setValue
@@ -56,20 +60,24 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.LessonFilter
+import com.seblful.klas.domain.Phone
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
+import com.seblful.klas.format.bulletJoin
+import com.seblful.klas.ui.common.ConfirmDialog
+import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.homework.AssigneeChoice
 import com.seblful.klas.ui.homework.HomeworkDialog
 import com.seblful.klas.ui.homework.HomeworkRow
@@ -145,11 +153,13 @@ private enum class StudentTab(val labelRes: Int, val icon: ImageVector) {
 @Composable
 fun StudentDetailScreen(
     onBack: () -> Unit,
+    /** Opens a lesson, as tapping it on the schedule — or on a group's card — does. */
+    onLessonClick: (Long) -> Unit,
     viewModel: StudentDetailViewModel = hiltViewModel(),
 ) {
     when (val screenState = viewModel.state.collectAsState().value) {
         Loadable.Loading -> LoadingDetailScreen(onBack)
-        is Loadable.Ready -> StudentCard(screenState.value, viewModel, onBack)
+        is Loadable.Ready -> StudentCard(screenState.value, viewModel, onBack, onLessonClick)
     }
 }
 
@@ -159,6 +169,7 @@ private fun StudentCard(
     state: StudentDetailState,
     viewModel: StudentDetailViewModel,
     onBack: () -> Unit,
+    onLessonClick: (Long) -> Unit,
 ) {
     val student = state.student
 
@@ -167,6 +178,8 @@ private fun StudentCard(
     var editing by remember { mutableStateOf(false) }
     var addingSubject by remember { mutableStateOf(false) }
     var pricingSubjectId by remember { mutableStateOf<Long?>(null) }
+    // Asked first: taking a subject off a student forgets its price and the log of its past prices.
+    var removingSubjectId by rememberSaveable { mutableStateOf<Long?>(null) }
     var addingPayment by remember { mutableStateOf(false) }
     var editingPayment by remember { mutableStateOf<Payment?>(null) }
     var confirmingArchive by remember { mutableStateOf(false) }
@@ -178,28 +191,25 @@ private fun StudentCard(
     val context = LocalContext.current
     val noAppMsg = stringResource(R.string.student_contact_failed)
 
-    val removeBlockedMsg = stringResource(R.string.student_subject_remove_blocked)
-    val showLabel = stringResource(R.string.action_show)
-    val writeFailedMsg = stringResource(R.string.action_failed)
-    // Held here rather than read inside the collector: a plural needs the count, and the count is
-    // whatever the event carries — so the message is built from the state the dialog just confirmed.
-    val cancelledCount = state.totals.upcoming
-    val cancelledMsg = pluralStringResource(
-        R.plurals.student_archive_lessons_cancelled,
-        cancelledCount.coerceAtLeast(1),
-        cancelledCount,
-    )
+    // Read inside the collector through `rememberUpdatedState`, so the words are the language in force
+    // when the event arrives — and the plural's count is the one the event carries, the write's own.
+    val resources by rememberUpdatedState(context.resources)
     LaunchedEffect(Unit) {
         viewModel.events.stream.collect { event ->
             when (event) {
                 // The refusal names lessons the tutor now has to go and look at — and they are one
                 // tab away, so the message carries the way there. This is the thing a toast could
                 // never do: state a problem *and* offer the next step.
-                StudentDetailViewModel.Event.REMOVE_BLOCKED_HAS_CLASSES ->
-                    messages.show(removeBlockedMsg, showLabel) { tab = StudentTab.CLASSES }
+                StudentDetailViewModel.Event.RemoveBlockedHasClasses ->
+                    messages.show(
+                        resources.getString(R.string.student_subject_remove_blocked),
+                        resources.getString(R.string.action_show),
+                    ) { tab = StudentTab.CLASSES }
 
-                StudentDetailViewModel.Event.ARCHIVE_CANCELLED_LESSONS -> messages.show(cancelledMsg)
-                StudentDetailViewModel.Event.WRITE_FAILED -> messages.show(writeFailedMsg)
+                is StudentDetailViewModel.Event.ArchiveCancelledLessons -> messages.show(
+                    resources.getQuantityString(R.plurals.student_archive_lessons_cancelled, event.count, event.count),
+                )
+                StudentDetailViewModel.Event.WriteFailed -> messages.show(resources.getString(R.string.action_failed))
             }
         }
     }
@@ -326,11 +336,12 @@ private fun StudentCard(
                     state = state,
                     onAdd = { addingSubject = true },
                     onReprice = { id -> pricingSubjectId = id },
-                    onRemove = viewModel::removeSubject,
+                    onRemove = { removingSubjectId = it },
                 )
                 StudentTab.CLASSES -> classesTab(
                     state = state,
                     filter = lessonFilter,
+                    onLessonClick = onLessonClick,
                     onFilter = { lessonFilter = it },
                 )
                 StudentTab.PAYMENTS -> paymentsTab(
@@ -359,7 +370,7 @@ private fun StudentCard(
         StudentEditDialog(
             title = stringResource(R.string.student_edit_title),
             initialName = student.name,
-            initialPhone = student.phone.ifBlank { "+375 " },
+            initialPhone = Phone.editable(student.phone),
             initialEmail = student.email,
             initialNote = student.note,
             initialMode = student.defaultMode,
@@ -372,9 +383,20 @@ private fun StudentCard(
         val pricedIds = state.subjects.map { it.subject.id }.toSet()
         AddSubjectPriceDialog(
             addableSubjects = state.allSubjects.filter { it.id !in pricedIds },
+            noSubjectsYet = state.allSubjects.isEmpty(),
             onConfirm = { subjectId, amount -> viewModel.addSubject(subjectId, amount) },
             onDismiss = { addingSubject = false },
         )
+    }
+    removingSubjectId?.let { subjectId ->
+        state.subjects.firstOrNull { it.subject.id == subjectId }?.let { sp ->
+            ConfirmDialog(
+                text = stringResource(R.string.student_subject_remove_confirm, sp.subject.name),
+                confirmLabel = stringResource(R.string.action_remove),
+                onConfirm = { viewModel.removeSubject(subjectId) },
+                onDismiss = { removingSubjectId = null },
+            )
+        }
     }
     pricingSubjectId?.let { subjectId ->
         state.subjects.firstOrNull { it.subject.id == subjectId }?.let { sp ->
@@ -514,9 +536,13 @@ private fun BalanceHero(state: StudentDetailState, modifier: Modifier = Modifier
         modifier = modifier,
         tonal = true,
     ) {
-        // The same sentence the students list uses for the same number, so a balance reads identically
-        // wherever it is met.
-        Text(balanceDescription(balance), style = MaterialTheme.typography.bodySmall)
+        // Not the balance again in words — the label and the number already say it — but when the money last
+        // came in, which they do not.
+        Text(
+            state.lastPaymentAt?.let { stringResource(R.string.student_last_payment, it.formatDate()) }
+                ?: stringResource(R.string.payments_empty),
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }
 
@@ -544,13 +570,14 @@ private fun ContactBlock(
                 modifier = Modifier.padding(bottom = Spacing.tight),
             )
         }
-        if (student.phone.isNotBlank()) {
+        Phone.contactOf(student.phone)?.let { phone ->
             ContactRow(
                 icon = Icons.Filled.Phone,
-                text = student.phone,
-                onClick = { onCall(student.phone) },
+                text = phone,
+                actionLabel = stringResource(R.string.student_call),
+                onClick = { onCall(phone) },
                 trailing = {
-                    IconButton(onClick = { onTelegram(student.phone) }) {
+                    IconButton(onClick = { onTelegram(phone) }) {
                         Icon(
                             Icons.AutoMirrored.Filled.Send,
                             stringResource(R.string.student_write_telegram),
@@ -564,6 +591,7 @@ private fun ContactBlock(
             ContactRow(
                 icon = Icons.Filled.MailOutline,
                 text = student.email,
+                actionLabel = stringResource(R.string.student_write_email),
                 onClick = { onEmail(student.email) },
             )
         }
@@ -580,6 +608,8 @@ private fun ContactBlock(
 private fun ContactRow(
     icon: ImageVector,
     text: String,
+    /** What a tap does, said by a screen reader as «дважды нажмите, чтобы позвонить» — a number alone is not. */
+    actionLabel: String,
     onClick: () -> Unit,
     trailing: @Composable (() -> Unit)? = null,
 ) {
@@ -587,7 +617,7 @@ private fun ContactRow(
         Modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.small)
-            .clickable(onClick = onClick)
+            .clickable(onClickLabel = actionLabel, onClick = onClick)
             .heightIn(min = MinTouchTarget)
             .padding(horizontal = Spacing.tight),
         verticalAlignment = Alignment.CenterVertically,
@@ -620,6 +650,7 @@ private fun OverflowMenu(
     onArchive: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val phone = Phone.contactOf(student.phone)
     Box {
         HoldToName(stringResource(R.string.action_more)) {
             IconButton(onClick = { expanded = true }) {
@@ -636,16 +667,16 @@ private fun OverflowMenu(
             // Not a duplicate control so much as the same act reached the way an *action* is reached. The
             // block still shows the phone, the email and the note — those are facts about the student, and
             // reading one is why it stays visible; these are the three things you can *do* with them.
-            if (student.phone.isNotBlank()) {
+            if (phone != null) {
                 ContactMenuItem(
                     label = stringResource(R.string.student_call),
                     icon = Icons.Filled.Phone,
-                    onClick = { expanded = false; onCall(student.phone) },
+                    onClick = { expanded = false; onCall(phone) },
                 )
                 ContactMenuItem(
                     label = stringResource(R.string.student_write_telegram),
                     icon = Icons.AutoMirrored.Filled.Send,
-                    onClick = { expanded = false; onTelegram(student.phone) },
+                    onClick = { expanded = false; onTelegram(phone) },
                 )
             }
             if (student.email.isNotBlank()) {
@@ -655,7 +686,7 @@ private fun OverflowMenu(
                     onClick = { expanded = false; onEmail(student.email) },
                 )
             }
-            if (student.phone.isNotBlank() || student.email.isNotBlank()) {
+            if (phone != null || student.email.isNotBlank()) {
                 HorizontalDivider()
             }
             DropdownMenuItem(
@@ -731,7 +762,7 @@ private fun LazyListScope.subjectsTab(
                         Icon(Icons.Filled.Edit, stringResource(R.string.price_edit_title))
                     }
                     IconButton(onClick = { onRemove(sp.subject.id) }) {
-                        Icon(Icons.Filled.Delete, stringResource(R.string.action_delete))
+                        Icon(Icons.Filled.Delete, stringResource(R.string.student_subject_remove, sp.subject.name))
                     }
                 }
             },
@@ -875,6 +906,7 @@ private fun LazyListScope.classesTab(
     state: StudentDetailState,
     filter: LessonFilter,
     onFilter: (LessonFilter) -> Unit,
+    onLessonClick: (Long) -> Unit,
 ) {
     if (state.hasBothKinds) {
         item(key = StudentDetailKeys.CLASSES_FILTER) {
@@ -896,7 +928,7 @@ private fun LazyListScope.classesTab(
             // No action: booking belongs to the schedule, which is the one place that knows what else
             // the hour holds. See the card's KDoc.
             EmptyState(
-                title = stringResource(R.string.schedule_empty),
+                title = stringResource(R.string.student_lessons_empty),
                 icon = Icons.Outlined.EventBusy,
                 compact = true,
             )
@@ -906,21 +938,37 @@ private fun LazyListScope.classesTab(
     items(rows, key = { StudentDetailKeys.klass(it.klass.id) }) { row ->
         ListItem(
             leadingContent = { LessonKindIcon(row.kind) },
-            headlineContent = { Text("${row.subjectName} · ${row.klass.start.dateTimeText()}") },
+            headlineContent = {
+                Text(
+                    bulletJoin(row.subjectName, row.klass.start.dateTimeText()),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
             supportingContent = {
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-                    Text(classStatusLabel(row.klass.status), color = classStatusColor(row.klass.status))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.inline),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // The status in the pill the schedule says it in — it was coloured text here, the
+                    // one place a lesson's state was a font style.
+                    StatusBadge(classStatusLabel(row.klass.status), classStatusColor(row.klass.status))
                     // The group's name for a group lesson, since *which* group is the useful half of
                     // "not individual" — a student in two groups is billed a different rate by each.
                     Text(
                         row.groupName ?: stringResource(R.string.lesson_kind_individual_one),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             },
             trailingContent = {
                 if (row.klass.status == LessonStatus.COMPLETED) Text(row.klass.charge.text())
             },
+            // Opens the lesson, as the schedule and the group's card do: a tutor reading a student's
+            // history is the one most likely to spot the lesson to correct.
+            modifier = Modifier.clickable { onLessonClick(row.klass.id) },
         )
     }
 }
@@ -954,7 +1002,7 @@ private fun LazyListScope.paymentsTab(
             supportingContent = { Text(payment.date.formatDate()) },
             trailingContent = {
                 IconButton(onClick = { onDelete(payment) }) {
-                    Icon(Icons.Filled.Delete, stringResource(R.string.action_delete))
+                    Icon(Icons.Filled.Delete, stringResource(R.string.payment_delete))
                 }
             },
             // Tapping the row corrects it; the bin still removes it. Editing is the commoner of the
@@ -992,36 +1040,50 @@ private fun telegramIntent(phone: String): Intent {
 @Composable
 private fun AddSubjectPriceDialog(
     addableSubjects: List<Subject>,
+    /** Whether the tutor has no subjects at all — which is not «every subject has been added». */
+    noSubjectsYet: Boolean,
     onConfirm: (subjectId: Long, amount: Money) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var selectedId by remember { mutableStateOf<Long?>(null) }
-    var price by remember { mutableStateOf(MoneyField(kind = MoneyField.Kind.RATE)) }
+    var selectedId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var priceText by rememberSaveable { mutableStateOf("") }
+    val price = MoneyField(priceText, MoneyField.Kind.RATE)
     AlertDialog(
         onDismissRequest = onDismiss,
         // A stray tap beside the dialog must not throw away the price just typed.
         properties = KeepTypedInput,
         title = { Text(stringResource(R.string.student_add_subject)) },
         text = {
-            Column {
+            // Scrolls, as the student's edit dialog does: an `AlertDialog`'s text slot has no scroll of its
+            // own, and with a handful of subjects the keyboard for the price covered the field being typed.
+            Column(Modifier.verticalScroll(rememberScrollState())) {
                 if (addableSubjects.isEmpty()) {
-                    Text(stringResource(R.string.student_all_subjects_added))
+                    Text(
+                        stringResource(
+                            if (noSubjectsYet) R.string.student_form_no_subjects else R.string.student_all_subjects_added,
+                        ),
+                    )
                 } else {
                     addableSubjects.forEach { subject ->
+                        // One control per subject: the row picks it, and the radio is only its picture — a
+                        // second, 20 dp target of its own made TalkBack stop twice on every subject.
                         Row(
                             Modifier
                                 .fillMaxWidth()
-                                .clickable { selectedId = subject.id }
+                                .selectable(selected = selectedId == subject.id, role = Role.RadioButton) {
+                                    selectedId = subject.id
+                                }
+                                .heightIn(min = MinTouchTarget)
                                 .padding(vertical = Spacing.tight),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            RadioButton(selected = selectedId == subject.id, onClick = { selectedId = subject.id })
+                            RadioButton(selected = selectedId == subject.id, onClick = null)
                             Text(subject.name, Modifier.padding(start = Spacing.inline))
                         }
                     }
                     OutlinedTextField(
                         value = price.text,
-                        onValueChange = { price = price.typed(it) },
+                        onValueChange = { priceText = it },
                         label = { Text(stringResource(R.string.price_label)) },
                         isError = price.isError,
                         supportingText = supportingTextOf(moneyErrorText(price)),

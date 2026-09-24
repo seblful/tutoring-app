@@ -15,6 +15,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -106,14 +107,11 @@ fun PeopleScreen(
             if (tab == PeopleTab.STUDENTS) {
                 SortMenu(selected = studentSort, onSelect = studentsViewModel::setSort)
             }
+            // A toggle, and said as one: the tint alone told a screen reader nothing about whether the
+            // archive was showing — «Показать архив» was read the same either way.
             HoldToName(stringResource(R.string.students_show_archived)) {
-                IconButton(onClick = side::toggleArchived) {
-                    Icon(
-                        Icons.Filled.Inventory2,
-                        stringResource(R.string.students_show_archived),
-                        tint = if (archived) MaterialTheme.colorScheme.primary
-                        else LocalContentColor.current,
-                    )
+                IconToggleButton(checked = archived, onCheckedChange = { side.toggleArchived() }) {
+                    Icon(Icons.Filled.Inventory2, stringResource(R.string.students_show_archived))
                 }
             }
         },
@@ -121,7 +119,11 @@ fun PeopleScreen(
             FloatingActionButton(
                 onClick = if (tab == PeopleTab.STUDENTS) onAddStudent else onAddGroup,
             ) {
-                Icon(Icons.Filled.Add, stringResource(R.string.action_add))
+                // Named for what it adds, which the side decides: a bare «Добавить» said neither.
+                Icon(
+                    Icons.Filled.Add,
+                    stringResource(if (tab == PeopleTab.STUDENTS) R.string.students_add else R.string.groups_add),
+                )
             }
         },
     ) { modifier ->

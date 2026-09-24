@@ -17,6 +17,7 @@ import com.seblful.klas.format.NameOrder
 import com.seblful.klas.domain.Billing
 import com.seblful.klas.domain.HomeworkRules
 import com.seblful.klas.domain.LessonKind
+import com.seblful.klas.domain.Phone
 import com.seblful.klas.domain.Taught
 import com.seblful.klas.domain.Captions
 import com.seblful.klas.domain.model.Balance
@@ -109,6 +110,13 @@ data class StudentDetailState(
     val hasBothKinds: Boolean get() = lessonKinds.size > 1
 
     /**
+     * When they last paid, or null if they never have — the line under the balance. It used to repeat the
+     * balance in words («Долг 45 BYN» under «Долг / 45 BYN»); when the money last came in is the thing the
+     * number does not say, and what a tutor deciding whether to chase it wants next.
+     */
+    val lastPaymentAt: Instant? get() = payments.maxOfOrNull { it.date }
+
+    /**
      * What the archive action should do, given what this student is carrying.
      *
      * The screen used to work it out: it read the balance and the upcoming count, decided whether
@@ -174,7 +182,7 @@ sealed interface ArchiveIntent {
  * the tutor would have no way to tell that from a payment that saved. See
  * [com.seblful.klas.di.ApplicationScope] for the rule and why reads stay behind.
  *
- * A write that fails says so through [Event.WRITE_FAILED] rather than only reaching the scope's
+ * A write that fails says so through [Event.WriteFailed] rather than only reaching the scope's
  * crash log — a payment that silently did not record is the one failure the tutor must not miss.
  * Every mutator goes through [write], so neither the scope nor the report can be forgotten by the
  * ninth copy of a tail; they were spelled out per mutator once, and none of the money path's had a
@@ -199,17 +207,19 @@ class StudentDetailViewModel @Inject constructor(
     private val studentId: Long = checkNotNull(savedStateHandle["id"])
 
     /** One-shot UI signals, e.g. removing a subject blocked because the student has classes for it. */
-    enum class Event {
-        REMOVE_BLOCKED_HAS_CLASSES,
+    sealed interface Event {
+        data object RemoveBlockedHasClasses : Event
 
         /**
-         * Archiving called off lessons that were still planned. Confirmed beforehand by the dialog, and
-         * confirmed again here: it changed the schedule, which is another screen.
+         * Archiving called off [count] lessons that were still planned. Confirmed beforehand by the
+         * dialog, and confirmed again here: it changed the schedule, which is another screen. The count
+         * is the write's own, not the card's — a lesson marked taught from the tray while the card was
+         * open made the card's figure one too many.
          */
-        ARCHIVE_CANCELLED_LESSONS,
+        data class ArchiveCancelledLessons(val count: Int) : Event
 
         /** A write failed — a database error rather than a rule. */
-        WRITE_FAILED,
+        data object WriteFailed : Event
     }
 
     val events = UiEvents<Event>()
@@ -303,17 +313,17 @@ class StudentDetailViewModel @Inject constructor(
     )
 
     /**
-     * Runs one write in the application scope, reporting a failure as [Event.WRITE_FAILED] — the
+     * Runs one write in the application scope, reporting a failure as [Event.WriteFailed] — the
      * same tail `ScheduleViewModel.write` names, spelled once here instead of once per mutator. The
      * copies were not quite copies: two of them also answered something on success, which is what
      * [onWritten] carries — a refusal or a count coming back from the write is an event of its own,
-     * and only a database error may reach [Event.WRITE_FAILED].
+     * and only a database error may reach [Event.WriteFailed].
      */
     private fun <T> write(onWritten: suspend (T) -> Unit = {}, block: suspend () -> T) {
         appScope.launch {
             runCatchingCancellable { block() }
                 .onSuccess { onWritten(it) }
-                .onFailure { events.send(Event.WRITE_FAILED) }
+                .onFailure { events.send(Event.WriteFailed) }
         }
     }
 
@@ -325,7 +335,7 @@ class StudentDetailViewModel @Inject constructor(
             students.upsert(
                 current.copy(
                     name = trimmed,
-                    phone = phone.trim(),
+                    phone = Phone.stored(phone),
                     email = email.trim(),
                     note = note.trim(),
                     defaultMode = mode,
@@ -341,7 +351,7 @@ class StudentDetailViewModel @Inject constructor(
      */
     fun setArchived(archived: Boolean) {
         val current = state.value.valueOrNull()?.student ?: return
-        write(onWritten = { cancelled -> if (cancelled > 0) events.send(Event.ARCHIVE_CANCELLED_LESSONS) }) {
+        write(onWritten = { cancelled -> if (cancelled > 0) events.send(Event.ArchiveCancelledLessons(cancelled)) }) {
             students.setArchived(current, archived)
         }
     }
@@ -353,18 +363,18 @@ class StudentDetailViewModel @Inject constructor(
 
     /**
      * Removes a subject from the student. [EnrollmentRepository] refuses (and we signal
-     * [Event.REMOVE_BLOCKED_HAS_CLASSES]) when the student has any class for it, since those classes
+     * [Event.RemoveBlockedHasClasses]) when the student has any class for it, since those classes
      * (completed ones especially) are billed history that must keep referencing a priced subject.
      *
      * The refusal is a *result*, not a failure, so it is read off a successful call; only a database
-     * error reaches [Event.WRITE_FAILED].
+     * error reaches [Event.WriteFailed].
      */
     fun removeSubject(subjectId: Long) {
         write(
             onWritten = { outcome ->
                 when (outcome) {
                     EnrollmentRepository.Unenroll.HasClasses ->
-                        events.send(Event.REMOVE_BLOCKED_HAS_CLASSES)
+                        events.send(Event.RemoveBlockedHasClasses)
                     EnrollmentRepository.Unenroll.Ok -> Unit
                 }
             },

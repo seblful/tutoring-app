@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
@@ -34,6 +35,7 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.FabClearance
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
@@ -57,10 +59,16 @@ fun SubjectsScreen(
     val messages = rememberMessages()
     val deleteBlockedMsg = stringResource(R.string.subject_delete_blocked)
     val taughtToGroupMsg = stringResource(R.string.subject_delete_blocked_group)
+    val takenMsg = stringResource(R.string.subject_delete_blocked_students)
+    val failedMsg = stringResource(R.string.action_failed)
+    val takenNameMsg = stringResource(R.string.subject_name_taken)
     ShowMessagesFor(viewModel.events, messages) { event ->
         when (event) {
             SubjectsViewModel.Event.DELETE_BLOCKED_HAS_CLASSES -> deleteBlockedMsg
             SubjectsViewModel.Event.DELETE_BLOCKED_TAUGHT_TO_GROUP -> taughtToGroupMsg
+            SubjectsViewModel.Event.DELETE_BLOCKED_TAKEN_BY_STUDENTS -> takenMsg
+            SubjectsViewModel.Event.NAME_TAKEN -> takenNameMsg
+            SubjectsViewModel.Event.WRITE_FAILED -> failedMsg
         }
     }
 
@@ -75,7 +83,7 @@ fun SubjectsScreen(
         ),
         floatingActionButton = {
             FloatingActionButton(onClick = { adding = true }) {
-                Icon(Icons.Filled.Add, stringResource(R.string.action_add))
+                Icon(Icons.Filled.Add, stringResource(R.string.subjects_add))
             }
         },
     ) { modifier ->
@@ -109,7 +117,13 @@ fun SubjectsScreen(
                         // sat crushed against the trailing edge.
                         else -> LazyColumn(
                             Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(Spacing.gutter),
+                            contentPadding = PaddingValues(
+                                start = Spacing.gutter,
+                                top = Spacing.gutter,
+                                end = Spacing.gutter,
+                                // Past the add button, so it never sits on the last row.
+                                bottom = FabClearance,
+                            ),
                             verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
                         ) {
                             items(subjects, key = { it.id }) { subject ->
@@ -136,7 +150,8 @@ fun SubjectsScreen(
                                         IconButton(onClick = { deleting = subject }) {
                                             Icon(
                                                 Icons.Filled.Delete,
-                                                stringResource(R.string.action_delete),
+                                                // Named, so a screen reader says which one it deletes.
+                                                stringResource(R.string.subject_delete_named, subject.name),
                                             )
                                         }
                                     }
@@ -153,6 +168,7 @@ fun SubjectsScreen(
         TextFieldDialog(
             title = stringResource(R.string.subject_add_title),
             label = stringResource(R.string.subject_name_label),
+            capitalization = KeyboardCapitalization.Sentences,
             initial = "",
             onConfirm = { viewModel.save(0, it) },
             onDismiss = { adding = false },
@@ -162,6 +178,7 @@ fun SubjectsScreen(
         TextFieldDialog(
             title = stringResource(R.string.subject_edit_title),
             label = stringResource(R.string.subject_name_label),
+            capitalization = KeyboardCapitalization.Sentences,
             initial = subject.name,
             onConfirm = { viewModel.save(subject.id, it) },
             onDismiss = { editing = null },
@@ -176,5 +193,9 @@ fun SubjectsScreen(
     }
 }
 
-/** A one-line `ListItem` with a trailing icon pair — what the skeleton stands in for. */
-private val SubjectRowHeight = 56.dp
+/**
+ * A subject's card — a name beside a pair of 48 dp icon buttons, 12 dp in from its top and bottom — which
+ * is what the skeleton stands in for. It said 56, a `ListItem`'s, from before the rows were cards, and the
+ * list jumped when the subjects arrived.
+ */
+private val SubjectRowHeight = 72.dp

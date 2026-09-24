@@ -78,4 +78,16 @@ class StudentsViewModelTest {
         advanceUntilIdle()
         assertEquals(2, vm.rows.current.size)
     }
+
+    @Test
+    fun `with the archive shown, the archived come after everyone taught now`() = runTest(mainRule.dispatcher) {
+        env.fixtures.archivedStudent("Аня")
+        env.fixtures.student("Борис")
+        val vm = vm()
+        observing(vm.rows)
+        vm.toggleArchived()
+        advanceUntilIdle()
+
+        assertEquals(listOf("Борис", "Аня"), vm.rows.current.map { it.student.name })
+    }
 }

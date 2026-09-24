@@ -8,6 +8,7 @@ import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.domain.LessonKind
+import com.seblful.klas.domain.Phone
 import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.Assignee
@@ -68,6 +69,15 @@ class StudentDetailViewModelTest {
 
     private suspend fun seedStudent(name: String = "Аня"): Long =
         env.studentDao.upsert(StudentEntity(name = name))
+
+    @Test
+    fun `the last payment is the latest one, and there is none before the first`() {
+        val early = Payment(studentId = 1, date = Instant.ofEpochMilli(10), amount = Money.ofMajor(50))
+        val late = Payment(studentId = 1, date = Instant.ofEpochMilli(20), amount = Money.ofMajor(10))
+
+        assertNull(StudentDetailState().lastPaymentAt)
+        assertEquals(late.date, StudentDetailState(payments = listOf(late, early)).lastPaymentAt)
+    }
 
     @Test
     fun `balance is completed charges minus payments`() = runTest(mainRule.dispatcher) {
@@ -245,7 +255,7 @@ class StudentDetailViewModelTest {
         vm.removeSubject(math)
         advanceUntilIdle()
 
-        assertEquals(listOf(StudentDetailViewModel.Event.REMOVE_BLOCKED_HAS_CLASSES), events)
+        assertEquals(listOf(StudentDetailViewModel.Event.RemoveBlockedHasClasses), events)
         // Nothing removed: the priced subject must keep backing its billed class.
         assertEquals(listOf(math), env.studentDao.getSubjectIds(sid))
         assertEquals(Money.ofMajor(30), env.enrollmentRepo.priceFor(sid, math)?.amount)
@@ -357,13 +367,27 @@ class StudentDetailViewModelTest {
         advanceUntilIdle()
         assertEquals("Аня", env.studentDao.getById(sid)?.name) // blank name rejected
 
-        vm.editStudent(name = "  Борис  ", phone = " +375 ", email = " e@x.co ", note = " n ", mode = ClassMode.REMOTE)
+        vm.editStudent(name = "  Борис  ", phone = " +375 29 1234567 ", email = " e@x.co ", note = " n ", mode = ClassMode.REMOTE)
         advanceUntilIdle()
         val updated = env.studentDao.getById(sid)!!
         assertEquals("Борис", updated.name)
-        assertEquals("+375", updated.phone)
+        assertEquals("+375 29 1234567", updated.phone)
         assertEquals("e@x.co", updated.email)
         assertEquals("REMOTE", updated.defaultMode)
+    }
+
+    /** The edit dialog opens on the dialling code; saved untouched, that is no phone, not «+375». */
+    @Test
+    fun `editStudent keeps no phone when only the dialling code was left`() = runTest(mainRule.dispatcher) {
+        val sid = seedStudent("Аня")
+        val vm = vm(sid)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        vm.editStudent(name = "Аня", phone = Phone.PREFILL, email = "", note = "", mode = ClassMode.IN_PERSON)
+        advanceUntilIdle()
+
+        assertEquals("", env.studentDao.getById(sid)!!.phone)
     }
 
     @Test
@@ -511,7 +535,7 @@ class StudentDetailViewModelTest {
         vm.setArchived(true)
         advanceUntilIdle()
 
-        assertEquals(listOf(StudentDetailViewModel.Event.ARCHIVE_CANCELLED_LESSONS), events)
+        assertEquals(listOf(StudentDetailViewModel.Event.ArchiveCancelledLessons(count = 1)), events)
     }
 
     @Test
@@ -644,7 +668,7 @@ class StudentDetailViewModelTest {
 
     /**
      * Every mutator on the card shares one tail ([StudentDetailViewModel.write]), so a commit that
-     * fails comes back as [StudentDetailViewModel.Event.WRITE_FAILED] — a price or payment that
+     * fails comes back as [StudentDetailViewModel.Event.WriteFailed] — a price or payment that
      * silently did not record is the one failure the tutor must not miss, and until the tail was
      * named this path had no test at all. Driven through `failAt`, so the failure is the
      * transaction's, not a rule's refusal.
@@ -665,7 +689,7 @@ class StudentDetailViewModelTest {
 
         // Only the report is asserted: the fake DAOs cannot roll back, so what a failed transaction
         // leaves behind is Room's to prove (see `ClassRepositoryAtomicityTest`'s note).
-        assertEquals(listOf(StudentDetailViewModel.Event.WRITE_FAILED), events)
+        assertEquals(listOf(StudentDetailViewModel.Event.WriteFailed), events)
     }
 
     @Test

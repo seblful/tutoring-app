@@ -4,11 +4,11 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -56,6 +56,23 @@ class SubjectRepositoryTest {
             env.subjectRepo.delete(Subject(id = id, name = "Химия")),
         )
         assertEquals("the subject is still there", 1, env.subjectDao.items.value.size)
+    }
+
+    /**
+     * A student priced for it is enough, with no lesson yet: the price cascades with the subject, so the
+     * delete used to go through and take the subject off the student without a word.
+     */
+    @Test
+    fun `a subject a student takes is refused`() = runTest {
+        val id = env.fixtures.subject("Физика")
+        env.enrollmentRepo.createStudent(Student(name = "Аня"), mapOf(id to Money.ofMajor(30)))
+
+        assertEquals(
+            SubjectRepository.Delete.TakenByStudents,
+            env.subjectRepo.delete(Subject(id = id, name = "Физика")),
+        )
+        assertEquals("the subject is still there", 1, env.subjectDao.items.value.size)
+        assertEquals("and still priced", 1, env.priceDao.items.value.size)
     }
 
     /**

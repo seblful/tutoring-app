@@ -41,7 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.Attendance
@@ -57,6 +57,7 @@ import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatRow
+import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.StickyViewMenu
 import com.seblful.klas.ui.common.TitleSize
 import com.seblful.klas.ui.common.dateTimeText
@@ -170,7 +171,7 @@ private fun GroupCard(
                 GroupOverflowMenu(
                     archived = group.archived,
                     onArchive = { viewModel.setArchived(!group.archived) },
-                    onDelete = { confirmingDelete = true },
+                    onDelete = { confirmingDelete = true }.takeIf { state.canDelete },
                 )
             }
         },
@@ -292,13 +293,12 @@ private fun GroupHeader(state: GroupDetailState, modifier: Modifier = Modifier) 
                 color = if (state.subjectName == null) MaterialTheme.colorScheme.onSurfaceVariant
                 else MaterialTheme.colorScheme.onSurface,
             )
+            // The badge the lists use for the same state — this was the last italic grey word saying it.
             if (group.archived) {
-                Text(
-                    stringResource(R.string.student_archived_badge),
-                    style = MaterialTheme.typography.labelMedium,
+                StatusBadge(
+                    text = stringResource(R.string.student_archived_badge),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontStyle = FontStyle.Italic,
-                    modifier = Modifier.padding(start = Spacing.itemGap),
+                    modifier = Modifier.padding(start = Spacing.inline),
                 )
             }
         }
@@ -321,7 +321,7 @@ private fun GroupHeader(state: GroupDetailState, modifier: Modifier = Modifier) 
  * and the refusal says so.
  */
 @Composable
-private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete: () -> Unit) {
+private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete: (() -> Unit)?) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         HoldToName(stringResource(R.string.action_more)) {
@@ -341,22 +341,25 @@ private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete
                 leadingIcon = { Icon(Icons.Filled.Inventory2, contentDescription = null) },
                 onClick = { expanded = false; onArchive() },
             )
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(R.string.action_delete),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Filled.Delete,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                    )
-                },
-                onClick = { expanded = false; onDelete() },
-            )
+            // Only while there is something it can do — see [GroupDetailState.canDelete].
+            if (onDelete != null) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            stringResource(R.string.action_delete),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.Delete,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                    onClick = { expanded = false; onDelete() },
+                )
+            }
         }
     }
 }
@@ -404,12 +407,23 @@ private fun LazyListScope.studentsTab(
     items(state.members, key = { GroupDetailKeys.member(it.student.id) }) { row ->
         ListItem(
             leadingContent = { Avatar(row.student.name, row.student.id) },
-            headlineContent = { Text(row.student.name) },
+            headlineContent = { Text(row.student.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
             supportingContent = {
-                Text(
-                    pluralStringResource(R.plurals.lessons_count, row.attended, row.attended),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                // An archived member still explains the group's past lessons, so they stay listed — and
+                // say so, or the card counted three members where the form offered two.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        pluralStringResource(R.plurals.lessons_count, row.attended, row.attended),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (row.student.archived) {
+                        StatusBadge(
+                            text = stringResource(R.string.student_archived_badge),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = Spacing.inline),
+                        )
+                    }
+                }
             },
             trailingContent = {
                 Icon(

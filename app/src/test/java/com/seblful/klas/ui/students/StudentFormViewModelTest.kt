@@ -134,6 +134,85 @@ class StudentFormViewModelTest {
     }
 
     /**
+     * A tutor with no subjects reached this form from the schedule's «Добавить ученика» and met a refusal
+     * with nowhere to go. A subject made here exists at once and comes back ticked, waiting for its price.
+     */
+    @Test
+    fun `a subject added from the form is made and ticked`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        vm.addSubject("  Физика ")
+        advanceUntilIdle()
+
+        val physics = env.subjectDao.items.value.single()
+        assertEquals("Физика", physics.name)
+        assertEquals(setOf(physics.id), vm.state.value.selectedSubjectIds)
+        assertEquals(listOf("Физика"), vm.state.value.allSubjects.valueOrNull()?.map { it.name })
+    }
+
+    /** Typing the name of a subject that exists ticks that one rather than making a twin of it. */
+    @Test
+    fun `a subject added by a name that exists ticks the existing one`() = runTest(mainRule.dispatcher) {
+        val math = env.fixtures.subject("Математика")
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        vm.addSubject("математика")
+        advanceUntilIdle()
+
+        assertEquals(1, env.subjectDao.items.value.size)
+        assertEquals(setOf(math), vm.state.value.selectedSubjectIds)
+    }
+
+    @Test
+    fun `a blank subject name makes nothing`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        observing(vm.state)
+
+        vm.addSubject("   ")
+        advanceUntilIdle()
+
+        assertTrue(env.subjectDao.items.value.isEmpty())
+    }
+
+    @Test
+    fun `a second tap while saving creates no second student`() = runTest(mainRule.dispatcher) {
+        val mathId = env.fixtures.subject("Математика")
+        val vm = vm()
+        observing(vm.state)
+        vm.update { it.copy(name = "Аня") }
+        vm.toggleSubject(mathId, on = true)
+        vm.setPriceText(mathId, "30")
+
+        var saved = 0
+        vm.save { saved++ }
+        vm.save { saved++ }
+        advanceUntilIdle()
+
+        assertEquals(1, saved)
+        assertEquals(1, env.studentDao.items.value.size)
+    }
+
+    /** The form opens on the dialling code; a student saved without a number has none, not «+375». */
+    @Test
+    fun `a phone left on its dialling code is saved as no phone`() = runTest(mainRule.dispatcher) {
+        val mathId = env.fixtures.subject("Математика")
+        val vm = vm()
+        observing(vm.state)
+
+        vm.update { it.copy(name = "Аня") }
+        vm.toggleSubject(mathId, on = true)
+        vm.setPriceText(mathId, "30")
+        vm.save {}
+        advanceUntilIdle()
+
+        assertEquals("", env.studentDao.items.value.single().phone)
+    }
+
+    /**
      * What back has to consult. The phone prefix the form opens with is a default, not typed input,
      * so it must not on its own make leaving ask a question.
      */

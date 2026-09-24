@@ -35,6 +35,7 @@ import com.seblful.klas.ui.homework.HomeworkRow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -84,7 +85,13 @@ data class GroupDetailState(
     val lessons: List<GroupLessonRow> = emptyList(),
     /** The group's own homework, current and done — the card's homework view. See [HomeworkRules.lists]. */
     val homework: HomeworkLists = HomeworkLists(current = emptyList(), archive = emptyList()),
-)
+) {
+    /**
+     * Whether «Удалить» is offered at all. A group is archive-only once it has lessons — they are billed
+     * history — so the menu used to ask «Удалить группу?» and then refuse the answer it had asked for.
+     */
+    val canDelete: Boolean get() = lessons.isEmpty()
+}
 
 /**
  * A group's card: who is in it, what it has been taught, and **the whole of its lifecycle**.
@@ -182,10 +189,8 @@ class GroupDetailViewModel @Inject constructor(
      * Retires the group, or brings it back. Writes straight through — there is no form here to leave
      * unsaved, which is half the reason this belongs on the card rather than on one.
      */
-    fun setArchived(value: Boolean) {
-        viewModelScope.launch {
-            groups.getById(groupId)?.let { groups.setArchived(it, value) }
-        }
+    fun setArchived(value: Boolean) = write {
+        groups.getById(groupId)?.let { groups.setArchived(it, value) }
     }
 
     /**
@@ -197,9 +202,13 @@ class GroupDetailViewModel @Inject constructor(
      */
     fun delete(onDeleted: () -> Unit) {
         viewModelScope.launch {
-            val group = groups.getById(groupId)
-            if (group != null && groups.delete(group)) onDeleted()
-            else events.send(Event.DELETE_BLOCKED_HAS_LESSONS)
+            // The write in the application scope, as every write is; only the navigation waits here.
+            val deleted = appScope.async {
+                runCatchingCancellable { groups.getById(groupId)?.let { groups.delete(it) } ?: false }
+            }.await()
+            deleted
+                .onSuccess { if (it) onDeleted() else events.send(Event.DELETE_BLOCKED_HAS_LESSONS) }
+                .onFailure { events.send(Event.WRITE_FAILED) }
         }
     }
 

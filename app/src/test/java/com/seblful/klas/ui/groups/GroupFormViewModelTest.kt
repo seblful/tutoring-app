@@ -14,7 +14,6 @@ import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.common.Loadable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -38,6 +37,7 @@ class GroupFormViewModelTest {
         students = env.studentRepo,
         subjects = env.subjectRepo,
         rateHistory = env.rateHistoryRepo,
+        appScope = mainRule.appScope,
         computation = mainRule.dispatcher,
     )
 
@@ -307,13 +307,14 @@ class GroupFormViewModelTest {
     }
 
     /**
-     * A group with a subject keeps only the members priced for it, and the save now says when that
-     * left somebody out. The tutor need not have touched the roster: un-enrolling a member from the
-     * subject one-to-one is allowed, and the next save — **a rename is enough**, since every save
-     * re-intersects — is what drops them. It used to happen in silence.
+     * A group with a subject keeps only the members priced for it, and the form now says, **before** the
+     * save, how many that leaves out — so the screen can ask. The tutor need not have touched the roster:
+     * un-enrolling a member from the subject one-to-one is allowed, and the next save — **a rename is
+     * enough**, since every save re-intersects — is what drops them. It used to happen in silence, and
+     * then with a snackbar sent as the form closed, which went with it.
      */
     @Test
-    fun `a save that leaves out an unpriced member says so`() = runTest(mainRule.dispatcher) {
+    fun `a save that leaves out an unpriced member says so first`() = runTest(mainRule.dispatcher) {
         val (ann, bob) = seedStudents()
         val chem = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
         env.enrollmentRepo.enroll(ann, chem, Money.ofMajor(25))
@@ -329,15 +330,14 @@ class GroupFormViewModelTest {
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()
-        val events = mutableListOf<GroupFormViewModel.Event>()
-        backgroundScope.launch { vm.events.stream.collect { events += it } }
 
         // Nothing but the name changes.
         vm.update { it.copy(name = "Химия, вечер") }
+        assertEquals("one member would leave, and the form knows before saving", 1, vm.state.current.leavingOnSave)
+
         vm.save { }
         advanceUntilIdle()
 
-        assertEquals(listOf(GroupFormViewModel.Event.MEMBERS_NOT_PRICED_FOR_SUBJECT), events)
         assertEquals("and they really were dropped", listOf(bob), env.groupRepo.getMemberIds(id))
     }
 
@@ -376,15 +376,32 @@ class GroupFormViewModelTest {
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()
-        val events = mutableListOf<GroupFormViewModel.Event>()
-        backgroundScope.launch { vm.events.stream.collect { events += it } }
 
         vm.update { it.copy(name = "Химия, вечер") }
+        assertEquals("nothing would be left out, so nothing to ask", 0, vm.state.current.leavingOnSave)
         vm.save { }
         advanceUntilIdle()
 
-        assertTrue("nothing was left out, so nothing to announce", events.isEmpty())
         assertEquals(listOf(ann), env.groupRepo.getMemberIds(id))
+    }
+
+    /** A double tap on «Сохранить» saved a new group twice and popped two screens. */
+    @Test
+    fun `a second tap while saving saves nothing more`() = runTest(mainRule.dispatcher) {
+        val (ann, _) = seedStudents()
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+        vm.update { it.copy(name = "Вечерняя", price = it.price.typed("20")) }
+        vm.toggleMember(ann, on = true)
+
+        var saved = 0
+        vm.save { saved++ }
+        vm.save { saved++ }
+        advanceUntilIdle()
+
+        assertEquals(1, saved)
+        assertEquals(1, env.groupDao.items.value.size)
     }
 
     @Test

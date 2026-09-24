@@ -22,6 +22,7 @@ import com.seblful.klas.R
 import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.FabClearance
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.Spacing
@@ -87,7 +88,13 @@ fun StudentsList(
     }
     LazyColumn(
         modifier.fillMaxSize(),
-        contentPadding = PaddingValues(Spacing.gutter),
+        contentPadding = PaddingValues(
+            start = Spacing.gutter,
+            top = Spacing.gutter,
+            end = Spacing.gutter,
+            // Past the add button, so it never sits on the last row.
+            bottom = FabClearance,
+        ),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         items(rows, key = { it.student.id }) { row ->

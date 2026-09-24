@@ -21,7 +21,8 @@ calendar and the tray is in [calendar-and-reminders.md](calendar-and-reminders.m
   what bills it — in the periodic upkeep and in-process at app start. Turning it on sweeps the whole
   backlog, asks first, reports what it settled; the background pass never asks.
 - Reports cover active students only, over a period (`domain/ReportPeriod`) — debts are always the whole
-  history. `Reports.of` is the only entry point.
+  history. `Reports.of` is the only entry point. A period still in progress is compared with the same
+  number of days of the one before (`ReportPeriod.daysElapsed`), not with the whole of it.
 
 ## Lessons
 
@@ -66,8 +67,8 @@ calendar and the tray is in [calendar-and-reminders.md](calendar-and-reminders.m
 ## Groups
 
 - A group prices its lessons; students still owe individually. One rate per lesson (pre-v3 backups excepted).
-- A group is taught one fixed subject; only priced students may be members; roster is intersected on save
-  and the save reports who was dropped.
+- A group is taught one fixed subject; only priced students may be members; roster is intersected on save,
+  and the form asks first when that would take somebody off it (`GroupFormViewModel.UiState.leavingOnSave`).
 - Attendance is separate from roster membership and correctable afterwards.
 - A lesson is captioned by one module (`domain/Captions`): group lesson titled by group, individual by student.
 - Groups are archive-only once they have lessons; mirror as one calendar event per member; reminders per lesson.
@@ -78,7 +79,8 @@ calendar and the tray is in [calendar-and-reminders.md](calendar-and-reminders.m
   class references it.
 - Class mode (in person/remote): student default, overridable per class, mirrored into the calendar location.
 - History is structurally protected: `classes`/`payments` use `ON DELETE RESTRICT`; students archive-only;
-  subjects/groups deletable only while unreferenced.
+  subjects/groups deletable only while unreferenced — for a subject, by lessons, a group or a student who
+  takes it. A subject's name is unique whatever its case (`domain/SubjectNames`).
 - A rate's past is a log (`price_history`, one table for student price + group rate). Unchanged rate logs
   nothing; un-enrolling forgets its log.
 

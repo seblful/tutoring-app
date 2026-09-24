@@ -6,6 +6,8 @@ import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.EnrollmentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.di.ApplicationScope
+import com.seblful.klas.domain.Phone
+import com.seblful.klas.domain.SubjectNames
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
@@ -15,6 +17,7 @@ import com.seblful.klas.ui.common.LeavableForm
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.derive
+import com.seblful.klas.ui.common.valueOrNull
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -32,7 +35,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class StudentFormViewModel @Inject constructor(
-    subjectsRepo: SubjectRepository,
+    private val subjectsRepo: SubjectRepository,
     private val enrollment: EnrollmentRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
@@ -40,7 +43,7 @@ class StudentFormViewModel @Inject constructor(
 
     data class Form(
         val name: String = "",
-        val phone: String = "+375 ",
+        val phone: String = Phone.PREFILL,
         val email: String = "",
         val note: String = "",
         val mode: ClassMode = ClassMode.IN_PERSON,
@@ -109,6 +112,33 @@ class StudentFormViewModel @Inject constructor(
         )
     }
 
+    /**
+     * Makes a subject from inside the form and ticks it, ready for its price — the way out of «Сначала
+     * добавьте предметы», and of a new student taking a subject nobody has been taught yet. The form used
+     * to offer no road to a subject but back out of it, so a fresh install's «Добавить ученика» on the
+     * schedule led to a refusal.
+     *
+     * Written in the application scope, like [save]; only the tick waits here, and a failure is the same
+     * [Event.SAVE_FAILED] a failed save reports.
+     */
+    fun addSubject(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        // A subject already called that is the one meant: ticked, not made a second time.
+        state.value.allSubjects.valueOrNull()
+            ?.let { SubjectNames.sameAs(trimmed, it) }
+            ?.let { existing ->
+                if (existing.id !in form.value.subjectPrices) toggleSubject(existing.id, on = true)
+                return
+            }
+        viewModelScope.launch {
+            appScope.async { runCatchingCancellable { subjectsRepo.upsert(Subject(name = trimmed)) } }
+                .await()
+                .onSuccess { id -> toggleSubject(id, on = true) }
+                .onFailure { events.send(Event.SAVE_FAILED) }
+        }
+    }
+
     /** One-shot signals from a save that could not go through. */
     enum class Event {
         /** The write failed — a database error rather than anything the form got wrong. */
@@ -132,11 +162,13 @@ class StudentFormViewModel @Inject constructor(
      */
     fun save(onSaved: () -> Unit) {
         val s = state.value
-        if (!s.canSave) return
+        // Once: a double tap on «Сохранить» created the student twice and popped two screens.
+        if (!s.canSave || saving) return
+        saving = true
         val f = s.form
         val student = Student(
             name = f.name.trim(),
-            phone = f.phone.trim(),
+            phone = Phone.stored(f.phone),
             email = f.email.trim(),
             note = f.note.trim(),
             defaultMode = f.mode,
@@ -150,7 +182,15 @@ class StudentFormViewModel @Inject constructor(
             val written = appScope
                 .async { runCatchingCancellable { enrollment.createStudent(student, pricedSubjects) } }
                 .await()
-            if (written.isSuccess) onSaved() else events.send(Event.SAVE_FAILED)
+            if (written.isSuccess) {
+                onSaved()
+            } else {
+                saving = false
+                events.send(Event.SAVE_FAILED)
+            }
         }
     }
+
+    /** Set on the tap and cleared only by a failure — see [save]. */
+    private var saving = false
 }

@@ -1,5 +1,6 @@
 package com.seblful.klas.data.repository
 
+import com.seblful.klas.data.local.StudentDao
 import com.seblful.klas.data.local.SubjectDao
 import com.seblful.klas.data.local.upsertedId
 import com.seblful.klas.data.toDomain
@@ -17,6 +18,8 @@ class SubjectRepository @Inject constructor(
     /** Both asked whether anything still references a subject — see their referenced-by guards. */
     private val classes: ClassRepository,
     private val groups: GroupRepository,
+    /** Asked who is priced for a subject — see [delete]. */
+    private val students: StudentDao,
     /** A subject's name is part of every mirrored event's title — see [CalendarMirror]. */
     private val calendar: CalendarMirror,
 ) {
@@ -46,6 +49,13 @@ class SubjectRepository @Inject constructor(
          * brand-new group with no lessons.
          */
         data object TaughtToGroup : Delete
+
+        /**
+         * Refused: a student takes it, with no lesson in it yet. Their price for it cascades with the
+         * subject, so the delete used to succeed and quietly take the subject off the student — for one
+         * whose only subject it was, leaving a student nothing could be booked for.
+         */
+        data object TakenByStudents : Delete
     }
 
     /**
@@ -56,6 +66,8 @@ class SubjectRepository @Inject constructor(
      * - a **class**, because subjects are FK-cascade parents of `classes` (and `prices`), so deleting
      *   one with classes would silently destroy completed lessons — earned income and history — and
      *   leave payments stranded as false credit;
+     * - a **student** who takes it, because `prices` and `student_subjects` cascade: the delete would
+     *   un-enroll them without a word, and a student is booked only for what they take;
      * - a **group** that is taught it, because `student_groups.subjectId` is `ON DELETE RESTRICT`.
      *   That one has to be checked *here*: the constraint alone throws a `SQLiteConstraintException`
      *   from inside the `launch` the delete was called in, which reaches the tutor as a crash rather
@@ -67,6 +79,7 @@ class SubjectRepository @Inject constructor(
     suspend fun delete(subject: Subject): Delete {
         if (classes.anyForSubject(subject.id)) return Delete.HasClasses
         if (groups.anyForSubject(subject.id)) return Delete.TaughtToGroup
+        if (students.getStudentIdsForSubject(subject.id).isNotEmpty()) return Delete.TakenByStudents
         dao.delete(subject.toEntity())
         return Delete.Ok
     }
