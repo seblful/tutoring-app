@@ -165,6 +165,9 @@ flowchart TB
 - DB is at v8, baseline v5 (`AppDatabase.BASELINE_VERSION`); `Migrations.kt` holds exactly the steps since
   baseline. Every schema change past baseline bumps the version and ships a migration
   (`MigrationChainTest` enforces wiring; each migration also gets a device test against the exported schema).
+- A step that changes a column the `classes` view projects drops and recreates the view — Room validates
+  views but never rebuilds them. The latest such step reads `CLASSES_VIEW_SQL`; earlier ones keep their own
+  version's `SELECT` frozen, and `MigrationChainTest` runs every step against that version's exported view.
 - Destructive fallback (wipe-on-unmigratable) is debug-only; release refuses to open such a database.
 - `BackupData.version` is independent of the schema version — it's the only bridge out of the old app id.
 - Backup = full DB snapshot → JSON. Ids preserved, import is one transaction. Older file versions still
@@ -258,7 +261,8 @@ repeating booking writes lessons and keeps no rule — see *Lessons*).
   Android has found a missing port). Seed through `testutil/Fixtures`, never DAOs directly.
 - A handful of tripwire tests guard silent drift by deriving expectations from a real artifact rather than
   restating them (schema coverage, enum names, whole-table writes, screen-state/shell surface rules,
-  migration chain wiring). `MigrationChainTest` is the only one in the unit suite guarding the upgrade path.
+  migration chain wiring and the view each step leaves). `MigrationChainTest` is the only one in the unit
+  suite guarding the upgrade path.
 - Instrumented tests (`src/androidTest`, 13 classes) cover what needs a device: Room/FK integration,
   backup round-trip, calendar sync, auto-completion, text measurement, gesture behavior, plural rules,
   screen-reader semantics. Every class runs under a custom `KlasTestApp` (the app's own receivers/workers

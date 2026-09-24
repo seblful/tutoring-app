@@ -1,15 +1,18 @@
 package com.seblful.klas.data.local
 
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.seblful.klas.testutil.ProjectFiles
 import com.seblful.klas.testutil.SourceText
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import java.lang.reflect.Proxy
 
 /**
  * The one promise that keeps a released install's data: **a bumped schema version ships a migration.**
@@ -163,38 +166,75 @@ class MigrationChainTest {
     private val exportedVersions: List<Int> by lazy { schemaFiles.keys.sorted() }
 
     /**
+     * **Every step leaves the `classes` view exactly as the version it ends at declares it.**
+     *
+     * Room validates views after a migration and recreates none of them, so a step that changes a column
+     * the view projects must drop the view and rebuild it with *that version's* `SELECT`, character for
+     * character, or the upgrade dies with `Migration didn't properly handle: classes` - on first launch
+     * after an update, with the whole step rolled back. `MIGRATION_6_7` got this wrong twice: it shipped
+     * onto one phone without rebuilding the view, and later rebuilt it from [CLASSES_VIEW_SQL] after v8 had
+     * moved that on, which put the v8 view onto a v7 schema.
+     *
+     * Neither needs a device to catch. Each step runs against a database that only records its SQL, and
+     * the view it leaves - the one it built, or the one it started with - is compared with the exported
+     * schema of the version it ends at. Whether that SQL *runs* is still the instrumented tests' question.
+     */
+    @Test
+    fun `every migration leaves the classes view as the version it ends at declares it`() {
+        for (migration in Migrations.ALL) {
+            val from = migration.startVersion
+            val to = migration.endVersion
+            val sql = executedSql(migration)
+            val built = sql.lastOrNull { it.startsWith(CREATE_VIEW) }?.removePrefix(CREATE_VIEW)
+            val dropped = sql.any { it.startsWith("DROP VIEW") && "`classes`" in it }
+            assertEquals(
+                "MIGRATION_${from}_$to leaves a `classes` view that is not v$to's. A step that changes a " +
+                    "column the view projects must DROP it and CREATE it with v$to's SELECT: the latest " +
+                    "step reads CLASSES_VIEW_SQL, and an earlier one keeps its own version's SELECT frozen " +
+                    "in Migrations.kt, since the constant has moved on (null means dropped and not rebuilt).",
+                classesViewSql(to),
+                built ?: if (dropped) null else classesViewSql(from),
+            )
+        }
+    }
+
+    /**
+     * The SQL [migration] executes, recorded by a database that runs none of it. It answers `execSQL` and
+     * nothing else, so a step that starts reading rows fails here rather than being half-recorded.
+     */
+    private fun executedSql(migration: Migration): List<String> {
+        val statements = mutableListOf<String>()
+        val recorder = Proxy.newProxyInstance(
+            SupportSQLiteDatabase::class.java.classLoader,
+            arrayOf(SupportSQLiteDatabase::class.java),
+        ) { _, method, args ->
+            val statement = args?.singleOrNull() as? String
+            if (method.name != "execSQL" || statement == null) {
+                error(
+                    "Migration ${migration.startVersion} -> ${migration.endVersion} calls " +
+                        "SupportSQLiteDatabase.${method.name}; teach executedSql() to answer it.",
+                )
+            }
+            statements += statement
+            null
+        } as SupportSQLiteDatabase
+        migration.migrate(recorder)
+        return statements
+    }
+
+    /** The `classes` view's `SELECT` as v[version]'s exported schema declares it. */
+    private fun classesViewSql(version: Int): String =
+        Json.parseToJsonElement(schemaFile(version).readText())
+            .jsonObject.getValue("database").jsonObject.getValue("views").jsonArray
+            .map { it.jsonObject }
+            .single { it.getValue("viewName").jsonPrimitive.content == "classes" }
+            .getValue("createSql").jsonPrimitive.content
+            .removePrefix("CREATE VIEW `\${VIEW_NAME}` AS ")
+
+    /**
      * The `(from, to)` step of every migration the project declares, ascending — empty while
      * `Migrations.kt` does not exist, which is the state a schema sitting *at* its baseline is in.
      */
-    /**
-     * **A migration that changes the `classes` view's columns must recreate the view**, and this is the
-     * cheap half of enforcing it.
-     *
-     * Room validates views after a migration and recreates none of them, so a view left projecting the old
-     * columns is compared against the new schema and the upgrade dies with `Migration didn't properly
-     * handle: classes` - on first launch after an update, with the whole step rolled back. `MIGRATION_6_7`
-     * shipped that way onto one phone before this existed.
-     *
-     * What is asserted is the *shape* of the fix rather than when it is needed, because "did this step
-     * change a projected column" is not answerable from source text: a step that recreates the view must
-     * do it from [CLASSES_VIEW_SQL], never from a second copy of the `SELECT` that is free to drift by a
-     * space. Whether a given step *needs* to is the instrumented tests' question - they run the real
-     * migration and let Room do the comparing.
-     */
-    @Test
-    fun `a migration that recreates the classes view builds it from the shared constant`() {
-        val code = SourceText.code(
-            ProjectFiles.sourceFileOrNull("data/local/Migrations.kt")?.readText().orEmpty(),
-        )
-        if (!code.contains("CREATE VIEW")) return
-        assertTrue(
-            "A migration writes out the `classes` view's SELECT by hand. Room validates views against " +
-                "the schema and never recreates them, so the recreated view has to be character-for-" +
-                "character the declared one - use CLASSES_VIEW_SQL, which @DatabaseView also reads.",
-            code.contains("CREATE VIEW `classes` AS \$CLASSES_VIEW_SQL"),
-        )
-    }
-
     private fun migrationSteps(): List<Pair<Int, Int>> {
         val source = ProjectFiles.sourceFileOrNull("data/local/Migrations.kt") ?: return emptyList()
         return Regex("""Migration\((\d+)\s*,\s*(\d+)\)""")
@@ -223,4 +263,8 @@ class MigrationChainTest {
 
     /** Version → its exported schema JSON, under the module's `schemas/` directory. */
     private val schemaFiles: Map<Int, File> by lazy { ProjectFiles.exportedSchemas() }
+
+    private companion object {
+        const val CREATE_VIEW = "CREATE VIEW `classes` AS "
+    }
 }

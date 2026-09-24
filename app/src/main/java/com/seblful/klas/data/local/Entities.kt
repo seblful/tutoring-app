@@ -283,6 +283,11 @@ data class AttendanceEntity(
  * else. A second copy written out in the migration would have worked and would have been free to drift by
  * a space; this cannot.
  *
+ * Only the *latest* such migration may read it. Once a later version moves it on, the earlier step keeps
+ * its own version's `SELECT` as a frozen copy in `Migrations` — `MIGRATION_6_7` read this until v8 and
+ * then built the v8 view onto a v7 schema — and `MigrationChainTest` holds each copy to that version's
+ * exported schema, so the copies cannot drift either.
+ *
  * `const`, because `@DatabaseView` is an annotation argument and so needs a compile-time constant.
  */
 const val CLASSES_VIEW_SQL: String =
@@ -306,7 +311,8 @@ const val CLASSES_VIEW_SQL: String =
  * to recreate the view — Room validates views and never recreates them — so there are genuinely two
  * readers of this `SELECT`, and they share the constant rather than each writing it out. `MIGRATION_1_2`
  * used to write out its own copy; that migration went with the squash (see `AppDatabase.BASELINE_VERSION`),
- * and when the need came back with `MIGRATION_6_7` it came back as one string rather than two.
+ * and when the need came back with `MIGRATION_6_7` it came back as one string rather than two. (The
+ * latest such migration shares it; an older one keeps its own version's copy — see [CLASSES_VIEW_SQL].)
  */
 @DatabaseView(viewName = "classes", value = CLASSES_VIEW_SQL)
 data class ClassRow(

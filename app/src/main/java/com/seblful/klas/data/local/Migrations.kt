@@ -27,8 +27,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *   is the standing example of a column left in place for exactly that reason.
  * - **A view is not recreated for you.** Room validates views against the schema after the migrations run
  *   but recreates none of them, so any step that changes a column the `classes` view projects must drop
- *   and recreate it — from [CLASSES_VIEW_SQL], never from a copy. See [MIGRATION_6_7], which is where
- *   this was learned.
+ *   and recreate it. The latest such step builds it from [CLASSES_VIEW_SQL]; every earlier one keeps the
+ *   `SELECT` of the version it ends at, frozen here, because a step describes that version forever and
+ *   the constant moves on. `MigrationChainTest` runs every step and holds the view it leaves to that
+ *   version's exported schema. See [MIGRATION_6_7], which is where both halves were learned.
  */
 object Migrations {
 
@@ -65,12 +67,15 @@ object Migrations {
      * the new schema and the upgrade dies with `Migration didn't properly handle: classes` — on first
      * launch after an update, with everything rolled back. This step shipped that way for one install:
      * `lessons.notes` was added to [CLASSES_VIEW_SQL] and to the table, and the view on disk still had
-     * thirteen columns. The `SELECT` is that same constant rather than a copy, so the recreated view and
-     * the declared one cannot differ by so much as a space.
+     * thirteen columns.
      *
      * The discipline this adds to the list above: **a migration that changes any column the view projects
      * recreates the view.** `LessonNotesMigrationTest` reads a lesson back *through* `classes`, which is
      * what fails when this is forgotten.
+     *
+     * **And it recreates v7's view, not today's** ([CLASSES_VIEW_V7]). This step read [CLASSES_VIEW_SQL]
+     * until v8 added two columns to it, and from then on it built the v8 view onto a v7 schema —
+     * `LessonNotesMigrationTest` failed on the first phone it ran on.
      */
     val MIGRATION_6_7 = object : Migration(6, 7) {
         override fun migrate(db: SupportSQLiteDatabase) {
@@ -78,9 +83,18 @@ object Migrations {
             db.execSQL("ALTER TABLE settings ADD COLUMN unfinishedDigestEnabled INTEGER NOT NULL DEFAULT 0")
             db.execSQL("ALTER TABLE settings ADD COLUMN unfinishedMinuteOfDay INTEGER NOT NULL DEFAULT 1260")
             db.execSQL("DROP VIEW IF EXISTS `classes`")
-            db.execSQL("CREATE VIEW `classes` AS $CLASSES_VIEW_SQL")
+            db.execSQL("CREATE VIEW `classes` AS $CLASSES_VIEW_V7")
         }
     }
+
+    /** The `classes` view as v7 declares it, frozen for [MIGRATION_6_7]; checked against `7.json`. */
+    private const val CLASSES_VIEW_V7: String =
+        "SELECT a.id AS id, a.lessonId AS lessonId, a.studentId AS studentId, " +
+            "a.state AS state, a.priceMinor AS priceMinor, a.chargeMinor AS chargeMinor, " +
+            "a.calendarEventId AS calendarEventId, l.subjectId AS subjectId, " +
+            "l.startMillis AS startMillis, l.durationMinutes AS durationMinutes, " +
+            "l.status AS status, l.groupId AS groupId, l.mode AS mode, l.notes AS notes " +
+            "FROM attendance a JOIN lessons l ON l.id = a.lessonId"
 
     /**
      * v7 → v8: homework — the lesson learns what was set at it, and each student's row learns how they did.
