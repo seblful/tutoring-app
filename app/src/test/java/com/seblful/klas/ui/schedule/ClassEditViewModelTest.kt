@@ -806,6 +806,7 @@ class ClassEditViewModelTest {
 
         assertFalse("the save must not go through", done)
         assertEquals("still only the lesson that was there", 1, env.classDao.items.value.size)
+        assertEquals("a refused save leaves the clash named", "Борис", vm.state.current.conflict?.who)
     }
 
     @Test
@@ -902,6 +903,95 @@ class ClassEditViewModelTest {
         assertEquals(2, env.classDao.items.value.size)
     }
 
+    /** Every clash [vm]'s screen would draw from now on, in order. */
+    private fun TestScope.clashesDrawnBy(vm: ClassEditViewModel): List<TimeConflict> {
+        val drawn = mutableListOf<TimeConflict>()
+        backgroundScope.launch {
+            vm.state.collect { (it as? Loadable.Ready)?.value?.conflict?.let(drawn::add) }
+        }
+        return drawn
+    }
+
+    /**
+     * **A lesson just saved is not in its own way.** The clash check is live, so the moment the booking
+     * committed it found the new lesson at the form's own time and drew «Занято» in red under it — for as
+     * long as the screen took to close, and for the whole of a first booking's permission dialog.
+     */
+    @Test
+    fun `a lesson just booked is never shown clashing with itself`() = runTest(mainRule.dispatcher) {
+        val (ann, subject) = seedStudentWithPricedSubject()
+        val vm = vm()
+        val clashes = clashesDrawnBy(vm)
+        advanceUntilIdle()
+
+        vm.fillFor(ann, subject, LocalDate.now(zone).plusDays(3), LocalTime.of(10, 0), minutes = 60)
+        advanceUntilIdle()
+        var done = false
+        vm.save { done = true }
+        advanceUntilIdle()
+
+        assertTrue(done)
+        assertEquals(1, env.classDao.items.value.size)
+        assertEquals("no clash was drawn at any point", emptyList<TimeConflict>(), clashes)
+    }
+
+    /**
+     * The edit path's version of the same flash: ticking a member back into a booked group lesson writes
+     * them a class with a new id, which the lesson's own exclusions — its ids as it was opened — do not
+     * cover.
+     */
+    @Test
+    fun `a member ticked into a booked lesson is not shown clashing with it once saved`() =
+        runTest(mainRule.dispatcher) {
+            val (groupId, ann, bob) = seedGroup()
+            val ids = env.classRepo.book(
+                groupId = groupId, subjectId = env.subjectDao.items.value.first().id,
+                start = LocalDate.now(zone).plusDays(3).atTime(10, 0).atZone(zone).toInstant(),
+                durationMinutes = 60, mode = ClassMode.IN_PERSON,
+                studentIds = listOf(ann),
+                price = groupRate,
+            ).written()
+
+            val vm = vm(id = ids.first())
+            val clashes = clashesDrawnBy(vm)
+            advanceUntilIdle()
+
+            vm.change(BookingIntent.IncludeMember(bob, true))
+            var done = false
+            vm.save { done = true }
+            advanceUntilIdle()
+
+            assertTrue(done)
+            assertEquals(2, env.classDao.items.value.size)
+            assertEquals("no clash was drawn at any point", emptyList<TimeConflict>(), clashes)
+        }
+
+    /**
+     * A second tap before the screen has closed is the same save, not a second booking — which the
+     * repository would turn down as the hour the first tap had just taken, saying «время занято» about
+     * a lesson that was booked perfectly well.
+     */
+    @Test
+    fun `tapping save twice books the lesson once and refuses nothing`() = runTest(mainRule.dispatcher) {
+        val (ann, subject) = seedStudentWithPricedSubject()
+        val vm = vm()
+        observing(vm.state)
+        val sent = mutableListOf<ClassEditViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect(sent::add) }
+        advanceUntilIdle()
+
+        vm.fillFor(ann, subject, LocalDate.now(zone).plusDays(3), LocalTime.of(10, 0), minutes = 60)
+        advanceUntilIdle()
+        var done = 0
+        vm.save { done++ }
+        vm.save { done++ }
+        advanceUntilIdle()
+
+        assertEquals(1, env.classDao.items.value.size)
+        assertEquals(1, done)
+        assertEquals(emptyList<ClassEditViewModel.Event>(), sent)
+    }
+
     @Test
     fun `a group lesson in the way is reported by its group name`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
@@ -982,6 +1072,14 @@ class ClassEditViewModelTest {
 
             assertFalse("a failed write must not navigate away as though it had saved", done)
             assertEquals(ClassEditViewModel.Event.SAVE_FAILED, vm.events.stream.first())
+
+            // The tutor can try again. The fake cannot roll back, so the failed attempt's rows are still
+            // there and the retry is turned down for that hour — what matters is that it was made at all.
+            val sent = mutableListOf<ClassEditViewModel.Event>()
+            backgroundScope.launch { vm.events.stream.collect(sent::add) }
+            vm.save { done = true }
+            advanceUntilIdle()
+            assertEquals(listOf(ClassEditViewModel.Event.SAVE_REFUSED_TIME_TAKEN), sent)
         }
 
     @Test

@@ -500,6 +500,18 @@ class ClassEditViewModel @Inject constructor(
     private val session = MutableStateFlow<ClassSession?>(null)
 
     /**
+     * Whether a save is under way or done: set on the tap, cleared only when the save is turned down.
+     * Once written the screen is leaving, so it stays set.
+     *
+     * [conflict] goes quiet while it is set. The lesson being saved is not in [session]'s ids — a new
+     * one has none yet, and a member ticked into a group lesson gets a class with a new id — so the
+     * moment the write committed, the live check found it at the form's own time and drew «Занято» in
+     * red under the lesson the tutor had just booked, until the screen closed. [save] also ignores a
+     * second tap while it is set, which would otherwise book again and be refused by the first.
+     */
+    private val saving = MutableStateFlow(false)
+
+    /**
      * Whether the app has finished putting the lesson into the form.
      *
      * A **new** lesson is ready as it stands: an empty form is the honest picture of a booking nobody has
@@ -660,8 +672,14 @@ class ClassEditViewModel @Inject constructor(
      * run is answered where it is decided — `bookSeries` books every free hour and reports the ones it
      * could not ([SeriesOutcome]), so a later clash is named after the fact rather than guessed at before
      * it.
+     *
+     * Silent while [saving]: the form is then the lesson being written, not a question about the hour.
      */
     private val conflict: StateFlow<TimeConflict?> =
+        saving.flatMapLatest { underWay -> if (underWay) flowOf(null) else liveConflict() }
+            .derive(this, computation, null)
+
+    private fun liveConflict(): Flow<TimeConflict?> =
         combine(
             form.map { it.slot(zone) }.distinctUntilChanged(),
             // The lesson itself, not its class ids: which of them a clash scan has to skip is
@@ -682,7 +700,6 @@ class ClassEditViewModel @Inject constructor(
                     }
                 }
             }
-            .derive(this, computation, null)
 
     /**
      * The whole form, as one value. Assembled in two stages only because `combine` takes at most
@@ -1071,7 +1088,9 @@ class ClassEditViewModel @Inject constructor(
         }
 
     fun save(onDone: () -> Unit) {
+        if (saving.value) return
         val valid = ValidForm.of(currentForm, zone) ?: return
+        saving.value = true
 
         viewModelScope.launch {
             // Read **before** the write, or the lesson just booked is the one that makes the answer false.
@@ -1089,8 +1108,16 @@ class ClassEditViewModel @Inject constructor(
             // therefore crashed the app, in the one place the tutor is most sure of what they did.
             val outcome = appScope.async { runCatchingCancellable { write(valid) } }.await()
             when (val settled = outcome.getOrNull()) {
-                null -> events.send(Event.SAVE_FAILED)
-                is SaveOutcome.Refused -> events.send(settled.reason)
+                // Turned down, so the tutor is back on the form and the hour is a live question again —
+                // for a taken one, [conflict] is what names the lesson in the way.
+                null -> {
+                    saving.value = false
+                    events.send(Event.SAVE_FAILED)
+                }
+                is SaveOutcome.Refused -> {
+                    saving.value = false
+                    events.send(settled.reason)
+                }
                 // Both written cases clear `touched` first: the lessons are in the database, so leaving
                 // must not go on asking whether to save them. They differ only in who closes the screen —
                 // the partial one hands that to the dialog it raises.
