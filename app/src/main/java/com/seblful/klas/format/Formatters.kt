@@ -2,6 +2,7 @@ package com.seblful.klas.format
 
 import com.seblful.klas.domain.model.Money
 import java.math.RoundingMode
+import java.text.DateFormatSymbols
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -33,11 +34,28 @@ import java.util.Locale
  * cannot be added to eight of the nine languages.
  */
 private class Formats(val locale: Locale) {
-    val date: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", locale)
-    val day: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, d MMMM", locale)
+    /**
+     * A month as it reads after a day number — «24 сентября», «5 мая» — in full and short, taken from
+     * `java.text` rather than asked of a `MMMM`/`MMM` pattern.
+     *
+     * On a phone `java.time` is core-library desugaring's, which fills the *format* month names with the
+     * *stand-alone* ones, so a pattern printed «24 сентябрь» and «5 май» there while the JDK behind the unit
+     * tests printed the right thing. `DateFormatSymbols` is the platform's own and is not desugared, and on
+     * the JDK it agrees with `java.time` month for month. Pinned on a device by `MonthNameCaseTest`.
+     * `LLLL` — a month on its own, as [month] prints it — is the one the desugared tables do have right.
+     */
+    private val symbols = DateFormatSymbols.getInstance(locale)
+    private val monthOfDay = monthNames(symbols.months)
+    private val shortMonthOfDay = monthNames(symbols.shortMonths)
+
+    val dayMonth: DateTimeFormatter = build { appendPattern("d ").appendText(ChronoField.MONTH_OF_YEAR, monthOfDay) }
+    private val dayShortMonth: DateTimeFormatter =
+        build { appendPattern("d ").appendText(ChronoField.MONTH_OF_YEAR, shortMonthOfDay) }
+
+    val date: DateTimeFormatter = build { append(dayShortMonth).appendPattern(" yyyy") }
+    val day: DateTimeFormatter = build { appendPattern("EEEE, ").append(dayMonth) }
     val time: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", locale)
-    val dateTime: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM, HH:mm", locale)
-    val dayMonth: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM", locale)
+    val dateTime: DateTimeFormatter = build { append(dayShortMonth).appendPattern(", HH:mm") }
     val month: DateTimeFormatter = DateTimeFormatter.ofPattern("LLLL yyyy", locale)
 
     /**
@@ -57,10 +75,14 @@ private class Formats(val locale: Locale) {
         .appendText(ChronoField.AMPM_OF_DAY, mapOf(0L to "AM", 1L to "PM"))
         .toFormatter(locale)
 
-    val dateTime12: DateTimeFormatter = DateTimeFormatterBuilder()
-        .appendPattern("d MMM, ")
-        .append(time12)
-        .toFormatter(locale)
+    val dateTime12: DateTimeFormatter = build { append(dayShortMonth).appendLiteral(", ").append(time12) }
+
+    private fun build(parts: DateTimeFormatterBuilder.() -> Unit): DateTimeFormatter =
+        DateTimeFormatterBuilder().apply(parts).toFormatter(locale)
+
+    /** January to December by month number, from a `java.text` array (which carries a thirteenth, empty). */
+    private fun monthNames(names: Array<String>): Map<Long, String> =
+        (1..12).associate { it.toLong() to names[it - 1] }
 }
 
 /**
