@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +37,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
@@ -63,7 +65,6 @@ import com.seblful.klas.ui.common.SwipeToConfirmBox
 import com.seblful.klas.ui.common.armedPop
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.launchExternally
-import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.theme.klasColors
 
@@ -295,7 +296,10 @@ fun HomeworkDialog(
         )
     }
     var text by rememberSaveable { mutableStateOf(editing?.text.orEmpty()) }
-    val focus = rememberRevealedFocus()
+    // Only a correction opens in the text. A new one opens on nothing: who it is for comes first, and the
+    // keyboard it used to raise asked for the homework before that and covered the dialog doing it.
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { if (editing != null) focus.requestFocus() }
     AlertDialog(
         onDismissRequest = onDismiss,
         // A stray tap beside the dialog must not throw away what was just typed.
