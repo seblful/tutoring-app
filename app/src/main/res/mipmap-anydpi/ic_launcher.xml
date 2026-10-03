@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 7 uses a static icon instead of an adaptive launcher mask. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <size android:width="48dp" android:height="48dp" />
+            <corners android:radius="12dp" />
+            <solid android:color="@color/klas_logo_background" />
+        </shape>
+    </item>
+    <item android:width="48dp" android:height="48dp" android:gravity="center">
+        <inset android:drawable="@drawable/ic_logo" android:inset="8.33%" />
+    </item>
+</layer-list>

@@ -35,9 +35,10 @@
       than left to the platform so the same launch exists on API 24–30, where there is no system splash
       at all and the alternative is a bare coloured rectangle.
     -->
-    <style name="Theme.Klas.Starting" parent="Theme.SplashScreen">
+    <style name="Theme.Klas.Starting" parent="Theme.SplashScreen.IconBackground">
         <item name="windowSplashScreenBackground">@color/klas_window</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_logo</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/klas_logo_background</item>
         <item name="postSplashScreenTheme">@style/Theme.Klas</item>
     </style>
 

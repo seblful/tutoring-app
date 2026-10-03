@@ -4,8 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -25,12 +27,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.KlasLogo
+import com.seblful.klas.ui.common.KlasWordmark
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.Spacing
@@ -71,16 +74,8 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
-            Icon(
-                painterResource(R.drawable.ic_logo),
-                contentDescription = null,
-                modifier = Modifier.size(88.dp),
-                tint = androidx.compose.ui.graphics.Color.Unspecified,
-            )
-            Text(
-                stringResource(R.string.app_name),
-                style = MaterialTheme.typography.headlineSmall,
-            )
+            KlasLogo(Modifier.size(88.dp))
+            KlasWordmark(Modifier.width(144.dp).height(56.dp))
             Text(
                 stringResource(R.string.about_tagline),
                 style = MaterialTheme.typography.bodyMedium,

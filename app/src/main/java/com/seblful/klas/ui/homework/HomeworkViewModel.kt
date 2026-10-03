@@ -45,13 +45,14 @@ import javax.inject.Inject
  *
  * @param lists narrowed to [filter] already, so the screen never filters anything itself.
  * @param filter whom the tab is narrowed to, or null for everybody — see [HomeworkRules.narrowedTo].
- * @param assignees everybody homework can be set for, active students then active groups in name order —
- *   what the filter's menu offers too.
+ * @param assignees everybody homework can be set for, active students then active groups in name order.
+ * @param filterAssignees only those with current or archived homework, including students with group homework.
  */
 data class HomeworkState(
     val lists: HomeworkLists,
     val filter: Assignee?,
     val assignees: List<Assignee>,
+    val filterAssignees: List<Assignee>,
     val captions: Captions,
     val classes: List<TutoringClass>,
 ) {
@@ -121,6 +122,7 @@ class HomeworkViewModel @Inject constructor(
             val captions = Captions.of(people.students, emptyList(), people.groups)
             val taught = HomeworkRules.taught(withLessons.homework, people.students, people.groups)
             val shown = who?.let { HomeworkRules.narrowedTo(taught, it, people.rosters) } ?: taught
+            val assignees = assigneesOf(people.students, people.groups)
             HomeworkState(
                 lists = HomeworkRow.of(
                     HomeworkRules.lists(shown, withLessons.classes),
@@ -129,7 +131,10 @@ class HomeworkViewModel @Inject constructor(
                     zone,
                 ),
                 filter = who,
-                assignees = assigneesOf(people.students, people.groups),
+                assignees = assignees,
+                filterAssignees = assignees.filter {
+                    HomeworkRules.narrowedTo(taught, it, people.rosters).isNotEmpty()
+                },
                 captions = captions,
                 classes = withLessons.classes,
             )

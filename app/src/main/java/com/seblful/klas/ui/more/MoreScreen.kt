@@ -2,6 +2,11 @@ package com.seblful.klas.ui.more
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.ChevronRight
@@ -13,11 +18,15 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.KlasWordmark
+import com.seblful.klas.ui.common.Spacing
 
 /**
  * The overflow section: everything that doesn't earn a tab.
@@ -39,7 +48,14 @@ fun MoreScreen(
     onAbout: () -> Unit,
 ) {
     KlasScreen(title = stringResource(R.string.nav_more)) { modifier ->
-        Column(modifier) {
+        Column(modifier.verticalScroll(rememberScrollState())) {
+            KlasWordmark(
+                Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(vertical = Spacing.gutter)
+                    .width(160.dp)
+                    .height(64.dp),
+            )
             NavigationRow(Icons.AutoMirrored.Outlined.MenuBook, stringResource(R.string.more_subjects), onSubjects)
             NavigationRow(Icons.Outlined.Settings, stringResource(R.string.settings_title), onSettings)
             NavigationRow(Icons.Outlined.Save, stringResource(R.string.more_backup), onBackup)

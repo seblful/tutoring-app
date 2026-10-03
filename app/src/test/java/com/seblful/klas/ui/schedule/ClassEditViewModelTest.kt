@@ -21,7 +21,6 @@ import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.common.Loadable
-import com.seblful.klas.ui.common.valueOrNull
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -666,21 +665,56 @@ class ClassEditViewModelTest {
     }
 
     /**
-     * The add button books into the day the schedule is on: paged to next Thursday, the picker opens on
-     * next Thursday. The date itself still starts empty — the day is where the picker opens, not an answer.
+     * The add button books into the day the schedule is on, without asking the tutor to choose it again.
      */
     @Test
-    fun `a booking opened from a day opens the date picker on that day`() = runTest(mainRule.dispatcher) {
+    fun `a booking opened from a day prefills that date and still allows changing it`() = runTest(mainRule.dispatcher) {
         val thursday = LocalDate.of(2026, 10, 1)
         val vm = vm(day = thursday)
         observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(thursday, vm.datePickerDefault(today = LocalDate.of(2026, 9, 24)))
-        assertNull("the date is still the tutor's to choose", vm.state.value.valueOrNull()?.form?.date)
+        assertEquals(thursday, vm.state.current.form.date)
+        assertFalse("the prefilled date is not an unsaved edit", vm.state.current.isDirty)
+        assertNull("the start time is still the tutor's to choose", vm.state.current.form.timeFrom)
 
         vm.change(BookingIntent.Edit { it.copy(date = LocalDate.of(2026, 10, 5)) })
+        advanceUntilIdle()
+        assertEquals(LocalDate.of(2026, 10, 5), vm.state.current.form.date)
         assertEquals(LocalDate.of(2026, 10, 5), vm.datePickerDefault(today = LocalDate.of(2026, 9, 24)))
+    }
+
+    @Test
+    fun `editing keeps the lesson date when a different schedule day is supplied`() = runTest(mainRule.dispatcher) {
+        val lessonDay = LocalDate.of(2026, 10, 1)
+        val (_, id) = seedLesson(lessonDay, LocalTime.of(14, 0))
+        val vm = vm(id = id, day = lessonDay.plusDays(7))
+        observing(vm.state)
+        advanceUntilIdle()
+
+        assertEquals(lessonDay, vm.state.current.form.date)
+        assertEquals(lessonDay, vm.datePickerDefault())
+    }
+
+    @Test
+    fun `a booking saves on the schedule day without choosing the date again`() = runTest(mainRule.dispatcher) {
+        seedStudentWithPricedSubject()
+        val scheduleDay = LocalDate.now(zone).plusDays(7)
+        val vm = vm(day = scheduleDay)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        vm.change(BookingIntent.StartAt(LocalTime.of(14, 0)))
+        advanceUntilIdle()
+        assertTrue(vm.state.current.canSave)
+
+        var saved = false
+        vm.save { saved = true }
+        advanceUntilIdle()
+
+        assertTrue(saved)
+        assertEquals(scheduleDay.atTime(14, 0).atZone(zone).toInstant(), env.classRepo.getAll().single().start)
     }
 
     @Test

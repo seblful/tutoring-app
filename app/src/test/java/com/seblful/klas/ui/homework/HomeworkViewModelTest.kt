@@ -213,6 +213,100 @@ class HomeworkViewModelTest {
 
     // --- The filter --------------------------------------------------------------------------------
 
+    @Test
+    fun `without homework the filter is empty but everybody can receive a first assignment`() =
+        runTest(mainRule.dispatcher) {
+            val anya = fixtures.student("Аня")
+            val group = fixtures.group(name = "9 «Б»", members = setOf(anya))
+            val vm = vm()
+            observing(vm.state)
+
+            assertTrue(vm.state.current.filterAssignees.isEmpty())
+            assertEquals(
+                setOf(Assignee.Student(anya), Assignee.Group(group)),
+                vm.choices()!!.map { it.assignee }.toSet(),
+            )
+        }
+
+    @Test
+    fun `the filter offers only people with current or archived homework in name order`() =
+        runTest(mainRule.dispatcher) {
+            val boris = fixtures.student("Борис")
+            val anya = fixtures.student("Аня")
+            val withoutHomework = fixtures.student("Вера")
+            val archived = fixtures.archivedStudent("Глеб")
+            fixtures.homework(Assignee.Student(boris), done = true)
+            fixtures.homework(Assignee.Student(anya))
+            fixtures.homework(Assignee.Student(archived))
+            fixtures.group(name = "Без заданий")
+            val vm = vm()
+            observing(vm.state)
+
+            val expected = listOf(Assignee.Student(anya), Assignee.Student(boris))
+            assertEquals(expected, vm.state.current.filterAssignees)
+            assertTrue(vm.choices()!!.any { it.assignee == Assignee.Student(withoutHomework) })
+
+            vm.setFilter(Assignee.Student(anya))
+            runCurrent()
+            assertEquals("narrowing the list keeps the other filter options", expected, vm.state.current.filterAssignees)
+        }
+
+    @Test
+    fun `group homework offers the group and its active students in the filter`() =
+        runTest(mainRule.dispatcher) {
+            val anya = fixtures.student("Аня")
+            val boris = fixtures.student("Борис")
+            val archived = fixtures.archivedStudent("Глеб")
+            fixtures.student("Вера")
+            val group = fixtures.group(name = "9 «Б»", members = setOf(anya, boris, archived))
+            val withoutHomework = fixtures.group(name = "Без заданий", members = setOf(anya))
+            fixtures.homework(Assignee.Group(group), done = true)
+            val vm = vm()
+            observing(vm.state)
+
+            assertEquals(
+                listOf(Assignee.Student(anya), Assignee.Student(boris), Assignee.Group(group)),
+                vm.state.current.filterAssignees,
+            )
+
+            env.groupRepo.setArchived(env.groupRepo.getById(group)!!, archived = true)
+            runCurrent()
+            assertTrue(vm.state.current.filterAssignees.isEmpty())
+            assertTrue(vm.choices()!!.any { it.assignee == Assignee.Group(withoutHomework) })
+        }
+
+    @Test
+    fun `the filter follows homework additions edits completion and deletion`() = runTest(mainRule.dispatcher) {
+        val anya = fixtures.student("Аня")
+        val boris = fixtures.student("Борис")
+        val vm = vm()
+        observing(vm.state)
+
+        vm.give(Assignee.Student(anya), "§ 12")
+        runCurrent()
+        assertEquals(listOf(Assignee.Student(anya)), vm.state.current.filterAssignees)
+
+        val item = vm.state.current.lists.current.single().homework
+        vm.setDone(item, done = true)
+        runCurrent()
+        assertEquals(listOf(Assignee.Student(anya)), vm.state.current.filterAssignees)
+
+        vm.edit(item, Assignee.Student(boris), "§ 13")
+        runCurrent()
+        assertEquals(listOf(Assignee.Student(boris)), vm.state.current.filterAssignees)
+
+        vm.setFilter(Assignee.Student(boris))
+        runCurrent()
+        vm.delete(vm.state.current.lists.archive.single().homework)
+        runCurrent()
+        assertTrue(vm.state.current.filterAssignees.isEmpty())
+        assertEquals("Борис", vm.state.current.filterName)
+
+        vm.setFilter(null)
+        runCurrent()
+        assertNull(vm.state.current.filterName)
+    }
+
     /** Narrowed to a student: theirs and their group's, in both lists — and the chip names them. */
     @Test
     fun `filtered to a student, the tab shows theirs and their group's`() = runTest(mainRule.dispatcher) {

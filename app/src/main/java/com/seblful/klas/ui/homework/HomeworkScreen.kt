@@ -86,12 +86,12 @@ fun HomeworkScreen(
         title = stringResource(R.string.nav_homework),
         messages = messages,
         actions = {
-            // Offered once there is somebody to narrow to, as the schedule's is.
-            if (loaded != null && loaded.assignees.isNotEmpty()) {
+            // Keep the clear action available if the last homework for the selected filter is deleted.
+            if (loaded != null && (loaded.filterAssignees.isNotEmpty() || loaded.filter != null)) {
                 FilterMenuAction(
                     name = stringResource(R.string.homework_filter),
                     allLabel = stringResource(R.string.homework_filter_all),
-                    options = loaded.assignees,
+                    options = loaded.filterAssignees,
                     selected = loaded.filter,
                     optionLabel = loaded.captions::titleOf,
                     onSelect = viewModel::setFilter,

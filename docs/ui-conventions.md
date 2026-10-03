@@ -49,7 +49,10 @@ it draws with.
   count·hours·money (`domain/DaySummary`); a "now" hairline on today only; completing a lesson is a
   revocable swipe (green panel); a cancelled lesson recedes, badge stays red. Can be narrowed to one
   student (dismissible chip — `FilterMenuAction` + `FilterChipRow`, shared with «Задания»). Booking is by
-  length, not end time.
+  length, not end time; a new booking starts on the selected schedule day so the tutor need not choose
+  it again.
+- **Homework filter**: offers only students and groups with current or archived homework, including
+  students with group homework. The add dialog offers everyone so a first assignment can be given.
 - **Reports**: number only where the chart shape adds meaning (column/stacked-bar/ranked-bars/plain text);
   CSV export's delimiter follows the decimal separator; can be saved or sent.
 - **Design system**: curated indigo+teal Material 3 palette, dynamic color off by default. Amber = "on

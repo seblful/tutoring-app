@@ -10,6 +10,8 @@
   The night variant is in `values-night/`, which is what fixes the flash being *white* on a dark phone.
 -->
 <resources>
+    <!-- The brand mark always sits on a light surface, including in dark mode. -->
+    <color name="klas_logo_background">#F5F7FF</color>
     <!-- = md_background (Color.kt). Keep the two in step. -->
     <color name="klas_window">#FBF8FF</color>
 </resources>

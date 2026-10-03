@@ -78,8 +78,9 @@ data class SubjectKey(val target: ClassTarget, val studentId: Long?, val groupId
 }
 
 /**
- * The class-booking form. Date and times start **empty** — the user must choose them (the pickers
- * open on today and on the next whole hour, see [ClassEditViewModel.startPickerDefault]).
+ * The class-booking form. A new booking uses the schedule's selected day when opened from there;
+ * otherwise the date starts empty. The start time is chosen by the user (the picker opens on the
+ * next whole hour, see [ClassEditViewModel.startPickerDefault]).
  *
  * **A lesson is a start and a length**, which is what the database row is ([TutoringClass.start] and
  * [TutoringClass.durationMinutes]) and what [Scheduling.Slot] is. The end is derived for display
@@ -474,8 +475,8 @@ class ClassEditViewModel @Inject constructor(
     private val preselectedGroupId: Long = savedStateHandle["group"] ?: 0L
 
     /**
-     * The day the schedule was on when its add button was tapped — where the date picker opens, and
-     * nothing more: the date itself still starts empty (see [ClassForm]). Null from anywhere else.
+     * The day the schedule was on when its add button was tapped — the new booking's initial date.
+     * Null from anywhere else.
      */
     private val openedOnDay: LocalDate? = savedStateHandle.get<String>("day")?.let(LocalDate::parse)
 
@@ -551,7 +552,7 @@ class ClassEditViewModel @Inject constructor(
      * it, feeds it the picker contents it needs, and runs the lookups it asks for; it decides nothing
      * about the form itself.
      */
-    private val booking = MutableStateFlow(BookingForm())
+    private val booking = MutableStateFlow(BookingForm(form = ClassForm(date = openedOnDay.takeIf { isNew })))
 
     /**
      * The form as it stands, for the flows below to narrow. A plain `Flow` on purpose: a `stateIn` here
