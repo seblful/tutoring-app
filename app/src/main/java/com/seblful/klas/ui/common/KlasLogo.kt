@@ -10,7 +10,11 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import com.seblful.klas.R
 
-/** The original brand artwork on its light surface, independent of the app theme. */
+/**
+ * The brand mark on its light tile — the app's primary on its primary container, in both themes: the
+ * launcher icon and the splash use the same pair (`klas_logo_background`), so the mark is the app's
+ * indigo wherever it appears rather than an azure of its own.
+ */
 @Composable
 fun KlasLogo(modifier: Modifier = Modifier) {
     Image(
