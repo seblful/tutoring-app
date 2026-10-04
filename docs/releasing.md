@@ -9,24 +9,28 @@ file is present (it is gitignored). Without it, the release build is left unsign
 and contributors are unaffected. With Play App Signing, Google holds the real release key; you sign with
 an *upload* key.
 
-1. **Generate an upload key**, storing the `.jks` *outside* the repo:
+1. **Generate an upload key** in `~/keystores/`, outside every repo, named after the app so it can't be
+   mixed up with other apps' keys:
    ```bash
-   keytool -genkeypair -v -keystore ../upload-keystore.jks -alias upload \
+   mkdir -p ~/keystores
+   keytool -genkeypair -v -keystore ~/keystores/klas-upload.jks -alias upload \
      -keyalg RSA -keysize 2048 -validity 10000
    ```
-   Back up the keystore file and its passwords somewhere safe. Losing the upload key means a manual
-   reset with Google; losing it before Play App Signing is enabled would block all future updates.
+   Back up the keystore file and its passwords *off this machine* (e.g. a password-manager attachment).
+   Losing the upload key means a manual reset with Google; losing it before Play App Signing is enabled
+   would block all future updates.
 
 2. **Create `keystore.properties`** in the repo root from the template:
    ```bash
    cp keystore.properties.example keystore.properties
    ```
    ```properties
-   storeFile=../upload-keystore.jks
+   storeFile=C:/Users/<you>/keystores/klas-upload.jks
    storePassword=<your keystore password>
    keyAlias=upload
    keyPassword=<your key password>
    ```
+   Use an absolute path: Gradle doesn't expand `~`, and relative paths resolve against the repo root.
    If you pressed Enter at keytool's key-password prompt, both passwords are the same value.
 
 > ⚠️ **Verify the backup feature on a release build before shipping.** R8 building successfully does
