@@ -70,7 +70,9 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
         Column(
             modifier
                 .verticalScroll(rememberScrollState())
-                .padding(Spacing.sectionGap),
+                // The app's gutter at the sides, so the card lines up with every other screen's; the
+                // extra air stays above and below, where the logo wants it.
+                .padding(horizontal = Spacing.gutter, vertical = Spacing.sectionGap),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {

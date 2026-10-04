@@ -32,6 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
@@ -315,6 +317,7 @@ private fun ClassEditForm(
                     Text(
                         stringResource(R.string.class_group_members_title),
                         style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.semantics { heading() },
                     )
                     // On a booked lesson the ticks read as a record rather than a plan, so they say
                     // which question they are answering.

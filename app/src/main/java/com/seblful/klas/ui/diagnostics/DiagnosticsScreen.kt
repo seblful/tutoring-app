@@ -12,7 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -30,7 +31,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.ConfirmDialog
+import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.launchExternally
@@ -78,7 +81,13 @@ fun DiagnosticsScreen(
             )
 
             if (!state.hasLog) {
-                Text(stringResource(R.string.diagnostics_empty))
+                // The app's empty state, compact: a sentence on its own read as a stray line of the
+                // description above it.
+                EmptyState(
+                    title = stringResource(R.string.diagnostics_empty),
+                    icon = Icons.Outlined.CheckCircle,
+                    compact = true,
+                )
                 // Nothing claims the leftover height, so this is what keeps the debug button at the
                 // foot of the screen rather than under the empty-log sentence.
                 Spacer(Modifier.weight(1f))
@@ -98,7 +107,7 @@ fun DiagnosticsScreen(
                 // «Очистить» button, if the log were long enough — with it. `weight` is what turns a
                 // nested scroll from a mistake into the right control: it bounds the viewport the inner
                 // scroll moves through.
-                Card(Modifier.fillMaxWidth().weight(1f)) {
+                SectionCard(Modifier.weight(1f)) {
                     Text(
                         state.log,
                         modifier = Modifier
@@ -129,6 +138,7 @@ fun DiagnosticsScreen(
         ConfirmDialog(
             text = stringResource(R.string.diagnostics_clear_confirm),
             confirmLabel = stringResource(R.string.diagnostics_clear),
+            destructive = true,
             onConfirm = { viewModel.clear() },
             onDismiss = { confirmingClear = false },
         )

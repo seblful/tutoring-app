@@ -187,6 +187,7 @@ fun SubjectsScreen(
     deleting?.let { subject ->
         ConfirmDialog(
             text = stringResource(R.string.subject_delete_confirm),
+            destructive = true,
             onConfirm = { viewModel.delete(subject) },
             onDismiss = { deleting = null },
         )

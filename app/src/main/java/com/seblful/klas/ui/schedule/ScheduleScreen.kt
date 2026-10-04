@@ -28,7 +28,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.Today
@@ -553,6 +553,7 @@ fun ScheduleScreen(
         }
         ConfirmDialog(
             text = confirmText,
+            destructive = true,
             onConfirm = { viewModel.delete(row.session) },
             onDismiss = { deletingRow = null },
         )
@@ -1157,7 +1158,7 @@ private fun ClassActionsSheet(
             HorizontalDivider(Modifier.padding(vertical = Spacing.inline))
             SheetAction(
                 stringResource(R.string.action_delete),
-                Icons.Filled.DeleteOutline,
+                Icons.Filled.Delete,
                 onClick = onDelete,
                 destructive = true,
             )

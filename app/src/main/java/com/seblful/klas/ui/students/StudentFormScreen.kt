@@ -28,6 +28,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -147,7 +149,9 @@ fun StudentFormContent(
         HorizontalDivider(Modifier.padding(vertical = Spacing.tight))
         Text(
             stringResource(R.string.student_form_subjects_title),
-            style = MaterialTheme.typography.titleMedium,
+            // The section title every form and settings page uses: `titleSmall`, read out as a heading.
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.semantics { heading() },
         )
         // «Сначала добавьте предметы» is a refusal, and saying it about subjects that have merely not
         // been read yet is the [Loadable] defect — here in the error red, on the screen a tutor reaches

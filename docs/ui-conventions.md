@@ -34,17 +34,26 @@ it draws with.
 - **Shell**: every screen is a `KlasScreen` (owns `Scaffold`, insets, width cap, snackbar host, back arrow,
   scroll behavior) — exactly one `Scaffold` per tree. `Spacing` is the app's rhythm (`tight`…`sectionGap`).
   Card vs. row is by nesting depth (`ContentCard` top-level, `ListItem` nested). Detail cards are all
-  identity → `StatRow` → one pinned view menu (`StickyViewMenu`, «Занятия ▾»), not a tab row — four
+  identity → `StatRow` → one pinned view menu (`StickyViewMenu`, «Занятия ▾» — page-coloured at rest, the collapsed bar's colour once pinned), not a tab row — four
   tabs were too much to read at a glance. Held, a bar's icon names itself (`HoldToName`) — top-bar
   icons and the bottom bar's tabs. One control per kind of question: `SegmentedChoice` (fixed few,
   swipeable), `ChoiceRow` (settings-shaped choice, segments up to 4 then a field), chips (shortlist +
-  escape hatch).
+  escape hatch). Text sits on the gutter: page sides are `Spacing.gutter`, and a tappable row that needs
+  ripple room takes it from the card's padding, not from the text's edge.
+- **Section titles and dialogs**: a section title is `titleSmall`, read as a heading, on forms and cards
+  alike. A confirmation that loses something — delete, remove, clear, replace from a backup, discard
+  typed input — says its button in `colorScheme.error` (`ConfirmDialog(destructive = true)`). A dialog
+  opened to type one thing opens with the caret in it (`rememberRevealedFocus`).
+- **Text that must fit** (bar titles, tab labels, stat values, the schedule's page title) shrinks before
+  it ellipsizes (`TextAutoSize`), capped at its style's size and floored in **dp** — the system font
+  scale is already in the starting size, so an sp floor rises with it and leaves nothing to shrink into.
+  Pinned at 1.3× and 1.5× by `BottomBarLabelTest`/`BarTitleFitTest`; 2× is not.
 - **Navigation**: bottom bar «Люди·Задания·Расписание·Отчёты·Ещё», opens on the schedule (the middle tab);
   Students+Groups share one tab via a segmented control. Which tab is marked is read off the back stack.
   Destinations cross-fade; predictive back is on.
 - **Lists**: shared search rule (`domain/PeopleSearch`) across the three list screens — case-insensitive,
   substring, terms in any order. Empty lists always carry the way out (`EmptyState`). State is a
-  `StatusBadge`, never a font style.
+  `StatusBadge`, never a font style (`StatusBadgeSurfaceTest`). A lesson row leads with its date.
 - **Schedule**: three views (Day/Week/Month) via segmented control; a day is always summarized as
   count·hours·money (`domain/DaySummary`); a "now" hairline on today only; completing a lesson is a
   revocable swipe (green panel); a cancelled lesson recedes, badge stays red. Can be narrowed to one

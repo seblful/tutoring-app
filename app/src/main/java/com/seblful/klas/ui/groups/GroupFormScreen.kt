@@ -24,6 +24,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
@@ -147,6 +150,9 @@ private fun GroupForm(
                         hint = stringResource(R.string.field_required).takeIf { form.name.isBlank() },
                     ),
                     singleLine = true,
+                    // Capitalised like a subject's name, which is what a group's is closest to — not word by
+                    // word like a person's.
+                    keyboardOptions = TitleKeyboard,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -178,6 +184,8 @@ private fun GroupForm(
                     value = form.note,
                     onValueChange = { v -> viewModel.update { it.copy(note = v) } },
                     label = { Text(stringResource(R.string.student_note_label)) },
+                    // The student form's note keyboard: the same field, so the same first capital.
+                    keyboardOptions = TitleKeyboard,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -240,8 +248,8 @@ private fun GroupForm(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             stringResource(R.string.group_members_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.weight(1f).semantics { heading() },
                         )
                         // Counts what would actually be saved, not what is ticked: switching subject
                         // can strand a tick on someone the new subject excludes.
@@ -290,3 +298,5 @@ private fun GroupForm(
 
 // The member picker's row is `MemberPickRow` in ui/common/Fields.kt now — the booking form picks
 // who was at a lesson with the same control, which is the same act and used to look nothing like it.
+
+private val TitleKeyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)

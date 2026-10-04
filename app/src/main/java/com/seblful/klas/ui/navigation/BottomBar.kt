@@ -6,8 +6,10 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScope
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.takeOrElse
 import com.seblful.klas.ui.common.HoldToName
@@ -73,7 +75,7 @@ private fun TabIcon(dest: TopDestination, selected: Boolean) {
  * With five tabs — «Группы» once, «Задания» now — «Расписание» wants all but a few pixels of its share
  * of a 360dp screen, close enough to the edge that it used to wrap, stranding its last letter on a
  * second line. Holding the label to one line is what fixes that; the type additionally shrinks
- * (never below [MinLabelFontSize]) on the narrower screens and larger font scales where the word
+ * (never below [MinLabelSize]) on the narrower screens and larger font scales where the word
  * really does not fit, so it stays whole where a fixed size would have to cut it short.
  *
  * Still the bar's problem rather than the rail's — a rail has width to spare — which is why the rule
@@ -88,7 +90,10 @@ private fun TabLabel(dest: TopDestination) {
         // what we are avoiding, so cut the word instead of adding a line.
         overflow = TextOverflow.Ellipsis,
         autoSize = TextAutoSize.StepBased(
-            minFontSize = MinLabelFontSize,
+            // A floor in **dp**, not sp: the system font scale is already in the size this starts from,
+            // and multiplying the floor by it too left «Расписание» no room to shrink into at 1.3× —
+            // «Расписа…» on a 6.1" phone at a setting many people use.
+            minFontSize = with(LocalDensity.current) { MinLabelSize.toSp() },
             // Autosize grows text as readily as it shrinks it, so cap it at the size the bar's own
             // label style asks for — a label that fits must look untouched.
             maxFontSize = LocalTextStyle.current.fontSize.takeOrElse { FallbackLabelFontSize },
@@ -96,7 +101,8 @@ private fun TabLabel(dest: TopDestination) {
     )
 }
 
-private val MinLabelFontSize = 9.sp
+/** The smallest a tab label is drawn, on screen — whatever the font scale asked for. */
+private val MinLabelSize = 9.dp
 
 /** Material's label size for a navigation bar; used only if the style leaves the size unspecified. */
 private val FallbackLabelFontSize = 12.sp

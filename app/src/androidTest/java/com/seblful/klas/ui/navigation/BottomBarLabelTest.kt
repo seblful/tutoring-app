@@ -33,7 +33,7 @@ import org.junit.Test
  * takes all but a few pixels of its fifth of a 360dp screen and used to wrap, stranding its last letter
  * on a second line; this is what proves it no longer does, rather than assuming so.
  *
- * Font scale is pinned to 1 throughout: these are assertions about the *layout*, and the device's own
+ * Font scale is pinned to 1 except where a test is about it: these are assertions about the *layout*, and the device's own
  * font setting would otherwise decide whether they hold.
  */
 @HiltAndroidTest
@@ -66,6 +66,39 @@ class BottomBarLabelTest {
                     complaints += "«$label» takes ${layout.lineCount} lines at $candidate"
                 }
                 if (layout.isLineEllipsized(0)) complaints += "«$label» is cut short at $candidate"
+            }
+        }
+        assertTrue(complaints.joinToString(prefix = "\n", separator = "\n"), complaints.isEmpty())
+    }
+
+    /**
+     * The same, at the font sizes people actually turn up to — the one place the scale is not pinned.
+     *
+     * «Расписа…» was the bar at 1.3× on a 6.1" phone: the shrink's floor was in sp, so the scale that
+     * made the word too wide also raised the size it was allowed to shrink to. The floor is a physical
+     * size now, and this holds it there on the common phone widths.
+     */
+    @Test
+    fun aLargeFontStillShowsWholeWords() {
+        val tabs = TopDestination.entries
+        val complaints = mutableListOf<String>()
+        val width = mutableStateOf(360.dp)
+        val fontScale = mutableStateOf(LargeFontScales.first())
+        composeRule.setBarContent(width, tabs, fontScale)
+        LargeFontScales.forEach { scale ->
+            listOf(360.dp, LargePhone).forEach { candidate ->
+                composeRule.runOnIdle {
+                    fontScale.value = scale
+                    width.value = candidate
+                }
+                composeRule.waitForIdle()
+                tabs.forEach { dest ->
+                    val label = context.getString(dest.labelRes)
+                    val layout = composeRule.layoutOf(label)
+                    if (layout.lineCount != 1 || layout.isLineEllipsized(0)) {
+                        complaints += "«$label» is not whole at $candidate, font scale $scale"
+                    }
+                }
             }
         }
         assertTrue(complaints.joinToString(prefix = "\n", separator = "\n"), complaints.isEmpty())
@@ -118,11 +151,12 @@ class BottomBarLabelTest {
     private fun ComposeContentTestRule.setBarContent(
         width: MutableState<Dp>,
         tabs: List<TopDestination>,
+        fontScale: MutableState<Float> = mutableStateOf(1f),
     ) {
         setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(
-                LocalDensity provides Density(density.density, fontScale = 1f),
+                LocalDensity provides Density(density.density, fontScale = fontScale.value),
             ) {
                 KlasTheme {
                     Box(Modifier.width(width.value)) {
@@ -153,5 +187,12 @@ class BottomBarLabelTest {
         val NarrowPhone = 320.dp
         val LargePhone = 411.dp
         val Widths = listOf(NarrowPhone, 360.dp, LargePhone)
+
+        /**
+         * The larger text steps people commonly use. 2× — the platform's extreme — is left out on purpose:
+         * there the longest English labels are still cut at the 9 dp floor, and going lower would make
+         * every label unreadable to keep two whole.
+         */
+        val LargeFontScales = listOf(1.3f, 1.5f)
     }
 }

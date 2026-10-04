@@ -264,6 +264,7 @@ private fun GroupCard(
     if (confirmingDelete) {
         ConfirmDialog(
             text = stringResource(R.string.group_delete_confirm),
+            destructive = true,
             onConfirm = { viewModel.delete(onDeleted = onBack) },
             onDismiss = { confirmingDelete = false },
         )
@@ -458,13 +459,13 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
         ListItem(
             headlineContent = { Text(row.session.start.dateTimeText()) },
             supportingContent = {
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-                    Text(
-                        // What happened to the lesson. How many of the group were in it is the count
-                        // beside this, which is the part that speaks for the members.
-                        text = classStatusLabel(status),
-                        color = classStatusColor(status),
-                    )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.inline),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // What happened to the lesson, in the pill the schedule and the student card say it
+                    // in — this was the last place a lesson's state was a font style.
+                    StatusBadge(classStatusLabel(status), classStatusColor(status))
                     // How many of the group were in it — the part that speaks for the members, and the
                     // only place their attendance is visible. Said as "who came" only for a lesson that
                     // happened: until then everybody is expected, and a count of that is just the roster.

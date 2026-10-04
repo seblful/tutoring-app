@@ -172,8 +172,12 @@
     </plurals>
     <!-- Every date of a repeating booking was taken, so nothing at all was written. -->
     <string name="class_series_refused_all_taken">Nothing booked: all of those times are already taken</string>
-    <string name="class_pick_date">Pick a date</string>
-    <string name="class_pick_time">Pick a time</string>
+    <!--
+      The empty date and start fields. Short: the start field is the narrow half of a 1.4 : 1 row, about
+      98 dp of text on a 360 dp phone, and the label above already says which it is.
+    -->
+    <string name="class_pick_date">Choose</string>
+    <string name="class_pick_time">Choose</string>
     <!-- %1$s: the student or group, %2$s: the time of the lesson already in the schedule -->
     <string name="class_time_conflict">That time is taken: %1$s, %2$s</string>
     <!-- Shown when the slot was taken between the form opening and the save. -->
@@ -181,7 +185,7 @@
     <!-- A write failed for a reason the tutor cannot act on (database, calendar). Not a refusal. -->
     <string name="save_failed">Could not save. Please try again</string>
     <string name="action_failed">Could not do that. Please try again</string>
-    <string name="class_location_label">Format</string>
+    <string name="class_location_label">Location</string>
     <string name="class_mode_in_person">In person</string>
     <string name="class_mode_remote">Remote</string>
     <string name="class_move">Reschedule</string>
@@ -378,7 +382,7 @@
     <string name="group_delete_blocked">Cannot delete the group: it has lessons. Archive it instead.</string>
 
     <!-- Group card -->
-    <string name="group_students_title">Students</string>
+    <string name="group_students_title">Members</string>
     <string name="group_lessons_title">Lessons</string>
     <string name="group_lessons_empty">This group has no lessons yet</string>
     <string name="group_no_subject">No subject picked</string>
@@ -459,7 +463,7 @@
     <string name="settings_reminder_lead">How far ahead to remind</string>
     <!-- The fourth segment of settings_reminder_lead: opens the hours-and-minutes picker.
          Replaced by the lead itself whenever the stored one is not a preset. -->
-    <string name="settings_reminder_lead_custom">Custom</string>
+    <string name="settings_reminder_lead_custom">Other</string>
 
     <!--
       Digests: summaries sent at an hour the tutor picked, as opposed to a reminder, which arrives
@@ -722,7 +726,7 @@
       the one moment students' contact details leave it, in clear text, to storage of the tutor's
       choosing — a cloud folder included.
     -->
-    <string name="backup_export_desc">Save everything to a file. The file holds students\' names, phone numbers and email addresses, unencrypted</string>
+    <string name="backup_export_desc">Save everything to a file. The file holds students\' names, phone numbers and email addresses, unencrypted.</string>
     <!--
       The backup screen leads with when the last copy was made. Two states, and the second is the one
       worth having: an app that has never been backed up should say so plainly.

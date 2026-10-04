@@ -224,8 +224,12 @@
     </plurals>
     <!-- Every date of a repeating booking was taken, so nothing at all was written. -->
     <string name="class_series_refused_all_taken">Ничего не записано: всё это время уже занято</string>
-    <string name="class_pick_date">Выберите дату</string>
-    <string name="class_pick_time">Выберите время</string>
+    <!--
+      The empty date and start fields. Short: the start field is the narrow half of a 1.4 : 1 row, about
+      98 dp of text on a 360 dp phone, and the label above already says which it is.
+    -->
+    <string name="class_pick_date">Выбрать</string>
+    <string name="class_pick_time">Выбрать</string>
     <!-- %1$s: ученик или группа, %2$s: время занятия, которое уже стоит в расписании -->
     <string name="class_time_conflict">Это время занято: %1$s, %2$s</string>
     <!-- Shown when the slot was taken between the form opening and the save. -->
@@ -458,7 +462,7 @@
     <string name="group_delete_blocked">Нельзя удалить группу: по ней есть занятия. Отправьте её в архив.</string>
 
     <!-- Group card -->
-    <string name="group_students_title">Ученики</string>
+    <string name="group_students_title">Участники</string>
     <string name="group_lessons_title">Занятия</string>
     <string name="group_lessons_empty">У группы пока нет занятий</string>
     <string name="group_no_subject">Предмет не выбран</string>
@@ -855,7 +859,7 @@
       the one moment students' contact details leave it, in clear text, to storage of the tutor's
       choosing — a cloud folder included.
     -->
-    <string name="backup_export_desc">Сохранить все данные в файл. В файле — имена, телефоны и почта учеников, без шифрования</string>
+    <string name="backup_export_desc">Сохранить все данные в файл. В файле — имена, телефоны и почта учеников, без шифрования.</string>
     <!--
       The backup screen leads with when the last copy was made. Two states, and the second is the one
       worth having: an app that has never been backed up should say so plainly.

@@ -406,6 +406,7 @@ fun OnboardingScreen(
         ConfirmDialog(
             text = stringResource(R.string.backup_import_confirm),
             confirmLabel = stringResource(R.string.backup_import),
+            destructive = true,
             onConfirm = { backupViewModel.import(DocumentRef(uri.toString())) },
             onDismiss = { confirmRestoreUri = null },
         )

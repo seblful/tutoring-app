@@ -134,6 +134,7 @@ fun BackupScreen(
         ConfirmDialog(
             text = stringResource(R.string.backup_import_confirm),
             confirmLabel = stringResource(R.string.backup_import),
+            destructive = true,
             onConfirm = { viewModel.import(DocumentRef(uri.toString())) },
             onDismiss = { confirmImportUri = null },
         )

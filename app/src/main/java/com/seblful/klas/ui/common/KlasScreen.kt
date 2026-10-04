@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
@@ -12,6 +13,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
@@ -27,8 +29,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 
 /**
@@ -111,6 +115,15 @@ fun KlasScreen(
                 // A compact title shares its row with a back arrow and up to three actions, and must give
                 // way rather than push them off. See [titleLines].
                 maxLines = titleLines,
+                // Shrinks a few steps before it gives up a word: «Изменить занят…» beside «Сохранить» was
+                // every edit form's title on a 360 dp phone, and the noun is the half that says which
+                // form this is. The ceiling is the bar's own style, so a title that fits is never enlarged.
+                autoSize = TextAutoSize.StepBased(
+                    // In dp, like the tab labels' floor: the font scale is already in the size it starts
+                    // from, and scaling the floor too left no room to shrink at 1.3×.
+                    minFontSize = with(LocalDensity.current) { MinTitleSize.toSp() },
+                    maxFontSize = LocalTextStyle.current.fontSize,
+                ),
                 overflow = TextOverflow.Ellipsis,
             )
         }
@@ -225,3 +238,6 @@ class ScreenSearch(
 )
 
 private const val LargeTitleLines = 2
+
+/** How far a bar title may shrink, on screen, before it is cut short — still clearly a title. */
+private val MinTitleSize = 18.dp

@@ -818,7 +818,16 @@ class ClassEditViewModel @Inject constructor(
             change(BookingIntent.ChooseTarget(ClassTarget.GROUP).asSetup())
             change(BookingIntent.ChooseGroup(preselectedGroupId).asSetup())
         }
-        viewModelScope.launch { defaultMinutes.value = settingsRepo.get().defaultLessonMinutes }
+        viewModelScope.launch {
+            defaultMinutes.value = settingsRepo.get().defaultLessonMinutes
+            // A new lesson shows the tutor's usual length from the start. It was left unchosen until a
+            // start was picked and then filled in quietly, so the form opened with no chip lit and the
+            // length it was about to book was nowhere on screen. Setup, not an edit — and only while
+            // the tutor has not already picked one in the moment it took settings to load.
+            if (isNew && currentForm.durationMinutes == null) {
+                change(BookingIntent.LastsFor(defaultMinutes.value).asSetup())
+            }
+        }
         // Auto-select the only student there is (a new class, before any choice). With several
         // students, the user picks — we don't guess.
         if (isNew) {

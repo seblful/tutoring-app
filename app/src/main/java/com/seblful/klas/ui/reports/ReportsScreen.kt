@@ -57,6 +57,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -65,6 +66,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -690,7 +692,7 @@ private fun DebtsCard(state: Reports.Report, onStudentClick: (Long) -> Unit) {
             label = stringResource(R.string.reports_total_outstanding),
             amount = state.totalOutstanding.text(),
             bold = true,
-            // In the column the debts below it are in, which a chevron and a touch target pull inwards.
+            // In the column the debts below it are in, which their chevron pulls inwards.
             alignWithLinks = true,
         )
         // Every row opens the person who owes. Reading a name here and then going to find them by
@@ -749,12 +751,15 @@ private fun AmountRow(
             .fillMaxWidth()
             .then(
                 when {
+                    // The ripple needs room either side of the text, and taking it from inside the card
+                    // put the debts' names a step to the right of every other label on the screen. It is
+                    // taken from the card's padding instead, so the text stays on the shared edge.
                     onClick != null -> Modifier
+                        .bleed(Spacing.tight)
                         .clip(MaterialTheme.shapes.small)
                         .clickable(onClick = onClick)
                         .heightIn(min = MinTouchTarget)
                         .padding(horizontal = Spacing.tight)
-                    alignWithLinks -> Modifier.padding(horizontal = Spacing.tight)
                     else -> Modifier
                 }
             ),
@@ -785,6 +790,21 @@ private fun AmountRow(
             Spacer(Modifier.width(ChevronSize))
         }
     }
+}
+
+/**
+ * Lets a row reach [by] past its parent on either side while laying its content out where it would
+ * have been — so a ripple can spread into the card's padding without moving the text off its edge.
+ */
+private fun Modifier.bleed(by: Dp): Modifier = layout { measurable, constraints ->
+    val extra = (by * 2).roundToPx()
+    val wider = if (constraints.hasBoundedWidth) {
+        constraints.copy(minWidth = constraints.minWidth + extra, maxWidth = constraints.maxWidth + extra)
+    } else {
+        constraints
+    }
+    val placeable = measurable.measure(wider)
+    layout((placeable.width - extra).coerceAtLeast(0), placeable.height) { placeable.place(-extra / 2, 0) }
 }
 
 /**

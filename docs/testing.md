@@ -15,7 +15,7 @@ Where a test goes in Klas, and what the test setup expects. Commands and what CI
 
 ## Instrumented tests (`src/androidTest`)
 
-- 27 classes cover what needs a device: Room/FK integration, backup round-trip, calendar sync,
+- 32 classes cover what needs a device: Room/FK integration, backup round-trip, calendar sync,
   auto-completion, text measurement, gesture behavior, plural rules, screen-reader semantics.
 - Every class runs under a custom `KlasTestApp` (the app's own receivers/workers wake mid-run and need a
   real Hilt component).

@@ -2,6 +2,7 @@ package com.seblful.klas.ui.common
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -144,15 +145,23 @@ private fun UnsavedChangesDialog(
             if (canSave) {
                 TextButton(onClick = onSave) { Text(stringResource(R.string.action_save)) }
             } else {
-                TextButton(onClick = onDiscard) { Text(stringResource(R.string.unsaved_discard)) }
+                DiscardButton(onDiscard)
             }
         },
         dismissButton = {
             if (canSave) {
-                TextButton(onClick = onDiscard) { Text(stringResource(R.string.unsaved_discard)) }
+                DiscardButton(onDiscard)
             } else {
                 TextButton(onClick = onKeepEditing) { Text(stringResource(R.string.action_cancel)) }
             }
         },
     )
+}
+
+/** «Не сохранять» loses what was typed, so it is said in red — as every confirmation that loses something is. */
+@Composable
+private fun DiscardButton(onDiscard: () -> Unit) {
+    TextButton(onClick = onDiscard) {
+        Text(stringResource(R.string.unsaved_discard), color = MaterialTheme.colorScheme.error)
+    }
 }

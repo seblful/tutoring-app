@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -185,9 +186,21 @@ private fun MenuField(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val open = expanded && enabled
+    // Closing the menu lets go of the field: a read-only box has nothing to type, and keeping the focus
+    // left it outlined in the accent colour after the choice — the one «active» field on a form whose
+    // [PickerField]s, the same kind of input beside it, never look that way.
+    val focusManager = LocalFocusManager.current
+    val close = {
+        expanded = false
+        focusManager.clearFocus()
+    }
     ExposedDropdownMenuBox(
         expanded = open,
-        onExpandedChange = { if (enabled) expanded = it },
+        onExpandedChange = { wanted ->
+            if (enabled) {
+                if (wanted) expanded = true else close()
+            }
+        },
     ) {
         OutlinedTextField(
             value = selectedText,
@@ -200,8 +213,8 @@ private fun MenuField(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = open) },
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
-        ExposedDropdownMenu(expanded = open, onDismissRequest = { expanded = false }) {
-            items { expanded = false }
+        ExposedDropdownMenu(expanded = open, onDismissRequest = close) {
+            items(close)
         }
     }
 }

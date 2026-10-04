@@ -567,6 +567,30 @@ class ClassEditViewModelTest {
     }
 
     @Test
+    fun `a new lesson opens with the default length already chosen`() = runTest(mainRule.dispatcher) {
+        env.settingsRepo.update { it.copy(defaultLessonMinutes = 90) }
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        assertEquals("the length it will book is on screen", 90, vm.state.current.form.durationMinutes)
+        assertFalse("the app chose it, not the tutor", vm.state.current.isDirty)
+    }
+
+    @Test
+    fun `opening an existing lesson keeps its own length`() = runTest(mainRule.dispatcher) {
+        env.settingsRepo.update { it.copy(defaultLessonMinutes = 90) }
+        val (studentId, subjectId) = seedStudentWithPricedSubject()
+        val start = LocalDate.of(2026, 6, 22).atTime(10, 0).atZone(zone).toInstant()
+        val classId = env.fixtures.lesson(subjectId, listOf(studentId), start, minutes = 45).single()
+        val vm = vm(id = classId)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        assertEquals(45, vm.state.current.form.durationMinutes)
+    }
+
+    @Test
     fun `changing the start time keeps the lesson length`() = runTest(mainRule.dispatcher) {
         val vm = vm()
         observing(vm.state)

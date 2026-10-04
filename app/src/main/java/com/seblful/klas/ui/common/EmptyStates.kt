@@ -139,7 +139,9 @@ fun EmptyState(
 fun AddRow(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     TextButton(
         onClick = onClick,
-        modifier = modifier.padding(start = Spacing.inline).heightIn(min = MinTouchTarget),
+        // No inset of its own: the button's content padding already puts the «+» on the rows' text edge
+        // below it. An extra step here drew it a column to the right of every row it adds to.
+        modifier = modifier.heightIn(min = MinTouchTarget),
     ) {
         Icon(Icons.Filled.Add, contentDescription = null)
         Text(label, Modifier.padding(start = Spacing.inline))

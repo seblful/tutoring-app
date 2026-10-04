@@ -42,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -83,6 +84,7 @@ import com.seblful.klas.ui.common.languageLabel
 import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.moneyErrorText
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.rememberToggleFeedback
 import com.seblful.klas.ui.common.rememberRejectFeedback
 import com.seblful.klas.ui.common.supportingTextOf
@@ -504,7 +506,7 @@ private fun SettingsList(
         // The same way out the reminder lead has, and for the same reason: a few guessed lengths are not
         // every tutor's lesson. A 50-minute academic hour and an 80-minute double were both unsayable.
         //
-        // Three presets, not four — «2 ч» gave up its place to «Другое», which reaches it in two taps
+        // Three presets, not four — «2 ч» gave up its place to «Другая», which reaches it in two taps
         // and everything else besides. That keeps the row inside `MaxSegments` and drawn as segments,
         // so both duration settings look and behave alike instead of one being a strip and the other a
         // dropdown.
@@ -514,7 +516,9 @@ private fun SettingsList(
                 (
                     CustomMinutes to
                         if (settings.defaultLessonMinutes in LessonPresets) {
-                            stringResource(R.string.settings_reminder_lead_custom)
+                            // The booking form's word for the same choice, so «Длительность» agrees with
+                            // its noun in both places rather than borrowing the reminder's «Другое».
+                            stringResource(R.string.class_duration_custom)
                         } else {
                             durationLabel(settings.defaultLessonMinutes)
                         }
@@ -855,6 +859,9 @@ private fun MoneyRow(
                     supportingText = supportingTextOf(moneyErrorText(field)),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
+                    // Like every other one-field dialog: full width, and the caret already in it, since a
+                    // price is the only thing it is opened to do.
+                    modifier = Modifier.fillMaxWidth().focusRequester(rememberRevealedFocus()),
                 )
             },
             confirmButton = {

@@ -29,7 +29,9 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.EventBusy
+import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -56,6 +58,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -111,6 +114,7 @@ import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.moneyErrorText
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.supportingTextOf
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.format.formatDate
@@ -393,6 +397,7 @@ private fun StudentCard(
             ConfirmDialog(
                 text = stringResource(R.string.student_subject_remove_confirm, sp.subject.name),
                 confirmLabel = stringResource(R.string.action_remove),
+                destructive = true,
                 onConfirm = { viewModel.removeSubject(subjectId) },
                 onDismiss = { removingSubjectId = null },
             )
@@ -467,7 +472,7 @@ private fun StudentCard(
             }
             add(stringResource(R.string.student_archive_question))
         }
-        com.seblful.klas.ui.common.ConfirmDialog(
+        ConfirmDialog(
             text = parts.joinToString(" "),
             confirmLabel = stringResource(R.string.action_archive),
             onConfirm = { viewModel.setArchived(true) },
@@ -496,7 +501,7 @@ private fun studentStats(state: StudentDetailState): List<Stat> {
         // Hours as the hint, in place of the tile they used to have. `lessonsStat` prefers «впереди N»
         // when there are lessons still to come — that is something to act on and outranks a total.
         lessonsStat(totals).let { stat ->
-            stat.copy(hint = stat.hint ?: formatHours(totals.minutes))
+            stat.copy(hint = stat.hint ?: stringResource(R.string.hours_value, formatHours(totals.minutes)))
         },
         Stat(label = stringResource(R.string.stat_earned), value = totals.earned.text()),
     )
@@ -572,7 +577,7 @@ private fun ContactBlock(
         }
         Phone.contactOf(student.phone)?.let { phone ->
             ContactRow(
-                icon = Icons.Filled.Phone,
+                icon = Icons.Outlined.Phone,
                 text = phone,
                 actionLabel = stringResource(R.string.student_call),
                 onClick = { onCall(phone) },
@@ -589,7 +594,7 @@ private fun ContactBlock(
         }
         if (student.email.isNotBlank()) {
             ContactRow(
-                icon = Icons.Filled.MailOutline,
+                icon = Icons.Outlined.MailOutline,
                 text = student.email,
                 actionLabel = stringResource(R.string.student_write_email),
                 onClick = { onEmail(student.email) },
@@ -847,6 +852,9 @@ private fun PaymentDialog(
     }
     var date by remember { mutableStateOf(initialDate) }
     var picking by remember { mutableStateOf(false) }
+    // A new payment opens to be typed into, as every other «Новый …» dialog does — the date is already
+    // today. A correction does not: what is wrong with it may be the date.
+    val focus = if (initialAmount == null) rememberRevealedFocus() else null
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -862,7 +870,9 @@ private fun PaymentDialog(
                     supportingText = supportingTextOf(moneyErrorText(field)),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(if (focus != null) Modifier.focusRequester(focus) else Modifier),
                 )
                 PickerField(
                     value = date.formatDate(),
@@ -940,7 +950,9 @@ private fun LazyListScope.classesTab(
             leadingContent = { LessonKindIcon(row.kind) },
             headlineContent = {
                 Text(
-                    bulletJoin(row.subjectName, row.klass.start.dateTimeText()),
+                    // When first, as on the group card: it is what tells one row from the next, so it is
+                    // the half that must survive when a large font leaves room for only one of the two.
+                    bulletJoin(row.klass.start.dateTimeText(), row.subjectName),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

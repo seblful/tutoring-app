@@ -1,6 +1,6 @@
 package com.seblful.klas.ui.common
 
-import androidx.compose.foundation.background
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,10 +14,8 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,57 +24,46 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import com.seblful.klas.format.bulletJoin
 
 /**
- * A band that **stays** while a list scrolls under it — so it is drawn as one.
+ * A header that **stays** while a list scrolls under it — and only looks like a band while it does.
  *
- * The detail cards' tab rows were painted `colorScheme.surface`, which is the same value as the page
- * under them, so a row pinned by `stickyHeader` read as part of the scroll: the rows travelling beneath
- * appeared to slide out from behind nothing, and at the moment the first one reached the band there was
- * no edge for it to disappear behind. The tonal ladder the app already declares has the answer one rung
- * up (`surfaceContainer`, the *section* rung — see `ContentCard`), and a divider at the base draws the
- * edge itself.
+ * It used to be a band from the start: a full-width `surfaceContainer` strip with a divider under it,
+ * drawn the moment the card opened. Everything else on a detail card is an inset, rounded shape on the
+ * gutter, so the one edge-to-edge grey bar read as a toolbar wedged between the stat row and the list —
+ * an edge drawn for content that, on opening, was not passing under it at all.
  *
- * **What earns it is that content genuinely passes underneath.** «Люди»'s students-or-groups control had
- * this too, on the argument that a fixed band is a fixed band however it came to be fixed — but that
- * control sits *outside* the lists rather than over them, so each list is clipped at its own top edge a
- * few dp below and nothing ever travels under the segments. The band was drawing an edge nothing crosses,
- * at the price of making the app's two segmented controls look like different controls on the two screens
- * most likely to be compared. It is the schedule's plain treatment on both now.
+ * So at rest it is part of the page: the page's own colour, no rule, its control on the gutter like the
+ * cards above it. Once it is **pinned** — at the top of the list, rows travelling beneath — it takes the
+ * colour the collapsed app bar has by then (`surfaceContainer`, Material's scrolled bar colour), so the
+ * bar and the header become one block with one lower edge for the rows to disappear behind. That edge is
+ * the thing the band existed to provide, and now it is there exactly when something crosses it.
  *
- * So this stays separate from [StickyTabRow] for what it *is* — the band, apart from what is standing in
- * it — rather than for having a second caller.
+ * Pinned is read off where the header was placed: a sticky header sits at the very top of the list's
+ * viewport while it is held there, and lower down while it is not.
  */
 @Composable
 fun PinnedHeader(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
-        content()
-        HorizontalDivider()
-    }
-}
-
-/** The tab row pinned to the top of a detail card's list — a [PinnedHeader] holding tabs. */
-@Composable
-fun StickyTabRow(
-    selectedTabIndex: Int,
-    modifier: Modifier = Modifier,
-    tabs: @Composable () -> Unit,
-) {
-    PinnedHeader(modifier) {
-        SecondaryTabRow(
-            selectedTabIndex = selectedTabIndex,
-            // The row's own container would be `surface` again; the [PinnedHeader] above is what
-            // carries the colour, so this stays transparent rather than repainting the page's value
-            // over it.
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            tabs = tabs,
-        )
-    }
+    var pinned by remember { mutableStateOf(false) }
+    val colors = MaterialTheme.colorScheme
+    val background by animateColorAsState(
+        targetValue = if (pinned) colors.surfaceContainer else colors.surface,
+        label = "pinned header",
+    )
+    Column(
+        modifier
+            .onPlaced { pinned = it.positionInParent().y <= 0f }
+            .drawBehind { drawRect(background) },
+        content = content,
+    )
 }
 
 /**
