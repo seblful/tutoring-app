@@ -24,8 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -39,6 +37,7 @@ import com.seblful.klas.ui.common.MemberPickRow
 import com.seblful.klas.ui.common.ModeField
 import com.seblful.klas.ui.common.RateHistoryList
 import com.seblful.klas.ui.common.SaveAction
+import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.moneyErrorText
@@ -246,10 +245,9 @@ private fun GroupForm(
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
                     HorizontalDivider(Modifier.padding(vertical = Spacing.tight))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
+                        SectionTitle(
                             stringResource(R.string.group_members_title),
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.weight(1f).semantics { heading() },
+                            modifier = Modifier.weight(1f),
                         )
                         // Counts what would actually be saved, not what is ticked: switching subject
                         // can strand a tick on someone the new subject excludes.

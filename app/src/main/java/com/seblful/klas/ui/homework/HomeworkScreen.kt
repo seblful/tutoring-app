@@ -36,6 +36,7 @@ import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.Messages
+import com.seblful.klas.ui.common.ScreenHeader
 import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
@@ -84,6 +85,7 @@ fun HomeworkScreen(
     val loaded = (state as? Loadable.Ready)?.value
     KlasScreen(
         title = stringResource(R.string.nav_homework),
+        page = side,
         messages = messages,
         actions = {
             // Keep the clear action available if the last homework for the selected filter is deleted.
@@ -109,15 +111,17 @@ fun HomeworkScreen(
     ) { modifier ->
         // The same two-sided shape as «Люди»: segments on the page, and a drag across the body turns it.
         Column(modifier.swipeBetweenSegments(HomeworkSide.entries, side) { side = it }) {
-            SegmentedChoice(
-                options = HomeworkSide.entries,
-                selected = side,
-                onSelect = { side = it },
-                modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
-                label = { entry -> sideLabel(entry, loaded?.lists) },
-            )
-            // Above both lists and outside their scroll, as the schedule's: a narrowed tab says so.
-            loaded?.filterName?.let { name -> FilterChipRow(name, onClear = { viewModel.setFilter(null) }) }
+            ScreenHeader {
+                SegmentedChoice(
+                    options = HomeworkSide.entries,
+                    selected = side,
+                    onSelect = { side = it },
+                    modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
+                    label = { entry -> sideLabel(entry, loaded?.lists) },
+                )
+                // Above both lists and outside their scroll, as the schedule's: a narrowed tab says so.
+                loaded?.filterName?.let { name -> FilterChipRow(name, onClear = { viewModel.setFilter(null) }) }
+            }
             Box(Modifier.fillMaxSize()) {
                 when (val ready = state) {
                     Loadable.Loading -> ListSkeleton()

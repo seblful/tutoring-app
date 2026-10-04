@@ -20,8 +20,8 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.BugReport
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -49,8 +49,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -72,6 +70,7 @@ import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.MinTouchTarget
+import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.TimePickerModal
@@ -80,9 +79,11 @@ import com.seblful.klas.ui.common.ChoiceRow
 import com.seblful.klas.ui.common.DurationPickerModal
 import com.seblful.klas.ui.common.durationLabel
 import com.seblful.klas.ui.common.currencyLabel
+import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.languageLabel
 import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.moneyErrorText
+import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.rememberToggleFeedback
@@ -372,11 +373,12 @@ private fun SettingsList(
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_reminders_fix)) },
                 supportingContent = { Text(stringResource(descriptionRes)) },
-                // The gear, not a bell with a stroke through it or an alarm clock: both of those name the
-                // *mechanism* the row deliberately stopped naming, and one icon is the other half of one
-                // control — a row whose symbol changed with its subtitle would read as two rows again.
-                leadingContent = { Icon(Icons.Outlined.Settings, null) },
-                modifier = Modifier.clickable(onClick = fix),
+                // Where the tap goes, at the trailing edge, rather than a gear in front. A leading icon on
+                // two rows of thirty pushed exactly those two titles off the column every other row's
+                // title starts on; the trailing mark says the one thing this row has that its neighbours
+                // do not — it leaves the app — and says it the same way whichever problem it fixes.
+                trailingContent = { LeavesAppMark() },
+                modifier = Modifier.insetRowPress { Modifier.clickable(it, indication = null, onClick = fix) },
             )
         }
         ChoiceRow(
@@ -609,10 +611,24 @@ private fun SettingsList(
         ListItem(
             headlineContent = { Text(stringResource(R.string.diagnostics_title)) },
             supportingContent = { Text(stringResource(R.string.diagnostics_desc)) },
-            leadingContent = { Icon(Icons.Outlined.BugReport, null) },
-            modifier = Modifier.clickable(onClick = onDiagnostics),
+            // A chevron, as «Ещё» marks a row that opens a screen — not a leading bug glyph that set
+            // this one title in from all the others above it.
+            trailingContent = { OpensScreenMark() },
+            modifier = Modifier.insetRowPress { Modifier.clickable(it, indication = null, onClick = onDiagnostics) },
         )
     }
+}
+
+/** A row that opens another screen of the app. Decorative: the headline already says where. */
+@Composable
+private fun OpensScreenMark() {
+    Icon(Icons.Filled.ChevronRight, contentDescription = null)
+}
+
+/** A row that hands over to the phone's own settings. Decorative, like [OpensScreenMark]. */
+@Composable
+private fun LeavesAppMark() {
+    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)
 }
 
 /** Roughly a `SwitchRow`: a title over a line of description, at a `ListItem`'s own padding. */
@@ -661,9 +677,17 @@ private fun SwitchRow(
         // The switch is a picture of the state; the **row** is the control, so a tap on the words works
         // and TalkBack reads the title with it as one switch rather than «Switch, on» on its own.
         trailingContent = { Switch(checked = checked, onCheckedChange = null, enabled = enabled) },
-        modifier = Modifier.toggleable(value = checked, enabled = enabled, role = Role.Switch) { on ->
-            toggleFeedback(on)
-            onCheckedChange(on)
+        modifier = Modifier.insetRowPress { source ->
+            Modifier.toggleable(
+                value = checked,
+                interactionSource = source,
+                indication = null,
+                enabled = enabled,
+                role = Role.Switch,
+            ) { on ->
+                toggleFeedback(on)
+                onCheckedChange(on)
+            }
         },
         colors = if (enabled) {
             ListItemDefaults.colors()
@@ -743,9 +767,16 @@ private fun WeekdayRow(
                                 .fillMaxWidth()
                                 // The whole row, not just the button: a 20dp radio is not a touch target.
                                 // One control, so TalkBack stops once per day, not twice.
-                                .selectable(selected = day == selected, role = Role.RadioButton) {
-                                    onSet(day.value)
-                                    picking = false
+                                .outsetRowPress { source ->
+                                    Modifier.selectable(
+                                        selected = day == selected,
+                                        interactionSource = source,
+                                        indication = null,
+                                        role = Role.RadioButton,
+                                    ) {
+                                        onSet(day.value)
+                                        picking = false
+                                    }
                                 }
                                 .heightIn(min = MinTouchTarget)
                                 .padding(vertical = Spacing.tight),
@@ -800,7 +831,9 @@ private fun ValueRow(
                 headlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledAlpha),
             )
         },
-        modifier = Modifier.clickable(enabled = enabled, onClick = onClick),
+        modifier = Modifier.insetRowPress {
+            Modifier.clickable(it, indication = null, enabled = enabled, onClick = onClick)
+        },
     )
 }
 
@@ -830,7 +863,7 @@ private fun MoneyRow(
                 color = MaterialTheme.colorScheme.primary,
             )
         },
-        modifier = Modifier.clickable { editing = true },
+        modifier = Modifier.insetRowPress { Modifier.clickable(it, indication = null) { editing = true } },
     )
     if (editing) {
         // Opens on the amount currently set, so editing it is a correction rather than a re-entry.
@@ -925,16 +958,15 @@ private fun exactAlarmSettings(context: Context): Intent =
 /** A small, tinted section label that breaks the settings list into scannable groups. */
 @Composable
 private fun SectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleSmall,
+    // The app's section title, tinted as a preference category is — said as a heading, so the long list
+    // can be walked by section.
+    SectionTitle(
+        title,
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.gutter)
-            .padding(top = Spacing.sectionGap, bottom = Spacing.tight)
-            // Said as a heading, so the long list can be walked by section.
-            .semantics { heading() },
+            .padding(top = Spacing.sectionGap, bottom = Spacing.tight),
     )
 }
 

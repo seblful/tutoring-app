@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.SearchOff
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +27,7 @@ import com.seblful.klas.ui.common.AvatarStack
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabClearance
+import com.seblful.klas.ui.common.IconAvatar
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.Spacing
@@ -95,11 +95,7 @@ fun GroupsList(
                 modifier = Modifier.animateItem(),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Outlined.Groups,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
+                    IconAvatar(Icons.Outlined.Groups)
                     Spacer(Modifier.width(Spacing.leading))
                     Column(Modifier.weight(1f)) {
                         Text(row.group.name, style = MaterialTheme.typography.titleMedium)
@@ -107,9 +103,11 @@ fun GroupsList(
                         // existed shows nothing here rather than a placeholder — it genuinely has no
                         // answer, and inventing one would be a lie.
                         row.subjectName?.let { subject ->
+                            // The students list's second line is `bodyMedium`, so this is too: two
+                            // sides of one tab, one row anatomy.
                             Text(
                                 subject,
-                                style = MaterialTheme.typography.labelMedium,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -147,7 +145,8 @@ fun GroupsList(
                     ) {
                         Text(
                             stringResource(R.string.price_per_hour, row.group.price.text()),
-                            style = MaterialTheme.typography.labelMedium,
+                            // As the group's own card says its rate.
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,

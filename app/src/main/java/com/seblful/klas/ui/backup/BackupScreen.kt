@@ -39,6 +39,7 @@ import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.SkeletonBlock
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.rememberMessages
 import androidx.compose.ui.unit.dp
@@ -113,8 +114,10 @@ fun BackupScreen(
                 leadingContent = { Icon(Icons.Outlined.Upload, null) },
                 headlineContent = { Text(stringResource(R.string.backup_export)) },
                 supportingContent = { Text(stringResource(R.string.backup_export_desc)) },
-                modifier = Modifier.clickable(enabled = !importing) {
-                    exportLauncher.launchExternally(backupFilename, noPickerMsg, messages)
+                modifier = Modifier.insetRowPress { source ->
+                    Modifier.clickable(source, indication = null, enabled = !importing) {
+                        exportLauncher.launchExternally(backupFilename, noPickerMsg, messages)
+                    }
                 },
             )
             ListItem(
@@ -123,8 +126,10 @@ fun BackupScreen(
                 supportingContent = {
                     Text(stringResource(if (importing) R.string.backup_importing else R.string.backup_import_desc))
                 },
-                modifier = Modifier.clickable(enabled = !importing) {
-                    importLauncher.launchExternally(BACKUP_MIME_TYPES, noPickerMsg, messages)
+                modifier = Modifier.insetRowPress { source ->
+                    Modifier.clickable(source, indication = null, enabled = !importing) {
+                        importLauncher.launchExternally(BACKUP_MIME_TYPES, noPickerMsg, messages)
+                    }
                 },
             )
         }

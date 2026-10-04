@@ -57,16 +57,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -85,10 +81,13 @@ import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.MinTouchTarget
+import com.seblful.klas.ui.common.ScreenHeader
 import com.seblful.klas.ui.common.SectionCard
+import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatRow
+import com.seblful.klas.ui.common.bleed
 import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.valueOrNull
@@ -233,13 +232,15 @@ fun ReportsScreen(
         Column(modifier) {
             // Pinned rather than scrolled away with the first card: the period is what everything
             // below means, and changing it is the main thing this screen is driven by.
-            PeriodNavigator(
-                period = period,
-                onPrevious = { viewModel.shift(-1) },
-                onNext = { viewModel.shift(1) },
-                onKind = viewModel::setKind,
-            )
-            HorizontalDivider()
+            // Painted with the bar rather than ruled off under it — see [ScreenHeader].
+            ScreenHeader {
+                PeriodNavigator(
+                    period = period,
+                    onPrevious = { viewModel.shift(-1) },
+                    onNext = { viewModel.shift(1) },
+                    onKind = viewModel::setKind,
+                )
+            }
             ReportBody(report, onStudentClick, listState, Modifier.weight(1f))
         }
     }
@@ -627,7 +628,10 @@ private fun RankedCard(title: String, lines: List<Reports.Line>) {
     ReportCard(title) {
         lines.forEach { line ->
             Column(verticalArrangement = Arrangement.spacedBy(BarGap)) {
-                AmountRow(line.label, line.amount.text(), color = MaterialTheme.colorScheme.primary)
+                // Ink, like every other amount on the screen that is not a debt. Colour on this screen
+                // means something — the hero's fill, a debt's red — and primary here meant nothing the
+                // primary bar under it was not already saying.
+                AmountRow(line.label, line.amount.text())
                 // The fraction and the single-line rule are the report's own — see [Reports.Line.share].
                 line.share?.let { share ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -674,12 +678,12 @@ private fun RankedBar(fraction: Float, modifier: Modifier = Modifier) {
  */
 @Composable
 private fun DebtsCard(state: Reports.Report, onStudentClick: (Long) -> Unit) {
-    ReportCard(stringResource(R.string.reports_debts)) {
-        Text(
-            stringResource(R.string.reports_debts_all_time),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    // «Текущий баланс, за всё время» belongs to the title: it says why this card ignores the period. As
+    // the card's first row it sat a full item gap below the heading and read as a caption to the total.
+    ReportCard(
+        stringResource(R.string.reports_debts),
+        subtitle = stringResource(R.string.reports_debts_all_time),
+    ) {
         if (state.debts.isEmpty()) {
             Text(
                 stringResource(R.string.reports_no_debts),
@@ -698,13 +702,18 @@ private fun DebtsCard(state: Reports.Report, onStudentClick: (Long) -> Unit) {
         // Every row opens the person who owes. Reading a name here and then going to find them by
         // hand — through a list that could not be searched or sorted by debt — was the longest
         // journey in the app, between two screens that are one tap apart.
-        state.debts.forEach { debt ->
-            AmountRow(
-                label = debt.label,
-                amount = debt.amount.text(),
-                color = MaterialTheme.colorScheme.error,
-                onClick = debt.studentId?.let { id -> { onStudentClick(id) } },
-            )
+        //
+        // One column with no gap of its own: each row is already a full touch target, and the card's item
+        // gap on top of that spaced the debts twice as far apart as any other rows on the screen.
+        Column {
+            state.debts.forEach { debt ->
+                AmountRow(
+                    label = debt.label,
+                    amount = debt.amount.text(),
+                    color = MaterialTheme.colorScheme.error,
+                    onClick = debt.studentId?.let { id -> { onStudentClick(id) } },
+                )
+            }
         }
     }
 }
@@ -717,13 +726,27 @@ private fun DebtsCard(state: Reports.Report, onStudentClick: (Long) -> Unit) {
  * type scale states `titleSmall` as semi-bold like the titles above it.
  */
 @Composable
-private fun ReportCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+private fun ReportCard(
+    title: String,
+    /** A line qualifying the title, set tight under it — part of the heading, not the first row. */
+    subtitle: String? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     SectionCard {
         Column(
             Modifier.fillMaxWidth().padding(Spacing.gutter),
             verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
-            Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() })
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
+                SectionTitle(title)
+                subtitle?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             content()
         }
     }
@@ -790,21 +813,6 @@ private fun AmountRow(
             Spacer(Modifier.width(ChevronSize))
         }
     }
-}
-
-/**
- * Lets a row reach [by] past its parent on either side while laying its content out where it would
- * have been — so a ripple can spread into the card's padding without moving the text off its edge.
- */
-private fun Modifier.bleed(by: Dp): Modifier = layout { measurable, constraints ->
-    val extra = (by * 2).roundToPx()
-    val wider = if (constraints.hasBoundedWidth) {
-        constraints.copy(minWidth = constraints.minWidth + extra, maxWidth = constraints.maxWidth + extra)
-    } else {
-        constraints
-    }
-    val placeable = measurable.measure(wider)
-    layout((placeable.width - extra).coerceAtLeast(0), placeable.height) { placeable.place(-extra / 2, 0) }
 }
 
 /**

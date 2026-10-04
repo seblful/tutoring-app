@@ -32,16 +32,25 @@ it draws with.
 - **Haptics**: five named moments only (`ui/common/Haptics`), wired into shared atoms, never per-screen;
   ordinary taps stay silent.
 - **Shell**: every screen is a `KlasScreen` (owns `Scaffold`, insets, width cap, snackbar host, back arrow,
-  scroll behavior) — exactly one `Scaffold` per tree. `Spacing` is the app's rhythm (`tight`…`sectionGap`).
-  Card vs. row is by nesting depth (`ContentCard` top-level, `ListItem` nested). Detail cards are all
+  scroll behavior) — exactly one `Scaffold` per tree. Controls pinned under a compact bar (segments, a
+  pager, a period) are a `ScreenHeader`: page-coloured at rest, no rule under them, tinted *with* the bar
+  once content scrolls beneath — one block, one lower edge. A screen that swaps its body without
+  scrolling passes `page` so the bar's tint resets with it. `Spacing` is the app's rhythm
+  (`tight`…`sectionGap`). Card vs. row is by nesting depth (`ContentCard` top-level, `ListItem` nested); a
+  top-level card leads with a 40 dp disc — a student's monogram (`Avatar`), else a glyph (`IconAvatar`).
+  A press is never a grey block: cards press in their own shape, full-width rows through `insetRowPress`
+  (`outsetRowPress` where the row's control sits flush with its column) as a rounded inset tint, and a
+  bottom sheet draws `SheetHandle` itself with `dragHandle = null` — Material's handle is a tooltipped
+  button (`PressSurfaceTest`). Detail cards are all
   identity → `StatRow` → one pinned view menu (`StickyViewMenu`, «Занятия ▾» — page-coloured at rest, the collapsed bar's colour once pinned), not a tab row — four
   tabs were too much to read at a glance. Held, a bar's icon names itself (`HoldToName`) — top-bar
   icons and the bottom bar's tabs. One control per kind of question: `SegmentedChoice` (fixed few,
   swipeable), `ChoiceRow` (settings-shaped choice, segments up to 4 then a field), chips (shortlist +
   escape hatch). Text sits on the gutter: page sides are `Spacing.gutter`, and a tappable row that needs
   ripple room takes it from the card's padding, not from the text's edge.
-- **Section titles and dialogs**: a section title is `titleSmall`, read as a heading, on forms and cards
-  alike. A confirmation that loses something — delete, remove, clear, replace from a backup, discard
+- **Section titles and dialogs**: a section title is a `SectionTitle` — `titleSmall`, read as a heading —
+  on forms, sheets, cards and settings alike; colour only when it marks something (a settings category,
+  the selected day). A full-screen empty state's action is tonal: the screen's add button is its primary. A confirmation that loses something — delete, remove, clear, replace from a backup, discard
   typed input — says its button in `colorScheme.error` (`ConfirmDialog(destructive = true)`). A dialog
   opened to type one thing opens with the caret in it (`rememberRevealedFocus`).
 - **Text that must fit** (bar titles, tab labels, stat values, the schedule's page title) shrinks before
@@ -53,7 +62,10 @@ it draws with.
   Destinations cross-fade; predictive back is on.
 - **Lists**: shared search rule (`domain/PeopleSearch`) across the three list screens — case-insensitive,
   substring, terms in any order. Empty lists always carry the way out (`EmptyState`). State is a
-  `StatusBadge`, never a font style (`StatusBadgeSurfaceTest`). A lesson row leads with its date.
+  `StatusBadge`, never a font style (`StatusBadgeSurfaceTest`), and on a lesson it leads the second line —
+  schedule card, lesson sheet, student and group cards — so the name or date above keeps the full width.
+  A lesson row leads with its date. Money at a nested row's trailing edge is `TrailingAmount`; colour on
+  an amount means something (a debt's red, the hero's fill), so other amounts are ink.
 - **Schedule**: three views (Day/Week/Month) via segmented control; a day is always summarized as
   count·hours·money (`domain/DaySummary`); a "now" hairline on today only; completing a lesson is a
   revocable swipe (green panel); a cancelled lesson recedes, badge stays red. Can be narrowed to one
@@ -68,8 +80,10 @@ it draws with.
   now"; green = "taught" (`KlasColors`, app-owned, unaffected by dynamic color). Golos Text typeface
   (Cyrillic-first, full Latin). Avatar colors key off id, not name.
 - **Icons**: filled for actions and selected states, outlined for art and inactive glyphs. Empty-state
-  pictures, decorative glyphs beside a line of text and settings leading icons are `Icons.Outlined`;
-  buttons, menu items, chevrons and the selected tab stay filled. The two lesson-kind icons are exempt —
+  pictures and decorative glyphs beside a line of text are `Icons.Outlined`; buttons, menu items,
+  chevrons and the selected tab stay filled. Settings rows carry no leading icon (every title on one
+  edge); a row that goes somewhere says so at its trailing edge — a chevron in the app, «open in new» out
+  of it. The two lesson-kind icons are exempt —
   a matched pair pinned on ink height by `LessonKindIconTest`.
 - **Screen readers**: a swipe always has a twin action on the same node (`swipeAction`), and what is drawn
   behind a swipe row is not read; selection is `selected` semantics, not a tick alone; section titles are

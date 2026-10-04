@@ -2,9 +2,7 @@ package com.seblful.klas.ui.more
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,15 +16,13 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.KlasScreen
-import com.seblful.klas.ui.common.KlasWordmark
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.common.insetRowPress
 
 /**
  * The overflow section: everything that doesn't earn a tab.
@@ -48,14 +44,10 @@ fun MoreScreen(
     onAbout: () -> Unit,
 ) {
     KlasScreen(title = stringResource(R.string.nav_more)) { modifier ->
-        Column(modifier.verticalScroll(rememberScrollState())) {
-            KlasWordmark(
-                Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(vertical = Spacing.gutter)
-                    .width(160.dp)
-                    .height(64.dp),
-            )
+        // No wordmark above the menu: the bar already names the screen, and a logo between the title and
+        // the first row pushed the four things a tutor came here for halfway down the page. The brand has
+        // its place in «О приложении», one row below.
+        Column(modifier.verticalScroll(rememberScrollState()).padding(top = Spacing.inline)) {
             NavigationRow(Icons.AutoMirrored.Outlined.MenuBook, stringResource(R.string.more_subjects), onSubjects)
             NavigationRow(Icons.Outlined.Settings, stringResource(R.string.settings_title), onSettings)
             NavigationRow(Icons.Outlined.Save, stringResource(R.string.more_backup), onBackup)
@@ -84,6 +76,6 @@ private fun NavigationRow(icon: ImageVector, label: String, onClick: () -> Unit)
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier = Modifier.insetRowPress { Modifier.clickable(it, indication = null, onClick = onClick) },
     )
 }

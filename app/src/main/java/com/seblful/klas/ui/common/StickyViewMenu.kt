@@ -93,7 +93,9 @@ fun <T> StickyViewMenu(
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .clickable(role = Role.DropdownList) { expanded = true }
+                    .insetRowPress {
+                        Modifier.clickable(it, indication = null, role = Role.DropdownList) { expanded = true }
+                    }
                     .heightIn(min = MinTouchTarget)
                     .padding(horizontal = Spacing.gutter),
                 verticalAlignment = Alignment.CenterVertically,

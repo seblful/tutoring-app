@@ -1,6 +1,10 @@
 package com.seblful.klas.ui.common
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -21,13 +25,17 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -67,6 +75,10 @@ import com.seblful.klas.R
  * @param search when non-null, the bar grows a search icon and becomes a search field when it is
  *   tapped. The toggle is state, and it is *this* function's.
  * @param messages the screen's [Messages]; its host is mounted here so no screen mounts its own.
+ * @param page which page of the screen is up — a tab of «Люди», a view of the schedule — for a screen
+ *   whose body is swapped for another *without scrolling*. The bar keeps count of how far content has
+ *   scrolled beneath it, and a page that opens at its top has scrolled nowhere: without this, «Группы»
+ *   opened under a bar (and a [ScreenHeader]) still tinted for the students list scrolled a moment ago.
  * @param content given the modifier for the screen's top-level scrollable, insets and cap applied.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,6 +91,7 @@ fun KlasScreen(
     search: ScreenSearch? = null,
     messages: Messages? = null,
     imeAware: Boolean = false,
+    page: Any? = null,
     actions: @Composable RowScope.() -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
     content: @Composable (Modifier) -> Unit,
@@ -91,6 +104,14 @@ fun KlasScreen(
     val scrollBehavior = when (titleSize) {
         TitleSize.Compact -> TopAppBarDefaults.pinnedScrollBehavior()
         TitleSize.Large -> TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    }
+
+    // Only on a *change* of page, not on arriving: a screen returned to restores its list's position and
+    // the bar's offset together, and resetting here would leave a scrolled list under an untinted bar.
+    var shownPage by remember { mutableStateOf(page) }
+    if (page != shownPage) {
+        shownPage = page
+        scrollBehavior.state.contentOffset = 0f
     }
 
     // A large title has two lines to spend on a name while it is large; collapsed into an ordinary bar it
@@ -160,6 +181,19 @@ fun KlasScreen(
         }
     }
 
+    // The compact bar's colour, animated **here** rather than inside `TopAppBar`, so a [ScreenHeader]
+    // under it can be painted with the very same value — one block that tints as one when a list starts
+    // passing beneath it, rather than a grey bar over a strip of page-coloured controls.
+    val defaultBarColors = TopAppBarDefaults.topAppBarColors()
+    val overlapped by remember(scrollBehavior) {
+        derivedStateOf { scrollBehavior.state.overlappedFraction > OverlapThreshold }
+    }
+    val barColor = animateColorAsState(
+        if (overlapped) defaultBarColors.scrolledContainerColor else defaultBarColors.containerColor,
+        label = "bar colour",
+    )
+    val readBarColor = remember(barColor) { { barColor.value } }
+
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { if (messages != null) SnackbarHost(messages.hostState) },
@@ -170,6 +204,10 @@ fun KlasScreen(
                     navigationIcon = barNavigation,
                     actions = barActions,
                     scrollBehavior = scrollBehavior,
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = barColor.value,
+                        scrolledContainerColor = barColor.value,
+                    ),
                 )
 
                 TitleSize.Large -> LargeTopAppBar(
@@ -182,16 +220,50 @@ fun KlasScreen(
         },
         floatingActionButton = floatingActionButton,
     ) { insets ->
-        content(
-            Modifier
-                .fillMaxSize()
-                .padding(insets)
-                // Before the cap and before whatever scroll the body adds. See [imeAware].
-                .then(if (imeAware) Modifier.imePadding() else Modifier)
-                .constrainedContent(),
-        )
+        CompositionLocalProvider(
+            LocalBarColor provides readBarColor.takeIf { titleSize == TitleSize.Compact },
+        ) {
+            content(
+                Modifier
+                    .fillMaxSize()
+                    .padding(insets)
+                    // Before the cap and before whatever scroll the body adds. See [imeAware].
+                    .then(if (imeAware) Modifier.imePadding() else Modifier)
+                    .constrainedContent(),
+            )
+        }
     }
 }
+
+/**
+ * The controls a screen pins **under its bar** — «Ученики | Группы», the schedule's view and pager, the
+ * report's period — painted as part of the bar.
+ *
+ * They were page-coloured whatever happened, so the moment a list scrolled the bar turned
+ * `surfaceContainer` above a strip that did not: a grey bar, a pale band of controls, then the rows
+ * vanishing at an edge nobody had drawn. Four screens, two of them with a hairline under the strip and
+ * two without. Now there is one rule, the one [PinnedHeader] already follows on the detail cards: at
+ * rest the header is page, no rule under it; once content passes beneath, bar and header tint together
+ * and their shared lower edge is the line the rows disappear behind.
+ *
+ * Only under a compact bar: a large bar collapses, and its screens pin their header inside the list.
+ */
+@Composable
+fun ScreenHeader(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    val barColor = LocalBarColor.current
+    Column(
+        modifier
+            .fillMaxWidth()
+            .then(if (barColor != null) Modifier.drawBehind { drawRect(barColor()) } else Modifier),
+        content = content,
+    )
+}
+
+/** The compact bar's current colour, read at draw time; null under a large bar. See [ScreenHeader]. */
+private val LocalBarColor = staticCompositionLocalOf<(() -> Color)?> { null }
+
+/** How much of the bar content must overlap before it counts as scrolled — Material's own threshold. */
+private const val OverlapThreshold = 0.01f
 
 /**
  * «Сохранить», in the app bar — the one way a form commits.

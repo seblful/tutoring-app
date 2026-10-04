@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -75,6 +77,41 @@ fun Avatar(name: String, studentId: Long, modifier: Modifier = Modifier, size: D
         )
     }
 }
+/**
+ * The 40dp disc a top-level list row leads with, holding a glyph rather than a monogram — a group, a
+ * subject.
+ *
+ * The students list leads every card with a 40dp monogram; the groups list — the other side of the same
+ * segmented control — led with a bare 24dp glyph, and so did the subjects list. Flipping «Ученики |
+ * Группы» moved every name sideways and swapped a set of faces for a column of icons. A group or a subject
+ * has no letter worth drawing (two groups of one subject start with the same one), so the disc carries
+ * what the row *is*, in the brand's neutral container rather than a per-id hue: it is the same on every
+ * row of its list, and a hue per row would claim a distinction that is not there.
+ *
+ * Silent to a screen reader for [Avatar]'s reason — the name is beside it.
+ */
+@Composable
+fun IconAvatar(icon: ImageVector, modifier: Modifier = Modifier, size: Dp = 40.dp) {
+    Box(
+        modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .clearAndSetSemantics { },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.size(AvatarGlyph),
+        )
+    }
+}
+
+/** The glyph inside an [IconAvatar] — about the ink a monogram's letter has in the same circle. */
+private val AvatarGlyph = 22.dp
+
 /**
  * A stable (container, on-container) colour pair for the student with [studentId], picked from a
  * fixed palette by [AvatarPalette]. Same student → same colour every time.

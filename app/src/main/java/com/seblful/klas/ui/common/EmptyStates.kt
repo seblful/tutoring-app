@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -106,15 +106,19 @@ fun EmptyState(
             )
         }
         if (actionLabel != null && onAction != null) {
-            // Outlined inside a tab: a filled button is the primary action *of a screen*, and a tab's
-            // way out is not competing with the card's own pencil for that role.
+            // Outlined inside a tab: a tab's way out is not competing with the card's own pencil.
+            //
+            // Tonal on a whole screen, **not filled**: every screen with one of these also has its add
+            // button, and a filled indigo pill in the middle of the page outshouted that button — two
+            // primaries for one action, and the louder of them the one that disappears as soon as the
+            // list has a row. The add button is the screen's primary; this points at the same door.
             if (compact) {
                 OutlinedButton(onClick = onAction) {
                     Icon(Icons.Filled.Add, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
                     Text(actionLabel, Modifier.padding(start = Spacing.inline))
                 }
             } else {
-                Button(onClick = onAction, modifier = Modifier.padding(top = Spacing.tight)) {
+                FilledTonalButton(onClick = onAction, modifier = Modifier.padding(top = Spacing.tight)) {
                     Icon(Icons.Filled.Add, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
                     Text(actionLabel, Modifier.padding(start = Spacing.inline))
                 }

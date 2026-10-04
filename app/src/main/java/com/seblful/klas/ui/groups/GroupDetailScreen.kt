@@ -58,9 +58,11 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatRow
 import com.seblful.klas.ui.common.StatusBadge
+import com.seblful.klas.ui.common.TrailingAmount
 import com.seblful.klas.ui.common.StickyViewMenu
 import com.seblful.klas.ui.common.TitleSize
 import com.seblful.klas.ui.common.dateTimeText
+import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
@@ -432,7 +434,9 @@ private fun LazyListScope.studentsTab(
                     contentDescription = stringResource(R.string.group_member_open),
                 )
             },
-            modifier = Modifier.clickable { onMemberClick(row.student.id) }.animateItem(),
+            modifier = Modifier
+                .insetRowPress { Modifier.clickable(it, indication = null) { onMemberClick(row.student.id) } }
+                .animateItem(),
         )
     }
 }
@@ -488,8 +492,10 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
                     )
                 }
             },
-            trailingContent = { if (!row.charge.isZero) Text(row.charge.text()) },
-            modifier = Modifier.clickable { onLessonClick(row.session.first.id) }.animateItem(),
+            trailingContent = { if (!row.charge.isZero) TrailingAmount(row.charge.text()) },
+            modifier = Modifier
+                .insetRowPress { Modifier.clickable(it, indication = null) { onLessonClick(row.session.first.id) } }
+                .animateItem(),
         )
     }
 }

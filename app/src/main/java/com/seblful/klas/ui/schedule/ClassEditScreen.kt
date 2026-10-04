@@ -32,8 +32,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
@@ -45,6 +43,7 @@ import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.DurationPickerModal
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.durationLabel
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.Loadable
@@ -314,11 +313,7 @@ private fun ClassEditForm(
                     )
                 }
                 if (members.isNotEmpty()) {
-                    Text(
-                        stringResource(R.string.class_group_members_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.semantics { heading() },
-                    )
+                    SectionTitle(stringResource(R.string.class_group_members_title))
                     // On a booked lesson the ticks read as a record rather than a plan, so they say
                     // which question they are answering.
                     if (!viewModel.isNew) {
@@ -507,10 +502,7 @@ private fun DurationPicker(
         // A flow, so the consequence moves to a line of its own whole rather than being squeezed into a
         // column beside the label — «Длительность · до 00:00 (следующего дня)» at a large font scale.
         FlowRow(itemVerticalAlignment = Alignment.CenterVertically) {
-            Text(
-                stringResource(R.string.class_duration_label),
-                style = MaterialTheme.typography.labelLarge,
-            )
+            SectionTitle(stringResource(R.string.class_duration_label))
             if (ends != null) {
                 Text(
                     " · " + endsAtText(ends),
@@ -565,10 +557,7 @@ private fun RepeatPicker(
         // A flow, so the consequence moves to a line of its own whole rather than being squeezed into a
         // column beside the label — «Длительность · до 00:00 (следующего дня)» at a large font scale.
         FlowRow(itemVerticalAlignment = Alignment.CenterVertically) {
-            Text(
-                stringResource(R.string.class_repeat_label),
-                style = MaterialTheme.typography.labelLarge,
-            )
+            SectionTitle(stringResource(R.string.class_repeat_label))
             // «по 24 сентября» — the last day the run reaches. Shown only once there is a date to count
             // from, exactly as the lesson's end waits for a start.
             if (until != null) {

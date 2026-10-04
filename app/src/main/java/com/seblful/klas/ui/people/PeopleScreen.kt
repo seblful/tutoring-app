@@ -33,6 +33,7 @@ import com.seblful.klas.R
 import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ScreenSearch
+import com.seblful.klas.ui.common.ScreenHeader
 import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.swipeBetweenSegments
@@ -89,6 +90,7 @@ fun PeopleScreen(
 
     KlasScreen(
         title = stringResource(R.string.nav_people),
+        page = tab,
         // One search box for two lists. Typing goes to whichever side is on top, so switching tab keeps
         // each side's own search — but **closing clears both**, because the shut box can only speak for
         // one of them: searching «ан» on Students, switching to Groups and closing used to leave the
@@ -132,25 +134,22 @@ fun PeopleScreen(
         // sides of «Люди» are one screen showing the same people two ways, and every part of it should turn
         // the page. Neither list owns a horizontal gesture, so nothing here competes for the drag.
         Column(modifier.swipeBetweenSegments(PeopleTab.entries, tab) { tab = it }) {
-            // **On the page, like the schedule's.** It sits above the lists rather than inside them, so it
-            // never scrolls — and it used to say so with a tonal band and a divider ([PinnedHeader], the
-            // detail cards' one). That band is what a *sticky* header needs, where content genuinely
-            // travels under a row that stays: it draws the edge the rows disappear behind. Here the lists
-            // are clipped to their own bounds a few dp below and the rows are cards a rung off the page
-            // already, so the band was drawing an edge nothing crosses — and it made the app's two
-            // segmented controls look like different controls, on the two screens most likely to be
-            // compared. The chrome is the same on both now, and the tonal ladder is left to say what it is
-            // for.
-            SegmentedChoice(
-                options = PeopleTab.entries,
-                selected = tab,
-                onSelect = { tab = it },
-                modifier = Modifier.padding(
-                    horizontal = Spacing.gutter,
-                    vertical = Spacing.inline,
-                ),
-                label = { entry -> stringResource(entry.labelRes) },
-            )
+            // Under the bar and painted with it ([ScreenHeader]), like the schedule's view and the
+            // report's period: page-coloured at rest, so the app's segmented controls look like one
+            // control wherever they are; tinted with the bar once a list is passing beneath it, so the
+            // rows disappear behind one edge rather than at a line nobody drew.
+            ScreenHeader {
+                SegmentedChoice(
+                    options = PeopleTab.entries,
+                    selected = tab,
+                    onSelect = { tab = it },
+                    modifier = Modifier.padding(
+                        horizontal = Spacing.gutter,
+                        vertical = Spacing.inline,
+                    ),
+                    label = { entry -> stringResource(entry.labelRes) },
+                )
+            }
             Box(Modifier.fillMaxSize()) {
                 // `query` is the visible side's, so either list's "empty because nothing matched"
                 // reads the same search its rows were filtered by.

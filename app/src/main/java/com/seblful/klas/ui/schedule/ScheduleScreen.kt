@@ -97,7 +97,10 @@ import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.MinTouchTarget
+import com.seblful.klas.ui.common.ScreenHeader
+import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.SegmentedChoice
+import com.seblful.klas.ui.common.SheetHandle
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.StatusBadge
@@ -106,9 +109,11 @@ import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.armedPop
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.classStatusLabel
+import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.lessonBadgeColor
 import com.seblful.klas.ui.common.lessonBadgeLabel
 import com.seblful.klas.ui.common.map
+import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.popsOnChange
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRejectFeedback
@@ -249,6 +254,7 @@ fun ScheduleScreen(
 
     KlasScreen(
         title = stringResource(R.string.schedule_title),
+        page = viewMode,
         messages = messages,
         actions = {
             // Offered only once there is somebody to narrow to — a menu whose every entry is «Все
@@ -301,53 +307,54 @@ fun ScheduleScreen(
             // opened a menu — two taps to switch, and the icon never told you which of the three you
             // were in. A segmented control is one tap and is its own label; the app already picks
             // this way in Settings.
-            ViewModeSelector(selected = viewMode, onSelect = viewModel::setViewMode)
+            // The view, the filter and the pager: painted with the bar, so they and it tint as one block
+            // when the agenda scrolls beneath — see [ScreenHeader].
+            ScreenHeader {
+                ViewModeSelector(selected = viewMode, onSelect = viewModel::setViewMode)
 
-            // **The chip is what makes the filter honest.** A narrowed schedule and a genuinely quiet
-            // week look identical, so for as long as one student's lessons are what is on screen their
-            // name stays above it — carrying its own way out, which is the difference between a filter
-            // and a mode the tutor can get stuck in.
-            studentFilter?.let { filter ->
-                FilterChipRow(
-                    name = filter.name,
-                    onClear = { viewModel.setStudentFilter(null) },
-                )
-            }
-
-            // The navigator stays pinned in every mode, so paging is always one tap away.
-            when (viewMode) {
-                ScheduleViewMode.DAY -> {
-                    DayNavigator(
-                        date = date,
-                        onPrevious = viewModel::goToPreviousDay,
-                        onNext = viewModel::goToNextDay,
-                        onToday = viewModel::goToToday,
-                    )
-                    // What the day comes to, under the day it names — the stepper's title is the date,
-                    // so this is the one place in this view the summary can sit.
-                    DaySummaryLine(
-                        summary = dayContent.valueOrNull()?.summary ?: DaySummary.NONE,
-                        modifier = Modifier.padding(horizontal = Spacing.gutter),
-                    )
-                    // Inset to the gutter, like the week and month dividers — those sit inside the list
-                    // below and so pick it up from its `contentPadding`. This one is outside the list,
-                    // so it has to say so, or switching view mode changes the divider's width.
-                    HorizontalDivider(
-                        Modifier.padding(top = Spacing.tight, start = Spacing.gutter, end = Spacing.gutter),
+                // **The chip is what makes the filter honest.** A narrowed schedule and a genuinely quiet
+                // week look identical, so for as long as one student's lessons are what is on screen their
+                // name stays above it — carrying its own way out, which is the difference between a filter
+                // and a mode the tutor can get stuck in.
+                studentFilter?.let { filter ->
+                    FilterChipRow(
+                        name = filter.name,
+                        onClear = { viewModel.setStudentFilter(null) },
                     )
                 }
-                ScheduleViewMode.WEEK -> WeekNavigator(
-                    days = week,
-                    onPrevious = viewModel::goToPreviousWeek,
-                    onNext = viewModel::goToNextWeek,
-                    onToday = viewModel::goToToday,
-                )
-                ScheduleViewMode.MONTH -> MonthNavigator(
-                    month = month,
-                    onPrevious = viewModel::goToPreviousMonth,
-                    onNext = viewModel::goToNextMonth,
-                    onToday = viewModel::goToToday,
-                )
+
+                // The navigator stays pinned in every mode, so paging is always one tap away.
+                when (viewMode) {
+                    ScheduleViewMode.DAY -> {
+                        DayNavigator(
+                            date = date,
+                            onPrevious = viewModel::goToPreviousDay,
+                            onNext = viewModel::goToNextDay,
+                            onToday = viewModel::goToToday,
+                        )
+                        // What the day comes to, under the day it names — the stepper's title is the date,
+                        // so this is the one place in this view the summary can sit. No rule under it: the
+                        // week's and month's divide a calendar grid from the agenda, and here there is no
+                        // grid — the cards begin on surfaces of their own, and once they pass beneath, the
+                        // tinted header is the edge ([ScreenHeader]).
+                        DaySummaryLine(
+                            summary = dayContent.valueOrNull()?.summary ?: DaySummary.NONE,
+                            modifier = Modifier.padding(horizontal = Spacing.gutter),
+                        )
+                    }
+                    ScheduleViewMode.WEEK -> WeekNavigator(
+                        days = week,
+                        onPrevious = viewModel::goToPreviousWeek,
+                        onNext = viewModel::goToNextWeek,
+                        onToday = viewModel::goToToday,
+                    )
+                    ScheduleViewMode.MONTH -> MonthNavigator(
+                        month = month,
+                        onPrevious = viewModel::goToPreviousMonth,
+                        onNext = viewModel::goToNextMonth,
+                        onToday = viewModel::goToToday,
+                    )
+                }
             }
             // The grid scrolls with the classes rather than sitting above them: six week rows plus
             // a full day of classes doesn't fit a landscape phone.
@@ -444,12 +451,17 @@ fun ScheduleScreen(
                                     today = today,
                                     onSelect = viewModel::selectDate,
                                 )
+                                // Grid, rule, then the day — the order the week strip has, so the rule
+                                // always divides the calendar from the agenda and the day's heading sits
+                                // with the lessons it names, not above a line cutting it off from them.
+                                Spacer(Modifier.height(Spacing.itemGap))
+                                HorizontalDivider()
+                                // The gap the week list's own spacing puts between its rule and heading.
                                 Spacer(Modifier.height(Spacing.itemGap))
                                 SelectedDayHeader(
                                     date = date,
                                     summary = dayContent.valueOrNull()?.summary ?: DaySummary.NONE,
                                 )
-                                HorizontalDivider()
                             }
                         }
                         dayList(
@@ -812,23 +824,33 @@ private fun ScheduleCard(
                     // **One line.** A name long enough to wrap — «Группа Биология» — used to break
                     // across two, and because the time on the left is centred against the whole card
                     // it then sat beside the *second* line with a hole above it. Rows also stopped
-                    // being a uniform height, which is what a scannable list is for. The weight is
-                    // what makes the ellipsis land at the badge rather than the text pushing into it.
+                    // being a uniform height, which is what a scannable list is for.
                     Text(
                         row.title,
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
                     )
                 }
-                Text(
-                    "${row.subjectName} · ${classModeLabel(row.klass.mode)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                // **The status leads the second line**, as it does on every other lesson row in the app
+                // (the student's and the group's cards). At the trailing edge it took ~90dp off the
+                // name's line, so on a 360dp phone «Артём Савиц…» lost the surname — the one thing on
+                // the card that says whose lesson this is — to a pill saying something the colour of
+                // the time already half-says.
+                Row(
+                    Modifier.padding(top = Spacing.tight),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    SessionStatusBadge(row, running)
+                    Spacer(Modifier.width(Spacing.inline))
+                    Text(
+                        "${row.subjectName} · ${classModeLabel(row.klass.mode)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 if (row.isGroup) {
                     Text(
                         // The roster is the least important line on the card and the most likely to
@@ -841,8 +863,6 @@ private fun ScheduleCard(
                     )
                 }
             }
-            Spacer(Modifier.width(Spacing.inline))
-            SessionStatusBadge(row, running)
         }
     }
 }
@@ -974,18 +994,14 @@ internal fun PageNavigator(
  */
 private val NavigatorTitleMinFontSize = 11.sp
 
-/** Names the day the list below belongs to, since the calendar's title is the month. */
+/**
+ * Names the day the list below belongs to, since the calendar's title is the month. The week agenda's
+ * heading for the selected day, exactly — the same day named two ways on two views was two styles for
+ * one fact.
+ */
 @Composable
 private fun SelectedDayHeader(date: LocalDate, summary: DaySummary) {
-    Column(Modifier.fillMaxWidth().padding(vertical = Spacing.tight)) {
-        Text(
-            text = date.formatDay(),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.semantics { heading() },
-        )
-        DaySummaryLine(summary)
-    }
+    DaySectionHeader(date = date, isSelected = true, summary = summary)
 }
 
 /**
@@ -1000,15 +1016,13 @@ private fun DaySectionHeader(date: LocalDate, isSelected: Boolean, summary: DayS
         // cannot say that on its own.
         Modifier.fillMaxWidth().padding(top = Spacing.itemGap),
     ) {
-        Text(
-            text = date.formatDay(),
-            style = MaterialTheme.typography.titleSmall,
+        SectionTitle(
+            date.formatDay(),
             color = if (isSelected) {
                 MaterialTheme.colorScheme.primary
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
-            modifier = Modifier.semantics { heading() },
         )
         DaySummaryLine(summary)
     }
@@ -1112,8 +1126,12 @@ private fun ClassActionsSheet(
     onDismiss: () -> Unit,
 ) {
     val klass = row.klass
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    // No `dragHandle`: Material wraps whatever is passed there in a clickable, tooltipped box of its own,
+    // so even a plain pill lit grey when held. The pill is the sheet's first row instead — see
+    // [SheetHandle]; the whole sheet drags, not only the handle.
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
         Column(Modifier.fillMaxWidth().padding(bottom = SheetGutter)) {
+            SheetHandle(Modifier.align(Alignment.CenterHorizontally))
             // Header: which lesson these actions apply to.
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = SheetGutter, vertical = Spacing.tight),
@@ -1125,13 +1143,21 @@ private fun ClassActionsSheet(
                         "${klass.start.timeText()} · ${row.title}",
                         style = MaterialTheme.typography.titleMedium,
                     )
-                    Text(
-                        "${row.subjectName} · ${classModeLabel(klass.mode)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    // The lesson card's own second line — status first — so the sheet opens on the
+                    // row that was tapped, in the same order, rather than a rearrangement of it.
+                    Row(
+                        Modifier.padding(top = Spacing.tight),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        SessionStatusBadge(row, running)
+                        Spacer(Modifier.width(Spacing.inline))
+                        Text(
+                            "${row.subjectName} · ${classModeLabel(klass.mode)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
-                SessionStatusBadge(row, running)
             }
 
             // The lesson's state, as a state: every status it can be in, with the current one shown
@@ -1174,17 +1200,20 @@ private fun ClassActionsSheet(
 @Composable
 private fun AttachedHomework(items: List<SheetHomework>, onDone: (Homework, Boolean) -> Unit) {
     Column(Modifier.padding(horizontal = SheetGutter, vertical = Spacing.inline)) {
-        Text(
-            stringResource(R.string.homework_label),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        SectionTitle(stringResource(R.string.homework_label))
         items.forEach { item ->
             val done = item.homework.isDone
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .toggleable(value = done, role = Role.Checkbox) { onDone(item.homework, it) }
+                    .outsetRowPress { source ->
+                        Modifier.toggleable(
+                            value = done,
+                            interactionSource = source,
+                            indication = null,
+                            role = Role.Checkbox,
+                        ) { onDone(item.homework, it) }
+                    }
                     // A thumb's height, like every other row the app ticks — it was the checkbox's own 24 dp.
                     .heightIn(min = MinTouchTarget)
                     .padding(vertical = Spacing.tight),
@@ -1233,10 +1262,8 @@ private fun StatusSelector(row: ScheduleRow, onStatus: (LessonStatus) -> Unit) {
     val current = row.session.status
     val allowed = row.statusChoices
     Column(Modifier.padding(horizontal = SheetGutter, vertical = Spacing.inline)) {
-        Text(
+        SectionTitle(
             stringResource(R.string.class_status_label),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = Spacing.inline),
         )
         SegmentedChoice(
@@ -1265,7 +1292,7 @@ private fun SheetAction(
     Row(
         Modifier
             .fillMaxWidth()
-            .clickable(role = Role.Button) { onClick() }
+            .insetRowPress { Modifier.clickable(it, indication = null, role = Role.Button) { onClick() } }
             .heightIn(min = MinTouchTarget)
             .padding(horizontal = SheetGutter, vertical = Spacing.itemGap),
         verticalAlignment = Alignment.CenterVertically,

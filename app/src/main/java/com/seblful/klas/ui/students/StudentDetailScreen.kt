@@ -32,6 +32,8 @@ import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -64,6 +66,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -78,9 +82,11 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
+import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.StatusBadge
+import com.seblful.klas.ui.common.TrailingAmount
 import com.seblful.klas.ui.homework.AssigneeChoice
 import com.seblful.klas.ui.homework.HomeworkDialog
 import com.seblful.klas.ui.homework.HomeworkRow
@@ -109,10 +115,12 @@ import com.seblful.klas.ui.common.balanceDescription
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
+import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.moneyErrorText
+import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.supportingTextOf
@@ -600,13 +608,51 @@ private fun ContactBlock(
                 onClick = { onEmail(student.email) },
             )
         }
+        ModeRow(student.defaultMode)
+    }
+}
+
+/**
+ * Where the student's lessons happen, in the rows' own anatomy: glyph, then text on the line the phone
+ * and the email start on.
+ *
+ * It was a bare «Место занятий: Очно» flush on the gutter under two icon rows whose text began 34dp
+ * further in, so the block had two left edges and the one fact that is *not* a way to reach the student
+ * looked like a stray caption. Not tappable, so neither primary-coloured nor a full touch target's height
+ * of its own beyond the row rhythm; the glyph is grey for the same reason. A reader hears the label the
+ * picture stands in for.
+ */
+@Composable
+private fun ModeRow(mode: ClassMode) {
+    val label = classModeLabel(mode)
+    val spoken = "${stringResource(R.string.student_mode_label)}: $label"
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = MinTouchTarget)
+            .padding(horizontal = Spacing.tight)
+            .clearAndSetSemantics { contentDescription = spoken },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            when (mode) {
+                ClassMode.IN_PERSON -> Icons.Outlined.Place
+                ClassMode.REMOTE -> Icons.Outlined.Videocam
+            },
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(ContactGlyph),
+        )
         Text(
-            "${stringResource(R.string.student_mode_label)}: ${classModeLabel(student.defaultMode)}",
+            label,
             style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = Spacing.tight),
+            modifier = Modifier.padding(start = Spacing.leading),
         )
     }
 }
+
+/** A contact row's glyph — smaller than an action icon, because the row, not the glyph, is the target. */
+private val ContactGlyph = 18.dp
 
 /** One tappable way of reaching the student, at a full-height target. */
 @Composable
@@ -631,7 +677,7 @@ private fun ContactRow(
             icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(ContactGlyph),
         )
         Text(
             text,
@@ -976,11 +1022,11 @@ private fun LazyListScope.classesTab(
                 }
             },
             trailingContent = {
-                if (row.klass.status == LessonStatus.COMPLETED) Text(row.klass.charge.text())
+                if (row.klass.status == LessonStatus.COMPLETED) TrailingAmount(row.klass.charge.text())
             },
             // Opens the lesson, as the schedule and the group's card do: a tutor reading a student's
             // history is the one most likely to spot the lesson to correct.
-            modifier = Modifier.clickable { onLessonClick(row.klass.id) },
+            modifier = Modifier.insetRowPress { Modifier.clickable(it, indication = null) { onLessonClick(row.klass.id) } },
         )
     }
 }
@@ -1019,7 +1065,9 @@ private fun LazyListScope.paymentsTab(
             },
             // Tapping the row corrects it; the bin still removes it. Editing is the commoner of the
             // two — a wrong amount is a typo, not a payment that did not happen.
-            modifier = Modifier.clickable { onEdit(payment) }.animateItem(),
+            modifier = Modifier
+                .insetRowPress { Modifier.clickable(it, indication = null) { onEdit(payment) } }
+                .animateItem(),
         )
     }
 }
@@ -1082,8 +1130,13 @@ private fun AddSubjectPriceDialog(
                         Row(
                             Modifier
                                 .fillMaxWidth()
-                                .selectable(selected = selectedId == subject.id, role = Role.RadioButton) {
-                                    selectedId = subject.id
+                                .outsetRowPress { source ->
+                                    Modifier.selectable(
+                                        selected = selectedId == subject.id,
+                                        interactionSource = source,
+                                        indication = null,
+                                        role = Role.RadioButton,
+                                    ) { selectedId = subject.id }
                                 }
                                 .heightIn(min = MinTouchTarget)
                                 .padding(vertical = Spacing.tight),

@@ -36,6 +36,7 @@ import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabClearance
+import com.seblful.klas.ui.common.IconAvatar
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
@@ -132,11 +133,7 @@ fun SubjectsScreen(
                                     modifier = Modifier.animateItem(),
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            Icons.AutoMirrored.Outlined.MenuBook,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                        )
+                                        IconAvatar(Icons.AutoMirrored.Outlined.MenuBook)
                                         Text(
                                             subject.name,
                                             style = MaterialTheme.typography.titleMedium,
@@ -152,6 +149,10 @@ fun SubjectsScreen(
                                                 Icons.Filled.Delete,
                                                 // Named, so a screen reader says which one it deletes.
                                                 stringResource(R.string.subject_delete_named, subject.name),
+                                                // A row's own controls are a rung quieter than its name,
+                                                // as `ListItem` draws them everywhere else: a black bin
+                                                // was the heaviest mark on every card of this list.
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
                                         }
                                     }

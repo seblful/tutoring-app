@@ -28,8 +28,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -46,11 +44,13 @@ import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.ModeField
 import com.seblful.klas.ui.common.SaveAction
+import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TextFieldDialog
 import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.moneyErrorText
+import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.supportingTextOf
 
@@ -147,12 +147,7 @@ fun StudentFormContent(
         )
 
         HorizontalDivider(Modifier.padding(vertical = Spacing.tight))
-        Text(
-            stringResource(R.string.student_form_subjects_title),
-            // The section title every form and settings page uses: `titleSmall`, read out as a heading.
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.semantics { heading() },
-        )
+        SectionTitle(stringResource(R.string.student_form_subjects_title))
         // «Сначала добавьте предметы» is a refusal, and saying it about subjects that have merely not
         // been read yet is the [Loadable] defect — here in the error red, on the screen a tutor reaches
         // by tapping «Добавить». Three rows of skeleton stand in until the list has actually arrived.
@@ -208,11 +203,15 @@ private fun SubjectPrices(
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .toggleable(
-                            value = selected,
-                            role = Role.Checkbox,
-                            onValueChange = { on -> viewModel.toggleSubject(subject.id, on) },
-                        ),
+                        .outsetRowPress { source ->
+                            Modifier.toggleable(
+                                value = selected,
+                                interactionSource = source,
+                                indication = null,
+                                role = Role.Checkbox,
+                                onValueChange = { on -> viewModel.toggleSubject(subject.id, on) },
+                            )
+                        },
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     // A picture of the state, in the touch target's width: `onCheckedChange = null` drops the

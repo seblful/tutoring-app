@@ -60,10 +60,12 @@ import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KeepTypedInput
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.Messages
+import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.SwipeToConfirmBox
 import com.seblful.klas.ui.common.armedPop
 import com.seblful.klas.ui.common.dateTimeText
+import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.swipeAction
 import com.seblful.klas.ui.common.timeText
@@ -108,9 +110,10 @@ fun LazyListScope.homeworkItems(
     }
     if (lists.archive.isNotEmpty()) {
         item(key = HomeworkItemKeys.DONE) {
-            Text(
+            // A section of the tab, so a section title — and a heading a reader can jump to, which it
+            // was not while it was a `Text` styled to look like one.
+            SectionTitle(
                 stringResource(R.string.student_homework_done),
-                style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .padding(horizontal = Spacing.gutter, vertical = Spacing.inline)
@@ -208,17 +211,24 @@ private fun SwipeReveal(done: Boolean, armed: Boolean, shape: Shape) {
 private fun HomeworkCard(row: HomeworkRow, messages: Messages, onClick: () -> Unit, modifier: Modifier) {
     ContentCard(onClick = onClick, modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            LessonKindIcon(
-                if (row.isGroup) LessonKind.GROUP else LessonKind.INDIVIDUAL,
-                Modifier.padding(end = Spacing.inline),
-            )
             Column(Modifier.weight(1f)) {
-                Text(
-                    row.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                // **The kind glyph is part of the name, not a column of its own**, as on the schedule's
+                // card: there it prefixes the name and every line below starts on the card's text edge.
+                // Here it used to be a leading column, so the due line was set in under the name while the
+                // homework text below ran out to the card edge — two left edges on one card, and a
+                // different anatomy from the lesson card the same homework is attached to.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LessonKindIcon(
+                        if (row.isGroup) LessonKind.GROUP else LessonKind.INDIVIDUAL,
+                        Modifier.padding(end = Spacing.inline),
+                    )
+                    Text(
+                        row.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 DueLine(row)
             }
             if (row.isCurrent) SendHomeworkButton(row, messages)
@@ -246,7 +256,9 @@ private fun HomeworkListItem(row: HomeworkRow, messages: Messages, onClick: () -
         headlineContent = { Text(row.text, maxLines = HomeworkPreviewLines, overflow = TextOverflow.Ellipsis) },
         supportingContent = { DueLine(row, prefix = row.title.takeIf { row.isGroup }) },
         trailingContent = if (row.isCurrent) ({ SendHomeworkButton(row, messages) }) else null,
-        modifier = Modifier.clickable(onClick = onClick).then(modifier),
+        modifier = Modifier
+            .insetRowPress { Modifier.clickable(it, indication = null, onClick = onClick) }
+            .then(modifier),
     )
 }
 
