@@ -85,9 +85,10 @@ class StudentsViewModel @Inject constructor(
                 _query,
                 _sort,
             ) { studentList, allClasses, allPayments, query, sort ->
-                val balances = Billing.balancesFor(studentList, allClasses, allPayments)
-                studentList.zip(balances) { student, balance -> StudentRow(student, balance.balance) }
-                    .filter { PeopleSearch.matches(it.student.name, query) }
+                // Narrowed before the balances, so a search sums the money of the students it shows only.
+                val shown = PeopleSearch.filter(studentList, query) { it.name }
+                val balances = Billing.balancesFor(shown, allClasses, allPayments)
+                shown.zip(balances) { student, balance -> StudentRow(student, balance.balance) }
                     // The archive after everyone taught now, as the groups list keeps it: sorting by name
                     // alone threaded the retired through the list, and «Показать архив» turned the page
                     // into one where the current students had to be picked out.

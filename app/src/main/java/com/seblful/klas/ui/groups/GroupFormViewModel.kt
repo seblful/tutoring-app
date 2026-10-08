@@ -18,17 +18,16 @@ import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
-import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.LeavableForm
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.valueOrNull
+import com.seblful.klas.ui.common.writeAwaited
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -347,8 +346,7 @@ class GroupFormViewModel @Inject constructor(
         viewModelScope.launch {
             // The whole ticked set goes down, stranded members included: which of them a
             // subject-bound group may keep is the save's own rule.
-            val saved = appScope.async { runCatchingCancellable { groups.save(group, f.memberIds) } }.await()
-            saved
+            appScope.writeAwaited { groups.save(group, f.memberIds) }
                 .onSuccess {
                     // Saved is the new baseline, so a save that leaves the screen open (or a slow
                     // navigation) cannot be followed by "you have unsaved changes".

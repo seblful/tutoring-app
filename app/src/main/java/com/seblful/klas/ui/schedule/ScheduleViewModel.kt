@@ -13,6 +13,7 @@ import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.CalendarLayout
 import com.seblful.klas.domain.Captions
 import com.seblful.klas.domain.ClassSession
+import com.seblful.klas.domain.DayBounds
 import com.seblful.klas.domain.DaySummary
 import com.seblful.klas.domain.GroupRules
 import com.seblful.klas.domain.LessonPhase
@@ -24,15 +25,16 @@ import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.di.ApplicationScope
-import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
+import com.seblful.klas.ui.common.days
 import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.hold
 import com.seblful.klas.ui.common.map
 import com.seblful.klas.ui.common.ready
 import com.seblful.klas.ui.common.readyOrLoadingAfter
 import com.seblful.klas.ui.common.valueOrNull
+import com.seblful.klas.ui.common.write
 import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.navigation.ArrivalGate
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -50,6 +52,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.launch
 import java.time.Clock
@@ -163,8 +166,13 @@ data class DeleteWarning(val kind: Kind, val classes: Int) {
     }
 
     companion object {
+        /**
+         * Billed is the billing rule's ([TutoringClass.isBillable]), not "completed": a lesson taught to
+         * nobody who was there — every member marked absent — earned nothing, and deleting it takes no
+         * income with it.
+         */
         fun of(session: ClassSession): DeleteWarning {
-            val billed = session.classes.any { it.status == LessonStatus.COMPLETED }
+            val billed = session.classes.any { it.isBillable }
             return DeleteWarning(
                 kind = when {
                     billed && session.isGroup -> Kind.BILLED_GROUP
@@ -348,6 +356,16 @@ fun Loadable<ScheduleContent.Week>.day(date: LocalDate): Loadable<ScheduleConten
     )
 }
 
+/**
+ * These classes as the schedule shows them under [filter]: **whole lessons** the student is in, never
+ * their class pulled out of one — see [GroupRules.lessonsWith] — or all of them with no filter on. A
+ * filter changes what is on screen, not what a lesson is, so the sheet's actions still act on the session
+ * the lesson consists of. One rule for the list and the calendar's tallies, so a cell cannot count lessons
+ * the list under it does not show.
+ */
+private fun List<TutoringClass>.shownFor(filter: StudentFilter?): List<TutoringClass> =
+    filter?.let { GroupRules.lessonsWith(this, it.studentId) } ?: this
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ScheduleViewModel @Inject constructor(
@@ -376,32 +394,20 @@ class ScheduleViewModel @Inject constructor(
     private val _askedLesson = MutableStateFlow<Long?>(null)
 
     /**
-     * Today — **re-emitted when the date changes**, not read once.
+     * Today — **re-emitted when the date changes**, not read once ([days]).
      *
      * The screen used to compute `LocalDate.now()` in its own body, which is evaluated per composition
      * and then never again on its own. An app left open overnight — which is exactly what a phone on a
      * desk does — went on marking yesterday as today: the highlighted cell, the day headers and the
      * «сегодня» affordance were all a day behind until something else happened to recompose.
      *
-     * Sleeping until the next local midnight rather than polling: the answer changes once a day and it
-     * is knowable when. `delay` is virtual time under a test scheduler, so the rollover is testable
-     * without waiting for it.
-     *
-     * **A test that collects this must advance time by a stated amount, never `advanceUntilIdle()`.**
-     * A clock has no last emission, so there is always another `delay` on the scheduler and "until idle"
-     * never arrives — it hangs rather than failing. `WhileSubscribed` is what keeps that off every other
-     * test: nothing is collecting this unless a test says so.
+     * **A test that collects this must advance time by a stated amount, never `advanceUntilIdle()`** —
+     * see [days]. `WhileSubscribed` is what keeps that off every other test: nothing is collecting this
+     * unless a test says so.
      */
-    val today: StateFlow<LocalDate> = flow {
-        while (true) {
-            val date = LocalDate.now(clock)
-            followToday(date)
-            emit(date)
-            val nextMidnight = date.plusDays(1).atStartOfDay(zone).toInstant()
-            // At least a tick, so a clock already past midnight cannot spin on a zero-length sleep.
-            delay(Duration.between(clock.instant(), nextMidnight).toMillis().coerceAtLeast(1))
-        }
-    }.hold(this, LocalDate.now(clock))
+    val today: StateFlow<LocalDate> = clock.days()
+        .onEach { followToday(it) }
+        .hold(this, LocalDate.now(clock))
 
     /**
      * The month the calendar page shows. Kept separate from [selectedDate] so paging through months
@@ -546,10 +552,8 @@ class ScheduleViewModel @Inject constructor(
                     // there when «Месяц» re-appeared, so the grid drew a free month for a frame.
                     flowOf(Loadable.Loading)
                 } else {
-                    classes.observeBetween(
-                        range.first.atStartOfDay(zone).toInstant(),
-                        range.second.atStartOfDay(zone).toInstant(),
-                    )
+                    val bounds = DayBounds.of(range.first, range.second, zone)
+                    classes.observeBetween(bounds.start, bounds.end)
                         .map { CalendarLayout.dayLoads(key.narrow(it), zone) }
                         // Paging is a new question too: the tallies are keyed by date, so last month's
                         // map has no entry for any day of this one and those cells read as free — for
@@ -573,8 +577,7 @@ class ScheduleViewModel @Inject constructor(
         val week: LocalDate,
         val filter: StudentFilter?,
     ) {
-        fun narrow(classes: List<TutoringClass>): List<TutoringClass> =
-            filter?.let { GroupRules.lessonsWith(classes, it.studentId) } ?: classes
+        fun narrow(classes: List<TutoringClass>): List<TutoringClass> = classes.shownFor(filter)
     }
 
     /**
@@ -591,20 +594,14 @@ class ScheduleViewModel @Inject constructor(
     val content: StateFlow<Loadable<ScheduleContent.Week>> =
         combine(_visibleWeek, studentFilter, ::Pair)
             .flatMapLatest { (week, filter) ->
+                val bounds = DayBounds.of(week, week.plusDays(DAYS_IN_WEEK), zone)
                 combine(
-                    classes.observeBetween(
-                        week.atStartOfDay(zone).toInstant(),
-                        week.plusDays(DAYS_IN_WEEK).atStartOfDay(zone).toInstant(),
-                    ),
+                    classes.observeBetween(bounds.start, bounds.end),
                     students.observeAll(),
                     subjects.observeAll(),
                     groups.observeAll(),
                 ) { readClasses, studentList, subjectList, groupList ->
-                    // Whole **lessons** the student is in, never their class pulled out of one — see
-                    // [GroupRules.lessonsWith]. A filter changes what is on screen, not what a lesson is,
-                    // so the sheet's actions still act on the session the lesson consists of.
-                    val visibleClasses =
-                        filter?.let { GroupRules.lessonsWith(readClasses, it.studentId) } ?: readClasses
+                    val visibleClasses = readClasses.shownFor(filter)
                     // Built once per emission and asked per lesson — the three `associateBy` maps this
                     // replaces, plus the rule about which name titles a lesson. See [Captions].
                     val captions = Captions.of(studentList, subjectList, groupList)
@@ -940,24 +937,8 @@ class ScheduleViewModel @Inject constructor(
         write { homework.setDone(item, done) }
     }
 
-    /**
-     * Runs one lesson write in the application scope, reporting a failure as [Event.ACTION_FAILED]
-     * rather than letting it escape.
-     *
-     * The scope is the point: the sheet these are tapped in closes as the action is tapped, so a write
-     * left in `viewModelScope` could be cut in half by the screen going away. What that scope does
-     * *not* give is a reply — a plain `appScope.launch` reports a failure only to the scope's handler,
-     * which records it to the diagnostics log and, quite correctly, says nothing to anybody. So a
-     * failed status change looked exactly like a status change that had not been tapped.
-     *
-     * [runCatchingCancellable] rather than `runCatching`: a cancelled write is not a failed one, and
-     * telling the tutor an action failed when the process was being torn down would be a lie.
-     */
-    private fun write(block: suspend () -> Unit) {
-        appScope.launch {
-            runCatchingCancellable { block() }.onFailure { events.send(Event.ACTION_FAILED) }
-        }
-    }
+    /** One lesson write, a failure reported as [Event.ACTION_FAILED] — see `ui/common/Writes.kt`. */
+    private fun write(block: suspend () -> Unit) = appScope.write(events, Event.ACTION_FAILED, block = block)
 
     /** Points both calendar pages at [date], so whichever view opens next contains it. */
     private fun showPagesFor(date: LocalDate) {

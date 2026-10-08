@@ -17,7 +17,6 @@ import com.seblful.klas.format.NameOrder
 import com.seblful.klas.domain.Billing
 import com.seblful.klas.domain.HomeworkRules
 import com.seblful.klas.domain.LessonKind
-import com.seblful.klas.domain.Phone
 import com.seblful.klas.domain.Taught
 import com.seblful.klas.domain.Captions
 import com.seblful.klas.domain.model.Balance
@@ -31,22 +30,22 @@ import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
-import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.homework.AssigneeChoice
+import com.seblful.klas.ui.homework.HomeworkActions
 import com.seblful.klas.ui.homework.HomeworkLists
-import com.seblful.klas.ui.homework.HomeworkRow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
+import com.seblful.klas.ui.common.days
 import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.ready
 import com.seblful.klas.ui.common.valueOrNull
+import com.seblful.klas.ui.common.write
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -182,9 +181,9 @@ sealed interface ArchiveIntent {
  * the tutor would have no way to tell that from a payment that saved. See
  * [com.seblful.klas.di.ApplicationScope] for the rule and why reads stay behind.
  *
- * A write that fails says so through [Event.WriteFailed] rather than only reaching the scope's
- * crash log — a payment that silently did not record is the one failure the tutor must not miss.
- * Every mutator goes through [write], so neither the scope nor the report can be forgotten by the
+ * A write that fails says so through [Event.WriteFailed] — a payment that silently did not record is
+ * the one failure the tutor must not miss. Every mutator goes through [write] (the homework ones through
+ * [HomeworkActions], over the same tail), so neither the scope nor the report can be forgotten by the
  * ninth copy of a tail; they were spelled out per mutator once, and none of the money path's had a
  * test.
  */
@@ -195,7 +194,7 @@ class StudentDetailViewModel @Inject constructor(
     subjects: SubjectRepository,
     private val classes: ClassRepository,
     groups: GroupRepository,
-    private val homework: HomeworkRepository,
+    homework: HomeworkRepository,
     private val payments: PaymentRepository,
     private val enrollment: EnrollmentRepository,
     rateHistory: RateHistoryRepository,
@@ -223,6 +222,8 @@ class StudentDetailViewModel @Inject constructor(
     }
 
     val events = UiEvents<Event>()
+
+    private val homeworkActions = HomeworkActions(homework, appScope, events, Event.WriteFailed)
 
     private val partial: Flow<Partial> = combine(
         students.observeById(studentId),
@@ -265,20 +266,23 @@ class StudentDetailViewModel @Inject constructor(
      * Groups are here for the **names** of the lessons that were a group's: a student's lesson list
      * mixes both kinds, and «Биология, 18:00» twice over — once billed at 30 and once at 20 — is a
      * puzzle until it says which of the two was the group's.
+     *
+     * Homework is due as of [days], so a card left open overnight moves tomorrow's onto today. **A test
+     * that collects this must advance time by a stated amount, never `advanceUntilIdle()`** — see [days].
      */
     val state: StateFlow<Loadable<StudentDetailState>> = combine(
         partial,
         payments.observeForStudent(studentId),
         groups.observeAll(),
         homework.observeForStudentWithLessons(studentId),
-    ) { partial, paymentList, groupList, withLessons ->
+        clock.days(),
+    ) { partial, paymentList, groupList, withLessons, today ->
         // The one student is here only to title their homework; a lesson row never names them. See [Captions].
         val captions = Captions.of(
             students = listOfNotNull(partial.student),
             subjects = partial.allSubjects,
             groups = groupList,
         )
-        val zone = clock.zone
         StudentDetailState(
             student = partial.student,
             balance = Billing.balanceOf(studentId, partial.classes, paymentList).state,
@@ -292,12 +296,7 @@ class StudentDetailViewModel @Inject constructor(
             lessonKinds = LessonKind.tally(partial.classes),
             // Attached by everybody's lessons, not theirs: a member left out of a group lesson has no class
             // in it, and the group's homework is still that lesson's — see `observeForStudentWithLessons`.
-            homework = HomeworkRow.of(
-                HomeworkRules.lists(withLessons.homework, withLessons.classes),
-                captions,
-                clock.instant().atZone(zone).toLocalDate(),
-                zone,
-            ),
+            homework = HomeworkLists.of(withLessons.homework, withLessons.classes, captions, today, clock.zone),
         )
     }
         .ready()
@@ -313,35 +312,18 @@ class StudentDetailViewModel @Inject constructor(
     )
 
     /**
-     * Runs one write in the application scope, reporting a failure as [Event.WriteFailed] — the
-     * same tail `ScheduleViewModel.write` names, spelled once here instead of once per mutator. The
-     * copies were not quite copies: two of them also answered something on success, which is what
-     * [onWritten] carries — a refusal or a count coming back from the write is an event of its own,
-     * and only a database error may reach [Event.WriteFailed].
+     * One write in the application scope, a failure reported as [Event.WriteFailed] — the shared tail
+     * (`ui/common/Writes.kt`) with this card's failure filled in. [onWritten] is for the writes that answer
+     * something on success: a refusal or a count coming back is an event of its own, and only a database
+     * error may reach [Event.WriteFailed].
      */
-    private fun <T> write(onWritten: suspend (T) -> Unit = {}, block: suspend () -> T) {
-        appScope.launch {
-            runCatchingCancellable { block() }
-                .onSuccess { onWritten(it) }
-                .onFailure { events.send(Event.WriteFailed) }
-        }
-    }
+    private fun <T> write(onWritten: suspend (T) -> Unit = {}, block: suspend () -> T) =
+        appScope.write(events, Event.WriteFailed, onWritten, block)
 
     fun editStudent(name: String, phone: String, email: String, note: String, mode: ClassMode) {
         val current = state.value.valueOrNull()?.student ?: return
-        val trimmed = name.trim()
-        if (trimmed.isEmpty()) return
-        write {
-            students.upsert(
-                current.copy(
-                    name = trimmed,
-                    phone = Phone.stored(phone),
-                    email = email.trim(),
-                    note = note.trim(),
-                    defaultMode = mode,
-                )
-            )
-        }
+        val edited = typedStudent(name, phone, email, note, mode, onto = current) ?: return
+        write { students.upsert(edited) }
     }
 
     /**
@@ -436,39 +418,36 @@ class StudentDetailViewModel @Inject constructor(
     fun homeworkChoice(): AssigneeChoice? {
         val loaded = state.value.valueOrNull() ?: return null
         val student = loaded.student ?: return null
-        val assignee = Assignee.Student(studentId)
-        return AssigneeChoice(
-            assignee = assignee,
-            name = student.name,
-            nextLessonAt = HomeworkRules.nextLesson(assignee, clock.instant(), loaded.classes.map { it.klass })?.start,
+        return AssigneeChoice.of(
+            Assignee.Student(studentId), student.name, loaded.classes.map { it.klass }, clock.instant(),
         )
     }
 
     /** Sets homework for this student — attached to their next lesson from now. */
     fun giveHomework(text: String) {
-        write { homework.give(Assignee.Student(studentId), text) }
+        homeworkActions.give(Assignee.Student(studentId), text)
     }
 
     /** Corrects [item]'s text; who it is for is not changed from here (the card is one student's). */
     fun editHomework(item: Homework, text: String) {
-        write { homework.edit(item, item.assignee, text) }
+        homeworkActions.edit(item, item.assignee, text)
     }
 
     fun setHomeworkDone(item: Homework, done: Boolean) {
-        write { homework.setDone(item, done) }
+        homeworkActions.setDone(item, done)
     }
 
     /** Undoes a swipe, [item]'s done state back as it was — see `HomeworkRepository.putBack`. */
     fun putHomeworkBack(item: Homework) {
-        write { homework.putBack(item) }
+        homeworkActions.putBack(item)
     }
 
     fun deleteHomework(item: Homework) {
-        write { homework.delete(item) }
+        homeworkActions.delete(item)
     }
 
     /** Puts back a just-deleted piece of homework, for the undo — like [restorePayment]. */
     fun restoreHomework(item: Homework) {
-        write { homework.restore(item) }
+        homeworkActions.restore(item)
     }
 }

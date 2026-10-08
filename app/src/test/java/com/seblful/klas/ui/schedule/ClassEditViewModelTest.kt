@@ -6,6 +6,7 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.data.toDomain
+import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.Repeat
 import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.model.Attended
@@ -15,6 +16,7 @@ import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
+import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.current
@@ -280,6 +282,26 @@ class ClassEditViewModelTest {
         slot = Scheduling.Slot(Instant.parse("2026-06-20T07:00:00Z"), 60),
         who = "Борис",
     )
+
+    /**
+     * A clash is named the way a reminder is announced: by its group, by its student when the group's name
+     * is blank — `groupName ?: studentName` kept a blank name and refused the time with nobody named — and
+     * by nobody only when neither is known.
+     */
+    @Test
+    fun `a clash is named by its group, or by its student when the group has no name`() {
+        val start = Instant.parse("2026-06-20T07:00:00Z")
+        val clash = ClassSession(
+            groupId = 7,
+            classes = listOf(TutoringClass(studentId = 1, subjectId = 1, start = start, durationMinutes = 60, groupId = 7)),
+        )
+
+        assertEquals("11 «А»", TimeConflict.of(clash, groupName = "11 «А»", studentName = "Аня").who)
+        assertEquals("Аня", TimeConflict.of(clash, groupName = " ", studentName = "Аня").who)
+        assertEquals("Аня", TimeConflict.of(clash, groupName = null, studentName = "Аня").who)
+        assertEquals("", TimeConflict.of(clash, groupName = null, studentName = null).who)
+        assertEquals(Scheduling.Slot(start, 60), TimeConflict.of(clash, null, "Аня").slot)
+    }
 
     /**
      * A clash is now the only thing that can be wrong about a chosen time, so it is also the only thing

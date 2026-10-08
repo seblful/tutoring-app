@@ -32,7 +32,7 @@ flowchart TB
 | `work/` | Periodic maintenance worker, three digest workers, `WorkScheduler`, `BootReceiver`, `Maintenance`. |
 | `diagnostics/` | `CrashLogger` over a capped local log file; viewed/exported from `ui/diagnostics`. No Crashlytics/Sentry — Play Vitals still receives the crash. |
 | `storage/` | `DocumentStore` (SAF) and `DocumentSharing` (`ACTION_SEND`) ports. |
-| `format/` | Date/time/money formatting, `AppLocale`, `MoneyField`, `NameOrder`. |
+| `format/` | Date/time/money formatting, `AppLocale`, `MoneyField`, `NameOrder`, the lesson-mode word (`ClassMode.labelRes`, read by screens and the calendar alike). |
 | `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` atoms, `onboarding/`, `RootViewModel`. The «Задания» tab and the homework parts the student and group cards share in `ui/homework/`. Settings/About in `ui/more/`. Theme in `ui/theme/`. |
 | `preview/` (debug only) | `@Preview`s of `ui/common/`. |
 | `di/` | DB module, scopes/dispatchers, `Clock`, week-start, device locales. |
@@ -64,7 +64,9 @@ ViewModels observe repository `Flow`s, expose `StateFlow`. Writes: ViewModel →
 (repository) mirrors calendar + refreshes reminders.
 
 Reads live in `viewModelScope`; writes go to the injected `@ApplicationScope` so a save outlives its
-screen. Deriving state happens off the main thread (`combine(...).derive(scope, computation, initial)`).
-A failed write is reported via the crash log and, where possible, the screen — never fatal. ViewModel
+screen, through `write`/`writeAwaited` (`ui/common/Writes.kt`). Deriving state happens off the main thread
+(`combine(...).derive(scope, computation, initial)`). A failed write is never fatal: a guarded one is
+reported to the screen as an event, and an unguarded one reaches the application scope's handler, which
+records it to the crash log. ViewModel
 state is read-only (`StateFlow`, never mutable). Guarded suspend calls use `runCatchingCancellable`
 (never plain `runCatching`, which swallows cancellation).

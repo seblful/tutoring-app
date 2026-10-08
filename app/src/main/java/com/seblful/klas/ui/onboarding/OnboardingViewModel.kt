@@ -2,20 +2,22 @@ package com.seblful.klas.ui.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.AppSettings
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.data.repository.SubjectRepository
+import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
-import com.seblful.klas.ui.common.derive
+import com.seblful.klas.ui.common.hold
 import com.seblful.klas.ui.common.ready
 import com.seblful.klas.ui.common.valueOrNull
+import com.seblful.klas.ui.common.write
+import com.seblful.klas.ui.common.writeAwaited
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -29,12 +31,16 @@ import javax.inject.Inject
  * no subjects and no students, which every screen already handles with its empty state. Restoring
  * a backup ends first run too, but that path belongs to `BackupRestore` (it does far more than flip
  * the flag), not here.
+ *
+ * Every write goes to [appScope] through the shared guarded tail (`ui/common/Writes.kt`), like every
+ * other screen's: they used to be bare `viewModelScope.launch`es, so a database error closed the app in
+ * the middle of its first minute, and «Готово» followed by a quick back could cancel the flag's write.
  */
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val subjectsRepo: SubjectRepository,
     private val settings: SettingsRepository,
-    @param:Computation private val computation: CoroutineDispatcher,
+    @param:ApplicationScope private val appScope: CoroutineScope,
 ) : ViewModel() {
 
     /**
@@ -52,7 +58,7 @@ class OnboardingViewModel @Inject constructor(
      */
     val locale: StateFlow<Loadable<AppSettings>> = settings.observe()
         .ready()
-        .derive(this, computation, Loadable.Loading)
+        .hold(this, Loadable.Loading)
 
     /**
      * Stores the language, which **applies as it is tapped** — `AppRoot` provides the whole composition's
@@ -62,15 +68,16 @@ class OnboardingViewModel @Inject constructor(
      * than something they have to believe. There is no confirmation, unlike the currency in Settings later
      * on — a language changes the words around the numbers, where a currency changes what the numbers claim
      * to be, and at this point in the setup there are no numbers to re-label.
+     *
+     * Stored without the tail `SettingsViewModel.update` discharges, because during first run it is always
+     * empty: a language change owes the calendar a re-mirror only while sync is on, sync is off until the
+     * settings screen — which first run never reaches — turns it on, and a language moves no reminder or
+     * digest.
      */
-    fun setLanguage(language: AppLanguage) {
-        viewModelScope.launch { settings.update { it.copy(language = language) } }
-    }
+    fun setLanguage(language: AppLanguage) = store { it.copy(language = language) }
 
     /** Stores the currency. Asks nothing: nothing has been recorded yet for a re-label to touch. */
-    fun setCurrency(currency: Currency) {
-        viewModelScope.launch { settings.update { it.copy(currency = currency) } }
-    }
+    fun setCurrency(currency: Currency) = store { it.copy(currency = currency) }
 
     /**
      * The subjects added so far, for step 2's list.
@@ -82,7 +89,7 @@ class OnboardingViewModel @Inject constructor(
      */
     val subjects: StateFlow<Loadable<List<Subject>>> = subjectsRepo.observeAll()
         .ready()
-        .derive(this, computation, Loadable.Loading)
+        .hold(this, Loadable.Loading)
 
     /**
      * Whether restoring a backup here would destroy something, and so has to be confirmed.
@@ -97,10 +104,20 @@ class OnboardingViewModel @Inject constructor(
     // there, and an unread list makes the restore the unguarded one it is on a fresh install.
     fun restoreNeedsConfirming(): Boolean = subjects.value.valueOrNull().orEmpty().isNotEmpty()
 
+    /**
+     * Adds a subject — unless one of that name is already there, which is refused as [Event.NAME_TAKEN]
+     * the way the subjects screen refuses it ([SubjectRepository.saveUnlessTaken]). A double tap on
+     * «Добавить» was enough to make two «Математика».
+     *
+     * Checked against the table inside the write rather than against [subjects], so a list not yet read
+     * cannot let the second one through.
+     */
     fun addSubject(name: String) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
-        viewModelScope.launch { subjectsRepo.upsert(Subject(name = trimmed)) }
+        appScope.write(events, Event.WRITE_FAILED, onWritten = { added -> if (!added) events.send(Event.NAME_TAKEN) }) {
+            subjectsRepo.saveUnlessTaken(Subject(name = trimmed))
+        }
     }
 
     /**
@@ -128,21 +145,28 @@ class OnboardingViewModel @Inject constructor(
      */
     fun removeSubject(subject: Subject, onRemoved: () -> Unit) {
         viewModelScope.launch {
-            if (subjectsRepo.delete(subject) == SubjectRepository.Delete.Ok) {
-                onRemoved()
-            } else {
-                events.send(Event.REMOVE_REFUSED)
-            }
+            appScope.writeAwaited { subjectsRepo.delete(subject) }
+                .onSuccess { if (it == SubjectRepository.Delete.Ok) onRemoved() else events.send(Event.REMOVE_REFUSED) }
+                .onFailure { events.send(Event.WRITE_FAILED) }
         }
     }
 
     /** One-shot signals from an action that did not go through. */
-    enum class Event { REMOVE_REFUSED }
+    enum class Event {
+        REMOVE_REFUSED,
+
+        /** A subject of that name is already there — see [addSubject]. */
+        NAME_TAKEN,
+
+        /** A write failed — a database error rather than anything the tutor did. */
+        WRITE_FAILED,
+    }
 
     val events = UiEvents<Event>()
 
     /** Ends first run — from finishing the last step or from skipping it. */
-    fun complete() {
-        viewModelScope.launch { settings.update { it.copy(onboardingComplete = true) } }
-    }
+    fun complete() = store { it.copy(onboardingComplete = true) }
+
+    private fun store(transform: (AppSettings) -> AppSettings) =
+        appScope.write(events, Event.WRITE_FAILED) { settings.update(transform) }
 }

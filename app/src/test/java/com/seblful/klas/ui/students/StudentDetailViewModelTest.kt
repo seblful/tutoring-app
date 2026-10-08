@@ -7,6 +7,7 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.data.toDomain
+import com.seblful.klas.domain.HomeworkRules
 import com.seblful.klas.domain.LessonKind
 import com.seblful.klas.domain.Phone
 import com.seblful.klas.domain.Scheduling
@@ -21,6 +22,7 @@ import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.homework.AssigneeChoice
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -28,7 +30,8 @@ import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -37,6 +40,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
+/**
+ * **Never `advanceUntilIdle()` here**: the card's homework is due as of `Clock.days()`, which sleeps until
+ * the next midnight in a loop, so the scheduler is never idle. `runCurrent()` settles the writes, and time
+ * is advanced by stated amounts.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class StudentDetailViewModelTest {
 
@@ -91,7 +99,7 @@ class StudentDetailViewModelTest {
 
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(Balance.Owed(Money.ofMajor(25)), vm.state.current.balance)
     }
@@ -107,7 +115,7 @@ class StudentDetailViewModelTest {
 
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(listOf("Алгебра", "Математика"), vm.state.current.subjects.map { it.subject.name })
     }
@@ -122,7 +130,7 @@ class StudentDetailViewModelTest {
 
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         val totals = vm.state.current.totals
         assertEquals(2, totals.lessons)
@@ -146,7 +154,7 @@ class StudentDetailViewModelTest {
 
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         val rows = vm.state.current.classes.sortedBy { it.klass.start }
         assertEquals(LessonKind.INDIVIDUAL, rows[0].kind)
@@ -165,14 +173,14 @@ class StudentDetailViewModelTest {
 
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(mapOf(LessonKind.INDIVIDUAL to 2), vm.state.current.lessonKinds)
         assertFalse("nothing to narrow", vm.state.current.hasBothKinds)
 
         val groupId = env.groupDao.upsert(GroupEntity(name = "11 «А»", subjectId = subj))
         env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = "SCHEDULED", chargeMinor = 0, groupId = groupId)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(
             mapOf(LessonKind.INDIVIDUAL to 2, LessonKind.GROUP to 1),
@@ -196,7 +204,7 @@ class StudentDetailViewModelTest {
 
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         val bySubject = vm.state.current.subjects.associateBy { it.subject.name }
         assertEquals(2, bySubject.getValue("Алгебра").history.size)
@@ -212,10 +220,10 @@ class StudentDetailViewModelTest {
         val math = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         vm.addSubject(math, Money.ofMajor(35))
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(listOf(math), env.studentDao.getSubjectIds(sid))
         assertEquals(Money.ofMajor(35), env.enrollmentRepo.priceFor(sid, math)?.amount)
@@ -229,10 +237,10 @@ class StudentDetailViewModelTest {
         env.priceDao.upsert(PriceEntity(sid, math, Money.ofMajor(30).minor))
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         vm.removeSubject(math)
-        advanceUntilIdle()
+        runCurrent()
 
         assertTrue(env.studentDao.getSubjectIds(sid).isEmpty())
         assertNull(env.enrollmentRepo.priceFor(sid, math))
@@ -250,10 +258,10 @@ class StudentDetailViewModelTest {
         val events = mutableListOf<StudentDetailViewModel.Event>()
         observing(vm.state)
         backgroundScope.launch { vm.events.stream.collect { events += it } }
-        advanceUntilIdle()
+        runCurrent()
 
         vm.removeSubject(math)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(listOf(StudentDetailViewModel.Event.RemoveBlockedHasClasses), events)
         // Nothing removed: the priced subject must keep backing its billed class.
@@ -266,14 +274,14 @@ class StudentDetailViewModelTest {
         val sid = seedStudent()
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         vm.addPayment(Money.ZERO, today)
-        advanceUntilIdle()
+        runCurrent()
         assertTrue(env.paymentDao.items.value.isEmpty())
 
         vm.addPayment(Money.ofMajor(10), today)
-        advanceUntilIdle()
+        runCurrent()
         assertEquals(1, env.paymentDao.items.value.size)
     }
 
@@ -283,13 +291,13 @@ class StudentDetailViewModelTest {
             val sid = seedStudent()
             val vm = vm(sid)
             observing(vm.state)
-            advanceUntilIdle()
+            runCurrent()
 
             // "She paid me last Tuesday", written up on Sunday. The amount was always recordable;
             // the date was not — every payment used to be stamped with the moment it was entered.
             val lastTuesday = today.minusDays(5)
             vm.addPayment(Money.ofMajor(40), lastTuesday)
-            advanceUntilIdle()
+            runCurrent()
 
             assertEquals(
                 "the start of that day: there is no hour the tutor could have supplied",
@@ -310,13 +318,13 @@ class StudentDetailViewModelTest {
             val sid = seedStudent()
             val vm = vm(sid)
             observing(vm.state)
-            advanceUntilIdle()
+            runCurrent()
 
             vm.addPayment(Money.ofMajor(10), today)
-            advanceUntilIdle()
+            runCurrent()
             clock.advanceBy(60_000)
             vm.addPayment(Money.ofMajor(20), today)
-            advanceUntilIdle()
+            runCurrent()
 
             val stamps = env.paymentDao.items.value.sortedBy { it.id }.map { it.dateMillis }
             assertEquals("two different instants, not two midnights", 2, stamps.distinct().size)
@@ -334,17 +342,17 @@ class StudentDetailViewModelTest {
             val sid = seedStudent()
             val vm = vm(sid)
             observing(vm.state)
-            advanceUntilIdle()
+            runCurrent()
 
             val recordedOn = today.minusDays(3)
             vm.addPayment(Money.ofMajor(40), recordedOn)
-            advanceUntilIdle()
+            runCurrent()
             val original = env.paymentDao.items.value.single()
 
             // A mistyped amount used to mean deleting the payment and entering it again — two writes,
             // a window where the balance is wrong, and a new id for the same money.
             vm.editPayment(original.toDomain(), Money.ofMajor(45), recordedOn)
-            advanceUntilIdle()
+            runCurrent()
 
             val corrected = env.paymentDao.items.value.single()
             assertEquals("the same row", original.id, corrected.id)
@@ -361,14 +369,14 @@ class StudentDetailViewModelTest {
         val sid = seedStudent("Аня")
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         vm.editStudent(name = "   ", phone = "x", email = "y", note = "z", mode = ClassMode.REMOTE)
-        advanceUntilIdle()
+        runCurrent()
         assertEquals("Аня", env.studentDao.getById(sid)?.name) // blank name rejected
 
         vm.editStudent(name = "  Борис  ", phone = " +375 29 1234567 ", email = " e@x.co ", note = " n ", mode = ClassMode.REMOTE)
-        advanceUntilIdle()
+        runCurrent()
         val updated = env.studentDao.getById(sid)!!
         assertEquals("Борис", updated.name)
         assertEquals("+375 29 1234567", updated.phone)
@@ -382,10 +390,10 @@ class StudentDetailViewModelTest {
         val sid = seedStudent("Аня")
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         vm.editStudent(name = "Аня", phone = Phone.PREFILL, email = "", note = "", mode = ClassMode.IN_PERSON)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals("", env.studentDao.getById(sid)!!.phone)
     }
@@ -395,14 +403,14 @@ class StudentDetailViewModelTest {
         val sid = seedStudent()
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         vm.setArchived(true)
-        advanceUntilIdle()
+        runCurrent()
         assertTrue(env.studentDao.getById(sid)!!.archived)
 
         vm.setArchived(false)
-        advanceUntilIdle()
+        runCurrent()
         assertFalse(env.studentDao.getById(sid)!!.archived)
     }
 
@@ -417,7 +425,7 @@ class StudentDetailViewModelTest {
             val sid = seedStudent()
             val vm = vm(sid)
             observing(vm.state)
-            advanceUntilIdle()
+            runCurrent()
 
             assertEquals(ArchiveIntent.Archive, vm.state.current.archiveIntent)
         }
@@ -432,7 +440,7 @@ class StudentDetailViewModelTest {
             env.fixtures.lesson(subject, listOf(sid), today.plusDays(2).atTime(10, 0).atZone(zone).toInstant())
             val vm = vm(sid)
             observing(vm.state)
-            advanceUntilIdle()
+            runCurrent()
 
             val both = vm.state.current.archiveIntent as ArchiveIntent.Confirm
             assertEquals(Balance.Owed(Money.ofMajor(30)), both.openBalance)
@@ -440,7 +448,7 @@ class StudentDetailViewModelTest {
 
             // Paid up, but a lesson still booked: one part, not none.
             vm.addPayment(Money.ofMajor(30), today)
-            advanceUntilIdle()
+            runCurrent()
             val lessonsOnly = vm.state.current.archiveIntent as ArchiveIntent.Confirm
             assertNull("nothing outstanding to mention", lessonsOnly.openBalance)
             assertEquals(1, lessonsOnly.upcomingLessons)
@@ -452,10 +460,10 @@ class StudentDetailViewModelTest {
         val sid = seedStudent()
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         vm.addPayment(Money.ofMajor(25), today)
-        advanceUntilIdle()
+        runCurrent()
 
         val confirm = vm.state.current.archiveIntent as ArchiveIntent.Confirm
         // Positive, and named as credit: the sign flip is `Balance.of`'s, so what reaches the dialog is
@@ -473,7 +481,7 @@ class StudentDetailViewModelTest {
         env.studentRepo.setArchived(env.studentRepo.getById(sid)!!, archived = true)
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(ArchiveIntent.Restore, vm.state.current.archiveIntent)
     }
@@ -505,10 +513,10 @@ class StudentDetailViewModelTest {
             )
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         vm.setArchived(true)
-        advanceUntilIdle()
+        runCurrent()
 
         val byId = env.classDao.items.value.associateBy { it.id }
         assertEquals("CANCELLED", byId.getValue(future).status)
@@ -528,12 +536,12 @@ class StudentDetailViewModelTest {
             )
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
         val events = mutableListOf<StudentDetailViewModel.Event>()
         backgroundScope.launch { vm.events.stream.collect { events += it } }
 
         vm.setArchived(true)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(listOf(StudentDetailViewModel.Event.ArchiveCancelledLessons(count = 1)), events)
     }
@@ -543,12 +551,12 @@ class StudentDetailViewModelTest {
         val sid = seedStudent()
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
         val events = mutableListOf<StudentDetailViewModel.Event>()
         backgroundScope.launch { vm.events.stream.collect { events += it } }
 
         vm.setArchived(true)
-        advanceUntilIdle()
+        runCurrent()
 
         assertTrue(events.isEmpty())
         assertTrue(env.studentDao.getById(sid)!!.archived)
@@ -565,12 +573,12 @@ class StudentDetailViewModelTest {
             )
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         vm.setArchived(true)
-        advanceUntilIdle()
+        runCurrent()
         vm.setArchived(false)
-        advanceUntilIdle()
+        runCurrent()
 
         assertFalse(env.studentDao.getById(sid)!!.archived)
         assertEquals("CANCELLED", env.classDao.items.value.single().status)
@@ -588,10 +596,10 @@ class StudentDetailViewModelTest {
             )
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         vm.setArchived(true)
-        advanceUntilIdle()
+        runCurrent()
 
         val slot = Scheduling.Slot(Instant.ofEpochMilli(at), 60)
         assertTrue(
@@ -621,14 +629,14 @@ class StudentDetailViewModelTest {
         env.priceDao.upsert(PriceEntity(sid, subject, Money.ofMajor(30).minor))
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         mainRule.appScope.cancel()
 
         vm.addPayment(Money.ofMajor(50), today)
         vm.editStudent("Анна", "", "", "", ClassMode.IN_PERSON)
         vm.setPrice(subject, Money.ofMajor(40))
-        advanceUntilIdle()
+        runCurrent()
 
         assertTrue("no payment was recorded", env.paymentDao.items.value.isEmpty())
         assertEquals("the student was not renamed", "Аня", env.studentDao.getById(sid)!!.name)
@@ -650,16 +658,16 @@ class StudentDetailViewModelTest {
         env.paymentRepo.restore(payment)
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         val stored = vm.state.current.payments.single()
         vm.deletePayment(stored)
-        advanceUntilIdle()
+        runCurrent()
         assertTrue("the delete went through first", env.paymentDao.items.value.isEmpty())
 
         mainRule.appScope.cancel()
         vm.restorePayment(stored)
-        advanceUntilIdle()
+        runCurrent()
 
         assertTrue("and the undo needed that scope to be alive", env.paymentDao.items.value.isEmpty())
     }
@@ -679,13 +687,13 @@ class StudentDetailViewModelTest {
         val sid = env.fixtures.student("Аня")
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
         val events = mutableListOf<StudentDetailViewModel.Event>()
         backgroundScope.launch { vm.events.stream.collect { events += it } }
         env.transactor.failAt = env.transactor.count + 1
 
         vm.addSubject(subj, Money.ofMajor(30))
-        advanceUntilIdle()
+        runCurrent()
 
         // Only the report is asserted: the fake DAOs cannot roll back, so what a failed transaction
         // leaves behind is Room's to prove (see `ClassRepositoryAtomicityTest`'s note).
@@ -697,12 +705,12 @@ class StudentDetailViewModelTest {
         val sid = env.fixtures.student("Аня")
         val vm = vm(sid)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
         val events = mutableListOf<StudentDetailViewModel.Event>()
         backgroundScope.launch { vm.events.stream.collect { events += it } }
 
         vm.addPayment(Money.ofMajor(50), today)
-        advanceUntilIdle()
+        runCurrent()
 
         assertTrue("nothing to report about a payment that recorded", events.isEmpty())
         assertEquals(1, env.paymentDao.items.value.size)
@@ -757,11 +765,34 @@ class StudentDetailViewModelTest {
         assertEquals(AssigneeChoice(Assignee.Student(anya), "Аня", tomorrow), vm.homeworkChoice())
 
         vm.giveHomework("§ 12")
-        advanceUntilIdle()
+        runCurrent()
 
         val row = vm.state.current.homework.current.single()
         assertEquals(Assignee.Student(anya), row.homework.assignee)
         assertEquals("§ 12", row.text)
         assertEquals(tomorrow, row.lessonAt)
+    }
+
+    /**
+     * The card read "today" once per emission, so one left open overnight went on saying tomorrow's
+     * homework was due later until something else about the student changed.
+     */
+    @Test
+    fun `at midnight the card's homework for tomorrow becomes today's`() = runTest(mainRule.dispatcher) {
+        val maths = env.fixtures.subject()
+        val anya = env.fixtures.pricedStudent("Аня", maths)
+        env.fixtures.lesson(maths, listOf(anya), clock.instant().plus(1, ChronoUnit.DAYS))
+        env.fixtures.homework(Assignee.Student(anya))
+        val vm = vm(anya)
+        observing(vm.state)
+        runCurrent()
+        assertEquals(HomeworkRules.Due.LATER, vm.state.current.homework.current.single().due)
+
+        // 14:30 to a minute past midnight, on both the clock and the scheduler the flow sleeps on.
+        val untilMidnight = Duration.ofHours(9).plusMinutes(31)
+        clock.advanceBy(untilMidnight.toMillis())
+        advanceTimeBy(untilMidnight.toMillis())
+
+        assertEquals(HomeworkRules.Due.TODAY, vm.state.current.homework.current.single().due)
     }
 }

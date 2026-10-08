@@ -15,6 +15,7 @@ import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.GroupRules
 import com.seblful.klas.domain.Recurrence
+import com.seblful.klas.domain.Reminders
 import com.seblful.klas.domain.Repeat
 import com.seblful.klas.domain.RosterChange
 import com.seblful.klas.domain.Scheduling
@@ -27,7 +28,6 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.format.MoneyField
-import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.LeavableForm
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
@@ -35,11 +35,11 @@ import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.hold
 import com.seblful.klas.ui.common.ready
 import com.seblful.klas.ui.common.valueOrNull
+import com.seblful.klas.ui.common.writeAwaited
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -179,10 +179,7 @@ data class ClassForm(
         get() = date != null && timeFrom != null && (durationMinutes ?: 0) > 0
 
     val isValid: Boolean
-        get() = subjectId != null && timingValid && price.isValid && when (target) {
-            ClassTarget.STUDENT -> studentId != null
-            ClassTarget.GROUP -> groupId != null
-        }
+        get() = subjectId != null && timingValid && price.isValid && hasTarget
 
     /** Whether the lesson yet has somebody to be for — a student chosen, or a group. */
     val hasTarget: Boolean
@@ -277,12 +274,14 @@ internal data class ValidForm(
 data class TimeConflict(val slot: Scheduling.Slot, val who: String) {
     companion object {
         /**
-         * Names the lesson standing in the way: its group when it is a group lesson, otherwise the
-         * student whose class it is. Blank when neither row can be found, which leaves the message
-         * saying *when* it clashes — better than not refusing at all.
+         * Names the lesson standing in the way by the rule a reminder is announced by
+         * ([Reminders.announcedBy]): its group when it is a group lesson, otherwise the student whose class
+         * it is — and the student too when the group's name is blank, which an `?:` let through as a
+         * nameless refusal. Blank when neither is known, which leaves the message saying *when* it clashes
+         * — better than not refusing at all.
          */
         fun of(clash: ClassSession, groupName: String?, studentName: String?): TimeConflict =
-            TimeConflict(Scheduling.slotOf(clash.first), groupName ?: studentName ?: "")
+            TimeConflict(Scheduling.slotOf(clash.first), Reminders.announcedBy(groupName, studentName))
     }
 }
 
@@ -357,11 +356,7 @@ data class ClassFormState(
     override val isDirty: Boolean = false,
 ) : LeavableForm {
     /** Whether the lesson yet has somebody to be for. Until then most of the form means nothing. */
-    val targetChosen: Boolean
-        get() = when (form.target) {
-            ClassTarget.STUDENT -> form.studentId != null
-            ClassTarget.GROUP -> form.groupId != null
-        }
+    val targetChosen: Boolean get() = form.hasTarget
 
     /**
      * Offering a dropdown that can only be set to what it already says would invite a choice that
@@ -578,7 +573,7 @@ class ClassEditViewModel @Inject constructor(
      */
     private val students: StateFlow<Loadable<List<Student>>> =
         combine(studentsRepo.observeAll(), form.map { it.studentId }.distinctUntilChanged()) { all, selected ->
-            all.filter { !it.archived || it.id == selected }
+            all.offered(selected, Student::archived, Student::id)
         }
             .ready()
             .derive(this, computation, Loadable.Loading)
@@ -589,7 +584,7 @@ class ClassEditViewModel @Inject constructor(
      */
     private val groups: StateFlow<Loadable<List<Group>>> =
         combine(groupsRepo.observeAll(), form.map { it.groupId }.distinctUntilChanged()) { all, selected ->
-            all.filter { !it.archived || it.id == selected }
+            all.offered(selected, Group::archived, Group::id)
         }
             .ready()
             .derive(this, computation, Loadable.Loading)
@@ -1016,16 +1011,6 @@ class ClassEditViewModel @Inject constructor(
     /** What «Другое» opens on for the number of lessons: whatever the form already says. */
     fun repeatCountPickerDefault(): Int = currentForm.repeatCount
 
-    /**
-     * Saves the form as one lesson. Booking a student and booking a group differ only in **who** the
-     * classes are written for — one student, or the group's roster — so both go through the same two
-     * repository writes: [ClassRepository.book] for a new lesson, [ClassRepository.apply] for an edit.
-     * The rules (re-plan on a move, then rebill) run inside those, so this can't leave a class carrying
-     * a stale charge.
-     *
-     * Does nothing — [onDone] is not called — when the form is incomplete or its time is already
-     * taken; [conflict] is what tells the tutor which lesson is in the way.
-     */
     /** One-shot signals from a save that could not go through. */
     enum class Event {
         /** The slot was taken between this form opening and the save — [conflict] names by whom. */
@@ -1096,6 +1081,11 @@ class ClassEditViewModel @Inject constructor(
      */
     val askForNotifications = UiEvents<List<String>>()
 
+    /** Emits the request, or nothing at all when there is nothing to ask for. */
+    private suspend fun askToBeAllowedToRemind() {
+        notificationsToAskFor().takeIf { it.isNotEmpty() }?.let { askForNotifications.send(it) }
+    }
+
     /**
      * What to request after a first booking: the notification permissions, or nothing.
      *
@@ -1113,11 +1103,6 @@ class ClassEditViewModel @Inject constructor(
      * Silent when reminders are switched off: the tutor has said they do not want them, and a permission
      * for a feature nobody asked for is the dialog this whole rule exists to avoid.
      */
-    /** Emits the request, or nothing at all when there is nothing to ask for. */
-    private suspend fun askToBeAllowedToRemind() {
-        notificationsToAskFor().takeIf { it.isNotEmpty() }?.let { askForNotifications.send(it) }
-    }
-
     private suspend fun notificationsToAskFor(): List<String> =
         if (settingsRepo.get().notificationsEnabled && !notificationPermission.isGranted()) {
             notificationPermission.required
@@ -1125,6 +1110,16 @@ class ClassEditViewModel @Inject constructor(
             emptyList()
         }
 
+    /**
+     * Saves the form as one lesson. Booking a student and booking a group differ only in **who** the
+     * classes are written for — one student, or the group's roster — so both go through the same two
+     * repository writes: [ClassRepository.book] for a new lesson, [ClassRepository.apply] for an edit.
+     * The rules (re-plan on a move, then rebill) run inside those, so this can't leave a class carrying
+     * a stale charge.
+     *
+     * Does nothing — [onDone] is not called — when the form is incomplete or its time is already
+     * taken; [conflict] is what tells the tutor which lesson is in the way.
+     */
     fun save(onDone: () -> Unit) {
         // A lesson that is gone has nothing to save into, and booking one in its place is not what was asked.
         if (saving.value || _gone.value) return
@@ -1135,17 +1130,7 @@ class ClassEditViewModel @Inject constructor(
             // Read **before** the write, or the lesson just booked is the one that makes the answer false.
             // Editing an existing lesson is never a first booking, so it never asks.
             val wouldBeFirst = session.value == null && !classes.anyLessons()
-            // The write runs in the application scope, not this one: going back the instant after
-            // tapping save would otherwise cancel it partway, between the committed rows and the
-            // calendar mirror that follows them. Awaiting it here is what makes leaving abandon only
-            // the navigation — the write itself is already out of this scope's reach.
-            //
-            // Guarded inside the `async`, because a failure has to come back as a *value*. An
-            // exception would cross the `await` into this scope, where nothing catches it — and the
-            // application scope's own handler does not see it either, since `async` holds a failure in
-            // its `Deferred` rather than reporting it. Tapping «Сохранить» on a write that failed
-            // therefore crashed the app, in the one place the tutor is most sure of what they did.
-            val outcome = appScope.async { runCatchingCancellable { write(valid) } }.await()
+            val outcome = appScope.writeAwaited { write(valid) }
             when (val settled = outcome.getOrNull()) {
                 // Turned down, so the tutor is back on the form and the hour is a live question again —
                 // for a taken one, [conflict] is what names the lesson in the way.
@@ -1285,5 +1270,13 @@ class ClassEditViewModel @Inject constructor(
     private companion object {
         /** The lengths a tutoring lesson usually runs to — 45 minutes to two hours. */
         val COMMON_DURATIONS = listOf(45, 60, 90, 120)
+
+        /**
+         * What a picker offers: the active ones, plus whichever one the form has [selected] even if it has
+         * been archived since — see [students]. Its accessors are passed in because `Student` and `Group`
+         * share `id` and `archived` without sharing a type.
+         */
+        fun <T> List<T>.offered(selected: Long?, archived: (T) -> Boolean, id: (T) -> Long): List<T> =
+            filter { !archived(it) || id(it) == selected }
     }
 }

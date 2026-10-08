@@ -25,6 +25,7 @@ import com.seblful.klas.storage.DocumentSharing
 import com.seblful.klas.storage.DocumentStore
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
+import com.seblful.klas.ui.common.days
 import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.ready
 import com.seblful.klas.ui.navigation.Arrival
@@ -97,7 +98,10 @@ class ReportsViewModel @Inject constructor(
         groups.observeAll(),
         payments.observeAll(),
         ::Sources,
-    ).combine(_period) { sources, period -> sources.report(period) }
+    ).combine(_period, ::Pair)
+        // Today re-read at midnight ([days]), not once per emission: the current period's per-day
+        // figures count the days gone, and the tab stays alive behind the bar overnight.
+        .combine(clock.days()) { (sources, period), today -> sources.report(period, today) }
         .ready()
         // The heaviest derivation in the app — every class against every payment and every student,
         // re-run on each write anywhere — and it used to run on the main thread. See [Computation].
@@ -192,7 +196,7 @@ class ReportsViewModel @Inject constructor(
      * are worth showing are all statements about reports, and none of them is this class's to make. What
      * is left here is naming: two id→name tables the domain has no database to look up.
      */
-    private fun Sources.report(period: ReportPeriod): Reports.Report = Reports.of(
+    private fun Sources.report(period: ReportPeriod, today: LocalDate): Reports.Report = Reports.of(
         period = period,
         classes = classes,
         students = students,
@@ -205,7 +209,7 @@ class ReportsViewModel @Inject constructor(
         // labelled by an id would be the only unreadable row on the screen.
         groupNames = groups.associate { GroupId(it.id) to it.name },
         zone = zone,
-        today = LocalDate.now(clock),
+        today = today,
     )
 
     private companion object {

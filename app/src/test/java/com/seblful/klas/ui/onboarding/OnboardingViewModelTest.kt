@@ -1,5 +1,8 @@
 package com.seblful.klas.ui.onboarding
 
+import com.seblful.klas.data.local.SettingsDao
+import com.seblful.klas.data.local.SettingsEntity
+import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Subject
@@ -9,6 +12,7 @@ import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.common.Loadable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -29,7 +33,7 @@ class OnboardingViewModelTest {
 
     private val env = TestEnv()
 
-    private fun vm() = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.dispatcher)
+    private fun vm() = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope)
 
     /**
      * Empty is usually the truth on this screen — onboarding runs on a fresh install — but «Нет предметов»
@@ -59,7 +63,7 @@ class OnboardingViewModelTest {
      */
     @Test
     fun `the language and currency start where the phone puts them`() = runTest(mainRule.dispatcher) {
-        val minsk = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.dispatcher)
+        val minsk = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope)
         observing(minsk.locale)
         advanceUntilIdle()
 
@@ -72,7 +76,7 @@ class OnboardingViewModelTest {
     @Test
     fun `an English phone in Minsk is offered English and rubles`() = runTest(mainRule.dispatcher) {
         val env = TestEnv(deviceLocales = listOf(java.util.Locale.forLanguageTag("en-BY")))
-        val vm = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.dispatcher)
+        val vm = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope)
         observing(vm.locale)
         advanceUntilIdle()
 
@@ -110,7 +114,7 @@ class OnboardingViewModelTest {
     @Test
     fun `skipping the setup still persists the currency the phone named`() = runTest(mainRule.dispatcher) {
         val env = TestEnv(deviceLocales = listOf(java.util.Locale.forLanguageTag("de-DE")))
-        val vm = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.dispatcher)
+        val vm = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope)
 
         vm.complete()
         advanceUntilIdle()
@@ -131,6 +135,47 @@ class OnboardingViewModelTest {
         vm.addSubject("  Математика  ")
         advanceUntilIdle()
         assertEquals(listOf("Математика"), env.subjectDao.items.value.map { it.name })
+    }
+
+    /**
+     * Two «Математика» cannot be told apart anywhere a subject is offered, and a double tap on «Добавить»
+     * in step 1 was enough to make them. Refused the way the subjects screen refuses it — whatever the case
+     * and the spaces — and said, so the tap is not simply lost.
+     */
+    @Test
+    fun `adding a subject that is already there is refused and said`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        val events = mutableListOf<OnboardingViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+
+        vm.addSubject("Математика")
+        advanceUntilIdle()
+        vm.addSubject("  математика ")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Математика"), env.subjectDao.items.value.map { it.name })
+        assertEquals(listOf(OnboardingViewModel.Event.NAME_TAKEN), events)
+    }
+
+    /**
+     * Setup's writes used to be bare `viewModelScope.launch`es, so a failed one was an exception with
+     * nothing to catch it — a crash in the app's first minute. Now it is reported, and nothing is thrown.
+     */
+    @Test
+    fun `a write that fails is reported rather than thrown`() = runTest(mainRule.dispatcher) {
+        val broken = object : SettingsDao by env.settingsDao {
+            override suspend fun upsert(settings: SettingsEntity): Unit = throw IllegalStateException("disk full")
+        }
+        val vm = OnboardingViewModel(env.subjectRepo, SettingsRepository(broken, env.deviceLocales), mainRule.appScope)
+        val events = mutableListOf<OnboardingViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+
+        vm.setLanguage(AppLanguage.ENGLISH)
+        vm.complete()
+        advanceUntilIdle()
+
+        assertEquals(List(2) { OnboardingViewModel.Event.WRITE_FAILED }, events)
+        assertFalse(env.settingsRepo.get().onboardingComplete)
     }
 
     /**

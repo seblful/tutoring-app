@@ -14,17 +14,20 @@ import com.seblful.klas.testutil.CountingDispatcher
 import com.seblful.klas.testutil.FakeDocumentStore
 import com.seblful.klas.testutil.RecordingDocumentSharing
 import com.seblful.klas.testutil.MainDispatcherRule
+import com.seblful.klas.testutil.MutableClock
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import com.seblful.klas.ui.navigation.Arrival
 import org.junit.Assert.assertEquals
@@ -33,6 +36,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
+/**
+ * **Never `advanceUntilIdle()` here**: the report's "today" is `Clock.days()`, which sleeps until the next
+ * midnight in a loop, so the scheduler is never idle. `runCurrent()` settles the reads, and time is
+ * advanced by stated amounts.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReportsViewModelTest {
 
@@ -81,11 +89,43 @@ class ReportsViewModelTest {
             status = "COMPLETED", chargeMinor = Money.ofMajor(major).minor, groupId = groupId,
         )
 
+    /**
+     * A month still going is compared over its first N days against the previous month's first N — and N
+     * grows at midnight. It was read once per emission, so a tab left open overnight compared one day short
+     * until something was written.
+     */
+    @Test
+    fun `the month-to-date comparison takes in a new day at midnight`() = runTest(mainRule.dispatcher) {
+        // 23:00 on 15 June in Minsk.
+        val lateEvening = MutableClock(Instant.parse("2026-06-15T20:00:00Z"), zone)
+        val subj = env.fixtures.subject("Математика")
+        val sid = env.fixtures.pricedStudent("Аня", subj)
+        completed(sid, subj, at(2026, 5, 1), 50)
+        completed(sid, subj, at(2026, 5, 16), 50)
+        completed(sid, subj, at(2026, 6, 1), 50)
+
+        val vm = ReportsViewModel(
+            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo,
+            documents, sharing, mainRule.dispatcher, lateEvening,
+        )
+        vm.setKind(ReportPeriod.Kind.MONTH)
+        observing(vm.state)
+        runCurrent()
+        assertEquals("1–15 June against 1–15 May", Reports.Change.Percent(0), vm.state.current.change)
+
+        val twoHours = Duration.ofHours(2).toMillis()
+        lateEvening.advanceBy(twoHours)
+        advanceTimeBy(twoHours)
+        runCurrent()
+
+        assertEquals("1–16 June against 1–16 May", Reports.Change.Percent(-50), vm.state.current.change)
+    }
+
     @Test
     fun `the screen opens on the year in progress`() = runTest(mainRule.dispatcher) {
         val vm = vm()
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         // A literal, not `ReportPeriod.currentYear(LocalDate.now(zone))`: asserting the opening period by
         // re-running the production expression is an assertion that holds whatever the expression says.
@@ -103,18 +143,18 @@ class ReportsViewModelTest {
 
         val vm = vm()
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals("last year's income is not this year's", Money.ofMajor(30), vm.state.current.totalIncome)
 
         vm.setKind(ReportPeriod.Kind.ALL)
-        advanceUntilIdle()
+        runCurrent()
         assertEquals(Money.ofMajor(130), vm.state.current.totalIncome)
 
         // Back to a year, one step behind: the year that only holds the older lesson.
         vm.setKind(ReportPeriod.Kind.YEAR)
         vm.shift(-1)
-        advanceUntilIdle()
+        runCurrent()
         assertEquals(Money.ofMajor(100), vm.state.current.totalIncome)
     }
 
@@ -140,7 +180,7 @@ class ReportsViewModelTest {
             documents, sharing, mainRule.dispatcher, newYear,
         )
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(2027, vm.period.value.anchor.year)
         assertEquals("December belongs to the year that has ended", Money.ofMajor(40), vm.state.current.totalIncome)
@@ -148,7 +188,7 @@ class ReportsViewModelTest {
         // A month at a time, then one step back: out of January 2027 and into December 2026.
         vm.setKind(ReportPeriod.Kind.MONTH)
         vm.shift(-1)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(12, vm.state.current.period.anchor.monthValue)
         assertEquals(2026, vm.state.current.period.anchor.year)
@@ -164,13 +204,13 @@ class ReportsViewModelTest {
 
         val vm = vm()
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         vm.setKind(ReportPeriod.Kind.MONTH)
-        advanceUntilIdle()
+        runCurrent()
         // The anchor is the pinned clock's month, June; one step back is May, and only May's lesson counts.
         vm.shift(-1)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(5, vm.state.current.period.anchor.monthValue)
         assertEquals(Money.ofMajor(40), vm.state.current.totalIncome)
@@ -187,7 +227,7 @@ class ReportsViewModelTest {
 
         val vm = vm()
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         val state = vm.state.current
         assertEquals("this year's income only", Money.ofMajor(50), state.totalIncome)
@@ -209,7 +249,7 @@ class ReportsViewModelTest {
 
         val vm = vm()
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         val byGroup = vm.state.current.byGroup
         assertEquals(listOf("Вечерняя", "Утренняя"), byGroup.map { it.label })
@@ -228,7 +268,7 @@ class ReportsViewModelTest {
 
         val vm = vm()
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(listOf("Выпускники"), vm.state.current.byGroup.map { it.label })
     }
@@ -244,7 +284,7 @@ class ReportsViewModelTest {
 
         val vm = vm()
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(listOf(75, 25), vm.state.current.byStudent.map { it.percent })
         assertEquals(listOf(100), vm.state.current.bySubject.map { it.percent })
@@ -263,7 +303,7 @@ class ReportsViewModelTest {
 
         val vm = vm()
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         val state = vm.state.current
         assertEquals(Money.ofMajor(30), state.totalIncome)
@@ -284,7 +324,7 @@ class ReportsViewModelTest {
 
         val vm = vm()
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(listOf("Борис", "Аня"), vm.state.current.byStudent.map { it.label })
     }
@@ -298,7 +338,7 @@ class ReportsViewModelTest {
 
         val vm = vm()
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertTrue(vm.state.current.debts.isEmpty())
         assertEquals(Money.ZERO, vm.state.current.totalOutstanding)
@@ -314,7 +354,7 @@ class ReportsViewModelTest {
 
         val vm = vm()
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         val trend = vm.state.current.trend
         assertEquals(Reports.Trend.Bucket.MONTHS, trend.bucket)
@@ -336,7 +376,7 @@ class ReportsViewModelTest {
 
         val vm = vm()
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         val taught = vm.state.current.taught
         assertEquals("one group lesson plus one individual", 2, taught.lessons)
@@ -352,7 +392,7 @@ class ReportsViewModelTest {
 
         val vm = vm()
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         val state = vm.state.current
         assertTrue("this year earned nothing", state.noIncome)
@@ -365,7 +405,7 @@ class ReportsViewModelTest {
     fun `an empty database reports as empty`() = runTest(mainRule.dispatcher) {
         val vm = vm()
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertFalse(vm.state.current.hasData)
         assertTrue(vm.state.current.noIncome)
@@ -399,7 +439,7 @@ class ReportsViewModelTest {
 
         val vm = vm()
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
         val state = vm.state.current
 
         assertTrue("the fixture fills every section", state.byStudent.isNotEmpty())
@@ -442,7 +482,7 @@ class ReportsViewModelTest {
                 documents, sharing, counting, clock,
             )
             observing(vm.state)
-            advanceUntilIdle()
+            runCurrent()
 
             assertEquals("the report was built", Money.ofMajor(30), vm.state.current.totalIncome)
             assertTrue(
@@ -463,7 +503,7 @@ class ReportsViewModelTest {
     fun `sharing hands over the same CSV the export writes`() = runTest(mainRule.dispatcher) {
         val vm = vm()
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         val header = listOf("Раздел", "Строка", "Сумма")
         val lines = listOf(ReportCsv.Line("Итого", "2026", Money.ofMajor(30)))
@@ -474,7 +514,7 @@ class ReportsViewModelTest {
             header = header,
             lines = lines,
         )
-        advanceUntilIdle()
+        runCurrent()
 
         val shared = sharing.shared.single()
         assertEquals("klas-report.csv", shared.filename)
@@ -502,7 +542,7 @@ class ReportsViewModelTest {
         val job = backgroundScope.launch { vm.events.stream.collect { received = it } }
 
         vm.share(filename = "klas-report.csv", subject = "x", header = emptyList(), lines = emptyList())
-        advanceUntilIdle()
+        runCurrent()
         job.cancel()
 
         assertEquals(ReportsViewModel.ExportEvent.ERROR, received)

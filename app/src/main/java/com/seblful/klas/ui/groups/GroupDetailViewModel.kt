@@ -23,19 +23,20 @@ import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.TutoringClass
-import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
+import com.seblful.klas.ui.common.days
 import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.ready
 import com.seblful.klas.ui.common.valueOrNull
+import com.seblful.klas.ui.common.write
+import com.seblful.klas.ui.common.writeAwaited
 import com.seblful.klas.ui.homework.AssigneeChoice
+import com.seblful.klas.ui.homework.HomeworkActions
 import com.seblful.klas.ui.homework.HomeworkLists
-import com.seblful.klas.ui.homework.HomeworkRow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -114,7 +115,7 @@ class GroupDetailViewModel @Inject constructor(
     students: StudentRepository,
     subjects: SubjectRepository,
     classes: ClassRepository,
-    private val homework: HomeworkRepository,
+    homework: HomeworkRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: Clock,
@@ -129,6 +130,8 @@ class GroupDetailViewModel @Inject constructor(
     }
 
     val events = UiEvents<Event>()
+
+    private val homeworkActions = HomeworkActions(homework, appScope, events, Event.WRITE_FAILED)
 
     val groupId: Long = checkNotNull(savedStateHandle["id"])
 
@@ -167,18 +170,19 @@ class GroupDetailViewModel @Inject constructor(
         Base(card, groupClasses)
     }
 
+    /**
+     * The card. Its homework is due as of [days], so a card left open overnight moves tomorrow's onto
+     * today. **A test that collects this must advance time by a stated amount, never
+     * `advanceUntilIdle()`** — see [days].
+     */
     val state: StateFlow<Loadable<GroupDetailState>> = combine(
         base,
         homework.observeForGroup(groupId),
-    ) { base, homeworkList ->
+        clock.days(),
+    ) { base, homeworkList, today ->
         val captions = Captions.of(students = emptyList(), subjects = emptyList(), groups = listOfNotNull(base.state.group))
         base.state.copy(
-            homework = HomeworkRow.of(
-                HomeworkRules.lists(homeworkList, base.classes),
-                captions,
-                clock.instant().atZone(clock.zone).toLocalDate(),
-                clock.zone,
-            ),
+            homework = HomeworkLists.of(homeworkList, base.classes, captions, today, clock.zone),
         )
     }
         .ready()
@@ -189,7 +193,7 @@ class GroupDetailViewModel @Inject constructor(
      * Retires the group, or brings it back. Writes straight through — there is no form here to leave
      * unsaved, which is half the reason this belongs on the card rather than on one.
      */
-    fun setArchived(value: Boolean) = write {
+    fun setArchived(value: Boolean) = appScope.write(events, Event.WRITE_FAILED) {
         groups.getById(groupId)?.let { groups.setArchived(it, value) }
     }
 
@@ -202,11 +206,7 @@ class GroupDetailViewModel @Inject constructor(
      */
     fun delete(onDeleted: () -> Unit) {
         viewModelScope.launch {
-            // The write in the application scope, as every write is; only the navigation waits here.
-            val deleted = appScope.async {
-                runCatchingCancellable { groups.getById(groupId)?.let { groups.delete(it) } ?: false }
-            }.await()
-            deleted
+            appScope.writeAwaited { groups.getById(groupId)?.let { groups.delete(it) } ?: false }
                 .onSuccess { if (it) onDeleted() else events.send(Event.DELETE_BLOCKED_HAS_LESSONS) }
                 .onFailure { events.send(Event.WRITE_FAILED) }
         }
@@ -219,34 +219,22 @@ class GroupDetailViewModel @Inject constructor(
     fun homeworkChoice(): AssigneeChoice? {
         val loaded = state.value.valueOrNull() ?: return null
         val group = loaded.group ?: return null
-        val assignee = Assignee.Group(groupId)
         val classes = loaded.lessons.flatMap { it.session.classes }
-        return AssigneeChoice(
-            assignee = assignee,
-            name = group.name,
-            nextLessonAt = HomeworkRules.nextLesson(assignee, clock.instant(), classes)?.start,
-        )
+        return AssigneeChoice.of(Assignee.Group(groupId), group.name, classes, clock.instant())
     }
 
     /** Sets homework for the whole group — attached to its next lesson from now. */
-    fun giveHomework(text: String) = write { homework.give(Assignee.Group(groupId), text) }
+    fun giveHomework(text: String) = homeworkActions.give(Assignee.Group(groupId), text)
 
     /** Corrects [item]'s text; it stays the group's. */
-    fun editHomework(item: Homework, text: String) = write { homework.edit(item, item.assignee, text) }
+    fun editHomework(item: Homework, text: String) = homeworkActions.edit(item, item.assignee, text)
 
-    fun setHomeworkDone(item: Homework, done: Boolean) = write { homework.setDone(item, done) }
+    fun setHomeworkDone(item: Homework, done: Boolean) = homeworkActions.setDone(item, done)
 
     /** Undoes a swipe, [item]'s done state back as it was — see `HomeworkRepository.putBack`. */
-    fun putHomeworkBack(item: Homework) = write { homework.putBack(item) }
+    fun putHomeworkBack(item: Homework) = homeworkActions.putBack(item)
 
-    fun deleteHomework(item: Homework) = write { homework.delete(item) }
+    fun deleteHomework(item: Homework) = homeworkActions.delete(item)
 
-    fun restoreHomework(item: Homework) = write { homework.restore(item) }
-
-    /** In [appScope], as every homework write: a swipe or a dialog closing must not cut it short. */
-    private fun write(block: suspend () -> Unit) {
-        appScope.launch {
-            runCatchingCancellable { block() }.onFailure { events.send(Event.WRITE_FAILED) }
-        }
-    }
+    fun restoreHomework(item: Homework) = homeworkActions.restore(item)
 }

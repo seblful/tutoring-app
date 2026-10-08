@@ -1,0 +1,35 @@
+package com.seblful.klas.ui.students
+
+import com.seblful.klas.domain.Phone
+import com.seblful.klas.domain.model.ClassMode
+import com.seblful.klas.domain.model.Student
+
+/**
+ * [onto] with a student's fields as the tutor typed them, in the shape they are stored in: the name, email
+ * and note trimmed, the phone through [Phone.stored] — or null when the name is blank, since a student
+ * nobody can name cannot be listed, searched or booked.
+ *
+ * The add form and the card's edit dialog each used to spell this out, so a rule added to one — the phone
+ * normalisation was — could miss the other and store the same student two ways depending on where they
+ * were last saved.
+ *
+ * @param onto the student being edited, keeping their id and archive state; a new one by default.
+ */
+fun typedStudent(
+    name: String,
+    phone: String,
+    email: String,
+    note: String,
+    mode: ClassMode,
+    onto: Student = Student(name = ""),
+): Student? {
+    val trimmed = name.trim()
+    if (trimmed.isEmpty()) return null
+    return onto.copy(
+        name = trimmed,
+        phone = Phone.stored(phone),
+        email = email.trim(),
+        note = note.trim(),
+        defaultMode = mode,
+    )
+}

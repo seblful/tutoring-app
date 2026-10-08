@@ -4,6 +4,7 @@ import com.seblful.klas.domain.Captions
 import com.seblful.klas.domain.HomeworkRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
+import com.seblful.klas.domain.model.TutoringClass
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -52,7 +53,25 @@ data class HomeworkRow(
 }
 
 /** [HomeworkRules.Lists], captioned: the [current] homework and the [archive] of done ones. */
-data class HomeworkLists(val current: List<HomeworkRow>, val archive: List<HomeworkRow>)
+data class HomeworkLists(val current: List<HomeworkRow>, val archive: List<HomeworkRow>) {
+    companion object {
+        /**
+         * [homework] split into its two lists by [HomeworkRules.lists], attached to [classes] and captioned
+         * — the whole of turning stored homework into what the tab and both cards draw, so the three cannot
+         * attach or caption it differently.
+         *
+         * @param today from the view model's `Clock.days()`, never read here: a card left open overnight has
+         *   to see tomorrow's homework become today's.
+         */
+        fun of(
+            homework: List<Homework>,
+            classes: List<TutoringClass>,
+            captions: Captions,
+            today: LocalDate,
+            zone: ZoneId,
+        ): HomeworkLists = HomeworkRow.of(HomeworkRules.lists(homework, classes), captions, today, zone)
+    }
+}
 
 /**
  * Somebody homework can be set for, as the add dialog offers them.
@@ -63,4 +82,14 @@ data class HomeworkLists(val current: List<HomeworkRow>, val archive: List<Homew
  */
 data class AssigneeChoice(val assignee: Assignee, val name: String, val nextLessonAt: Instant?) {
     val isGroup: Boolean get() = assignee is Assignee.Group
+
+    companion object {
+        /**
+         * [assignee] as the dialog offers them at [now]: named [name], with the lesson of [classes] that
+         * homework set now would be attached to — see [HomeworkRules.nextLesson]. Taken when the dialog
+         * opens, since that lesson moves on as the day does.
+         */
+        fun of(assignee: Assignee, name: String, classes: List<TutoringClass>, now: Instant): AssigneeChoice =
+            AssigneeChoice(assignee, name, HomeworkRules.nextLesson(assignee, now, classes)?.start)
+    }
 }

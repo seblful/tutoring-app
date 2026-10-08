@@ -2,6 +2,7 @@ package com.seblful.klas.ui.groups
 
 import androidx.lifecycle.SavedStateHandle
 import com.seblful.klas.domain.Attendance
+import com.seblful.klas.domain.HomeworkRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
@@ -11,7 +12,8 @@ import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.homework.AssigneeChoice
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -20,8 +22,14 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.time.Duration
 import java.time.Instant
 
+/**
+ * **Never `advanceUntilIdle()` here**: the card's homework is due as of `Clock.days()`, which sleeps until
+ * the next midnight in a loop, so the scheduler is never idle. `runCurrent()` settles the writes, and time
+ * is advanced by stated amounts.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class GroupDetailViewModelTest {
 
@@ -61,7 +69,7 @@ class GroupDetailViewModelTest {
 
         val vm = vm(id)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals("11 «А»", vm.state.current.group?.name)
         assertEquals("Алгебра", vm.state.current.subjectName)
@@ -76,7 +84,7 @@ class GroupDetailViewModelTest {
 
         val vm = vm(id)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertNull(vm.state.current.subjectName)
     }
@@ -90,7 +98,7 @@ class GroupDetailViewModelTest {
 
         val vm = vm(id)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(
             listOf("анна", "Ярослав", "Борис"),
@@ -114,7 +122,7 @@ class GroupDetailViewModelTest {
 
         val vm = vm(id)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         val attended = vm.state.current.members.associate { it.student.name to it.attended }
         assertEquals(2, attended["Аня"])
@@ -128,7 +136,7 @@ class GroupDetailViewModelTest {
 
         val vm = vm(id)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(1, vm.state.current.members.size)
         assertEquals(0, vm.state.current.members.single().attended)
@@ -145,7 +153,7 @@ class GroupDetailViewModelTest {
 
         val vm = vm(id)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         val lessons = vm.state.current.lessons
         assertEquals("four classes are two lessons", 2, lessons.size)
@@ -175,7 +183,7 @@ class GroupDetailViewModelTest {
 
         val vm = vm(id)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         val totals = vm.state.current.totals
         assertEquals(1, totals.lessons)
@@ -198,7 +206,7 @@ class GroupDetailViewModelTest {
 
         val vm = vm(ours)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(1, vm.state.current.lessons.size)
         assertEquals(Money.ofMajor(20), vm.state.current.totals.earned)
@@ -211,7 +219,7 @@ class GroupDetailViewModelTest {
 
         val vm = vm(id)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         assertTrue(vm.state.current.lessons.isEmpty())
         assertEquals(0, vm.state.current.totals.lessons)
@@ -234,10 +242,10 @@ class GroupDetailViewModelTest {
 
         val vm = vm(id)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         vm.setArchived(true)
-        advanceUntilIdle()
+        runCurrent()
 
         assertTrue(vm.state.current.group?.archived == true)
         assertTrue(env.groupRepo.getById(id)!!.archived)
@@ -251,11 +259,11 @@ class GroupDetailViewModelTest {
 
         val vm = vm(id)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         var deleted = false
         vm.delete { deleted = true }
-        advanceUntilIdle()
+        runCurrent()
 
         assertTrue(deleted)
         assertNull(env.groupRepo.getById(id))
@@ -281,13 +289,13 @@ class GroupDetailViewModelTest {
 
         val vm = vm(id)
         observing(vm.state)
-        advanceUntilIdle()
+        runCurrent()
 
         var deleted = false
         val events = mutableListOf<GroupDetailViewModel.Event>()
         backgroundScope.launch { vm.events.stream.collect { events += it } }
         vm.delete { deleted = true }
-        advanceUntilIdle()
+        runCurrent()
 
         assertFalse(deleted)
         assertEquals(listOf(GroupDetailViewModel.Event.DELETE_BLOCKED_HAS_LESSONS), events)
@@ -325,10 +333,31 @@ class GroupDetailViewModelTest {
         assertEquals(AssigneeChoice(Assignee.Group(group), "9 «Б»", tomorrow), vm.homeworkChoice())
 
         vm.giveHomework("§ 12")
-        advanceUntilIdle()
+        runCurrent()
 
         val row = vm.state.current.homework.current.single()
         assertEquals(Assignee.Group(group), row.homework.assignee)
         assertEquals(tomorrow, row.lessonAt)
+    }
+
+    /** Like the student's card: one left open overnight moves tomorrow's homework onto today. */
+    @Test
+    fun `at midnight the card's homework for tomorrow becomes today's`() = runTest(mainRule.dispatcher) {
+        val maths = fixtures.subject()
+        val anya = fixtures.pricedStudent("Аня", maths)
+        val group = fixtures.group(name = "9 «Б»", subjectId = maths, members = setOf(anya))
+        fixtures.lesson(maths, listOf(anya), env.clock.instant().plusSeconds(86_400), groupId = group)
+        fixtures.homework(Assignee.Group(group))
+        val vm = vm(group)
+        observing(vm.state)
+        runCurrent()
+        assertEquals(HomeworkRules.Due.LATER, vm.state.current.homework.current.single().due)
+
+        // The environment's 15:00 in Minsk to a minute past midnight, on the clock and on the scheduler.
+        val untilMidnight = Duration.ofHours(9).plusMinutes(1)
+        env.clock.advanceBy(untilMidnight.toMillis())
+        advanceTimeBy(untilMidnight.toMillis())
+
+        assertEquals(HomeworkRules.Due.TODAY, vm.state.current.homework.current.single().due)
     }
 }

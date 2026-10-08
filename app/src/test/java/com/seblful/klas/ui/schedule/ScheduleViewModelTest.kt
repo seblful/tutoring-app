@@ -1207,6 +1207,34 @@ class ScheduleViewModelTest {
         }
 
     /**
+     * "Billed" is the billing rule's, not "completed": a lesson that went ahead with every student marked
+     * absent earned nothing, so deleting it takes no income — and warning that it does would be a false
+     * alarm about money. One absentee in a group is not enough: the others still billed.
+     */
+    @Test
+    fun `a completed lesson nobody was billed for does not warn about income`() =
+        runTest(mainRule.dispatcher) {
+            val subject = env.fixtures.subject("Математика")
+            val anya = env.fixtures.pricedStudent("Аня", subject)
+            val boris = env.fixtures.pricedStudent("Борис", subject)
+            val group = env.fixtures.group("11 «А»", subjectId = subject, members = setOf(anya, boris))
+
+            val alone = env.fixtures.completedLesson(subject, listOf(anya), at(9))
+            env.fixtures.setAttendance(alone.single(), Attended.ABSENT)
+            val nobody = env.fixtures.completedLesson(subject, listOf(anya, boris), at(10), groupId = group)
+            nobody.forEach { env.fixtures.setAttendance(it, Attended.ABSENT) }
+            val someone = env.fixtures.completedLesson(subject, listOf(anya, boris), at(11), groupId = group)
+            env.fixtures.setAttendance(someone.first(), Attended.ABSENT)
+
+            suspend fun warningFor(ids: List<Long>) =
+                DeleteWarning.of(env.classRepo.getSessionFor(ids.first())!!)
+
+            assertEquals(DeleteWarning(DeleteWarning.Kind.PLAIN, classes = 1), warningFor(alone))
+            assertEquals(DeleteWarning(DeleteWarning.Kind.GROUP, classes = 2), warningFor(nobody))
+            assertEquals(DeleteWarning(DeleteWarning.Kind.BILLED_GROUP, classes = 2), warningFor(someone))
+        }
+
+    /**
      * `deleteWarning`'s three siblings: what the sheet's segments enable, whether the swipe gesture
      * is offered, and whether the card recedes. All were decided inside `ScheduleScreen`, so the rule
      * gating the product's highest-frequency gesture could be exercised only by swiping on a phone —

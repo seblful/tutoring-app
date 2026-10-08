@@ -76,7 +76,10 @@ class GroupsViewModel @Inject constructor(
             ) { groupList, rosters, studentList, subjectList, query ->
                 val studentsById = studentList.associateBy { it.id }
                 val subjectsById = subjectList.associate { it.id to it.name }
-                groupList.map { group ->
+                // Searched by the group's own name only. A roster search would find «Аня» inside three
+                // groups and leave the tutor to work out why — the students tab beside this one is where a
+                // person is looked up.
+                PeopleSearch.filter(groupList, query) { it.name }.map { group ->
                     // Through NameOrder, like every other listing of people: this used to be
                     // `sortedBy { it.name }`, which does not case-fold at all, so a roster sorted
                     // every Cyrillic capital before every lower-case name.
@@ -90,10 +93,6 @@ class GroupsViewModel @Inject constructor(
                         subjectName = group.subjectId?.let { subjectsById[it] },
                     )
                 }
-                    // Searched by the group's own name only. A roster search would find «Аня» inside
-                    // three groups and leave the tutor to work out why — the students tab beside this
-                    // one is where a person is looked up.
-                    .filter { PeopleSearch.matches(it.group.name, query) }
             }
         }
             .ready()

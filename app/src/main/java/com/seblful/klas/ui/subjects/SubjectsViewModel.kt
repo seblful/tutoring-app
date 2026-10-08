@@ -5,22 +5,19 @@ import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.PeopleSearch
-import com.seblful.klas.domain.SubjectNames
 import com.seblful.klas.domain.model.Subject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.ready
-import com.seblful.klas.runCatchingCancellable
+import com.seblful.klas.ui.common.write
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -72,9 +69,7 @@ class SubjectsViewModel @Inject constructor(
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
         write(onWritten = { saved -> if (!saved) events.send(Event.NAME_TAKEN) }) {
-            val taken = SubjectNames.sameAs(trimmed, repository.observeAll().first(), exceptId = id) != null
-            if (!taken) repository.upsert(Subject(id = id, name = trimmed))
-            !taken
+            repository.saveUnlessTaken(Subject(id = id, name = trimmed))
         }
     }
 
@@ -92,15 +87,10 @@ class SubjectsViewModel @Inject constructor(
     }
 
     /**
-     * The guarded-write tail: in the application scope, so a rename outlives a quick back, and a
-     * database error reported as [Event.WRITE_FAILED] rather than thrown out of a bare `launch`, where
-     * nothing caught it and the app closed.
+     * The guarded-write tail (`ui/common/Writes.kt`): in the application scope, so a rename outlives a
+     * quick back, and a database error reported as [Event.WRITE_FAILED] rather than thrown out of a bare
+     * `launch`, where nothing caught it and the app closed.
      */
-    private fun <T> write(onWritten: suspend (T) -> Unit = {}, block: suspend () -> T) {
-        appScope.launch {
-            runCatchingCancellable { block() }
-                .onSuccess { onWritten(it) }
-                .onFailure { events.send(Event.WRITE_FAILED) }
-        }
-    }
+    private fun <T> write(onWritten: suspend (T) -> Unit = {}, block: suspend () -> T) =
+        appScope.write(events, Event.WRITE_FAILED, onWritten, block)
 }

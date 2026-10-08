@@ -11,11 +11,11 @@ import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.domain.ReminderScheduler
 import com.seblful.klas.notifications.ExactAlarmPermission
 import com.seblful.klas.notifications.NotificationPermission
-import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.hold
 import com.seblful.klas.ui.common.ready
+import com.seblful.klas.ui.common.write
 import com.seblful.klas.work.Maintenance
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -220,12 +220,11 @@ class SettingsViewModel @Inject constructor(
      * **In the application scope**, tail and all: switching sync on backfills the whole history and a
      * language change re-mirrors it, and in `viewModelScope` a back press straight after the switch
      * cancelled that half-way — the switch said on while the calendar held half the lessons, and turning
-     * invites off could leave invitations behind. A failure is [failed], not a crash.
+     * invites off could leave invitations behind. A failure is [failed], not a crash — the shared
+     * guarded-write tail (`ui/common/Writes.kt`).
      */
     fun update(transform: (AppSettings) -> AppSettings) {
-        appScope.launch {
-            runCatchingCancellable { apply(transform) }.onFailure { failed.send(Unit) }
-        }
+        appScope.write(failed, Unit) { apply(transform) }
     }
 
     private suspend fun apply(transform: (AppSettings) -> AppSettings) {

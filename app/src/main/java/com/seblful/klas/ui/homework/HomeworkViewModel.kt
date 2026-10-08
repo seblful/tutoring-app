@@ -14,25 +14,21 @@ import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.format.NameOrder
-import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
+import com.seblful.klas.ui.common.days
 import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.ready
 import com.seblful.klas.ui.common.valueOrNull
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.Duration
-import java.time.Instant
 import javax.inject.Inject
 
 /**
@@ -62,10 +58,10 @@ data class HomeworkState(
 
 @HiltViewModel
 class HomeworkViewModel @Inject constructor(
-    private val homework: HomeworkRepository,
+    homework: HomeworkRepository,
     students: StudentRepository,
     groups: GroupRepository,
-    @param:ApplicationScope private val appScope: CoroutineScope,
+    @param:ApplicationScope appScope: CoroutineScope,
     @Computation computation: CoroutineDispatcher,
     private val clock: Clock,
 ) : ViewModel() {
@@ -86,50 +82,29 @@ class HomeworkViewModel @Inject constructor(
         combine(students.observeAll(), groups.observeAll(), groups.observeRosters(), ::People)
 
     /**
-     * The clock, **re-read at every local midnight** — what "today" and "overdue" are measured from.
-     *
-     * The tab stays alive behind the bar, so a list derived once would go on calling yesterday's lesson
-     * today's until something else changed. Sleeping until midnight rather than polling, for the reason
-     * `ScheduleViewModel.today` gives: the answer changes once a day and it is knowable when.
-     *
-     * **A test that collects [state] must advance time by a stated amount, never `advanceUntilIdle()`**:
-     * a clock has no last emission, so "until idle" never arrives.
-     */
-    private val days: Flow<Instant> = flow {
-        while (true) {
-            val now = clock.instant()
-            emit(now)
-            val midnight = now.atZone(zone).toLocalDate().plusDays(1).atStartOfDay(zone).toInstant()
-            // At least a tick, so a clock already past midnight cannot spin on a zero-length sleep.
-            delay(Duration.between(clock.instant(), midnight).toMillis().coerceAtLeast(1))
-        }
-    }
-
-    /**
      * The tab — [Loadable] because «Текущих заданий нет» is an answer, and the frame before the query
      * returns is not one.
      *
      * Lessons are read from [PICKER_LOOKBACK] back (or from the oldest current homework, if that is
      * older), which covers both what the lists attach homework to and what the dialog ranks by.
+     *
+     * "Today" and "overdue" are measured from [days], so the tab — alive behind the bar — calls
+     * yesterday's lesson yesterday's once midnight passes. **A test that collects this must advance time
+     * by a stated amount, never `advanceUntilIdle()`**: see [days].
      */
     val state: StateFlow<Loadable<HomeworkState>> =
         combine(
             homework.observeWithLessons(since = clock.instant().minus(PICKER_LOOKBACK)),
             people,
             filter,
-            days,
-        ) { withLessons, people, who, now ->
+            clock.days(),
+        ) { withLessons, people, who, today ->
             val captions = Captions.of(people.students, emptyList(), people.groups)
             val taught = HomeworkRules.taught(withLessons.homework, people.students, people.groups)
             val shown = who?.let { HomeworkRules.narrowedTo(taught, it, people.rosters) } ?: taught
             val assignees = assigneesOf(people.students, people.groups)
             HomeworkState(
-                lists = HomeworkRow.of(
-                    HomeworkRules.lists(shown, withLessons.classes),
-                    captions,
-                    now.atZone(zone).toLocalDate(),
-                    zone,
-                ),
+                lists = HomeworkLists.of(shown, withLessons.classes, captions, today, zone),
                 filter = who,
                 assignees = assignees,
                 filterAssignees = assignees.filter {
@@ -152,11 +127,7 @@ class HomeworkViewModel @Inject constructor(
         val loaded = state.value.valueOrNull() ?: return null
         val now = clock.instant()
         return HomeworkRules.byNearestLesson(loaded.assignees, loaded.classes, now).map { assignee ->
-            AssigneeChoice(
-                assignee = assignee,
-                name = loaded.captions.titleOf(assignee),
-                nextLessonAt = HomeworkRules.nextLesson(assignee, now, loaded.classes)?.start,
-            )
+            AssigneeChoice.of(assignee, loaded.captions.titleOf(assignee), loaded.classes, now)
         }
     }
 
@@ -179,28 +150,21 @@ class HomeworkViewModel @Inject constructor(
 
     val events = UiEvents<Event>()
 
-    fun give(assignee: Assignee, text: String) = write { homework.give(assignee, text) }
+    /** In the application scope like every write in the app — see [HomeworkActions]. */
+    private val actions = HomeworkActions(homework, appScope, events, Event.ACTION_FAILED)
 
-    fun edit(item: Homework, assignee: Assignee, text: String) = write { homework.edit(item, assignee, text) }
+    fun give(assignee: Assignee, text: String) = actions.give(assignee, text)
 
-    fun setDone(item: Homework, done: Boolean) = write { homework.setDone(item, done) }
+    fun edit(item: Homework, assignee: Assignee, text: String) = actions.edit(item, assignee, text)
+
+    fun setDone(item: Homework, done: Boolean) = actions.setDone(item, done)
 
     /** Undoes a swipe on [item], its done state back exactly as it was — see `HomeworkRepository.putBack`. */
-    fun putBack(item: Homework) = write { homework.putBack(item) }
+    fun putBack(item: Homework) = actions.putBack(item)
 
-    fun delete(item: Homework) = write { homework.delete(item) }
+    fun delete(item: Homework) = actions.delete(item)
 
-    fun restore(item: Homework) = write { homework.restore(item) }
-
-    /**
-     * In [appScope] like every write in the app: a swipe takes the row off the list it was on, and the
-     * write must not be cut short because the row it was made on went away.
-     */
-    private fun write(block: suspend () -> Unit) {
-        appScope.launch {
-            runCatchingCancellable { block() }.onFailure { events.send(Event.ACTION_FAILED) }
-        }
-    }
+    fun restore(item: Homework) = actions.restore(item)
 
     private companion object {
         /**

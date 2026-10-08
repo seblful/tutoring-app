@@ -9,19 +9,17 @@ import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.domain.Phone
 import com.seblful.klas.domain.SubjectNames
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
-import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.LeavableForm
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.UiEvents
 import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.valueOrNull
+import com.seblful.klas.ui.common.writeAwaited
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -132,8 +130,7 @@ class StudentFormViewModel @Inject constructor(
                 return
             }
         viewModelScope.launch {
-            appScope.async { runCatchingCancellable { subjectsRepo.upsert(Subject(name = trimmed)) } }
-                .await()
+            appScope.writeAwaited { subjectsRepo.upsert(Subject(name = trimmed)) }
                 .onSuccess { id -> toggleSubject(id, on = true) }
                 .onFailure { events.send(Event.SAVE_FAILED) }
         }
@@ -164,24 +161,16 @@ class StudentFormViewModel @Inject constructor(
         val s = state.value
         // Once: a double tap on «Сохранить» created the student twice and popped two screens.
         if (!s.canSave || saving) return
-        saving = true
         val f = s.form
-        val student = Student(
-            name = f.name.trim(),
-            phone = Phone.stored(f.phone),
-            email = f.email.trim(),
-            note = f.note.trim(),
-            defaultMode = f.mode,
-        )
+        val student = typedStudent(f.name, f.phone, f.email, f.note, f.mode) ?: return
+        saving = true
         // isValid guarantees every chosen subject has a parseable price.
         val pricedSubjects = f.subjectPrices.mapNotNull { (subjectId, price) ->
             price.amount?.let { subjectId to it }
         }.toMap()
 
         viewModelScope.launch {
-            val written = appScope
-                .async { runCatchingCancellable { enrollment.createStudent(student, pricedSubjects) } }
-                .await()
+            val written = appScope.writeAwaited { enrollment.createStudent(student, pricedSubjects) }
             if (written.isSuccess) {
                 onSaved()
             } else {
