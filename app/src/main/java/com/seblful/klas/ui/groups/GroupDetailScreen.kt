@@ -2,7 +2,6 @@ package com.seblful.klas.ui.groups
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,20 +11,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -45,14 +39,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.Attendance
-import com.seblful.klas.format.formatHours
-import com.seblful.klas.ui.common.HoldToName
+import com.seblful.klas.ui.common.ArchiveMenuItem
+import com.seblful.klas.ui.common.ArchivedBadge
 import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.LoadingDetailScreen
+import com.seblful.klas.ui.common.NamedIconButton
+import com.seblful.klas.ui.common.OpensScreenMark
+import com.seblful.klas.ui.common.OverflowMenu
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.Stat
@@ -65,14 +62,17 @@ import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.lessonsStat
+import com.seblful.klas.ui.common.earnedStat
+import com.seblful.klas.ui.common.hoursStat
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.homework.AssigneeChoice
-import com.seblful.klas.ui.homework.HomeworkDialog
+import com.seblful.klas.ui.homework.CardHomeworkDialogs
 import com.seblful.klas.ui.homework.HomeworkRow
 import com.seblful.klas.ui.homework.homeworkItems
+import com.seblful.klas.ui.homework.homeworkUndo
 
 /**
  * The three things a group's card is about, one shown at a time and picked from the same menu a
@@ -148,10 +148,13 @@ private fun GroupCard(
             GroupDetailViewModel.Event.WRITE_FAILED -> writeFailedMsg
         }
     }
-    val homeworkDoneMsg = stringResource(R.string.homework_done_message)
-    val homeworkRestoredMsg = stringResource(R.string.homework_restored_message)
-    val homeworkDeletedMsg = stringResource(R.string.homework_deleted)
-    val undoLabel = stringResource(R.string.action_undo)
+    val homeworkUndo = homeworkUndo(
+        messages = messages,
+        setDone = viewModel::setHomeworkDone,
+        putBack = viewModel::putHomeworkBack,
+        delete = viewModel::deleteHomework,
+        restore = viewModel::restoreHomework,
+    )
 
     // The group's name is the subject of the screen, as a student's is on theirs — the same large,
     // collapsing title, so the two cards read as one pattern.
@@ -161,11 +164,7 @@ private fun GroupCard(
         titleSize = TitleSize.Large,
         messages = messages,
         actions = {
-            HoldToName(stringResource(R.string.action_edit)) {
-                IconButton(onClick = onEdit) {
-                    Icon(Icons.Filled.Edit, stringResource(R.string.action_edit))
-                }
-            }
+            NamedIconButton(Icons.Filled.Edit, stringResource(R.string.action_edit), onClick = onEdit)
             // Retiring and removing the group, behind the overflow — where a student's already were.
             // They used to be a pair of outlined buttons under a «danger zone» heading at the foot of
             // the group's *form*, so the same lifecycle verb lived on the card for one entity and on
@@ -230,39 +229,21 @@ private fun GroupCard(
                     messages = messages,
                     onAdd = { addingHomework = viewModel.homeworkChoice() },
                     onOpen = { openedHomework = it },
-                    onDone = { item, done ->
-                        viewModel.setHomeworkDone(item, done)
-                        messages.show(if (done) homeworkDoneMsg else homeworkRestoredMsg, undoLabel) {
-                            viewModel.putHomeworkBack(item)
-                        }
-                    },
+                    onDone = homeworkUndo::swiped,
                 )
                 GroupTab.STUDENTS -> studentsTab(state, onMemberClick, onEditMembers = onEdit)
             }
         }
     }
 
-    addingHomework?.let { choice ->
-        HomeworkDialog(
-            choices = listOf(choice),
-            onSave = { _, text -> viewModel.giveHomework(text) },
-            onDismiss = { addingHomework = null },
-            canChangeAssignee = false,
-        )
-    }
-    openedHomework?.let { row ->
-        HomeworkDialog(
-            choices = listOf(AssigneeChoice(row.homework.assignee, row.title, row.lessonAt)),
-            editing = row.homework,
-            canChangeAssignee = false,
-            onSave = { _, text -> viewModel.editHomework(row.homework, text) },
-            onDelete = {
-                viewModel.deleteHomework(row.homework)
-                messages.show(homeworkDeletedMsg, undoLabel) { viewModel.restoreHomework(row.homework) }
-            },
-            onDismiss = { openedHomework = null },
-        )
-    }
+    CardHomeworkDialogs(
+        adding = addingHomework,
+        opened = openedHomework,
+        onDismiss = { addingHomework = null; openedHomework = null },
+        onGive = viewModel::giveHomework,
+        onEdit = viewModel::editHomework,
+        undo = homeworkUndo,
+    )
 
     if (confirmingDelete) {
         ConfirmDialog(
@@ -298,13 +279,7 @@ private fun GroupHeader(state: GroupDetailState, modifier: Modifier = Modifier) 
                 else MaterialTheme.colorScheme.onSurface,
             )
             // The badge the lists use for the same state — this was the last italic grey word saying it.
-            if (group.archived) {
-                StatusBadge(
-                    text = stringResource(R.string.student_archived_badge),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = Spacing.inline),
-                )
-            }
+            if (group.archived) ArchivedBadge(Modifier.padding(start = Spacing.inline))
         }
         if (group.note.isNotBlank()) {
             Text(group.note, style = MaterialTheme.typography.bodyMedium)
@@ -326,44 +301,26 @@ private fun GroupHeader(state: GroupDetailState, modifier: Modifier = Modifier) 
  */
 @Composable
 private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete: (() -> Unit)?) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        HoldToName(stringResource(R.string.action_more)) {
-            IconButton(onClick = { expanded = true }) {
-                Icon(Icons.Filled.MoreVert, stringResource(R.string.action_more))
-            }
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+    OverflowMenu { close ->
+        ArchiveMenuItem(archived) { close(); onArchive() }
+        // Only while there is something it can do — see [GroupDetailState.canDelete].
+        if (onDelete != null) {
             DropdownMenuItem(
                 text = {
                     Text(
-                        stringResource(
-                            if (archived) R.string.action_unarchive else R.string.action_archive
-                        )
+                        stringResource(R.string.action_delete),
+                        color = MaterialTheme.colorScheme.error,
                     )
                 },
-                leadingIcon = { Icon(Icons.Filled.Inventory2, contentDescription = null) },
-                onClick = { expanded = false; onArchive() },
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                },
+                onClick = { close(); onDelete() },
             )
-            // Only while there is something it can do — see [GroupDetailState.canDelete].
-            if (onDelete != null) {
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            stringResource(R.string.action_delete),
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Filled.Delete,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                        )
-                    },
-                    onClick = { expanded = false; onDelete() },
-                )
-            }
         }
     }
 }
@@ -376,11 +333,7 @@ private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete
 @Composable
 private fun groupStats(state: GroupDetailState): List<Stat> {
     val totals = state.totals
-    return listOf(
-        lessonsStat(totals),
-        Stat(label = stringResource(R.string.stat_hours), value = formatHours(totals.minutes)),
-        Stat(label = stringResource(R.string.stat_earned), value = totals.earned.text()),
-    )
+    return listOf(lessonsStat(totals), hoursStat(totals.minutes), earnedStat(totals.earned))
 }
 
 /**
@@ -409,6 +362,7 @@ private fun LazyListScope.studentsTab(
         return
     }
     items(state.members, key = { GroupDetailKeys.member(it.student.id) }) { row ->
+        val openMemberLabel = stringResource(R.string.group_member_open)
         ListItem(
             leadingContent = { Avatar(row.student.name, row.student.id) },
             headlineContent = { Text(row.student.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -420,23 +374,19 @@ private fun LazyListScope.studentsTab(
                         pluralStringResource(R.plurals.lessons_count, row.attended, row.attended),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    if (row.student.archived) {
-                        StatusBadge(
-                            text = stringResource(R.string.student_archived_badge),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = Spacing.inline),
-                        )
-                    }
+                    if (row.student.archived) ArchivedBadge(Modifier.padding(start = Spacing.inline))
                 }
             },
-            trailingContent = {
-                Icon(
-                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = stringResource(R.string.group_member_open),
-                )
-            },
+            // The chevron every row that opens a screen carries. Where it goes is said by the click itself:
+            // the headline names the student, not their card, and a description on the glyph was read as a
+            // second stop on the row.
+            trailingContent = { OpensScreenMark() },
             modifier = Modifier
-                .insetRowPress { Modifier.clickable(it, indication = null) { onMemberClick(row.student.id) } }
+                .insetRowPress {
+                    Modifier.clickable(it, indication = null, onClickLabel = openMemberLabel) {
+                        onMemberClick(row.student.id)
+                    }
+                }
                 .then(animateInPlace()),
         )
     }

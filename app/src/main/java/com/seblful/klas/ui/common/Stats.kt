@@ -17,10 +17,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 /**
  * One number a card leads with — a debt, a lesson count, an amount earned.
@@ -88,7 +88,9 @@ private fun StatTile(stat: Stat, modifier: Modifier = Modifier) {
             // Only reachable when even the smallest step overflows (a very large font scale).
             overflow = TextOverflow.Ellipsis,
             autoSize = TextAutoSize.StepBased(
-                minFontSize = MinValueFontSize,
+                // In dp, like the bar title's and the tab labels' floors: the font scale is already in the
+                // size it starts from, and scaling the floor too left a wide amount nothing to shrink into.
+                minFontSize = with(LocalDensity.current) { MinValueSize.toSp() },
                 maxFontSize = MaterialTheme.typography.titleMedium.fontSize,
             ),
         )
@@ -122,4 +124,5 @@ private fun StatTile(stat: Stat, modifier: Modifier = Modifier) {
 private val TileInsetX = 6.dp
 private val ValueToLabel = 1.dp
 
-private val MinValueFontSize = 11.sp
+/** The smallest a stat's value is drawn, on screen — whatever the font scale asked for. */
+private val MinValueSize = 11.dp

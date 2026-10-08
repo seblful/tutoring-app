@@ -8,8 +8,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -133,6 +136,20 @@ fun TrailingAmount(text: String, modifier: Modifier = Modifier) {
         maxLines = 1,
         modifier = modifier,
     )
+}
+
+/**
+ * The trailing mark of a row that **opens a screen** of the app — «Ещё»'s menu, Settings' diagnostics, a
+ * group's member.
+ *
+ * Decorative: the row is one tap target and its headline already names where it goes, so a description
+ * here would have a screen reader read every row twice. A row whose headline does *not* say where it leads
+ * says so with the click's own label instead. **Filled**, as the app's chevrons are: the leading glyph is
+ * art for the row, the trailing one a statement about what tapping does.
+ */
+@Composable
+fun OpensScreenMark() {
+    Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 /**

@@ -10,26 +10,19 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,17 +32,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -64,12 +56,14 @@ import com.seblful.klas.format.toAmountInput
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.data.repository.AppSettings
 import com.seblful.klas.ui.common.ConfirmDialog
+import com.seblful.klas.ui.common.DialogRadioRow
 import com.seblful.klas.ui.common.DisabledAlpha
 import com.seblful.klas.ui.common.KeepTypedInput
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
-import com.seblful.klas.ui.common.MinTouchTarget
+import com.seblful.klas.ui.common.MoneyTextField
+import com.seblful.klas.ui.common.OpensScreenMark
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.ShowMessagesFor
@@ -82,13 +76,10 @@ import com.seblful.klas.ui.common.currencyLabel
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.languageLabel
 import com.seblful.klas.ui.common.launchExternally
-import com.seblful.klas.ui.common.moneyErrorText
-import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.rememberToggleFeedback
 import com.seblful.klas.ui.common.rememberRejectFeedback
-import com.seblful.klas.ui.common.supportingTextOf
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.theme.dynamicColorAvailable
@@ -111,20 +102,16 @@ fun SettingsScreen(
     val openSettingsLabel = stringResource(R.string.action_open_settings)
     val noSettingsPageMsg = stringResource(R.string.settings_page_missing)
 
-    // The count comes with the event, so the plural is resolved from the context rather than read
-    // above the collector as the other screens do — `stringResource` cannot be called from inside one,
-    // and there is no state here to pre-resolve it from. This is the *provided* context, in the app's own
-    // language (`ProvideLocalizedResources`), which is what makes the quantity rule the right one: a
-    // plural's form comes from the configuration's locale and not from the folder it was loaded from.
-    //
-    // Read through `rememberUpdatedState`: the language can be changed on this very screen, and a collector
-    // holding the resources it started with worded the next count in the language just left.
+    // The count comes with the event, so the plural is resolved from the context in the lambda rather than
+    // read above it as the other screens do — there is no state here to pre-resolve it from. This is the
+    // *provided* context, in the app's own language (`ProvideLocalizedResources`), which is what makes the
+    // quantity rule the right one: a plural's form comes from the configuration's locale and not from the
+    // folder it was loaded from. The language can be changed on this very screen; `ShowMessagesFor` uses the
+    // newest lambda, so the next count is worded in the language now in force rather than the one just left.
     val context = LocalContext.current
-    val resources by rememberUpdatedState(context.resources)
-    LaunchedEffect(viewModel, messages) {
-        viewModel.swept.stream.collect { count ->
-            messages.show(resources.getQuantityString(R.plurals.settings_autocomplete_swept, count, count))
-        }
+    val resources = LocalResources.current
+    ShowMessagesFor(viewModel.swept, messages) { count ->
+        resources.getQuantityString(R.plurals.settings_autocomplete_swept, count, count)
     }
     val failedMsg = stringResource(R.string.action_failed)
     ShowMessagesFor(viewModel.failed, messages) { failedMsg }
@@ -381,34 +368,15 @@ private fun SettingsList(
                 modifier = Modifier.insetRowPress { Modifier.clickable(it, indication = null, onClick = fix) },
             )
         }
-        ChoiceRow(
+        // Three presets and a way out of them. A tutor who wants twenty minutes, or three hours to cross
+        // town, had no way to say so — see [DurationPresetRow].
+        DurationPresetRow(
             title = stringResource(R.string.settings_reminder_lead),
-            // Three presets and a way out of them. The fourth option is not a *value* — it opens the
-            // same hours-and-minutes picker the booking form uses for «Другая», so any lead is
-            // expressible rather than only the three somebody guessed at. A tutor who wants twenty
-            // minutes, or three hours to cross town, had no way to say so.
-            //
-            // While the stored lead **is** custom, the fourth segment is labelled with it and reads as
-            // selected: the row must show the setting in force, not «Другое» over an answer it is
-            // hiding. `MaxSegments` is 4, so this still draws as segments rather than falling back to
-            // a dropdown.
-            options = LeadPresets.map { it to durationLabel(it) } +
-                (
-                    CustomMinutes to
-                        if (settings.reminderLeadMinutes in LeadPresets) {
-                            stringResource(R.string.settings_reminder_lead_custom)
-                        } else {
-                            durationLabel(settings.reminderLeadMinutes)
-                        }
-                    ),
-            selected = settings.reminderLeadMinutes.takeIf { it in LeadPresets } ?: CustomMinutes,
-            onSelect = { minutes ->
-                if (minutes == CustomMinutes) showLeadPicker = true
-                else viewModel.update { it.copy(reminderLeadMinutes = minutes) }
-            },
-            // A custom lead is already the selected segment, so a second custom one is asked for by
-            // tapping it again.
-            onReselect = { minutes -> if (minutes == CustomMinutes) showLeadPicker = true },
+            presets = LeadPresets,
+            minutes = settings.reminderLeadMinutes,
+            customWord = stringResource(R.string.settings_reminder_lead_custom),
+            onSelect = { minutes -> viewModel.update { it.copy(reminderLeadMinutes = minutes) } },
+            onCustom = { showLeadPicker = true },
         )
 
         // Its own section, not more rows under «Напоминания»: a reminder is about one lesson and
@@ -512,25 +480,15 @@ private fun SettingsList(
         // and everything else besides. That keeps the row inside `MaxSegments` and drawn as segments,
         // so both duration settings look and behave alike instead of one being a strip and the other a
         // dropdown.
-        ChoiceRow(
+        DurationPresetRow(
             title = stringResource(R.string.settings_default_lesson),
-            options = LessonPresets.map { it to durationLabel(it) } +
-                (
-                    CustomMinutes to
-                        if (settings.defaultLessonMinutes in LessonPresets) {
-                            // The booking form's word for the same choice, so «Длительность» agrees with
-                            // its noun in both places rather than borrowing the reminder's «Другое».
-                            stringResource(R.string.class_duration_custom)
-                        } else {
-                            durationLabel(settings.defaultLessonMinutes)
-                        }
-                    ),
-            selected = settings.defaultLessonMinutes.takeIf { it in LessonPresets } ?: CustomMinutes,
-            onSelect = { minutes ->
-                if (minutes == CustomMinutes) showLessonPicker = true
-                else viewModel.update { it.copy(defaultLessonMinutes = minutes) }
-            },
-            onReselect = { minutes -> if (minutes == CustomMinutes) showLessonPicker = true },
+            presets = LessonPresets,
+            minutes = settings.defaultLessonMinutes,
+            // The booking form's word for the same choice, so «Длительность» agrees with its noun in both
+            // places rather than borrowing the reminder's «Другое».
+            customWord = stringResource(R.string.class_duration_custom),
+            onSelect = { minutes -> viewModel.update { it.copy(defaultLessonMinutes = minutes) } },
+            onCustom = { showLessonPicker = true },
         )
 
         SectionHeader(stringResource(R.string.settings_section_money))
@@ -619,19 +577,43 @@ private fun SettingsList(
     }
 }
 
-/** A row that opens another screen of the app. Decorative: the headline already says where. */
-@Composable
-private fun OpensScreenMark() {
-    Icon(Icons.Filled.ChevronRight, contentDescription = null)
-}
-
 /** A row that hands over to the phone's own settings. Decorative, like [OpensScreenMark]. */
 @Composable
 private fun LeavesAppMark() {
     Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)
 }
 
-/** Roughly a `SwitchRow`: a title over a line of description, at a `ListItem`'s own padding. */
+/**
+ * A duration setting as **a few presets and a way out of them** — the reminder lead and the lesson length.
+ *
+ * The last option is not a *value*: it opens the same hours-and-minutes picker the booking form uses for
+ * «Другая», so any length is expressible rather than only the few somebody guessed at. While the stored
+ * one **is** custom, that segment is labelled with it and reads as selected — the row must show the setting
+ * in force, not «Другое» over an answer it is hiding — and a second custom one is asked for by tapping it
+ * again. Three presets and the way out stay inside `MaxSegments`, so both rows draw as segments rather than
+ * one of them falling back to a dropdown.
+ *
+ * @param customWord the way out's name while a preset is in force.
+ */
+@Composable
+private fun DurationPresetRow(
+    title: String,
+    presets: List<Int>,
+    minutes: Int,
+    customWord: String,
+    onSelect: (Int) -> Unit,
+    onCustom: () -> Unit,
+) {
+    ChoiceRow(
+        title = title,
+        options = presets.map { it to durationLabel(it) } +
+            (CustomMinutes to if (minutes in presets) customWord else durationLabel(minutes)),
+        selected = minutes.takeIf { it in presets } ?: CustomMinutes,
+        onSelect = { picked -> if (picked == CustomMinutes) onCustom() else onSelect(picked) },
+        onReselect = { picked -> if (picked == CustomMinutes) onCustom() },
+    )
+}
+
 /** The reminder leads offered as one tap. Anything else is reachable through [CustomMinutes]. */
 private val LeadPresets = listOf(30, 60, 120)
 
@@ -761,29 +743,14 @@ private fun WeekdayRow(
             text = {
                 Column {
                     DayOfWeek.entries.forEach { day ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                // The whole row, not just the button: a 20dp radio is not a touch target.
-                                // One control, so TalkBack stops once per day, not twice.
-                                .outsetRowPress { source ->
-                                    Modifier.selectable(
-                                        selected = day == selected,
-                                        interactionSource = source,
-                                        indication = null,
-                                        role = Role.RadioButton,
-                                    ) {
-                                        onSet(day.value)
-                                        picking = false
-                                    }
-                                }
-                                .heightIn(min = MinTouchTarget)
-                                .padding(vertical = Spacing.tight),
-                        ) {
-                            RadioButton(selected = day == selected, onClick = null)
-                            Text(names[day.value - 1], Modifier.padding(start = Spacing.inline))
-                        }
+                        DialogRadioRow(
+                            label = names[day.value - 1],
+                            selected = day == selected,
+                            onClick = {
+                                onSet(day.value)
+                                picking = false
+                            },
+                        )
                     }
                 }
             },
@@ -867,15 +834,10 @@ private fun MoneyRow(
     )
     if (editing) {
         // Opens on the amount currently set, so editing it is a correction rather than a re-entry.
-        // OPTIONAL_RATE is what makes clearing the box mean "not set" rather than being invalid.
-        var field by remember {
-            mutableStateOf(
-                MoneyField(
-                    text = amount?.toAmountInput() ?: "",
-                    kind = MoneyField.Kind.OPTIONAL_RATE,
-                ),
-            )
-        }
+        // OPTIONAL_RATE is what makes clearing the box mean "not set" rather than being invalid. The text is
+        // saveable and the field derived from it, as every typed dialog field is.
+        var text by rememberSaveable { mutableStateOf(amount?.toAmountInput().orEmpty()) }
+        val field = MoneyField(text, MoneyField.Kind.OPTIONAL_RATE)
         AlertDialog(
             onDismissRequest = { editing = false },
             // The rule every dialog the tutor types into follows: a stray tap beside the box must not
@@ -884,17 +846,13 @@ private fun MoneyRow(
             properties = KeepTypedInput,
             title = { Text(title) },
             text = {
-                OutlinedTextField(
-                    value = field.text,
-                    onValueChange = { field = field.typed(it) },
-                    label = { Text(stringResource(R.string.price_label)) },
-                    isError = field.isError,
-                    supportingText = supportingTextOf(moneyErrorText(field)),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    // Like every other one-field dialog: full width, and the caret already in it, since a
-                    // price is the only thing it is opened to do.
-                    modifier = Modifier.fillMaxWidth().focusRequester(rememberRevealedFocus()),
+                MoneyTextField(
+                    field = field,
+                    onValueChange = { text = it },
+                    label = stringResource(R.string.price_label),
+                    // Like every other one-field dialog: the caret already in it, since a price is the only
+                    // thing it is opened to do.
+                    modifier = Modifier.focusRequester(rememberRevealedFocus()),
                 )
             },
             confirmButton = {

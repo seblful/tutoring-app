@@ -1,0 +1,85 @@
+package com.seblful.klas.ui.common
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
+import com.seblful.klas.R
+
+/**
+ * The parts the app's dropdown menus share: an entry that marks the one in force, and the «⋮» a card keeps
+ * its lifecycle actions behind.
+ */
+
+/**
+ * A menu entry that may be **the one in force** — a sort order, a report's period, a filter, a card's list.
+ *
+ * The tick is a picture; `selected` is what a screen reader says — «выбрано» — about the entry. Four menus
+ * drew the tick and two of them stopped there, so «Сортировка» and the report's period read every entry
+ * the same way to somebody who could not see which one was ticked. Both halves live here so the next menu
+ * that ticks cannot draw one without the other (`TickedMenuSurfaceTest`).
+ *
+ * The trailing slot is there whether or not the entry is ticked, so every entry's text ends at one edge
+ * and only the selected one fills the column.
+ *
+ * @param leadingIcon an entry's glyph, where a menu mixes kinds (a student, a group) or names views.
+ */
+@Composable
+fun TickedMenuItem(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    leadingIcon: (@Composable () -> Unit)? = null,
+) {
+    DropdownMenuItem(
+        text = { Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        onClick = onClick,
+        leadingIcon = leadingIcon,
+        trailingIcon = { if (selected) Icon(Icons.Filled.Check, contentDescription = null) },
+        modifier = Modifier.semantics { this.selected = selected },
+    )
+}
+
+/**
+ * «⋮» in a card's bar, and the menu it opens — where a student's and a group's lifecycle actions sit, one
+ * step back from the pencil rather than beside it.
+ *
+ * @param items the entries, given the `close` that shuts the menu: an entry that acted and left the menu
+ *   open would leave the tutor tapping beside it to get rid of it.
+ */
+@Composable
+fun OverflowMenu(items: @Composable ColumnScope.(close: () -> Unit) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        NamedIconButton(Icons.Filled.MoreVert, stringResource(R.string.action_more), onClick = { expanded = true })
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            items { expanded = false }
+        }
+    }
+}
+
+/** Retiring a student or a group, or bringing one back — named by what a tap would do now. */
+@Composable
+fun ArchiveMenuItem(archived: Boolean, onClick: () -> Unit) {
+    DropdownMenuItem(
+        text = { Text(stringResource(if (archived) R.string.action_unarchive else R.string.action_archive)) },
+        leadingIcon = { Icon(Icons.Filled.Inventory2, contentDescription = null) },
+        onClick = onClick,
+    )
+}

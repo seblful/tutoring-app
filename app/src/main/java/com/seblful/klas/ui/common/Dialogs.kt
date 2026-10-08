@@ -2,13 +2,18 @@ package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -16,11 +21,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.window.DialogProperties
@@ -97,44 +103,17 @@ fun StudentEditDialog(
                 Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(Spacing.inline),
             ) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.student_name_label)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Words,
-                        imeAction = ImeAction.Next,
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = phone,
-                    onValueChange = { phone = it },
-                    label = { Text(stringResource(R.string.student_phone_label)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text(stringResource(R.string.student_email_label)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = note,
-                    onValueChange = { note = it },
-                    label = { Text(stringResource(R.string.student_note_label)) },
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                ModeField(
-                    label = stringResource(R.string.student_mode_label),
-                    selected = mode,
-                    onSelect = { mode = it },
+                StudentContactFields(
+                    name = name,
+                    onName = { name = it },
+                    phone = phone,
+                    onPhone = { phone = it },
+                    email = email,
+                    onEmail = { email = it },
+                    note = note,
+                    onNote = { note = it },
+                    mode = mode,
+                    onMode = { mode = it },
                 )
             }
         },
@@ -195,4 +174,58 @@ fun TextFieldDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
+}
+/**
+ * A dialog that **tells** rather than asks: what happened, and «ОК» — a booking that skipped some dates,
+ * an hour already taken, the typeface's licence.
+ *
+ * One button, because there is nothing to decide: the thing it reports has already happened or been
+ * refused, and a «Отмена» beside «ОК» would offer to cancel a fact.
+ */
+@Composable
+fun NoticeDialog(
+    onDismiss: () -> Unit,
+    title: String? = null,
+    text: @Composable () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = title?.let { { Text(it) } },
+        text = text,
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_ok)) } },
+    )
+}
+/** [NoticeDialog] for a notice that is one string. */
+@Composable
+fun NoticeDialog(text: String, onDismiss: () -> Unit, title: String? = null) {
+    NoticeDialog(onDismiss = onDismiss, title = title) { Text(text) }
+}
+/**
+ * One option of a one-of-many choice inside a dialog — a weekday, a subject to add.
+ *
+ * The **row** is the control and the radio only its picture: a 20 dp radio is not a touch target, and a
+ * second target of its own made TalkBack stop twice on every option. The radio sits flush with the
+ * dialog's text, so the press reaches out past it ([outsetRowPress]) rather than cutting through it.
+ */
+@Composable
+fun DialogRadioRow(label: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .outsetRowPress { source ->
+                Modifier.selectable(
+                    selected = selected,
+                    interactionSource = source,
+                    indication = null,
+                    role = Role.RadioButton,
+                    onClick = onClick,
+                )
+            }
+            .heightIn(min = MinTouchTarget)
+            .padding(vertical = Spacing.tight),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = null)
+        Text(label, Modifier.padding(start = Spacing.inline))
+    }
 }

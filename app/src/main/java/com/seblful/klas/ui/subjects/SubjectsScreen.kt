@@ -2,7 +2,6 @@ package com.seblful.klas.ui.subjects
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -12,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,7 +33,8 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
-import com.seblful.klas.ui.common.FabClearance
+import com.seblful.klas.ui.common.FabListPadding
+import com.seblful.klas.ui.common.NoSearchResults
 import com.seblful.klas.ui.common.IconAvatar
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
@@ -98,11 +97,7 @@ fun SubjectsScreen(
                 is Loadable.Ready -> {
                     val subjects = state.value
                     when {
-                        subjects.isEmpty() && query.isNotBlank() -> EmptyState(
-                            title = stringResource(R.string.search_no_results),
-                            detail = stringResource(R.string.search_no_results_detail),
-                            icon = Icons.Outlined.SearchOff,
-                        )
+                        subjects.isEmpty() && query.isNotBlank() -> NoSearchResults()
 
                         subjects.isEmpty() -> EmptyState(
                             title = stringResource(R.string.subjects_empty),
@@ -119,13 +114,8 @@ fun SubjectsScreen(
                         // sat crushed against the trailing edge.
                         else -> LazyColumn(
                             Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(
-                                start = Spacing.gutter,
-                                top = Spacing.gutter,
-                                end = Spacing.gutter,
-                                // Past the add button, so it never sits on the last row.
-                                bottom = FabClearance,
-                            ),
+                            // Past the add button, so it never sits on the last row.
+                            contentPadding = FabListPadding,
                             verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
                         ) {
                             items(subjects, key = { it.id }) { subject ->
@@ -167,23 +157,13 @@ fun SubjectsScreen(
     }
 
     if (adding) {
-        TextFieldDialog(
-            title = stringResource(R.string.subject_add_title),
-            label = stringResource(R.string.subject_name_label),
-            capitalization = KeyboardCapitalization.Sentences,
-            initial = "",
-            onConfirm = { viewModel.save(0, it) },
-            onDismiss = { adding = false },
-        )
+        SubjectNameDialog(onConfirm = { viewModel.save(0, it) }, onDismiss = { adding = false })
     }
     editing?.let { subject ->
-        TextFieldDialog(
-            title = stringResource(R.string.subject_edit_title),
-            label = stringResource(R.string.subject_name_label),
-            capitalization = KeyboardCapitalization.Sentences,
-            initial = subject.name,
+        SubjectNameDialog(
             onConfirm = { viewModel.save(subject.id, it) },
             onDismiss = { editing = null },
+            renaming = subject.name,
         )
     }
     deleting?.let { subject ->
@@ -194,6 +174,23 @@ fun SubjectsScreen(
             onDismiss = { deleting = null },
         )
     }
+}
+
+/**
+ * Naming a subject — a new one, or [renaming] an existing one. The same question wherever a subject can be
+ * made: this list, the student form's «Добавить предмет» and first run's subjects step; the three spelled
+ * out the same title, label and capitalisation, the last of them being a subject's name is written as one.
+ */
+@Composable
+fun SubjectNameDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit, renaming: String? = null) {
+    TextFieldDialog(
+        title = stringResource(if (renaming == null) R.string.subject_add_title else R.string.subject_edit_title),
+        label = stringResource(R.string.subject_name_label),
+        capitalization = KeyboardCapitalization.Sentences,
+        initial = renaming.orEmpty(),
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+    )
 }
 
 /**

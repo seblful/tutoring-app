@@ -14,8 +14,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
@@ -152,11 +150,7 @@ fun KlasScreen(
 
     val barNavigation: @Composable () -> Unit = {
         if (onBack != null) {
-            HoldToName(stringResource(R.string.action_back)) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
-                }
-            }
+            NamedIconButton(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back), onClick = onBack)
         }
     }
 
@@ -164,18 +158,14 @@ fun KlasScreen(
         if (openSearch != null) {
             // Closing search clears it. The screen's own actions stay hidden while the box is open —
             // the bar is one row, and a search field plus three icons is not a row.
-            HoldToName(stringResource(R.string.search_close)) {
-                IconButton(onClick = { searching = false; openSearch.onClose() }) {
-                    Icon(Icons.Filled.SearchOff, stringResource(R.string.search_close))
-                }
-            }
+            NamedIconButton(
+                Icons.Filled.SearchOff,
+                stringResource(R.string.search_close),
+                onClick = { searching = false; openSearch.onClose() },
+            )
         } else {
             if (search != null) {
-                HoldToName(stringResource(R.string.action_search)) {
-                    IconButton(onClick = { searching = true }) {
-                        Icon(Icons.Filled.Search, stringResource(R.string.action_search))
-                    }
-                }
+                NamedIconButton(Icons.Filled.Search, stringResource(R.string.action_search), onClick = { searching = true })
             }
             actions()
         }

@@ -5,20 +5,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.EventBusy
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.Recurrence
@@ -50,15 +43,17 @@ import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.LoadingFormScreen
 import com.seblful.klas.ui.common.MemberPickRow
 import com.seblful.klas.ui.common.ModeField
+import com.seblful.klas.ui.common.MoneyTextField
+import com.seblful.klas.ui.common.NoticeDialog
+import com.seblful.klas.ui.common.PresetChips
 import com.seblful.klas.ui.common.PickerField
 import com.seblful.klas.ui.common.SaveAction
 import com.seblful.klas.ui.common.SegmentedChoice
+import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.leaveGuard
-import com.seblful.klas.ui.common.moneyErrorText
 import com.seblful.klas.ui.common.rememberMessages
-import com.seblful.klas.ui.common.supportingTextOf
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.format.formatDate
 import java.time.LocalDate
@@ -113,15 +108,21 @@ private fun ClassEditForm(
     val noMembersMsg = stringResource(R.string.class_group_no_members_left)
     val allTakenMsg = stringResource(R.string.class_series_refused_all_taken)
     val saveFailedMsg = stringResource(R.string.save_failed)
-    LaunchedEffect(Unit) {
-        viewModel.events.stream.collect { event ->
-            val message = when (event) {
-                ClassEditViewModel.Event.SAVE_REFUSED_TIME_TAKEN -> timeTakenMsg
-                ClassEditViewModel.Event.SAVE_REFUSED_NO_MEMBERS -> noMembersMsg
-                ClassEditViewModel.Event.SERIES_REFUSED_ALL_TAKEN -> allTakenMsg
-                ClassEditViewModel.Event.SAVE_FAILED -> saveFailedMsg
-            }
-            messages.show(message)
+    ShowMessagesFor(
+        viewModel.events,
+        messages,
+        // The hour being taken is the app's one hard "no" — felt here as it is on the schedule. A save that
+        // merely failed is not a refusal, and a lesson left with nobody in it is a form not finished yet.
+        refused = { event ->
+            event == ClassEditViewModel.Event.SAVE_REFUSED_TIME_TAKEN ||
+                event == ClassEditViewModel.Event.SERIES_REFUSED_ALL_TAKEN
+        },
+    ) { event ->
+        when (event) {
+            ClassEditViewModel.Event.SAVE_REFUSED_TIME_TAKEN -> timeTakenMsg
+            ClassEditViewModel.Event.SAVE_REFUSED_NO_MEMBERS -> noMembersMsg
+            ClassEditViewModel.Event.SERIES_REFUSED_ALL_TAKEN -> allTakenMsg
+            ClassEditViewModel.Event.SAVE_FAILED -> saveFailedMsg
         }
     }
 
@@ -265,11 +266,7 @@ private fun ClassEditForm(
             }
             state.conflict?.let { conflict ->
                 Text(
-                    stringResource(
-                        R.string.class_time_conflict,
-                        conflict.who,
-                        "${conflict.slot.start.timeText()} – ${conflict.slot.end.timeText()}",
-                    ),
+                    timeConflictText(conflict),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -353,24 +350,15 @@ private fun ClassEditForm(
             //
             // The label is the only thing that still differs, because the question does: a group's rate
             // is the group's, a student's is theirs for this subject.
-            OutlinedTextField(
-                value = form.price.text,
+            MoneyTextField(
+                field = form.price,
                 onValueChange = { text ->
                     viewModel.change(BookingIntent.Edit { it.copy(price = it.price.typed(text)) })
                 },
-                label = {
-                    Text(
-                        stringResource(
-                            if (form.target == ClassTarget.GROUP) R.string.class_group_price_label
-                            else R.string.price_label
-                        )
-                    )
-                },
-                isError = form.price.isError,
-                supportingText = supportingTextOf(moneyErrorText(form.price)),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                label = stringResource(
+                    if (form.target == ClassTarget.GROUP) R.string.class_group_price_label
+                    else R.string.price_label
+                ),
             )
 
             // Never folded either, and for its own reason: a mode is not a rate the tutor already
@@ -433,11 +421,10 @@ private fun ClassEditForm(
     // which dates were skipped — that is the whole reason the save held the navigation.
     seriesOutcome?.let { outcome ->
         val leave = { viewModel.acknowledgeSeries(); onBack() }
-        AlertDialog(
-            onDismissRequest = leave,
-            title = { Text(stringResource(R.string.class_series_title)) },
-            text = { Text(seriesOutcomeText(outcome)) },
-            confirmButton = { TextButton(onClick = leave) { Text(stringResource(R.string.action_ok)) } },
+        NoticeDialog(
+            text = seriesOutcomeText(outcome),
+            onDismiss = leave,
+            title = stringResource(R.string.class_series_title),
         )
     }
 
@@ -511,22 +498,14 @@ private fun DurationPicker(
                 )
             }
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-            options.forEach { minutes ->
-                FilterChip(
-                    selected = minutes == selected,
-                    onClick = { onSelect(minutes) },
-                    label = { Text(durationLabel(minutes)) },
-                )
-            }
-            // Selected when the chosen length is not one of the offered ones — otherwise editing a
-            // lesson booked at 50 minutes would show no chip lit and look like nothing was set.
-            FilterChip(
-                selected = selected != null && selected !in options,
-                onClick = onCustom,
-                label = { Text(stringResource(R.string.class_duration_custom)) },
-            )
-        }
+        PresetChips(
+            presets = options,
+            selected = selected,
+            label = { minutes -> durationLabel(minutes) },
+            customLabel = stringResource(R.string.class_duration_custom),
+            onSelect = onSelect,
+            onCustom = onCustom,
+        )
     }
 }
 
@@ -587,23 +566,14 @@ private fun RepeatPicker(
                 stringResource(R.string.class_repeat_count_label),
                 style = MaterialTheme.typography.labelLarge,
             )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-                Recurrence.COMMON_COUNTS.forEach { option ->
-                    FilterChip(
-                        selected = option == count,
-                        onClick = { onCount(option) },
-                        label = { Text(option.toString()) },
-                    )
-                }
-                // Lit when the chosen count is not one of the offered ones — otherwise a booking of six
-                // would show no chip selected and read as nothing having been set, the same rule the
-                // duration chips follow.
-                FilterChip(
-                    selected = count !in Recurrence.COMMON_COUNTS,
-                    onClick = onCustomCount,
-                    label = { Text(stringResource(R.string.class_repeat_count_custom)) },
-                )
-            }
+            PresetChips(
+                presets = Recurrence.COMMON_COUNTS,
+                selected = count,
+                label = { option -> option.toString() },
+                customLabel = stringResource(R.string.class_repeat_count_custom),
+                onSelect = onCount,
+                onCustom = onCustomCount,
+            )
         }
     }
 }

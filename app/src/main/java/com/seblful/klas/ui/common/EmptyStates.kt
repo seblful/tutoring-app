@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -20,9 +21,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.seblful.klas.R
 
 /**
  * What a list says when it has nothing in it — and, where there is one obvious thing to do, that action as a
@@ -125,6 +128,20 @@ fun EmptyState(
             }
         }
     }
+}
+/**
+ * A list empty because **nothing matched the search** — the one empty state with no action: the way out
+ * is the field the tutor is already typing in. "Nothing matched «зщ»" is a typo to fix; offering to
+ * create a student, a group or a subject there would answer a question nobody asked.
+ */
+@Composable
+fun NoSearchResults(modifier: Modifier = Modifier) {
+    EmptyState(
+        title = stringResource(R.string.search_no_results),
+        detail = stringResource(R.string.search_no_results_detail),
+        icon = Icons.Outlined.SearchOff,
+        modifier = modifier,
+    )
 }
 /**
  * The one way to add to a tab's list, sitting at its top where a section header's action used to.

@@ -5,14 +5,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.Text
@@ -24,8 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
 
@@ -60,26 +55,19 @@ fun <T> FilterMenuAction(
 ) {
     var open by remember { mutableStateOf(false) }
     Box {
-        HoldToName(name) {
-            IconButton(onClick = { open = true }) {
-                Icon(Icons.Filled.FilterList, name)
-            }
-        }
+        NamedIconButton(Icons.Filled.FilterList, name, onClick = { open = true })
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            // The tick is a picture; `selected` is what a screen reader says — «выбрано» — about the entry.
-            DropdownMenuItem(
-                text = { Text(allLabel) },
+            TickedMenuItem(
+                text = allLabel,
+                selected = !narrowed,
                 onClick = { onSelect(null); open = false },
-                trailingIcon = { if (!narrowed) Icon(Icons.Filled.Check, null) },
-                modifier = Modifier.semantics { this.selected = !narrowed },
             )
             options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(optionLabel(option), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                TickedMenuItem(
+                    text = optionLabel(option),
+                    selected = selected == option,
                     onClick = { onSelect(option); open = false },
                     leadingIcon = leading?.let { draw -> { draw(option) } },
-                    trailingIcon = { if (selected == option) Icon(Icons.Filled.Check, null) },
-                    modifier = Modifier.semantics { this.selected = selected == option },
                 )
             }
         }

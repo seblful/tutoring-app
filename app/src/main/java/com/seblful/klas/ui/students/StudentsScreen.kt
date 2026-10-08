@@ -2,7 +2,6 @@ package com.seblful.klas.ui.students
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,7 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,13 +18,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.Avatar
+import com.seblful.klas.ui.common.ArchivedBadge
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
-import com.seblful.klas.ui.common.FabClearance
+import com.seblful.klas.ui.common.FabListPadding
+import com.seblful.klas.ui.common.NoSearchResults
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.balanceColor
 import com.seblful.klas.ui.common.balanceDescription
@@ -69,12 +68,7 @@ fun StudentsList(
         // "Nothing matched «зщ»" is a typo to fix; "no students yet" is an invitation. Offering to
         // create a student in the first case would be answering a question nobody asked.
         if (searching) {
-            EmptyState(
-                title = stringResource(R.string.search_no_results),
-                detail = stringResource(R.string.search_no_results_detail),
-                icon = Icons.Outlined.SearchOff,
-                modifier = modifier,
-            )
+            NoSearchResults(modifier)
         } else {
             EmptyState(
                 title = stringResource(R.string.students_empty),
@@ -89,13 +83,8 @@ fun StudentsList(
     }
     LazyColumn(
         modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            start = Spacing.gutter,
-            top = Spacing.gutter,
-            end = Spacing.gutter,
-            // Past the add button, so it never sits on the last row.
-            bottom = FabClearance,
-        ),
+        // Past the add button, so it never sits on the last row.
+        contentPadding = FabListPadding,
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         items(rows, key = { it.student.id }) { row ->
@@ -116,20 +105,13 @@ fun StudentsList(
                             color = balanceColor(row.state),
                         )
                     }
-                    // A [StatusBadge], like every other state the app shows. This was an italic grey
-                    // word — the one place a state was said in a *font style* rather than in the pill
-                    // the lesson statuses use, so «в архиве» read as an aside about the row rather than
-                    // as a fact about the student, and the emphasis carried nothing to a screen reader.
-                    //
-                    // Still grey, deliberately: archiving is not one of the three lesson statuses
-                    // (`classStatusColor`), and a retired student must not borrow the red a debt is
-                    // written in. It is the pill that was missing, not the colour.
+                    // A badge, like every other state the app shows. This was an italic grey word — the one
+                    // place a state was said in a *font style* rather than in the pill the lesson statuses
+                    // use, so «в архиве» read as an aside about the row rather than as a fact about the
+                    // student, and the emphasis carried nothing to a screen reader.
                     if (row.student.archived) {
                         Spacer(Modifier.width(Spacing.inline))
-                        StatusBadge(
-                            text = stringResource(R.string.student_archived_badge),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        ArchivedBadge()
                     }
                 }
             }

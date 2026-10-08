@@ -11,13 +11,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -29,9 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
@@ -42,17 +37,16 @@ import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.MinTouchTarget
-import com.seblful.klas.ui.common.ModeField
+import com.seblful.klas.ui.common.MoneyTextField
 import com.seblful.klas.ui.common.SaveAction
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.TextFieldDialog
+import com.seblful.klas.ui.common.StudentContactFields
 import com.seblful.klas.ui.common.leaveGuard
-import com.seblful.klas.ui.common.moneyErrorText
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberMessages
-import com.seblful.klas.ui.common.supportingTextOf
+import com.seblful.klas.ui.subjects.SubjectNameDialog
 
 /** Full-screen "add student" with required subjects + prices. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,46 +98,17 @@ fun StudentFormContent(
             .padding(Spacing.gutter),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
-        OutlinedTextField(
-            value = form.name,
-            onValueChange = { v -> viewModel.update { it.copy(name = v) } },
-            label = { Text(stringResource(R.string.student_name_label)) },
-            // Said as a hint, not an error, as the group form says it: a blank name on a form that has
-            // just opened is incomplete rather than wrong — but the greyed «Сохранить» should have a reason.
-            supportingText = supportingTextOf(
-                hint = stringResource(R.string.field_required).takeIf { form.name.isBlank() },
-            ),
-            singleLine = true,
-            keyboardOptions = NameKeyboard,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = form.phone,
-            onValueChange = { v -> viewModel.update { it.copy(phone = v) } },
-            label = { Text(stringResource(R.string.student_phone_label)) },
-            singleLine = true,
-            keyboardOptions = PhoneKeyboard,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = form.email,
-            onValueChange = { v -> viewModel.update { it.copy(email = v) } },
-            label = { Text(stringResource(R.string.student_email_label)) },
-            singleLine = true,
-            keyboardOptions = EmailKeyboard,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = form.note,
-            onValueChange = { v -> viewModel.update { it.copy(note = v) } },
-            label = { Text(stringResource(R.string.student_note_label)) },
-            keyboardOptions = NoteKeyboard,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        ModeField(
-            label = stringResource(R.string.student_mode_label),
-            selected = form.mode,
-            onSelect = { m -> viewModel.update { it.copy(mode = m) } },
+        StudentContactFields(
+            name = form.name,
+            onName = { v -> viewModel.update { it.copy(name = v) } },
+            phone = form.phone,
+            onPhone = { v -> viewModel.update { it.copy(phone = v) } },
+            email = form.email,
+            onEmail = { v -> viewModel.update { it.copy(email = v) } },
+            note = form.note,
+            onNote = { v -> viewModel.update { it.copy(note = v) } },
+            mode = form.mode,
+            onMode = { m -> viewModel.update { it.copy(mode = m) } },
         )
 
         HorizontalDivider(Modifier.padding(vertical = Spacing.tight))
@@ -223,19 +188,13 @@ private fun SubjectPrices(
                     Text(subject.name, Modifier.padding(start = Spacing.inline))
                 }
                 if (selected) {
-                    OutlinedTextField(
-                        value = price.text,
+                    MoneyTextField(
+                        field = price,
                         onValueChange = { viewModel.setPriceText(subject.id, it) },
-                        label = { Text(stringResource(R.string.price_label)) },
-                        isError = price.isError,
-                        supportingText = supportingTextOf(moneyErrorText(price)),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        label = stringResource(R.string.price_label),
                         // Indented to the width the checkbox takes, so the field sits under the
                         // name it prices rather than under the tick.
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = PriceFieldIndent, top = Spacing.tight),
+                        modifier = Modifier.padding(start = PriceFieldIndent, top = Spacing.tight),
                     )
                 }
             }
@@ -243,14 +202,7 @@ private fun SubjectPrices(
     }
     AddRow(stringResource(R.string.subjects_add), onClick = { addingSubject = true })
     if (addingSubject) {
-        TextFieldDialog(
-            title = stringResource(R.string.subject_add_title),
-            label = stringResource(R.string.subject_name_label),
-            initial = "",
-            capitalization = KeyboardCapitalization.Sentences,
-            onConfirm = viewModel::addSubject,
-            onDismiss = { addingSubject = false },
-        )
+        SubjectNameDialog(onConfirm = viewModel::addSubject, onDismiss = { addingSubject = false })
     }
 }
 
@@ -264,10 +216,3 @@ private val PriceFieldIndent = MinTouchTarget + Spacing.inline
 
 /** A tick and a subject name — the row the skeleton stands in for while the subjects are being read. */
 private val SubjectRowHeight = MinTouchTarget
-
-// Each field's keyboard says what goes in it, and «Далее» walks down the form: a name capitalised as one,
-// a note as sentences.
-private val NameKeyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next)
-private val PhoneKeyboard = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next)
-private val EmailKeyboard = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
-private val NoteKeyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)

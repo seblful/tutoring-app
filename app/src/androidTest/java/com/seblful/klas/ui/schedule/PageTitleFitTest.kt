@@ -26,8 +26,8 @@ import org.junit.Test
  *
  * «Понедельник, 21 сент…» was the Day view's title on a 6.1" phone at the default font size: the one
  * thing the stepper is for — which day this is — lost its month to an ellipsis. The title now shrinks to
- * fit first. Font scale is pinned to 1, as in `StatRowAutoSizeTest`: this is about the layout, and the
- * device's own font setting would otherwise decide whether it holds.
+ * fit first. Font scale is set by the test rather than read from the device, which would otherwise decide
+ * whether it holds; it covers the default and 1.3×, where a floor in sp rose with the scale and cut it again.
  */
 @HiltAndroidTest
 class PageTitleFitTest {
@@ -43,17 +43,22 @@ class PageTitleFitTest {
         val complaints = mutableListOf<String>()
         val shown = mutableStateOf(LongestTitles.first())
         val width = mutableStateOf(Widths.first())
-        composeRule.setNavigator(shown, width)
-        LongestTitles.forEach { title ->
-            Widths.forEach { candidate ->
-                composeRule.runOnIdle {
-                    shown.value = title
-                    width.value = candidate
+        val fontScale = mutableStateOf(FontScales.first())
+        composeRule.setNavigator(shown, width, fontScale)
+        FontScales.forEach { scale ->
+            LongestTitles.forEach { title ->
+                Widths.forEach { candidate ->
+                    composeRule.runOnIdle {
+                        fontScale.value = scale
+                        shown.value = title
+                        width.value = candidate
+                    }
+                    composeRule.waitForIdle()
+                    val layout = composeRule.textLayoutOf(title)
+                    val where = "$candidate, font scale $scale"
+                    if (layout.lineCount != 1) complaints += "«$title» takes ${layout.lineCount} lines at $where"
+                    if (layout.isLineEllipsized(0)) complaints += "«$title» is cut short at $where"
                 }
-                composeRule.waitForIdle()
-                val layout = composeRule.textLayoutOf(title)
-                if (layout.lineCount != 1) complaints += "«$title» takes ${layout.lineCount} lines at $candidate"
-                if (layout.isLineEllipsized(0)) complaints += "«$title» is cut short at $candidate"
             }
         }
         assertTrue(complaints.joinToString(prefix = "\n", separator = "\n"), complaints.isEmpty())
@@ -72,10 +77,14 @@ class PageTitleFitTest {
         assertEquals(narrow, composeRule.textLayoutOf(SHORT_TITLE).size.width)
     }
 
-    private fun ComposeContentTestRule.setNavigator(title: MutableState<String>, width: MutableState<Dp>) {
+    private fun ComposeContentTestRule.setNavigator(
+        title: MutableState<String>,
+        width: MutableState<Dp>,
+        fontScale: MutableState<Float> = mutableStateOf(1f),
+    ) {
         setContent {
             val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1f)) {
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = fontScale.value)) {
                 KlasTheme {
                     Box(Modifier.width(width.value)) {
                         PageNavigator(
@@ -97,6 +106,9 @@ class PageTitleFitTest {
         val NarrowPhone = 320.dp
         val LargePhone = 411.dp
         val Widths = listOf(NarrowPhone, 360.dp, LargePhone)
+
+        /** The default, and the larger-text step many people use — where the floor's unit showed. */
+        val FontScales = listOf(1f, 1.3f)
 
         /** The longest weekday with the longest genitive month, in both languages the app speaks. */
         val LongestTitles = listOf("Понедельник, 30 сентября", "Wednesday, 30 September")

@@ -5,8 +5,10 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -84,14 +86,31 @@ fun rememberMessages(): Messages {
  *
  * [words] is an ordinary lambda, not a `@Composable` one, because a `stringResource` cannot be read
  * from inside the collector's coroutine. Resolve the strings above the call — which is what every screen
- * already did.
+ * already did — or, for a plural whose count the event carries, read it from the context's resources in
+ * the lambda. The newest [words] is the one used, so a message arriving after the language was changed on
+ * the screen is worded in the new one rather than in whatever was in force when the collector started.
+ *
+ * @param refused which events are the app saying **no** to something just asked for — a save refused
+ *   because the hour is taken. Those are felt as well as read ([rememberRejectFeedback]); a failure is not
+ *   a refusal, and stays silent.
  *
  * A screen that does more than show a string per event (an undo action, a navigation) keeps its own
- * collector; this is for the eight that do not.
+ * collector; this is for the eleven that do not.
  */
 @Composable
-fun <T> ShowMessagesFor(events: UiEvents<T>, messages: Messages, words: (T) -> String) {
+fun <T> ShowMessagesFor(
+    events: UiEvents<T>,
+    messages: Messages,
+    refused: (T) -> Boolean = { false },
+    words: (T) -> String,
+) {
+    val reject = rememberRejectFeedback()
+    val currentWords by rememberUpdatedState(words)
+    val currentRefused by rememberUpdatedState(refused)
     LaunchedEffect(events, messages) {
-        events.stream.collect { messages.show(words(it)) }
+        events.stream.collect { event ->
+            if (currentRefused(event)) reject()
+            messages.show(currentWords(event))
+        }
     }
 }

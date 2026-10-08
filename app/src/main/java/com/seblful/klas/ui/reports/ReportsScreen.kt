@@ -28,8 +28,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -37,11 +35,9 @@ import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.QueryStats
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -70,30 +66,31 @@ import com.seblful.klas.R
 import com.seblful.klas.domain.ReportCsv
 import com.seblful.klas.domain.ReportPeriod
 import com.seblful.klas.domain.Reports
-import com.seblful.klas.format.formatHours
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatMonthName
 import com.seblful.klas.storage.DocumentRef
-import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.HeroCard
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.MinTouchTarget
+import com.seblful.klas.ui.common.NamedIconButton
+import com.seblful.klas.ui.common.PageStepper
 import com.seblful.klas.ui.common.ScreenHeader
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatRow
-import com.seblful.klas.ui.common.bleed
+import com.seblful.klas.ui.common.TickedMenuItem
 import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.valueOrNull
 import com.seblful.klas.ui.common.lessonKindFill
 import com.seblful.klas.ui.common.lessonKindLabel
 import com.seblful.klas.ui.common.lessonsStat
+import com.seblful.klas.ui.common.hoursStat
+import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.navigation.Arrival
 import kotlinx.coroutines.flow.first
@@ -192,23 +189,16 @@ fun ReportsScreen(
                 // actually doing with a month is sending it — to an accountant, or to their own mail so
                 // it is somewhere other than this phone. Both stay: a file kept and a file sent are
                 // different acts, and the share sheet cannot put one on the SD card.
-                HoldToName(stringResource(R.string.reports_share)) {
-                    IconButton(
-                        onClick = {
-                            viewModel.share(shareFilename(period), shareSubject, csvHeader, csvLines)
-                        },
-                    ) {
-                        Icon(Icons.Filled.Share, stringResource(R.string.reports_share))
-                    }
-                }
-                HoldToName(stringResource(R.string.reports_export)) {
-                    IconButton(onClick = { exportLauncher.launchExternally(exportFilename, noPickerMsg, messages) }) {
-                        Icon(
-                            Icons.Filled.FileDownload,
-                            stringResource(R.string.reports_export),
-                        )
-                    }
-                }
+                NamedIconButton(
+                    Icons.Filled.Share,
+                    stringResource(R.string.reports_share),
+                    onClick = { viewModel.share(shareFilename(period), shareSubject, csvHeader, csvLines) },
+                )
+                NamedIconButton(
+                    Icons.Filled.FileDownload,
+                    stringResource(R.string.reports_export),
+                    onClick = { exportLauncher.launchExternally(exportFilename, noPickerMsg, messages) },
+                )
             }
         },
     ) { modifier ->
@@ -350,14 +340,14 @@ private fun PeriodNavigator(
     onKind: (ReportPeriod.Kind) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = Spacing.inline),
-        verticalAlignment = Alignment.CenterVertically,
+    PageStepper(
+        previousDescription = stringResource(R.string.reports_previous_period),
+        nextDescription = stringResource(R.string.reports_next_period),
+        onPrevious = onPrevious,
+        onNext = onNext,
+        enabled = period.isNavigable,
     ) {
-        IconButton(onClick = onPrevious, enabled = period.isNavigable) {
-            Icon(Icons.Filled.ChevronLeft, stringResource(R.string.reports_previous_period))
-        }
-        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+        Box {
             TextButton(onClick = { expanded = true }) {
                 Text(
                     periodTitle(period),
@@ -369,19 +359,13 @@ private fun PeriodNavigator(
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 ReportPeriod.Kind.entries.forEach { kind ->
-                    DropdownMenuItem(
-                        text = { Text(stringResource(periodKindLabel(kind))) },
+                    TickedMenuItem(
+                        text = stringResource(periodKindLabel(kind)),
+                        selected = kind == period.kind,
                         onClick = { onKind(kind); expanded = false },
-                        trailingIcon = {
-                            // Only the active width is ticked; the others leave the column empty.
-                            if (kind == period.kind) Icon(Icons.Filled.Check, contentDescription = null)
-                        },
                     )
                 }
             }
-        }
-        IconButton(onClick = onNext, enabled = period.isNavigable) {
-            Icon(Icons.Filled.ChevronRight, stringResource(R.string.reports_next_period))
         }
     }
 }
@@ -420,10 +404,6 @@ private fun periodKindLabel(kind: ReportPeriod.Kind): Int = when (kind) {
     ReportPeriod.Kind.YEAR -> R.string.reports_period_year
     ReportPeriod.Kind.ALL -> R.string.reports_period_all
 }
-
-@Composable
-private fun hoursStat(minutes: Int): Stat =
-    Stat(label = stringResource(R.string.stat_hours), value = formatHours(minutes))
 
 /**
  * The screen's answer, in the loudest colour it has: what the chosen period earned — and whether that
@@ -778,11 +758,8 @@ private fun AmountRow(
                     // put the debts' names a step to the right of every other label on the screen. It is
                     // taken from the card's padding instead, so the text stays on the shared edge.
                     onClick != null -> Modifier
-                        .bleed(Spacing.tight)
-                        .clip(MaterialTheme.shapes.small)
-                        .clickable(onClick = onClick)
+                        .outsetRowPress { Modifier.clickable(it, indication = null, onClick = onClick) }
                         .heightIn(min = MinTouchTarget)
-                        .padding(horizontal = Spacing.tight)
                     else -> Modifier
                 }
             ),

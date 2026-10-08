@@ -1,18 +1,13 @@
 package com.seblful.klas.ui.navigation
 
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScope
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.takeOrElse
 import com.seblful.klas.ui.common.HoldToName
+import com.seblful.klas.ui.common.OneLineLabel
 
 /**
  * The app's top-level tabs, as items rather than as a bar.
@@ -83,22 +78,7 @@ private fun TabIcon(dest: TopDestination, selected: Boolean) {
  */
 @Composable
 private fun TabLabel(dest: TopDestination) {
-    Text(
-        text = stringResource(dest.labelRes),
-        maxLines = 1,
-        // Only reachable if even the minimum size overflows (a very large font scale); wrapping is
-        // what we are avoiding, so cut the word instead of adding a line.
-        overflow = TextOverflow.Ellipsis,
-        autoSize = TextAutoSize.StepBased(
-            // A floor in **dp**, not sp: the system font scale is already in the size this starts from,
-            // and multiplying the floor by it too left «Расписание» no room to shrink into at 1.3× —
-            // «Расписа…» on a 6.1" phone at a setting many people use.
-            minFontSize = with(LocalDensity.current) { MinLabelSize.toSp() },
-            // Autosize grows text as readily as it shrinks it, so cap it at the size the bar's own
-            // label style asks for — a label that fits must look untouched.
-            maxFontSize = LocalTextStyle.current.fontSize.takeOrElse { FallbackLabelFontSize },
-        ),
-    )
+    OneLineLabel(stringResource(dest.labelRes), floor = MinLabelSize, fallbackSize = FallbackLabelFontSize)
 }
 
 /** The smallest a tab label is drawn, on screen — whatever the font scale asked for. */

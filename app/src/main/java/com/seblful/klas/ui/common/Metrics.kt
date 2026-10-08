@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -46,5 +47,17 @@ val MinTouchTarget = 48.dp
  * under the button — its row unreachable, a tap on it opening «Новый» instead.
  */
 val FabClearance = 88.dp
+/**
+ * The padding of a top-level list under an add button: the gutter on three sides and [FabClearance] under
+ * the last row. One value because the four lists that carry one — students, groups, subjects and the
+ * schedule — each spelled it out, and a list that drifted off it is how a last row ends up under the
+ * button.
+ */
+val FabListPadding = PaddingValues(
+    start = Spacing.gutter,
+    top = Spacing.gutter,
+    end = Spacing.gutter,
+    bottom = FabClearance,
+)
 /** Material's standard opacity for disabled content. */
 internal const val DisabledAlpha = 0.38f

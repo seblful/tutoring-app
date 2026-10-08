@@ -2,6 +2,7 @@ package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.TextAutoSize
@@ -17,7 +18,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.takeOrElse
@@ -187,6 +191,23 @@ fun <T> ChoiceRow(
  */
 @Composable
 fun SegmentLabel(text: String) {
+    OneLineLabel(text, floor = MinSegmentLabelSize, fallbackSize = FallbackSegmentFontSize)
+}
+
+/**
+ * A label held to **one line**, shrinking a step at a time — never below [floor] — before it ellipsizes:
+ * the rule a segment's label and a bottom-bar tab's share. They differ only in how small they may go and
+ * in the size their style is assumed to ask for when it says nothing.
+ *
+ * The floor is in **dp**, not sp: the system font scale is already in the size this starts from, and
+ * multiplying the floor by it too left a long word no room to shrink into at 1.3× — «Расписа…» on a 6.1"
+ * phone at a setting many people use. The ceiling is the inherited style's size, because autosize grows
+ * text as readily as it shrinks it, and a label that fits must look untouched.
+ *
+ * @param fallbackSize the ceiling when the inherited style leaves the size unspecified.
+ */
+@Composable
+fun OneLineLabel(text: String, floor: Dp, fallbackSize: TextUnit) {
     Text(
         text = text,
         maxLines = 1,
@@ -194,16 +215,55 @@ fun SegmentLabel(text: String) {
         // word rather than add a line.
         overflow = TextOverflow.Ellipsis,
         autoSize = TextAutoSize.StepBased(
-            minFontSize = MinSegmentFontSize,
-            maxFontSize = LocalTextStyle.current.fontSize.takeOrElse { FallbackSegmentFontSize },
+            minFontSize = with(LocalDensity.current) { floor.toSp() },
+            maxFontSize = LocalTextStyle.current.fontSize.takeOrElse { fallbackSize },
         ),
     )
 }
 
-private val MinSegmentFontSize = 10.sp
+/** The smallest a segment's label is drawn, on screen — whatever the font scale asked for. */
+private val MinSegmentLabelSize = 10.dp
 
 /** Material's label size for a segmented button; used only if the style leaves the size unspecified. */
 private val FallbackSegmentFontSize = 14.sp
+
+/**
+ * A screen whose body is **one of a fixed few views**, picked by segments pinned under the bar — «Люди»'s
+ * two sides, «Задания»'s current and archive, the schedule's day, week and month.
+ *
+ * The three wrote out the same three parts: a body that turns on a sideways drag
+ * ([swipeBetweenSegments]), a [ScreenHeader] painted with the bar, and the [SegmentedChoice] inside it. They
+ * had drifted on the one number they shared — the segments sat [Spacing.inline] from the bar on two of
+ * them and [Spacing.tight] on the schedule — so the control moved by four dp switching tabs. It is
+ * [Spacing.inline] on all three now.
+ *
+ * @param header what else is pinned under the segments — a filter chip, the schedule's pager.
+ * @param content the body, under the header; it takes the drag's free space, not the header's alone.
+ */
+@Composable
+fun <T> SegmentedPage(
+    options: List<T>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    label: @Composable (T) -> String,
+    modifier: Modifier = Modifier,
+    header: @Composable ColumnScope.() -> Unit = {},
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(modifier.swipeBetweenSegments(options, selected, onSelect)) {
+        ScreenHeader {
+            SegmentedChoice(
+                options = options,
+                selected = selected,
+                onSelect = onSelect,
+                modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
+                label = label,
+            )
+            header()
+        }
+        content()
+    }
+}
 
 /**
  * **The other way to move between segments: drag the page sideways.**

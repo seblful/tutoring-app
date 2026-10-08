@@ -25,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.ConfirmDialog
@@ -33,14 +32,14 @@ import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.LoadingFormScreen
+import com.seblful.klas.ui.common.RateHistory
 import com.seblful.klas.ui.common.MemberPickRow
 import com.seblful.klas.ui.common.ModeField
-import com.seblful.klas.ui.common.RateHistoryList
+import com.seblful.klas.ui.common.MoneyTextField
 import com.seblful.klas.ui.common.SaveAction
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.leaveGuard
-import com.seblful.klas.ui.common.moneyErrorText
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.supportingTextOf
@@ -194,26 +193,17 @@ private fun GroupForm(
                 // subject. Required — a group prices its own lessons, so it has to say what they cost —
                 // and shown plainly rather than behind a tap, because it is the substance of the group,
                 // not a detail.
-                OutlinedTextField(
-                    value = form.price.text,
+                MoneyTextField(
+                    field = form.price,
                     onValueChange = { v -> viewModel.update { it.copy(price = it.price.typed(v)) } },
-                    label = { Text(stringResource(R.string.group_price_label)) },
-                    // Red only for something unusable that was actually typed — `MoneyField.isError`'s
-                    // rule. Blank is required-and-unfilled, which the supporting line says without
-                    // shouting.
-                    isError = form.price.isError,
-                    // The reason it is wrong, else the reason it exists — one slot, error first.
-                    supportingText = supportingTextOf(
-                        error = moneyErrorText(form.price),
-                        hint = if (form.price.text.isBlank()) {
-                            stringResource(R.string.field_required)
-                        } else {
-                            stringResource(R.string.group_price_hint)
-                        },
-                    ),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    label = stringResource(R.string.group_price_label),
+                    // The reason it exists, unless it is wrong — and blank is required-and-unfilled, which
+                    // the hint says without shouting.
+                    hint = if (form.price.text.isBlank()) {
+                        stringResource(R.string.field_required)
+                    } else {
+                        stringResource(R.string.group_price_hint)
+                    },
                 )
             }
 
@@ -221,16 +211,7 @@ private fun GroupForm(
             // dialog makes in its own KDoc. It was an expander on the group's *card*, which is the one
             // screen that cannot change the number it was annotating.
             if (!viewModel.isNew) {
-                item(key = "rate-history") {
-                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
-                        Text(
-                            stringResource(R.string.rate_history_title),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        RateHistoryList(state.rateHistory)
-                    }
-                }
+                item(key = "rate-history") { RateHistory(state.rateHistory) }
             }
 
             item(key = "mode") {

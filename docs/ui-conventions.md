@@ -19,11 +19,15 @@ it draws with.
   up to a grace (`readyOrLoadingAfter`); what is drawn from it is labelled by the answer's own key (a
   day's content carries its date), never by the question just asked.
 - `derive`/`hold` end every screen flow; `ShowMessagesFor`/`rememberMessages` end one-shot snackbar events;
-  the guarded-write tail is named `write` (application scope + `runCatchingCancellable` + failure report).
+  the guarded-write tail is `appScope.write(events, failure)` (application scope + `runCatchingCancellable`
+  + failure event), and a write the screen waits on is `appScope.writeAwaited { }` — both in
+  `ui/common/Writes.kt`. The homework writes the tab and both cards share are `ui/homework/HomeworkActions`.
 - One-shot outcomes report through one snackbar helper (`ui/common/Messages`) — no `Toast`. A message
   about a save that closes its screen is lost with the screen, so such a form asks *before* saving instead.
 - Turning the phone or resizing its window is handled in place (`configChanges` on `MainActivity`), so an
-  open dialog and what was typed into it survive; typed dialog fields are still `rememberSaveable`.
+  open dialog and what was typed into it survive; typed dialog fields are still `rememberSaveable`. A money
+  input is a `MoneyTextField` whose *text* is saved and the `MoneyField` derived from it
+  (`MoneyFieldSurfaceTest`).
 
 ## Look and behaviour
 
@@ -32,13 +36,15 @@ it draws with.
   `values/`/`values-ru/` (strings, plurals, format args, array lengths). A language change re-syncs the
   calendar (mirrored text is baked in).
 - **Time**: `java.time` everywhere (desugared, minSdk 24); 12/24-hour and week-start both follow the
-  *phone's* setting, not the app language; today rolls over at local midnight off the injected `Clock`.
-- **Haptics**: five named moments only (`ui/common/Haptics`), wired into shared atoms, never per-screen;
-  ordinary taps stay silent.
+  *phone's* setting, not the app language; today rolls over at local midnight off the injected `Clock` (`Clock.days()`, `ui/common/Days.kt` —
+  never a "today" read once per emission); a day as instants is `domain/DayBounds`.
+- **Haptics**: five named moments only (`ui/common/Haptics`), wired into shared atoms (a refusal through
+  `ShowMessagesFor(refused = …)`), never per-screen; ordinary taps stay silent.
 - **Shell**: every screen is a `KlasScreen` (owns `Scaffold`, insets, width cap, snackbar host, back arrow,
   scroll behavior) — exactly one `Scaffold` per tree. Controls pinned under a compact bar (segments, a
   pager, a period) are a `ScreenHeader`: page-coloured at rest, no rule under them, tinted *with* the bar
-  once content scrolls beneath — one block, one lower edge. A screen that swaps its body without
+  once content scrolls beneath — one block, one lower edge. A body that is one of a fixed few views is a
+  `SegmentedPage`; a page read one at a time is a ‹ › `PageStepper`. A screen that swaps its body without
   scrolling passes `page` so the bar's tint resets with it. `Spacing` is the app's rhythm
   (`tight`…`sectionGap`). Card vs. row is by nesting depth (`ContentCard` top-level, `ListItem` nested); a
   top-level card leads with a 40 dp disc — a student's monogram (`Avatar`), else a glyph (`IconAvatar`).
@@ -47,7 +53,7 @@ it draws with.
   bottom sheet draws `SheetHandle` itself with `dragHandle = null` — Material's handle is a tooltipped
   button (`PressSurfaceTest`). Detail cards are all
   identity → `StatRow` → one pinned view menu (`StickyViewMenu`, «Занятия ▾» — page-coloured at rest, the collapsed bar's colour once pinned), not a tab row — four
-  tabs were too much to read at a glance. Held, a bar's icon names itself (`HoldToName`) — top-bar
+  tabs were too much to read at a glance. Held, a bar's icon names itself (`NamedIconButton`, over `HoldToName`) — top-bar
   icons and the bottom bar's tabs. One control per kind of question: `SegmentedChoice` (fixed few,
   swipeable), `ChoiceRow` (settings-shaped choice, segments up to 4 then a field), chips (shortlist +
   escape hatch). Text sits on the gutter: page sides are `Spacing.gutter`, and a tappable row that needs
@@ -57,8 +63,8 @@ it draws with.
   the selected day). A full-screen empty state's action is tonal: the screen's add button is its primary. A confirmation that loses something — delete, remove, clear, replace from a backup, discard
   typed input — says its button in `colorScheme.error` (`ConfirmDialog(destructive = true)`). A dialog
   opened to type one thing opens with the caret in it (`rememberRevealedFocus`).
-- **Text that must fit** (bar titles, tab labels, stat values, the schedule's page title) shrinks before
-  it ellipsizes (`TextAutoSize`), capped at its style's size and floored in **dp** — the system font
+- **Text that must fit** (bar titles, tab and segment labels — `OneLineLabel` — stat values, the
+  schedule's page title) shrinks before it ellipsizes (`TextAutoSize`), capped at its style's size and floored in **dp** — the system font
   scale is already in the starting size, so an sp floor rises with it and leaves nothing to shrink into.
   Pinned at 1.3× and 1.5× by `BottomBarLabelTest`/`BarTitleFitTest`; 2× is not.
 - **Navigation**: bottom bar «Люди·Задания·Расписание·Отчёты·Ещё», opens on the schedule (the middle tab);
@@ -68,7 +74,8 @@ it draws with.
   in or out, because a fading row keeps drawing over whatever replaces it. A list that shows several pages
   (the schedule's views and days) keys its items per page, so a swap is never read as every row moving.
 - **Lists**: shared search rule (`domain/PeopleSearch`) across the three list screens — case-insensitive,
-  substring, terms in any order. Empty lists always carry the way out (`EmptyState`). State is a
+  substring, terms in any order. Empty lists always carry the way out (`EmptyState`); a search that matched nothing is
+  `NoSearchResults`. «в архиве» is `ArchivedBadge`; a list under an add button pads with `FabListPadding`. State is a
   `StatusBadge`, never a font style (`StatusBadgeSurfaceTest`), and on a lesson it leads the second line —
   schedule card, lesson sheet, student and group cards — so the name or date above keeps the full width.
   A lesson row leads with its date. Money at a nested row's trailing edge is `TrailingAmount`; colour on
@@ -91,9 +98,10 @@ it draws with.
 - **Icons**: filled for actions and selected states, outlined for art and inactive glyphs. Empty-state
   pictures and decorative glyphs beside a line of text are `Icons.Outlined`; buttons, menu items,
   chevrons and the selected tab stay filled. Settings rows carry no leading icon (every title on one
-  edge); a row that goes somewhere says so at its trailing edge — a chevron in the app, «open in new» out
-  of it. The two lesson-kind icons are exempt —
+  edge); a row that goes somewhere says so at its trailing edge — a chevron in the app (`OpensScreenMark`, decorative —
+  the click's `onClickLabel` says where it leads), «open in new» out of it. The two lesson-kind icons are exempt —
   a matched pair pinned on ink height by `LessonKindIconTest`.
 - **Screen readers**: a swipe always has a twin action on the same node (`swipeAction`), and what is drawn
-  behind a swipe row is not read; selection is `selected` semantics, not a tick alone; section titles are
+  behind a swipe row is not read; selection is `selected` semantics, not a tick alone
+  (`TickedMenuItem`, `TickedMenuSurfaceTest`); section titles are
   headings.

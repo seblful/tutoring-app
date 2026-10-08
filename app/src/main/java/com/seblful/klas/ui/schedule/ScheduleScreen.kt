@@ -26,15 +26,12 @@ import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.PersonAddAlt
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -44,7 +41,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -70,7 +67,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.DaySummary
@@ -79,13 +75,20 @@ import com.seblful.klas.domain.NowMarker
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.format.daySummaryText
+import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatWeekRange
 import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.format.toLocalTime
-import com.seblful.klas.ui.common.FabClearance
 import com.seblful.klas.ui.common.FilterChipRow
+import com.seblful.klas.ui.common.FabListPadding
+import com.seblful.klas.ui.common.NoticeDialog
+import com.seblful.klas.ui.common.PageStepper
+import com.seblful.klas.ui.common.SegmentedChoice
+import com.seblful.klas.ui.common.SegmentedPage
+import com.seblful.klas.ui.common.SwipeReveal
+import com.seblful.klas.ui.common.rememberToggleFeedback
 import com.seblful.klas.ui.common.FilterMenuAction
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.ContentCard
@@ -97,9 +100,7 @@ import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.MinTouchTarget
-import com.seblful.klas.ui.common.ScreenHeader
 import com.seblful.klas.ui.common.SectionTitle
-import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.SheetHandle
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
@@ -107,7 +108,6 @@ import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.SwipeToConfirmBox
 import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.animateInPlace
-import com.seblful.klas.ui.common.armedPop
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.insetRowPress
@@ -119,7 +119,6 @@ import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRejectFeedback
 import com.seblful.klas.ui.common.rememberConfirmFeedback
 import com.seblful.klas.ui.common.swipeAction
-import com.seblful.klas.ui.common.swipeBetweenSegments
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.common.valueOrNull
 import com.seblful.klas.ui.navigation.Arrival
@@ -298,16 +297,19 @@ fun ScheduleScreen(
         // consumes the drag before an ancestor is offered it, so a gesture begun on a lesson still marks
         // that lesson taught and one begun in the space around them turns the page. The two never arbitrate,
         // because they never meet.
-        Column(modifier.swipeBetweenSegments(ScheduleViewMode.entries, viewMode, viewModel::setViewMode)) {
-            // Which view, said out loud. It used to hide behind an unlabelled calendar icon that
-            // opened a menu — two taps to switch, and the icon never told you which of the three you
-            // were in. A segmented control is one tap and is its own label; the app already picks
-            // this way in Settings.
-            // The view, the filter and the pager: painted with the bar, so they and it tint as one block
-            // when the agenda scrolls beneath — see [ScreenHeader].
-            ScreenHeader {
-                ViewModeSelector(selected = viewMode, onSelect = viewModel::setViewMode)
-
+        //
+        // Which view, said out loud. It used to hide behind an unlabelled calendar icon that opened a menu —
+        // two taps to switch, and the icon never told you which of the three you were in. A segmented control
+        // is one tap and is its own label; the app already picks this way in Settings. The view, the filter
+        // and the pager are painted with the bar, so they and it tint as one block when the agenda scrolls
+        // beneath — see [SegmentedPage].
+        SegmentedPage(
+            options = ScheduleViewMode.entries,
+            selected = viewMode,
+            onSelect = viewModel::setViewMode,
+            label = { mode -> stringResource(viewModeLabel(mode)) },
+            modifier = modifier,
+            header = {
                 // **The chip is what makes the filter honest.** A narrowed schedule and a genuinely quiet
                 // week look identical, so for as long as one student's lessons are what is on screen their
                 // name stays above it — carrying its own way out, which is the difference between a filter
@@ -354,7 +356,8 @@ fun ScheduleScreen(
                         onToday = viewModel::goToToday,
                     )
                 }
-            }
+            },
+        ) {
             // The grid scrolls with the classes rather than sitting above them: six week rows plus
             // a full day of classes doesn't fit a landscape phone.
             LazyColumn(
@@ -363,12 +366,7 @@ fun ScheduleScreen(
                 // The gutter is the list's, not each row's — see [Spacing]. The calendar items in here
                 // are laid out inside it too, which is why `MonthCalendar` and `WeekStrip` no longer
                 // carry a narrower one of their own.
-                contentPadding = PaddingValues(
-                    start = Spacing.gutter,
-                    end = Spacing.gutter,
-                    top = Spacing.gutter,
-                    bottom = FabClearance,
-                ),
+                contentPadding = FabListPadding,
                 verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
             ) {
                 when (viewMode) {
@@ -534,23 +532,7 @@ fun ScheduleScreen(
     // A move, or a lesson being returned to the schedule, is refused when that hour is already
     // taken; either way, say which lesson holds it.
     timeConflict?.let { clash ->
-        AlertDialog(
-            onDismissRequest = viewModel::dismissTimeConflict,
-            text = {
-                Text(
-                    stringResource(
-                        R.string.class_time_conflict,
-                        clash.who,
-                        "${clash.slot.start.timeText()} – ${clash.slot.end.timeText()}",
-                    )
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = viewModel::dismissTimeConflict) {
-                    Text(stringResource(R.string.action_ok))
-                }
-            },
-        )
+        NoticeDialog(text = timeConflictText(clash), onDismiss = viewModel::dismissTimeConflict)
     }
 
     deletingRow?.let { row ->
@@ -575,6 +557,17 @@ fun ScheduleScreen(
         )
     }
 }
+
+/**
+ * «Занято: Мария Петрова 14:00 – 15:30» — which lesson holds the hour a booking or a move asked for. Said by
+ * the booking form under its time and by the schedule's refusal dialog, so the two name a clash one way.
+ */
+@Composable
+internal fun timeConflictText(conflict: TimeConflict): String = stringResource(
+    R.string.class_time_conflict,
+    conflict.who,
+    "${conflict.slot.start.timeText()} – ${conflict.slot.end.timeText()}",
+)
 
 /** Whether an empty stretch of schedule is one day or a whole week — all that differs in the wording. */
 private enum class ScheduleEmptySpan { DAY, WEEK }
@@ -718,19 +711,6 @@ private fun LessonsSkeleton() {
     ListSkeleton(rows = 3, contentPadding = PaddingValues(0.dp))
 }
 
-/** Chooses between the day, week and month views. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ViewModeSelector(selected: ScheduleViewMode, onSelect: (ScheduleViewMode) -> Unit) {
-    SegmentedChoice(
-        options = ScheduleViewMode.entries,
-        selected = selected,
-        onSelect = onSelect,
-        modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.tight),
-        label = { mode -> stringResource(viewModeLabel(mode)) },
-    )
-}
-
 private fun viewModeLabel(mode: ScheduleViewMode): Int = when (mode) {
     ScheduleViewMode.DAY -> R.string.schedule_view_day
     ScheduleViewMode.WEEK -> R.string.schedule_view_week
@@ -770,34 +750,21 @@ private fun LazyItemScope.SwipeToCompleteCard(
     SwipeToConfirmBox(
         onConfirm = onComplete,
         modifier = animateInPlace(modifier),
+        // **Green, the container tone of the badge this gesture produces.** It was `tertiaryContainer`, which
+        // in this palette is a pale cyan — so the swipe promised «Проведено» in a blue, the colour a lesson
+        // *still to come* is written in, and then handed back a badge of another colour entirely. Now the
+        // panel and the badge are one green and one word: what the reveal shows is what the row will say
+        // (see `classStatusColor`).
         reveal = { armed ->
-            Row(
-                Modifier
-                    .fillMaxSize()
-                    // **Green, the container tone of the badge this gesture produces.** It was
-                    // `tertiaryContainer`, which in this palette is a pale cyan — so the swipe promised
-                    // «Проведено» in a blue, the colour a lesson *still to come* is written in, and then
-                    // handed back a badge of another colour entirely. Now the panel and the badge are one
-                    // green: what the reveal shows is what the row will say (see `classStatusColor`).
-                    .background(klasColors.successContainer, MaterialTheme.shapes.medium)
-                    .padding(horizontal = SheetGutter),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // The tick's visible half: the check grows at the mark and stays grown while letting go
-                // would act. It sits at the leading edge, which the thumb has already moved off.
-                Icon(
-                    Icons.Filled.CheckCircle,
-                    contentDescription = stringResource(R.string.class_mark_completed),
-                    tint = klasColors.onSuccessContainer,
-                    modifier = Modifier.armedPop(armed),
-                )
-                Spacer(Modifier.width(Spacing.inline))
-                Text(
-                    stringResource(R.string.class_status_completed),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = klasColors.onSuccessContainer,
-                )
-            }
+            SwipeReveal(
+                icon = Icons.Filled.CheckCircle,
+                label = classStatusLabel(LessonStatus.COMPLETED),
+                container = klasColors.successContainer,
+                content = klasColors.onSuccessContainer,
+                armed = armed,
+                shape = MaterialTheme.shapes.medium,
+                horizontalPadding = SheetGutter,
+            )
         },
     ) {
         ScheduleCard(
@@ -850,25 +817,7 @@ private fun ScheduleCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                // **The status leads the second line**, as it does on every other lesson row in the app
-                // (the student's and the group's cards). At the trailing edge it took ~90dp off the
-                // name's line, so on a 360dp phone «Артём Савиц…» lost the surname — the one thing on
-                // the card that says whose lesson this is — to a pill saying something the colour of
-                // the time already half-says.
-                Row(
-                    Modifier.padding(top = Spacing.tight),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    SessionStatusBadge(row, running)
-                    Spacer(Modifier.width(Spacing.inline))
-                    Text(
-                        "${row.subjectName} · ${classModeLabel(row.klass.mode)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                StatusLine(row, running)
                 if (row.isGroup) {
                     Text(
                         // The roster is the least important line on the card and the most likely to
@@ -882,6 +831,34 @@ private fun ScheduleCard(
                 }
             }
         }
+    }
+}
+
+/**
+ * A lesson's second line, on its card and atop its sheet: the status, then what is taught and where.
+ *
+ * **The status leads**, as it does on every other lesson row in the app (the student's and the group's
+ * cards). At the trailing edge it took ~90dp off the name's line, so on a 360dp phone «Артём Савиц…» lost
+ * the surname — the one thing on the card that says whose lesson this is — to a pill saying something the
+ * colour of the time already half-says. The facts after it go through [bulletJoin], which drops a blank
+ * one: a lesson whose subject has no name read «· Очно». The card keeps it to one line; the sheet
+ * passes [maxLines] through so a long subject name is read whole there.
+ */
+@Composable
+private fun StatusLine(row: ScheduleRow, running: Boolean, maxLines: Int = 1) {
+    Row(
+        Modifier.padding(top = Spacing.tight),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SessionStatusBadge(row, running)
+        Spacer(Modifier.width(Spacing.inline))
+        Text(
+            bulletJoin(row.subjectName, classModeLabel(row.klass.mode)),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -958,7 +935,14 @@ private fun MonthNavigator(
     )
 }
 
-/** ‹ title › with a "jump to today" button — shared by the day stepper and the month pager. */
+/**
+ * ‹ title › with a "jump to today" button — the day stepper, the week's and the month's ([PageStepper]).
+ *
+ * The title takes the space the arrows leave and shrinks to fit before it ellipsizes: «Понедельник, 21
+ * сентября» lost its month to an ellipsis on a 6.1" phone at the default font size. Its floor is in **dp**,
+ * like the bar title's and the tab labels': the font scale is already in the size it starts from, and an sp
+ * floor rose with it and left the day nothing to shrink into at 1.3×.
+ */
 @Composable
 internal fun PageNavigator(
     title: String,
@@ -968,49 +952,38 @@ internal fun PageNavigator(
     onNext: () -> Unit,
     onToday: () -> Unit,
 ) {
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = Spacing.inline),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+    PageStepper(
+        previousDescription = previousDescription,
+        nextDescription = nextDescription,
+        onPrevious = onPrevious,
+        onNext = onNext,
     ) {
-        IconButton(onClick = onPrevious) { Icon(Icons.Filled.ChevronLeft, previousDescription) }
-        // The title takes the space the arrows leave: a week range spanning two long month names
-        // is far wider than "Июль 2026", and must never push the arrows off-screen. It shrinks to fit
-        // first — «Понедельник, 21 сентября» lost its month to an ellipsis on a 6.1" phone at the
-        // default font size — and ellipsizes only past the smallest size worth reading.
-        Row(
-            Modifier.weight(1f),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            Text(
-                title,
-                // A heading, so a screen reader can jump between the page's title and its days.
-                modifier = Modifier.weight(1f, fill = false).semantics { heading() },
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                autoSize = TextAutoSize.StepBased(
-                    minFontSize = NavigatorTitleMinFontSize,
-                    maxFontSize = MaterialTheme.typography.titleMedium.fontSize,
-                ),
-            )
-            IconButton(onClick = onToday) {
-                Icon(Icons.Filled.Today, stringResource(R.string.schedule_today))
-            }
+        Text(
+            title,
+            // A heading, so a screen reader can jump between the page's title and its days.
+            modifier = Modifier.weight(1f, fill = false).semantics { heading() },
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = with(LocalDensity.current) { NavigatorTitleMinSize.toSp() },
+                maxFontSize = MaterialTheme.typography.titleMedium.fontSize,
+            ),
+        )
+        IconButton(onClick = onToday) {
+            Icon(Icons.Filled.Today, stringResource(R.string.schedule_today))
         }
-        IconButton(onClick = onNext) { Icon(Icons.Filled.ChevronRight, nextDescription) }
     }
 }
 
 /**
- * The smallest a page title shrinks to before it ellipsizes — `labelSmall`'s size, the app's smallest
- * text. What it takes for «Понедельник, 30 сентября» to fit a 320dp phone beside three icon buttons;
- * pinned by `PageTitleFitTest`.
+ * The smallest a page title is drawn, on screen, before it ellipsizes — `labelSmall`'s size at the default
+ * scale, the app's smallest text. What it takes for «Понедельник, 30 сентября» to fit a 320dp phone beside
+ * three icon buttons; pinned by `PageTitleFitTest`.
  */
-private val NavigatorTitleMinFontSize = 11.sp
+private val NavigatorTitleMinSize = 11.dp
 
 /**
  * Names the day the list below belongs to, since the calendar's title is the month. The week agenda's
@@ -1158,23 +1131,12 @@ private fun ClassActionsSheet(
                 LessonKindIcon(LessonKind.of(klass), Modifier.padding(end = Spacing.inline))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        "${klass.start.timeText()} · ${row.title}",
+                        bulletJoin(klass.start.timeText(), row.title),
                         style = MaterialTheme.typography.titleMedium,
                     )
                     // The lesson card's own second line — status first — so the sheet opens on the
                     // row that was tapped, in the same order, rather than a rearrangement of it.
-                    Row(
-                        Modifier.padding(top = Spacing.tight),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        SessionStatusBadge(row, running)
-                        Spacer(Modifier.width(Spacing.inline))
-                        Text(
-                            "${row.subjectName} · ${classModeLabel(klass.mode)}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    StatusLine(row, running, maxLines = Int.MAX_VALUE)
                 }
             }
 
@@ -1217,6 +1179,8 @@ private fun ClassActionsSheet(
  */
 @Composable
 private fun AttachedHomework(items: List<SheetHomework>, onDone: (Homework, Boolean) -> Unit) {
+    // A stored fact changing under the thumb, like the roster's and the settings' ticks — felt the same way.
+    val toggleFeedback = rememberToggleFeedback()
     Column(Modifier.padding(horizontal = SheetGutter, vertical = Spacing.inline)) {
         SectionTitle(stringResource(R.string.homework_label))
         items.forEach { item ->
@@ -1230,7 +1194,7 @@ private fun AttachedHomework(items: List<SheetHomework>, onDone: (Homework, Bool
                             interactionSource = source,
                             indication = null,
                             role = Role.Checkbox,
-                        ) { onDone(item.homework, it) }
+                        ) { toggleFeedback(it); onDone(item.homework, it) }
                     }
                     // A thumb's height, like every other row the app ticks — it was the checkbox's own 24 dp.
                     .heightIn(min = MinTouchTarget)

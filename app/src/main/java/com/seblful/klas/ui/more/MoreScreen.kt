@@ -7,13 +7,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -21,6 +19,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.OpensScreenMark
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.insetRowPress
 
@@ -56,26 +55,13 @@ fun MoreScreen(
     }
 }
 
-/**
- * One entry of the menu: an outlined glyph for what it is, the name, and a chevron saying it opens.
- *
- * The chevron is **filled**, as the app's chevrons are (see *Icons* in `docs/ui-conventions.md`): the
- * leading glyph is art for the row, the trailing one is a statement about what tapping does.
- */
+/** One entry of the menu: an outlined glyph for what it is, the name, and a chevron saying it opens. */
 @Composable
 private fun NavigationRow(icon: ImageVector, label: String, onClick: () -> Unit) {
     ListItem(
         leadingContent = { Icon(icon, null) },
         headlineContent = { Text(label) },
-        trailingContent = {
-            Icon(
-                Icons.Filled.ChevronRight,
-                // Decorative: the row is one tap target and the headline already names where it goes,
-                // so a description here would have a screen reader read every row twice.
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        },
+        trailingContent = { OpensScreenMark() },
         modifier = Modifier.insetRowPress { Modifier.clickable(it, indication = null, onClick = onClick) },
     )
 }

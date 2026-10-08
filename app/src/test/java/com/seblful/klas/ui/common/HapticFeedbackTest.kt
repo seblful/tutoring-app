@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.common
 
 import com.seblful.klas.testutil.ProjectFiles
+import com.seblful.klas.testutil.SourceText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -108,6 +109,22 @@ class HapticFeedbackTest {
         assertTrue(
             "The schedule draws the time-conflict refusal without feeling like one",
             "rememberRejectFeedback()" in schedule,
+        )
+    }
+
+    /**
+     * The same "no" from the booking form: a save refused because the hour was taken while the form was
+     * open. It arrives as a one-shot event rather than as state, so it is felt through `ShowMessagesFor`'s
+     * `refused`, not through an effect keyed on a conflict.
+     */
+    @Test
+    fun `a refusal is felt wherever the booking form refuses an hour`() {
+        val form = SourceText.code(ProjectFiles.sourceFile("ui/schedule/ClassEditScreen.kt").readText())
+        val refusal = SourceText.argumentLists(form, "ShowMessagesFor(").joinToString()
+
+        assertTrue(
+            "The booking form shows «Это время уже занято» without feeling like a refusal",
+            "refused =" in refusal && "SAVE_REFUSED_TIME_TAKEN" in refusal,
         )
     }
 

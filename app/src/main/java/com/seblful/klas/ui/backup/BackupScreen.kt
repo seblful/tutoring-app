@@ -136,14 +136,27 @@ fun BackupScreen(
     }
 
     confirmImportUri?.let { uri ->
-        ConfirmDialog(
-            text = stringResource(R.string.backup_import_confirm),
-            confirmLabel = stringResource(R.string.backup_import),
-            destructive = true,
+        ConfirmRestoreDialog(
             onConfirm = { viewModel.import(DocumentRef(uri.toString())) },
             onDismiss = { confirmImportUri = null },
         )
     }
+}
+
+/**
+ * «Восстановить из копии?» — asked before a restore that would replace what is on the phone, here and on
+ * first run's welcome step alike. A restore is a full replace, so it is a loss and says its button in the
+ * error colour; the two places used to spell the question, its button and that colour out separately.
+ */
+@Composable
+fun ConfirmRestoreDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    ConfirmDialog(
+        text = stringResource(R.string.backup_import_confirm),
+        confirmLabel = stringResource(R.string.backup_import),
+        destructive = true,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+    )
 }
 
 /**

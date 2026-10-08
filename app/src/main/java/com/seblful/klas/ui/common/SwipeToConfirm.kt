@@ -3,9 +3,18 @@ package com.seblful.klas.ui.common
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -17,13 +26,18 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -130,6 +144,38 @@ fun SwipeToConfirmBox(
         // Offset in the layout phase, not by recomposing: the row is moved, not rebuilt, sixty times a
         // second.
         Box(Modifier.offset { IntOffset(dragged.roundToInt(), 0) }) { content() }
+    }
+}
+
+/**
+ * What a [SwipeToConfirmBox] promises, drawn behind its row: a filled panel with the act's glyph and its
+ * word — «Проведено» behind a lesson, «Сделано» or «Вернуть» behind homework.
+ *
+ * The glyph is the tick's visible half: it grows at the mark ([armedPop]) and stays grown while letting go
+ * would act. It sits at the leading edge, which the thumb has already moved off. No description of its
+ * own — the box clears everything behind the row from the tree, and the row's [swipeAction] is what a
+ * screen reader is offered instead.
+ *
+ * @param horizontalPadding where the glyph starts — the gutter of whatever the row sits in, which is not
+ *   one value: a sheet's is wider than a page's.
+ */
+@Composable
+fun SwipeReveal(
+    icon: ImageVector,
+    label: String,
+    container: Color,
+    content: Color,
+    armed: Boolean,
+    shape: Shape,
+    horizontalPadding: Dp,
+) {
+    Row(
+        Modifier.fillMaxSize().background(container, shape).padding(horizontal = horizontalPadding),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = content, modifier = Modifier.armedPop(armed))
+        Spacer(Modifier.width(Spacing.inline))
+        Text(label, style = MaterialTheme.typography.labelLarge, color = content)
     }
 }
 

@@ -10,7 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.seblful.klas.R
 import com.seblful.klas.ui.theme.klasColors
 
 /**
@@ -49,4 +50,20 @@ fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
             maxLines = 1,
         )
     }
+}
+
+/**
+ * «в архиве» — a retired student, a retired group, or a member who has left.
+ *
+ * Grey, deliberately: archiving is not one of the three lesson statuses (`classStatusColor`), and a
+ * retired student must not borrow the red a debt is written in. It was an italic grey word on all four
+ * rows that say it; the pill was what was missing, not the colour.
+ */
+@Composable
+fun ArchivedBadge(modifier: Modifier = Modifier) {
+    StatusBadge(
+        text = stringResource(R.string.student_archived_badge),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier,
+    )
 }

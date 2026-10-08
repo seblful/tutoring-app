@@ -2,7 +2,6 @@ package com.seblful.klas.ui.groups
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,14 +22,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.AvatarStack
+import com.seblful.klas.ui.common.ArchivedBadge
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
-import com.seblful.klas.ui.common.FabClearance
+import com.seblful.klas.ui.common.FabListPadding
+import com.seblful.klas.ui.common.NoSearchResults
 import com.seblful.klas.ui.common.IconAvatar
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.text
 
@@ -61,12 +60,7 @@ fun GroupsList(
     }
     if (rows.isEmpty()) {
         if (searching) {
-            EmptyState(
-                title = stringResource(R.string.search_no_results),
-                detail = stringResource(R.string.search_no_results_detail),
-                icon = Icons.Outlined.SearchOff,
-                modifier = modifier,
-            )
+            NoSearchResults(modifier)
         } else {
             EmptyState(
                 title = stringResource(R.string.groups_empty),
@@ -81,13 +75,8 @@ fun GroupsList(
     }
     LazyColumn(
         modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            start = Spacing.gutter,
-            top = Spacing.gutter,
-            end = Spacing.gutter,
-            // Past the add button, so it never sits on the last row.
-            bottom = FabClearance,
-        ),
+        // Past the add button, so it never sits on the last row.
+        contentPadding = FabListPadding,
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         items(rows, key = { it.group.id }) { row ->
@@ -156,10 +145,7 @@ fun GroupsList(
                         // word on both.
                         if (row.group.archived) {
                             Spacer(Modifier.height(Spacing.tight))
-                            StatusBadge(
-                                text = stringResource(R.string.student_archived_badge),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            ArchivedBadge()
                         }
                     }
                 }

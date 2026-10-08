@@ -11,9 +11,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,8 +27,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import com.seblful.klas.format.bulletJoin
 
 /**
@@ -111,18 +107,11 @@ fun <T> StickyViewMenu(
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { option ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(count(option)?.let { bulletJoin(label(option), it.toString()) } ?: label(option))
-                        },
-                        leadingIcon = { Icon(icon(option), contentDescription = null) },
-                        trailingIcon = if (option == selected) {
-                            { Icon(Icons.Filled.Check, contentDescription = null) }
-                        } else {
-                            null
-                        },
+                    TickedMenuItem(
+                        text = count(option)?.let { bulletJoin(label(option), it.toString()) } ?: label(option),
+                        selected = option == selected,
                         onClick = { expanded = false; onSelect(option) },
-                        modifier = Modifier.semantics { this.selected = option == selected },
+                        leadingIcon = { Icon(icon(option), contentDescription = null) },
                     )
                 }
             }

@@ -3,7 +3,6 @@ package com.seblful.klas.ui.students
 import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -23,9 +21,7 @@ import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MailOutline
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.EventBusy
@@ -35,7 +31,6 @@ import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -43,8 +38,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -55,20 +48,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -88,11 +77,13 @@ import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.TrailingAmount
 import com.seblful.klas.ui.homework.AssigneeChoice
-import com.seblful.klas.ui.homework.HomeworkDialog
+import com.seblful.klas.ui.homework.CardHomeworkDialogs
 import com.seblful.klas.ui.homework.HomeworkRow
 import com.seblful.klas.ui.homework.homeworkItems
-import com.seblful.klas.ui.common.HoldToName
+import com.seblful.klas.ui.homework.homeworkUndo
 import com.seblful.klas.ui.common.AddRow
+import com.seblful.klas.ui.common.ArchiveMenuItem
+import com.seblful.klas.ui.common.DialogRadioRow
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.HeroCard
@@ -103,8 +94,11 @@ import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.LoadingDetailScreen
 import com.seblful.klas.ui.common.MinTouchTarget
+import com.seblful.klas.ui.common.MoneyTextField
+import com.seblful.klas.ui.common.NamedIconButton
+import com.seblful.klas.ui.common.OverflowMenu
 import com.seblful.klas.ui.common.PickerField
-import com.seblful.klas.ui.common.RateHistoryList
+import com.seblful.klas.ui.common.RateHistory
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatRow
@@ -119,12 +113,12 @@ import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.lessonsStat
+import com.seblful.klas.ui.common.earnedStat
 import com.seblful.klas.ui.common.dateTimeText
-import com.seblful.klas.ui.common.moneyErrorText
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.rememberRejectFeedback
 import com.seblful.klas.ui.common.rememberRevealedFocus
-import com.seblful.klas.ui.common.supportingTextOf
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.formatHours
@@ -207,17 +201,21 @@ private fun StudentCard(
     // Read inside the collector through `rememberUpdatedState`, so the words are the language in force
     // when the event arrives — and the plural's count is the one the event carries, the write's own.
     val resources by rememberUpdatedState(context.resources)
+    // A hand collector rather than `ShowMessagesFor`: the refusal carries a way to the lessons it names.
+    val rejectFeedback = rememberRejectFeedback()
     LaunchedEffect(Unit) {
         viewModel.events.stream.collect { event ->
             when (event) {
                 // The refusal names lessons the tutor now has to go and look at — and they are one
                 // tab away, so the message carries the way there. This is the thing a toast could
                 // never do: state a problem *and* offer the next step.
-                StudentDetailViewModel.Event.RemoveBlockedHasClasses ->
+                StudentDetailViewModel.Event.RemoveBlockedHasClasses -> {
+                    rejectFeedback()
                     messages.show(
                         resources.getString(R.string.student_subject_remove_blocked),
                         resources.getString(R.string.action_show),
                     ) { tab = StudentTab.CLASSES }
+                }
 
                 is StudentDetailViewModel.Event.ArchiveCancelledLessons -> messages.show(
                     resources.getQuantityString(R.plurals.student_archive_lessons_cancelled, event.count, event.count),
@@ -227,9 +225,13 @@ private fun StudentCard(
         }
     }
 
-    val homeworkDoneMsg = stringResource(R.string.homework_done_message)
-    val homeworkRestoredMsg = stringResource(R.string.homework_restored_message)
-    val homeworkDeletedMsg = stringResource(R.string.homework_deleted)
+    val homeworkUndo = homeworkUndo(
+        messages = messages,
+        setDone = viewModel::setHomeworkDone,
+        putBack = viewModel::putHomeworkBack,
+        delete = viewModel::deleteHomework,
+        restore = viewModel::restoreHomework,
+    )
     val paymentDeletedMsg = stringResource(R.string.payment_deleted)
     val undoLabel = stringResource(R.string.action_undo)
     fun deletePaymentWithUndo(payment: Payment) {
@@ -247,17 +249,13 @@ private fun StudentCard(
         titleSize = TitleSize.Large,
         messages = messages,
         actions = {
-            HoldToName(stringResource(R.string.action_edit)) {
-                IconButton(onClick = { editing = true }) {
-                    Icon(Icons.Filled.Edit, stringResource(R.string.action_edit))
-                }
-            }
+            NamedIconButton(Icons.Filled.Edit, stringResource(R.string.action_edit), onClick = { editing = true })
             // Archiving is behind the overflow now. It used to be a bare text button in the
             // bar — «Имя [✎] [В архив]» — which put the most consequential thing on the
             // screen beside the pencil, at the width of a word, next to a name that has to
             // ellipsize to make room for it.
             if (student != null) {
-                OverflowMenu(
+                StudentOverflowMenu(
                     student = student,
                     // The same three launches the contact block makes, through the same guard: a tablet
                     // with no dialler must not crash the card.
@@ -368,12 +366,7 @@ private fun StudentCard(
                     messages = messages,
                     onAdd = { addingHomework = viewModel.homeworkChoice() },
                     onOpen = { openedHomework = it },
-                    onDone = { item, done ->
-                        viewModel.setHomeworkDone(item, done)
-                        messages.show(if (done) homeworkDoneMsg else homeworkRestoredMsg, undoLabel) {
-                            viewModel.putHomeworkBack(item)
-                        }
-                    },
+                    onDone = homeworkUndo::swiped,
                 )
             }
         }
@@ -439,29 +432,14 @@ private fun StudentCard(
             onDismiss = { editingPayment = null },
         )
     }
-    addingHomework?.let { choice ->
-        HomeworkDialog(
-            choices = listOf(choice),
-            onSave = { _, text -> viewModel.giveHomework(text) },
-            onDismiss = { addingHomework = null },
-            canChangeAssignee = false,
-        )
-    }
-    openedHomework?.let { row ->
-        HomeworkDialog(
-            // Fixed to whoever it is for, a group included: the card is one student's, and moving a group's
-            // homework onto somebody else is the tab's to do.
-            choices = listOf(AssigneeChoice(row.homework.assignee, row.title, row.lessonAt)),
-            editing = row.homework,
-            canChangeAssignee = false,
-            onSave = { _, text -> viewModel.editHomework(row.homework, text) },
-            onDelete = {
-                viewModel.deleteHomework(row.homework)
-                messages.show(homeworkDeletedMsg, undoLabel) { viewModel.restoreHomework(row.homework) }
-            },
-            onDismiss = { openedHomework = null },
-        )
-    }
+    CardHomeworkDialogs(
+        adding = addingHomework,
+        opened = openedHomework,
+        onDismiss = { addingHomework = null; openedHomework = null },
+        onGive = viewModel::giveHomework,
+        onEdit = viewModel::editHomework,
+        undo = homeworkUndo,
+    )
     val confirm = state.archiveIntent as? ArchiveIntent.Confirm
     if (confirmingArchive && confirm != null) {
         // One string per part the intent named, so the question says exactly what archiving costs here.
@@ -512,7 +490,7 @@ private fun studentStats(state: StudentDetailState): List<Stat> {
         lessonsStat(totals).let { stat ->
             stat.copy(hint = stat.hint ?: stringResource(R.string.hours_value, formatHours(totals.minutes)))
         },
-        Stat(label = stringResource(R.string.stat_earned), value = totals.earned.text()),
+        earnedStat(totals.earned),
     )
 }
 
@@ -631,7 +609,6 @@ private fun ModeRow(mode: ClassMode) {
         Modifier
             .fillMaxWidth()
             .heightIn(min = MinTouchTarget)
-            .padding(horizontal = Spacing.tight)
             .clearAndSetSemantics { contentDescription = spoken },
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -655,7 +632,13 @@ private fun ModeRow(mode: ClassMode) {
 /** A contact row's glyph — smaller than an action icon, because the row, not the glyph, is the target. */
 private val ContactGlyph = 18.dp
 
-/** One tappable way of reaching the student, at a full-height target. */
+/**
+ * One tappable way of reaching the student, at a full-height target.
+ *
+ * Its glyph sits on the block's edge, where the note above it starts, and the press reaches out into the
+ * gutter instead ([outsetRowPress]) — it used to step the row in by its own ripple room, so the block had
+ * two left edges.
+ */
 @Composable
 private fun ContactRow(
     icon: ImageVector,
@@ -668,10 +651,8 @@ private fun ContactRow(
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(MaterialTheme.shapes.small)
-            .clickable(onClickLabel = actionLabel, onClick = onClick)
-            .heightIn(min = MinTouchTarget)
-            .padding(horizontal = Spacing.tight),
+            .outsetRowPress { Modifier.clickable(it, indication = null, onClickLabel = actionLabel, onClick = onClick) }
+            .heightIn(min = MinTouchTarget),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -694,65 +675,47 @@ private fun ContactRow(
 
 /** Archiving, one step back from the pencil it used to sit beside. */
 @Composable
-private fun OverflowMenu(
+private fun StudentOverflowMenu(
     student: Student,
     onCall: (String) -> Unit,
     onTelegram: (String) -> Unit,
     onEmail: (String) -> Unit,
     onArchive: () -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
     val phone = Phone.contactOf(student.phone)
-    Box {
-        HoldToName(stringResource(R.string.action_more)) {
-            IconButton(onClick = { expanded = true }) {
-                Icon(Icons.Filled.MoreVert, stringResource(R.string.action_more))
-            }
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            // **Reaching the student, from any tab.** The contact block is the top of the card, which is
-            // the right place for it — it is identity, not content — but it is also the part that scrolls
-            // away first, and a tutor two hundred rows into «Занятия» who wants to ring about the next
-            // one had to scroll all the way back for a number. The bar does not: it is the one thing on
-            // this screen that stays.
-            //
-            // Not a duplicate control so much as the same act reached the way an *action* is reached. The
-            // block still shows the phone, the email and the note — those are facts about the student, and
-            // reading one is why it stays visible; these are the three things you can *do* with them.
-            if (phone != null) {
-                ContactMenuItem(
-                    label = stringResource(R.string.student_call),
-                    icon = Icons.Filled.Phone,
-                    onClick = { expanded = false; onCall(phone) },
-                )
-                ContactMenuItem(
-                    label = stringResource(R.string.student_write_telegram),
-                    icon = Icons.AutoMirrored.Filled.Send,
-                    onClick = { expanded = false; onTelegram(phone) },
-                )
-            }
-            if (student.email.isNotBlank()) {
-                ContactMenuItem(
-                    label = stringResource(R.string.student_write_email),
-                    icon = Icons.Filled.MailOutline,
-                    onClick = { expanded = false; onEmail(student.email) },
-                )
-            }
-            if (phone != null || student.email.isNotBlank()) {
-                HorizontalDivider()
-            }
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(
-                            if (student.archived) R.string.action_unarchive else R.string.action_archive
-                        )
-                    )
-                },
-                leadingIcon = { Icon(Icons.Filled.Inventory2, contentDescription = null) },
-                onClick = { expanded = false; onArchive() },
+    OverflowMenu { close ->
+        // **Reaching the student, from any tab.** The contact block is the top of the card, which is the
+        // right place for it — it is identity, not content — but it is also the part that scrolls away
+        // first, and a tutor two hundred rows into «Занятия» who wants to ring about the next one had to
+        // scroll all the way back for a number. The bar does not: it is the one thing on this screen that
+        // stays.
+        //
+        // Not a duplicate control so much as the same act reached the way an *action* is reached. The block
+        // still shows the phone, the email and the note — those are facts about the student, and reading
+        // one is why it stays visible; these are the three things you can *do* with them.
+        if (phone != null) {
+            ContactMenuItem(
+                label = stringResource(R.string.student_call),
+                icon = Icons.Filled.Phone,
+                onClick = { close(); onCall(phone) },
+            )
+            ContactMenuItem(
+                label = stringResource(R.string.student_write_telegram),
+                icon = Icons.AutoMirrored.Filled.Send,
+                onClick = { close(); onTelegram(phone) },
             )
         }
+        if (student.email.isNotBlank()) {
+            ContactMenuItem(
+                label = stringResource(R.string.student_write_email),
+                icon = Icons.Filled.MailOutline,
+                onClick = { close(); onEmail(student.email) },
+            )
+        }
+        if (phone != null || student.email.isNotBlank()) {
+            HorizontalDivider()
+        }
+        ArchiveMenuItem(student.archived) { close(); onArchive() }
     }
 }
 
@@ -836,9 +799,12 @@ private fun RepriceDialog(
     onConfirm: (Money) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var field by remember {
-        mutableStateOf(MoneyField(subjectPrice.price.toAmountInput(), MoneyField.Kind.RATE))
-    }
+    // The text, saveable, with the field derived from it: a half-typed rate survives the dialog being
+    // recreated, which a `remember`ed field did not.
+    var text by rememberSaveable { mutableStateOf(subjectPrice.price.toAmountInput()) }
+    val field = MoneyField(text, MoneyField.Kind.RATE)
+    // Opened to type one number, so it opens with the caret in it.
+    val focus = rememberRevealedFocus()
     AlertDialog(
         onDismissRequest = onDismiss,
         // As every dialog the tutor types into: a stray tap outside must not discard the amount.
@@ -846,25 +812,14 @@ private fun RepriceDialog(
         title = { Text(subjectPrice.subject.name) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
-                OutlinedTextField(
-                    value = field.text,
-                    onValueChange = { field = field.typed(it) },
-                    label = { Text(stringResource(R.string.price_label)) },
-                    isError = field.isError,
-                    // The red outline used to be the whole message. `MoneyField` knows which rule
-                    // failed; this is it saying so.
-                    supportingText = supportingTextOf(moneyErrorText(field)),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth(),
+                MoneyTextField(
+                    field = field,
+                    onValueChange = { text = it },
+                    label = stringResource(R.string.price_label),
+                    modifier = Modifier.focusRequester(focus),
                 )
                 HorizontalDivider()
-                Text(
-                    stringResource(R.string.rate_history_title),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                RateHistoryList(subjectPrice.history)
+                RateHistory(subjectPrice.history)
             }
         },
         confirmButton = {
@@ -892,12 +847,10 @@ private fun PaymentDialog(
     onConfirm: (Money, LocalDate) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var field by remember {
-        mutableStateOf(
-            MoneyField(initialAmount?.toAmountInput().orEmpty(), MoneyField.Kind.PAYMENT),
-        )
-    }
-    var date by remember { mutableStateOf(initialDate) }
+    // Saveable, as every typed dialog field is: the text, with the field derived from it.
+    var text by rememberSaveable { mutableStateOf(initialAmount?.toAmountInput().orEmpty()) }
+    val field = MoneyField(text, MoneyField.Kind.PAYMENT)
+    var date by rememberSaveable { mutableStateOf(initialDate) }
     var picking by remember { mutableStateOf(false) }
     // A new payment opens to be typed into, as every other «Новый …» dialog does — the date is already
     // today. A correction does not: what is wrong with it may be the date.
@@ -909,17 +862,11 @@ private fun PaymentDialog(
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
-                OutlinedTextField(
-                    value = field.text,
-                    onValueChange = { field = field.typed(it) },
-                    label = { Text(stringResource(R.string.payment_amount_label)) },
-                    isError = field.isError,
-                    supportingText = supportingTextOf(moneyErrorText(field)),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .then(if (focus != null) Modifier.focusRequester(focus) else Modifier),
+                MoneyTextField(
+                    field = field,
+                    onValueChange = { text = it },
+                    label = stringResource(R.string.payment_amount_label),
+                    modifier = if (focus != null) Modifier.focusRequester(focus) else Modifier,
                 )
                 PickerField(
                     value = date.formatDate(),
@@ -1126,36 +1073,17 @@ private fun AddSubjectPriceDialog(
                     )
                 } else {
                     addableSubjects.forEach { subject ->
-                        // One control per subject: the row picks it, and the radio is only its picture — a
-                        // second, 20 dp target of its own made TalkBack stop twice on every subject.
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .outsetRowPress { source ->
-                                    Modifier.selectable(
-                                        selected = selectedId == subject.id,
-                                        interactionSource = source,
-                                        indication = null,
-                                        role = Role.RadioButton,
-                                    ) { selectedId = subject.id }
-                                }
-                                .heightIn(min = MinTouchTarget)
-                                .padding(vertical = Spacing.tight),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(selected = selectedId == subject.id, onClick = null)
-                            Text(subject.name, Modifier.padding(start = Spacing.inline))
-                        }
+                        DialogRadioRow(
+                            label = subject.name,
+                            selected = selectedId == subject.id,
+                            onClick = { selectedId = subject.id },
+                        )
                     }
-                    OutlinedTextField(
-                        value = price.text,
+                    MoneyTextField(
+                        field = price,
                         onValueChange = { priceText = it },
-                        label = { Text(stringResource(R.string.price_label)) },
-                        isError = price.isError,
-                        supportingText = supportingTextOf(moneyErrorText(price)),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth().padding(top = Spacing.inline),
+                        label = stringResource(R.string.price_label),
+                        modifier = Modifier.padding(top = Spacing.inline),
                     )
                 }
             }

@@ -52,6 +52,24 @@ fun RateHistoryList(changes: List<RateChange>, modifier: Modifier = Modifier, ma
     }
 }
 
+/**
+ * «История цены» over its [RateHistoryList] — the block both places a rate is typed carry under the field:
+ * the student's reprice dialog and the group's form. History is context for the number being typed, so it
+ * sits where the typing is and nowhere else; the two used to title it apart, a step further from the list
+ * on one than on the other.
+ */
+@Composable
+fun RateHistory(changes: List<RateChange>, modifier: Modifier = Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
+        Text(
+            stringResource(R.string.rate_history_title),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        RateHistoryList(changes)
+    }
+}
+
 /** Enough to see the last few moves without the log becoming the page. */
 private const val MaxRateRows = 5
 

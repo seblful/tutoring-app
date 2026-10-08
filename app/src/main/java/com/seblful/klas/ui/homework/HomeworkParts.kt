@@ -2,16 +2,12 @@ package com.seblful.klas.ui.homework
 
 import android.content.Context
 import android.content.Intent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -21,15 +17,12 @@ import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,7 +30,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
@@ -52,7 +44,6 @@ import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatDate
-import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.ChoiceField
 import com.seblful.klas.ui.common.ContentCard
@@ -60,14 +51,16 @@ import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KeepTypedInput
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.Messages
+import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.SwipeToConfirmBox
+import com.seblful.klas.ui.common.SwipeReveal
 import com.seblful.klas.ui.common.animateInPlace
-import com.seblful.klas.ui.common.armedPop
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.launchExternally
+import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.swipeAction
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.theme.klasColors
@@ -169,7 +162,7 @@ fun SwipeableHomework(
     SwipeToConfirmBox(
         onConfirm = onSwipe,
         modifier = modifier,
-        reveal = { armed -> SwipeReveal(done = row.isCurrent, armed = armed, shape = shape) },
+        reveal = { armed -> HomeworkReveal(done = row.isCurrent, armed = armed, shape = shape) },
     ) {
         // The swipe's twin for a screen reader, on the same node it reads and taps.
         val swipe = Modifier.swipeAction(
@@ -185,26 +178,21 @@ fun SwipeableHomework(
  * «Вернуть» in a quiet tone for one coming back out of the archive.
  */
 @Composable
-private fun SwipeReveal(done: Boolean, armed: Boolean, shape: Shape) {
+private fun HomeworkReveal(done: Boolean, armed: Boolean, shape: Shape) {
     val (fill, ink) = if (done) {
         klasColors.successContainer to klasColors.onSuccessContainer
     } else {
         MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
     }
-    val label = stringResource(if (done) R.string.homework_done else R.string.homework_restore)
-    Row(
-        Modifier.fillMaxSize().background(fill, shape).padding(horizontal = Spacing.gutter),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            if (done) Icons.Filled.CheckCircle else Icons.AutoMirrored.Filled.Undo,
-            contentDescription = label,
-            tint = ink,
-            modifier = Modifier.armedPop(armed),
-        )
-        Spacer(Modifier.width(Spacing.inline))
-        Text(label, style = MaterialTheme.typography.labelLarge, color = ink)
-    }
+    SwipeReveal(
+        icon = if (done) Icons.Filled.CheckCircle else Icons.AutoMirrored.Filled.Undo,
+        label = stringResource(if (done) R.string.homework_done else R.string.homework_restore),
+        container = fill,
+        content = ink,
+        armed = armed,
+        shape = shape,
+        horizontalPadding = Spacing.gutter,
+    )
 }
 
 /** The tab's card: who it is for, when it is for, the text — and the button that sends it. */
@@ -324,8 +312,7 @@ fun HomeworkDialog(
     var text by rememberSaveable { mutableStateOf(editing?.text.orEmpty()) }
     // Only a correction opens in the text. A new one opens on nothing: who it is for comes first, and the
     // keyboard it used to raise asked for the homework before that and covered the dialog doing it.
-    val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { if (editing != null) focus.requestFocus() }
+    val focus = if (editing != null) rememberRevealedFocus() else null
     AlertDialog(
         onDismissRequest = onDismiss,
         // A stray tap beside the dialog must not throw away what was just typed.
@@ -348,7 +335,9 @@ fun HomeworkDialog(
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                     minLines = HomeworkDialogLines,
                     supportingText = selected?.takeIf { editing == null }?.let { choice -> { Text(attachedText(choice)) } },
-                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(if (focus != null) Modifier.focusRequester(focus) else Modifier),
                 )
             }
         },
@@ -370,6 +359,100 @@ fun HomeworkDialog(
             }
         },
     )
+}
+
+/**
+ * The two homework writes every list of it lets the tutor take back — a swipe between current and done,
+ * and a delete — each followed by the message that carries «Отменить».
+ *
+ * The tab and both cards each spelled out the pair, and the undo is the half that matters: a swipe takes
+ * the row off the list it was on, so a mis-swipe with nothing to take it back is a row the tutor has to go
+ * and find on the other side. Build one with [homeworkUndo].
+ */
+class HomeworkUndo internal constructor(
+    private val messages: Messages,
+    private val words: Words,
+    private val setDone: (Homework, Boolean) -> Unit,
+    private val putBack: (Homework) -> Unit,
+    private val delete: (Homework) -> Unit,
+    private val restore: (Homework) -> Unit,
+) {
+    /** [item] swiped onto the done list, or back off it — put back exactly as it was if taken back. */
+    fun swiped(item: Homework, done: Boolean) {
+        setDone(item, done)
+        messages.show(if (done) words.done else words.restored, words.undo) { putBack(item) }
+    }
+
+    /** [item] deleted from its dialog. */
+    fun deleted(item: Homework) {
+        delete(item)
+        messages.show(words.deleted, words.undo) { restore(item) }
+    }
+
+    /** Resolved in composition, since a message is shown from a callback that is not. */
+    internal class Words(val done: String, val restored: String, val deleted: String, val undo: String)
+}
+
+/** A [HomeworkUndo] over a view model's homework writes, saying itself through [messages]. */
+@Composable
+fun homeworkUndo(
+    messages: Messages,
+    setDone: (Homework, Boolean) -> Unit,
+    putBack: (Homework) -> Unit,
+    delete: (Homework) -> Unit,
+    restore: (Homework) -> Unit,
+): HomeworkUndo = HomeworkUndo(
+    messages = messages,
+    words = HomeworkUndo.Words(
+        done = stringResource(R.string.homework_done_message),
+        restored = stringResource(R.string.homework_restored_message),
+        deleted = stringResource(R.string.homework_deleted),
+        undo = stringResource(R.string.action_undo),
+    ),
+    setDone = setDone,
+    putBack = putBack,
+    delete = delete,
+    restore = restore,
+)
+
+/**
+ * A student's or a group's card's homework dialogs: giving a new piece to whoever the card is about, and
+ * correcting or deleting one opened from its list.
+ *
+ * **Fixed to whoever it is for**, a group included: the card is one student's or one group's, and moving a
+ * piece of homework onto somebody else is the tab's to do. Both cards drew this pair identically.
+ *
+ * @param adding who a new piece is for, taken as the dialog opened — or null while none is being given.
+ * @param opened the piece being corrected, or null.
+ * @param onDismiss closes whichever is open.
+ */
+@Composable
+fun CardHomeworkDialogs(
+    adding: AssigneeChoice?,
+    opened: HomeworkRow?,
+    onDismiss: () -> Unit,
+    onGive: (String) -> Unit,
+    onEdit: (Homework, String) -> Unit,
+    undo: HomeworkUndo,
+) {
+    adding?.let { choice ->
+        HomeworkDialog(
+            choices = listOf(choice),
+            onSave = { _, text -> onGive(text) },
+            onDismiss = onDismiss,
+            canChangeAssignee = false,
+        )
+    }
+    opened?.let { row ->
+        HomeworkDialog(
+            choices = listOf(AssigneeChoice(row.homework.assignee, row.title, row.lessonAt)),
+            editing = row.homework,
+            canChangeAssignee = false,
+            onSave = { _, text -> onEdit(row.homework, text) },
+            onDelete = { undo.deleted(row.homework) },
+            onDismiss = onDismiss,
+        )
+    }
 }
 
 /** Which lesson a new piece of homework will be attached to — or that there is none to attach it to yet. */
@@ -394,11 +477,12 @@ fun SendHomeworkButton(row: HomeworkRow, messages: Messages) {
     val text = homeworkShareText(row)
     val chooserTitle = stringResource(R.string.homework_send)
     val failed = stringResource(R.string.student_contact_failed)
-    HoldToName(chooserTitle) {
-        IconButton(onClick = { sendHomework(context, text, chooserTitle, failed, messages) }) {
-            Icon(Icons.Filled.Share, contentDescription = chooserTitle, tint = MaterialTheme.colorScheme.primary)
-        }
-    }
+    NamedIconButton(
+        Icons.Filled.Share,
+        chooserTitle,
+        onClick = { sendHomework(context, text, chooserTitle, failed, messages) },
+        tint = MaterialTheme.colorScheme.primary,
+    )
 }
 
 /**

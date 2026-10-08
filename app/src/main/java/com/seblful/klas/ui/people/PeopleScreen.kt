@@ -1,24 +1,17 @@
 package com.seblful.klas.ui.people
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconToggleButton
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -32,11 +25,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.ScreenSearch
-import com.seblful.klas.ui.common.ScreenHeader
-import com.seblful.klas.ui.common.SegmentedChoice
-import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.swipeBetweenSegments
+import com.seblful.klas.ui.common.SegmentedPage
+import com.seblful.klas.ui.common.TickedMenuItem
 import com.seblful.klas.ui.groups.GroupsList
 import com.seblful.klas.ui.groups.GroupsViewModel
 import com.seblful.klas.ui.students.StudentSort
@@ -133,23 +125,18 @@ fun PeopleScreen(
         // body rather than on the lists alone, so the gesture is available over the band as well: the two
         // sides of «Люди» are one screen showing the same people two ways, and every part of it should turn
         // the page. Neither list owns a horizontal gesture, so nothing here competes for the drag.
-        Column(modifier.swipeBetweenSegments(PeopleTab.entries, tab) { tab = it }) {
-            // Under the bar and painted with it ([ScreenHeader]), like the schedule's view and the
-            // report's period: page-coloured at rest, so the app's segmented controls look like one
-            // control wherever they are; tinted with the bar once a list is passing beneath it, so the
-            // rows disappear behind one edge rather than at a line nobody drew.
-            ScreenHeader {
-                SegmentedChoice(
-                    options = PeopleTab.entries,
-                    selected = tab,
-                    onSelect = { tab = it },
-                    modifier = Modifier.padding(
-                        horizontal = Spacing.gutter,
-                        vertical = Spacing.inline,
-                    ),
-                    label = { entry -> stringResource(entry.labelRes) },
-                )
-            }
+        //
+        // The segments sit under the bar and are painted with it ([SegmentedPage]), like the schedule's view
+        // and the report's period: page-coloured at rest, so the app's segmented controls look like one
+        // control wherever they are; tinted with the bar once a list is passing beneath it, so the rows
+        // disappear behind one edge rather than at a line nobody drew.
+        SegmentedPage(
+            options = PeopleTab.entries,
+            selected = tab,
+            onSelect = { tab = it },
+            label = { entry -> stringResource(entry.labelRes) },
+            modifier = modifier,
+        ) {
             Box(Modifier.fillMaxSize()) {
                 // `query` is the visible side's, so either list's "empty because nothing matched"
                 // reads the same search its rows were filtered by.
@@ -178,26 +165,20 @@ fun PeopleScreen(
 private fun SortMenu(selected: StudentSort, onSelect: (StudentSort) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        HoldToName(stringResource(R.string.students_sort)) {
-            IconButton(onClick = { expanded = true }) {
-                Icon(
-                    Icons.AutoMirrored.Filled.Sort,
-                    stringResource(R.string.students_sort),
-                    // Tinted while the list is in a non-default order, so a surprising order has a
-                    // visible cause in the bar above it.
-                    tint = if (selected != StudentSort.NAME) MaterialTheme.colorScheme.primary
-                    else LocalContentColor.current,
-                )
-            }
-        }
+        NamedIconButton(
+            Icons.AutoMirrored.Filled.Sort,
+            stringResource(R.string.students_sort),
+            onClick = { expanded = true },
+            // Tinted while the list is in a non-default order, so a surprising order has a visible cause
+            // in the bar above it.
+            tint = MaterialTheme.colorScheme.primary.takeIf { selected != StudentSort.NAME },
+        )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             StudentSort.entries.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(sortLabel(option))) },
+                TickedMenuItem(
+                    text = stringResource(sortLabel(option)),
+                    selected = option == selected,
                     onClick = { onSelect(option); expanded = false },
-                    trailingIcon = {
-                        if (option == selected) Icon(Icons.Filled.Check, contentDescription = null)
-                    },
                 )
             }
         }

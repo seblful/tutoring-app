@@ -12,7 +12,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -32,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.KlasScreen
+import com.seblful.klas.ui.common.NoticeDialog
 import com.seblful.klas.ui.common.KlasLogo
 import com.seblful.klas.ui.common.KlasWordmark
 import com.seblful.klas.ui.common.MinTouchTarget
@@ -151,23 +151,17 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
         val licence = remember(resources) {
             resources.openRawResource(R.raw.golos_text_ofl).bufferedReader().use { it.readText() }
         }
-        AlertDialog(
-            onDismissRequest = { showingLicence = false },
-            title = { Text(stringResource(R.string.about_typeface_licence)) },
-            text = {
-                // Left in English, as licences are. Scrollable because it is four screens long, and
-                // the OFL's terms are not something to show an abridged version of.
-                Text(
-                    licence,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { showingLicence = false }) {
-                    Text(stringResource(R.string.action_ok))
-                }
-            },
-        )
+        NoticeDialog(
+            onDismiss = { showingLicence = false },
+            title = stringResource(R.string.about_typeface_licence),
+        ) {
+            // Left in English, as licences are. Scrollable because it is four screens long, and the OFL's
+            // terms are not something to show an abridged version of.
+            Text(
+                licence,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+            )
+        }
     }
 }

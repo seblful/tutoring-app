@@ -1,6 +1,14 @@
 package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.FilterChip
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import com.seblful.klas.format.MoneyField
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -321,6 +329,145 @@ fun rememberRevealedFocus(): FocusRequester {
     val requester = remember { FocusRequester() }
     LaunchedEffect(Unit) { requester.requestFocus() }
     return requester
+}
+/**
+ * A money amount typed in full — a rate, a payment, a default — with the line under it that says what is
+ * wrong with it.
+ *
+ * Seven fields spelled this out: the text, the red outline, the reason under it, one line, a decimal
+ * keyboard. The red outline used to be the whole message; [MoneyField] knows which rule failed and this
+ * is it saying so, the same way on every form and dialog.
+ *
+ * Takes the typed text rather than the next [MoneyField], because the two kinds of owner turn a keystroke
+ * into a field differently: a form's lives in its view model, a dialog's is `rememberSaveable` text with
+ * the field derived from it — so a half-typed amount survives the dialog being recreated.
+ *
+ * @param hint the field's ordinary supporting line; an error wins over it ([supportingTextOf]).
+ */
+@Composable
+fun MoneyTextField(
+    field: MoneyField,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    hint: String? = null,
+) {
+    OutlinedTextField(
+        value = field.text,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        // Red only for something unusable that was actually typed — `MoneyField.isError`'s rule. Blank is
+        // incomplete, which a hint says without shouting.
+        isError = field.isError,
+        supportingText = supportingTextOf(error = moneyErrorText(field), hint = hint),
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = modifier.fillMaxWidth(),
+    )
+}
+/**
+ * Who a student is and how to reach them — name, phone, email, note, and where they are usually taught —
+ * asked the same way by the add form and by the card's edit dialog.
+ *
+ * Written twice before this, and the copies had already parted: the form said a blank name was required
+ * and the dialog only greyed its «Сохранить», leaving the tutor to guess which of five fields it meant.
+ * Said as a **hint, not an error**: a blank name on a form that has just opened is incomplete rather than
+ * wrong.
+ *
+ * Each field's keyboard says what goes in it, and «Далее» walks down the fields: a name capitalised as
+ * one, a note as sentences. Emitted as siblings, so they take the caller's spacing.
+ */
+@Composable
+fun StudentContactFields(
+    name: String,
+    onName: (String) -> Unit,
+    phone: String,
+    onPhone: (String) -> Unit,
+    email: String,
+    onEmail: (String) -> Unit,
+    note: String,
+    onNote: (String) -> Unit,
+    mode: ClassMode,
+    onMode: (ClassMode) -> Unit,
+) {
+    OutlinedTextField(
+        value = name,
+        onValueChange = onName,
+        label = { Text(stringResource(R.string.student_name_label)) },
+        supportingText = supportingTextOf(
+            hint = stringResource(R.string.field_required).takeIf { name.isBlank() },
+        ),
+        singleLine = true,
+        keyboardOptions = NameKeyboard,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = phone,
+        onValueChange = onPhone,
+        label = { Text(stringResource(R.string.student_phone_label)) },
+        singleLine = true,
+        keyboardOptions = PhoneKeyboard,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = email,
+        onValueChange = onEmail,
+        label = { Text(stringResource(R.string.student_email_label)) },
+        singleLine = true,
+        keyboardOptions = EmailKeyboard,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = note,
+        onValueChange = onNote,
+        label = { Text(stringResource(R.string.student_note_label)) },
+        keyboardOptions = NoteKeyboard,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    ModeField(
+        label = stringResource(R.string.student_mode_label),
+        selected = mode,
+        onSelect = onMode,
+    )
+}
+private val NameKeyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next)
+private val PhoneKeyboard = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next)
+private val EmailKeyboard = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
+private val NoteKeyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+/**
+ * A **shortlist with an escape hatch**, as chips: one per preset, then [customLabel], which asks for
+ * anything else.
+ *
+ * The last chip is lit whenever [selected] is not one of the presets — otherwise a lesson booked at 50
+ * minutes, or a run of six, would show no chip selected and read as nothing having been set. Two pickers
+ * on the booking form follow that rule, and each had its own copy of it.
+ *
+ * @param selected the value in force, or null while there is none.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun <T> PresetChips(
+    presets: List<T>,
+    selected: T?,
+    label: @Composable (T) -> String,
+    customLabel: String,
+    onSelect: (T) -> Unit,
+    onCustom: () -> Unit,
+) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
+        presets.forEach { preset ->
+            FilterChip(
+                selected = preset == selected,
+                onClick = { onSelect(preset) },
+                label = { Text(label(preset)) },
+            )
+        }
+        FilterChip(
+            selected = selected != null && selected !in presets,
+            onClick = onCustom,
+            label = { Text(customLabel) },
+        )
+    }
 }
 /**
  * One tappable person in a roster picker — a group's members, or who was at a lesson.

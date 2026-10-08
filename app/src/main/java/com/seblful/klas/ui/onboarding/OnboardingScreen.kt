@@ -47,7 +47,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -59,9 +58,9 @@ import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.backup.BACKUP_MIME_TYPES
 import com.seblful.klas.ui.backup.BackupResult
 import com.seblful.klas.ui.backup.BackupViewModel
+import com.seblful.klas.ui.backup.ConfirmRestoreDialog
 import com.seblful.klas.ui.backup.messageIn
 import com.seblful.klas.ui.common.ChoiceRow
-import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.KlasLogo
@@ -70,7 +69,6 @@ import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.TextFieldDialog
 import com.seblful.klas.ui.common.currencyLabel
 import com.seblful.klas.ui.common.languageLabel
 import com.seblful.klas.ui.common.launchExternally
@@ -78,6 +76,7 @@ import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.valueOrNull
 import com.seblful.klas.ui.students.StudentFormContent
 import com.seblful.klas.ui.students.StudentFormViewModel
+import com.seblful.klas.ui.subjects.SubjectNameDialog
 
 /**
  * The first run, as a sequence.
@@ -142,7 +141,15 @@ fun OnboardingScreen(
     }
 
     val removeFailedMsg = stringResource(R.string.onboarding_subject_remove_failed)
-    ShowMessagesFor(viewModel.events, messages) { removeFailedMsg }
+    val nameTakenMsg = stringResource(R.string.subject_name_taken)
+    val saveFailedMsg = stringResource(R.string.save_failed)
+    ShowMessagesFor(viewModel.events, messages) { event ->
+        when (event) {
+            OnboardingViewModel.Event.REMOVE_REFUSED -> removeFailedMsg
+            OnboardingViewModel.Event.NAME_TAKEN -> nameTakenMsg
+            OnboardingViewModel.Event.WRITE_FAILED -> saveFailedMsg
+        }
+    }
 
     // Removing a subject is undone by adding it back: nothing can reference one added during first run,
     // so the name is the whole of it. The row it comes back as is a new one, which matters to nobody —
@@ -392,21 +399,11 @@ fun OnboardingScreen(
     }
 
     if (addingSubject) {
-        TextFieldDialog(
-            title = stringResource(R.string.subject_add_title),
-            label = stringResource(R.string.subject_name_label),
-            capitalization = KeyboardCapitalization.Sentences,
-            initial = "",
-            onConfirm = { viewModel.addSubject(it) },
-            onDismiss = { addingSubject = false },
-        )
+        SubjectNameDialog(onConfirm = { viewModel.addSubject(it) }, onDismiss = { addingSubject = false })
     }
 
     confirmRestoreUri?.let { uri ->
-        ConfirmDialog(
-            text = stringResource(R.string.backup_import_confirm),
-            confirmLabel = stringResource(R.string.backup_import),
-            destructive = true,
+        ConfirmRestoreDialog(
             onConfirm = { backupViewModel.import(DocumentRef(uri.toString())) },
             onDismiss = { confirmRestoreUri = null },
         )

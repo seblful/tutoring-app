@@ -2,10 +2,8 @@ package com.seblful.klas.ui.homework
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -36,13 +34,11 @@ import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.Messages
-import com.seblful.klas.ui.common.ScreenHeader
-import com.seblful.klas.ui.common.SegmentedChoice
+import com.seblful.klas.ui.common.SegmentedPage
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.rememberMessages
-import com.seblful.klas.ui.common.swipeBetweenSegments
 
 /** The tab's two lists: what is set and not done yet, and what is done. */
 private enum class HomeworkSide(val labelRes: Int) {
@@ -74,6 +70,13 @@ fun HomeworkScreen(
     val messages = rememberMessages()
     val failed = stringResource(R.string.action_failed)
     ShowMessagesFor(viewModel.events, messages) { failed }
+    val undo = homeworkUndo(
+        messages = messages,
+        setDone = viewModel::setDone,
+        putBack = viewModel::putBack,
+        delete = viewModel::delete,
+        restore = viewModel::restore,
+    )
     val needStudent = stringResource(R.string.homework_need_student)
     val addStudentLabel = stringResource(R.string.schedule_add_student)
 
@@ -111,18 +114,17 @@ fun HomeworkScreen(
         },
     ) { modifier ->
         // The same two-sided shape as «Люди»: segments on the page, and a drag across the body turns it.
-        Column(modifier.swipeBetweenSegments(HomeworkSide.entries, side) { side = it }) {
-            ScreenHeader {
-                SegmentedChoice(
-                    options = HomeworkSide.entries,
-                    selected = side,
-                    onSelect = { side = it },
-                    modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
-                    label = { entry -> sideLabel(entry, loaded?.lists) },
-                )
+        SegmentedPage(
+            options = HomeworkSide.entries,
+            selected = side,
+            onSelect = { side = it },
+            label = { entry -> sideLabel(entry, loaded?.lists) },
+            modifier = modifier,
+            header = {
                 // Above both lists and outside their scroll, as the schedule's: a narrowed tab says so.
                 loaded?.filterName?.let { name -> FilterChipRow(name, onClear = { viewModel.setFilter(null) }) }
-            }
+            },
+        ) {
             Box(Modifier.fillMaxSize()) {
                 when (val ready = state) {
                     Loadable.Loading -> ListSkeleton()
@@ -131,7 +133,7 @@ fun HomeworkScreen(
                         lists = ready.value.lists,
                         filterName = ready.value.filterName,
                         messages = messages,
-                        viewModel = viewModel,
+                        undo = undo,
                         onAdd = ::add,
                         onOpen = { row -> opened = Opened(row, viewModel.choicesFor(row)) },
                     )
@@ -148,16 +150,11 @@ fun HomeworkScreen(
         )
     }
     opened?.let { (row, choices) ->
-        val deletedMsg = stringResource(R.string.homework_deleted)
-        val undoLabel = stringResource(R.string.action_undo)
         HomeworkDialog(
             choices = choices,
             editing = row.homework,
             onSave = { assignee, text -> viewModel.edit(row.homework, assignee, text) },
-            onDelete = {
-                viewModel.delete(row.homework)
-                messages.show(deletedMsg, undoLabel) { viewModel.restore(row.homework) }
-            },
+            onDelete = { undo.deleted(row.homework) },
             onDismiss = { opened = null },
         )
     }
@@ -180,7 +177,7 @@ private fun HomeworkList(
     lists: HomeworkLists,
     filterName: String?,
     messages: Messages,
-    viewModel: HomeworkViewModel,
+    undo: HomeworkUndo,
     onAdd: () -> Unit,
     onOpen: (HomeworkRow) -> Unit,
 ) {
@@ -211,9 +208,6 @@ private fun HomeworkList(
         }
         return
     }
-    val doneMsg = stringResource(R.string.homework_done_message)
-    val restoredMsg = stringResource(R.string.homework_restored_message)
-    val undoLabel = stringResource(R.string.action_undo)
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -225,15 +219,9 @@ private fun HomeworkList(
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         items(rows, key = { it.homework.id }) { row ->
-            val done = side == HomeworkSide.CURRENT
             SwipeableHomework(
                 row = row,
-                onSwipe = {
-                    viewModel.setDone(row.homework, done)
-                    messages.show(if (done) doneMsg else restoredMsg, undoLabel) {
-                        viewModel.putBack(row.homework)
-                    }
-                },
+                onSwipe = { undo.swiped(row.homework, done = side == HomeworkSide.CURRENT) },
                 onClick = { onOpen(row) },
                 messages = messages,
                 nested = false,
