@@ -28,6 +28,7 @@ or **EUR**.
 - **Room** (single source of truth) · **Hilt** DI · **WorkManager** + `AlarmManager`
 - **kotlinx-serialization** (backup) · `java.time` with core-library desugaring
 - AGP (built-in Kotlin) · Gradle · **JDK 21** · **minSdk 24**
+- Two modules: `:app` (Android) and `:domain` (pure Kotlin/JVM — the compiler keeps Android out of it)
 
 Versions live in `gradle/libs.versions.toml`, SDK levels in `app/build.gradle.kts`.
 
@@ -51,7 +52,8 @@ Architecture is MVVM over a pure, unit-tested domain layer — see **[docs/archi
 
 ```bash
 ./gradlew :app:assembleDebug            # debug APK
-./gradlew :app:testDebugUnitTest        # JVM unit tests (domain, view models, mappers, backup)
+./gradlew :domain:test                  # domain unit tests (billing, scheduling, reminders, reports)
+./gradlew :app:testDebugUnitTest        # app unit tests (view models, repositories, mappers, backup)
 ./gradlew :app:lintDebug                # lint (release lint is off: an AGP file-locking bug on Windows, see app/build.gradle.kts)
 ./gradlew :app:assembleDebugAndroidTest # build instrumented tests (Room, calendar, backup round-trip)
 ```
@@ -59,7 +61,7 @@ Architecture is MVVM over a pure, unit-tested domain layer — see **[docs/archi
 The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk` and installs without any signing
 setup. It carries a `.debug` application id, so it sits beside a release install with its own database.
 
-CI (`.github/workflows/ci.yml`) runs the unit suite, `lintDebug`, the debug APK and the *compilation*
+CI (`.github/workflows/ci.yml`) runs both unit suites, `lintDebug`, the debug APK and the *compilation*
 of the instrumented tests on every push to `main` and every PR targeting `main` (any branch can be run
 on demand). Running the instrumented tests themselves needs a connected device
 (`./gradlew :app:connectedDebugAndroidTest`).

@@ -5,13 +5,17 @@ Where a test goes in Klas, and what the test setup expects. Commands and what CI
 
 ## Unit tests (`src/test`)
 
-- ~100 classes: domain, backup format, view models, repository side effects, mappers, formatters —
-  against in-memory fake DAOs. `isReturnDefaultValues` is off (a test needing Android has found a missing
-  port). Seed through `testutil/Fixtures`, never DAOs directly.
+- **`domain/src/test`** (`:domain:test`, ~30 classes): a rule of `domain/` tested on its own — JUnit
+  only, no fixtures, fakes or project files. A test that needs any of those is not a domain test and
+  goes in `app`.
+- **`app/src/test`** (`:app:testDebugUnitTest`, ~85 classes): backup format, view models, repository side
+  effects, mappers, formatters — against in-memory fake DAOs. `isReturnDefaultValues` is off (a test
+  needing Android has found a missing port). Seed through `testutil/Fixtures`, never DAOs directly.
 - A handful of tripwire tests guard silent drift by deriving expectations from a real artifact rather than
   restating them (schema coverage, enum names, whole-table writes, screen-state/shell surface rules,
   migration chain wiring and the view each step leaves). `MigrationChainTest` is the only one in the unit
-  suite guarding the upgrade path.
+  suite guarding the upgrade path. They live in `app` (they read files through `testutil/ProjectFiles`),
+  even one about the domain such as `ReportsSurfaceTest`; a whole-tree scan covers both modules' sources.
 
 ## Instrumented tests (`src/androidTest`)
 

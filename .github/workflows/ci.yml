@@ -47,8 +47,9 @@ jobs:
 
       # No local.properties here (it is gitignored, holding a machine-specific SDK path); the runner
       # exports ANDROID_HOME, which Gradle falls back to.
+      # :domain is plain Kotlin/JVM, so its suite is `test`, not a per-variant `testDebugUnitTest`.
       - name: Unit tests
-        run: ./gradlew :app:testDebugUnitTest --stacktrace
+        run: ./gradlew :domain:test :app:testDebugUnitTest --stacktrace
 
       - name: Lint
         # lintDebug rather than lint: release lint is switched off in the build script to dodge an
@@ -73,5 +74,7 @@ jobs:
             app/build/reports/tests/
             app/build/reports/lint-results-*.html
             app/build/test-results/
+            domain/build/reports/tests/
+            domain/build/test-results/
           retention-days: 14
           if-no-files-found: ignore

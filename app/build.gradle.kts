@@ -117,6 +117,9 @@ ksp {
 }
 
 dependencies {
+    // The pure-Kotlin rules. `implementation`, not `api`: nothing depends on an application module.
+    implementation(project(":domain"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)

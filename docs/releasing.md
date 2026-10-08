@@ -92,7 +92,7 @@ questionnaires and the rollout. Two answers are specific to Klas:
 - [ ] Bump `versionCode` (and `versionName` if user-facing)
 - [ ] Schema change? A migration is shipped and `MigrationChainTest` passes
 - [ ] `keystore.properties` present and correct
-- [ ] `./gradlew :app:testDebugUnitTest` and `:app:lintDebug` pass
+- [ ] `./gradlew :domain:test :app:testDebugUnitTest` and `:app:lintDebug` pass
 - [ ] `./gradlew :app:bundleRelease` succeeds
 - [ ] Backup round-trip verified on a release build (device)
 - [ ] Upload `.aab` to the chosen track

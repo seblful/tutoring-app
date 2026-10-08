@@ -4,7 +4,12 @@ Where code goes in Klas, and which class owns each rule. The reasoning behind a 
 to the code.
 
 MVVM, pure unit-tested domain layer. Room is the single source of truth; calendar and notifications are
-best-effort mirrors of it, never the reverse. DI: Hilt. Single `app` module.
+best-effort mirrors of it, never the reverse. DI: Hilt.
+
+Two Gradle modules, one package (`com.seblful.klas`): `:domain` holds `domain/` as plain Kotlin/JVM,
+and `:app` (Android) holds everything else and depends on it. The split exists so that "no Android in
+the domain" is a compile error, not a convention — `:domain` has no `android.jar` and no libraries,
+only the JDK and the Kotlin standard library.
 
 ```mermaid
 flowchart TB
@@ -22,7 +27,7 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` | Pure Kotlin, no Android deps: billing, class/group rules, scheduling, recurrence, calendar policy, reminders, `LessonPhase`, `HomeworkRules`, `Digests`, reports, search, formatting-adjacent models (`Balance`, `Currency`, `AppLanguage`). All JVM-tested. |
+| `domain/` (`:domain` module) | Pure Kotlin, no Android deps (compiler-enforced): billing, class/group rules, scheduling, recurrence, calendar policy, reminders, `LessonPhase`, `HomeworkRules`, `Digests`, reports, search, formatting-adjacent models (`Balance`, `Currency`, `AppLanguage`). All JVM-tested. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`, `Migrations`, `Transactor` port. `SnapshotDao` is the separate whole-table seam. |
 | `data/Mappers.kt` | Entities ⇄ domain models. |
 | `data/repository/` | One invariant each, end to end, one transaction (see [Who owns each rule](#who-owns-each-rule)). |
