@@ -17,6 +17,31 @@ Where a test goes in Klas, and what the test setup expects. Commands and what CI
   the only one in the unit suite guarding the upgrade path. They live in `app` (they read files through `testutil/ProjectFiles`),
   even one about the domain such as `ReportsSurfaceTest`; a whole-tree scan covers both modules' sources.
 
+## Screenshot tests (`@Preview` → `src/test/screenshots`)
+
+- **A screenshot test is a `@Preview`.** Every preview in the app (today `src/debug/.../preview/`, under
+  `@KlasPreview`: light, dark, 1.5× text, all Russian) is found by ComposablePreviewScanner, drawn by
+  Robolectric with native graphics and compared by Roborazzi with its golden PNG. There is no test class
+  to write — the Roborazzi plugin generates one (`roborazzi {}` in `app/build.gradle.kts`); a new preview
+  is a new golden on the next record. Previews are for shared atoms; nothing that needs a ViewModel or Hilt.
+- Goldens live in `app/src/test/screenshots/` and are committed: a visual change shows up in review as
+  a changed PNG.
+- `./gradlew :app:recordRoborazziDebug` writes the goldens; `./gradlew :app:verifyRoborazziDebug` runs
+  the whole unit suite and fails on any preview that moved, leaving `*_compare.png` (golden | diff | new)
+  in `app/build/outputs/roborazzi/`. A plain `testDebugUnitTest` still composes every preview (a crash
+  fails it) but captures and compares nothing.
+- Change a component on purpose → record, look at the PNG diff, commit the new goldens with the change.
+- **Cross-OS tolerance.** Goldens are recorded on Windows and verified on CI's Linux; the same Skia built
+  per OS rasterises text a shade differently. `KlasPreviewTester` therefore passes an image when at most
+  **0.5% of its pixels** differ beyond Roborazzi's default per-pixel colour distance, with no
+  neighbouring-pixel shift allowed — so a moved edge, a new padding or a tinted badge still fails (a
+  badge's wash going from 15% to 22% failed 9 of 39 renders). A change smaller than that — one short
+  label's colour — can pass; look at the preview when touching such a thing. If CI ever fails on a
+  platform-only difference, its `screenshot-diffs` artifact holds the Linux render to commit instead.
+- Robolectric settings shared by every Robolectric test are in `src/test/resources/robolectric.properties`
+  (SDK 36 = targetSdk, a bare `Application` rather than the Hilt `KlasApp`); the JDK 17+ `--add-opens`
+  flags and `isIncludeAndroidResources` are in `app/build.gradle.kts`.
+
 ## Instrumented tests (`src/androidTest`)
 
 - 36 classes cover what needs a device: Room/FK integration, backup round-trip, calendar sync,

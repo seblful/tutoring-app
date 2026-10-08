@@ -20,6 +20,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.hilt) apply false
+    alias(libs.plugins.roborazzi) apply false
 }
 
 // The pin above and the catalog's `kotlin` must be the same version: they are AGP's Kotlin compiler

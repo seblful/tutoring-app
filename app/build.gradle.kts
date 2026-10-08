@@ -1,3 +1,4 @@
+import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -7,6 +8,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.roborazzi)
 }
 
 // Release signing is configured only when keystore.properties exists (gitignored). This keeps debug
@@ -94,6 +96,12 @@ android {
     // ReminderScheduler, Transactor), so a test that needs the framework has found a missing port
     // rather than a reason to turn this back on.
     //
+    // Robolectric tests are the exception that proves it: they get a real framework rather than the
+    // stub android.jar, so they never reach a default value either. `isIncludeAndroidResources` is what
+    // hands them the merged resources — the app's theme, strings and Golos Text font — without which a
+    // screenshot would be of a theme-less, font-less component. It changes nothing for the plain JVM
+    // tests, which never ask for a resource.
+    //
     // Room's exported schema JSONs (see `ksp { room.schemaLocation }`) are shipped as androidTest assets so
     // `MigrationTestHelper` can stand a v5 database up on a device and validate the migration against the
     // bundled v6 schema — see `SettingsLanguageMigrationTest`. This wiring was deleted with the squashed
@@ -101,6 +109,29 @@ android {
     // (`MigrationChainTest`) reads the same files off the tree and only proves the chain *exists*.
     sourceSets {
         getByName("androidTest").assets.directories.add("$projectDir/schemas")
+    }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all {
+            // Roborazzi's advice for Robolectric native graphics: copy pixels through the hardware
+            // renderer, which draws what a phone does (elevation shadows, rounded clips) rather than the
+            // software path's approximation. Only a screenshot ever reads it.
+            it.systemProperty("robolectric.pixelCopyRenderMode", "hardware")
+            // Robolectric reaches into JDK internals (a FileDescriptor's raw int, the font and text
+            // classes) that JDK 17+ closes to reflection; without these every Robolectric test fails in
+            // setup. The list is Robolectric's own documented one for JDK 17+ (robolectric.org/getting-started).
+            it.jvmArgs(
+                "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                "--add-opens=java.base/java.util=ALL-UNNAMED",
+                "--add-opens=java.base/java.io=ALL-UNNAMED",
+                "--add-opens=java.base/java.net=ALL-UNNAMED",
+                "--add-opens=java.base/java.security=ALL-UNNAMED",
+                "--add-opens=java.base/java.text=ALL-UNNAMED",
+                "--add-opens=java.base/jdk.internal.access=ALL-UNNAMED",
+                "--add-opens=java.desktop/java.awt.font=ALL-UNNAMED",
+                "--add-opens=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
+            )
+        }
     }
 }
 
@@ -114,6 +145,36 @@ kotlin {
 ksp {
     // Export each DB version's schema to /schemas so migrations can be tested (and reviewed in git).
     arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+// Screenshot tests: every @Preview in the app is drawn under Robolectric and compared with a committed
+// golden — see docs/testing.md. Nothing here is a test to write: the plugin generates one test class
+// that scans for previews, so a new @Preview is a new screenshot on the next record.
+// Both the compare directory and the preview generation are still marked experimental by Roborazzi.
+@OptIn(ExperimentalRoborazziApi::class)
+roborazzi {
+    // Goldens are source, reviewed in the diff like any other: not build output that `clean` deletes.
+    outputDir.set(file("src/test/screenshots"))
+    // Where a failed verify leaves `*_compare.png` (golden | diff | new): build output, uploaded by CI,
+    // never committed.
+    compare {
+        outputDir.set(layout.buildDirectory.dir("outputs/roborazzi"))
+    }
+    generateComposePreviewRobolectricTests {
+        enable = true
+        packages = listOf("com.seblful.klas")
+        // The previews are private on purpose — they are not API — so the scan has to see private ones.
+        includePrivatePreviews = true
+        // xhdpi rather than Robolectric's mdpi default: an 11sp status pill drawn 11px high is not
+        // something a reviewer can judge a diff of. The values are pasted into a @Config annotation as
+        // source, hence the quotes inside the string.
+        robolectricConfig = mapOf("qualifiers" to "\"xhdpi\"")
+        // Ours, for the compare tolerance that lets a golden recorded on Windows pass on CI's Linux.
+        testerQualifiedClassName = "com.seblful.klas.screenshot.KlasPreviewTester"
+        // That tester keeps Roborazzi's own scan (it only changes the capture), and the default scan
+        // already honours `includePrivatePreviews`; this tells the plugin so rather than refusing it.
+        useScanOptionParametersInTester = true
+    }
 }
 
 dependencies {
@@ -161,6 +222,15 @@ dependencies {
     // Unit tests
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Screenshot tests (Robolectric + Roborazzi), and the Robolectric runtime other framework-backed
+    // JVM tests can share.
+    testImplementation(libs.robolectric)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.ui.test.junit4)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.compose.preview.scanner.support)
+    testImplementation(libs.composable.preview.scanner)
 
     // Instrumented tests
     androidTestImplementation(libs.androidx.junit)

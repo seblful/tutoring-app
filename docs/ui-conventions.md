@@ -92,6 +92,8 @@ it draws with.
   students with group homework. The add dialog offers everyone so a first assignment can be given.
 - **Reports**: number only where the chart shape adds meaning (column/stacked-bar/ranked-bars/plain text);
   CSV export's delimiter follows the decimal separator; can be saved or sent.
+- **Previews**: a shared atom gets a `@KlasPreview` in `src/debug/.../preview/`, which is also its
+  screenshot test (see [Testing](testing.md)).
 - **Design system**: curated indigo+teal Material 3 palette, dynamic color off by default. Amber = "on
   now"; green = "taught" (`KlasColors`, app-owned, unaffected by dynamic color). Golos Text typeface
   (Cyrillic-first, full Latin). Avatar colors key off id, not name.

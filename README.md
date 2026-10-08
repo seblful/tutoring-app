@@ -54,6 +54,8 @@ Architecture is MVVM over a pure, unit-tested domain layer — see **[docs/archi
 ./gradlew :app:assembleDebug            # debug APK
 ./gradlew :domain:test                  # domain unit tests (billing, scheduling, reminders, reports)
 ./gradlew :app:testDebugUnitTest        # app unit tests (view models, repositories, mappers, backup)
+./gradlew :app:verifyRoborazziDebug     # the app's unit tests, plus every @Preview compared with its golden screenshot
+./gradlew :app:recordRoborazziDebug     # re-record the goldens in app/src/test/screenshots after a deliberate UI change
 ./gradlew :app:lintDebug                # lint (release lint is off: an AGP file-locking bug on Windows, see app/build.gradle.kts)
 ./gradlew :app:assembleDebugAndroidTest # build instrumented tests (Room, calendar, backup round-trip)
 ```
@@ -61,7 +63,8 @@ Architecture is MVVM over a pure, unit-tested domain layer — see **[docs/archi
 The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk` and installs without any signing
 setup. It carries a `.debug` application id, so it sits beside a release install with its own database.
 
-CI (`.github/workflows/ci.yml`) runs both unit suites, `lintDebug`, the debug APK and the *compilation*
+CI (`.github/workflows/ci.yml`) runs both unit suites with screenshot verification (uploading the diff
+images when one fails), `lintDebug`, the debug APK and the *compilation*
 of the instrumented tests on every push to `main` and every PR targeting `main` (any branch can be run
 on demand). Running the instrumented tests themselves needs a connected device
 (`./gradlew :app:connectedDebugAndroidTest`).

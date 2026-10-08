@@ -33,6 +33,17 @@ import com.seblful.klas.ui.theme.KlasTheme
  *   a different hat: the bottom bar's wrapping labels, the stat tile's amount, the group row's rate
  *   taking the name's width. It is the single most productive thing to look at.
  *
+ * All three are drawn in **Russian** (`locale = "ru"`), the language of the sample data and of the tutor:
+ * a word that comes from resources — a status, «Удалить», a field's error — then matches the name
+ * beside it, and Cyrillic is the width these components have to survive. English is the shorter
+ * language almost everywhere it matters, so it is not a fourth render.
+ *
+ * ### Each render is a screenshot test
+ *
+ * Every `@Preview` in the app is screenshotted under Robolectric and compared with a committed golden
+ * (`app/src/test/screenshots/`), found by scanning — so a preview added here is covered with no test to
+ * write, and a change that moves one fails `verifyRoborazziDebug`. See docs/testing.md.
+ *
  * ### Why this lives in `src/debug`
  *
  * A preview is a development tool, and shipping one in the release APK means shipping the sample data
@@ -41,15 +52,23 @@ import com.seblful.klas.ui.theme.KlasTheme
  * anything a tutor installs. The `@Preview` annotation itself comes from `ui-tooling-preview`, which is
  * a normal `implementation` — that is the small artefact, and it is what makes this arrangement work.
  */
-@Preview(name = "Light", group = "component", showBackground = true, widthDp = 360)
+@Preview(name = "Light", group = "component", showBackground = true, widthDp = 360, locale = "ru")
 @Preview(
     name = "Dark",
     group = "component",
     showBackground = true,
     widthDp = 360,
+    locale = "ru",
     uiMode = Configuration.UI_MODE_NIGHT_YES,
 )
-@Preview(name = "Large text", group = "component", showBackground = true, widthDp = 360, fontScale = 1.5f)
+@Preview(
+    name = "Large text",
+    group = "component",
+    showBackground = true,
+    widthDp = 360,
+    locale = "ru",
+    fontScale = 1.5f,
+)
 annotation class KlasPreview
 
 /**
