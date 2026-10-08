@@ -40,6 +40,7 @@ import com.seblful.klas.ui.common.ScreenHeader
 import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.swipeBetweenSegments
 
@@ -236,7 +237,7 @@ private fun HomeworkList(
                 onClick = { onOpen(row) },
                 messages = messages,
                 nested = false,
-                modifier = Modifier.animateItem(),
+                modifier = animateInPlace(),
             )
         }
     }

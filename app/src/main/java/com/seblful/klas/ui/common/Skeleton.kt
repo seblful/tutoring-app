@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -26,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 
 /**
  * What a screen draws while its state is [Loadable.Loading].
@@ -70,6 +73,7 @@ fun SkeletonBlock(
 ) {
     val tint = MaterialTheme.colorScheme.onSurfaceVariant
     val alpha = placeholderAlpha()
+    val shown = rememberPlaceholderShown()
     Column(
         modifier
             .fillMaxWidth()
@@ -77,8 +81,34 @@ fun SkeletonBlock(
             .clip(shape)
             // The pulse is read in the draw, not in composition: read here it recomposed every block of
             // every skeleton on every frame of the wait, to repaint one colour.
-            .drawBehind { drawRect(tint.copy(alpha = alpha.value)) },
+            .drawBehind { if (shown.value) drawRect(tint.copy(alpha = alpha.value)) },
     ) {}
+}
+
+/**
+ * Whether a placeholder may be drawn yet: **not for the first [PlaceholderDelayMillis] of a wait.**
+ *
+ * Most waits here are a local query and end within a few frames, and a skeleton drawn for those frames is
+ * not a loading state anybody reads — it is grey blocks blinking in and out between two screens, which is
+ * the glitch it was meant to prevent. Held back, a fast load goes straight from the page to its content;
+ * a slow one still gets its skeleton, a moment later. The space is reserved from the first frame either
+ * way, so nothing reflows when it appears.
+ *
+ * Read the result in the draw phase, as [SkeletonBlock] does, so the moment it flips repaints rather than
+ * recomposes.
+ *
+ * @param waiting whether there is anything to wait for; the delay starts again each time it turns true.
+ */
+@Composable
+fun rememberPlaceholderShown(waiting: Boolean = true): State<Boolean> {
+    val shown = remember(waiting) { mutableStateOf(false) }
+    LaunchedEffect(waiting) {
+        if (waiting) {
+            delay(PlaceholderDelayMillis)
+            shown.value = true
+        }
+    }
+    return shown
 }
 
 /**
@@ -189,6 +219,9 @@ private val TabRowHeight = 48.dp
 
 /** Roughly a `ListItem` with a leading avatar and a supporting line. */
 private val DetailRowHeight = 64.dp
+
+/** Longer than a local query takes on a mid-range phone, shorter than a wait anybody notices. */
+private const val PlaceholderDelayMillis = 150L
 
 private const val MinPlaceholderAlpha = 0.06f
 private const val MaxPlaceholderAlpha = 0.14f

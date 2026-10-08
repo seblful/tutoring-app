@@ -32,6 +32,7 @@ import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.StatusBadge
+import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.text
 
 /**
@@ -92,7 +93,7 @@ fun GroupsList(
         items(rows, key = { it.group.id }) { row ->
             ContentCard(
                 onClick = { onGroupClick(row.group.id) },
-                modifier = Modifier.animateItem(),
+                modifier = animateInPlace(),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconAvatar(Icons.Outlined.Groups)

@@ -27,6 +27,7 @@ import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.StatusBadge
+import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.balanceColor
 import com.seblful.klas.ui.common.balanceDescription
 
@@ -102,7 +103,7 @@ fun StudentsList(
                 onClick = { onStudentClick(row.student.id) },
                 // Archiving somebody, or re-sorting by debt, moves rows. Without this they teleport,
                 // which reads as a glitch rather than as a change.
-                modifier = Modifier.animateItem(),
+                modifier = animateInPlace(),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Avatar(row.student.name, row.student.id)

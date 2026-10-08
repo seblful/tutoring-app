@@ -111,6 +111,7 @@ import com.seblful.klas.ui.common.StatRow
 import com.seblful.klas.ui.common.StickyViewMenu
 import com.seblful.klas.ui.common.StudentEditDialog
 import com.seblful.klas.ui.common.TitleSize
+import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.balanceDescription
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.classStatusColor
@@ -817,7 +818,7 @@ private fun LazyListScope.subjectsTab(
                     }
                 }
             },
-            modifier = Modifier.animateItem(),
+            modifier = animateInPlace(),
         )
     }
 }
@@ -1067,7 +1068,7 @@ private fun LazyListScope.paymentsTab(
             // two — a wrong amount is a typo, not a payment that did not happen.
             modifier = Modifier
                 .insetRowPress { Modifier.clickable(it, indication = null) { onEdit(payment) } }
-                .animateItem(),
+                .then(animateInPlace()),
         )
     }
 }

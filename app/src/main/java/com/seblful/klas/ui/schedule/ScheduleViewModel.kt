@@ -31,6 +31,7 @@ import com.seblful.klas.ui.common.derive
 import com.seblful.klas.ui.common.hold
 import com.seblful.klas.ui.common.map
 import com.seblful.klas.ui.common.ready
+import com.seblful.klas.ui.common.readyOrLoadingAfter
 import com.seblful.klas.ui.common.valueOrNull
 import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.navigation.ArrivalGate
@@ -49,7 +50,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.DayOfWeek
@@ -59,6 +60,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
+import kotlin.time.Duration.Companion.milliseconds
 import javax.inject.Inject
 
 /**
@@ -281,33 +283,36 @@ sealed interface ScheduleTarget {
 data class StudentFilter(val studentId: Long, val name: String)
 
 /**
- * The lessons the schedule body is currently showing — one shape per way of showing them.
+ * The lessons the schedule body shows — the [Week] the view model assembles, and the [Day] read off it.
  *
- * There is deliberately one of these rather than a flow per view: the schedule assembles only what
- * the active view needs, so the other views hold no live query. The accessor a view doesn't use is
- * empty by construction, not merely stale.
+ * There is one assembly rather than a flow per view: the view model reads the week that holds what is on
+ * screen (see [ScheduleViewModel.content]), and the day and month views read their day out of it.
  */
 sealed interface ScheduleContent {
 
     /**
      * The selected day's rows and what they add up to — what the day and month views both show.
+     *
+     * [date] is the day these rows *are*, which is not always the day selected: when a tap lands in
+     * another week, the previous week stays up for the frames the new one takes to read (see
+     * [readyOrLoadingAfter]), and a heading over it must name the day it shows rather than the one asked
+     * for.
      */
     data class Day(
+        val date: LocalDate,
         val rows: List<ScheduleRow>,
         val summary: DaySummary,
     ) : ScheduleContent
 
-    /** The visible week's sections, earliest day first; each day carries its own summary. */
-    data class Week(val sections: List<WeekSection>) : ScheduleContent
+    /**
+     * The week's sections, earliest day first; each day carries its own summary. [start] is the week's
+     * first day, so a day the week holds no section for is known to be free *in this week* — see [day].
+     */
+    data class Week(val start: LocalDate, val sections: List<WeekSection>) : ScheduleContent
 
     /**
-     * Every lesson row this content holds, whichever shape it is.
-     *
-     * **Not the defaults that were deleted**, and the difference is the whole of why this is allowed to
-     * be on the interface: `rows` and `sections` were each a question only *one* shape could answer, so
-     * the other answered it with an empty list and the screen believed it. "Which lessons are on screen"
-     * is a question both shapes genuinely answer, and nothing narrowing depends on it — it is asked only
-     * by [ScheduleViewModel.running], which is about the clock and not about the view.
+     * Every lesson row this content holds, whichever shape it is — asked by [ScheduleViewModel.running],
+     * which is about the clock and not about the view, and by a reminder's tap looking for its lesson.
      */
     val rowsShown: List<ScheduleRow>
         get() = when (this) {
@@ -317,32 +322,31 @@ sealed interface ScheduleContent {
 }
 
 /**
- * The selected day's content, and **[Loadable.Loading] while what has arrived is the week's.**
+ * **[date]'s day, read off the week that holds it** — its section, or a free day if it has none.
  *
- * This is the second half of the loaded-yet problem, and `Loadable` alone could not see it: switching view
- * re-keys the query, and a `StateFlow` holds its previous value meanwhile — so the state was `Ready`, about
- * the view the tutor had just left. `ScheduleContent` used to help it lie: `rows`, `sections` and `summary`
- * were all defaulted on the interface, so a `Week` answered "what are this day's lessons" with
- * `emptyList()` and a `Day` answered "what are this week's days" the same way. Tapping «Неделя» therefore
- * drew «Нет занятий на этой неделе» over a full week, and «День» drew «Нет занятий» with the
- * book-a-lesson button under it — the exact defect [Loadable] was introduced to remove, one frame later
- * and by a different route. The defaults are gone and the narrowing says so instead: content about another
- * view is not an answer, it is the absence of one.
+ * The day and month views used to run a query of their own, re-keyed on every tap: each day tap blinked
+ * the list out and back while the next day was read, and «Неделя» → «День» stood empty for the frames
+ * that took although every lesson on that day was already in hand. Reading the day out of its week makes
+ * both a lookup.
  *
- * Paging is the same question changing, and is covered by the same rule — the day's flow re-emits
- * [Loadable.Loading] when its key moves, so yesterday's lessons are never listed under today's date, and
- * an empty Tuesday cannot say «Нет занятий» about a busy Wednesday.
+ * A week that does not cover [date] answers [Loadable.Loading]: it is the previous week, still up while
+ * [date]'s is read, and says nothing about this day. That is what keeps yesterday's lessons from being
+ * listed under today's date, and an empty Tuesday from saying «Нет занятий» about a busy Wednesday.
  */
-fun Loadable<ScheduleContent>.day(): Loadable<ScheduleContent.Day> = narrowed()
-
-/** The visible week's content, and [Loadable.Loading] while what has arrived is a single day's. */
-fun Loadable<ScheduleContent>.week(): Loadable<ScheduleContent.Week> = narrowed()
-
-private inline fun <reified T : ScheduleContent> Loadable<ScheduleContent>.narrowed(): Loadable<T> =
-    when (this) {
-        Loadable.Loading -> Loadable.Loading
-        is Loadable.Ready -> (value as? T)?.let { Loadable.Ready(it) } ?: Loadable.Loading
+fun Loadable<ScheduleContent.Week>.day(date: LocalDate): Loadable<ScheduleContent.Day> {
+    val week = valueOrNull() ?: return Loadable.Loading
+    if (date < week.start || date >= week.start.plusDays(CalendarLayout.DAYS_IN_WEEK.toLong())) {
+        return Loadable.Loading
     }
+    val section = week.sections.firstOrNull { it.date == date }
+    return Loadable.Ready(
+        ScheduleContent.Day(
+            date = date,
+            rows = section?.rows.orEmpty(),
+            summary = section?.summary ?: DaySummary.NONE,
+        ),
+    )
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -547,10 +551,10 @@ class ScheduleViewModel @Inject constructor(
                         range.second.atStartOfDay(zone).toInstant(),
                     )
                         .map { CalendarLayout.dayLoads(key.narrow(it), zone) }
-                        .ready()
                         // Paging is a new question too: the tallies are keyed by date, so last month's
-                        // map has no entry for any day of this one — every cell would read as free.
-                        .onStart { emit(Loadable.Loading) }
+                        // map has no entry for any day of this one and those cells read as free — for
+                        // the frames the new month takes to count, and no longer than the grace.
+                        .readyOrLoadingAfter(PAGE_TURN_GRACE)
                 }
             }
                 .derive(this, computation, Loadable.Loading)
@@ -574,25 +578,23 @@ class ScheduleViewModel @Inject constructor(
     }
 
     /**
-     * The lessons the **active view** needs, and no others.
+     * The lessons of **the week that holds what is on screen** — the visible week, which in the day and
+     * month views is the selected day's (see [showPagesFor]).
      *
-     * The day and month views both show the selected day; the week view shows the whole visible
-     * week. Keying one assembly on [viewMode] is what stops the views each keeping a live query
-     * running while off-screen: switching view swaps the query, and the student/subject/group join
-     * and the session collapse happen once rather than once per view. This is the same rule
-     * [dayLoads] already follows for calendar markers.
+     * One week rather than one query per view: the views used to each assemble their own — a day for
+     * «День» and «Месяц», a week for «Неделя» — so every view switch and every day tap re-keyed the query,
+     * and the list blinked out for the frames the re-read took. Now switching view inside a week, and
+     * stepping between its days, reads nothing; only crossing into another week does. A week of lessons
+     * is a few dozen rows, and the student/subject/group join and the session collapse still happen once
+     * per emission rather than once per view. The views read their day out of it with [day].
      */
-    val content: StateFlow<Loadable<ScheduleContent>> =
-        combine(_viewMode, _selectedDate, _visibleWeek, studentFilter, ::ContentKey)
-            .flatMapLatest { key ->
-                val (mode, date, week, filter) = key
-                val isWeek = mode == ScheduleViewMode.WEEK
-                val from = if (isWeek) week else date
-                val to = if (isWeek) week.plusDays(DAYS_IN_WEEK) else date.plusDays(1)
+    val content: StateFlow<Loadable<ScheduleContent.Week>> =
+        combine(_visibleWeek, studentFilter, ::Pair)
+            .flatMapLatest { (week, filter) ->
                 combine(
                     classes.observeBetween(
-                        from.atStartOfDay(zone).toInstant(),
-                        to.atStartOfDay(zone).toInstant(),
+                        week.atStartOfDay(zone).toInstant(),
+                        week.plusDays(DAYS_IN_WEEK).atStartOfDay(zone).toInstant(),
                     ),
                     students.observeAll(),
                     subjects.observeAll(),
@@ -606,33 +608,27 @@ class ScheduleViewModel @Inject constructor(
                     // Built once per emission and asked per lesson — the three `associateBy` maps this
                     // replaces, plus the rule about which name titles a lesson. See [Captions].
                     val captions = Captions.of(studentList, subjectList, groupList)
-                    if (isWeek) {
-                        // Sessions are collapsed per day, not across the week: grouping first would
-                        // let a group lesson's members land in one row even if the days differed.
-                        // Days without a class are left out — an agenda reads better as a list of
-                        // what's on than a wall of empty days.
-                        ScheduleContent.Week(
-                            visibleClasses
-                                .groupBy { it.start.atZone(zone).toLocalDate() }
-                                .toSortedMap()
-                                .map { (day, dayClasses) ->
-                                    val rows = sessionRows(dayClasses, captions)
-                                    WeekSection(date = day, rows = rows, summary = rows.summarised())
-                                },
-                        )
-                    } else {
-                        val rows = sessionRows(visibleClasses, captions)
-                        ScheduleContent.Day(rows = rows, summary = rows.summarised())
-                    }
+                    // Sessions are collapsed per day, not across the week: grouping first would let a
+                    // group lesson's members land in one row even if the days differed. Days without a
+                    // class are left out — an agenda reads better as a list of what's on than a wall of
+                    // empty days, and [day] knows a missing section in a week it covers is a free day.
+                    ScheduleContent.Week(
+                        start = week,
+                        sections = visibleClasses
+                            .groupBy { it.start.atZone(zone).toLocalDate() }
+                            .toSortedMap()
+                            .map { (day, dayClasses) ->
+                                val rows = sessionRows(dayClasses, captions)
+                                WeekSection(date = day, rows = rows, summary = rows.summarised())
+                            },
+                    )
                 }
-                    .ready()
-                    // **A new question un-answers the old one.** Inside the `flatMapLatest`, so every
-                    // change of key — the view, the day, the week, the filter — goes back to Loading
-                    // rather than leaving the previous answer on screen as though it were this one's.
-                    // Without it, `Ready` outlived the question it answered: tapping «Неделя» kept a
-                    // single day's content, whose `sections` were empty, and the agenda said the week
-                    // was free. See [day] for the whole account.
-                    .onStart { emit(Loadable.Loading) }
+                    // **A new question un-answers the old one — once it is late.** Inside the
+                    // `flatMapLatest`, so a change of week or of filter goes back to Loading if the answer
+                    // takes longer than the grace. Within it the previous week stays up, which is what
+                    // keeps paging from blinking the list to a skeleton; [day] will not read a day out of
+                    // a week that does not hold it, and a day's heading names the day its content carries.
+                    .readyOrLoadingAfter(PAGE_TURN_GRACE)
             }
                 // `ScheduleContent.Day(emptyList())` used to be the initial value, which is a *day with
                 // no lessons* — so a cold open drew «Нет занятий» over the tutor's actual morning, with
@@ -640,16 +636,22 @@ class ScheduleViewModel @Inject constructor(
                 .derive(this, computation, Loadable.Loading)
 
     /**
-     * What one assembly of the schedule body is *about*: which view, which day or week, and whose
-     * lessons. [MarkerKey]'s counterpart, kept separate because the two views page independently — the
-     * body follows the **selected day** while the markers follow the visible month.
+     * **The day the day and month views draw** — the selected day read off [content], or, while the week
+     * holding it is still being read, the day already on screen.
+     *
+     * Stepping from Sunday into the next week re-keys [content], and until the new week arrives the old one
+     * cannot answer for Monday ([day] says so). Drawing that as Loading blinked the list out for the frames
+     * the read took; keeping the previous day up does not, and is honest because the day carries its own
+     * date and the screen names it by that. It is bounded by [content]'s own grace: once that withdraws the
+     * old week as late, this goes to Loading with it.
      */
-    private data class ContentKey(
-        val mode: ScheduleViewMode,
-        val date: LocalDate,
-        val week: LocalDate,
-        val filter: StudentFilter?,
-    )
+    val shownDay: StateFlow<Loadable<ScheduleContent.Day>> =
+        combine(content, _selectedDate, ::Pair)
+            .scan(Loadable.Loading as Loadable<ScheduleContent.Day>) { shown, (week, date) ->
+                val asked = week.day(date)
+                if (asked is Loadable.Loading && week is Loadable.Ready) shown else asked
+            }
+            .derive(this, computation, Loadable.Loading)
 
     /**
      * The wall clock, once a minute, aligned to the minute — so the mark moves as the phone's clock
@@ -690,14 +692,12 @@ class ScheduleViewModel @Inject constructor(
      * arrives. `WhileSubscribed` is what keeps that off every other test.
      */
     val nowMark: StateFlow<Int?> =
-        combine(content, _selectedDate, minutes) { loaded, date, now ->
-            // **Narrowed, not gated on the view.** This used to take `_viewMode` as a fourth source and
-            // return null for a week, because `ScheduleContent.Week` answered `rows` with an empty list by
-            // default — and an empty list on a day that *is* today answers 0, "the mark goes at the top",
-            // so the flow held a mark all through a week view that never drew one. With the defaults gone,
-            // the week's content simply is not a day's and there is nothing to gate: see [day].
-            val rows = loaded.day().valueOrNull()?.rows ?: return@combine null
-            NowMarker.positionIn(rows.map { it.session }, date, now, zone)
+        combine(shownDay, minutes) { shown, now ->
+            // Among the rows that are drawn, on the day they are — [shownDay]'s date, which for the frames
+            // a step into another week takes to read is still the previous day. Not gated on the view:
+            // the week agenda draws no mark, so a mark computed under it is simply never read.
+            val day = shown.valueOrNull() ?: return@combine null
+            NowMarker.positionIn(day.rows.map { it.session }, day.date, now, zone)
         }
             .derive(this, computation, null)
 
@@ -980,6 +980,12 @@ class ScheduleViewModel @Inject constructor(
     private companion object {
         /** A week's span as a day count, for the date arithmetic that pages the agenda. */
         const val DAYS_IN_WEEK = CalendarLayout.DAYS_IN_WEEK.toLong()
+
+        /**
+         * How long the previous page's answer may stand while the next is read. Long enough to cover a
+         * re-query on a slow phone, short enough that a stuck one is never mistaken for an answer.
+         */
+        val PAGE_TURN_GRACE = 250.milliseconds
 
         /** For the minute the "now" mark is aligned to. */
         const val SECONDS_PER_MINUTE = 60L

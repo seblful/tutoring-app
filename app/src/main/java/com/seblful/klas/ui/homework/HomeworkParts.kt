@@ -63,6 +63,7 @@ import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.SwipeToConfirmBox
+import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.armedPop
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.insetRowPress
@@ -105,7 +106,7 @@ fun LazyListScope.homeworkItems(
             onClick = { onOpen(row) },
             messages = messages,
             nested = true,
-            modifier = Modifier.animateItem(),
+            modifier = animateInPlace(),
         )
     }
     if (lists.archive.isNotEmpty()) {
@@ -117,7 +118,7 @@ fun LazyListScope.homeworkItems(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .padding(horizontal = Spacing.gutter, vertical = Spacing.inline)
-                    .animateItem(),
+                    .then(animateInPlace()),
             )
         }
     }
@@ -128,7 +129,7 @@ fun LazyListScope.homeworkItems(
             onClick = { onOpen(row) },
             messages = messages,
             nested = true,
-            modifier = Modifier.animateItem(),
+            modifier = animateInPlace(),
         )
     }
 }

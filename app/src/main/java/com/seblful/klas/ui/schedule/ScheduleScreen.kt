@@ -106,13 +106,13 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.SwipeToConfirmBox
 import com.seblful.klas.ui.common.TimePickerModal
+import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.armedPop
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.lessonBadgeColor
 import com.seblful.klas.ui.common.lessonBadgeLabel
-import com.seblful.klas.ui.common.map
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.popsOnChange
 import com.seblful.klas.ui.common.rememberMessages
@@ -149,16 +149,12 @@ fun ScheduleScreen(
 ) {
     LaunchedEffect(arrival) { viewModel.arrive(arrival) }
 
-    // One state for the body: only the active view's lessons are assembled (see ScheduleContent).
+    // One state for the body: the week holding what is on screen (see [ScheduleViewModel.content]), and
+    // the day the day and month views read out of it — which names its own date, see [shownDay].
     val contentState by viewModel.content.collectAsState()
-    // **Narrowed to the day rather than read for its day half.** The state can legitimately hold the
-    // *week's* content while this composition is drawing a day — switching view re-keys the query and the
-    // previous answer is still there — and `ScheduleContent` no longer lets one view answer the other's
-    // question with an empty list. A mismatch is `Loading`, which draws the skeleton. See
-    // [ScheduleContent.day].
-    val dayContent = contentState.day()
-
+    val dayContent by viewModel.shownDay.collectAsState()
     val date by viewModel.selectedDate.collectAsState()
+
     // Every way in to a booking — the add button, an empty day's — books into the day on screen.
     val addClass = { onAddClass(date) }
     val canAddClass by viewModel.canAddClass.collectAsState()
@@ -327,7 +323,10 @@ fun ScheduleScreen(
                 when (viewMode) {
                     ScheduleViewMode.DAY -> {
                         DayNavigator(
-                            date = date,
+                            // The day the list *is* — see [ScheduleContent.Day.date]. Paging still
+                            // steps from the selected day; this only keeps the title and the rows
+                            // turning over in the same frame.
+                            date = dayContent.valueOrNull()?.date ?: date,
                             onPrevious = viewModel::goToPreviousDay,
                             onNext = viewModel::goToNextDay,
                             onToday = viewModel::goToToday,
@@ -375,7 +374,8 @@ fun ScheduleScreen(
                 when (viewMode) {
                     // The day list stands alone under its stepper.
                     ScheduleViewMode.DAY -> dayList(
-                        state = dayContent.map { it.rows },
+                        view = ScheduleViewMode.DAY,
+                        state = dayContent,
                         emptyReason = emptyReason,
                         nowMark = nowMark,
                         running = running,
@@ -401,7 +401,7 @@ fun ScheduleScreen(
                                 HorizontalDivider()
                             }
                         }
-                        val week = contentState.week().valueOrNull()
+                        val week = contentState.valueOrNull()
                         if (week == null) {
                             item(key = "loading") { LessonsSkeleton() }
                         } else if (week.sections.isEmpty()) {
@@ -425,7 +425,7 @@ fun ScheduleScreen(
                                         summary = section.summary,
                                     )
                                 }
-                                items(section.rows, key = { it.klass.id }) { row ->
+                                items(section.rows, key = { lessonKey(ScheduleViewMode.WEEK, it) }) { row ->
                                     SwipeToCompleteCard(
                                         row = row,
                                         running = row.session.lessonId in running,
@@ -458,14 +458,18 @@ fun ScheduleScreen(
                                 HorizontalDivider()
                                 // The gap the week list's own spacing puts between its rule and heading.
                                 Spacer(Modifier.height(Spacing.itemGap))
+                                // Named by the day the list below *is*, which for the frames a tap on
+                                // another day takes to read is still the previous one — see
+                                // [ScheduleContent.Day.date]. The grid's ring has already moved.
                                 SelectedDayHeader(
-                                    date = date,
+                                    date = dayContent.valueOrNull()?.date ?: date,
                                     summary = dayContent.valueOrNull()?.summary ?: DaySummary.NONE,
                                 )
                             }
                         }
                         dayList(
-                            state = dayContent.map { it.rows },
+                            view = ScheduleViewMode.MONTH,
+                            state = dayContent,
                             emptyReason = emptyReason,
                             nowMark = nowMark,
                             running = running,
@@ -636,7 +640,8 @@ private fun ScheduleEmptyState(
 
 /** The selected day's classes, or an empty state. Shared by the day and month views. */
 private fun LazyListScope.dayList(
-    state: Loadable<List<ScheduleRow>>,
+    view: ScheduleViewMode,
+    state: Loadable<ScheduleContent.Day>,
     emptyReason: Loadable<ScheduleEmpty>,
     nowMark: Int?,
     running: Set<Long>,
@@ -645,13 +650,14 @@ private fun LazyListScope.dayList(
     onAddClass: () -> Unit,
     onAddStudent: () -> Unit,
 ) {
-    val rows = when (state) {
+    val day = when (state) {
         Loadable.Loading -> {
             item(key = "loading") { LessonsSkeleton() }
             return
         }
         is Loadable.Ready -> state.value
     }
+    val rows = day.rows
     if (rows.isEmpty()) {
         item(key = "empty") {
             ScheduleEmptyState(
@@ -665,11 +671,11 @@ private fun LazyListScope.dayList(
     } else {
         // A row at a time rather than `items(rows)`, so the mark can be its own item *between* two
         // lessons. It has to be one: `nowMark == rows.size` means the whole day is behind us, and there
-        // is no card left to draw it above — and an item with two roots would take `animateItem()` off
+        // is no card left to draw it above — and an item with two roots would take [animateInPlace] off
         // the card, which is what keeps a re-sorted list from teleporting.
         rows.forEachIndexed { index, row ->
-            if (index == nowMark) item(key = NowKey) { NowLine(Modifier.animateItem()) }
-            item(key = row.klass.id, contentType = "lesson") {
+            if (index == nowMark) item(key = nowKey(view, day.date)) { NowLine(animateInPlace()) }
+            item(key = lessonKey(view, row, day.date), contentType = "lesson") {
                 SwipeToCompleteCard(
                     row = row,
                     running = row.session.lessonId in running,
@@ -678,18 +684,30 @@ private fun LazyListScope.dayList(
                 )
             }
         }
-        if (nowMark == rows.size) item(key = NowKey) { NowLine(Modifier.animateItem()) }
+        if (nowMark == rows.size) item(key = nowKey(view, day.date)) { NowLine(animateInPlace()) }
     }
 }
 
 /**
- * The mark's list key. A constant, so the item keeps its identity as its *position* changes: the stable
- * key is what makes the move an existing item changing place rather than one item being removed and
- * another added, and `animateItem()` at both call sites is what makes that visible — the mark slides past
- * a lesson as it begins instead of blinking from one gap to the next. A constant is also what keeps it
- * unique, and a duplicate key crashes composition.
+ * A lesson's list key: the lesson, **on this page** — the view, and for the day and month views the day.
+ *
+ * The id alone was the same key in all three views, so Compose read a change of view or of day as the
+ * same lessons *moving*: switching «День» to «Месяц» slid every card down across the month grid as it
+ * was drawn, with the ones leaving fading out over it. A new page is a new set of items, swapped in
+ * whole; only a change *within* a page — a lesson moved to another hour — is a move, and slides.
  */
-private const val NowKey = "now"
+private fun lessonKey(view: ScheduleViewMode, row: ScheduleRow, day: LocalDate? = null): String =
+    "$view/${day ?: ""}/${row.klass.id}"
+
+/**
+ * The mark's list key — one per page, for [lessonKey]'s reason. Within the page it is constant, so the
+ * item keeps its identity as its *position* changes: the stable key is what makes the move an existing
+ * item changing place rather than one item being removed and another added, and [animateInPlace] at both
+ * call sites is what makes that visible — the mark slides past a lesson as it begins instead of blinking
+ * from one gap to the next. One per page is also what keeps it unique, and a duplicate key crashes
+ * composition.
+ */
+private fun nowKey(view: ScheduleViewMode, day: LocalDate): String = "$view/$day/now"
 
 /**
  * Lesson cards that have not arrived yet, at the gutter and gap the real ones use — so the first real
@@ -746,12 +764,12 @@ private fun LazyItemScope.SwipeToCompleteCard(
     modifier: Modifier = Modifier,
 ) {
     if (!row.canSwipeComplete) {
-        ScheduleCard(row, running, onClick, modifier.animateItem())
+        ScheduleCard(row, running, onClick, animateInPlace(modifier))
         return
     }
     SwipeToConfirmBox(
         onConfirm = onComplete,
-        modifier = modifier.animateItem(),
+        modifier = animateInPlace(modifier),
         reveal = { armed ->
             Row(
                 Modifier

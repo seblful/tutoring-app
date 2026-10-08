@@ -1,5 +1,7 @@
 package com.seblful.klas.ui.common
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -7,6 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * The distinction the list screens were missing: **empty is an answer, and the absence of one is not.**
@@ -49,6 +52,33 @@ class LoadableTest {
     @Test
     fun `ready adds no emission of its own`() = runTest {
         assertEquals(emptyList<Loadable<List<String>>>(), flowOf<List<String>>().ready().toList())
+    }
+
+    /** A re-query that answers inside the grace never blinks to Loading — the schedule's day taps. */
+    @Test
+    fun `an answer inside the grace arrives without a Loading before it`() = runTest {
+        val emitted = flow {
+            delay(100.milliseconds)
+            emit("вторник")
+        }.readyOrLoadingAfter(250.milliseconds).toList()
+
+        assertEquals(listOf(Loadable.Ready("вторник")), emitted)
+    }
+
+    /** Past the grace the previous answer is withdrawn, so a slow query cannot leave it standing. */
+    @Test
+    fun `an answer later than the grace is preceded by Loading`() = runTest {
+        val emitted = flow {
+            delay(400.milliseconds)
+            emit("вторник")
+            delay(1_000.milliseconds)
+            emit("среда")
+        }.readyOrLoadingAfter(250.milliseconds).toList()
+
+        assertEquals(
+            listOf(Loadable.Loading, Loadable.Ready("вторник"), Loadable.Ready("среда")),
+            emitted,
+        )
     }
 
     @Test

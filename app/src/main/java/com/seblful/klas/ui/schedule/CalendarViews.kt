@@ -18,10 +18,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
@@ -40,6 +42,7 @@ import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.map
+import com.seblful.klas.ui.common.rememberPlaceholderShown
 import com.seblful.klas.ui.common.valueOrNull
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -86,6 +89,8 @@ fun MonthCalendar(
     onSelect: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // One for the grid, not one per cell — see [DayTallies].
+    val placeholderShown = rememberPlaceholderShown(waiting = loads is Loadable.Loading)
     Column(modifier.fillMaxWidth()) {
         WeekdayHeader(grid.weeks.first())
         grid.weeks.forEach { week ->
@@ -94,6 +99,7 @@ fun MonthCalendar(
                     DayCell(
                         date = date,
                         load = loads.map { it[date] },
+                        placeholderShown = placeholderShown,
                         inMonth = grid.isInMonth(date),
                         isSelected = date == selected,
                         isToday = date == today,
@@ -119,6 +125,7 @@ fun WeekStrip(
     onSelect: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val placeholderShown = rememberPlaceholderShown(waiting = loads is Loadable.Loading)
     Column(modifier.fillMaxWidth()) {
         WeekdayHeader(days)
         Row(Modifier.fillMaxWidth()) {
@@ -126,6 +133,7 @@ fun WeekStrip(
                 DayCell(
                     date = date,
                     load = loads.map { it[date] },
+                    placeholderShown = placeholderShown,
                     inMonth = true,
                     isSelected = date == selected,
                     isToday = date == today,
@@ -162,6 +170,7 @@ private fun WeekdayHeader(week: List<LocalDate>) {
 private fun DayCell(
     date: LocalDate,
     load: Loadable<CalendarLayout.DayLoad?>,
+    placeholderShown: State<Boolean>,
     inMonth: Boolean,
     isSelected: Boolean,
     isToday: Boolean,
@@ -246,7 +255,7 @@ private fun DayCell(
                     color = numberColor,
                 )
             }
-            DayTallies(load)
+            DayTallies(load, placeholderShown)
         }
     }
 }
@@ -262,11 +271,14 @@ private fun DayCell(
  * unless something is drawn: an empty cell is how this calendar says «свободно», so until the query
  * answers, one dim bar stands where the numbers will be. That bar is deliberately **not** a
  * `SkeletonBlock` — the pulse is an `rememberInfiniteTransition` each, and a month grid would start
- * thirty-five of them to animate something the size of a digit.
+ * thirty-five of them to animate something the size of a digit. It does wait like one, though
+ * ([rememberPlaceholderShown]): a month answered in a few frames used to blink a bar under every date
+ * on its way to the numbers. The grid decides that once and hands each cell [placeholderShown].
  */
 @Composable
-private fun DayTallies(load: Loadable<CalendarLayout.DayLoad?>) {
+private fun DayTallies(load: Loadable<CalendarLayout.DayLoad?>, placeholderShown: State<Boolean>) {
     if (load is Loadable.Loading) {
+        val placeholderTint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = TallyPlaceholderAlpha)
         Row(
             Modifier.fillMaxWidth().heightIn(min = TallyRowHeight),
             horizontalArrangement = Arrangement.spacedBy(TallySpacing, Alignment.CenterHorizontally),
@@ -276,7 +288,7 @@ private fun DayTallies(load: Loadable<CalendarLayout.DayLoad?>) {
                 Modifier
                     .size(width = TallyPlaceholderWidth, height = TallyPlaceholderHeight)
                     .clip(MaterialTheme.shapes.extraSmall)
-                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = TallyPlaceholderAlpha)),
+                    .drawBehind { if (placeholderShown.value) drawRect(placeholderTint) },
             )
         }
         return

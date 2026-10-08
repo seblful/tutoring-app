@@ -13,7 +13,11 @@ it draws with.
 - The booking form's whole mutable surface is `BookingForm.change(intent, context)`
   (`ui/schedule/BookingForm.kt`); reads it needs come back as data (`Lookup`) through the same `change`.
 - Every screen's loading/ready state is `Loadable<T>` (`Loading | Ready`), drawn as a skeleton, never a
-  spinner; applies to forms too (a blank form is a real, wrong state until data arrives).
+  spinner; applies to forms too (a blank form is a real, wrong state until data arrives). A placeholder
+  draws only after 150 ms of waiting (`rememberPlaceholderShown`), so a fast local read goes straight to
+  content instead of blinking grey blocks. A query re-asked as the tutor pages keeps its previous answer
+  up to a grace (`readyOrLoadingAfter`); what is drawn from it is labelled by the answer's own key (a
+  day's content carries its date), never by the question just asked.
 - `derive`/`hold` end every screen flow; `ShowMessagesFor`/`rememberMessages` end one-shot snackbar events;
   the guarded-write tail is named `write` (application scope + `runCatchingCancellable` + failure report).
 - One-shot outcomes report through one snackbar helper (`ui/common/Messages`) — no `Toast`. A message
@@ -60,13 +64,18 @@ it draws with.
 - **Navigation**: bottom bar «Люди·Задания·Расписание·Отчёты·Ещё», opens on the schedule (the middle tab);
   Students+Groups share one tab via a segmented control. Which tab is marked is read off the back stack.
   Destinations cross-fade; predictive back is on.
+- **List motion**: lazy list items animate only through `animateInPlace` — a move slides, nothing fades
+  in or out, because a fading row keeps drawing over whatever replaces it. A list that shows several pages
+  (the schedule's views and days) keys its items per page, so a swap is never read as every row moving.
 - **Lists**: shared search rule (`domain/PeopleSearch`) across the three list screens — case-insensitive,
   substring, terms in any order. Empty lists always carry the way out (`EmptyState`). State is a
   `StatusBadge`, never a font style (`StatusBadgeSurfaceTest`), and on a lesson it leads the second line —
   schedule card, lesson sheet, student and group cards — so the name or date above keeps the full width.
   A lesson row leads with its date. Money at a nested row's trailing edge is `TrailingAmount`; colour on
   an amount means something (a debt's red, the hero's fill), so other amounts are ink.
-- **Schedule**: three views (Day/Week/Month) via segmented control; a day is always summarized as
+- **Schedule**: three views (Day/Week/Month) via segmented control, all fed by one assembly of the week
+  holding the selected day (`ScheduleViewModel.content`) — Day and Month read their day out of it, so a
+  view switch or a day tap inside the week reads nothing; a day is always summarized as
   count·hours·money (`domain/DaySummary`); a "now" hairline on today only; completing a lesson is a
   revocable swipe (green panel); a cancelled lesson recedes, badge stays red. Can be narrowed to one
   student (dismissible chip — `FilterMenuAction` + `FilterChipRow`, shared with «Задания»). Booking is by

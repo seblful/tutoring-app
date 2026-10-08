@@ -1,7 +1,11 @@
 package com.seblful.klas.ui.common
 
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlin.time.Duration
 
 /**
  * Whether a screen's state has arrived yet — the distinction every list screen was missing.
@@ -40,6 +44,30 @@ sealed interface Loadable<out T> {
  * would simply never be replaced, and the screen would show its skeleton forever.
  */
 fun <T> Flow<T>.ready(): Flow<Loadable<T>> = map { Loadable.Ready(it) }
+
+/**
+ * [ready], for a question that is re-asked inside a `flatMapLatest` as the tutor pages — and which says
+ * [Loadable.Loading] only once the new answer is **later than [grace]**.
+ *
+ * Saying it at once (`onStart { emit(Loading) }`) was correct and looked broken: a re-query answers in a
+ * few frames, so every tap on another day blinked the list out to a skeleton and back, and the summary
+ * line under the day's name went with it, jumping the list a line up and down. Inside the grace the state
+ * keeps the previous answer, which is why a screen reading it must label what it draws by the answer's
+ * own key (a day's content carries its date) and not by the question just asked.
+ *
+ * The grace is the bound on that: past it, the old answer is withdrawn, so a slow query still cannot
+ * leave yesterday's lessons standing as though they were the answer.
+ */
+fun <T> Flow<T>.readyOrLoadingAfter(grace: Duration): Flow<Loadable<T>> = channelFlow {
+    val late = launch {
+        delay(grace)
+        send(Loadable.Loading)
+    }
+    collect {
+        late.cancel()
+        send(Loadable.Ready(it))
+    }
+}
 
 /** The state if it has arrived, `null` while it has not — for the few reads that want no branch. */
 fun <T> Loadable<T>.valueOrNull(): T? = (this as? Loadable.Ready)?.value

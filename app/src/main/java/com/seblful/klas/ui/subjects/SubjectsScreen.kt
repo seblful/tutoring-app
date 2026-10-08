@@ -44,6 +44,7 @@ import com.seblful.klas.ui.common.ScreenSearch
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TextFieldDialog
+import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.rememberMessages
 
 @Composable
@@ -130,7 +131,7 @@ fun SubjectsScreen(
                             items(subjects, key = { it.id }) { subject ->
                                 ContentCard(
                                     onClick = { editing = subject },
-                                    modifier = Modifier.animateItem(),
+                                    modifier = animateInPlace(),
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         IconAvatar(Icons.AutoMirrored.Outlined.MenuBook)

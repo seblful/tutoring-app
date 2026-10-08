@@ -21,6 +21,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -61,24 +62,22 @@ class ScheduleViewModelTest {
         date.atTime(time).atZone(zone).toInstant().toEpochMilli()
 
     /**
-     * The day's content the screen would be drawing, insisted upon — `current`'s counterpart for a state
-     * that is a *shape* as well as an arrival.
+     * The day's content the screen would be drawing, insisted upon — `current`'s counterpart for a day
+     * read out of the week the view model assembles (see [day]).
      *
-     * A test that reads this while the schedule is showing a week now fails naming the reason, where before
-     * it read an `emptyList()` default and asserted happily about a day the view model was not assembling.
-     * That default is what let the same emptiness reach the screen: see [day].
+     * A test that reads this before the week holding the selected day has arrived fails naming the
+     * reason, where an empty default would have let it assert happily about a day nobody had read.
      */
-    private val StateFlow<Loadable<ScheduleContent>>.dayContent: ScheduleContent.Day
-        get() = value.day().valueOrNull() ?: error(
-            "The schedule is not showing a day: its content is ${value}. Either the view mode is WEEK, " +
-                "or nothing has been collected yet — is `observing(…)` missing?"
+    private val ScheduleViewModel.dayContent: ScheduleContent.Day
+        get() = content.value.day(selectedDate.value).valueOrNull() ?: error(
+            "The selected day ${selectedDate.value} has not been read: the content is ${content.value}. " +
+                "Is `observing(vm.content)` missing, or does the scheduler need advancing?"
         )
 
     /** [dayContent]'s counterpart for the week agenda. */
-    private val StateFlow<Loadable<ScheduleContent>>.weekContent: ScheduleContent.Week
-        get() = value.week().valueOrNull() ?: error(
-            "The schedule is not showing a week: its content is ${value}. Either the view mode is not " +
-                "WEEK, or nothing has been collected yet — is `observing(…)` missing?"
+    private val StateFlow<Loadable<ScheduleContent.Week>>.weekContent: ScheduleContent.Week
+        get() = value.valueOrNull() ?: error(
+            "The week has not been read: its content is ${value}. Is `observing(…)` missing?"
         )
 
     /**
@@ -94,6 +93,7 @@ class ScheduleViewModelTest {
         val vm = vm()
 
         assertEquals(Loadable.Loading, vm.content.value)
+        assertEquals(Loadable.Loading, vm.content.value.day(vm.selectedDate.value))
 
         observing(vm.content)
         advanceUntilIdle()
@@ -101,48 +101,80 @@ class ScheduleViewModelTest {
         // Read, and genuinely empty — which is the only state the empty prompt is honest in. A day with
         // no lessons summarises to nothing, which is what stops the summary line being drawn at all.
         assertEquals(
-            Loadable.Ready(ScheduleContent.Day(emptyList(), DaySummary.NONE)),
-            vm.content.value,
+            Loadable.Ready(ScheduleContent.Day(vm.selectedDate.value, emptyList(), DaySummary.NONE)),
+            vm.content.value.day(vm.selectedDate.value),
         )
     }
 
     /**
-     * **One view's content is not an answer about another's** — the half of the loaded-yet problem that
-     * `Loadable` alone could not see, and the one still visible on a device after it was introduced.
+     * **A step into the next week does not blink the day through Loading** — the day on screen stays up,
+     * named by its own date, until the next one is read.
      *
-     * Switching view re-keys the lesson query, and a `StateFlow` holds its previous value until the new one
-     * arrives: the state was `Ready`, about the view the tutor had just left. `ScheduleContent` made that
-     * readable as emptiness, because `rows`, `sections` and `summary` were defaulted on the interface — a
-     * `Week` answered "what are this day's lessons" with `emptyList()`, and a `Day` answered "which days
-     * does this week hold" the same way. So tapping «Неделя» drew «Нет занятий на этой неделе» over a full
-     * week, and «День» drew «Нет занятий» with a book-a-lesson button, for as long as the new query took.
-     *
-     * Asserted on the narrowing rather than by racing the flow, because this is where the rule now lives
-     * and it is a rule about *values*: no scheduler ordering can make a week's content into a day's.
+     * Every change of day used to emit Loading first, so the list went to a skeleton and back on each tap,
+     * and the summary line under the day's name vanished with it and jumped the list. Within a week a day
+     * is now a lookup; across a week boundary the previous day is what the screen keeps drawing, which is
+     * only honest because it says which day it is.
      */
     @Test
-    fun `content about one view never answers as another view's emptiness`() {
-        val day: Loadable<ScheduleContent> =
-            Loadable.Ready(ScheduleContent.Day(emptyList(), DaySummary.NONE))
-        val week: Loadable<ScheduleContent> = Loadable.Ready(ScheduleContent.Week(emptyList()))
+    fun `stepping into the next week goes straight from one day to the next`() = runTest(mainRule.dispatcher) {
+        val sid = env.fixtures.student()
+        val subj = env.fixtures.subject()
+        val sunday = LocalDate.of(2026, 7, 19)
+        val monday = sunday.plusDays(1)
+        env.fixtures.storedClass(
+            studentId = sid, subjectId = subj, startMillis = startMillisOn(monday, LocalTime.of(9, 0)),
+            durationMinutes = 60, status = "SCHEDULED",
+        )
+        val vm = vm()
+        vm.selectDate(sunday)
+        val seen = mutableListOf<Loadable<ScheduleContent.Day>>()
+        backgroundScope.launch { vm.shownDay.collect { seen += it } }
+        advanceUntilIdle()
+        seen.clear()
 
-        // Each answers its own question — including when the answer is "nothing", which is the state the
-        // empty prompt is honest in.
-        assertEquals(Loadable.Ready(ScheduleContent.Day(emptyList(), DaySummary.NONE)), day.day())
-        assertEquals(Loadable.Ready(ScheduleContent.Week(emptyList())), week.week())
+        vm.goToNextDay()
+        advanceUntilIdle()
 
-        // And neither answers the other's. Not "empty": *not yet*, which draws the skeleton.
-        assertEquals("a week's content says nothing about a day", Loadable.Loading, week.day())
-        assertEquals("a day's content says nothing about a week", Loadable.Loading, day.week())
+        assertFalse("no Loading between two days that answer at once: $seen", Loadable.Loading in seen)
+        val shown = vm.shownDay.current
+        assertEquals("the day names the date it is", monday, shown.date)
+        assertEquals(1, shown.rows.size)
     }
 
-    /** Loading narrows to loading, so a cold open is not mistaken for a shape mismatch either. */
+    /**
+     * A week answers for a day it holds — the day's section, or a free day — and for no other day.
+     *
+     * Without it «Неделя» → «День» drew an empty list for the frames the day took to re-read, though the
+     * week in hand already held every lesson on it.
+     */
     @Test
-    fun `narrowing what has not arrived is still Loading`() {
-        val nothing: Loadable<ScheduleContent> = Loadable.Loading
+    fun `a week answers for the days it holds and no others`() {
+        val monday = LocalDate.of(2026, 7, 13)
+        val tuesday = monday.plusDays(1)
+        val summary = DaySummary.of(emptyList())
+        val week: Loadable<ScheduleContent.Week> = Loadable.Ready(
+            ScheduleContent.Week(monday, listOf(WeekSection(tuesday, emptyList(), summary))),
+        )
 
-        assertEquals(Loadable.Loading, nothing.day())
-        assertEquals(Loadable.Loading, nothing.week())
+        assertEquals(
+            Loadable.Ready(ScheduleContent.Day(tuesday, emptyList(), summary)),
+            week.day(tuesday),
+        )
+        assertEquals(
+            "a day in the week with no section is free",
+            Loadable.Ready(ScheduleContent.Day(monday.plusDays(6), emptyList(), DaySummary.NONE)),
+            week.day(monday.plusDays(6)),
+        )
+        assertEquals("the next week is not this week's to answer", Loadable.Loading, week.day(monday.plusDays(7)))
+        assertEquals(Loadable.Loading, week.day(monday.minusDays(1)))
+    }
+
+    /** A week that has not arrived answers for no day, so a cold open is not mistaken for a free one. */
+    @Test
+    fun `a week that has not arrived answers for no day`() {
+        val nothing: Loadable<ScheduleContent.Week> = Loadable.Loading
+
+        assertEquals(Loadable.Loading, nothing.day(LocalDate.of(2026, 7, 15)))
     }
 
     /** A fixed day at [hour], for tests that only need distinct lesson times. */
@@ -174,7 +206,7 @@ class ScheduleViewModelTest {
         observing(vm.content)
         advanceUntilIdle()
 
-        val summary = vm.content.dayContent.summary
+        val summary = vm.dayContent.summary
         assertEquals("the cancelled one is not a lesson the day holds", 1, summary.lessons)
         assertEquals(1, summary.cancelled)
         assertEquals(90, summary.minutes)
@@ -252,7 +284,7 @@ class ScheduleViewModelTest {
         advanceTimeBy(minute)
         assertEquals("not yet", emptySet<Long>(), vm.running.value)
 
-        val lessonId = vm.content.dayContent.rows.single().session.lessonId
+        val lessonId = vm.dayContent.rows.single().session.lessonId
         clock.advanceBy(minute)
         advanceTimeBy(minute)
         assertEquals("on now", setOf(lessonId), vm.running.value)
@@ -312,7 +344,7 @@ class ScheduleViewModelTest {
         observing(vm.content)
         advanceUntilIdle()
 
-        val rows = vm.content.dayContent.rows
+        val rows = vm.dayContent.rows
         assertEquals(2, rows.size)
         assertTrue("rows are sorted by start time", rows[0].klass.start < rows[1].klass.start)
         assertEquals("Аня", rows[0].title)
@@ -674,8 +706,16 @@ class ScheduleViewModelTest {
         assertEquals(listOf(nextWeek), vm.content.weekContent.sections.map { it.date })
     }
 
+    /**
+     * **Every view reads the one week that holds the selected day**, so switching view inside it reads
+     * nothing at all.
+     *
+     * The views used to assemble their own — a day for «День», a week for «Неделя» — and every switch
+     * re-keyed the query: «Неделя» → «День» stood empty for the frames the re-read took, although every
+     * lesson on that day was already in hand.
+     */
     @Test
-    fun `only the active view's lessons are assembled`() = runTest(mainRule.dispatcher) {
+    fun `switching view inside the week reads nothing new`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val today = LocalDate.now(zone)
@@ -699,27 +739,14 @@ class ScheduleViewModelTest {
         observing(vm.content)
         advanceUntilIdle()
 
-        // The day view assembles the selected day — and the week's question has no answer at all, rather
-        // than an empty one. That distinction is the fix for the flash on switching view: see [day].
-        val day = vm.content.value.day().valueOrNull()
-        assertEquals("the day view assembles the selected day", 1, day?.rows?.size)
-        assertEquals(
-            "and no week agenda exists to be drawn as an empty week",
-            Loadable.Loading,
-            vm.content.value.week(),
-        )
+        assertEquals("the day view shows the selected day", 1, vm.dayContent.rows.size)
+        val week = vm.content.weekContent
+        assertEquals("out of the week that holds it", 2, week.sections.sumOf { it.rows.size })
 
         vm.setViewMode(ScheduleViewMode.WEEK)
         advanceUntilIdle()
 
-        // Switching view swaps the query rather than adding a second live one.
-        val week = vm.content.value.week().valueOrNull()
-        assertEquals("both of the week's lessons", 2, week?.sections?.sumOf { it.rows.size })
-        assertEquals(
-            "and no day list exists to be drawn as an empty day",
-            Loadable.Loading,
-            vm.content.value.day(),
-        )
+        assertSame("the week view reads the same week, not a new query's", week, vm.content.weekContent)
     }
 
     @Test
@@ -1092,7 +1119,7 @@ class ScheduleViewModelTest {
         observing(vm.content)
         advanceUntilIdle()
 
-        val rows = vm.content.dayContent.rows
+        val rows = vm.dayContent.rows
         assertEquals("the group's two classes collapse into one row", 2, rows.size)
         val individual = rows.first()
         val group = rows.last()
@@ -1119,7 +1146,7 @@ class ScheduleViewModelTest {
         val vm = vm()
         observing(vm.content)
         advanceUntilIdle()
-        vm.setStatus(vm.content.dayContent.rows.single().session, LessonStatus.COMPLETED)
+        vm.setStatus(vm.dayContent.rows.single().session, LessonStatus.COMPLETED)
         advanceUntilIdle()
 
         val saved = env.classDao.items.value
@@ -1300,7 +1327,7 @@ class ScheduleViewModelTest {
         advanceUntilIdle()
 
         assertNull(vm.studentFilter.value)
-        assertEquals(2, vm.content.dayContent.rows.size)
+        assertEquals(2, vm.dayContent.rows.size)
     }
 
     @Test
@@ -1318,8 +1345,8 @@ class ScheduleViewModelTest {
             advanceUntilIdle()
 
             assertEquals("Аня", vm.studentFilter.value?.name)
-            assertEquals(1, vm.content.dayContent.rows.size)
-            assertEquals("Аня", vm.content.dayContent.rows.single().title)
+            assertEquals(1, vm.dayContent.rows.size)
+            assertEquals("Аня", vm.dayContent.rows.single().title)
         }
 
     @Test
@@ -1337,7 +1364,7 @@ class ScheduleViewModelTest {
         advanceUntilIdle()
 
         assertNull(vm.studentFilter.value)
-        assertEquals(2, vm.content.dayContent.rows.size)
+        assertEquals(2, vm.dayContent.rows.size)
     }
 
     /**
@@ -1366,7 +1393,7 @@ class ScheduleViewModelTest {
         vm.setStudentFilter(ann)
         advanceUntilIdle()
 
-        val row = vm.content.dayContent.rows.single()
+        val row = vm.dayContent.rows.single()
         assertTrue("it is still the group's lesson", row.isGroup)
         assertEquals("with all three of its classes", 3, row.classes.size)
         assertEquals(3, row.members.size)
@@ -1390,7 +1417,7 @@ class ScheduleViewModelTest {
         vm.setStudentFilter(ann)
         advanceUntilIdle()
 
-        assertTrue(vm.content.dayContent.rows.isEmpty())
+        assertTrue(vm.dayContent.rows.isEmpty())
     }
 
     /**
@@ -1434,7 +1461,7 @@ class ScheduleViewModelTest {
         advanceUntilIdle()
 
         assertNull(vm.studentFilter.value)
-        assertEquals(2, vm.content.dayContent.rows.size)
+        assertEquals(2, vm.dayContent.rows.size)
     }
 
     @Test

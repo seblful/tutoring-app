@@ -61,6 +61,7 @@ import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.TrailingAmount
 import com.seblful.klas.ui.common.StickyViewMenu
 import com.seblful.klas.ui.common.TitleSize
+import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.lessonsStat
@@ -436,7 +437,7 @@ private fun LazyListScope.studentsTab(
             },
             modifier = Modifier
                 .insetRowPress { Modifier.clickable(it, indication = null) { onMemberClick(row.student.id) } }
-                .animateItem(),
+                .then(animateInPlace()),
         )
     }
 }
@@ -495,7 +496,7 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
             trailingContent = { if (!row.charge.isZero) TrailingAmount(row.charge.text()) },
             modifier = Modifier
                 .insetRowPress { Modifier.clickable(it, indication = null) { onLessonClick(row.session.first.id) } }
-                .animateItem(),
+                .then(animateInPlace()),
         )
     }
 }
