@@ -25,14 +25,16 @@ import javax.inject.Singleton
 @Singleton
 class DueReminder @Inject constructor(
     private val classes: ClassRepository,
-    private val students: StudentRepository,
-    private val subjects: SubjectRepository,
-    private val groups: GroupRepository,
+    students: StudentRepository,
+    subjects: SubjectRepository,
+    groups: GroupRepository,
     private val homework: HomeworkRepository,
     private val notifier: Notifier,
     private val settings: SettingsRepository,
     private val clock: Clock,
 ) {
+    private val names = LessonNames(students, subjects, groups)
+
     /**
      * Posts the reminder for [classId] if it is still owed at [now], and reports whether it did.
      * A class that has since been deleted, cancelled, completed or moved is simply not announced.
@@ -42,10 +44,7 @@ class DueReminder @Inject constructor(
         val klass = classes.getById(classId) ?: return false
         if (!Reminders.shouldPost(klass, settings.get().notificationsEnabled, now)) return false
 
-        val who = Reminders.announcedBy(
-            groupName = klass.groupId?.let { groups.getById(it)?.name },
-            studentName = students.getById(klass.studentId)?.name,
-        )
+        val who = names.who(klass)
         // Read now rather than when the reminder was planned, which is what lets homework be set and ticked
         // without re-planning anything (`HomeworkRepository`): the reminder names what is current as it fires.
         val attached = classes.getSessionFor(klass.id)
@@ -53,7 +52,7 @@ class DueReminder @Inject constructor(
             .orEmpty()
             .joinToString("; ") { it.text }
             .ifEmpty { null }
-        notifier.showClassReminder(klass, who, subjects.getById(klass.subjectId)?.name.orEmpty(), attached)
+        notifier.showClassReminder(klass, who, names.subject(klass), attached)
         return true
     }
 }

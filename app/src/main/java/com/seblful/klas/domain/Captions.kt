@@ -30,9 +30,12 @@ class Captions private constructor(
     private val groups: Map<Long, String>,
 ) {
 
-    /** The group's name for a group lesson, the student's for an individual one. */
+    /**
+     * The group's name for a group lesson, the student's for an individual one — by [title], so a group
+     * lesson whose group this set has never heard of is titled by its first student rather than by nothing.
+     */
     fun titleOf(session: ClassSession): String =
-        if (session.isGroup) groups[session.groupId].orEmpty() else students[session.first.studentId].orEmpty()
+        title(groupName = session.groupId?.let { groups[it] }, studentName = students[session.first.studentId])
 
     /** What the lesson is in. Every class of one lesson shares a subject, so the first speaks for all. */
     fun subjectOf(session: ClassSession): String = subjects[session.first.subjectId].orEmpty()
@@ -70,6 +73,19 @@ class Captions private constructor(
     fun groupOf(klass: TutoringClass): String? = klass.groupId?.let { groups[it] }
 
     companion object {
+        /**
+         * **The** naming rule for a lesson: [groupName] when it belongs to a group whose name is known and
+         * not blank, otherwise [studentName]; blank when neither is known.
+         *
+         * Over names rather than ids, because two of its readers hold no [Captions]: a reminder names its
+         * lesson from rows read as it fires (`Reminders.announcedBy`), and the booking form names the lesson
+         * standing in its way. Each spelled the rule for itself, and they disagreed about a group with no
+         * known name — the schedule titled it with nothing where the reminder named a student. A name says
+         * something about who is coming; a blank says nothing.
+         */
+        fun title(groupName: String?, studentName: String?): String =
+            groupName?.takeIf { it.isNotBlank() } ?: studentName.orEmpty()
+
         fun of(
             students: List<Student>,
             subjects: List<Subject>,

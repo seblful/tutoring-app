@@ -97,7 +97,7 @@ class SubjectDeletionCascadeTest {
         val groups = GroupRepository(
             db.groupDao(), classes, db.studentDao(), rateHistory, transactor, mirror,
         )
-        subjects = SubjectRepository(db.subjectDao(), classes, groups, db.studentDao(), mirror)
+        subjects = SubjectRepository(db.subjectDao(), classes, groups, db.studentDao(), mirror, transactor)
     }
 
     @After fun tearDown() = db.close()

@@ -3,6 +3,7 @@ package com.seblful.klas.domain
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Duration
@@ -146,5 +147,24 @@ class RemindersTest {
             klass(2, start, groupId = 7),
         )
         assertEquals(listOf(2L), Reminders.plan(now, classes, lead, horizon).map { it.classId })
+    }
+
+    /**
+     * A reminder that fires late still posts while its lesson is on — the lesson phases that are still
+     * worth hearing about ([LessonPhase.UPCOMING], [LessonPhase.IN_PROGRESS]) — and never once it is over.
+     */
+    @Test
+    fun `a due reminder posts until its lesson ends, and only while reminders are on`() {
+        val upcoming = klass(1, now.plus(Duration.ofMinutes(30)))
+        val running = klass(2, now.minus(Duration.ofMinutes(30)))
+        val ended = klass(3, now.minus(Duration.ofMinutes(60)))
+
+        assertTrue(Reminders.shouldPost(upcoming, notificationsEnabled = true, now = now))
+        assertTrue(Reminders.shouldPost(running, notificationsEnabled = true, now = now))
+        assertFalse("its end is the boundary", Reminders.shouldPost(ended, notificationsEnabled = true, now = now))
+        assertFalse(
+            Reminders.shouldPost(upcoming.copy(status = LessonStatus.CANCELLED), notificationsEnabled = true, now = now),
+        )
+        assertFalse(Reminders.shouldPost(upcoming, notificationsEnabled = false, now = now))
     }
 }

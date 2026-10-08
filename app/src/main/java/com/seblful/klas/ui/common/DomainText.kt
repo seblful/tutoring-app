@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
+import com.seblful.klas.format.labelRes
 import com.seblful.klas.domain.LessonPhase
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
@@ -128,12 +129,7 @@ fun lessonBadgeColor(status: LessonStatus, running: Boolean): Color =
     if (running) klasColors.live else classStatusColor(status)
 /** Localized label for a class mode: «Очно» / «Удалённо». */
 @Composable
-fun classModeLabel(mode: ClassMode): String = stringResource(
-    when (mode) {
-        ClassMode.IN_PERSON -> R.string.class_mode_in_person
-        ClassMode.REMOTE -> R.string.class_mode_remote
-    }
-)
+fun classModeLabel(mode: ClassMode): String = stringResource(mode.labelRes())
 
 /**
  * «1 ч», «1,5 ч», «45 мин» — whole and half hours read better than a minute count.

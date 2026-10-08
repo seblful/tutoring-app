@@ -4,10 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.seblful.klas.di.ApplicationScope
-import com.seblful.klas.runCatchingCancellable
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -33,14 +31,7 @@ class ReminderActionReceiver : BroadcastReceiver() {
         val classId = TrayNavigation.lessonIdOrNull(intent.getLongExtra(TrayNavigation.EXTRA_CLASS_ID, 0L))
             ?: return
 
-        val pending = goAsync()
-        appScope.launch {
-            try {
-                runCatchingCancellable { actions.complete(classId) }
-            } finally {
-                pending.finish()
-            }
-        }
+        launchAsync(appScope) { actions.complete(classId) }
     }
 
     companion object {

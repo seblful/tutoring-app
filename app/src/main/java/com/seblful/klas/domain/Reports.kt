@@ -1,5 +1,6 @@
 package com.seblful.klas.domain
 
+import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.GroupId
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
@@ -443,13 +444,12 @@ object Reports {
 
     /** Students with a positive balance (owe money), largest debt first. */
     fun debts(balances: List<StudentBalance>): List<Debt> =
-        balances.filter { it.balance.minor > 0 }
-            .map { Debt(StudentId(it.studentId), it.balance) }
+        balances.mapNotNull { b -> (b.state as? Balance.Owed)?.let { Debt(StudentId(b.studentId), it.amount) } }
             .sortedByDescending { it.amount.minor }
 
     /** Sum of every positive balance — total money owed to the tutor (credits excluded). */
     fun totalOutstanding(balances: List<StudentBalance>): Money =
-        balances.fold(Money.ZERO) { acc, b -> if (b.balance.minor > 0) acc + b.balance else acc }
+        debts(balances).fold(Money.ZERO) { acc, d -> acc + d.amount }
 
     /**
      * Billable charges summed per key. A **null** key means "this class has no such thing" and drops

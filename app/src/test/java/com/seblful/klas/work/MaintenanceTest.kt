@@ -4,6 +4,7 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.Digests
 import com.seblful.klas.domain.Reminders
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
@@ -164,6 +165,22 @@ class MaintenanceTest {
         assertEquals("one finished hour", 1, maintenance().run(now).lessons)
         val session = env.classRepo.getSessionFor(ids.first())!!
         assertEquals("billed to all three of them", 3, session.size)
+    }
+
+    /**
+     * What a pass reports as billed is what it **billed** (`Billing.charged`), not every charge it
+     * touched: a member excused before the hour was over is completed with the rest and owes nothing.
+     */
+    @Test
+    fun `what a pass billed leaves out a member excused from the lesson`() = runTest(mainRule.dispatcher) {
+        val subjectId = env.fixtures.subject("Математика")
+        val members = listOf("Аня", "Боря", "Вера").map { env.fixtures.student(it) }
+        val groupId = env.fixtures.group(subjectId = subjectId, members = members.toSet())
+        val ids = env.fixtures.lesson(subjectId, members, start = now.minusSeconds(7200), groupId = groupId)
+        env.fixtures.setAttendance(ids.last(), Attended.ABSENT)
+        env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
+
+        assertEquals("two of three at 30 for the hour", Money.ofMajor(60), maintenance().run(now).billed)
     }
 
     @Test

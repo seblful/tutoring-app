@@ -60,6 +60,29 @@ class CaptionsTest {
         assertEquals("", captions.subjectOf(stranger))
     }
 
+    /**
+     * The rule the schedule, the reminder and the booking form share ([Captions.title]): a group lesson
+     * with no name to go by is titled by a student, never by a blank. The schedule used to print nothing.
+     */
+    @Test
+    fun `a group lesson whose group name is unknown or blank is titled by its first student`() {
+        val unknownGroup = ClassSession(
+            groupId = 99,
+            classes = listOf(klass(id = 1, studentId = 2, groupId = 99), klass(id = 2, studentId = 1, groupId = 99)),
+        )
+        val blankGroup = Captions.of(
+            students = listOf(student(2, "Аня Смирнова")),
+            subjects = emptyList(),
+            groups = listOf(Group(id = 7, name = " ", subjectId = 10, price = Money.ofMajor(20))),
+        )
+
+        assertEquals("Аня Смирнова", captions.titleOf(unknownGroup))
+        assertEquals("Аня Смирнова", blankGroup.titleOf(ClassSession(7, listOf(klass(id = 1, studentId = 2, groupId = 7)))))
+        assertEquals("Аня Смирнова", Reminders.announcedBy(groupName = " ", studentName = "Аня Смирнова"))
+        assertEquals("11 «А»", Reminders.announcedBy(groupName = "11 «А»", studentName = "Аня Смирнова"))
+        assertEquals("", Captions.title(groupName = null, studentName = null))
+    }
+
     @Test
     fun `an individual class belongs to no group`() {
         assertNull(captions.groupOf(klass(id = 1, studentId = 1)))

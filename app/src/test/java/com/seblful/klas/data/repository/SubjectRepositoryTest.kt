@@ -9,6 +9,7 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -101,5 +102,24 @@ class SubjectRepositoryTest {
 
         assertEquals(SubjectRepository.Delete.Ok, env.subjectRepo.delete(Subject(id = id, name = "Химия")))
         assertTrue(env.subjectDao.items.value.isEmpty())
+    }
+
+    /** The check and the write share one transaction, so a double tap cannot run two checks first. */
+    @Test
+    fun `a name already taken is refused, in the same transaction as the write`() = runTest {
+        assertTrue(env.subjectRepo.saveUnlessTaken(Subject(name = "Математика")))
+        val before = env.transactor.count
+
+        assertFalse(env.subjectRepo.saveUnlessTaken(Subject(name = " математика ")))
+        assertEquals(1, env.subjectDao.items.value.size)
+        assertEquals(before + 1, env.transactor.count)
+    }
+
+    @Test
+    fun `a subject may keep its own name when renamed`() = runTest {
+        val id = env.fixtures.subject("Химия")
+
+        assertTrue(env.subjectRepo.saveUnlessTaken(Subject(id = id, name = "химия")))
+        assertEquals("химия", env.subjectDao.items.value.single().name)
     }
 }

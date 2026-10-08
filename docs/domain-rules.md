@@ -70,7 +70,9 @@ calendar and the tray is in [calendar-and-reminders.md](calendar-and-reminders.m
 - A group is taught one fixed subject; only priced students may be members; roster is intersected on save,
   and the form asks first when that would take somebody off it (`GroupFormViewModel.UiState.leavingOnSave`).
 - Attendance is separate from roster membership and correctable afterwards.
-- A lesson is captioned by one module (`domain/Captions`): group lesson titled by group, individual by student.
+- A lesson is captioned by one module (`domain/Captions`): group lesson titled by group, individual by student;
+  a group with no known name falls back to a student. Reminders and the booking form name a lesson by the
+  same rule (`Captions.title`).
 - Groups are archive-only once they have lessons; mirror as one calendar event per member; reminders per lesson.
 
 ## Students, subjects, history

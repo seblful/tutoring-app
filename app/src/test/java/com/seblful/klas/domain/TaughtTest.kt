@@ -1,5 +1,6 @@
 package com.seblful.klas.domain
 
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
@@ -23,6 +24,7 @@ class TaughtTest {
         at: Instant = start,
         minutes: Int = 60,
         status: LessonStatus = LessonStatus.COMPLETED,
+        attended: Attended = Attended.EXPECTED,
         charge: Money = Money.ofMajor(30),
         groupId: Long? = null,
     ) = TutoringClass(
@@ -33,9 +35,10 @@ class TaughtTest {
         start = at,
         durationMinutes = minutes,
         status = status,
-        // Only a completed class carries recognized income, so mirror that here rather than letting a
-        // scheduled class contribute a charge the app would never have stored.
-        charge = if (status.isBillable) charge else Money.ZERO,
+        attended = attended,
+        // Only a billable class carries recognized income, so mirror that here rather than letting a
+        // scheduled class or an absentee contribute a charge the app would never have stored.
+        charge = if (status.isBillable && attended.bills) charge else Money.ZERO,
         groupId = groupId,
     )
 
@@ -115,15 +118,15 @@ class TaughtTest {
     }
 
     /**
-     * A per-member correction — the lesson happened, one absentee's class was cancelled — is still one
-     * lesson taught. Requiring every class to be completed would quietly lose it.
+     * A per-member correction — the lesson happened, one member was marked absent — is still one lesson
+     * taught. Requiring every class to bill would quietly lose it.
      */
     @Test
-    fun `a lesson with one absentee cancelled still counts as taught`() {
+    fun `a lesson with one absentee still counts as taught`() {
         val totals = Taught.byGroup(
             listOf(
                 klass(1, studentId = 1, groupId = 7, charge = Money.ofMajor(20)),
-                klass(2, studentId = 2, groupId = 7, status = LessonStatus.CANCELLED),
+                klass(2, studentId = 2, groupId = 7, attended = Attended.ABSENT),
             )
         )
         assertEquals(1, totals.lessons)
@@ -216,7 +219,7 @@ class TaughtTest {
     fun `bySessions agrees with byGroup over the same classes`() {
         val classes = listOf(
             klass(1, studentId = 1, groupId = 7, status = LessonStatus.COMPLETED),
-            klass(2, studentId = 2, groupId = 7, status = LessonStatus.CANCELLED),
+            klass(2, studentId = 2, groupId = 7, attended = Attended.ABSENT),
             klass(3, studentId = 1, groupId = 7, at = start.plusSeconds(86_400), status = LessonStatus.SCHEDULED),
         )
 

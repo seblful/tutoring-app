@@ -37,10 +37,7 @@ object TrayContent {
     data class AgendaPosting(val lines: List<Digests.Agenda.Entry>, val more: Int)
 
     /** What [agenda] comes to on screen — see [AgendaPosting]. */
-    fun agenda(agenda: Digests.Agenda): AgendaPosting = AgendaPosting(
-        lines = agenda.lessons.take(MAX_AGENDA_LINES),
-        more = (agenda.lessons.size - MAX_AGENDA_LINES).coerceAtLeast(0),
-    )
+    fun agenda(agenda: Digests.Agenda): AgendaPosting = capped(agenda.lessons)
 
     /**
      * What [unfinished] comes to on screen — the same cap and the same «ещё N», because it is the same
@@ -49,10 +46,13 @@ object TrayContent {
      * Stated as its own function rather than by the caller reaching for [agenda] with a hand-built
      * `Agenda`: the two digests are different things that happen to be listed alike, and coupling them
      * through a type neither of them is would make the evening list carry a `DaySummary` it has no use
-     * for. The shared part is the constant.
+     * for. The shared part is the cap ([capped]).
      */
-    fun unfinished(unfinished: Digests.Unfinished): AgendaPosting = AgendaPosting(
-        lines = unfinished.lessons.take(MAX_AGENDA_LINES),
-        more = (unfinished.lessons.size - MAX_AGENDA_LINES).coerceAtLeast(0),
+    fun unfinished(unfinished: Digests.Unfinished): AgendaPosting = capped(unfinished.lessons)
+
+    /** [lessons] cut to [MAX_AGENDA_LINES], with how many that left out. */
+    private fun capped(lessons: List<Digests.Agenda.Entry>): AgendaPosting = AgendaPosting(
+        lines = lessons.take(MAX_AGENDA_LINES),
+        more = (lessons.size - MAX_AGENDA_LINES).coerceAtLeast(0),
     )
 }

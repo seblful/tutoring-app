@@ -109,10 +109,11 @@ object Taught {
      * group decides how much, each member owes their share of it (see `Group.price`). So a group's
      * card reads "10 lessons, 15 hours, 750 BYN" — the honest shape of "what I taught, what it paid".
      *
-     * A session counts as taught when **any** of its classes is completed, which is what makes a
-     * per-member correction (the lesson happened, one absentee's class cancelled) still one lesson
-     * rather than a lost one; it is cancelled only when every member's class is. Duration comes from
-     * the session's first class, since every class of one lesson shares it by construction.
+     * Upcoming and cancelled read the lesson's own [ClassSession.status], held once for all of it. A
+     * session counts as taught when **any** of its classes bills — the lesson happened and somebody was
+     * in it — so an absentee marked on a completed lesson leaves it one lesson rather than a lost one.
+     * Duration comes from the session's first class, since every class of one lesson shares it by
+     * construction.
      */
     fun byGroup(classes: List<TutoringClass>): Totals = bySessions(GroupRules.sessions(classes))
 
@@ -129,10 +130,8 @@ object Taught {
         val taught = sessions.filter { s -> Billing.billable(s.classes).isNotEmpty() }
         return Totals(
             lessons = taught.size,
-            upcoming = sessions.count { s ->
-                Billing.billable(s.classes).isEmpty() && s.classes.any { it.status == LessonStatus.SCHEDULED }
-            },
-            cancelled = sessions.count { s -> s.classes.all { it.status == LessonStatus.CANCELLED } },
+            upcoming = sessions.count { it.status == LessonStatus.SCHEDULED },
+            cancelled = sessions.count { it.status == LessonStatus.CANCELLED },
             minutes = taught.sumOf { it.first.durationMinutes },
             earned = Billing.charged(sessions.flatMap { it.classes }),
         )

@@ -40,6 +40,9 @@ class PaymentRepository @Inject constructor(
     fun observeAll(): Flow<List<Payment>> =
         dao.observeAll().map { list -> list.map { it.toDomain() } }
 
+    /** [observeAll], read once — for a caller with no screen to keep current, such as the debt digest. */
+    suspend fun getAll(): List<Payment> = dao.getAll().map { it.toDomain() }
+
     fun observeForStudent(studentId: Long): Flow<List<Payment>> =
         dao.observeForStudent(studentId).map { list -> list.map { it.toDomain() } }
 

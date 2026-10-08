@@ -572,8 +572,7 @@ class ClassRepository @Inject constructor(
         // whichever class happens to be first in the list — a roster swapped whole leaves that list empty
         // and used to leave the lesson at its old time. Writing it per class is what stored a status n
         // times and let the copies drift.
-        lessons.update(edit.lesson.toLessonEntity())
-        edit.updated.forEach { attendance.update(it.toAttendanceEntity()) }
+        rewrite(lesson = edit.lesson, classes = edit.updated)
         val joined = edit.joining.map { ClassRules.rebill(it) }.map { klass ->
             klass.copy(id = attendance.upsert(klass.toAttendanceEntity()))
         }
@@ -631,8 +630,9 @@ class ClassRepository @Inject constructor(
         // One transaction for the lot: a half-archived student would have some lessons called off and
         // others still due to bill, which is the state this exists to rule out.
         return write {
-            cancelled.forEach { lessons.update(it.toLessonEntity()) }
-            (cancelled + excused).forEach { attendance.update(it.toAttendanceEntity()) }
+            // An individual lesson is its one class, so each cancelled one states its own row.
+            cancelled.forEach { rewrite(lesson = it, classes = listOf(it)) }
+            rewrite(lesson = null, classes = excused)
             Committed(cancelled + excused, mirror = cancelled + excused)
         }
     }
@@ -675,11 +675,20 @@ class ClassRepository @Inject constructor(
         // One pass, one transaction: an upkeep run that recognized half of an evening's income and
         // then failed would leave a group lesson billing some of its members and not the rest.
         return write(refreshesReminders = false) {
-            due.groupBy { it.lessonId }.forEach { (_, members) ->
-                lessons.update(members.first().toLessonEntity())
-                members.forEach { attendance.update(it.toAttendanceEntity()) }
-            }
+            GroupRules.sessions(due).forEach { rewrite(lesson = it.first, classes = it.classes) }
             Committed(due)
         }
+    }
+
+    /**
+     * Rewrites [lesson]'s own row **once** and every one of [classes] in place — the shape every write of
+     * an existing lesson takes, inside the caller's [write]. A null [lesson] leaves the lesson row alone,
+     * for a per-member correction: excusing one student from a group's lesson changes nothing about the
+     * hour, and writing its row from a class read before the transaction could put back an hour another
+     * write has since moved.
+     */
+    private suspend fun rewrite(lesson: TutoringClass?, classes: List<TutoringClass>) {
+        lesson?.let { lessons.update(it.toLessonEntity()) }
+        classes.forEach { attendance.update(it.toAttendanceEntity()) }
     }
 }

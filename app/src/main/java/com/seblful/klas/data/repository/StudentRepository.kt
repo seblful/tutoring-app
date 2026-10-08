@@ -30,6 +30,9 @@ class StudentRepository @Inject constructor(
     fun observeActive(): Flow<List<Student>> =
         dao.observeActive().map { list -> NameOrder.sorted(list.map { it.toDomain() }) { it.name } }
 
+    /** [observeActive], read once — for a caller with no screen to keep current, such as the debt digest. */
+    suspend fun getActive(): List<Student> = NameOrder.sorted(dao.getActive().map { it.toDomain() }) { it.name }
+
     /** Every student, archived ones last — they stay listed, out of the way of the active roster. */
     fun observeAll(): Flow<List<Student>> = dao.observeAll().map { list ->
         NameOrder.sortedArchivedLast(list.map { it.toDomain() }, archived = { it.archived }, name = { it.name })

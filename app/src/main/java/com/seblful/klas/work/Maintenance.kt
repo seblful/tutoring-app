@@ -2,6 +2,7 @@ package com.seblful.klas.work
 
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.domain.Billing
 import com.seblful.klas.domain.DigestScheduler
 import com.seblful.klas.domain.Digests
 import com.seblful.klas.domain.ReminderScheduler
@@ -102,7 +103,7 @@ class Maintenance @Inject constructor(
         )
         return Settled(
             lessons = completed.distinctBy { it.lessonId }.size,
-            billed = completed.fold(Money.ZERO) { acc, c -> acc + c.charge },
+            billed = Billing.charged(completed),
             lastDay = completed.maxOfOrNull { it.start }?.atZone(clock.zone)?.toLocalDate(),
         )
     }

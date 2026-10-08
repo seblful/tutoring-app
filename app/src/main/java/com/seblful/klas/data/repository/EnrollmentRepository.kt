@@ -86,10 +86,7 @@ class EnrollmentRepository @Inject constructor(
             // This is a creation, so the upsert inserts — but the -1 sentinel is handled all the
             // same (see [upsertedId]) rather than trusted not to occur.
             val id = upsertedId(studentDao.upsert(student.toEntity()), student.id)
-            pricedSubjects.forEach { (subjectId, price) ->
-                studentDao.addSubjectLink(StudentSubjectCrossRef(id, subjectId))
-                record(id, subjectId, price)
-            }
+            pricedSubjects.forEach { (subjectId, price) -> link(id, subjectId, price) }
             id
         }
 
@@ -98,10 +95,7 @@ class EnrollmentRepository @Inject constructor(
      * transaction, which is what "together" has to mean to be worth saying.
      */
     suspend fun enroll(studentId: Long, subjectId: Long, price: Money) {
-        transactor.transaction {
-            studentDao.addSubjectLink(StudentSubjectCrossRef(studentId, subjectId))
-            record(studentId, subjectId, price)
-        }
+        transactor.transaction { link(studentId, subjectId, price) }
     }
 
     /**
@@ -114,11 +108,7 @@ class EnrollmentRepository @Inject constructor(
         // The count is read outside the transaction on purpose: it is the *decision* whether to write
         // at all, and a refusal writes nothing there is anything to roll back.
         if (classes.anyForStudentSubject(studentId, subjectId)) return Unenroll.HasClasses
-        transactor.transaction {
-            studentDao.removeSubjectLink(studentId, subjectId)
-            priceDao.delete(studentId, subjectId)
-            rateHistory.forget(RateOwner.StudentSubject(studentId, subjectId))
-        }
+        transactor.transaction { unlink(studentId, subjectId) }
         return Unenroll.Ok
     }
 
@@ -155,15 +145,32 @@ class EnrollmentRepository @Inject constructor(
             .filter { classes.anyForStudentSubject(studentId, it) }
             .toSet()
         transactor.transaction {
-            (target - current).forEach { studentDao.addSubjectLink(StudentSubjectCrossRef(studentId, it)) }
-            (current - target - undroppable).forEach {
-                studentDao.removeSubjectLink(studentId, it)
-                priceDao.delete(studentId, it)
-                rateHistory.forget(RateOwner.StudentSubject(studentId, it))
+            (current - target - undroppable).forEach { unlink(studentId, it) }
+            pricedSubjects.forEach { (subjectId, price) ->
+                if (subjectId in current) record(studentId, subjectId, price) else link(studentId, subjectId, price)
             }
-            pricedSubjects.forEach { (subjectId, price) -> record(studentId, subjectId, price) }
         }
         return undroppable
+    }
+
+    /**
+     * Links [subjectId] to [studentId] and prices it — the two halves of enrolling, which are only ever
+     * written together. Inside the caller's transaction, like [record].
+     */
+    private suspend fun link(studentId: Long, subjectId: Long, price: Money) {
+        studentDao.addSubjectLink(StudentSubjectCrossRef(studentId, subjectId))
+        record(studentId, subjectId, price)
+    }
+
+    /**
+     * Unlinks [subjectId] from [studentId], deletes its price and forgets that price's history — the three
+     * tables un-enrolling spans, as one step. Only for a subject the caller has checked has no classes, and
+     * inside the caller's transaction, like [record].
+     */
+    private suspend fun unlink(studentId: Long, subjectId: Long) {
+        studentDao.removeSubjectLink(studentId, subjectId)
+        priceDao.delete(studentId, subjectId)
+        rateHistory.forget(RateOwner.StudentSubject(studentId, subjectId))
     }
 
     /**

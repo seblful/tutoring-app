@@ -8,16 +8,17 @@ import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.Billing
 import com.seblful.klas.domain.ClassSession
+import com.seblful.klas.domain.DayBounds
 import com.seblful.klas.domain.DaySummary
 import com.seblful.klas.domain.Digests
 import com.seblful.klas.domain.GroupRules
 import com.seblful.klas.domain.LessonPhase
-import com.seblful.klas.domain.Reminders
 import com.seblful.klas.domain.Reports
 import com.seblful.klas.domain.model.LessonStatus
-import kotlinx.coroutines.flow.first
+import com.seblful.klas.domain.model.TutoringClass
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -40,13 +41,15 @@ import javax.inject.Singleton
 class DueDigest @Inject constructor(
     private val classes: ClassRepository,
     private val students: StudentRepository,
-    private val subjects: SubjectRepository,
-    private val groups: GroupRepository,
+    subjects: SubjectRepository,
+    groups: GroupRepository,
     private val payments: PaymentRepository,
     private val settings: SettingsRepository,
     private val notifier: Notifier,
     private val clock: Clock,
 ) {
+    private val names = LessonNames(students, subjects, groups)
+
     /**
      * Posts the morning agenda for the day [now] falls in, and reports whether it did.
      *
@@ -65,12 +68,8 @@ class DueDigest @Inject constructor(
         val current = settings.get()
         if (!current.dailyAgendaEnabled) return false
 
-        val zone = clock.zone
-        val day = now.atZone(zone).toLocalDate()
-        val dayClasses = classes.observeBetween(
-            day.atStartOfDay(zone).toInstant(),
-            day.plusDays(1).atStartOfDay(zone).toInstant(),
-        ).first()
+        val day = now.atZone(clock.zone).toLocalDate()
+        val dayClasses = classesOn(day)
 
         // One entry per lesson, a group's included — `GroupRules.sessions` collapses its members' classes
         // and sorts by start, so the tray lists the tutor's morning exactly as the schedule would.
@@ -109,12 +108,8 @@ class DueDigest @Inject constructor(
         val current = settings.get()
         if (!current.unfinishedDigestEnabled) return false
 
-        val zone = clock.zone
-        val day = now.atZone(zone).toLocalDate()
-        val dayClasses = classes.observeBetween(
-            day.atStartOfDay(zone).toInstant(),
-            day.plusDays(1).atStartOfDay(zone).toInstant(),
-        ).first()
+        val day = now.atZone(clock.zone).toLocalDate()
+        val dayClasses = classesOn(day)
 
         val digest = Digests.Unfinished(
             day = day,
@@ -137,14 +132,17 @@ class DueDigest @Inject constructor(
      */
     private suspend fun entryFor(session: ClassSession): Digests.Agenda.Entry = Digests.Agenda.Entry(
         start = session.start,
-        subject = subjects.getById(session.first.subjectId)?.name.orEmpty(),
-        // The same rule a reminder is announced by: the group's name when there is one, since a lesson
+        subject = names.subject(session.first),
+        // The same words a reminder names it by: the group's name when there is one, since a lesson
         // taught to four is not one student's.
-        who = Reminders.announcedBy(
-            groupName = session.first.groupId?.let { groups.getById(it)?.name },
-            studentName = students.getById(session.first.studentId)?.name,
-        ),
+        who = names.who(session.first),
     )
+
+    /** Every class starting on [day] in the injected clock's zone, read once as the digest posts. */
+    private suspend fun classesOn(day: LocalDate): List<TutoringClass> {
+        val bounds = DayBounds.of(day, clock.zone)
+        return classes.getBetween(bounds.start, bounds.end)
+    }
 
     /**
      * Posts the weekly summary of who owes money, and reports whether it did.
@@ -163,9 +161,9 @@ class DueDigest @Inject constructor(
         if (!current.debtDigestEnabled) return false
 
         val balances = Billing.balancesFor(
-            students = students.observeActive().first(),
+            students = students.getActive(),
             classes = classes.getAll(),
-            payments = payments.observeAll().first(),
+            payments = payments.getAll(),
         )
         // `Reports.Outstanding` rather than the two aggregations behind it: `ReportsSurfaceTest` keeps
         // callers from reaching past `Reports.of` for pieces of a report and reassembling them, and a

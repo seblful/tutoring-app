@@ -19,6 +19,9 @@ interface SubjectDao {
     @Query("SELECT * FROM subjects")
     fun observeAll(): Flow<List<SubjectEntity>>
 
+    @Query("SELECT * FROM subjects")
+    suspend fun getAll(): List<SubjectEntity>
+
     @Query("SELECT * FROM subjects WHERE id = :id")
     suspend fun getById(id: Long): SubjectEntity?
 
@@ -33,6 +36,9 @@ interface SubjectDao {
 interface StudentDao {
     @Query("SELECT * FROM students WHERE archived = 0")
     fun observeActive(): Flow<List<StudentEntity>>
+
+    @Query("SELECT * FROM students WHERE archived = 0")
+    suspend fun getActive(): List<StudentEntity>
 
     @Query("SELECT * FROM students")
     fun observeAll(): Flow<List<StudentEntity>>
@@ -184,14 +190,14 @@ interface ClassDao {
     fun observeBetween(fromMillis: Long, toMillis: Long): Flow<List<ClassRow>>
 
     /**
-     * [observeBetween] as a one-shot read, for the two callers that want a window of the schedule
-     * **once** rather than for as long as a screen is open: the conflict check a save makes, and the
-     * reminder plan.
+     * [observeBetween] as a one-shot read, for the callers that want a window of the schedule **once**
+     * rather than for as long as a screen is open: the conflict check a save makes, the reminder plan,
+     * homework's reminder text and the two lesson-listing digests.
      *
-     * Both used to get there the long way round. The conflict check collected [observeBetween] and
-     * took its first value, which registers an invalidation observer and opens a channel per save,
-     * move and un-cancel, only to tear all of it down again; the reminder plan read *every class ever
-     * taught* to decide about the next week. A `suspend` query over the window is what both actually
+     * They used to get there the long way round. The conflict check and the digests collected
+     * [observeBetween] and took its first value, which registers an invalidation observer and opens a
+     * channel per read, only to tear all of it down again; the reminder plan read *every class ever
+     * taught* to decide about the next week. A `suspend` query over the window is what they actually
      * asked for.
      */
     @Query("SELECT * FROM classes WHERE startMillis >= :fromMillis AND startMillis < :toMillis ORDER BY startMillis")
@@ -366,6 +372,9 @@ interface SettingsDao {
 interface PaymentDao {
     @Query("SELECT * FROM payments ORDER BY dateMillis DESC")
     fun observeAll(): Flow<List<PaymentEntity>>
+
+    @Query("SELECT * FROM payments ORDER BY dateMillis DESC")
+    suspend fun getAll(): List<PaymentEntity>
 
     @Query("SELECT * FROM payments WHERE studentId = :studentId ORDER BY dateMillis DESC")
     fun observeForStudent(studentId: Long): Flow<List<PaymentEntity>>

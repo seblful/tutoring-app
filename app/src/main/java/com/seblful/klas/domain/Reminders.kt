@@ -1,6 +1,5 @@
 package com.seblful.klas.domain
 
-import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
 import java.time.Duration
 import java.time.Instant
@@ -18,13 +17,23 @@ object Reminders {
      */
     data class Plan(val classId: Long, val fireAt: Instant)
 
-    val DEFAULT_LEAD: Duration = Duration.ofMinutes(60)
+    /**
+     * How long before a lesson its reminder fires, until the tutor picks otherwise — in minutes, because
+     * that is how the setting is stored and how the calendar's email reminder is written.
+     *
+     * A `const` so the settings row, the settings model and the calendar port can all default to it: the
+     * figure was written out four times, and a default changed in one of them would have left a fresh
+     * install's in-app and email reminders disagreeing about when "an hour before" is.
+     */
+    const val DEFAULT_LEAD_MINUTES: Int = 60
+
+    val DEFAULT_LEAD: Duration = Duration.ofMinutes(DEFAULT_LEAD_MINUTES.toLong())
     val DEFAULT_HORIZON: Duration = Duration.ofDays(7)
 
     /**
-     * Plans a reminder for every SCHEDULED lesson starting after [now] and within [horizon].
-     * Each fires [lead] before the lesson start. Past, cancelled and completed classes are
-     * skipped — only a class that will still happen earns a reminder.
+     * Plans a reminder for every [LessonPhase.UPCOMING] lesson — scheduled, starting after [now] — that
+     * starts within [horizon]. Each fires [lead] before the lesson start. Past, cancelled and completed
+     * classes are skipped — only a class that will still happen earns a reminder.
      *
      * A lesson whose lead moment has **already passed** earns no reminder: the whole plan is
      * re-derived from scratch on every class change, every app start and every maintenance tick,
@@ -46,8 +55,7 @@ object Reminders {
     ): List<Plan> {
         val horizonEnd = now.plus(horizon)
         val upcoming = classes
-            .filter { it.status == LessonStatus.SCHEDULED }
-            .filter { it.start.isAfter(now) && !it.start.isAfter(horizonEnd) }
+            .filter { LessonPhase.of(it, now) == LessonPhase.UPCOMING && !it.start.isAfter(horizonEnd) }
         return GroupRules.sessions(upcoming).mapNotNull { session ->
             val fireAt = session.start.minus(lead)
             if (!fireAt.isAfter(now)) return@mapNotNull null
@@ -60,13 +68,15 @@ object Reminders {
      *
      * A reminder is scheduled ahead of time, so by the time it fires the lesson may have been
      * cancelled, completed, or moved — into the past, or far enough forward that this firing is
-     * simply early. Only a lesson that is still going to happen earns the notification, and only
-     * while reminders are switched on ([notificationsEnabled] — opt-out, on by default).
+     * simply early. Only a lesson that is still going to happen — or is happening, since a reminder delayed
+     * past the start is still worth seeing before the end — earns the notification, and only while
+     * reminders are switched on ([notificationsEnabled] — opt-out, on by default).
      */
     fun shouldPost(klass: TutoringClass, notificationsEnabled: Boolean, now: Instant): Boolean =
-        notificationsEnabled &&
-            klass.status == LessonStatus.SCHEDULED &&
-            klass.end.isAfter(now)
+        notificationsEnabled && when (LessonPhase.of(klass, now)) {
+            LessonPhase.UPCOMING, LessonPhase.IN_PROGRESS -> true
+            LessonPhase.OVERDUE, LessonPhase.SETTLED -> false
+        }
 
     /**
      * The name a reminder is announced by: the **group's** when the lesson belongs to one, otherwise
@@ -76,7 +86,8 @@ object Reminders {
      *
      * Blank when neither name is known — the notification then reads as time and subject only, which
      * is still useful, rather than not being posted at all.
+     *
+     * The rule itself is [Captions.title]'s, so a reminder names a lesson the way the schedule does.
      */
-    fun announcedBy(groupName: String?, studentName: String?): String =
-        groupName?.takeIf { it.isNotBlank() } ?: studentName.orEmpty()
+    fun announcedBy(groupName: String?, studentName: String?): String = Captions.title(groupName, studentName)
 }

@@ -1,5 +1,6 @@
 package com.seblful.klas.calendar
 
+import com.seblful.klas.domain.Reminders
 import com.seblful.klas.domain.model.TutoringClass
 
 /**
@@ -33,7 +34,7 @@ interface CalendarSync {
         klass: TutoringClass,
         title: String,
         guest: Guest? = null,
-        reminderLeadMinutes: Int = 60,
+        reminderLeadMinutes: Int = Reminders.DEFAULT_LEAD_MINUTES,
     ): String?
 
     /**

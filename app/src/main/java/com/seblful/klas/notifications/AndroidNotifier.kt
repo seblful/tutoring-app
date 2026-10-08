@@ -126,8 +126,7 @@ class AndroidNotifier @Inject constructor(
         subjectName: String,
         homeworkToCheck: String?,
     ) {
-        if (!permission.isGranted()) return
-        ensureChannels()
+        if (!mayPost()) return
 
         // 12- or 24-hour from the phone, like every other time the tutor is shown. A reminder is read
         // *on* the phone — it is only "not a screen" in the sense that this class draws it, and the
@@ -141,14 +140,11 @@ class AndroidNotifier @Inject constructor(
             ?.let { "$headline\n${words.getString(R.string.reminder_homework_to_check, it)}" }
             ?: headline
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_REMINDERS)
-            .setSmallIcon(R.drawable.ic_stat_reminder)
-            .setContentTitle(words.getString(R.string.reminder_title))
+        val notification = builder(CHANNEL_REMINDERS, R.string.reminder_title)
             .setContentText(headline)
             .setStyle(NotificationCompat.BigTextStyle().bigText(expanded))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .setAutoCancel(true)
             // The lesson on the schedule, with its sheet open — what tapping its card does in the app.
             .setContentIntent(
                 openApp(klass.id.toInt(), TrayNavigation.ACTION_SHOW_LESSON) {
@@ -187,13 +183,10 @@ class AndroidNotifier @Inject constructor(
      * top of it. It is not cancelled anywhere: the platform removes a summary once its last child is gone.
      */
     private fun remindersSummary() {
-        val summary = NotificationCompat.Builder(context, CHANNEL_REMINDERS)
-            .setSmallIcon(R.drawable.ic_stat_reminder)
-            .setContentTitle(words.getString(R.string.reminder_title))
+        val summary = builder(CHANNEL_REMINDERS, R.string.reminder_title)
             .setGroup(GROUP_REMINDERS)
             .setGroupSummary(true)
             .setOnlyAlertOnce(true)
-            .setAutoCancel(true)
             // Several lessons, all of them within the next hour or so: today's schedule, where they all are.
             .setContentIntent(openApp(ID_REMINDERS_SUMMARY, TrayNavigation.ACTION_OPEN_TODAY))
             .build()
@@ -201,34 +194,22 @@ class AndroidNotifier @Inject constructor(
     }
 
     override fun showAgenda(agenda: Digests.Agenda, currency: Currency) {
-        if (!permission.isGranted()) return
-        ensureChannels()
+        if (!mayPost()) return
 
         // Which lessons fit and how many are left over is [TrayContent]'s — the clock face and the words
         // are what this class still owns. InboxStyle rather than BigTextStyle: this is a *list*, and the
         // platform draws each line whole and elides the ones that do not fit rather than truncating the
         // middle of a sentence.
-        val posting = TrayContent.agenda(agenda)
-        val style = NotificationCompat.InboxStyle()
-        val hour12 = hour12()
-        posting.lines.forEach { entry ->
-            style.addLine(bulletJoin(entry.start.formatTime(hour12 = hour12), entry.subject, entry.who))
-        }
-        if (posting.more > 0) {
-            style.setSummaryText(words.getString(R.string.agenda_more, posting.more))
-        }
+        val style = lessonList(TrayContent.agenda(agenda))
 
         // The same sentence the schedule prints under the day it names — see [daySummaryText]. Never
         // null here: `Agenda.isWorthPosting` has already refused an empty day, and it is the only way in.
         val summary = daySummaryText(words.resources, agenda.summary, currency).orEmpty()
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_AGENDA)
-            .setSmallIcon(R.drawable.ic_stat_reminder)
-            .setContentTitle(words.getString(R.string.agenda_title))
+        val notification = builder(CHANNEL_AGENDA, R.string.agenda_title)
             .setContentText(summary)
             .setStyle(style)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .setAutoCancel(true)
             .setContentIntent(openDay(ID_AGENDA, agenda.day))
             .build()
 
@@ -236,23 +217,12 @@ class AndroidNotifier @Inject constructor(
     }
 
     override fun showUnfinished(unfinished: Digests.Unfinished) {
-        if (!permission.isGranted()) return
-        ensureChannels()
+        if (!mayPost()) return
 
         // The same list the morning agenda is drawn as, capped the same way — see [TrayContent].
-        val posting = TrayContent.unfinished(unfinished)
-        val style = NotificationCompat.InboxStyle()
-        val hour12 = hour12()
-        posting.lines.forEach { entry ->
-            style.addLine(bulletJoin(entry.start.formatTime(hour12 = hour12), entry.subject, entry.who))
-        }
-        if (posting.more > 0) {
-            style.setSummaryText(words.getString(R.string.agenda_more, posting.more))
-        }
+        val style = lessonList(TrayContent.unfinished(unfinished))
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_UNFINISHED)
-            .setSmallIcon(R.drawable.ic_stat_reminder)
-            .setContentTitle(words.getString(R.string.unfinished_title))
+        val notification = builder(CHANNEL_UNFINISHED, R.string.unfinished_title)
             // The count, not a total: nothing here has billed, so there is no money to print beside it.
             .setContentText(
                 words.resources.getQuantityString(
@@ -263,7 +233,6 @@ class AndroidNotifier @Inject constructor(
             )
             .setStyle(style)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .setAutoCancel(true)
             // Straight to the day's schedule, where each of these is one swipe from being marked. No
             // action buttons: «Проведено» on a list of five lessons could only guess, and this one bills.
             .setContentIntent(openDay(ID_UNFINISHED, unfinished.day))
@@ -273,19 +242,15 @@ class AndroidNotifier @Inject constructor(
     }
 
     override fun showDebts(debts: Digests.Debts, currency: Currency) {
-        if (!permission.isGranted()) return
-        ensureChannels()
+        if (!mayPost()) return
 
         val body = bulletJoin(
             words.resources.getQuantityString(R.plurals.students_count, debts.students, debts.students),
             debts.total.money(currency),
         )
-        val notification = NotificationCompat.Builder(context, CHANNEL_DEBTS)
-            .setSmallIcon(R.drawable.ic_stat_reminder)
-            .setContentTitle(words.getString(R.string.debts_title))
+        val notification = builder(CHANNEL_DEBTS, R.string.debts_title)
             .setContentText(body)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
-            .setAutoCancel(true)
             // Straight to the report that lists them, where each debt row opens the student — the tray can
             // say how much is owed in total and nothing at all about by whom.
             .setContentIntent(openApp(ID_DEBTS, TrayNavigation.ACTION_OPEN_DEBTS))
@@ -295,23 +260,53 @@ class AndroidNotifier @Inject constructor(
     }
 
     override fun showAutoCompleted(lessons: Int, billed: Money, day: LocalDate, currency: Currency) {
-        if (!permission.isGranted()) return
-        ensureChannels()
+        if (!mayPost()) return
 
         val body = bulletJoin(
             words.resources.getQuantityString(R.plurals.lessons_count, lessons, lessons),
             billed.money(currency),
         )
-        val notification = NotificationCompat.Builder(context, CHANNEL_UPKEEP)
-            .setSmallIcon(R.drawable.ic_stat_reminder)
-            .setContentTitle(words.getString(R.string.upkeep_completed_title))
+        val notification = builder(CHANNEL_UPKEEP, R.string.upkeep_completed_title)
             .setContentText(body)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
-            .setAutoCancel(true)
             .setContentIntent(openDay(ID_UPKEEP, day))
             .build()
 
         post(ID_UPKEEP, notification)
+    }
+
+    /**
+     * Whether anything may be posted, making sure the channels exist when it may — how every `show…`
+     * opens. Channels are created per post rather than once: creating one that exists is a no-op, and one
+     * deleted in system settings comes back with the next entry.
+     */
+    private fun mayPost(): Boolean {
+        if (!permission.isGranted()) return false
+        ensureChannels()
+        return true
+    }
+
+    /** What every entry here starts from: the app's tray icon, a title, and gone once tapped. */
+    private fun builder(channel: String, titleRes: Int): NotificationCompat.Builder =
+        NotificationCompat.Builder(context, channel)
+            .setSmallIcon(R.drawable.ic_stat_reminder)
+            .setContentTitle(words.getString(titleRes))
+            .setAutoCancel(true)
+
+    /**
+     * A digest's lessons as an `InboxStyle` list, a line each, with «ещё N» for those [posting] left out —
+     * the morning agenda and the evening list are drawn alike.
+     */
+    private fun lessonList(posting: TrayContent.AgendaPosting): NotificationCompat.InboxStyle {
+        val style = NotificationCompat.InboxStyle()
+        val hour12 = hour12()
+        posting.lines.forEach { entry ->
+            style.addLine(bulletJoin(entry.start.formatTime(hour12 = hour12), entry.subject, entry.who))
+        }
+        if (posting.more > 0) {
+            style.setSummaryText(words.getString(R.string.agenda_more, posting.more))
+        }
+        return style
     }
 
     /**
@@ -372,16 +367,13 @@ class AndroidNotifier @Inject constructor(
      * tutor lands on the lesson's own screen with its date and time, which is where the app moves a
      * lesson anyway; see [TrayNavigation] for the rule that reads this back.
      */
-    private fun rescheduleAction(classId: Long): NotificationCompat.Action {
-        val intent = Intent(context, MainActivity::class.java)
-            .setAction(TrayNavigation.ACTION_OPEN_LESSON)
-            .putExtra(TrayNavigation.EXTRA_CLASS_ID, classId)
-            .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        return action(
+    private fun rescheduleAction(classId: Long): NotificationCompat.Action =
+        action(
             R.string.class_move,
-            PendingIntent.getActivity(context, classId.toInt(), intent, FLAGS),
+            openApp(classId.toInt(), TrayNavigation.ACTION_OPEN_LESSON) {
+                putExtra(TrayNavigation.EXTRA_CLASS_ID, classId)
+            },
         )
-    }
 
     /**
      * Icon 0 on purpose: since Android N the platform draws action *labels* only, and every device this

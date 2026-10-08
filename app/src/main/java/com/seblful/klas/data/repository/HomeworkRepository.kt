@@ -5,6 +5,7 @@ import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
 import com.seblful.klas.domain.ClassSession
 import com.seblful.klas.domain.HomeworkRules
+import com.seblful.klas.domain.takes
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.TutoringClass
@@ -106,12 +107,7 @@ class HomeworkRepository @Inject constructor(
      * to the first homework the app ever held.
      */
     private fun candidatesFor(session: ClassSession, homework: List<Homework>): List<Homework> =
-        homework.filter { hw ->
-            hw.givenAt.isBefore(session.start) && when (val assignee = hw.assignee) {
-                is Assignee.Student -> session.classes.any { it.studentId == assignee.studentId }
-                is Assignee.Group -> assignee.groupId == session.groupId
-            }
-        }
+        homework.filter { hw -> hw.givenAt.isBefore(session.start) && session.classes.any { hw.assignee.takes(it) } }
 
     /** Sets [text] for [assignee], given now — so it is attached to their next lesson from this minute. */
     suspend fun give(assignee: Assignee, text: String): Homework {

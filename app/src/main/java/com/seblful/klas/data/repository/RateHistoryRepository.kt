@@ -72,8 +72,8 @@ class RateHistoryRepository @Inject constructor(
      */
     suspend fun currentRate(owner: RateOwner): Money? = when (owner) {
         is RateOwner.StudentSubject ->
-            priceDao.get(owner.studentId, owner.subjectId)?.let { Money(it.amountMinor) }
-        is RateOwner.GroupRate -> groupDao.getById(owner.groupId)?.let { Money(it.priceMinor) }
+            priceDao.get(owner.studentId, owner.subjectId)?.toDomain()?.amount
+        is RateOwner.GroupRate -> groupDao.getById(owner.groupId)?.toDomain()?.price
     }
 
     /**

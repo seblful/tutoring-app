@@ -46,11 +46,6 @@ object HomeworkRules {
             .filter { it.start.isAfter(after) && it.status != LessonStatus.CANCELLED && assignee.takes(it) }
             .minByOrNull { it.start }
 
-    private fun Assignee.takes(klass: TutoringClass): Boolean = when (this) {
-        is Assignee.Student -> klass.studentId == studentId
-        is Assignee.Group -> klass.groupId == groupId
-    }
-
     /** Where a current piece of homework stands on a given day, as the case rather than two dates. */
     enum class Due {
         /** Its lesson has been and gone, and it is still not marked done. */
@@ -180,4 +175,17 @@ object HomeworkRules {
         now.isAfter(klass.end) -> Duration.between(klass.end, now)
         else -> Duration.ZERO
     }
+}
+
+/**
+ * Whether [klass] is one of this assignee's lessons — a student's own class, in a lesson of their own or a
+ * group's, or any class of the group's.
+ *
+ * Public because the repository asks it too, narrowing the homework that could be attached to a lesson
+ * before reading lessons for it (`HomeworkRepository.candidatesFor`): a second spelling of "whose lesson
+ * is this" there could disagree with the rule that attaches it here.
+ */
+fun Assignee.takes(klass: TutoringClass): Boolean = when (this) {
+    is Assignee.Student -> klass.studentId == studentId
+    is Assignee.Group -> klass.groupId == groupId
 }

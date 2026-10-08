@@ -2,9 +2,11 @@ package com.seblful.klas.data.repository
 
 import com.seblful.klas.data.local.StudentDao
 import com.seblful.klas.data.local.SubjectDao
+import com.seblful.klas.data.local.Transactor
 import com.seblful.klas.data.local.upsertedId
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
+import com.seblful.klas.domain.SubjectNames
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.NameOrder
 import kotlinx.coroutines.flow.Flow
@@ -22,6 +24,8 @@ class SubjectRepository @Inject constructor(
     private val students: StudentDao,
     /** A subject's name is part of every mirrored event's title — see [CalendarMirror]. */
     private val calendar: CalendarMirror,
+    /** Holds a name check and its write together — see [saveUnlessTaken]. */
+    private val transactor: Transactor,
 ) {
     fun observeAll(): Flow<List<Subject>> =
         dao.observeAll().map { list -> NameOrder.sorted(list.map { it.toDomain() }) { it.name } }
@@ -33,6 +37,25 @@ class SubjectRepository @Inject constructor(
         val saved = upsertedId(dao.upsert(subject.toEntity()), subject.id)
         calendar.refreshForSubject(saved)
         return saved
+    }
+
+    /**
+     * Saves [subject] unless another subject already has its name ([SubjectNames.sameAs]); false when
+     * refused. Two «Математика» cannot be told apart anywhere they are offered.
+     *
+     * The check and the write are **one transaction**. The subjects screen and the first-run step each
+     * used to read the list and then upsert, two statements apart, so a double tap on «Добавить» ran two
+     * checks before either row existed and both went in. A write transaction is exclusive, so the second
+     * tap's check now sees the first one's row.
+     */
+    suspend fun saveUnlessTaken(subject: Subject): Boolean {
+        val saved = transactor.transaction {
+            val all = dao.getAll().map { it.toDomain() }
+            if (SubjectNames.sameAs(subject.name, all, exceptId = subject.id) != null) null
+            else upsertedId(dao.upsert(subject.toEntity()), subject.id)
+        } ?: return false
+        calendar.refreshForSubject(saved)
+        return true
     }
 
     /** Why a subject could not be deleted — the two things that can reference one. */

@@ -50,6 +50,7 @@ class FakeSubjectDao : SubjectDao {
     private var nextId = 1L
 
     override fun observeAll(): Flow<List<SubjectEntity>> = items
+    override suspend fun getAll(): List<SubjectEntity> = items.value
     override suspend fun getById(id: Long): SubjectEntity? = items.value.firstOrNull { it.id == id }
 
     override suspend fun upsert(subject: SubjectEntity): Long {
@@ -74,6 +75,8 @@ class FakeStudentDao : StudentDao {
 
     override fun observeActive(): Flow<List<StudentEntity>> =
         items.map { list -> list.filterNot { it.archived } }
+
+    override suspend fun getActive(): List<StudentEntity> = items.value.filterNot { it.archived }
 
     override fun observeAll(): Flow<List<StudentEntity>> = items
 
@@ -464,6 +467,8 @@ class FakePaymentDao : PaymentDao {
 
     override fun observeAll(): Flow<List<PaymentEntity>> =
         items.map { it.sortedByDescending { p -> p.dateMillis } }
+
+    override suspend fun getAll(): List<PaymentEntity> = items.value.sortedByDescending { it.dateMillis }
 
     override fun observeForStudent(studentId: Long): Flow<List<PaymentEntity>> =
         items.map { list -> list.filter { it.studentId == studentId }.sortedByDescending { it.dateMillis } }

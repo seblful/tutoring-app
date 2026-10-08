@@ -63,6 +63,11 @@ annotation class Computation
 @InstallIn(SingletonComponent::class)
 object CoroutinesModule {
 
+    /** See [Computation] for why this is injected rather than written at each `flowOn`. */
+    @Provides
+    @Computation
+    fun provideComputationDispatcher(): CoroutineDispatcher = Dispatchers.Default
+
     /**
      * `SupervisorJob` so one failed write cannot cancel the scope and take every later write with
      * it — each is independent, and the app has no notion of "all saving has stopped".
@@ -83,11 +88,6 @@ object CoroutinesModule {
      * `runCatching` around the recording for the reason [CrashLogger.install] gives: the reporting of
      * a failure must never become a second failure.
      */
-    /** See [Computation] for why this is injected rather than written at each `flowOn`. */
-    @Provides
-    @Computation
-    fun provideComputationDispatcher(): CoroutineDispatcher = Dispatchers.Default
-
     @Provides
     @Singleton
     @ApplicationScope

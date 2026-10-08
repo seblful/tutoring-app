@@ -2,6 +2,7 @@ package com.seblful.klas.data.repository
 
 import com.seblful.klas.data.local.SettingsDao
 import com.seblful.klas.data.local.SettingsEntity
+import com.seblful.klas.domain.Reminders
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
@@ -21,7 +22,7 @@ data class AppSettings(
     val calendarSyncEnabled: Boolean = false,
     val emailInvitesEnabled: Boolean = false,
     val onboardingComplete: Boolean = false,
-    val reminderLeadMinutes: Int = 60,
+    val reminderLeadMinutes: Int = Reminders.DEFAULT_LEAD_MINUTES,
     /**
      * Whether the morning digest naming the day's lessons is posted. **Off by default**, like every other
      * notification the app sends unasked: a reminder before a lesson is the feature the tutor installed

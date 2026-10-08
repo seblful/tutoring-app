@@ -440,7 +440,7 @@ class TestEnv(
     )
 
     val groupRepo = GroupRepository(groupDao, classRepo, studentDao, rateHistoryRepo, transactor, calendarMirror)
-    val subjectRepo = SubjectRepository(subjectDao, classRepo, groupRepo, studentDao, calendarMirror)
+    val subjectRepo = SubjectRepository(subjectDao, classRepo, groupRepo, studentDao, calendarMirror, transactor)
     val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classRepo, rateHistoryRepo, transactor)
 
     // Archiving a student has to call off their planned lessons, so this reaches for the class

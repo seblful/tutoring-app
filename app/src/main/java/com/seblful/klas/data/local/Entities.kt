@@ -6,6 +6,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.seblful.klas.domain.Reminders
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -387,7 +388,7 @@ data class SettingsEntity(
     val emailInvitesEnabled: Boolean = false,
     val onboardingComplete: Boolean = false,
     /** Minutes before a class that reminders fire (in-app and email). */
-    val reminderLeadMinutes: Int = 60,
+    val reminderLeadMinutes: Int = Reminders.DEFAULT_LEAD_MINUTES,
     /**
      * Whether the morning digest naming the day's lessons is posted, and at what minute past local
      * midnight (540 = 09:00). **Off by default** — a reminder ahead of a lesson is what the tutor came

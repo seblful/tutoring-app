@@ -4,10 +4,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.seblful.klas.di.ApplicationScope
-import com.seblful.klas.runCatchingCancellable
+import com.seblful.klas.notifications.launchAsync
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -36,13 +35,6 @@ class BootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
-        val pending = goAsync()
-        appScope.launch {
-            try {
-                runCatchingCancellable { maintenance.runUnwatched() }
-            } finally {
-                pending.finish()
-            }
-        }
+        launchAsync(appScope) { maintenance.runUnwatched() }
     }
 }
