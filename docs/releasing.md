@@ -90,7 +90,7 @@ questionnaires and the rollout. Two answers are specific to Klas:
 ## Per-release checklist
 
 - [ ] Bump `versionCode` (and `versionName` if user-facing)
-- [ ] Schema change? A migration is shipped and `MigrationChainTest` passes
+- [ ] Schema change? A migration is shipped, `MigrationChainTest` passes, and its migration test passes on a device
 - [ ] `keystore.properties` present and correct
 - [ ] `./gradlew :domain:test :app:testDebugUnitTest` and `:app:lintDebug` pass
 - [ ] `./gradlew :app:bundleRelease` succeeds

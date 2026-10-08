@@ -7,6 +7,9 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import androidx.room.Upsert
+import com.seblful.klas.domain.model.Attended
+import com.seblful.klas.domain.model.ClassMode
+import com.seblful.klas.domain.model.LessonStatus
 import kotlinx.coroutines.flow.Flow
 
 // Rows are returned unordered wherever the order would depend on **name** collation: SQLite's
@@ -160,33 +163,76 @@ interface RateHistoryDao {
 }
 
 /**
- * Reads of one student's class — the `classes` **view** over `lessons` and `attendance` (see [ClassRow]).
+ * One student's class: their [AttendanceEntity] row with its lesson's facts alongside it — what the app has
+ * always meant by "a class", and what [ClassDao] reads.
  *
- * Every query here predates the split and is unchanged by it: the view exposes the same columns the old
- * `classes` table did, so what a rule asks storage for did not have to change because storage stopped
- * keeping a lesson's facts once per member. Writes are [LessonDao]'s and [AttendanceDao]'s — a view has
- * no rows of its own to write, which is also the schema refusing to let a caller write a lesson's status
- * n times.
+ * **A query result, not a table or a view.** Writes go to the two tables (`LessonDao`, `AttendanceDao`), the
+ * point of the split being that each fact has one home; every read joins them with [CLASS_ROWS].
+ *
+ * It was a `@DatabaseView` (`classes`) until v10. Room validates a view after every migration and never
+ * recreates one, so each step that changed a column it projected had to drop and rebuild it with that
+ * version's exact `SELECT` — and got it wrong twice (see `Migrations.MIGRATION_6_7`). A join written into the
+ * queries asks nothing of a migration: the schema holds tables only, and a column the join stops reading
+ * is simply not read.
+ */
+data class ClassRow(
+    val id: Long = 0,
+    val lessonId: Long = 0,
+    val studentId: Long,
+    val subjectId: Long,
+    val startMillis: Long,
+    val durationMinutes: Int,
+    val priceMinor: Long = 0,
+    /** The **lesson's** status — see [LessonEntity.status]. */
+    val status: LessonStatus,
+    /** This student's attendance — see [AttendanceEntity.state]. */
+    val state: Attended = Attended.EXPECTED,
+    val chargeMinor: Long = 0,
+    val groupId: Long? = null,
+    val mode: ClassMode = ClassMode.IN_PERSON,
+    val calendarEventId: String? = null,
+)
+
+/**
+ * Every [ClassRow] column, and the join that supplies them — **stated once**, so the queries below differ
+ * only in what follows it. Columns in their `WHERE` and `ORDER BY` are qualified (`a.` the student's half,
+ * `l.` the lesson's): both tables have an `id`, and an unqualified one is ambiguous.
+ *
+ * `const`, because `@Query` takes an annotation argument and so needs a compile-time constant.
+ */
+const val CLASS_ROWS: String =
+    "SELECT a.id AS id, a.lessonId AS lessonId, a.studentId AS studentId, " +
+        "a.state AS state, a.priceMinor AS priceMinor, a.chargeMinor AS chargeMinor, " +
+        "a.calendarEventId AS calendarEventId, l.subjectId AS subjectId, " +
+        "l.startMillis AS startMillis, l.durationMinutes AS durationMinutes, " +
+        "l.status AS status, l.groupId AS groupId, l.mode AS mode " +
+        "FROM attendance a JOIN lessons l ON l.id = a.lessonId"
+
+/**
+ * Reads of one student's class — [CLASS_ROWS], `attendance JOIN lessons` (see [ClassRow]).
+ *
+ * Writes are [LessonDao]'s and [AttendanceDao]'s: a joined read has no rows of its own to write, which is
+ * also the schema refusing to let a caller write a lesson's status n times.
  */
 @Dao
 interface ClassDao {
-    @Query("SELECT * FROM classes WHERE id = :id")
+    @Query("$CLASS_ROWS WHERE a.id = :id")
     fun observeById(id: Long): Flow<ClassRow?>
 
-    @Query("SELECT * FROM classes WHERE id = :id")
+    @Query("$CLASS_ROWS WHERE a.id = :id")
     suspend fun getById(id: Long): ClassRow?
 
-    @Query("SELECT * FROM classes ORDER BY startMillis")
+    @Query("$CLASS_ROWS ORDER BY l.startMillis")
     fun observeAll(): Flow<List<ClassRow>>
 
-    @Query("SELECT * FROM classes WHERE studentId = :studentId ORDER BY startMillis DESC")
+    @Query("$CLASS_ROWS WHERE a.studentId = :studentId ORDER BY l.startMillis DESC")
     fun observeForStudent(studentId: Long): Flow<List<ClassRow>>
 
     /** Every class ever booked as part of [groupId] — the group card's lesson list. */
-    @Query("SELECT * FROM classes WHERE groupId = :groupId ORDER BY startMillis DESC")
+    @Query("$CLASS_ROWS WHERE l.groupId = :groupId ORDER BY l.startMillis DESC")
     fun observeForGroup(groupId: Long): Flow<List<ClassRow>>
 
-    @Query("SELECT * FROM classes WHERE startMillis >= :fromMillis AND startMillis < :toMillis ORDER BY startMillis")
+    @Query("$CLASS_ROWS WHERE l.startMillis >= :fromMillis AND l.startMillis < :toMillis ORDER BY l.startMillis")
     fun observeBetween(fromMillis: Long, toMillis: Long): Flow<List<ClassRow>>
 
     /**
@@ -200,14 +246,14 @@ interface ClassDao {
      * taught* to decide about the next week. A `suspend` query over the window is what they actually
      * asked for.
      */
-    @Query("SELECT * FROM classes WHERE startMillis >= :fromMillis AND startMillis < :toMillis ORDER BY startMillis")
+    @Query("$CLASS_ROWS WHERE l.startMillis >= :fromMillis AND l.startMillis < :toMillis ORDER BY l.startMillis")
     suspend fun getBetween(fromMillis: Long, toMillis: Long): List<ClassRow>
 
     /**
      * The classes that currently mirror a calendar event — the only ones turning sync off has
      * anything to undo. The alternative is reading the whole table and no-opping on most of it.
      */
-    @Query("SELECT * FROM classes WHERE calendarEventId IS NOT NULL")
+    @Query("$CLASS_ROWS WHERE a.calendarEventId IS NOT NULL")
     suspend fun withCalendarEvent(): List<ClassRow>
 
     /**
@@ -215,7 +261,7 @@ interface ClassDao {
      * lesson. It used to be `groupId` **and** `startMillis`: a pair no schema could hold together, so a
      * member's class moved on its own left the session by definition, and the lesson quietly became two.
      */
-    @Query("SELECT * FROM classes WHERE lessonId = :lessonId ORDER BY id")
+    @Query("$CLASS_ROWS WHERE a.lessonId = :lessonId ORDER BY a.id")
     suspend fun getSession(lessonId: Long): List<ClassRow>
 
     /**
@@ -224,14 +270,14 @@ interface ClassDao {
      * left behind it would auto-complete into income that no report shows (see
      * `StudentRepository.setArchived`).
      */
-    @Query("SELECT * FROM classes WHERE studentId = :studentId AND status = 'SCHEDULED'")
+    @Query("$CLASS_ROWS WHERE a.studentId = :studentId AND l.status = 'SCHEDULED'")
     suspend fun scheduledForStudent(studentId: Long): List<ClassRow>
 
     /** The next class in a scheduled lesson starting after [nowMillis], for the reminder. */
-    @Query("SELECT * FROM classes WHERE status = 'SCHEDULED' AND startMillis > :nowMillis ORDER BY startMillis LIMIT 1")
+    @Query("$CLASS_ROWS WHERE l.status = 'SCHEDULED' AND l.startMillis > :nowMillis ORDER BY l.startMillis LIMIT 1")
     suspend fun nextScheduledAfter(nowMillis: Long): ClassRow?
 
-    @Query("SELECT * FROM classes")
+    @Query(CLASS_ROWS)
     suspend fun getAll(): List<ClassRow>
 }
 

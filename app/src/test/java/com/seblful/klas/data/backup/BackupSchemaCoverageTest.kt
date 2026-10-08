@@ -1,7 +1,7 @@
 package com.seblful.klas.data.backup
 
 import com.seblful.klas.data.local.AttendanceEntity
-import com.seblful.klas.data.local.LessonEntity
+import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.GroupMemberCrossRef
 import com.seblful.klas.data.local.HomeworkEntity
@@ -10,12 +10,16 @@ import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.model.Attended
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.testutil.ProjectFiles
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.descriptors.elementNames
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -49,8 +53,9 @@ class BackupSchemaCoverageTest {
         "group_members" to GroupMemberCrossRef.serializer(),
         "prices" to PriceEntity.serializer(),
         "price_history" to RateChangeEntity.serializer(),
-        "lessons" to LessonEntity.serializer(),
-        "attendance" to AttendanceEntity.serializer(),
+        // The file's own shapes of these two — the entities plus a key only a v8 file holds (see below).
+        "lessons" to BackupLesson.serializer(),
+        "attendance" to BackupAttendance.serializer(),
         "payments" to PaymentEntity.serializer(),
         "homework" to HomeworkEntity.serializer(),
     )
@@ -82,6 +87,35 @@ class BackupSchemaCoverageTest {
                 "Columns of `$table` are persisted but not serialized, so a backup would drop them",
                 emptySet<String>(),
                 lost,
+            )
+        }
+    }
+
+    /**
+     * The other direction: **an export writes nothing but columns.** The lesson and attendance shapes also
+     * declare a key only a v8 file holds (`homework`, `homeworkResult`) so that one still restores — and
+     * v10 dropped those columns, so a file this build writes must not carry them, not even blank. Written
+     * with the manager's own settings, `encodeDefaults` on, which is what would write a blank one.
+     */
+    @Test
+    fun `an export writes only the columns the schema has`() {
+        val exported = Json { encodeDefaults = true }.encodeToJsonElement(
+            BackupData.serializer(),
+            DatabaseSnapshot(
+                lessons = listOf(
+                    LessonEntity(4, subjectId = 1, startMillis = 1L, durationMinutes = 60, status = LessonStatus.COMPLETED),
+                ),
+                attendance = listOf(AttendanceEntity(9, lessonId = 4, studentId = 1, state = Attended.PRESENT)),
+            ).toBackupData(),
+        ).jsonObject
+
+        // The file's key and the table's name are the same word for these two.
+        for (table in listOf("lessons", "attendance")) {
+            val written = (exported.getValue(table).jsonArray.single() as JsonObject).keys
+            assertEquals(
+                "An export of `$table` writes keys the schema has no column for",
+                emptySet<String>(),
+                written - schemaTables.getValue(table),
             )
         }
     }

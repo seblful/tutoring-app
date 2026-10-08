@@ -13,13 +13,13 @@ Where a test goes in Klas, and what the test setup expects. Commands and what CI
   needing Android has found a missing port). Seed through `testutil/Fixtures`, never DAOs directly.
 - A handful of tripwire tests guard silent drift by deriving expectations from a real artifact rather than
   restating them (schema coverage, enum names, whole-table writes, screen-state/shell surface rules,
-  migration chain wiring and the view each step leaves). `MigrationChainTest` is the only one in the unit
-  suite guarding the upgrade path. They live in `app` (they read files through `testutil/ProjectFiles`),
+  migration chain wiring, the view each step leaves and the tables it rebuilds). `MigrationChainTest` is
+  the only one in the unit suite guarding the upgrade path. They live in `app` (they read files through `testutil/ProjectFiles`),
   even one about the domain such as `ReportsSurfaceTest`; a whole-tree scan covers both modules' sources.
 
 ## Instrumented tests (`src/androidTest`)
 
-- 32 classes cover what needs a device: Room/FK integration, backup round-trip, calendar sync,
+- 36 classes cover what needs a device: Room/FK integration, backup round-trip, calendar sync,
   auto-completion, text measurement, gesture behavior, plural rules, screen-reader semantics.
 - Every class runs under a custom `KlasTestApp` (the app's own receivers/workers wake mid-run and need a
   real Hilt component).

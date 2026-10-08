@@ -19,8 +19,7 @@ import androidx.room.TypeConverters
         HomeworkEntity::class,
         SettingsEntity::class,
     ],
-    views = [ClassRow::class],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 // Every enum column, written as the constant's name and read back totally — see [EnumConverters].
@@ -49,8 +48,8 @@ abstract class AppDatabase : RoomDatabase() {
         /**
          * **The oldest schema version any `klas.db` can be at**, and therefore the version Room needs no
          * way *into*. Equal to the version `@Database` declares would mean: there are no migrations,
-         * because there is nothing to migrate from. It is four below it — the app is at v9 — so
-         * `data/local/Migrations.kt` holds exactly four steps.
+         * because there is nothing to migrate from. It is five below it — the app is at v10 — so
+         * `data/local/Migrations.kt` holds exactly five steps.
          *
          * This is a claim about **releases**, not about the schema, and it is why that file was deleted
          * once already. It was 1, with a chain of four migrations up to v5, and every one of them was dead
@@ -73,8 +72,9 @@ abstract class AppDatabase : RoomDatabase() {
          * `settings.language` duly shipped [Migrations.MIGRATION_5_6] from it — the first real migration
          * this app has ever had. [Migrations.MIGRATION_6_7] is the second, adding `lessons.notes` and the
          * evening digest's two settings columns, [Migrations.MIGRATION_7_8] the third, adding homework,
-         * and [Migrations.MIGRATION_8_9] the fourth, giving homework its own table. `MigrationChainTest`
-         * reads this constant to demand one per step.
+         * [Migrations.MIGRATION_8_9] the fourth, giving homework its own table, and
+         * [Migrations.MIGRATION_9_10] the fifth, dropping the dead columns and the `classes` view.
+         * `MigrationChainTest` reads this constant to demand one per step.
          *
          * Raising it is a promise that no database below it exists anywhere, which after a release means
          * *every* install has been upgraded past it — not a thing to assume, and not a thing v6 changes.

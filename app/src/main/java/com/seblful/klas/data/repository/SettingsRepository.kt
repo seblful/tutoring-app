@@ -325,9 +325,5 @@ class SettingsRepository @Inject constructor(
         currency = currency,
         language = language,
         lastExportMillis = lastExportAt?.toEpochMilli(),
-        // `SettingsEntity.showGroupsTab` is deliberately not set: nothing reads it any more (groups
-        // and students share one tab now), and the column stays only because dropping it would mean
-        // a table rebuild — SQLite before 3.35 has no `DROP COLUMN`, and minSdk 24 reaches back well
-        // before that. It keeps its Kotlin default. See the entity for the whole note.
     )
 }

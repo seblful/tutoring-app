@@ -232,19 +232,19 @@ class FakeRateHistoryDao : RateHistoryDao {
 }
 
 /**
- * The two lesson tables and the view over them, behind one store — because that is what they are on a
+ * The two lesson tables and the join over them, behind one store — because that is what they are on a
  * device: `lessons` and `attendance` are written apart and read joined, so a double that let those two
  * drift would be a double of something the schema cannot do.
  *
- * [rows] is the `classes` view, **recomputed after every write**. SQLite keeps a view current for free;
- * here it has to be maintained by hand, which is the one thing this store does that its original does
- * not — and is why the join is written out in exactly one place inside it.
+ * [rows] is `ClassDao`'s join (`CLASS_ROWS`), **recomputed after every write**. SQLite joins on every
+ * read; here it is done once per write instead, which is why the join is written out in exactly one place
+ * inside this store.
  */
 class FakeClassStore {
     val lessons = MutableStateFlow<List<LessonEntity>>(emptyList())
     val attendance = MutableStateFlow<List<AttendanceEntity>>(emptyList())
 
-    /** The joined rows, in id order — the `classes` view. */
+    /** The joined rows, in id order — what every `ClassDao` query filters. */
     val rows = MutableStateFlow<List<ClassRow>>(emptyList())
 
     private var nextLessonId = 1L
@@ -279,8 +279,8 @@ class FakeClassStore {
 }
 
 /**
- * Reads of the `classes` view. It has no writes, exactly as the real one has none: a view's rows belong
- * to the tables under it, which is the schema itself refusing to let a lesson's status be written twice.
+ * Reads of a class — the join. It has no writes, exactly as the real one has none: a joined row belongs to
+ * the two tables under it, which is the schema itself refusing to let a lesson's status be written twice.
  */
 class FakeClassDao(private val store: FakeClassStore) : ClassDao {
 

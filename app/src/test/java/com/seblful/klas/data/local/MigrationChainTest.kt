@@ -1,15 +1,18 @@
 package com.seblful.klas.data.local
 
+import android.database.Cursor
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.seblful.klas.testutil.ProjectFiles
 import com.seblful.klas.testutil.SourceText
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import java.lang.reflect.Proxy
@@ -166,18 +169,21 @@ class MigrationChainTest {
     private val exportedVersions: List<Int> by lazy { schemaFiles.keys.sorted() }
 
     /**
-     * **Every step leaves the `classes` view exactly as the version it ends at declares it.**
+     * **Every step leaves the `classes` view exactly as the version it ends at declares it** — and since
+     * v10, which has none, that means dropped.
      *
-     * Room validates views after a migration and recreates none of them, so a step that changes a column
-     * the view projects must drop the view and rebuild it with *that version's* `SELECT`, character for
-     * character, or the upgrade dies with `Migration didn't properly handle: classes` - on first launch
+     * Room validates views after a migration and recreates none of them, so a step that changed a column
+     * the view projected had to drop the view and rebuild it with *that version's* `SELECT`, character for
+     * character, or the upgrade died with `Migration didn't properly handle: classes` - on first launch
      * after an update, with the whole step rolled back. `MIGRATION_6_7` got this wrong twice: it shipped
-     * onto one phone without rebuilding the view, and later rebuilt it from [CLASSES_VIEW_SQL] after v8 had
-     * moved that on, which put the v8 view onto a v7 schema.
+     * onto one phone without rebuilding the view, and later rebuilt it from the shared `SELECT` after v8 had
+     * moved that on, which put the v8 view onto a v7 schema. That is why v10 has no view; the steps up to
+     * it still build theirs, and still have to build the right one.
      *
      * Neither needs a device to catch. Each step runs against a database that only records its SQL, and
-     * the view it leaves - the one it built, or the one it started with - is compared with the exported
-     * schema of the version it ends at. Whether that SQL *runs* is still the instrumented tests' question.
+     * the view it leaves - the one it built, the one it started with, or none - is compared with the
+     * exported schema of the version it ends at. Whether that SQL *runs* is still the instrumented tests'
+     * question.
      */
     @Test
     fun `every migration leaves the classes view as the version it ends at declares it`() {
@@ -189,9 +195,8 @@ class MigrationChainTest {
             val dropped = sql.any { it.startsWith("DROP VIEW") && "`classes`" in it }
             assertEquals(
                 "MIGRATION_${from}_$to leaves a `classes` view that is not v$to's. A step that changes a " +
-                    "column the view projects must DROP it and CREATE it with v$to's SELECT: the latest " +
-                    "step reads CLASSES_VIEW_SQL, and an earlier one keeps its own version's SELECT frozen " +
-                    "in Migrations.kt, since the constant has moved on (null means dropped and not rebuilt).",
+                    "column the view projects must DROP it and CREATE it with v$to's SELECT, kept frozen " +
+                    "in Migrations.kt; a version with no view must find it dropped (null means none).",
                 classesViewSql(to),
                 built ?: if (dropped) null else classesViewSql(from),
             )
@@ -199,8 +204,101 @@ class MigrationChainTest {
     }
 
     /**
-     * The SQL [migration] executes, recorded by a database that runs none of it. It answers `execSQL` and
-     * nothing else, so a step that starts reading rows fails here rather than being half-recorded.
+     * **Every table and index a step creates is the one the version it ends at declares**, statement for
+     * statement — Room's own DDL from the exported schema.
+     *
+     * Room validates the tables after the migrations, so a wrong `CREATE` does not lose data; it fails the
+     * upgrade on first launch, rolled back, which only a device test would otherwise show. A table that is
+     * *rebuilt* is where this matters most: the step writes its whole definition out by hand, defaults and
+     * foreign keys included.
+     */
+    @Test
+    fun `every table and index a migration creates is the one the version it ends at declares`() {
+        for (migration in Migrations.ALL) {
+            val to = migration.endVersion
+            val schema = tables(to)
+            val declared = schema.values.flatMap { listOf(it.createSql) + it.indices }.toSet()
+            val created = executedSql(migration).filter { it.startsWith("CREATE TABLE") || it.startsWith("CREATE INDEX") }
+            assertEquals(
+                "MIGRATION_${migration.startVersion}_$to creates a table or index that is not v$to's exported one. " +
+                    "Copy the statement from app/schemas/…/$to.json (with the table's name for \${TABLE_NAME}).",
+                emptyList<String>(),
+                created - declared,
+            )
+        }
+    }
+
+    /**
+     * **A table rebuilt to drop a column comes back whole**: created as the version declares it, refilled
+     * with every one of its columns, its indices recreated once the old copy is gone — and the old copy
+     * dropped only after every table that refers to it.
+     *
+     * The last part is the one that loses data. SQLite has no `DROP COLUMN` below Android 12, so a column
+     * goes by renaming the table aside, creating it again and copying the rows across ([Migrations.MIGRATION_9_10]).
+     * With foreign keys on, `DROP TABLE` deletes every row first and fires `ON DELETE` actions: drop
+     * the old `lessons` while a table still points at it and `attendance`'s `CASCADE` empties it. From
+     * SQLite 3.26 a rename also re-points every foreign key that named the table at its new name — so a
+     * table referring to a rebuilt one has to be rebuilt too, and its old copy dropped first; left alone,
+     * it would end up pointing at the copy being dropped.
+     */
+    @Test
+    fun `every table a migration rebuilds comes back whole, and its old copy goes after its children`() {
+        for (migration in Migrations.ALL) {
+            val step = "MIGRATION_${migration.startVersion}_${migration.endVersion}"
+            val sql = executedSql(migration)
+            val before = tables(migration.startVersion)
+            val after = tables(migration.endVersion)
+            val asides = sql.mapNotNull { RENAME_ASIDE.matchEntire(it)?.destructured }
+                .associate { (table, aside) -> table to aside }
+
+            for ((table, aside) in asides) {
+                val schema = after.getValue(table)
+                val dropAside = sql.indexOf("DROP TABLE `$aside`")
+                assertTrue("$step sets `$table` aside as `$aside` and never drops it", dropAside >= 0)
+                assertTrue("$step never creates `$table` again", schema.createSql in sql)
+
+                val copied = sql.firstNotNullOfOrNull { COPY.matchEntire(it)?.takeIf { m -> m.groupValues[1] == table } }
+                assertTrue("$step never copies `$aside` back into `$table`", copied != null)
+                val (_, _, into, selected, source) = copied!!.groupValues
+                assertEquals("$step copies `$table` from somewhere else", aside, source)
+                assertEquals("$step's copy into `$table` names other columns than it reads", into, selected)
+                assertEquals(
+                    "$step leaves columns of `$table` behind (or copies some v${migration.endVersion} lacks)",
+                    schema.columns,
+                    into.split(",").map { it.trim().removeSurrounding("`") }.toSet(),
+                )
+
+                for (index in schema.indices) {
+                    assertTrue(
+                        "$step creates $index before dropping `$aside`, while the old table still holds the " +
+                            "name — so it creates nothing",
+                        sql.indexOf(index) > dropAside,
+                    )
+                }
+
+                val children = before.filterValues { table in it.references }.keys
+                for (child in children) {
+                    val childAside = asides[child]
+                    assertTrue(
+                        "$step rebuilds `$table`, which `$child` refers to, without rebuilding `$child`. On " +
+                            "SQLite 3.26+ the rename re-points `$child` at `$aside`, and dropping that " +
+                            "cascades `$child` away.",
+                        childAside != null,
+                    )
+                    assertTrue(
+                        "$step drops `$aside` before `$childAside`, which still refers to it — with foreign " +
+                            "keys on, that cascades `$child`'s rows away.",
+                        sql.indexOf("DROP TABLE `$childAside`") < dropAside,
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * The SQL [migration] executes, recorded by a database that runs none of it. It answers `execSQL`, and
+     * `query` with no rows — the answer a check finding nothing gives — and nothing else, so a step that
+     * starts reading something new fails here rather than being half-recorded.
      */
     private fun executedSql(migration: Migration): List<String> {
         val statements = mutableListOf<String>()
@@ -209,27 +307,69 @@ class MigrationChainTest {
             arrayOf(SupportSQLiteDatabase::class.java),
         ) { _, method, args ->
             val statement = args?.singleOrNull() as? String
-            if (method.name != "execSQL" || statement == null) {
-                error(
+            when {
+                method.name == "execSQL" && statement != null -> {
+                    statements += statement
+                    null
+                }
+                method.name == "query" && statement != null -> emptyCursor()
+                else -> error(
                     "Migration ${migration.startVersion} -> ${migration.endVersion} calls " +
                         "SupportSQLiteDatabase.${method.name}; teach executedSql() to answer it.",
                 )
             }
-            statements += statement
-            null
         } as SupportSQLiteDatabase
         migration.migrate(recorder)
         return statements
     }
 
-    /** The `classes` view's `SELECT` as v[version]'s exported schema declares it. */
-    private fun classesViewSql(version: Int): String =
-        Json.parseToJsonElement(schemaFile(version).readText())
-            .jsonObject.getValue("database").jsonObject.getValue("views").jsonArray
+    /** A cursor over no rows: every move fails, every count is 0, and closing it is fine. */
+    private fun emptyCursor(): Cursor = Proxy.newProxyInstance(
+        Cursor::class.java.classLoader,
+        arrayOf(Cursor::class.java),
+    ) { _, method, _ ->
+        when (method.returnType) {
+            Boolean::class.javaPrimitiveType -> false
+            Int::class.javaPrimitiveType -> 0
+            Void.TYPE -> null
+            else -> error("The empty cursor was asked Cursor.${method.name}; teach emptyCursor() to answer it.")
+        }
+    } as Cursor
+
+    /** The `classes` view's `SELECT` as v[version]'s exported schema declares it, or null if it has none. */
+    private fun classesViewSql(version: Int): String? =
+        database(version)["views"]?.jsonArray.orEmpty()
             .map { it.jsonObject }
-            .single { it.getValue("viewName").jsonPrimitive.content == "classes" }
-            .getValue("createSql").jsonPrimitive.content
-            .removePrefix("CREATE VIEW `\${VIEW_NAME}` AS ")
+            .singleOrNull { it.getValue("viewName").jsonPrimitive.content == "classes" }
+            ?.getValue("createSql")?.jsonPrimitive?.content
+            ?.removePrefix("CREATE VIEW `\${VIEW_NAME}` AS ")
+
+    /** One table of an exported schema: Room's DDL for it and its indices, its columns, and its parents. */
+    private data class TableSchema(
+        val createSql: String,
+        val indices: List<String>,
+        val columns: Set<String>,
+        val references: Set<String>,
+    )
+
+    /** Every table of v[version]'s exported schema, by name, with `${TABLE_NAME}` filled in. */
+    private fun tables(version: Int): Map<String, TableSchema> =
+        database(version).getValue("entities").jsonArray.map { it.jsonObject }.associate { entity ->
+            val name = entity.getValue("tableName").jsonPrimitive.content
+            fun ddl(sql: String) = sql.replace("\${TABLE_NAME}", name)
+            name to TableSchema(
+                createSql = ddl(entity.getValue("createSql").jsonPrimitive.content),
+                indices = entity["indices"]?.jsonArray.orEmpty()
+                    .map { ddl(it.jsonObject.getValue("createSql").jsonPrimitive.content) },
+                columns = entity.getValue("fields").jsonArray
+                    .map { it.jsonObject.getValue("columnName").jsonPrimitive.content }.toSet(),
+                references = entity["foreignKeys"]?.jsonArray.orEmpty()
+                    .map { it.jsonObject.getValue("table").jsonPrimitive.content }.toSet(),
+            )
+        }
+
+    private fun database(version: Int): JsonObject =
+        Json.parseToJsonElement(schemaFile(version).readText()).jsonObject.getValue("database").jsonObject
 
     /**
      * The `(from, to)` step of every migration the project declares, ascending — empty while
@@ -266,5 +406,11 @@ class MigrationChainTest {
 
     private companion object {
         const val CREATE_VIEW = "CREATE VIEW `classes` AS "
+
+        /** `ALTER TABLE `t` RENAME TO `aside`` — a table set aside to be rebuilt. */
+        val RENAME_ASIDE = Regex("""ALTER TABLE `(\w+)` RENAME TO `(\w+)`""")
+
+        /** `INSERT INTO `t` (columns) SELECT columns FROM `aside`` — a rebuilt table refilled. */
+        val COPY = Regex("""INSERT INTO `(\w+)` \(([^)]*)\) SELECT (.*) FROM `(\w+)`""")
     }
 }

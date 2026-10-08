@@ -63,11 +63,11 @@ class BackupSerializationTest {
             RateChangeEntity(4, groupId = 8, toMinor = 0, atMillis = null),
         ),
         lessons = listOf(
-            LessonEntity(
+            BackupLesson(
                 id = 1, subjectId = 1, startMillis = 1_900_000_000_000, durationMinutes = 90,
                 status = LessonStatus.COMPLETED, groupId = 7, mode = ClassMode.REMOTE,
             ),
-            LessonEntity(
+            BackupLesson(
                 id = 2, subjectId = 1, startMillis = 1_900_100_000_000, durationMinutes = 60,
                 status = LessonStatus.SCHEDULED,
             ),
@@ -75,12 +75,12 @@ class BackupSerializationTest {
         attendance = listOf(
             // The taught lesson, with one of its two members absent — the pair of facts a v5 file could
             // not carry, and so the pair a round trip most needs to prove survives.
-            AttendanceEntity(
+            BackupAttendance(
                 id = 1, lessonId = 1, studentId = 1, state = Attended.PRESENT,
                 priceMinor = 2000, chargeMinor = 5000, calendarEventId = "evt-123",
             ),
-            AttendanceEntity(id = 2, lessonId = 1, studentId = 2, state = Attended.ABSENT, priceMinor = 2000),
-            AttendanceEntity(id = 3, lessonId = 2, studentId = 2, state = Attended.EXPECTED),
+            BackupAttendance(id = 2, lessonId = 1, studentId = 2, state = Attended.ABSENT, priceMinor = 2000),
+            BackupAttendance(id = 3, lessonId = 2, studentId = 2, state = Attended.EXPECTED),
         ),
         payments = listOf(
             PaymentEntity(1, studentId = 1, dateMillis = 1_899_000_000_000, amountMinor = 3000),
@@ -238,7 +238,42 @@ class BackupSerializationTest {
         val snapshot = parsed.toSnapshot()
 
         assertTrue(BackupData.isSupported(parsed.version))
-        assertEquals("", snapshot.lessons.single().notes)
+        assertEquals(
+            LessonEntity(4, subjectId = 1, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED),
+            snapshot.lessons.single(),
+        )
+        assertTrue(snapshot.homework.isEmpty())
+    }
+
+    /**
+     * A v9 file as a v9 build wrote it — the three dead columns present and blank, since that build still
+     * had them — restores exactly as one written now, which leaves them out (`BackupSchemaCoverageTest`).
+     */
+    @Test
+    fun `a version 9 backup carrying the dropped columns blank restores the same rows`() {
+        val v9 = """
+            {
+              "version": 9,
+              "subjects": [{"id": 1, "name": "Математика"}],
+              "students": [{"id": 1, "name": "Иван"}],
+              "lessons": [{"id": 4, "subjectId": 1, "startMillis": 1, "durationMinutes": 60,
+                           "status": "COMPLETED", "groupId": null, "mode": "REMOTE", "notes": "", "homework": ""}],
+              "attendance": [{"id": 9, "lessonId": 4, "studentId": 1, "state": "PRESENT", "priceMinor": 3000,
+                              "chargeMinor": 3000, "calendarEventId": "evt-1", "homeworkResult": null}],
+              "homework": []
+            }
+        """.trimIndent()
+
+        val snapshot = json.decodeFromString<BackupData>(v9).toSnapshot()
+
+        assertEquals(
+            LessonEntity(4, 1, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED, mode = ClassMode.REMOTE),
+            snapshot.lessons.single(),
+        )
+        assertEquals(
+            AttendanceEntity(9, 4, 1, Attended.PRESENT, priceMinor = 3000, chargeMinor = 3000, calendarEventId = "evt-1"),
+            snapshot.attendance.single(),
+        )
         assertTrue(snapshot.homework.isEmpty())
     }
 

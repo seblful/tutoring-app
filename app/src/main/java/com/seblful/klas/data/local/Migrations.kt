@@ -22,15 +22,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *   update, which is the worst place to find out.
  * - The instrumented tests (`androidTest`) are what prove a step *works*, against the exported schema JSONs
  *   in `app/schemas/`. Those need a device; the unit test only proves the step is *there*.
- * - Nothing here may drop or rebuild a table lightly: `minSdk` is 24, so `ALTER TABLE … DROP COLUMN` does
- *   not exist below Android 12 and a real removal means copying the table. `SettingsEntity.showGroupsTab`
- *   is the standing example of a column left in place for exactly that reason.
- * - **A view is not recreated for you.** Room validates views against the schema after the migrations run
- *   but recreates none of them, so any step that changes a column the `classes` view projects must drop
- *   and recreate it. The latest such step builds it from [CLASSES_VIEW_SQL]; every earlier one keeps the
- *   `SELECT` of the version it ends at, frozen here, because a step describes that version forever and
- *   the constant moves on. `MigrationChainTest` runs every step and holds the view it leaves to that
- *   version's exported schema. See [MIGRATION_6_7], which is where both halves were learned.
+ * - **A column is removed by rebuilding its table**, since `minSdk` is 24 and `ALTER TABLE … DROP COLUMN`
+ *   does not exist below Android 12. [MIGRATION_9_10] is how: set the old table aside, create the new one
+ *   with Room's own DDL, copy every row by name, drop the old, recreate the indices, check the foreign keys.
+ *   `MigrationChainTest` holds every table a step rebuilds to the exported schema of the version it ends at.
+ * - **The schema has no views since v10**, and should not grow one: Room validates a view after a migration
+ *   but never recreates it, so every step touching a column it projected had to rebuild it by hand, with
+ *   that version's `SELECT` frozen here — [MIGRATION_6_7] is where that was learned, twice. The steps up to
+ *   v9 still do it, and `MigrationChainTest` still holds the view each leaves to its version's schema.
  */
 object Migrations {
 
@@ -66,14 +65,14 @@ object Migrations {
      * migration and never recreates them, so a view left projecting the old columns is compared against
      * the new schema and the upgrade dies with `Migration didn't properly handle: classes` — on first
      * launch after an update, with everything rolled back. This step shipped that way for one install:
-     * `lessons.notes` was added to [CLASSES_VIEW_SQL] and to the table, and the view on disk still had
+     * `lessons.notes` was added to the view's shared `SELECT` and to the table, and the view on disk still had
      * thirteen columns.
      *
      * The discipline this adds to the list above: **a migration that changes any column the view projects
      * recreates the view.** `LessonNotesMigrationTest` reads a lesson back *through* `classes`, which is
      * what fails when this is forgotten.
      *
-     * **And it recreates v7's view, not today's** ([CLASSES_VIEW_V7]). This step read [CLASSES_VIEW_SQL]
+     * **And it recreates v7's view, not today's** ([CLASSES_VIEW_V7]). This step read the shared `SELECT`
      * until v8 added two columns to it, and from then on it built the v8 view onto a v7 schema —
      * `LessonNotesMigrationTest` failed on the first phone it ran on.
      */
@@ -107,7 +106,7 @@ object Migrations {
      *
      * **Both columns are projected by the `classes` view, so it is recreated** — the rule [MIGRATION_6_7]
      * learned on a real phone. `HomeworkMigrationTest` reads a lesson back through the view. It builds v8's
-     * view ([CLASSES_VIEW_V8]), frozen when v9 took the columns back out of [CLASSES_VIEW_SQL].
+     * view ([CLASSES_VIEW_V8]), frozen when v9 took the columns back out of the shared one.
      */
     val MIGRATION_7_8 = object : Migration(7, 8) {
         override fun migrate(db: SupportSQLiteDatabase) {
@@ -144,7 +143,7 @@ object Migrations {
      *   every member had one. A cancelled lesson's is dropped, as v8 already ignored it.
      * - **The vestigial columns are emptied** — the note, v8's homework text and its verdicts. Left
      *   holding text, they would still ride every backup file (`BackupData` carries the rows whole) and
-     *   read like data. They are not dropped; see the class KDoc for why a column stays.
+     *   read like data. [MIGRATION_9_10] drops them.
      * - **The view is recreated**, since it stops projecting all three.
      */
     val MIGRATION_8_9 = object : Migration(8, 9) {
@@ -178,10 +177,171 @@ object Migrations {
             db.execSQL("UPDATE lessons SET notes = '', homework = '' WHERE notes != '' OR homework != ''")
             db.execSQL("UPDATE attendance SET homeworkResult = NULL WHERE homeworkResult IS NOT NULL")
             db.execSQL("DROP VIEW IF EXISTS `classes`")
-            db.execSQL("CREATE VIEW `classes` AS $CLASSES_VIEW_SQL")
+            db.execSQL("CREATE VIEW `classes` AS $CLASSES_VIEW_V9")
         }
     }
 
+    /**
+     * The `classes` view as v9 declares it, frozen for [MIGRATION_8_9]; checked against `9.json`. The last
+     * one: [MIGRATION_9_10] drops the view for good.
+     */
+    private const val CLASSES_VIEW_V9: String =
+        "SELECT a.id AS id, a.lessonId AS lessonId, a.studentId AS studentId, " +
+            "a.state AS state, a.priceMinor AS priceMinor, a.chargeMinor AS chargeMinor, " +
+            "a.calendarEventId AS calendarEventId, l.subjectId AS subjectId, " +
+            "l.startMillis AS startMillis, l.durationMinutes AS durationMinutes, " +
+            "l.status AS status, l.groupId AS groupId, l.mode AS mode " +
+            "FROM attendance a JOIN lessons l ON l.id = a.lessonId"
+
+    /**
+     * v9 → v10: the dead columns go, and so does the `classes` view.
+     *
+     * - **`lessons.notes`, `lessons.homework`, `attendance.homeworkResult`** — emptied by [MIGRATION_8_9] and
+     *   written empty ever since — and **`settings.showGroupsTab`**, unread since groups and students share
+     *   a tab. They stayed while removing one meant a table rebuild for a single column; three tables are
+     *   rebuilt here, once, instead of carrying four columns that look like data for good (the first three
+     *   rode every backup file).
+     * - **The view**, replaced by the join written into `ClassDao`'s queries ([CLASS_ROWS], see [ClassRow]).
+     *
+     * **How a table is rebuilt** ([rebuild]): renamed aside to `<table>_v9`, created again with Room's own
+     * v10 DDL, every row copied **by column name, id included**, the old one dropped, its indices created.
+     * The autoincrement high-water mark (`sqlite_sequence`) moves to the new table too, so an id that was
+     * used and then deleted is not handed out a second time.
+     *
+     * **Foreign keys are the hazard**, and `PRAGMA foreign_keys = OFF` — the textbook answer — does nothing
+     * inside the transaction Room runs this in. With them on, `DROP TABLE` first deletes every row and fires
+     * the `ON DELETE` actions, and `attendance` is `ON DELETE CASCADE` from `lessons`: dropping the old
+     * lessons while anything pointed at them would cascade away every attendance row — every charge the
+     * tutor has. So the order makes that impossible whether foreign keys are on or off, and whatever the
+     * SQLite version does to references on a rename (3.26+ rewrites them; older ones only with keys on):
+     *
+     * 1. the old `lessons` is renamed aside first, so nothing is ever *created* pointing at it;
+     * 2. the new `attendance` points at `lessons` — the new one, already holding every lesson;
+     * 3. the old `attendance` is dropped **before** the old `lessons`, so by the time that goes nothing
+     *    refers to it. Dropping a child table cascades nothing.
+     *
+     * `defer_foreign_keys` holds the constraint checks to the commit, and [requireNoOrphans] runs them itself
+     * at the end: a row pointing at nothing fails the step loudly and by name, the whole upgrade rolls back,
+     * and the v9 rows stay on disk for a later build. The view goes first, because a rename (SQLite 3.25+)
+     * rewrites a view naming the table and would leave it reading `lessons_v9`.
+     *
+     * `SchemaCleanupMigrationTest` runs it on a device against a populated v9 database.
+     */
+    val MIGRATION_9_10 = object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("PRAGMA defer_foreign_keys = ON")
+            db.execSQL("DROP VIEW IF EXISTS `classes`")
+            // Parent before child: `attendance` is refilled into a table pointing at the new `lessons`.
+            V10_REBUILDS.forEach { rebuild(db, it) }
+            // Child before parent: nothing may refer to `lessons_v9` by the time it is dropped.
+            V10_REBUILDS.asReversed().forEach { db.execSQL("DROP TABLE `${it.table}_v9`") }
+            V10_REBUILDS.forEach { table -> table.indices.forEach(db::execSQL) }
+            requireNoOrphans(db, "lessons", "attendance")
+        }
+    }
+
+    /** A table [MIGRATION_9_10] rebuilds: its v10 DDL, the columns it keeps, and its indices. */
+    private class Rebuilt(
+        val table: String,
+        val createSql: String,
+        val columns: List<String>,
+        val indices: List<String>,
+    )
+
+    /**
+     * The three tables, **in the order they are rebuilt** — `lessons` before `attendance`, which points at
+     * it. Each statement is Room's own for v10, verbatim; `MigrationChainTest` holds them, the columns
+     * copied and the indices to `10.json`.
+     */
+    private val V10_REBUILDS = listOf(
+        Rebuilt(
+            table = "lessons",
+            createSql = "CREATE TABLE IF NOT EXISTS `lessons` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`subjectId` INTEGER NOT NULL, `startMillis` INTEGER NOT NULL, `durationMinutes` INTEGER NOT NULL, " +
+                "`status` TEXT NOT NULL, `groupId` INTEGER, `mode` TEXT NOT NULL, " +
+                "FOREIGN KEY(`subjectId`) REFERENCES `subjects`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , " +
+                "FOREIGN KEY(`groupId`) REFERENCES `student_groups`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+            columns = listOf("id", "subjectId", "startMillis", "durationMinutes", "status", "groupId", "mode"),
+            indices = listOf(
+                "CREATE INDEX IF NOT EXISTS `index_lessons_subjectId` ON `lessons` (`subjectId`)",
+                "CREATE INDEX IF NOT EXISTS `index_lessons_startMillis` ON `lessons` (`startMillis`)",
+                "CREATE INDEX IF NOT EXISTS `index_lessons_status` ON `lessons` (`status`)",
+                "CREATE INDEX IF NOT EXISTS `index_lessons_groupId` ON `lessons` (`groupId`)",
+            ),
+        ),
+        Rebuilt(
+            table = "attendance",
+            createSql = "CREATE TABLE IF NOT EXISTS `attendance` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`lessonId` INTEGER NOT NULL, `studentId` INTEGER NOT NULL, `state` TEXT NOT NULL, " +
+                "`priceMinor` INTEGER NOT NULL, `chargeMinor` INTEGER NOT NULL, `calendarEventId` TEXT, " +
+                "FOREIGN KEY(`lessonId`) REFERENCES `lessons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , " +
+                "FOREIGN KEY(`studentId`) REFERENCES `students`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+            columns = listOf("id", "lessonId", "studentId", "state", "priceMinor", "chargeMinor", "calendarEventId"),
+            indices = listOf(
+                "CREATE INDEX IF NOT EXISTS `index_attendance_lessonId` ON `attendance` (`lessonId`)",
+                "CREATE INDEX IF NOT EXISTS `index_attendance_studentId` ON `attendance` (`studentId`)",
+                "CREATE INDEX IF NOT EXISTS `index_attendance_state` ON `attendance` (`state`)",
+            ),
+        ),
+        Rebuilt(
+            table = "settings",
+            createSql = "CREATE TABLE IF NOT EXISTS `settings` (`id` INTEGER NOT NULL, " +
+                "`notificationsEnabled` INTEGER NOT NULL, `calendarSyncEnabled` INTEGER NOT NULL, " +
+                "`emailInvitesEnabled` INTEGER NOT NULL DEFAULT 1, `onboardingComplete` INTEGER NOT NULL, " +
+                "`reminderLeadMinutes` INTEGER NOT NULL, `dailyAgendaEnabled` INTEGER NOT NULL DEFAULT 0, " +
+                "`agendaMinuteOfDay` INTEGER NOT NULL DEFAULT 540, `debtDigestEnabled` INTEGER NOT NULL DEFAULT 0, " +
+                "`debtDayOfWeek` INTEGER NOT NULL DEFAULT 1, `debtMinuteOfDay` INTEGER NOT NULL DEFAULT 540, " +
+                "`unfinishedDigestEnabled` INTEGER NOT NULL DEFAULT 0, " +
+                "`unfinishedMinuteOfDay` INTEGER NOT NULL DEFAULT 1260, `autoCompleteEnabled` INTEGER NOT NULL, " +
+                "`themeMode` TEXT NOT NULL, `dynamicColorEnabled` INTEGER NOT NULL DEFAULT 0, " +
+                "`defaultLessonMinutes` INTEGER NOT NULL, `defaultGroupPriceMinor` INTEGER NOT NULL DEFAULT 0, " +
+                "`currency` TEXT NOT NULL, `language` TEXT NOT NULL DEFAULT 'SYSTEM', " +
+                "`lastExportMillis` INTEGER, PRIMARY KEY(`id`))",
+            columns = listOf(
+                "id", "notificationsEnabled", "calendarSyncEnabled", "emailInvitesEnabled", "onboardingComplete",
+                "reminderLeadMinutes", "dailyAgendaEnabled", "agendaMinuteOfDay", "debtDigestEnabled",
+                "debtDayOfWeek", "debtMinuteOfDay", "unfinishedDigestEnabled", "unfinishedMinuteOfDay",
+                "autoCompleteEnabled", "themeMode", "dynamicColorEnabled", "defaultLessonMinutes",
+                "defaultGroupPriceMinor", "currency", "language", "lastExportMillis",
+            ),
+            indices = emptyList(),
+        ),
+    )
+
+    /**
+     * [table] renamed aside, created again as v10 declares it, and refilled — ids and the autoincrement
+     * high-water mark included. The old copy is left for the caller to drop, in foreign-key order, and the
+     * indices for after that: an index keeps its name when its table is renamed, so creating it now would
+     * find the name taken (by the old table's) and quietly do nothing.
+     */
+    private fun rebuild(db: SupportSQLiteDatabase, table: Rebuilt) {
+        val old = "${table.table}_v9"
+        val columns = table.columns.joinToString { "`$it`" }
+        db.execSQL("ALTER TABLE `${table.table}` RENAME TO `$old`")
+        db.execSQL(table.createSql)
+        db.execSQL("INSERT INTO `${table.table}` ($columns) SELECT $columns FROM `$old`")
+        db.execSQL("DELETE FROM sqlite_sequence WHERE name = '${table.table}'")
+        db.execSQL("UPDATE sqlite_sequence SET name = '${table.table}' WHERE name = '$old'")
+    }
+
+    /**
+     * Fails the step if a row of [tables] points at a row that does not exist — the check
+     * `defer_foreign_keys` postponed, run here so the failure names what it found instead of surfacing as a
+     * bare constraint error at commit (or, with foreign keys off, not at all). Thrown inside the migration,
+     * it rolls the whole upgrade back.
+     */
+    private fun requireNoOrphans(db: SupportSQLiteDatabase, vararg tables: String) {
+        val orphans = tables.flatMap { table ->
+            db.query("PRAGMA foreign_key_check($table)").use { c ->
+                buildList {
+                    while (c.moveToNext()) add("${c.getString(0)} row ${c.getLong(1)} -> missing ${c.getString(2)}")
+                }
+            }
+        }
+        check(orphans.isEmpty()) { "v9 -> v10 left rows pointing at nothing: $orphans" }
+    }
+
     /** Everything above, in the order Room should be handed it. See `di/DatabaseModule`. */
-    val ALL: Array<Migration> = arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+    val ALL: Array<Migration> =
+        arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
 }

@@ -26,7 +26,7 @@ calendar and the tray is in [calendar-and-reminders.md](calendar-and-reminders.m
 
 ## Lessons
 
-- A lesson is a row; attendance is another (`lessons` + `attendance`, joined by the `classes` view). The
+- A lesson is a row; attendance is another (`lessons` + `attendance`, joined in `ClassDao`'s queries). The
   lesson holds hour/subject/one status; each member's row holds attendance, rate, charge.
   `ABSENT_BILLED` = absent but charged; only an explicit absence stops a charge.
 - A lesson's phase is derived, never stored (`domain/LessonPhase`: `UPCOMING|IN_PROGRESS|OVERDUE|SETTLED`),

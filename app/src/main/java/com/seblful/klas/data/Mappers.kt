@@ -100,9 +100,6 @@ fun ClassRow.toDomain() = TutoringClass(
  * - [toLessonEntity] is the **lesson's** facts, written once however many students are in it. Writing it
  *   per class would put the app back where it was, with *n* copies of one status.
  * - [toAttendanceEntity] is this student's own: whether they were there, at what rate, for what charge.
- *
- * Neither writes the vestigial columns (`LessonEntity.notes`, `LessonEntity.homework`,
- * `AttendanceEntity.homeworkResult`), which keep their empty defaults.
  */
 fun TutoringClass.toLessonEntity() = LessonEntity(
     id = lessonId,

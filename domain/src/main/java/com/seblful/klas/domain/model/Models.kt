@@ -63,8 +63,8 @@ data class Price(
  *
  * **A joined read model, not a row.** Storage keeps the lesson once (`lessons`) and the student's part in
  * it once (`attendance`); this is the two of them together, which is what the app has always meant by "a
- * class" and what every rule below the UI reads. The `classes` view is where the join happens, so nothing
- * above storage assembles it by hand.
+ * class" and what every rule below the UI reads. `ClassDao`'s queries are where the join happens, so
+ * nothing above storage assembles it by hand.
  *
  * @param lessonId the lesson this belongs to. Its members are exactly the classes sharing it — see
  *   `GroupRules.sessions`, which used to have to group by `(groupId, start)` and could be fooled by a

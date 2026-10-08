@@ -131,11 +131,11 @@ class MappersTest {
 
     /**
      * A class is stored as two rows and read back as one, so its round trip goes out through both mappers
-     * and comes back through the view — which is what [rejoin] stands in for.
+     * and comes back through the join — which is what [rejoin] stands in for.
      */
     private fun TutoringClass.roundTrip(): TutoringClass = rejoin(toLessonEntity(), toAttendanceEntity())
 
-    /** The `classes` view, in Kotlin: the join every read of a class goes through. */
+    /** `ClassDao`'s join, in Kotlin: the one every read of a class goes through. */
     private fun rejoin(lesson: LessonEntity, attendance: AttendanceEntity) = ClassRow(
         id = attendance.id,
         lessonId = attendance.lessonId,
@@ -164,19 +164,6 @@ class MappersTest {
             calendarEventId = "evt-1",
         )
         assertEquals(c, c.roundTrip())
-    }
-
-    /**
-     * The note and v8's homework columns are vestigial: whatever a lesson is written with, they are written
-     * empty — which is what keeps an old note out of every backup once its lesson has been saved again.
-     */
-    @Test
-    fun `a class writes the vestigial columns empty`() {
-        val c = TutoringClass(studentId = 1, subjectId = 2, start = Instant.ofEpochMilli(0), durationMinutes = 60)
-
-        assertEquals("", c.toLessonEntity().notes)
-        assertEquals("", c.toLessonEntity().homework)
-        assertNull(c.toAttendanceEntity().homeworkResult)
     }
 
     @Test
@@ -278,12 +265,10 @@ class MappersTest {
             ),
             "PaymentEntity" to setOf("id", "studentId", "dateMillis", "amountMinor"),
             "LessonEntity" to setOf(
-                "id", "subjectId", "startMillis", "durationMinutes", "status", "groupId", "mode", "notes",
-                "homework",
+                "id", "subjectId", "startMillis", "durationMinutes", "status", "groupId", "mode",
             ),
             "AttendanceEntity" to setOf(
                 "id", "lessonId", "studentId", "state", "priceMinor", "chargeMinor", "calendarEventId",
-                "homeworkResult",
             ),
         )
         val actual = listOf(

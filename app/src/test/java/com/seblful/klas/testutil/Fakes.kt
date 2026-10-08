@@ -399,7 +399,7 @@ class TestEnv(
     val priceDao = FakePriceDao()
     val rateHistoryDao = FakeRateHistoryDao()
 
-    /** The two lesson tables, and the `classes` view over them. */
+    /** The two lesson tables, and the join over them. */
     val classStore = FakeClassStore()
     val classDao = FakeClassDao(classStore)
     val lessonDao = FakeLessonDao(classStore)

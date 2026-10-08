@@ -123,8 +123,8 @@ abstract class SnapshotDao {
     }
 
     // ---- Reads -------------------------------------------------------------------------------------
-    // `student_groups` is also read whole by a repository, and the two lesson tables are read through the
-    // `classes` view, so some of these queries have a near-twin elsewhere. That is two interfaces asking
+    // `student_groups` is also read whole by a repository, and the two lesson tables are read joined by
+    // `ClassDao`, so some of these queries have a near-twin elsewhere. That is two interfaces asking
     // the same tables for different things, not one interface saying the same thing twice: a repository
     // reading every class reads it joined, maps it to the domain and applies a rule, and cannot be handed
     // the wipe that sits beside this one.

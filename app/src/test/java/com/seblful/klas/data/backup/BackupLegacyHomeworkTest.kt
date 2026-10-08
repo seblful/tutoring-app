@@ -18,10 +18,10 @@ import org.junit.Test
 class BackupLegacyHomeworkTest {
 
     private fun lesson(id: Long, start: Long, homework: String, groupId: Long? = null, status: LessonStatus = LessonStatus.COMPLETED) =
-        LessonEntity(id, subjectId = 1, startMillis = start, durationMinutes = 60, status = status, groupId = groupId, homework = homework)
+        BackupLesson(id, subjectId = 1, startMillis = start, durationMinutes = 60, status = status, groupId = groupId, homework = homework)
 
     private fun member(id: Long, lessonId: Long, studentId: Long, verdict: String? = null) =
-        AttendanceEntity(id, lessonId, studentId, state = Attended.PRESENT, homeworkResult = verdict)
+        BackupAttendance(id, lessonId, studentId, state = Attended.PRESENT, homeworkResult = verdict)
 
     @Test
     fun `an individual lesson's homework becomes its student's, given at the lesson's start`() {
@@ -70,9 +70,9 @@ class BackupLegacyHomeworkTest {
         assertTrue(rows.isEmpty())
     }
 
-    /** Restored whole: the homework in its own rows, and the columns it came from left empty. */
+    /** Restored whole: the homework in its own rows, and the lesson and attendance as the tables hold them. */
     @Test
-    fun `a version 8 file restores its homework as rows and empties the columns it came from`() {
+    fun `a version 8 file restores its homework as rows, and its lessons without it`() {
         val v8 = """
             {
               "version": 8,
@@ -91,12 +91,14 @@ class BackupLegacyHomeworkTest {
             listOf(HomeworkEntity(studentId = 1, text = "§12, упр. 4–7", givenAtMillis = 1000, doneAtMillis = 1000)),
             snapshot.homework,
         )
-        assertEquals("", snapshot.lessons.single().notes)
-        assertEquals("", snapshot.lessons.single().homework)
-        assertEquals(null, snapshot.attendance.single().homeworkResult)
+        assertEquals(
+            LessonEntity(4, subjectId = 1, startMillis = 1000, durationMinutes = 60, status = LessonStatus.COMPLETED),
+            snapshot.lessons.single(),
+        )
+        assertEquals(AttendanceEntity(9, lessonId = 4, studentId = 1, state = Attended.PRESENT), snapshot.attendance.single())
     }
 
-    /** A v9 file keeps homework in its own list, and its lessons' columns are empty — nothing is added twice. */
+    /** A v9 file keeps homework in its own list, and its lessons' are blank — nothing is added twice. */
     @Test
     fun `a version 9 file's homework is carried as it is`() {
         val own = HomeworkEntity(5, studentId = 1, text = "§12", givenAtMillis = 1000)

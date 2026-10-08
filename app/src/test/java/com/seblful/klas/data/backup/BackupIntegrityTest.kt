@@ -1,7 +1,5 @@
 package com.seblful.klas.data.backup
 
-import com.seblful.klas.data.local.AttendanceEntity
-import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.HomeworkEntity
 import com.seblful.klas.data.local.RateChangeEntity
@@ -228,7 +226,7 @@ class BackupIntegrityTest {
     fun `a v6 lesson of no length is refused`() {
         val data = BackupData(
             lessons = listOf(
-                LessonEntity(4, subjectId = 1, startMillis = 1L, durationMinutes = 0, status = LessonStatus.SCHEDULED),
+                BackupLesson(4, subjectId = 1, startMillis = 1L, durationMinutes = 0, status = LessonStatus.SCHEDULED),
             ),
         )
         assertTrue(refusalFor(data) != null)
@@ -237,7 +235,7 @@ class BackupIntegrityTest {
     // --- Homework ---------------------------------------------------------------------------------
 
     private val taughtLesson =
-        LessonEntity(4, subjectId = 1, startMillis = 1L, durationMinutes = 60, status = LessonStatus.COMPLETED, homework = "§12")
+        BackupLesson(4, subjectId = 1, startMillis = 1L, durationMinutes = 60, status = LessonStatus.COMPLETED, homework = "§12")
 
     /**
      * A v8 file's verdict is only read as "it had one" — done, now — so a name this build never had cannot
@@ -250,8 +248,8 @@ class BackupIntegrityTest {
                 version = 8,
                 lessons = listOf(taughtLesson),
                 attendance = listOf(
-                    AttendanceEntity(9, 4, 1, state = Attended.PRESENT),
-                    AttendanceEntity(10, 4, 2, state = Attended.PRESENT, homeworkResult = "EXCELLENT"),
+                    BackupAttendance(9, 4, 1, state = Attended.PRESENT),
+                    BackupAttendance(10, 4, 2, state = Attended.PRESENT, homeworkResult = "EXCELLENT"),
                 ),
             ),
         )

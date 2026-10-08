@@ -15,6 +15,8 @@ import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
 /**
@@ -41,6 +43,91 @@ data class LegacyClass(
 )
 
 /**
+ * A lesson as a file of **v6 and later** carries it: [LessonEntity]'s columns, under the same keys — plus
+ * [homework], which only a v8 file holds and the table no longer has.
+ *
+ * A type of its own rather than the entity, which `lessons` was until v10: the entity follows the schema,
+ * and v10 dropped `lessons.homework` from it, while a v8 file on somebody's disk still holds the text and
+ * has to restore it ([legacyHomework]). The note a v7 or v8 file holds (`notes`) is not declared at all —
+ * it is not restored, and the parser ignores a key it does not know.
+ *
+ * @param homework what a v8 lesson set. **Read, never written**: blank in everything this build exports,
+ *   and `NEVER` leaves the key out of the file rather than writing it empty.
+ */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class BackupLesson(
+    val id: Long = 0,
+    val subjectId: Long,
+    val startMillis: Long,
+    val durationMinutes: Int,
+    val status: LessonStatus,
+    val groupId: Long? = null,
+    val mode: ClassMode = ClassMode.IN_PERSON,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val homework: String = "",
+)
+
+/**
+ * A student's place in a lesson as a file of **v6 and later** carries it: [AttendanceEntity]'s columns,
+ * plus [homeworkResult] — a v8 file's verdict, for the reason [BackupLesson] gives.
+ *
+ * @param homeworkResult how the student did v8's homework. **Read, never written.**
+ */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class BackupAttendance(
+    val id: Long = 0,
+    val lessonId: Long,
+    val studentId: Long,
+    val state: Attended,
+    val priceMinor: Long = 0,
+    val chargeMinor: Long = 0,
+    val calendarEventId: String? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val homeworkResult: String? = null,
+)
+
+/** The row as the table holds it — whatever a v8 file carried beside it is [legacyHomework]'s. */
+fun BackupLesson.toEntity() = LessonEntity(
+    id = id,
+    subjectId = subjectId,
+    startMillis = startMillis,
+    durationMinutes = durationMinutes,
+    status = status,
+    groupId = groupId,
+    mode = mode,
+)
+
+fun BackupAttendance.toEntity() = AttendanceEntity(
+    id = id,
+    lessonId = lessonId,
+    studentId = studentId,
+    state = state,
+    priceMinor = priceMinor,
+    chargeMinor = chargeMinor,
+    calendarEventId = calendarEventId,
+)
+
+fun LessonEntity.toBackup() = BackupLesson(
+    id = id,
+    subjectId = subjectId,
+    startMillis = startMillis,
+    durationMinutes = durationMinutes,
+    status = status,
+    groupId = groupId,
+    mode = mode,
+)
+
+fun AttendanceEntity.toBackup() = BackupAttendance(
+    id = id,
+    lessonId = lessonId,
+    studentId = studentId,
+    state = state,
+    priceMinor = priceMinor,
+    chargeMinor = chargeMinor,
+    calendarEventId = calendarEventId,
+)
+
+/**
  * A full snapshot of the database, serialized to JSON for backup/restore. Stores the raw
  * persisted rows verbatim (ids included) so importing into an empty database reproduces the
  * exact same data. [version] guards the format for future migrations.
@@ -59,9 +146,9 @@ data class BackupData(
     /**
      * The lessons — **v6 and later**. Empty in an older file, whose lessons are inside [classes] instead.
      */
-    val lessons: List<LessonEntity> = emptyList(),
+    val lessons: List<BackupLesson> = emptyList(),
     /** Who was in each lesson, and what it cost them — **v6 and later**. */
-    val attendance: List<AttendanceEntity> = emptyList(),
+    val attendance: List<BackupAttendance> = emptyList(),
     /**
      * The flat classes of **v1–v5**, and empty in anything this build writes. Kept because a backup file
      * is the only way a tutor's data crosses builds: an old file still has to restore, and
@@ -101,6 +188,10 @@ data class BackupData(
          * version is for, and it is the reason each of 3, 4 and 5 bumped for a single column too — and
          * 8, whose homework and verdicts a v7 build would drop the same way, and 9, whose homework list a
          * v8 build would.
+         *
+         * **Schema v10 did not bump it.** Dropping the dead columns only stops a file carrying three keys
+         * that were always blank (`notes`, `homework`, `homeworkResult`); a v9 build reads their absence as
+         * the same blank, so nothing is lost in either direction and there is nothing to refuse.
          */
         const val CURRENT_VERSION = 9
 
@@ -200,8 +291,6 @@ private fun attendedOf(own: LessonStatus, lesson: LessonStatus): Attended = when
  */
 fun BackupData.toSnapshot(): DatabaseSnapshot {
     val (splitLessons, splitAttendance) = classes.splitIntoLessons()
-    val allLessons = lessons + splitLessons
-    val allAttendance = attendance + splitAttendance
     return DatabaseSnapshot(
         subjects = subjects,
         students = students,
@@ -210,12 +299,13 @@ fun BackupData.toSnapshot(): DatabaseSnapshot {
         groupMembers = groupMembers,
         prices = prices,
         rateHistory = rateHistory,
-        // The vestigial columns arrive empty, as `MIGRATION_8_9` leaves them: a v8 file's homework has
-        // been read into its own rows, and an older file's notes are not the app's any more.
-        lessons = allLessons.map { it.copy(notes = "", homework = "") },
-        attendance = allAttendance.map { it.copy(homeworkResult = null) },
+        // A v8 file's homework is read into its own rows below, and leaves the lesson as the table holds
+        // it; an older file's note is not the app's any more and is never read at all.
+        lessons = lessons.map { it.toEntity() } + splitLessons,
+        attendance = attendance.map { it.toEntity() } + splitAttendance,
         payments = payments,
-        homework = homework + legacyHomework(allLessons, allAttendance),
+        // The v1-v5 classes carry no homework, so only the file's own lessons are looked at.
+        homework = homework + legacyHomework(lessons, attendance),
     )
 }
 
@@ -225,10 +315,11 @@ fun BackupData.toSnapshot(): DatabaseSnapshot {
  * a group lesson's for the group and an individual one's for its student, given at the lesson's start,
  * and done if it had a verdict (for a group, once every member had one).
  *
- * Empty for anything else: no other version carries text in `lessons.homework`, v9 included, since this
- * build writes it blank. `BackupSplitTest`'s sibling, `BackupLegacyHomeworkTest`, pins what this produces.
+ * Empty for anything else: no other version carries text in a lesson's `homework` — v9 wrote it blank,
+ * and this build does not write the key at all. `BackupSplitTest`'s sibling, `BackupLegacyHomeworkTest`,
+ * pins what this produces.
  */
-fun legacyHomework(lessons: List<LessonEntity>, attendance: List<AttendanceEntity>): List<HomeworkEntity> {
+fun legacyHomework(lessons: List<BackupLesson>, attendance: List<BackupAttendance>): List<HomeworkEntity> {
     val members = attendance.groupBy { it.lessonId }
     return lessons
         .filter { it.homework.isNotEmpty() && it.status != LessonStatus.CANCELLED }
@@ -266,8 +357,8 @@ fun DatabaseSnapshot.toBackupData(): BackupData = BackupData(
     groupMembers = groupMembers,
     prices = prices,
     rateHistory = rateHistory,
-    lessons = lessons,
-    attendance = attendance,
+    lessons = lessons.map { it.toBackup() },
+    attendance = attendance.map { it.toBackup() },
     payments = payments,
     homework = homework,
 )

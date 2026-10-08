@@ -1,7 +1,6 @@
 package com.seblful.klas.data.local
 
 import androidx.room.ColumnInfo
-import androidx.room.DatabaseView
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -207,20 +206,6 @@ data class LessonEntity(
     /** The group whose lesson this is, or null for one student's. */
     val groupId: Long? = null,
     val mode: ClassMode = ClassMode.IN_PERSON,
-    /**
-     * **Vestigial since v9 — always `''`, read by nothing.** It held the lesson's note (added by v7), which
-     * the tutor stopped wanting; the v8 → v9 migration empties it. The column stays for the reason
-     * `SettingsEntity.showGroupsTab` does: dropping one means rebuilding the table on API 24, and this is
-     * the table every lesson lives in. Its `defaultValue` must still match v7's `DEFAULT ''`.
-     */
-    @ColumnInfo(defaultValue = "''")
-    val notes: String = "",
-    /**
-     * **Vestigial since v9, like [notes].** v8 kept a lesson's homework here; it lives in its own table now
-     * ([HomeworkEntity]), which the v8 → v9 migration moved it into before emptying this.
-     */
-    @ColumnInfo(defaultValue = "''")
-    val homework: String = "",
 )
 
 /**
@@ -256,12 +241,6 @@ data class AttendanceEntity(
     val priceMinor: Long = 0,
     val chargeMinor: Long = 0,
     val calendarEventId: String? = null,
-    /**
-     * **Vestigial since v9 — always null.** v8's per-student verdict on the homework set at this lesson;
-     * homework is only done or not now, on [HomeworkEntity.doneAtMillis], and the v8 → v9 migration read
-     * this into it before clearing it. Left in place like [LessonEntity.notes].
-     */
-    val homeworkResult: String? = null,
 )
 
 /**
@@ -298,70 +277,6 @@ data class HomeworkEntity(
     val text: String,
     val givenAtMillis: Long,
     val doneAtMillis: Long? = null,
-)
-
-/**
- * The `classes` view's `SELECT`, **stated once and read twice**: by [ClassRow]'s `@DatabaseView` and by
- * whichever migration last changed the columns it projects.
- *
- * It has to be shared, because **Room validates views on migration and does not recreate them.** A
- * migration that adds a column the view projects must drop and recreate the view itself, or Room compares
- * the old view against the new schema and throws `Migration didn't properly handle: classes` — on first
- * launch after a Play update, with the upgrade rolled back. That is exactly what `MIGRATION_6_7` did on a
- * real phone before this constant existed, `lessons.notes` having been added to the view here and nowhere
- * else. A second copy written out in the migration would have worked and would have been free to drift by
- * a space; this cannot.
- *
- * Only the *latest* such migration may read it. Once a later version moves it on, the earlier step keeps
- * its own version's `SELECT` as a frozen copy in `Migrations` — `MIGRATION_6_7` read this until v8 and
- * then built the v8 view onto a v7 schema — and `MigrationChainTest` holds each copy to that version's
- * exported schema, so the copies cannot drift either.
- *
- * Since v9 it projects none of the lesson's text: the note and the homework columns are vestigial (see
- * [LessonEntity.notes]), and homework is its own table.
- *
- * `const`, because `@DatabaseView` is an annotation argument and so needs a compile-time constant.
- */
-const val CLASSES_VIEW_SQL: String =
-    "SELECT a.id AS id, a.lessonId AS lessonId, a.studentId AS studentId, " +
-        "a.state AS state, a.priceMinor AS priceMinor, a.chargeMinor AS chargeMinor, " +
-        "a.calendarEventId AS calendarEventId, l.subjectId AS subjectId, " +
-        "l.startMillis AS startMillis, l.durationMinutes AS durationMinutes, " +
-        "l.status AS status, l.groupId AS groupId, l.mode AS mode " +
-        "FROM attendance a JOIN lessons l ON l.id = a.lessonId"
-
-/**
- * One student's class: their [AttendanceEntity] row with its lesson's facts alongside it.
- *
- * A **view**, so the two tables are joined by SQLite once rather than by every caller. It is what the
- * app has always meant by "a class", which is why it is named `classes` and why every read query is
- * unchanged from when that was a table: the columns are the same columns. Writes go to the two tables
- * (`LessonDao`, `AttendanceDao`) — the point of the split being that each fact has one home.
- *
- * **Its SQL is stated once, in [CLASSES_VIEW_SQL].** A migration that changes the columns it projects has
- * to recreate the view — Room validates views and never recreates them — so there are genuinely two
- * readers of this `SELECT`, and they share the constant rather than each writing it out. `MIGRATION_1_2`
- * used to write out its own copy; that migration went with the squash (see `AppDatabase.BASELINE_VERSION`),
- * and when the need came back with `MIGRATION_6_7` it came back as one string rather than two. (The
- * latest such migration shares it; an older one keeps its own version's copy — see [CLASSES_VIEW_SQL].)
- */
-@DatabaseView(viewName = "classes", value = CLASSES_VIEW_SQL)
-data class ClassRow(
-    val id: Long = 0,
-    val lessonId: Long = 0,
-    val studentId: Long,
-    val subjectId: Long,
-    val startMillis: Long,
-    val durationMinutes: Int,
-    val priceMinor: Long = 0,
-    /** The **lesson's** status — see [LessonEntity.status]. */
-    val status: LessonStatus,
-    /** This student's attendance — see [AttendanceEntity.state]. */
-    val state: Attended = Attended.EXPECTED,
-    val chargeMinor: Long = 0,
-    val groupId: Long? = null,
-    val mode: ClassMode = ClassMode.IN_PERSON,
-    val calendarEventId: String? = null,
 )
 
 /**
@@ -486,18 +401,6 @@ data class SettingsEntity(
      */
     @ColumnInfo(defaultValue = "SYSTEM")
     val language: AppLanguage = AppLanguage.SYSTEM,
-    /**
-     * **Vestigial — written with its default, read by nothing.**
-     *
-     * It used to decide whether «Группы» had a tab of its own. Students and groups now share one
-     * («Люди»), so there is no longer a tab to hide and the setting has no meaning. The *column*
-     * stays because removing it is not free: SQLite gained `ALTER TABLE … DROP COLUMN` only in 3.35,
-     * which is Android 12, and this app supports API 24 — so a real removal means rebuilding the
-     * table under a migration, which is a genuine risk to a tutor's data in exchange for one unread
-     * boolean. [com.seblful.klas.data.repository.AppSettings] has dropped it, so nothing above this
-     * layer can read it by accident.
-     */
-    val showGroupsTab: Boolean = true,
     /**
      * When the tutor last exported a backup, epoch millis — **null until they ever have.**
      *

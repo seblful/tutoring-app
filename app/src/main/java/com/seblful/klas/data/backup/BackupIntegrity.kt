@@ -45,8 +45,8 @@ object BackupIntegrity {
 
     /** @throws MalformedBackupException naming the first row that could not be read back. */
     fun check(data: BackupData) {
-        data.lessons.forEach { checkLesson(it) }
-        data.attendance.forEach { checkAttendance(it) }
+        data.lessons.forEach { checkLesson(it.toEntity()) }
+        data.attendance.forEach { checkAttendance(it.toEntity()) }
         // A v1-v5 file carries its lessons flat, and they are checked as they will be read: through the
         // split, so one function answers for both shapes rather than a copy of it answering for the old.
         data.classes.splitIntoLessons().let { (lessons, attendance) ->
