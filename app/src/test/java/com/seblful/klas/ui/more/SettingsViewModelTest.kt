@@ -6,6 +6,7 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.TestEnv
@@ -158,7 +159,7 @@ class SettingsViewModelTest {
 
         vm.update { it.copy(reminderLeadMinutes = 30) }
         vm.update { it.copy(autoCompleteEnabled = true) }
-        vm.update { it.copy(themeMode = "DARK") }
+        vm.update { it.copy(themeMode = ThemeChoice.DARK) }
         vm.update { it.copy(defaultLessonMinutes = 45) }
         vm.update { it.copy(currency = Currency.RUB) }
         vm.update { it.copy(defaultGroupPrice = Money(2000)) }
@@ -168,7 +169,7 @@ class SettingsViewModelTest {
         val s = env.settingsRepo.get()
         assertEquals(30, s.reminderLeadMinutes)
         assertTrue(s.autoCompleteEnabled)
-        assertEquals("DARK", s.themeMode)
+        assertEquals(ThemeChoice.DARK, s.themeMode)
         assertEquals(45, s.defaultLessonMinutes)
         assertEquals(Currency.RUB, s.currency)
         assertEquals(Money(2000), s.defaultGroupPrice)
@@ -203,7 +204,7 @@ class SettingsViewModelTest {
         runTest(mainRule.dispatcher) {
             val sid = env.studentDao.upsert(StudentEntity(name = "Аня", email = "anya@example.com"))
             val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-            env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "SCHEDULED")
+            env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.SCHEDULED)
             env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
             env.settingsRepo.update { it.copy(emailInvitesEnabled = true) }
 
@@ -222,7 +223,7 @@ class SettingsViewModelTest {
         runTest(mainRule.dispatcher) {
             val sid = env.studentDao.upsert(StudentEntity(name = "Аня", email = "anya@example.com"))
             val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-            env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "SCHEDULED")
+            env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.SCHEDULED)
             env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
             env.settingsRepo.update { it.copy(emailInvitesEnabled = false) }
 
@@ -239,7 +240,7 @@ class SettingsViewModelTest {
         runTest(mainRule.dispatcher) {
             val sid = env.studentDao.upsert(StudentEntity(name = "Аня", email = "anya@example.com"))
             val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-            env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "SCHEDULED")
+            env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.SCHEDULED)
 
             val vm = vm()
             vm.update { it.copy(emailInvitesEnabled = false) }
@@ -281,7 +282,7 @@ class SettingsViewModelTest {
         val refreshesBefore = env.reminders.refreshCount
 
         val vm = vm()
-        vm.update { it.copy(themeMode = "DARK") }
+        vm.update { it.copy(themeMode = ThemeChoice.DARK) }
         advanceUntilIdle()
 
         assertTrue("no calendar work for a theme change", env.calendar.calls.isEmpty())
@@ -292,7 +293,7 @@ class SettingsViewModelTest {
     fun `enabling calendar sync backfills events for existing classes`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "SCHEDULED")
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.SCHEDULED)
 
         val vm = vm()
         assertEquals(CalendarSyncToggle.APPLIED, vm.setCalendarSyncEnabled(true))
@@ -306,7 +307,7 @@ class SettingsViewModelTest {
     fun `enabling calendar sync without the permission changes nothing`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "SCHEDULED")
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.SCHEDULED)
         env.calendarPermission.granted = false
 
         val vm = vm()
@@ -336,7 +337,7 @@ class SettingsViewModelTest {
         runTest(mainRule.dispatcher) {
             val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
             val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-            env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "SCHEDULED", calendarEventId = "evt-9")
+            env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.SCHEDULED, calendarEventId = "evt-9")
             env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
             env.calendarPermission.granted = false
 
@@ -353,7 +354,7 @@ class SettingsViewModelTest {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         // A class already carrying a mirrored event id.
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "SCHEDULED", calendarEventId = "evt-1")
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.SCHEDULED, calendarEventId = "evt-1")
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
 
         val vm = vm()

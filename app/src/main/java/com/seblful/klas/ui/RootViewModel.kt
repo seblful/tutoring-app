@@ -31,26 +31,6 @@ enum class RootRoute {
 }
 
 /**
- * Which theme the tutor asked for. The stored value is a string, and «follow the system» is a real
- * answer rather than the absence of one — so is *not yet loaded*, which also follows the system, since
- * the alternative is a flash of the wrong theme before the row arrives.
- */
-enum class ThemeChoice {
-    LIGHT,
-    DARK,
-    SYSTEM;
-
-    companion object {
-        /** [SYSTEM] for anything unrecognised, and for a settings row that has not loaded. */
-        fun parse(stored: String?): ThemeChoice = when (stored) {
-            "LIGHT" -> LIGHT
-            "DARK" -> DARK
-            else -> SYSTEM
-        }
-    }
-}
-
-/**
  * Top-level app state: theme, currency, and whether onboarding is done. `null` means settings are
  * still loading (show a spinner under the default theme).
  */

@@ -104,10 +104,10 @@ class BackupRestoreTest {
                 lessons = listOf(
                     LessonEntity(
                         1, 1, Instant.parse("2026-06-18T10:00:00Z").toEpochMilli(), 60,
-                        status = LessonStatus.SCHEDULED.name,
+                        status = LessonStatus.SCHEDULED,
                     ),
                 ),
-                attendance = listOf(AttendanceEntity(1, 1, 1, Attended.EXPECTED.name, priceMinor = 5000)),
+                attendance = listOf(AttendanceEntity(1, 1, 1, Attended.EXPECTED, priceMinor = 5000)),
             ),
         )
         return managerFor(source).exportJson()

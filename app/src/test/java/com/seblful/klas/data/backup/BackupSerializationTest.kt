@@ -11,9 +11,15 @@ import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.model.Attended
+import com.seblful.klas.domain.model.ClassMode
+import com.seblful.klas.domain.model.LessonStatus
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -27,7 +33,7 @@ class BackupSerializationTest {
     private val sample = BackupData(
         subjects = listOf(SubjectEntity(1, "Математика"), SubjectEntity(2, "Физика")),
         students = listOf(
-            StudentEntity(1, "Иван", phone = "+375291112233", note = "ОГЭ", defaultMode = "REMOTE", archived = false),
+            StudentEntity(1, "Иван", phone = "+375291112233", note = "ОГЭ", defaultMode = ClassMode.REMOTE, archived = false),
             StudentEntity(2, "Мария", note = "", archived = true),
         ),
         studentSubjects = listOf(
@@ -36,7 +42,7 @@ class BackupSerializationTest {
             StudentSubjectCrossRef(2, 1),
         ),
         groups = listOf(
-            GroupEntity(7, "11 «А»", note = "вечер", priceMinor = 2050, defaultMode = "REMOTE", archived = false),
+            GroupEntity(7, "11 «А»", note = "вечер", priceMinor = 2050, defaultMode = ClassMode.REMOTE, archived = false),
             GroupEntity(8, "Выпускники", archived = true),
         ),
         groupMembers = listOf(
@@ -59,22 +65,22 @@ class BackupSerializationTest {
         lessons = listOf(
             LessonEntity(
                 id = 1, subjectId = 1, startMillis = 1_900_000_000_000, durationMinutes = 90,
-                status = "COMPLETED", groupId = 7, mode = "REMOTE",
+                status = LessonStatus.COMPLETED, groupId = 7, mode = ClassMode.REMOTE,
             ),
             LessonEntity(
                 id = 2, subjectId = 1, startMillis = 1_900_100_000_000, durationMinutes = 60,
-                status = "SCHEDULED",
+                status = LessonStatus.SCHEDULED,
             ),
         ),
         attendance = listOf(
             // The taught lesson, with one of its two members absent — the pair of facts a v5 file could
             // not carry, and so the pair a round trip most needs to prove survives.
             AttendanceEntity(
-                id = 1, lessonId = 1, studentId = 1, state = "PRESENT",
+                id = 1, lessonId = 1, studentId = 1, state = Attended.PRESENT,
                 priceMinor = 2000, chargeMinor = 5000, calendarEventId = "evt-123",
             ),
-            AttendanceEntity(id = 2, lessonId = 1, studentId = 2, state = "ABSENT", priceMinor = 2000),
-            AttendanceEntity(id = 3, lessonId = 2, studentId = 2, state = "EXPECTED"),
+            AttendanceEntity(id = 2, lessonId = 1, studentId = 2, state = Attended.ABSENT, priceMinor = 2000),
+            AttendanceEntity(id = 3, lessonId = 2, studentId = 2, state = Attended.EXPECTED),
         ),
         payments = listOf(
             PaymentEntity(1, studentId = 1, dateMillis = 1_899_000_000_000, amountMinor = 3000),
@@ -93,6 +99,31 @@ class BackupSerializationTest {
     fun `round-trips every table through JSON unchanged`() {
         val restored = json.decodeFromString<BackupData>(json.encodeToString(sample))
         assertEquals(sample, restored)
+    }
+
+    /**
+     * The enum columns are typed, and the file still carries each as the bare constant name — the JSON
+     * written before they were typed, and the JSON every file already on somebody's disk holds. A round trip
+     * alone could not show it: a serializer that wrote something else would read its own output back fine.
+     */
+    @Test
+    fun `enum columns are written as their constant names, as they always were`() {
+        val tree = json.parseToJsonElement(json.encodeToString(sample)).jsonObject
+        fun row(table: String, index: Int = 0) = tree.getValue(table).jsonArray[index].jsonObject
+        fun text(table: String, key: String, index: Int = 0) = row(table, index).getValue(key).jsonPrimitive
+            .also { assertTrue("$table.$key is a JSON string", it.isString) }
+            .content
+
+        assertEquals("REMOTE", text("students", "defaultMode"))
+        assertEquals("IN_PERSON", text("students", "defaultMode", index = 1))
+        assertEquals("REMOTE", text("groups", "defaultMode"))
+        assertEquals("COMPLETED", text("lessons", "status"))
+        assertEquals("REMOTE", text("lessons", "mode"))
+        assertEquals("SCHEDULED", text("lessons", "status", index = 1))
+        assertEquals("IN_PERSON", text("lessons", "mode", index = 1))
+        assertEquals("PRESENT", text("attendance", "state"))
+        assertEquals("ABSENT", text("attendance", "state", index = 1))
+        assertEquals("EXPECTED", text("attendance", "state", index = 2))
     }
 
     @Test

@@ -2,9 +2,12 @@ package com.seblful.klas.data.backup
 
 import com.seblful.klas.data.local.SnapshotDao
 import com.seblful.klas.data.local.Transactor
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.intOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,15 +35,32 @@ class BackupManager @Inject constructor(
 
     suspend fun exportJson(): String = json.encodeToString(export())
 
-    fun parse(text: String): BackupData = json.decodeFromString(text)
+    /**
+     * The file as a [BackupData] — with its **version read first**, and a newer one refused before any row
+     * is decoded.
+     *
+     * The rows' enum columns are typed, so a name this build has no constant for fails the decode — which
+     * is right for a file of this build's version or older (it is malformed: no build ever wrote that name),
+     * and wrong for a newer one: a later build that adds a status writes it into its files, and those have
+     * to be refused as *newer*, telling the tutor to update the app, rather than as a broken file. So the
+     * version is read off the bare JSON before the rows are; a version that is missing or not a number is
+     * left to the decode, which defaults the one and refuses the other.
+     */
+    fun parse(text: String): BackupData {
+        val tree = json.parseToJsonElement(text)
+        val version = ((tree as? JsonObject)?.get("version") as? JsonPrimitive)?.intOrNull
+        if (version != null) requireSupported(version)
+        return json.decodeFromJsonElement(tree)
+    }
+
+    private fun requireSupported(version: Int) {
+        if (!BackupData.isSupported(version)) {
+            throw UnsupportedBackupVersionException(found = version, supported = BackupData.CURRENT_VERSION)
+        }
+    }
 
     suspend fun import(data: BackupData) {
-        if (!BackupData.isSupported(data.version)) {
-            throw UnsupportedBackupVersionException(
-                found = data.version,
-                supported = BackupData.CURRENT_VERSION,
-            )
-        }
+        requireSupported(data.version)
         // Both refusals happen before anything is deleted. The version says whether this build
         // understands the *format*; the integrity check says whether it can read the *rows* — which
         // matters because the rows go in verbatim and are only interpreted later, on the read path.

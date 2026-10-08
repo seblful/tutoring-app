@@ -9,8 +9,12 @@ schema change, see the checklist in [releasing.md](releasing.md#per-release-chec
   everything else goes through the ordinary repositories.
 - Backup file format (`BackupData`) is a separate type from the internal snapshot — its field names are
   JSON keys already on disk and may never be renamed.
-- An enum's constant name is a persisted value (status, mode columns, SQL literals) — renaming one is a
-  migration (`StoredEnumNamesTest`). Storage parses with a total function, never `valueOf`.
+- An enum's constant name is a persisted value (status, attendance, mode, settings columns, SQL literals,
+  backup JSON) — renaming one is a migration (`StoredEnumNamesTest`). Entities hold the enum types; Room
+  stores the name through `EnumConverters`, which parses totally, never `valueOf`: a fallback where the
+  column carries no money, a named failure where it does.
+- A backup's enum names are typed on the way in, so an unknown one refuses the file as it is parsed; the
+  version is read first, so a newer file is refused as newer rather than as broken.
 
 ## Schema and migrations
 

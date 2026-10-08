@@ -3,6 +3,7 @@ package com.seblful.klas.notifications
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.testutil.RecordingNotifier
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.test.runTest
@@ -44,7 +45,7 @@ class DueReminderTest {
         studentId: Long,
         subjectId: Long,
         start: Instant = soon,
-        status: String = "SCHEDULED",
+        status: LessonStatus = LessonStatus.SCHEDULED,
         groupId: Long? = null,
         durationMinutes: Int = 60,
     ) = env.fixtures.storedClass(
@@ -93,7 +94,7 @@ class DueReminderTest {
 
     @Test
     fun `a cancelled class is not announced`() = runTest {
-        val id = scheduledClass(student(), subject(), status = "CANCELLED")
+        val id = scheduledClass(student(), subject(), status = LessonStatus.CANCELLED)
 
         assertFalse(due.post(id, now))
         assertTrue(notifier.posted.isEmpty())
@@ -101,7 +102,7 @@ class DueReminderTest {
 
     @Test
     fun `a completed class is not announced`() = runTest {
-        val id = scheduledClass(student(), subject(), status = "COMPLETED")
+        val id = scheduledClass(student(), subject(), status = LessonStatus.COMPLETED)
 
         assertFalse(due.post(id, now))
         assertTrue(notifier.posted.isEmpty())

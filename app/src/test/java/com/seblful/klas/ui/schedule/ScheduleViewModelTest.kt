@@ -123,7 +123,7 @@ class ScheduleViewModelTest {
         val monday = sunday.plusDays(1)
         env.fixtures.storedClass(
             studentId = sid, subjectId = subj, startMillis = startMillisOn(monday, LocalTime.of(9, 0)),
-            durationMinutes = 60, status = "SCHEDULED",
+            durationMinutes = 60, status = LessonStatus.SCHEDULED,
         )
         val vm = vm()
         vm.selectDate(sunday)
@@ -336,9 +336,9 @@ class ScheduleViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val today = LocalDate.now(zone)
         // Two classes today (out of order) and one tomorrow.
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(15, 0)), durationMinutes = 60, status = "SCHEDULED")
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED")
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = startMillisOn(today.plusDays(1), LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED")
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(15, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = startMillisOn(today.plusDays(1), LocalTime.of(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
 
         val vm = vm()
         observing(vm.content)
@@ -663,7 +663,7 @@ class ScheduleViewModelTest {
         ).forEach { (day, time, student) ->
             env.fixtures.storedClass(
                     studentId = student, subjectId = subj, startMillis = startMillisOn(day, time),
-                    durationMinutes = 60, status = "SCHEDULED",
+                    durationMinutes = 60, status = LessonStatus.SCHEDULED,
                 )
         }
 
@@ -690,7 +690,7 @@ class ScheduleViewModelTest {
         val nextWeek = LocalDate.of(2026, 7, 20)
         env.fixtures.storedClass(
                 studentId = sid, subjectId = subj, startMillis = startMillisOn(nextWeek, LocalTime.of(9, 0)),
-                durationMinutes = 60, status = "SCHEDULED",
+                durationMinutes = 60, status = LessonStatus.SCHEDULED,
             )
 
         val vm = vm()
@@ -725,14 +725,14 @@ class ScheduleViewModelTest {
         val otherDay = CalendarLayout.week(CalendarLayout.startOfWeek(today)).first { it != today }
         env.fixtures.storedClass(
                 studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)),
-                durationMinutes = 60, status = "SCHEDULED",
+                durationMinutes = 60, status = LessonStatus.SCHEDULED,
             )
         env.fixtures.storedClass(
                 studentId = sid,
                 subjectId = subj,
                 startMillis = startMillisOn(otherDay, LocalTime.of(9, 0)),
                 durationMinutes = 60,
-                status = "SCHEDULED",
+                status = LessonStatus.SCHEDULED,
             )
 
         val vm = vm()
@@ -756,7 +756,7 @@ class ScheduleViewModelTest {
         val day = LocalDate.of(2026, 7, 15)
         env.fixtures.storedClass(
                 studentId = sid, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(9, 0)),
-                durationMinutes = 60, status = "SCHEDULED",
+                durationMinutes = 60, status = LessonStatus.SCHEDULED,
             )
 
         val vm = vm()
@@ -804,12 +804,12 @@ class ScheduleViewModelTest {
             .forEach { (day, time) ->
                 env.fixtures.storedClass(
                         studentId = sid, subjectId = subj, startMillis = startMillisOn(day, time),
-                        durationMinutes = 60, status = "SCHEDULED",
+                        durationMinutes = 60, status = LessonStatus.SCHEDULED,
                     )
             }
         env.fixtures.storedClass(
                 studentId = sid, subjectId = subj, startMillis = startMillisOn(otherMonth, LocalTime.of(9, 0)),
-                durationMinutes = 60, status = "CANCELLED",
+                durationMinutes = 60, status = LessonStatus.CANCELLED,
             )
 
         val vm = vm()
@@ -831,7 +831,7 @@ class ScheduleViewModelTest {
         val august = LocalDate.of(2026, 8, 12)
         env.fixtures.storedClass(
                 studentId = sid, subjectId = subj, startMillis = startMillisOn(august, LocalTime.of(9, 0)),
-                durationMinutes = 60, status = "COMPLETED",
+                durationMinutes = 60, status = LessonStatus.COMPLETED,
             )
 
         val vm = vm()
@@ -855,14 +855,14 @@ class ScheduleViewModelTest {
     fun `setStatus completes a class and captures its charge`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val id = env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 90, priceMinor = Money.ofMajor(30).minor, status = "SCHEDULED")
+        val id = env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 90, priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED)
 
         val vm = vm()
         vm.setStatus(env.classRepo.getSessionFor(id)!!, LessonStatus.COMPLETED)
         advanceUntilIdle()
 
         val saved = env.classDao.items.value.single { it.id == id }
-        assertEquals("COMPLETED", saved.status)
+        assertEquals(LessonStatus.COMPLETED, saved.status)
         assertEquals(Money.ofMajor(45).minor, saved.chargeMinor) // 30/h * 90 min
     }
 
@@ -874,8 +874,8 @@ class ScheduleViewModelTest {
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val day = LocalDate.of(2026, 7, 15)
-        val moving = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED")
-        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(15, 0)), durationMinutes = 60, status = "SCHEDULED")
+        val moving = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
+        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(15, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
 
         val vm = vm()
         vm.moveTo(env.classRepo.getSessionFor(moving)!!, day, LocalTime.of(15, 30))
@@ -904,9 +904,9 @@ class ScheduleViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val day = LocalDate.of(2026, 7, 15)
         val at = startMillisOn(day, LocalTime.of(10, 0))
-        val cancelled = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "CANCELLED")
+        val cancelled = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.CANCELLED)
         // The freed hour, re-booked for somebody else.
-        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED")
+        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED)
 
         val vm = vm()
         vm.setStatus(env.classRepo.getSessionFor(cancelled)!!, LessonStatus.SCHEDULED)
@@ -915,7 +915,7 @@ class ScheduleViewModelTest {
         assertEquals("Борис", vm.timeConflict.value?.who)
         assertEquals(
             "the lesson stayed cancelled",
-            "CANCELLED",
+            LessonStatus.CANCELLED,
             env.classDao.items.value.single { it.id == cancelled }.status,
         )
     }
@@ -928,7 +928,7 @@ class ScheduleViewModelTest {
         val cancelled = env.fixtures.storedClass(
                 studentId = ann, subjectId = subj,
                 startMillis = startMillisOn(day, LocalTime.of(10, 0)),
-                durationMinutes = 60, status = "CANCELLED",
+                durationMinutes = 60, status = LessonStatus.CANCELLED,
             )
 
         val vm = vm()
@@ -936,7 +936,7 @@ class ScheduleViewModelTest {
         advanceUntilIdle()
 
         assertNull("nothing holds the hour, so nothing to refuse", vm.timeConflict.value)
-        assertEquals("SCHEDULED", env.classDao.items.value.single().status)
+        assertEquals(LessonStatus.SCHEDULED, env.classDao.items.value.single().status)
     }
 
     // --- A write that fails is said out loud, not crashed on -------------------------------------
@@ -956,7 +956,7 @@ class ScheduleViewModelTest {
         val id = env.fixtures.storedClass(
                 studentId = ann, subjectId = subj,
                 startMillis = startMillisOn(LocalDate.of(2026, 7, 15), LocalTime.of(10, 0)),
-                durationMinutes = 60, status = "SCHEDULED",
+                durationMinutes = 60, status = LessonStatus.SCHEDULED,
             )
         val vm = ScheduleViewModel(
             env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, mainRule.appScope,
@@ -980,7 +980,7 @@ class ScheduleViewModelTest {
         val id = env.fixtures.storedClass(
                 studentId = ann, subjectId = subj,
                 startMillis = startMillisOn(LocalDate.of(2026, 7, 15), LocalTime.of(10, 0)),
-                durationMinutes = 60, status = "SCHEDULED",
+                durationMinutes = 60, status = LessonStatus.SCHEDULED,
             )
         val vm = ScheduleViewModel(
             env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, mainRule.appScope,
@@ -1003,7 +1003,7 @@ class ScheduleViewModelTest {
         val id = env.fixtures.storedClass(
                 studentId = ann, subjectId = subj,
                 startMillis = startMillisOn(LocalDate.of(2026, 7, 15), LocalTime.of(10, 0)),
-                durationMinutes = 60, status = "SCHEDULED",
+                durationMinutes = 60, status = LessonStatus.SCHEDULED,
             )
         val vm = vm()
         val seen = mutableListOf<ScheduleViewModel.Event>()
@@ -1023,7 +1023,7 @@ class ScheduleViewModelTest {
         val id = env.fixtures.storedClass(
                 studentId = ann, subjectId = subj,
                 startMillis = startMillisOn(LocalDate.of(2026, 7, 15), LocalTime.of(10, 0)),
-                durationMinutes = 60, status = "SCHEDULED", priceMinor = 3000,
+                durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
             )
 
         val vm = vm()
@@ -1031,7 +1031,7 @@ class ScheduleViewModelTest {
         advanceUntilIdle()
 
         assertNull(vm.timeConflict.value)
-        assertEquals("COMPLETED", env.classDao.items.value.single().status)
+        assertEquals(LessonStatus.COMPLETED, env.classDao.items.value.single().status)
     }
 
     @Test
@@ -1039,7 +1039,7 @@ class ScheduleViewModelTest {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val day = LocalDate.of(2026, 7, 15)
-        val id = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED")
+        val id = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
 
         val vm = vm()
         // Ten minutes later overlaps where it currently is — it must not block itself.
@@ -1061,8 +1061,8 @@ class ScheduleViewModelTest {
         val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
         val day = LocalDate.of(2026, 7, 15)
         val at = startMillisOn(day, LocalTime.of(12, 0))
-        val first = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId)
-        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId)
+        val first = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED, groupId = groupId)
+        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED, groupId = groupId)
 
         val vm = vm()
         vm.moveTo(env.classRepo.getSessionFor(first)!!, day, LocalTime.of(12, 30))
@@ -1085,8 +1085,8 @@ class ScheduleViewModelTest {
         val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
         val wednesday = LocalDate.of(2026, 7, 15)
         val at = startMillisOn(wednesday, LocalTime.of(12, 0))
-        env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId)
-        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId)
+        env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED, groupId = groupId)
+        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED, groupId = groupId)
 
         val vm = vm()
         observing(vm.content)
@@ -1110,10 +1110,10 @@ class ScheduleViewModelTest {
         val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
         val today = LocalDate.now(zone)
         val at = startMillisOn(today, LocalTime.of(12, 0))
-        env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId)
-        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = "SCHEDULED", groupId = groupId)
+        env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED, groupId = groupId)
+        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED, groupId = groupId)
         // Plus an unrelated individual class earlier the same day.
-        env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)), durationMinutes = 60, status = "SCHEDULED")
+        env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
 
         val vm = vm()
         observing(vm.content)
@@ -1140,8 +1140,8 @@ class ScheduleViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
         val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
         val at = startMillisOn(LocalDate.now(zone), LocalTime.of(12, 0))
-        env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = "SCHEDULED", groupId = groupId)
-        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, priceMinor = Money.ofMajor(20).minor, status = "SCHEDULED", groupId = groupId)
+        env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED, groupId = groupId)
+        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, priceMinor = Money.ofMajor(20).minor, status = LessonStatus.SCHEDULED, groupId = groupId)
 
         val vm = vm()
         observing(vm.content)
@@ -1150,7 +1150,7 @@ class ScheduleViewModelTest {
         advanceUntilIdle()
 
         val saved = env.classDao.items.value
-        assertTrue(saved.all { it.status == "COMPLETED" })
+        assertTrue(saved.all { it.status == LessonStatus.COMPLETED })
         // Each member billed at their own rate.
         assertEquals(
             mapOf(ann to Money.ofMajor(30).minor, bob to Money.ofMajor(20).minor),
@@ -1162,7 +1162,7 @@ class ScheduleViewModelTest {
     fun `delete removes the class`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val id = env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "CANCELLED")
+        val id = env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.CANCELLED)
 
         val vm = vm()
         vm.delete(env.classRepo.getSessionFor(id)!!)

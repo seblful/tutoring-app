@@ -73,7 +73,7 @@ class ClassEditViewModelTest {
         price: Money = Money.ofMajor(30),
         mode: ClassMode = ClassMode.IN_PERSON,
     ): Pair<Long, Long> {
-        val studentId = env.studentDao.upsert(StudentEntity(name = studentName, defaultMode = mode.name))
+        val studentId = env.studentDao.upsert(StudentEntity(name = studentName, defaultMode = mode))
         val subjectId = env.subjectDao.upsert(SubjectEntity(name = subjectName))
         env.priceDao.upsert(PriceEntity(studentId, subjectId, price.minor))
         return studentId to subjectId
@@ -502,7 +502,7 @@ class ClassEditViewModelTest {
             val classId = env.fixtures.storedClass(
                     studentId = studentId, subjectId = subjectId,
                     startMillis = start.toEpochMilli(), durationMinutes = 60,
-                    priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED.name,
+                    priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED,
                 )
 
             val vm = vm(id = classId)
@@ -535,8 +535,8 @@ class ClassEditViewModelTest {
     @Test
     fun `selecting a different student clears the subject and price and adopts the student's mode`() = runTest(mainRule.dispatcher) {
         // Two students, so nothing is auto-selected and selectStudent runs its clearing logic.
-        env.studentDao.upsert(StudentEntity(name = "Аня", defaultMode = ClassMode.IN_PERSON.name))
-        val remoteId = env.studentDao.upsert(StudentEntity(name = "Борис", defaultMode = ClassMode.REMOTE.name))
+        env.studentDao.upsert(StudentEntity(name = "Аня", defaultMode = ClassMode.IN_PERSON))
+        val remoteId = env.studentDao.upsert(StudentEntity(name = "Борис", defaultMode = ClassMode.REMOTE))
         val vm = vm()
         observing(vm.state)
         advanceUntilIdle()
@@ -769,7 +769,7 @@ class ClassEditViewModelTest {
         val start = Instant.parse("2026-06-15T07:00:00Z")
         val id = env.fixtures.storedClass(
                 studentId = studentId, subjectId = subjectId, startMillis = start.toEpochMilli(),
-                durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = "SCHEDULED",
+                durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED,
             )
         val vm = vm(id)
         advanceUntilIdle()
@@ -828,8 +828,8 @@ class ClassEditViewModelTest {
         assertEquals(subjectId, saved.subjectId)
         assertEquals(90, saved.durationMinutes)
         assertEquals(Money.ofMajor(30).minor, saved.priceMinor)
-        assertEquals("SCHEDULED", saved.status)
-        assertEquals("REMOTE", saved.mode)
+        assertEquals(LessonStatus.SCHEDULED, saved.status)
+        assertEquals(ClassMode.REMOTE, saved.mode)
     }
 
     /**
@@ -1371,7 +1371,7 @@ class ClassEditViewModelTest {
         val start = Instant.parse("2026-06-15T07:00:00Z")
         val id = env.fixtures.storedClass(
                 studentId = studentId, subjectId = subjectId, startMillis = start.toEpochMilli(),
-                durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = "SCHEDULED",
+                durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED,
             )
         val vm = vm(id)
         observing(vm.state)
@@ -1392,7 +1392,7 @@ class ClassEditViewModelTest {
         val id = env.fixtures.storedClass(
                 studentId = studentId, subjectId = subjectId, startMillis = past.toEpochMilli(),
                 durationMinutes = 60, priceMinor = Money.ofMajor(30).minor,
-                status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor,
+                status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor,
             )
         val vm = vm(id)
         observing(vm.state)
@@ -1404,7 +1404,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         val saved = env.classDao.items.value.single { it.id == id }
-        assertEquals("SCHEDULED", saved.status)
+        assertEquals(LessonStatus.SCHEDULED, saved.status)
         assertEquals(0L, saved.chargeMinor)
         // Still one row — an edit is an in-place update, never a duplicate insert.
         assertEquals(1, env.classDao.items.value.size)
@@ -1841,7 +1841,7 @@ class ClassEditViewModelTest {
         val id = env.fixtures.storedClass(
                 studentId = studentId, subjectId = subjectId, startMillis = past.toEpochMilli(),
                 durationMinutes = 60, priceMinor = Money.ofMajor(30).minor,
-                status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor,
+                status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor,
             )
         val vm = vm(id)
         observing(vm.state)
@@ -1857,7 +1857,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         val saved = env.classDao.items.value.single { it.id == id }
-        assertEquals("COMPLETED", saved.status)
+        assertEquals(LessonStatus.COMPLETED, saved.status)
         assertEquals(Money.ofMajor(60).minor, saved.chargeMinor)
     }
 

@@ -151,12 +151,12 @@ class Fixtures(private val env: TestEnv) {
         subjectId: Long,
         startMillis: Long,
         durationMinutes: Int = 60,
-        status: String = LessonStatus.SCHEDULED.name,
-        state: String? = null,
+        status: LessonStatus = LessonStatus.SCHEDULED,
+        state: Attended? = null,
         priceMinor: Long = 0,
         chargeMinor: Long = 0,
         groupId: Long? = null,
-        mode: String = ClassMode.IN_PERSON.name,
+        mode: ClassMode = ClassMode.IN_PERSON,
         calendarEventId: String? = null,
         lessonId: Long = 0,
     ): Long {
@@ -186,10 +186,10 @@ class Fixtures(private val env: TestEnv) {
                 studentId = studentId,
                 // The attendance a status implies, so a test that only cares about the status does not
                 // have to know about attendance at all — and the pair still bills what it should.
-                state = state ?: if (status == LessonStatus.COMPLETED.name) {
-                    Attended.PRESENT.name
+                state = state ?: if (status == LessonStatus.COMPLETED) {
+                    Attended.PRESENT
                 } else {
-                    Attended.EXPECTED.name
+                    Attended.EXPECTED
                 },
                 priceMinor = priceMinor,
                 chargeMinor = chargeMinor,

@@ -1,5 +1,6 @@
 package com.seblful.klas.data.repository
 
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.testutil.TestEnv
@@ -18,7 +19,7 @@ class EnrollmentRepositoryTest {
     private suspend fun seedClass(studentId: Long, subjectId: Long) {
         env.fixtures.storedClass(
             studentId = studentId, subjectId = subjectId,
-            startMillis = 0, durationMinutes = 60, status = "COMPLETED",
+            startMillis = 0, durationMinutes = 60, status = LessonStatus.COMPLETED,
         )
     }
 

@@ -6,6 +6,7 @@ import com.seblful.klas.domain.Reminders
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.format.AppLocale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -34,7 +35,7 @@ data class AppSettings(
      *
      * Minutes rather than a `LocalTime`, because this is a stored column and `AppSettings` is the shape of
      * the row: an `Int` needs no converter and no total parse function on the way back (contrast
-     * `ClassStatus.parse`, which exists because a *name* can come back unreadable). The minutes are turned
+     * `EnumConverters`, which exists because a *name* can come back unreadable). The minutes are turned
      * into a wall-clock time by `domain/Digests`, which is also where "what if that time is already past
      * today" is answered.
      */
@@ -68,7 +69,7 @@ data class AppSettings(
      */
     val unfinishedMinuteOfDay: Int = 21 * 60,
     val autoCompleteEnabled: Boolean = false,
-    val themeMode: String = "SYSTEM",
+    val themeMode: ThemeChoice = ThemeChoice.SYSTEM,
     /**
      * Whether to take the colour scheme from the wallpaper instead of the app's own palette. Off by
      * default — see `SettingsEntity.dynamicColorEnabled` for why that is a decision and not a gap.
@@ -287,8 +288,8 @@ class SettingsRepository @Inject constructor(
             // The column's 0-means-not-set sentinel is spelled here, at the row's edge, once —
             // it used to be restated by every reader of the raw minor units.
             defaultGroupPrice = Money(defaultGroupPriceMinor).takeIf { defaultGroupPriceMinor != 0L },
-            currency = Currency.parse(currency),
-            language = AppLanguage.parse(language),
+            currency = currency,
+            language = language,
             lastExportAt = lastExportMillis?.let(Instant::ofEpochMilli),
         ),
     )
@@ -321,8 +322,8 @@ class SettingsRepository @Inject constructor(
         dynamicColorEnabled = dynamicColorEnabled,
         defaultLessonMinutes = defaultLessonMinutes,
         defaultGroupPriceMinor = defaultGroupPrice?.minor ?: 0,
-        currency = currency.name,
-        language = language.name,
+        currency = currency,
+        language = language,
         lastExportMillis = lastExportAt?.toEpochMilli(),
         // `SettingsEntity.showGroupsTab` is deliberately not set: nothing reads it any more (groups
         // and students share one tab now), and the column stays only because dropping it would mean

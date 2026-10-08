@@ -7,6 +7,7 @@ import com.seblful.klas.data.local.HomeworkEntity
 import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
@@ -21,10 +22,12 @@ import org.junit.Test
  * A backup whose rows cannot be read back is refused **before** anything is written.
  *
  * The bug these are about: the import writes entity rows verbatim, and the text columns holding an
- * enum are only interpreted later, on the read path, inside the `Flow`s the screens collect. A file
+ * enum were only interpreted later, on the read path, inside the `Flow`s the screens collect. A file
  * with an unknown status therefore imported cleanly and then broke every screen that lists a lesson —
  * permanently, because the bad row was now the saved data, and silently, because a dead collector
- * draws nothing rather than reporting anything.
+ * draws nothing rather than reporting anything. Those columns are typed now, so an unknown name is
+ * refused as the file is parsed; what is left for [BackupIntegrity] is what a type cannot say (a length,
+ * an amount, an owner).
  *
  * Most of these describe the **v1–v5 flat class** ([LegacyClass]), which is where a file this build has
  * to refuse is most likely to come from — those files are the ones already written. They are checked
@@ -36,8 +39,8 @@ class BackupIntegrityTest {
     private val validClass = LegacyClass(
         id = 1, studentId = 1, subjectId = 1,
         startMillis = 1_900_000_000_000, durationMinutes = 60,
-        priceMinor = 5000, status = LessonStatus.COMPLETED.name, chargeMinor = 5000,
-        mode = ClassMode.REMOTE.name,
+        priceMinor = 5000, status = LessonStatus.COMPLETED, chargeMinor = 5000,
+        mode = ClassMode.REMOTE,
     )
 
     private fun backup(
@@ -74,38 +77,12 @@ class BackupIntegrityTest {
             durationMinutes = 1,
             priceMinor = 0,
             chargeMinor = 0,
-            status = LessonStatus.SCHEDULED.name,
+            status = LessonStatus.SCHEDULED,
         )
         BackupIntegrity.check(backup(classes = listOf(odd)))
     }
 
     // --- What is refused --------------------------------------------------------------------------
-
-    @Test
-    fun `an unknown class status is refused, naming the row`() {
-        val refusal = refusalFor(backup(classes = listOf(validClass.copy(status = "MISSED"))))
-
-        assertTrue("refused", refusal != null)
-        assertTrue("says which row: ${refusal?.reason}", refusal!!.reason.contains("class 1"))
-        assertTrue("and what was wrong with it", refusal.reason.contains("MISSED"))
-    }
-
-    @Test
-    fun `an unknown class mode is refused`() {
-        assertTrue(refusalFor(backup(classes = listOf(validClass.copy(mode = "HYBRID")))) != null)
-    }
-
-    @Test
-    fun `an unknown student default mode is refused`() {
-        val students = listOf(StudentEntity(1, "Иван", defaultMode = "TELEPATHY"))
-        assertTrue(refusalFor(backup(students = students)) != null)
-    }
-
-    @Test
-    fun `an unknown group default mode is refused`() {
-        val groups = listOf(GroupEntity(1, "11 «А»", defaultMode = "HYBRID"))
-        assertTrue(refusalFor(backup(groups = groups)) != null)
-    }
 
     /**
      * A lesson of zero or negative length ends at or before it starts, so `Slot.overlaps` matches
@@ -118,19 +95,64 @@ class BackupIntegrityTest {
         assertTrue(refusalFor(backup(classes = listOf(validClass.copy(durationMinutes = -30)))) != null)
     }
 
-    // --- The v6 rows, checked as themselves --------------------------------------------------------
+    // --- An unknown enum name: refused as the file is parsed ---------------------------------------
+    //
+    // The rows' enum columns are typed, so a name no constant has cannot become a row at all, and the
+    // check above never sees one. What these pin is that the file is still refused — before anything is
+    // written, as the same failure the tutor was shown when the check found it — and that the refusal
+    // still says what was wrong. (Not *which row*: the decoder names the value and its enum, not the id
+    // the check used to quote. The tutor never saw either — `BackupFailure.Malformed` carries no text.)
+
+    private fun parseFailure(file: String): Throwable? =
+        runCatching { TestEnv().backupManager.parse(file) }.exceptionOrNull()
+
+    private fun assertRefusedAsMalformed(file: String, name: String) {
+        val error = parseFailure(file)
+        assertEquals("refused as a broken file: $error", BackupFailure.Malformed, error?.let(BackupFailure::of))
+        assertTrue("says what was wrong: ${error?.message}", error!!.message!!.contains("'$name'"))
+    }
+
+    private val legacyClassJson =
+        """"id": 1, "studentId": 1, "subjectId": 1, "startMillis": 1900000000000, "durationMinutes": 60"""
 
     @Test
-    fun `an unknown lesson status is refused, naming the lesson`() {
-        val data = BackupData(
-            lessons = listOf(LessonEntity(4, subjectId = 1, startMillis = 1L, durationMinutes = 60, status = "MISSED")),
+    fun `an unknown class status is refused, naming it`() {
+        assertRefusedAsMalformed(
+            """{"version": 5, "classes": [{$legacyClassJson, "status": "MISSED"}]}""",
+            name = "MISSED",
         )
+    }
 
-        val refusal = refusalFor(data)
+    @Test
+    fun `an unknown class mode is refused`() {
+        assertRefusedAsMalformed(
+            """{"version": 5, "classes": [{$legacyClassJson, "status": "COMPLETED", "mode": "HYBRID"}]}""",
+            name = "HYBRID",
+        )
+    }
 
-        assertTrue("refused", refusal != null)
-        assertTrue("says which row: ${refusal?.reason}", refusal!!.reason.contains("lesson 4"))
-        assertTrue(refusal.reason.contains("MISSED"))
+    @Test
+    fun `an unknown student default mode is refused`() {
+        assertRefusedAsMalformed(
+            """{"students": [{"id": 1, "name": "Иван", "defaultMode": "TELEPATHY"}]}""",
+            name = "TELEPATHY",
+        )
+    }
+
+    @Test
+    fun `an unknown group default mode is refused`() {
+        assertRefusedAsMalformed(
+            """{"groups": [{"id": 1, "name": "11 «А»", "defaultMode": "HYBRID"}]}""",
+            name = "HYBRID",
+        )
+    }
+
+    @Test
+    fun `an unknown lesson status is refused, naming it`() {
+        assertRefusedAsMalformed(
+            """{"lessons": [{"id": 4, "subjectId": 1, "startMillis": 1, "durationMinutes": 60, "status": "MISSED"}]}""",
+            name = "MISSED",
+        )
     }
 
     /**
@@ -138,26 +160,75 @@ class BackupIntegrityTest {
      * wrong: an attendance the app cannot read is a class it cannot decide whether to bill.
      */
     @Test
-    fun `an unknown attendance is refused, naming the class`() {
-        val data = BackupData(
-            lessons = listOf(
-                LessonEntity(4, subjectId = 1, startMillis = 1L, durationMinutes = 60, status = "COMPLETED"),
-            ),
-            attendance = listOf(AttendanceEntity(id = 9, lessonId = 4, studentId = 1, state = "PROBABLY")),
+    fun `an unknown attendance is refused, naming it`() {
+        assertRefusedAsMalformed(
+            """{"attendance": [{"id": 9, "lessonId": 4, "studentId": 1, "state": "PROBABLY"}]}""",
+            name = "PROBABLY",
+        )
+    }
+
+    /** Case matters, as it does to `LessonStatus.parse`: no build ever wrote a lower-case name. */
+    @Test
+    fun `a near-miss name is refused too`() {
+        assertRefusedAsMalformed(
+            """{"lessons": [{"id": 4, "subjectId": 1, "startMillis": 1, "durationMinutes": 60, "status": "completed"}]}""",
+            name = "completed",
+        )
+    }
+
+    /**
+     * Why the version is read before the rows. A later build that adds a status writes it into its files;
+     * decoding the rows first would call such a file broken, where the truth — and the advice the tutor
+     * needs — is that it is newer than this app.
+     */
+    @Test
+    fun `a newer file naming a status this build lacks is refused as newer, not as broken`() {
+        val newer = BackupData.CURRENT_VERSION + 1
+        val file = """
+            {"version": $newer,
+             "lessons": [{"id": 4, "subjectId": 1, "startMillis": 1, "durationMinutes": 60, "status": "MISSED"}]}
+        """.trimIndent()
+
+        val failure = parseFailure(file)?.let(BackupFailure::of)
+
+        assertEquals(BackupFailure.UnsupportedVersion(newer, BackupData.CURRENT_VERSION), failure)
+    }
+
+    /** A file of this build's version, or older, is parsed whole — the version only refuses what is newer. */
+    @Test
+    fun `a supported file with readable names parses`() {
+        val parsed = TestEnv().backupManager.parse(
+            """{"version": 5, "classes": [{$legacyClassJson, "status": "COMPLETED", "mode": "REMOTE"}]}""",
         )
 
-        val refusal = refusalFor(data)
-
-        assertTrue("refused", refusal != null)
-        assertTrue("says which row: ${refusal?.reason}", refusal!!.reason.contains("class 9"))
-        assertTrue(refusal.reason.contains("PROBABLY"))
+        assertEquals(listOf(validClass.copy(priceMinor = 0, chargeMinor = 0)), parsed.classes)
     }
+
+    @Test
+    fun `importing a file naming an unknown status changes nothing`() = runTest {
+        val env = TestEnv()
+        env.fixtures.subject("Физика")
+        val transactionsBefore = env.transactor.count
+
+        val failure = runCatching {
+            env.backupManager.importJson(
+                """{"version": 5, "subjects": [{"id": 1, "name": "Алгебра"}],
+                   "classes": [{$legacyClassJson, "status": "MISSED"}]}""",
+            )
+        }
+
+        assertEquals(BackupFailure.Malformed, failure.exceptionOrNull()?.let(BackupFailure::of))
+        assertEquals("no transaction was even opened", transactionsBefore, env.transactor.count)
+        assertEquals("the tutor's data is untouched", listOf("Физика"), env.subjectDao.items.value.map { it.name })
+    }
+
+    // --- The v6 rows, checked as themselves --------------------------------------------------------
 
     @Test
     fun `a v6 lesson of no length is refused`() {
         val data = BackupData(
             lessons = listOf(
-                LessonEntity(4, subjectId = 1, startMillis = 1L, durationMinutes = 0, status = "SCHEDULED"),
+                LessonEntity(4, subjectId = 1, startMillis = 1L, durationMinutes = 0, status = LessonStatus.SCHEDULED),
             ),
         )
         assertTrue(refusalFor(data) != null)
@@ -166,7 +237,7 @@ class BackupIntegrityTest {
     // --- Homework ---------------------------------------------------------------------------------
 
     private val taughtLesson =
-        LessonEntity(4, subjectId = 1, startMillis = 1L, durationMinutes = 60, status = "COMPLETED", homework = "§12")
+        LessonEntity(4, subjectId = 1, startMillis = 1L, durationMinutes = 60, status = LessonStatus.COMPLETED, homework = "§12")
 
     /**
      * A v8 file's verdict is only read as "it had one" — done, now — so a name this build never had cannot
@@ -179,8 +250,8 @@ class BackupIntegrityTest {
                 version = 8,
                 lessons = listOf(taughtLesson),
                 attendance = listOf(
-                    AttendanceEntity(9, 4, 1, state = "PRESENT"),
-                    AttendanceEntity(10, 4, 2, state = "PRESENT", homeworkResult = "EXCELLENT"),
+                    AttendanceEntity(9, 4, 1, state = Attended.PRESENT),
+                    AttendanceEntity(10, 4, 2, state = Attended.PRESENT, homeworkResult = "EXCELLENT"),
                 ),
             ),
         )
@@ -227,7 +298,7 @@ class BackupIntegrityTest {
         val bad = BackupData(
             subjects = listOf(SubjectEntity(1, "Алгебра")),
             students = listOf(StudentEntity(1, "Иван")),
-            classes = listOf(validClass.copy(status = "MISSED")),
+            classes = listOf(validClass.copy(durationMinutes = 0)),
         )
         val transactionsBefore = env.transactor.count
 
@@ -244,7 +315,7 @@ class BackupIntegrityTest {
      */
     @Test
     fun `an unreadable row classifies as malformed, not as an unreadable file`() {
-        val failure = BackupFailure.of(MalformedBackupException("class 1 has status \"MISSED\""))
+        val failure = BackupFailure.of(MalformedBackupException("lesson 1 lasts 0 minutes"))
 
         assertEquals(BackupFailure.Malformed, failure)
     }

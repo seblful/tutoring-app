@@ -5,6 +5,7 @@ import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.ReportCsv
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.format.AppLocale
 import com.seblful.klas.domain.ReportPeriod
 import com.seblful.klas.domain.Reports
@@ -86,7 +87,7 @@ class ReportsViewModelTest {
         groupId: Long? = null,
     ) = env.fixtures.storedClass(
             studentId = studentId, subjectId = subjectId, startMillis = millis, durationMinutes = 60,
-            status = "COMPLETED", chargeMinor = Money.ofMajor(major).minor, groupId = groupId,
+            status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(major).minor, groupId = groupId,
         )
 
     /**

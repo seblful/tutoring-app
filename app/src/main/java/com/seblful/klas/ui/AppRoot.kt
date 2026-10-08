@@ -33,6 +33,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.compose.runtime.CompositionLocalProvider
 import com.seblful.klas.domain.model.Currency
+import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.notifications.TrayNavigation
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.ProvideLocalizedResources
@@ -67,9 +68,9 @@ fun AppRoot(rootViewModel: RootViewModel = hiltViewModel()) {
     // `settings!!` what `settings == null` had just ruled out.
     val settings = rootViewModel.settings.collectAsState().value
 
-    // Reading the stored string is [ThemeChoice]'s; only resolving «follow the system» is this
-    // composable's, because that answer comes from the platform.
-    val darkTheme = when (ThemeChoice.parse(settings?.themeMode)) {
+    // A row that has not loaded follows the system, like a tutor who chose to; only resolving «follow
+    // the system» is this composable's, because that answer comes from the platform.
+    val darkTheme = when (settings?.themeMode ?: ThemeChoice.SYSTEM) {
         ThemeChoice.LIGHT -> false
         ThemeChoice.DARK -> true
         ThemeChoice.SYSTEM -> isSystemInDarkTheme()

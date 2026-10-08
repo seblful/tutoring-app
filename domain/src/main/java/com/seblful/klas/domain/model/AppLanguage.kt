@@ -6,7 +6,7 @@ import java.util.Locale
  * Which language the app speaks — chosen in Settings and in first-run setup, stored in the settings row.
  *
  * There are two translations ([RUSSIAN], [ENGLISH]) and a third answer that is not one of them: «follow
- * the phone». [SYSTEM] is a **real choice and the default**, the same shape [com.seblful.klas.ui.ThemeChoice]
+ * the phone». [SYSTEM] is a **real choice and the default**, the same shape [ThemeChoice]
  * has for light and dark, because a tutor who has set their phone to English has already said what
  * language they read software in and should not have to say it again. It is also the only answer that
  * stays right when they change their mind on the phone.

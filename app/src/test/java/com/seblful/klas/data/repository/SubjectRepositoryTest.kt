@@ -3,6 +3,7 @@ package com.seblful.klas.data.repository
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.Group
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
@@ -34,7 +35,7 @@ class SubjectRepositoryTest {
     fun `a subject with classes is refused`() = runTest {
         val student = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
-        env.fixtures.storedClass(studentId = student, subjectId = id, startMillis = 0, durationMinutes = 60, status = "COMPLETED")
+        env.fixtures.storedClass(studentId = student, subjectId = id, startMillis = 0, durationMinutes = 60, status = LessonStatus.COMPLETED)
 
         assertEquals(SubjectRepository.Delete.HasClasses, env.subjectRepo.delete(Subject(id = id, name = "Химия")))
         assertEquals("the subject is still there", 1, env.subjectDao.items.value.size)
@@ -85,7 +86,7 @@ class SubjectRepositoryTest {
     fun `classes are named ahead of a group when both block`() = runTest {
         val student = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
-        env.fixtures.storedClass(studentId = student, subjectId = id, startMillis = 0, durationMinutes = 60, status = "COMPLETED")
+        env.fixtures.storedClass(studentId = student, subjectId = id, startMillis = 0, durationMinutes = 60, status = LessonStatus.COMPLETED)
         env.groupRepo.save(Group(name = "Химия, 11 класс", subjectId = id, price = Money.ofMajor(20)), emptySet())
 
         assertEquals(

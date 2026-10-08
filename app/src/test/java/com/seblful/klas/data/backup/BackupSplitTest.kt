@@ -2,8 +2,8 @@ package com.seblful.klas.data.backup
 
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.testutil.TestEnv
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -43,7 +43,7 @@ class BackupSplitTest {
         startMillis = startMillis,
         durationMinutes = durationMinutes,
         priceMinor = priceMinor,
-        status = status.name,
+        status = status,
         chargeMinor = chargeMinor,
         groupId = groupId,
     )
@@ -75,13 +75,13 @@ class BackupSplitTest {
 
         assertEquals(1, lessons.size)
         assertEquals(5L, lessons.single().id)
-        assertEquals(LessonStatus.COMPLETED.name, lessons.single().status)
+        assertEquals(LessonStatus.COMPLETED, lessons.single().status)
         assertEquals(t0, lessons.single().startMillis)
         // The class's own id survives as its attendance id, so a calendar event or a charge still points
         // where it did; the row is tied to the lesson that its class became.
         assertEquals(5L, attendance.single().id)
         assertEquals(5L, attendance.single().lessonId)
-        assertEquals(Attended.PRESENT.name, attendance.single().state)
+        assertEquals(Attended.PRESENT, attendance.single().state)
         assertEquals(3_000_00L, attendance.single().chargeMinor)
     }
 
@@ -112,9 +112,9 @@ class BackupSplitTest {
             legacy(id = 2, studentId = 2, status = LessonStatus.SCHEDULED, groupId = 7),
         ).splitIntoLessons()
 
-        assertEquals(LessonStatus.SCHEDULED.name, lessons.single().status)
+        assertEquals(LessonStatus.SCHEDULED, lessons.single().status)
         assertEquals(
-            mapOf(1L to Attended.PRESENT.name, 2L to Attended.EXPECTED.name),
+            mapOf(1L to Attended.PRESENT, 2L to Attended.EXPECTED),
             attendance.associate { it.id to it.state },
         )
     }
@@ -128,9 +128,9 @@ class BackupSplitTest {
             legacy(id = 2, studentId = 2, status = LessonStatus.CANCELLED, groupId = 7),
         ).splitIntoLessons()
 
-        assertEquals(LessonStatus.COMPLETED.name, lessons.single().status)
+        assertEquals(LessonStatus.COMPLETED, lessons.single().status)
         assertEquals(
-            mapOf(1L to Attended.PRESENT.name, 2L to Attended.ABSENT.name),
+            mapOf(1L to Attended.PRESENT, 2L to Attended.ABSENT),
             attendance.associate { it.id to it.state },
         )
     }
@@ -144,8 +144,8 @@ class BackupSplitTest {
             legacy(id = 2, studentId = 2, status = LessonStatus.CANCELLED, groupId = 7),
         ).splitIntoLessons()
 
-        assertEquals(LessonStatus.CANCELLED.name, lessons.single().status)
-        assertTrue(attendance.all { it.state == Attended.EXPECTED.name })
+        assertEquals(LessonStatus.CANCELLED, lessons.single().status)
+        assertTrue(attendance.all { it.state == Attended.EXPECTED })
     }
 
     @Test
@@ -165,32 +165,21 @@ class BackupSplitTest {
         )
     }
 
+    /**
+     * The split used to have to survive a status it could not read — it runs inside `BackupIntegrity.check`,
+     * which then refused the file. A legacy class's status is typed now, so such a row never reaches it: the
+     * file is refused as it is parsed, and as the same failure the tutor was shown before.
+     */
     @Test
-    fun `an unreadable status is left for the integrity check to refuse, not crashed on`() {
-        // `splitIntoLessons` runs *inside* `BackupIntegrity.check`, so it has to survive the very row that
-        // check exists to reject: throwing here would report "wouldn't open" instead of naming the file.
-        val rows = listOf(
-            LegacyClass(
-                id = 1,
-                studentId = 1,
-                subjectId = 1,
-                startMillis = t0,
-                durationMinutes = 60,
-                status = "MISSED",
-            ),
-        )
+    fun `an unreadable status never reaches the split - the file is refused as it is parsed`() {
+        val file = """
+            {"version": 5, "classes": [{"id": 1, "studentId": 1, "subjectId": 1, "startMillis": $t0,
+              "durationMinutes": 60, "status": "MISSED"}]}
+        """.trimIndent()
 
-        val (lessons, attendance) = rows.splitIntoLessons()
+        val error = runCatching { TestEnv().backupManager.parse(file) }.exceptionOrNull()
 
-        // Which of the three it lands on is not a rule anybody relies on — the file is refused before a
-        // row of it is written. What is pinned here is that it lands somewhere readable rather than
-        // throwing, and that "unreadable" is not quietly read as one of the real statuses.
-        assertEquals(LessonStatus.SCHEDULED.name, lessons.single().status)
-        assertEquals(Attended.ABSENT.name, attendance.single().state)
-        // And the file is still refused, by the check that runs this very split on its way to deciding so.
-        assertThrows(MalformedBackupException::class.java) {
-            BackupIntegrity.check(BackupData(classes = rows))
-        }
+        assertEquals(BackupFailure.Malformed, error?.let(BackupFailure::of))
     }
 
     @Test

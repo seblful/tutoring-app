@@ -77,9 +77,9 @@ class AutoCompleteTest {
         db.snapshotDao().insert(
             DatabaseSnapshot(
                 lessons = listOf(
-                    LessonEntity(1, 1, start.toEpochMilli(), 60, LessonStatus.SCHEDULED.name),
+                    LessonEntity(1, 1, start.toEpochMilli(), 60, LessonStatus.SCHEDULED),
                 ),
-                attendance = listOf(AttendanceEntity(1, 1, 1, Attended.EXPECTED.name, priceMinor = 5000)),
+                attendance = listOf(AttendanceEntity(1, 1, 1, Attended.EXPECTED, priceMinor = 5000)),
             ),
         )
         val now = start.plusSeconds(2 * 3600)

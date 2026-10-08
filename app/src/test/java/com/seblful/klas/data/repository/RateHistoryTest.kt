@@ -5,6 +5,7 @@ import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.Group
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.testutil.TestEnv
@@ -188,7 +189,7 @@ class RateHistoryTest {
         env.enrollmentRepo.enroll(sid, subj, Money.ofMajor(30))
         env.fixtures.storedClass(
                 studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60,
-                status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor,
+                status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor,
             )
 
         assertEquals(EnrollmentRepository.Unenroll.HasClasses, env.enrollmentRepo.unenroll(sid, subj))

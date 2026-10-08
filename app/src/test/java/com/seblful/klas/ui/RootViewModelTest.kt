@@ -2,6 +2,7 @@ package com.seblful.klas.ui
 
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.data.repository.AppSettings
+import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
@@ -44,7 +45,7 @@ class RootViewModelTest {
 
     @Test
     fun `the stored settings arrive once the app is watching`() = runTest(mainRule.dispatcher) {
-        env.settingsRepo.update { it.copy(onboardingComplete = true, themeMode = "DARK", currency = Currency.RUB) }
+        env.settingsRepo.update { it.copy(onboardingComplete = true, themeMode = ThemeChoice.DARK, currency = Currency.RUB) }
 
         val vm = RootViewModel(env.settingsRepo, env.deviceLocales)
         observing(vm.settings)
@@ -52,7 +53,7 @@ class RootViewModelTest {
 
         val settings = vm.settings.value
         assertTrue("onboarding is done, so the tabs open", settings?.onboardingComplete == true)
-        assertEquals("DARK", settings?.themeMode)
+        assertEquals(ThemeChoice.DARK, settings?.themeMode)
         assertEquals(Currency.RUB, settings?.currency)
     }
 

@@ -5,6 +5,7 @@ import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.data.local.SettingsDao
 import com.seblful.klas.data.local.SettingsEntity
+import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.format.AppLocale
 import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.testutil.FakeSettingsDao
@@ -87,7 +88,7 @@ class SettingsRepositoryTest {
         // Anything at all — here the flag that ends first run, which is what «Пропустить» writes.
         repo.update { it.copy(onboardingComplete = true) }
 
-        assertEquals("EUR", dao.get()?.currency)
+        assertEquals(Currency.EUR, dao.get()?.currency)
     }
 
     /**
@@ -148,7 +149,7 @@ class SettingsRepositoryTest {
             onboardingComplete = true,
             reminderLeadMinutes = 15,
             autoCompleteEnabled = true,
-            themeMode = "DARK",
+            themeMode = ThemeChoice.DARK,
             dynamicColorEnabled = true,
             defaultLessonMinutes = 45,
             defaultGroupPrice = Money(2_500),
@@ -171,11 +172,11 @@ class SettingsRepositoryTest {
 
     @Test
     fun `observe emits the stored settings`() = runTest {
-        repo.update { it.copy(themeMode = "DARK", currency = Currency.RUB) }
+        repo.update { it.copy(themeMode = ThemeChoice.DARK, currency = Currency.RUB) }
 
         val observed = repo.observe().first()
 
-        assertEquals("DARK", observed.themeMode)
+        assertEquals(ThemeChoice.DARK, observed.themeMode)
         assertEquals(Currency.RUB, observed.currency)
     }
 
@@ -238,11 +239,11 @@ class SettingsRepositoryTest {
         val repo = SettingsRepository(dao, RussianMinskPhone)
 
         val enabling = launch { repo.update { it.copy(calendarSyncEnabled = true) } }
-        val theming = launch { repo.update { it.copy(themeMode = "DARK") } }
+        val theming = launch { repo.update { it.copy(themeMode = ThemeChoice.DARK) } }
         enabling.join()
         theming.join()
 
         assertTrue(repo.get().calendarSyncEnabled)
-        assertEquals("DARK", repo.get().themeMode)
+        assertEquals(ThemeChoice.DARK, repo.get().themeMode)
     }
 }

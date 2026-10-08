@@ -3,6 +3,7 @@ package com.seblful.klas.data.repository
 import com.seblful.klas.data.repository.SettingsChange.CalendarWork
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
+import com.seblful.klas.domain.model.ThemeChoice
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -87,7 +88,7 @@ class SettingsChangeTest {
     @Test
     fun `a change that moves nothing the world can see owes nothing`() {
         val c = change(
-            after = base.copy(themeMode = "DARK", currency = Currency.RUB, defaultLessonMinutes = 45),
+            after = base.copy(themeMode = ThemeChoice.DARK, currency = Currency.RUB, defaultLessonMinutes = 45),
         )
         assertEquals(CalendarWork.NONE, c.calendarWork)
         assertFalse(c.replansReminders)

@@ -17,6 +17,9 @@ import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.model.Attended
+import com.seblful.klas.domain.model.ClassMode
+import com.seblful.klas.domain.model.LessonStatus
 import kotlinx.coroutines.test.runTest
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -61,13 +64,13 @@ class BackupRoundTripTest {
             DatabaseSnapshot(
                 subjects = listOf(SubjectEntity(1, "Математика"), SubjectEntity(2, "Физика")),
                 students = listOf(
-                    StudentEntity(1, "Иван", phone = "+375291112233", note = "ОГЭ", defaultMode = "REMOTE"),
+                    StudentEntity(1, "Иван", phone = "+375291112233", note = "ОГЭ", defaultMode = ClassMode.REMOTE),
                     StudentEntity(2, "Мария", archived = true),
                 ),
                 studentSubjects = listOf(
                     StudentSubjectCrossRef(1, 1), StudentSubjectCrossRef(1, 2), StudentSubjectCrossRef(2, 1),
                 ),
-                groups = listOf(GroupEntity(7, "11 «А»", note = "вечер", defaultMode = "REMOTE")),
+                groups = listOf(GroupEntity(7, "11 «А»", note = "вечер", defaultMode = ClassMode.REMOTE)),
                 groupMembers = listOf(GroupMemberCrossRef(7, 1), GroupMemberCrossRef(7, 2)),
                 prices = listOf(PriceEntity(1, 1, 5000), PriceEntity(2, 1, 4550)),
                 // The rate log, in all three of its shapes: a student's price starting, that price
@@ -79,15 +82,15 @@ class BackupRoundTripTest {
                     RateChangeEntity(3, groupId = 7, toMinor = 2000, atMillis = null),
                 ),
                 lessons = listOf(
-                    LessonEntity(1, 1, 1_900_000_000_000, 90, "COMPLETED", groupId = 7, mode = "REMOTE"),
-                    LessonEntity(2, 1, 1_900_100_000_000, 60, "SCHEDULED"),
+                    LessonEntity(1, 1, 1_900_000_000_000, 90, LessonStatus.COMPLETED, groupId = 7, mode = ClassMode.REMOTE),
+                    LessonEntity(2, 1, 1_900_100_000_000, 60, LessonStatus.SCHEDULED),
                 ),
                 // The taught lesson with one of its two members absent: the pair of facts a pre-v6 file
                 // could not carry, and so the pair the round trip most needs to prove survives.
                 attendance = listOf(
-                    AttendanceEntity(1, 1, 1, "PRESENT", priceMinor = 5000, chargeMinor = 5000, calendarEventId = "evt-1"),
-                    AttendanceEntity(2, 1, 2, "ABSENT", priceMinor = 5000),
-                    AttendanceEntity(3, 2, 2, "EXPECTED"),
+                    AttendanceEntity(1, 1, 1, Attended.PRESENT, priceMinor = 5000, chargeMinor = 5000, calendarEventId = "evt-1"),
+                    AttendanceEntity(2, 1, 2, Attended.ABSENT, priceMinor = 5000),
+                    AttendanceEntity(3, 2, 2, Attended.EXPECTED),
                 ),
                 payments = listOf(PaymentEntity(1, 1, 1_899_000_000_000, 3000)),
             ),

@@ -3,6 +3,8 @@ package com.seblful.klas.data.backup
 import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.HomeworkEntity
 import com.seblful.klas.data.local.LessonEntity
+import com.seblful.klas.domain.model.Attended
+import com.seblful.klas.domain.model.LessonStatus
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -15,11 +17,11 @@ import org.junit.Test
  */
 class BackupLegacyHomeworkTest {
 
-    private fun lesson(id: Long, start: Long, homework: String, groupId: Long? = null, status: String = "COMPLETED") =
+    private fun lesson(id: Long, start: Long, homework: String, groupId: Long? = null, status: LessonStatus = LessonStatus.COMPLETED) =
         LessonEntity(id, subjectId = 1, startMillis = start, durationMinutes = 60, status = status, groupId = groupId, homework = homework)
 
     private fun member(id: Long, lessonId: Long, studentId: Long, verdict: String? = null) =
-        AttendanceEntity(id, lessonId, studentId, state = "PRESENT", homeworkResult = verdict)
+        AttendanceEntity(id, lessonId, studentId, state = Attended.PRESENT, homeworkResult = verdict)
 
     @Test
     fun `an individual lesson's homework becomes its student's, given at the lesson's start`() {
@@ -61,7 +63,7 @@ class BackupLegacyHomeworkTest {
     @Test
     fun `a lesson that set nothing, or was called off, gives no homework`() {
         val rows = legacyHomework(
-            listOf(lesson(4, 1_000, ""), lesson(5, 2_000, "§12", status = "CANCELLED")),
+            listOf(lesson(4, 1_000, ""), lesson(5, 2_000, "§12", status = LessonStatus.CANCELLED)),
             listOf(member(9, 4, 3, "DONE"), member(10, 5, 3)),
         )
 

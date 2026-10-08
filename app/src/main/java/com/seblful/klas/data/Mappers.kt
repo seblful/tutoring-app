@@ -11,9 +11,6 @@ import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.Assignee
-import com.seblful.klas.domain.model.Attended
-import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Money
@@ -26,45 +23,21 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import java.time.Instant
 
-/**
- * How the two text-stored enums come back, and what happens when the text is not one of their names.
- *
- * A column holding an enum's `name` is a column that can hold something else — a hand-edited database
- * is the only route left now that the backup import checks its rows (`BackupIntegrity`), but the read
- * path still has to answer. It runs inside the `Flow`s every screen collects, so *throwing* here does
- * not report an error to anybody: it kills the collector, and the screen simply never draws.
- *
- * So the two answers differ, by whether the column carries money:
- *
- * - **A mode does not.** It is a label and the calendar event's location, so an unreadable one falls
- *   back to [ClassMode.IN_PERSON] and the app carries on. One lesson reads «Очно» when it was remote,
- *   which is a wrong word on a screen rather than a screen that will not open.
- * - **A status does**, and so does an attendance: together they are what makes a lesson count as income
- *   (`TutoringClass.isBillable`), so guessing would move money — `SCHEDULED` un-bills a lesson that
- *   earned, `COMPLETED` invents one that did not, `ABSENT` writes off what a student owes. There is no
- *   safe fallback, so these fail — loudly and namedly, which is the best available outcome for a row that
- *   should be unreachable.
- */
-private fun modeOf(stored: String): ClassMode = ClassMode.parse(stored) ?: ClassMode.IN_PERSON
-
-private fun statusOf(stored: String, classId: Long): LessonStatus =
-    LessonStatus.parse(stored) ?: error("Class $classId has an unreadable lesson status \"$stored\"")
-
-private fun attendedOf(stored: String, classId: Long): Attended =
-    Attended.parse(stored) ?: error("Class $classId has an unreadable attendance \"$stored\"")
+// The enum columns arrive typed: reading a stored name, and what an unreadable one becomes, is
+// `data/local/EnumConverters`'s, once, rather than each mapper's.
 
 fun SubjectEntity.toDomain() = Subject(id = id, name = name)
 fun Subject.toEntity() = SubjectEntity(id = id, name = name)
 
 fun StudentEntity.toDomain() =
-    Student(id = id, name = name, phone = phone, email = email, note = note, defaultMode = modeOf(defaultMode), archived = archived)
+    Student(id = id, name = name, phone = phone, email = email, note = note, defaultMode = defaultMode, archived = archived)
 fun Student.toEntity() =
-    StudentEntity(id = id, name = name, phone = phone, email = email, note = note, defaultMode = defaultMode.name, archived = archived)
+    StudentEntity(id = id, name = name, phone = phone, email = email, note = note, defaultMode = defaultMode, archived = archived)
 
 fun GroupEntity.toDomain() =
-    Group(id = id, name = name, note = note, price = Money(priceMinor), subjectId = subjectId, defaultMode = modeOf(defaultMode), archived = archived)
+    Group(id = id, name = name, note = note, price = Money(priceMinor), subjectId = subjectId, defaultMode = defaultMode, archived = archived)
 fun Group.toEntity() =
-    GroupEntity(id = id, name = name, note = note, priceMinor = price.minor, subjectId = subjectId, defaultMode = defaultMode.name, archived = archived)
+    GroupEntity(id = id, name = name, note = note, priceMinor = price.minor, subjectId = subjectId, defaultMode = defaultMode, archived = archived)
 
 fun PriceEntity.toDomain() = Price(studentId = studentId, subjectId = subjectId, amount = Money(amountMinor))
 fun Price.toEntity() = PriceEntity(studentId = studentId, subjectId = subjectId, amountMinor = amount.minor)
@@ -112,11 +85,11 @@ fun ClassRow.toDomain() = TutoringClass(
     start = Instant.ofEpochMilli(startMillis),
     durationMinutes = durationMinutes,
     price = Money(priceMinor),
-    status = statusOf(status, id),
-    attended = attendedOf(state, id),
+    status = status,
+    attended = state,
     charge = Money(chargeMinor),
     groupId = groupId,
-    mode = modeOf(mode),
+    mode = mode,
     calendarEventId = calendarEventId,
 )
 
@@ -136,16 +109,16 @@ fun TutoringClass.toLessonEntity() = LessonEntity(
     subjectId = subjectId,
     startMillis = start.toEpochMilli(),
     durationMinutes = durationMinutes,
-    status = status.name,
+    status = status,
     groupId = groupId,
-    mode = mode.name,
+    mode = mode,
 )
 
 fun TutoringClass.toAttendanceEntity() = AttendanceEntity(
     id = id,
     lessonId = lessonId,
     studentId = studentId,
-    state = attended.name,
+    state = attended,
     priceMinor = price.minor,
     chargeMinor = charge.minor,
     calendarEventId = calendarEventId,

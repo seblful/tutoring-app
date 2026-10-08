@@ -14,6 +14,7 @@ import com.seblful.klas.domain.Scheduling
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassMode
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.testutil.MainDispatcherRule
@@ -92,9 +93,9 @@ class StudentDetailViewModelTest {
         val sid = seedStudent()
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         // Two completed classes (30 + 45) and one cancelled (ignored), minus a 50 payment.
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor)
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 90, status = "COMPLETED", chargeMinor = Money.ofMajor(45).minor)
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = "CANCELLED", chargeMinor = 0)
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor)
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 90, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(45).minor)
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = LessonStatus.CANCELLED, chargeMinor = 0)
         env.paymentRepo.restore(Payment(studentId = sid, date = Instant.ofEpochMilli(10), amount = Money.ofMajor(50)))
 
         val vm = vm(sid)
@@ -124,9 +125,9 @@ class StudentDetailViewModelTest {
     fun `the stat row counts completed lessons, their hours and their income`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent()
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor)
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 90, status = "COMPLETED", chargeMinor = Money.ofMajor(45).minor)
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = "SCHEDULED", chargeMinor = 0)
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor)
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 90, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(45).minor)
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = LessonStatus.SCHEDULED, chargeMinor = 0)
 
         val vm = vm(sid)
         observing(vm.state)
@@ -149,8 +150,8 @@ class StudentDetailViewModelTest {
         val sid = seedStudent()
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Биология"))
         val groupId = env.groupDao.upsert(GroupEntity(name = "11 «А»", subjectId = subj))
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor)
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 60, status = "COMPLETED", chargeMinor = Money.ofMajor(20).minor, groupId = groupId)
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor)
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 60, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(20).minor, groupId = groupId)
 
         val vm = vm(sid)
         observing(vm.state)
@@ -168,8 +169,8 @@ class StudentDetailViewModelTest {
     fun `the kind tally counts both kinds, and one kind alone offers no narrowing`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent()
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Биология"))
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor)
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 60, status = "SCHEDULED", chargeMinor = 0)
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor)
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 60, status = LessonStatus.SCHEDULED, chargeMinor = 0)
 
         val vm = vm(sid)
         observing(vm.state)
@@ -179,7 +180,7 @@ class StudentDetailViewModelTest {
         assertFalse("nothing to narrow", vm.state.current.hasBothKinds)
 
         val groupId = env.groupDao.upsert(GroupEntity(name = "11 «А»", subjectId = subj))
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = "SCHEDULED", chargeMinor = 0, groupId = groupId)
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = LessonStatus.SCHEDULED, chargeMinor = 0, groupId = groupId)
         runCurrent()
 
         assertEquals(
@@ -252,7 +253,7 @@ class StudentDetailViewModelTest {
         val math = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         env.studentDao.addSubjectLink(StudentSubjectCrossRef(sid, math))
         env.priceDao.upsert(PriceEntity(sid, math, Money.ofMajor(30).minor))
-        env.fixtures.storedClass(studentId = sid, subjectId = math, startMillis = 1, durationMinutes = 60, status = "COMPLETED", chargeMinor = Money.ofMajor(30).minor)
+        env.fixtures.storedClass(studentId = sid, subjectId = math, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor)
 
         val vm = vm(sid)
         val events = mutableListOf<StudentDetailViewModel.Event>()
@@ -381,7 +382,7 @@ class StudentDetailViewModelTest {
         assertEquals("Борис", updated.name)
         assertEquals("+375 29 1234567", updated.phone)
         assertEquals("e@x.co", updated.email)
-        assertEquals("REMOTE", updated.defaultMode)
+        assertEquals(ClassMode.REMOTE, updated.defaultMode)
     }
 
     /** The edit dialog opens on the dialling code; saved untouched, that is no phone, not «+375». */
@@ -500,16 +501,16 @@ class StudentDetailViewModelTest {
         val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
         val future = env.fixtures.storedClass(
                 studentId = sid, subjectId = subject, startMillis = 4_000_000_000_000,
-                durationMinutes = 60, status = "SCHEDULED", priceMinor = 3000,
+                durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
             )
         // A past lesson still merely planned is the one auto-complete is about to bill.
         val pastPlanned = env.fixtures.storedClass(
                 studentId = sid, subjectId = subject, startMillis = 1_000,
-                durationMinutes = 60, status = "SCHEDULED", priceMinor = 3000,
+                durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
             )
         val done = env.fixtures.storedClass(
                 studentId = sid, subjectId = subject, startMillis = 2_000,
-                durationMinutes = 60, status = "COMPLETED", priceMinor = 3000, chargeMinor = 3000,
+                durationMinutes = 60, status = LessonStatus.COMPLETED, priceMinor = 3000, chargeMinor = 3000,
             )
         val vm = vm(sid)
         observing(vm.state)
@@ -519,9 +520,9 @@ class StudentDetailViewModelTest {
         runCurrent()
 
         val byId = env.classDao.items.value.associateBy { it.id }
-        assertEquals("CANCELLED", byId.getValue(future).status)
-        assertEquals("a past lesson nobody confirmed is not about to become income", "CANCELLED", byId.getValue(pastPlanned).status)
-        assertEquals("what actually happened is history and stays", "COMPLETED", byId.getValue(done).status)
+        assertEquals(LessonStatus.CANCELLED, byId.getValue(future).status)
+        assertEquals("a past lesson nobody confirmed is not about to become income", LessonStatus.CANCELLED, byId.getValue(pastPlanned).status)
+        assertEquals("what actually happened is history and stays", LessonStatus.COMPLETED, byId.getValue(done).status)
         assertEquals("its income stays too", 3000, byId.getValue(done).chargeMinor)
         assertTrue(env.studentDao.getById(sid)!!.archived)
     }
@@ -532,7 +533,7 @@ class StudentDetailViewModelTest {
         val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
         env.fixtures.storedClass(
                 studentId = sid, subjectId = subject, startMillis = 4_000_000_000_000,
-                durationMinutes = 60, status = "SCHEDULED", priceMinor = 3000,
+                durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
             )
         val vm = vm(sid)
         observing(vm.state)
@@ -569,7 +570,7 @@ class StudentDetailViewModelTest {
         val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
         env.fixtures.storedClass(
                 studentId = sid, subjectId = subject, startMillis = 4_000_000_000_000,
-                durationMinutes = 60, status = "SCHEDULED", priceMinor = 3000,
+                durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
             )
         val vm = vm(sid)
         observing(vm.state)
@@ -581,7 +582,7 @@ class StudentDetailViewModelTest {
         runCurrent()
 
         assertFalse(env.studentDao.getById(sid)!!.archived)
-        assertEquals("CANCELLED", env.classDao.items.value.single().status)
+        assertEquals(LessonStatus.CANCELLED, env.classDao.items.value.single().status)
     }
 
     /** The freed hour really is free: a cancelled class gives its slot back. */
@@ -592,7 +593,7 @@ class StudentDetailViewModelTest {
         val at = 4_000_000_000_000
         env.fixtures.storedClass(
                 studentId = sid, subjectId = subject, startMillis = at,
-                durationMinutes = 60, status = "SCHEDULED", priceMinor = 3000,
+                durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
             )
         val vm = vm(sid)
         observing(vm.state)

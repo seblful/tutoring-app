@@ -7,6 +7,12 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.seblful.klas.domain.Reminders
+import com.seblful.klas.domain.model.AppLanguage
+import com.seblful.klas.domain.model.Attended
+import com.seblful.klas.domain.model.ClassMode
+import com.seblful.klas.domain.model.Currency
+import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.ThemeChoice
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -24,7 +30,7 @@ data class StudentEntity(
     val phone: String = "",
     val email: String = "",
     val note: String = "",
-    val defaultMode: String = "IN_PERSON",
+    val defaultMode: ClassMode = ClassMode.IN_PERSON,
     val archived: Boolean = false,
 )
 
@@ -87,7 +93,7 @@ data class GroupEntity(
     @ColumnInfo(defaultValue = "0")
     val priceMinor: Long = 0,
     /** Pre-fills the mode of a lesson booked for this group. */
-    val defaultMode: String = "IN_PERSON",
+    val defaultMode: ClassMode = ClassMode.IN_PERSON,
     val archived: Boolean = false,
 )
 
@@ -197,10 +203,10 @@ data class LessonEntity(
     val subjectId: Long,
     val startMillis: Long,
     val durationMinutes: Int,
-    val status: String,
+    val status: LessonStatus,
     /** The group whose lesson this is, or null for one student's. */
     val groupId: Long? = null,
-    val mode: String = "IN_PERSON",
+    val mode: ClassMode = ClassMode.IN_PERSON,
     /**
      * **Vestigial since v9 — always `''`, read by nothing.** It held the lesson's note (added by v7), which
      * the tutor stopped wanting; the v8 → v9 migration empties it. The column stays for the reason
@@ -245,7 +251,7 @@ data class AttendanceEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val lessonId: Long,
     val studentId: Long,
-    val state: String,
+    val state: Attended,
     /** The **hourly rate** this student was booked at, snapshotted so a later re-pricing cannot rewrite it. */
     val priceMinor: Long = 0,
     val chargeMinor: Long = 0,
@@ -349,12 +355,12 @@ data class ClassRow(
     val durationMinutes: Int,
     val priceMinor: Long = 0,
     /** The **lesson's** status — see [LessonEntity.status]. */
-    val status: String,
+    val status: LessonStatus,
     /** This student's attendance — see [AttendanceEntity.state]. */
-    val state: String = "EXPECTED",
+    val state: Attended = Attended.EXPECTED,
     val chargeMinor: Long = 0,
     val groupId: Long? = null,
-    val mode: String = "IN_PERSON",
+    val mode: ClassMode = ClassMode.IN_PERSON,
     val calendarEventId: String? = null,
 )
 
@@ -437,8 +443,7 @@ data class SettingsEntity(
      * the safe default is to have the tutor mark each lesson completed. Opt in via Settings.
      */
     val autoCompleteEnabled: Boolean = false,
-    /** "SYSTEM" | "LIGHT" | "DARK". */
-    val themeMode: String = "SYSTEM",
+    val themeMode: ThemeChoice = ThemeChoice.SYSTEM,
     /**
      * Whether the colour scheme is derived from the wallpaper (Material You) instead of the app's own
      * indigo and teal. **Off by default**, which is the decision rather than the absence of one: the
@@ -465,10 +470,10 @@ data class SettingsEntity(
      */
     @ColumnInfo(defaultValue = "0")
     val defaultGroupPriceMinor: Long = 0,
-    /** Currency code used to display all money — one of `Currency`'s names, e.g. "BYN" or "USD". */
-    val currency: String = "BYN",
+    /** Currency used to display all money, stored as its code, e.g. "BYN" or "USD". */
+    val currency: Currency = Currency.BYN,
     /**
-     * Which language the app is shown in: `AppLanguage`'s names — "SYSTEM" | "RUSSIAN" | "ENGLISH".
+     * Which language the app is shown in, stored as its name — "SYSTEM" | "RUSSIAN" | "ENGLISH".
      *
      * Added by the v5 → v6 migration, whose `DEFAULT 'SYSTEM'` this `defaultValue` must match exactly or
      * Room's schema validation fails the moment the upgrade finishes. The two agree on purpose, as
@@ -480,7 +485,7 @@ data class SettingsEntity(
      * phone's language.
      */
     @ColumnInfo(defaultValue = "SYSTEM")
-    val language: String = "SYSTEM",
+    val language: AppLanguage = AppLanguage.SYSTEM,
     /**
      * **Vestigial — written with its default, read by nothing.**
      *

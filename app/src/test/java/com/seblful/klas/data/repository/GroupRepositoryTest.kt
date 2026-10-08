@@ -5,6 +5,7 @@ import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Group
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -139,7 +140,7 @@ class GroupRepositoryTest {
         val id = repo.save(Group(name = "11 «А»"), setOf(ann)).id
         env.fixtures.storedClass(
                 studentId = ann, subjectId = subject, startMillis = 1, durationMinutes = 60,
-                status = "COMPLETED", groupId = id,
+                status = LessonStatus.COMPLETED, groupId = id,
             )
 
         assertFalse(repo.delete(repo.getById(id)!!))

@@ -119,7 +119,7 @@ class OnboardingViewModelTest {
         vm.complete()
         advanceUntilIdle()
 
-        assertEquals("EUR", env.settingsDao.row.value?.currency)
+        assertEquals(Currency.EUR, env.settingsDao.row.value?.currency)
         assertTrue(env.settingsRepo.get().onboardingComplete)
     }
 

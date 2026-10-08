@@ -109,11 +109,11 @@ class SubjectDeletionCascadeTest {
                 lessons = listOf(
                     LessonEntity(
                         1, 1, Instant.parse("2026-05-10T10:00:00Z").toEpochMilli(), 60,
-                        LessonStatus.COMPLETED.name,
+                        LessonStatus.COMPLETED,
                     ),
                 ),
                 attendance = listOf(
-                    AttendanceEntity(1, 1, 1, Attended.PRESENT.name, chargeMinor = 5000),
+                    AttendanceEntity(1, 1, 1, Attended.PRESENT, chargeMinor = 5000),
                 ),
                 payments = listOf(
                     PaymentEntity(1, 1, Instant.parse("2026-05-10T12:00:00Z").toEpochMilli(), amountMinor = 2000),

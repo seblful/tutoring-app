@@ -359,7 +359,7 @@ class ClassRepositoryTest {
                 subjectId = 1,
                 startMillis = defaultStart.toEpochMilli(),
                 durationMinutes = 0,
-                status = LessonStatus.CANCELLED.name,
+                status = LessonStatus.CANCELLED,
             )
 
         val outcome = repo.setStatus(session(id), LessonStatus.SCHEDULED)

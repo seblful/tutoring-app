@@ -2,6 +2,7 @@ package com.seblful.klas.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 
 @Database(
     entities = [
@@ -22,6 +23,8 @@ import androidx.room.RoomDatabase
     version = 9,
     exportSchema = true,
 )
+// Every enum column, written as the constant's name and read back totally — see [EnumConverters].
+@TypeConverters(EnumConverters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun subjectDao(): SubjectDao
     abstract fun studentDao(): StudentDao

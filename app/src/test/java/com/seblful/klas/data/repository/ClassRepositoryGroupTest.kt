@@ -509,7 +509,7 @@ class ClassRepositoryGroupTest {
         seed()
         val id = env.fixtures.storedClass(
                 studentId = ann, subjectId = algebra, startMillis = start.toEpochMilli(),
-                durationMinutes = 60, status = "SCHEDULED",
+                durationMinutes = 60, status = LessonStatus.SCHEDULED,
             )
 
         val session = repo.getSessionFor(id)!!

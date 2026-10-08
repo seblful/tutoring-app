@@ -226,14 +226,14 @@ class MappersTest {
 
         val lesson = c.toLessonEntity()
         assertEquals(4L, lesson.id)
-        assertEquals(LessonStatus.COMPLETED.name, lesson.status)
+        assertEquals(LessonStatus.COMPLETED, lesson.status)
         assertEquals(5L, lesson.groupId)
         assertEquals(90, lesson.durationMinutes)
 
         val attendance = c.toAttendanceEntity()
         assertEquals(9L, attendance.id)
         assertEquals(4L, attendance.lessonId)
-        assertEquals(Attended.PRESENT.name, attendance.state)
+        assertEquals(Attended.PRESENT, attendance.state)
         assertEquals(Money.ofMajor(30).minor, attendance.priceMinor)
         assertEquals(Money.ofMajor(45).minor, attendance.chargeMinor)
         assertEquals("evt-1", attendance.calendarEventId)
@@ -302,65 +302,5 @@ class MappersTest {
             columns,
             actual,
         )
-    }
-
-    // --- Reading text that is not one of the enum's names ------------------------------------------
-    // The mappers run inside the Flows every screen collects, so what they do with an unreadable
-    // column decides whether that screen draws at all. The two answers differ by whether the column
-    // carries money — see the KDoc on `modeOf`/`statusOf`.
-
-    /**
-     * A mode is a label and a calendar location, so an unreadable one costs a wrong word rather than a
-     * screen. The row is still read, which is what matters: the rest of the lesson is intact.
-     */
-    @Test
-    fun `an unreadable mode falls back to in person rather than failing the read`() {
-        val student = StudentEntity(1, "Иван", defaultMode = "TELEPATHY").toDomain()
-        assertEquals(ClassMode.IN_PERSON, student.defaultMode)
-        assertEquals("the rest of the row survives", "Иван", student.name)
-
-        val group = GroupEntity(1, "11 «А»", defaultMode = "HYBRID").toDomain()
-        assertEquals(ClassMode.IN_PERSON, group.defaultMode)
-
-        val klass = rejoin(
-            LessonEntity(1, 1, 1_900_000_000_000, 60, LessonStatus.SCHEDULED.name, mode = "HYBRID"),
-            AttendanceEntity(1, 1, 1, Attended.EXPECTED.name),
-        )
-        assertEquals(ClassMode.IN_PERSON, klass.mode)
-    }
-
-    /**
-     * A status is what makes a lesson count as income, so there is no fallback that doesn't move money:
-     * `SCHEDULED` un-bills a lesson that earned, `COMPLETED` invents one that didn't. It fails instead,
-     * naming the row — and the backup import now refuses such a file outright, so this should be
-     * unreachable from anything but a hand-edited database.
-     */
-    @Test
-    fun `an unreadable status fails the read, naming the class`() {
-        val failure = runCatching {
-            rejoin(
-                LessonEntity(7, 1, 1_900_000_000_000, 60, status = "MISSED"),
-                AttendanceEntity(42, 7, 1, Attended.EXPECTED.name),
-            )
-        }.exceptionOrNull()
-
-        assertTrue("it fails rather than guessing", failure is IllegalStateException)
-        assertTrue("and says which row: ${failure?.message}", failure!!.message!!.contains("42"))
-        assertTrue(failure.message!!.contains("MISSED"))
-    }
-
-    /** And so does an attendance, for the same reason: it is the other half of what bills. */
-    @Test
-    fun `an unreadable attendance fails the read, naming the class`() {
-        val failure = runCatching {
-            rejoin(
-                LessonEntity(7, 1, 1_900_000_000_000, 60, LessonStatus.COMPLETED.name),
-                AttendanceEntity(42, 7, 1, state = "PROBABLY"),
-            )
-        }.exceptionOrNull()
-
-        assertTrue("it fails rather than guessing", failure is IllegalStateException)
-        assertTrue("and says which row: ${failure?.message}", failure!!.message!!.contains("42"))
-        assertTrue(failure.message!!.contains("PROBABLY"))
     }
 }

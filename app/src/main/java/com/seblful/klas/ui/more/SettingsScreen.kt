@@ -51,6 +51,7 @@ import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.Digests
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.toAmountInput
 import androidx.compose.ui.unit.dp
@@ -501,12 +502,9 @@ private fun SettingsList(
         ChoiceRow(
             title = stringResource(R.string.settings_currency),
             // The legal set is [Currency]'s, not this screen's — the row only words it.
-            options = Currency.entries.map { it.name to currencyLabel(it) },
-            selected = settings.currency.name,
-            onSelect = { code ->
-                val picked = Currency.parse(code)
-                if (picked != settings.currency) onPickCurrency(picked)
-            },
+            options = Currency.entries.map { it to currencyLabel(it) },
+            selected = settings.currency,
+            onSelect = { picked -> if (picked != settings.currency) onPickCurrency(picked) },
         )
         // Free text rather than a segmented control: unlike a lesson length or a currency, there
         // is no shortlist of plausible amounts to offer.
@@ -529,19 +527,18 @@ private fun SettingsList(
         ChoiceRow(
             title = stringResource(R.string.settings_language),
             // The legal set is [AppLanguage]'s and the wording is [languageLabel]'s; the row only places it.
-            options = AppLanguage.entries.map { it.name to languageLabel(it) },
-            selected = settings.language.name,
-            onSelect = { name ->
-                val picked = AppLanguage.parse(name)
+            options = AppLanguage.entries.map { it to languageLabel(it) },
+            selected = settings.language,
+            onSelect = { picked ->
                 if (picked != settings.language) viewModel.update { it.copy(language = picked) }
             },
         )
         ChoiceRow(
             title = stringResource(R.string.settings_theme),
             options = listOf(
-                "SYSTEM" to stringResource(R.string.theme_system),
-                "LIGHT" to stringResource(R.string.theme_light),
-                "DARK" to stringResource(R.string.theme_dark),
+                ThemeChoice.SYSTEM to stringResource(R.string.theme_system),
+                ThemeChoice.LIGHT to stringResource(R.string.theme_light),
+                ThemeChoice.DARK to stringResource(R.string.theme_dark),
             ),
             selected = settings.themeMode,
             onSelect = { mode -> viewModel.update { it.copy(themeMode = mode) } },

@@ -312,13 +312,13 @@ class FakeClassDao(private val store: FakeClassStore) : ClassDao {
         items.value.filter { it.calendarEventId != null }
 
     override suspend fun scheduledForStudent(studentId: Long): List<ClassRow> =
-        items.value.filter { it.studentId == studentId && it.status == LessonStatus.SCHEDULED.name }
+        items.value.filter { it.studentId == studentId && it.status == LessonStatus.SCHEDULED }
 
     override suspend fun getSession(lessonId: Long): List<ClassRow> =
         items.value.filter { it.lessonId == lessonId }.sortedBy { it.id }
 
     override suspend fun nextScheduledAfter(nowMillis: Long): ClassRow? =
-        items.value.filter { it.status == LessonStatus.SCHEDULED.name && it.startMillis > nowMillis }
+        items.value.filter { it.status == LessonStatus.SCHEDULED && it.startMillis > nowMillis }
             .minByOrNull { it.startMillis }
 
     override suspend fun getAll(): List<ClassRow> = items.value
@@ -341,7 +341,7 @@ class FakeLessonDao(private val store: FakeClassStore) : LessonDao {
             ?: (l.startMillis + l.durationMinutes * 60_000L)
 
     override suspend fun dueForCompletion(nowMillis: Long): List<LessonEntity> =
-        items.value.filter { it.status == LessonStatus.SCHEDULED.name && endMillis(it) <= nowMillis }
+        items.value.filter { it.status == LessonStatus.SCHEDULED && endMillis(it) <= nowMillis }
 
     override suspend fun countForSubject(subjectId: Long): Int =
         items.value.count { it.subjectId == subjectId }

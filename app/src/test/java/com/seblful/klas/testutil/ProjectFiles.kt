@@ -7,8 +7,9 @@ import java.io.File
  *
  * The tripwires derive their expectations from a real build artifact rather than restating them, and so
  * have to read one off disk. They come in two kinds. Some read a **named** artifact:
- * `StoredEnumNamesTest` the DAO source (`@Query` is not retained at runtime), `MigrationChainTest`
- * `AppDatabase.kt` (`@Database` is `BINARY`-retained), both it and `BackupSchemaCoverageTest` the
+ * `StoredEnumNamesTest` the DAO source (`@Query` is not retained at runtime) and `AppDatabase.kt`'s
+ * converter registration (`@TypeConverters` is `BINARY`-retained), `MigrationChainTest`
+ * `AppDatabase.kt` (`@Database` is too), both it and `BackupSchemaCoverageTest` the
  * exported schema JSON, and `WholeTableWritesTest` the two DAO files a wipe may and may not appear in.
  * The rest **scan the tree** for something that must not reappear anywhere: `ReportsSurfaceTest` for the
  * app reaching past `Reports.of`, `ScreenStateSurfaceTest` for a hand-written sharing tail,

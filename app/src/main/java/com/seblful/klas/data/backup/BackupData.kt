@@ -13,6 +13,7 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.Attended
+import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import kotlinx.serialization.Serializable
 
@@ -20,6 +21,9 @@ import kotlinx.serialization.Serializable
  * One class as versions 1–5 wrote it: a row per student carrying the lesson's own facts alongside their
  * own. **Frozen.** It is the shape of files already on somebody's phone, so it can neither change nor go
  * away while those files are still meant to import — see [BackupData.classes] and [splitIntoLessons].
+ *
+ * [status] and [mode] are typed as the entities' are, which reads the same JSON: a name in, the constant
+ * out, and a name this build has no constant for refused as the file is parsed (see [BackupManager.parse]).
  */
 @Serializable
 data class LegacyClass(
@@ -29,10 +33,10 @@ data class LegacyClass(
     val startMillis: Long,
     val durationMinutes: Int,
     val priceMinor: Long = 0,
-    val status: String,
+    val status: LessonStatus,
     val chargeMinor: Long = 0,
     val groupId: Long? = null,
-    val mode: String = "IN_PERSON",
+    val mode: ClassMode = ClassMode.IN_PERSON,
     val calendarEventId: String? = null,
 )
 
@@ -134,7 +138,7 @@ fun List<LegacyClass>.splitIntoLessons(): Pair<List<LessonEntity>, List<Attendan
             subjectId = first.subjectId,
             startMillis = first.startMillis,
             durationMinutes = first.durationMinutes,
-            status = lessonStatusOf(members).name,
+            status = lessonStatusOf(members),
             groupId = first.groupId,
             mode = first.mode,
         )
@@ -147,7 +151,7 @@ fun List<LegacyClass>.splitIntoLessons(): Pair<List<LessonEntity>, List<Attendan
                 id = c.id,
                 lessonId = lessonId,
                 studentId = c.studentId,
-                state = attendedOf(c.status, lessonStatus).name,
+                state = attendedOf(c.status, lessonStatus),
                 priceMinor = c.priceMinor,
                 chargeMinor = c.chargeMinor,
                 calendarEventId = c.calendarEventId,
@@ -162,12 +166,10 @@ fun List<LegacyClass>.splitIntoLessons(): Pair<List<LessonEntity>, List<Attendan
  * [LessonStatus.PRECEDENCE], which is where that order is stated and pinned. It used to be
  * `entries.firstOrNull`, i.e. the order the constants happen to be declared in.
  *
- * An unreadable status counts as none of the three, and is left to `BackupIntegrity` to refuse — this
- * only has to not crash on it.
+ * `first` cannot miss: [members] is never empty, and each of them holds one of the three.
  */
 private fun lessonStatusOf(members: List<LegacyClass>): LessonStatus =
-    LessonStatus.PRECEDENCE.firstOrNull { status -> members.any { it.status == status.name } }
-        ?: LessonStatus.SCHEDULED
+    LessonStatus.PRECEDENCE.first { status -> members.any { it.status == status } }
 
 /**
  * A member's attendance, from their old status and their lesson's. Present if they were completed;
@@ -175,9 +177,9 @@ private fun lessonStatusOf(members: List<LegacyClass>): LessonStatus =
  * that did not happen; absent if their own class was cancelled inside a lesson that went ahead, which is
  * exactly the correction the old model could only express that way.
  */
-private fun attendedOf(stored: String, lesson: LessonStatus): Attended = when {
-    stored == LessonStatus.COMPLETED.name -> Attended.PRESENT
-    stored == LessonStatus.SCHEDULED.name -> Attended.EXPECTED
+private fun attendedOf(own: LessonStatus, lesson: LessonStatus): Attended = when {
+    own == LessonStatus.COMPLETED -> Attended.PRESENT
+    own == LessonStatus.SCHEDULED -> Attended.EXPECTED
     lesson == LessonStatus.CANCELLED -> Attended.EXPECTED
     else -> Attended.ABSENT
 }
@@ -229,7 +231,7 @@ fun BackupData.toSnapshot(): DatabaseSnapshot {
 fun legacyHomework(lessons: List<LessonEntity>, attendance: List<AttendanceEntity>): List<HomeworkEntity> {
     val members = attendance.groupBy { it.lessonId }
     return lessons
-        .filter { it.homework.isNotEmpty() && it.status != LessonStatus.CANCELLED.name }
+        .filter { it.homework.isNotEmpty() && it.status != LessonStatus.CANCELLED }
         .sortedBy { it.startMillis }
         .flatMap { lesson ->
             val rows = members[lesson.id].orEmpty()

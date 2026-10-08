@@ -27,8 +27,8 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` (`:domain` module) | Pure Kotlin, no Android deps (compiler-enforced): billing, class/group rules, scheduling, recurrence, calendar policy, reminders, `LessonPhase`, `HomeworkRules`, `Digests`, reports, search, formatting-adjacent models (`Balance`, `Currency`, `AppLanguage`). All JVM-tested. |
-| `data/local/` | Room entities, DAOs, `AppDatabase`, `Migrations`, `Transactor` port. `SnapshotDao` is the separate whole-table seam. |
+| `domain/` (`:domain` module) | Pure Kotlin, no Android deps (compiler-enforced): billing, class/group rules, scheduling, recurrence, calendar policy, reminders, `LessonPhase`, `HomeworkRules`, `Digests`, reports, search, formatting-adjacent models (`Balance`, `Currency`, `AppLanguage`, `ThemeChoice`). All JVM-tested. |
+| `data/local/` | Room entities, DAOs, `AppDatabase`, `Migrations`, `EnumConverters`, `Transactor` port. `SnapshotDao` is the separate whole-table seam. |
 | `data/Mappers.kt` | Entities ⇄ domain models. |
 | `data/repository/` | One invariant each, end to end, one transaction (see [Who owns each rule](#who-owns-each-rule)). |
 | `data/backup/` | File format: export, transactional replace-all import, integrity/failure classification, restore. |

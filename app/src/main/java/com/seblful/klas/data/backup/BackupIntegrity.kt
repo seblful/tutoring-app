@@ -5,10 +5,6 @@ import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.HomeworkEntity
 import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.RateChangeEntity
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.domain.model.Attended
-import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 
 /**
@@ -22,13 +18,13 @@ class MalformedBackupException(val reason: String) :
 /**
  * What a parsed [BackupData] has to be true of before a single row of it is written.
  *
- * **Why this exists at all.** The entities store an enum as *text* and a duration as a bare `Int`, and
- * the import writes them verbatim — it deserializes rows, it never interprets them. The interpreting
- * happens much later, on the **read** path, in `data/Mappers.kt`, inside the `Flow`s the screens
- * collect. So a file carrying `"status": "MISSED"`, or a lesson of zero minutes, used to import
- * *successfully* and then break the app: every read of that row threw, the schedule and the reports
- * could not be drawn, and no amount of reopening helped because the bad row was now the saved data.
- * The tutor's own backup had become the thing that broke the app, with nothing on screen to say so.
+ * **Why this exists at all.** The import writes rows verbatim — it deserializes them, it never
+ * interprets them. The interpreting happens much later, on the **read** path, inside the `Flow`s the
+ * screens collect. So a file carrying a lesson of zero minutes, or (before the entities' enum columns were
+ * typed) `"status": "MISSED"`, used to import *successfully* and then break the app: every read of that
+ * row threw, the schedule and the reports could not be drawn, and no amount of reopening helped because
+ * the bad row was now the saved data. The tutor's own backup had become the thing that broke the app,
+ * with nothing on screen to say so.
  *
  * Checking here turns that into an ordinary refusal. It has to happen **before** the transaction
  * rather than inside it, because "the import threw halfway and rolled back" is the same outcome only
@@ -36,7 +32,9 @@ class MalformedBackupException(val reason: String) :
  * whatever the first bad row happened to throw.
  *
  * What is checked is exactly the set of columns that a read can *fail* on, no more: this is not a
- * validator for plausible data. A backup is allowed to be strange (a lesson at 4 a.m., a rate of 0, a
+ * validator for plausible data. **An enum column is not among them**: it is typed, so a name this build
+ * has no constant for is refused as the file is parsed (`BackupManager.parse` — classified as
+ * [BackupFailure.Malformed] all the same), and no row that reaches this check can hold one. A backup is allowed to be strange (a lesson at 4 a.m., a rate of 0, a
  * student with no subjects); it is not allowed to be unreadable. Referential integrity is left to the
  * database's own foreign keys, which the import's transaction already enforces.
  *
@@ -52,11 +50,9 @@ object BackupIntegrity {
         // A v1-v5 file carries its lessons flat, and they are checked as they will be read: through the
         // split, so one function answers for both shapes rather than a copy of it answering for the old.
         data.classes.splitIntoLessons().let { (lessons, attendance) ->
-            data.classes.forEach { checkLegacyClass(it) }
             lessons.forEach { checkLesson(it) }
             attendance.forEach { checkAttendance(it) }
         }
-        data.students.forEach { checkStudent(it) }
         data.groups.forEach { checkGroup(it) }
         data.prices.forEach { checkAmount(it.amountMinor, "price for student ${it.studentId}") }
         data.payments.forEach { checkAmount(it.amountMinor, "payment ${it.id}") }
@@ -65,12 +61,6 @@ object BackupIntegrity {
     }
 
     private fun checkLesson(l: LessonEntity) {
-        if (LessonStatus.parse(l.status) == null) {
-            refuse("lesson ${l.id} has status \"${l.status}\"")
-        }
-        if (ClassMode.parse(l.mode) == null) {
-            refuse("lesson ${l.id} has mode \"${l.mode}\"")
-        }
         // A non-positive duration makes a lesson end at or before it starts, which silently disables
         // the overlap check that stops two lessons sharing an hour — see `Scheduling.Slot`.
         if (l.durationMinutes <= 0) {
@@ -79,35 +69,11 @@ object BackupIntegrity {
     }
 
     private fun checkAttendance(a: AttendanceEntity) {
-        if (Attended.parse(a.state) == null) {
-            refuse("class ${a.id} has attendance \"${a.state}\"")
-        }
         checkAmount(a.priceMinor, "class ${a.id}'s rate")
         checkAmount(a.chargeMinor, "class ${a.id}'s charge")
     }
 
-    /**
-     * The one thing an old flat class is checked for that the split cannot answer: its status has to be
-     * readable *as its own*. The split reads a lesson's status off the members that agree with one of the
-     * three and falls back to scheduled, so a member carrying `"MISSED"` would otherwise pass into a
-     * lesson that looks fine — and arrive as attendance the app cannot explain.
-     */
-    private fun checkLegacyClass(c: LegacyClass) {
-        if (LessonStatus.parse(c.status) == null) {
-            refuse("class ${c.id} has status \"${c.status}\"")
-        }
-    }
-
-    private fun checkStudent(s: StudentEntity) {
-        if (ClassMode.parse(s.defaultMode) == null) {
-            refuse("student ${s.id} has default mode \"${s.defaultMode}\"")
-        }
-    }
-
     private fun checkGroup(g: GroupEntity) {
-        if (ClassMode.parse(g.defaultMode) == null) {
-            refuse("group ${g.id} has default mode \"${g.defaultMode}\"")
-        }
         checkAmount(g.priceMinor, "group ${g.id}'s rate")
     }
 
@@ -122,7 +88,7 @@ object BackupIntegrity {
      * student. A negative amount is refused for the same reason from the other direction — the money
      * fields reject one, so a stored one can only have come from a hand-edited or corrupt file.
      *
-     * It belongs here with the enum and duration checks because it is the same kind of fact: a column
+     * It belongs here with the duration check because it is the same kind of fact: a column
      * this build cannot make sense of, caught before it becomes the saved data.
      */
     private fun checkAmount(minor: Long, what: String) {
