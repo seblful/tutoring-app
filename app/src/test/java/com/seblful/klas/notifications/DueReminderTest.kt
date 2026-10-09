@@ -10,16 +10,21 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Instant
 
 /**
  * What a reminder does when it comes due. All of this used to sit inside `ReminderWorker`, where it
  * could only be reached from a device — so none of it was tested at any level.
  */
+@RunWith(RobolectricTestRunner::class)
 class DueReminderTest {
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val notifier = RecordingNotifier()
 
     private val due = DueReminder(
@@ -132,16 +137,19 @@ class DueReminderTest {
         assertTrue(notifier.posted.isEmpty())
     }
 
+    /**
+     * This used to post a reminder for a class whose student row was missing — a state only the old
+     * in-memory fake DAOs could hold. The database refuses it: attendance names its student by a
+     * `RESTRICT` foreign key, so a class cannot be written for a student who does not exist, nor can a
+     * student with classes be deleted. That refusal is what lets a reminder always name somebody.
+     */
     @Test
-    fun `an unknown student still gets a reminder, with time and subject only`() = runTest {
+    fun `a class cannot name a student who does not exist, so a reminder always has someone to name`() = runTest {
         val subj = subject("Физика")
-        // A class whose student row is missing — the reminder is still worth posting.
-        val id = scheduledClass(studentId = 999, subjectId = subj)
 
-        assertTrue(due.post(id, now))
+        val refused = runCatching { scheduledClass(studentId = 999, subjectId = subj) }.exceptionOrNull()
 
-        val posted = notifier.posted.single()
-        assertEquals("", posted.whoName)
-        assertEquals("Физика", posted.subjectName)
+        assertTrue("refused by the foreign key: $refused", refused?.message.orEmpty().contains("FOREIGN KEY"))
+        assertTrue("no class to remind about", env.classes().isEmpty())
     }
 }

@@ -5,11 +5,14 @@ import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Instant
 
 /**
- * What `replace` means, against the fakes — because the word is the whole guarantee a restore rests on.
+ * What `replace` means — because the word is the whole guarantee a restore rests on.
  *
  * The instrumented round-trip proves an import into an **empty** database reproduces the file. That is
  * the easy direction, and it is silent about the one that can go wrong: restoring onto a phone that
@@ -17,34 +20,32 @@ import java.time.Instant
  * every subject twice, or a primary-key collision, depending on the ids in the file. Nothing in the
  * suite noticed the wipe missing, so this is here to.
  */
+@RunWith(RobolectricTestRunner::class)
 class SnapshotDaoTest {
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
 
-    private suspend fun seedALesson(
-        subject: String,
-        student: String,
-        start: Instant = Instant.parse("2026-05-04T10:00:00Z"),
-    ) {
-        val subjectId = env.fixtures.subject(subject)
-        val studentId = env.fixtures.pricedStudent(student, subjectId)
-        env.fixtures.completedLesson(
+    private suspend fun seedALesson(subject: String, student: String, into: TestEnv = env) {
+        val subjectId = into.fixtures.subject(subject)
+        val studentId = into.fixtures.pricedStudent(student, subjectId)
+        into.fixtures.completedLesson(
             subjectId = subjectId,
             students = listOf(studentId),
-            start = start,
+            start = Instant.parse("2026-05-04T10:00:00Z"),
             rate = Money.ofMajor(30),
         )
     }
 
     @Test
     fun `replace throws away what was there rather than merging into it`() = runTest {
-        seedALesson("Алгебра", "Аня")
-        val taken = env.snapshotDao.read()
-        // A different database entirely: same shape, none of the same rows. Its lesson takes its
-        // own hour — the repository seeding goes through holds one lesson at a time.
-        env.subjectDao.items.value = emptyList()
-        env.studentDao.items.value = emptyList()
-        seedALesson("Физика", "Борис", start = Instant.parse("2026-05-04T13:00:00Z"))
+        // Taken from a different database entirely: same shape, none of the same rows — but the same
+        // ids, so a `replace` that merged would collide on every primary key rather than pass quietly.
+        val taken = TestEnv().use { other ->
+            seedALesson("Алгебра", "Аня", into = other)
+            other.snapshotDao.read()
+        }
+        seedALesson("Физика", "Борис")
 
         env.snapshotDao.replace(taken)
 

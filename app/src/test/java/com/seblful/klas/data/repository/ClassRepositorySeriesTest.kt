@@ -11,7 +11,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -26,15 +30,25 @@ import java.time.ZoneId
  * every lesson written is an ordinary lesson afterwards.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class ClassRepositorySeriesTest {
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val repo = env.classRepo
 
     private val zone: ZoneId = ZoneId.of("Europe/Minsk")
     private val firstDay: LocalDate = LocalDate.parse("2026-09-07")
     private val atFour: LocalTime = LocalTime.of(16, 0)
     private val rate = Money.ofMajor(30)
+
+    /** The subject and the two students the writes below name by id — the database refuses phantoms. */
+    @Before
+    fun seed() = runTest {
+        check(env.fixtures.subject() == SUBJECT)
+        check(env.fixtures.student() == STUDENT)
+        check(env.fixtures.student("Боря") == OTHER)
+    }
 
     private fun weekly(count: Int): List<Instant> =
         Recurrence.startsFor(firstDay, atFour, Repeat.WEEKLY, count, zone)

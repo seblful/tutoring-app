@@ -13,7 +13,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Instant
 
 /**
@@ -28,9 +31,11 @@ import java.time.Instant
  * The first four tests below are that defect, one per way in.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class CalendarMirrorTest {
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
 
     private val start: Instant = Instant.parse("2026-06-20T10:00:00Z")
 

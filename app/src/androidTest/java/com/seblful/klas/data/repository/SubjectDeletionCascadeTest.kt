@@ -41,8 +41,8 @@ import org.junit.runner.RunWith
 import java.time.Instant
 
 /**
- * What a subject's deletion is allowed to take with it, against a real database — the foreign keys
- * being the point, and the fake DAOs having none.
+ * What a subject's deletion is allowed to take with it, against the platform's own SQLite — the foreign
+ * keys being the point.
  *
  * Deleting a subject used to CASCADE-delete its classes — including COMPLETED ones (earned income) —
  * while payments survived, flipping an owing student into a false credit. [SubjectRepository.delete]

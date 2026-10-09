@@ -12,14 +12,18 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class GroupsViewModelTest {
 
     @get:Rule
     val mainRule = MainDispatcherRule()
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
 
     private fun vm() = GroupsViewModel(env.groupRepo, env.studentRepo, env.subjectRepo, mainRule.dispatcher)
 

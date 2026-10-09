@@ -5,7 +5,10 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.testutil.TestEnv
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * Splitting a v1–v5 file's flat `classes` list into `lessons` + `attendance` — the test `splitIntoLessons`
@@ -23,7 +26,11 @@ import org.junit.Test
  * is *scheduled* — the hour has not happened — and reading it the other way round recognises income the
  * app never earned, silently, on the one path a tutor reaches for after losing a phone.
  */
+@RunWith(RobolectricTestRunner::class)
 class BackupSplitTest {
+
+    @get:Rule
+    val env = TestEnv()
 
     private val t0 = 1_760_000_000_000L
 
@@ -177,7 +184,7 @@ class BackupSplitTest {
               "durationMinutes": 60, "status": "MISSED"}]}
         """.trimIndent()
 
-        val error = runCatching { TestEnv().backupManager.parse(file) }.exceptionOrNull()
+        val error = runCatching { env.backupManager.parse(file) }.exceptionOrNull()
 
         assertEquals(BackupFailure.Malformed, error?.let(BackupFailure::of))
     }

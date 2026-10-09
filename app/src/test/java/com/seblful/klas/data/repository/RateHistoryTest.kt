@@ -1,9 +1,8 @@
 package com.seblful.klas.data.repository
 
 import com.seblful.klas.data.local.PriceEntity
+import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.RateChangeEntity
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
@@ -16,7 +15,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * The rate log, through the two repositories that actually set a rate.
@@ -25,16 +27,23 @@ import org.junit.Test
  * routinely handed an amount that hasn't moved, so a log that recorded every save would bury the
  * changes the tutor came to read under "25 → 25" rows.
  */
+@RunWith(RobolectricTestRunner::class)
 class RateHistoryTest {
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val history = env.rateHistoryRepo
 
-    private suspend fun student(name: String = "Аня"): Long =
-        env.studentDao.upsert(StudentEntity(name = name))
+    private suspend fun student(name: String = "Аня"): Long = env.fixtures.student(name)
 
-    private suspend fun subject(name: String = "Алгебра"): Long =
-        env.subjectDao.upsert(SubjectEntity(name = name))
+    private suspend fun subject(name: String = "Алгебра"): Long = env.fixtures.subject(name)
+
+    /**
+     * A group whose rate log is still empty — written straight to the table, because the repository logs
+     * a group's opening rate as it creates it, and the tests of the rule itself need the log to start
+     * from nothing. It has to exist all the same: a rate change names its group by foreign key.
+     */
+    private suspend fun unloggedGroup(): Long = env.groupDao.upsert(GroupEntity(name = "11 «А»"))
 
     private suspend fun changesFor(studentId: Long, subjectId: Long) =
         history.observeFor(RateOwner.StudentSubject(studentId, subjectId)).first()
@@ -43,14 +52,14 @@ class RateHistoryTest {
 
     @Test
     fun `an unchanged rate is not logged`() = runTest {
-        val owner = RateOwner.GroupRate(1)
+        val owner = RateOwner.GroupRate(unloggedGroup())
         assertFalse(history.record(owner, from = Money.ofMajor(25), to = Money.ofMajor(25)))
         assertTrue(history.observeFor(owner).first().isEmpty())
     }
 
     @Test
     fun `a first-ever rate is logged as the start of the history, not as a change`() = runTest {
-        val owner = RateOwner.GroupRate(1)
+        val owner = RateOwner.GroupRate(unloggedGroup())
         assertTrue(history.record(owner, from = null, to = Money.ofMajor(25)))
 
         val change = history.observeFor(owner).first().single()
@@ -61,7 +70,7 @@ class RateHistoryTest {
 
     @Test
     fun `changes come back newest first`() = runTest {
-        val owner = RateOwner.GroupRate(1)
+        val owner = RateOwner.GroupRate(unloggedGroup())
         history.record(owner, null, Money.ofMajor(20), at = Instant.ofEpochMilli(1_000))
         history.record(owner, Money.ofMajor(20), Money.ofMajor(25), at = Instant.ofEpochMilli(2_000))
         history.record(owner, Money.ofMajor(25), Money.ofMajor(30), at = Instant.ofEpochMilli(3_000))
@@ -79,9 +88,9 @@ class RateHistoryTest {
      */
     @Test
     fun `a rate that predates the log sorts below the dated changes`() = runTest {
-        val owner = RateOwner.GroupRate(1)
+        val owner = RateOwner.GroupRate(unloggedGroup())
         env.rateHistoryDao.insert(
-            RateChangeEntity(groupId = 1, toMinor = 2000, atMillis = null),
+            RateChangeEntity(groupId = owner.groupId, toMinor = 2000, atMillis = null),
         )
         history.record(owner, Money.ofMajor(20), Money.ofMajor(25), at = Instant.ofEpochMilli(2_000))
 
@@ -94,11 +103,12 @@ class RateHistoryTest {
     fun `a group's log and a student's log do not bleed into each other`() = runTest {
         val sid = student()
         val subj = subject()
+        val group = RateOwner.GroupRate(unloggedGroup())
         history.record(RateOwner.StudentSubject(sid, subj), null, Money.ofMajor(40))
-        history.record(RateOwner.GroupRate(1), null, Money.ofMajor(25))
+        history.record(group, null, Money.ofMajor(25))
 
         assertEquals(Money.ofMajor(40), changesFor(sid, subj).single().to)
-        assertEquals(Money.ofMajor(25), history.observeFor(RateOwner.GroupRate(1)).first().single().to)
+        assertEquals(Money.ofMajor(25), history.observeFor(group).first().single().to)
     }
 
     // ---- through EnrollmentRepository ----------------------------------------------------------

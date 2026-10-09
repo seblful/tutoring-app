@@ -36,6 +36,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * **Never `advanceUntilIdle()` here**: the report's "today" is `Clock.days()`, which sleeps until the next
@@ -43,12 +45,14 @@ import org.junit.Test
  * advanced by stated amounts.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class ReportsViewModelTest {
 
     @get:Rule
     val mainRule = MainDispatcherRule()
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val zone: ZoneId = ZoneId.of("Europe/Minsk")
 
     /**

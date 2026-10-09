@@ -2,6 +2,7 @@ package com.seblful.klas.ui.backup
 
 import com.seblful.klas.data.backup.BackupData
 import com.seblful.klas.data.backup.BackupFailure
+import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.testutil.FakeDocumentStore
@@ -18,6 +19,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -31,12 +34,14 @@ import java.time.ZoneId
  * neither.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class BackupViewModelTest {
 
     @get:Rule
     val mainRule = MainDispatcherRule()
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val documents = FakeDocumentStore()
     private val ref = DocumentRef("content://backup.json")
 
@@ -211,7 +216,8 @@ class BackupViewModelTest {
             val vm = vm()
             env.studentDao.upsert(StudentEntity(name = "Аня"))
             documents.docs[ref.value] = env.backupManager.exportJson()
-            env.studentDao.items.value = emptyList()
+            // Then the phone is emptied, so whatever comes back came from the file.
+            env.snapshotDao.replace(DatabaseSnapshot())
             var received: BackupResult? = null
             val job = backgroundScope.launch { vm.events.stream.collect { received = it } }
 
@@ -220,7 +226,7 @@ class BackupViewModelTest {
             job.cancel()
 
             assertEquals(BackupResult.ImportOk, received)
-            assertEquals(listOf("Аня"), env.studentDao.items.value.map { it.name })
+            assertEquals(listOf("Аня"), env.stored().students.map { it.name })
             assertTrue(env.settingsRepo.get().onboardingComplete)
         }
 }

@@ -17,14 +17,18 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class StudentFormViewModelTest {
 
     @get:Rule
     val mainRule = MainDispatcherRule()
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
 
     private fun vm() = StudentFormViewModel(env.subjectRepo, env.enrollmentRepo, mainRule.appScope, mainRule.dispatcher)
 
@@ -123,7 +127,7 @@ class StudentFormViewModelTest {
         vm.save { done = true }
 
         assertTrue(done)
-        val student = env.studentDao.items.value.single()
+        val student = env.stored().students.single()
         assertEquals("Аня", student.name)
         assertEquals("a@b.co", student.email)
         assertEquals("+375 29", student.phone)
@@ -146,7 +150,7 @@ class StudentFormViewModelTest {
         vm.addSubject("  Физика ")
         advanceUntilIdle()
 
-        val physics = env.subjectDao.items.value.single()
+        val physics = env.stored().subjects.single()
         assertEquals("Физика", physics.name)
         assertEquals(setOf(physics.id), vm.state.value.selectedSubjectIds)
         assertEquals(listOf("Физика"), vm.state.value.allSubjects.valueOrNull()?.map { it.name })
@@ -163,7 +167,7 @@ class StudentFormViewModelTest {
         vm.addSubject("математика")
         advanceUntilIdle()
 
-        assertEquals(1, env.subjectDao.items.value.size)
+        assertEquals(1, env.stored().subjects.size)
         assertEquals(setOf(math), vm.state.value.selectedSubjectIds)
     }
 
@@ -175,7 +179,7 @@ class StudentFormViewModelTest {
         vm.addSubject("   ")
         advanceUntilIdle()
 
-        assertTrue(env.subjectDao.items.value.isEmpty())
+        assertTrue(env.stored().subjects.isEmpty())
     }
 
     @Test
@@ -193,7 +197,7 @@ class StudentFormViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, saved)
-        assertEquals(1, env.studentDao.items.value.size)
+        assertEquals(1, env.stored().students.size)
     }
 
     /** The form opens on the dialling code; a student saved without a number has none, not «+375». */
@@ -209,7 +213,7 @@ class StudentFormViewModelTest {
         vm.save {}
         advanceUntilIdle()
 
-        assertEquals("", env.studentDao.items.value.single().phone)
+        assertEquals("", env.stored().students.single().phone)
     }
 
     /**
@@ -258,10 +262,10 @@ class StudentFormViewModelTest {
 
         assertTrue(done)
         assertEquals("one flat transaction, not one per table", 1, env.transactor.count - before)
-        assertEquals(1, env.studentDao.items.value.size)
-        val studentId = env.studentDao.items.value.single().id
-        assertEquals(listOf(mathId), env.studentDao.links.value.filter { it.studentId == studentId }.map { it.subjectId })
-        assertEquals(Money.ofMajor(30).minor, env.priceDao.items.value.single().amountMinor)
+        assertEquals(1, env.stored().students.size)
+        val studentId = env.stored().students.single().id
+        assertEquals(listOf(mathId), env.stored().studentSubjects.filter { it.studentId == studentId }.map { it.subjectId })
+        assertEquals(Money.ofMajor(30).minor, env.stored().prices.single().amountMinor)
     }
 
     @Test
@@ -300,8 +304,8 @@ class StudentFormViewModelTest {
         // Whatever the screen does next, the student and their price are already the scope's business.
         advanceUntilIdle()
 
-        assertEquals(1, env.studentDao.items.value.size)
-        assertEquals(1, env.priceDao.items.value.size)
+        assertEquals(1, env.stored().students.size)
+        assertEquals(1, env.stored().prices.size)
     }
 
     @Test
@@ -316,7 +320,7 @@ class StudentFormViewModelTest {
         vm.save { done = true }
 
         assertFalse(done)
-        assertTrue(env.studentDao.items.value.isEmpty())
-        assertNull(env.priceDao.items.value.firstOrNull())
+        assertTrue(env.stored().students.isEmpty())
+        assertNull(env.stored().prices.firstOrNull())
     }
 }

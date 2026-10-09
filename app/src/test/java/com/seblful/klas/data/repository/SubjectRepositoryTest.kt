@@ -12,23 +12,28 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * What stops a subject being deleted. Both refusals exist because the database would otherwise decide
  * the matter itself — `classes.subjectId` cascades and `student_groups.subjectId` restricts — and
  * neither of those answers reaches the tutor as anything but lost history or a crash.
  */
+@RunWith(RobolectricTestRunner::class)
 class SubjectRepositoryTest {
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
 
     @Test
     fun `an unreferenced subject is deleted`() = runTest {
         val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
 
         assertEquals(SubjectRepository.Delete.Ok, env.subjectRepo.delete(Subject(id = id, name = "Химия")))
-        assertTrue(env.subjectDao.items.value.isEmpty())
+        assertTrue(env.stored().subjects.isEmpty())
     }
 
     @Test
@@ -38,7 +43,7 @@ class SubjectRepositoryTest {
         env.fixtures.storedClass(studentId = student, subjectId = id, startMillis = 0, durationMinutes = 60, status = LessonStatus.COMPLETED)
 
         assertEquals(SubjectRepository.Delete.HasClasses, env.subjectRepo.delete(Subject(id = id, name = "Химия")))
-        assertEquals("the subject is still there", 1, env.subjectDao.items.value.size)
+        assertEquals("the subject is still there", 1, env.stored().subjects.size)
     }
 
     /**
@@ -57,7 +62,7 @@ class SubjectRepositoryTest {
             SubjectRepository.Delete.TaughtToGroup,
             env.subjectRepo.delete(Subject(id = id, name = "Химия")),
         )
-        assertEquals("the subject is still there", 1, env.subjectDao.items.value.size)
+        assertEquals("the subject is still there", 1, env.stored().subjects.size)
     }
 
     /**
@@ -73,8 +78,8 @@ class SubjectRepositoryTest {
             SubjectRepository.Delete.TakenByStudents,
             env.subjectRepo.delete(Subject(id = id, name = "Физика")),
         )
-        assertEquals("the subject is still there", 1, env.subjectDao.items.value.size)
-        assertEquals("and still priced", 1, env.priceDao.items.value.size)
+        assertEquals("the subject is still there", 1, env.stored().subjects.size)
+        assertEquals("and still priced", 1, env.stored().prices.size)
     }
 
     /**
@@ -102,7 +107,7 @@ class SubjectRepositoryTest {
         env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), emptySet())
 
         assertEquals(SubjectRepository.Delete.Ok, env.subjectRepo.delete(Subject(id = id, name = "Химия")))
-        assertTrue(env.subjectDao.items.value.isEmpty())
+        assertTrue(env.stored().subjects.isEmpty())
     }
 
     /** The check and the write share one transaction, so a double tap cannot run two checks first. */
@@ -112,7 +117,7 @@ class SubjectRepositoryTest {
         val before = env.transactor.count
 
         assertFalse(env.subjectRepo.saveUnlessTaken(Subject(name = " математика ")))
-        assertEquals(1, env.subjectDao.items.value.size)
+        assertEquals(1, env.stored().subjects.size)
         assertEquals(before + 1, env.transactor.count)
     }
 
@@ -121,6 +126,6 @@ class SubjectRepositoryTest {
         val id = env.fixtures.subject("Химия")
 
         assertTrue(env.subjectRepo.saveUnlessTaken(Subject(id = id, name = "химия")))
-        assertEquals("химия", env.subjectDao.items.value.single().name)
+        assertEquals("химия", env.stored().subjects.single().name)
     }
 }

@@ -22,6 +22,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Duration
 import java.time.Instant
 
@@ -31,12 +33,14 @@ import java.time.Instant
  * is advanced by stated amounts.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class GroupDetailViewModelTest {
 
     @get:Rule
     val mainRule = MainDispatcherRule()
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val fixtures get() = env.fixtures
 
     /** The group's rate throughout, so a lesson's charge is this scaled by its duration. */

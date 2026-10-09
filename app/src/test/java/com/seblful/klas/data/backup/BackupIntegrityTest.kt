@@ -14,7 +14,10 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * A backup whose rows cannot be read back is refused **before** anything is written.
@@ -32,7 +35,11 @@ import org.junit.Test
  * through the same split that would import them, so the two shapes cannot disagree about what is
  * readable; the v6 rows are checked directly, below.
  */
+@RunWith(RobolectricTestRunner::class)
 class BackupIntegrityTest {
+
+    @get:Rule
+    val env = TestEnv()
 
     private val validClass = LegacyClass(
         id = 1, studentId = 1, subjectId = 1,
@@ -102,7 +109,7 @@ class BackupIntegrityTest {
     // the check used to quote. The tutor never saw either — `BackupFailure.Malformed` carries no text.)
 
     private fun parseFailure(file: String): Throwable? =
-        runCatching { TestEnv().backupManager.parse(file) }.exceptionOrNull()
+        runCatching { env.backupManager.parse(file) }.exceptionOrNull()
 
     private fun assertRefusedAsMalformed(file: String, name: String) {
         val error = parseFailure(file)
@@ -195,7 +202,7 @@ class BackupIntegrityTest {
     /** A file of this build's version, or older, is parsed whole — the version only refuses what is newer. */
     @Test
     fun `a supported file with readable names parses`() {
-        val parsed = TestEnv().backupManager.parse(
+        val parsed = env.backupManager.parse(
             """{"version": 5, "classes": [{$legacyClassJson, "status": "COMPLETED", "mode": "REMOTE"}]}""",
         )
 
@@ -204,7 +211,6 @@ class BackupIntegrityTest {
 
     @Test
     fun `importing a file naming an unknown status changes nothing`() = runTest {
-        val env = TestEnv()
         env.fixtures.subject("Физика")
         val transactionsBefore = env.transactor.count
 
@@ -217,7 +223,7 @@ class BackupIntegrityTest {
 
         assertEquals(BackupFailure.Malformed, failure.exceptionOrNull()?.let(BackupFailure::of))
         assertEquals("no transaction was even opened", transactionsBefore, env.transactor.count)
-        assertEquals("the tutor's data is untouched", listOf("Физика"), env.subjectDao.items.value.map { it.name })
+        assertEquals("the tutor's data is untouched", listOf("Физика"), env.stored().subjects.map { it.name })
     }
 
     // --- The v6 rows, checked as themselves --------------------------------------------------------
@@ -291,7 +297,6 @@ class BackupIntegrityTest {
      */
     @Test
     fun `importing a file with an unreadable row changes nothing`() = runTest {
-        val env = TestEnv()
         env.subjectDao.upsert(SubjectEntity(7, "Физика"))
         val bad = BackupData(
             subjects = listOf(SubjectEntity(1, "Алгебра")),
@@ -304,7 +309,7 @@ class BackupIntegrityTest {
 
         assertTrue(failure.isFailure)
         assertEquals("no transaction was even opened", transactionsBefore, env.transactor.count)
-        assertEquals("the tutor's data is untouched", listOf("Физика"), env.subjectDao.items.value.map { it.name })
+        assertEquals("the tutor's data is untouched", listOf("Физика"), env.stored().subjects.map { it.name })
     }
 
     /**

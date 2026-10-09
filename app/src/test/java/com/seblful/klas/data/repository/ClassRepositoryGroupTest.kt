@@ -17,7 +17,10 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Instant
 
 /**
@@ -25,9 +28,11 @@ import java.time.Instant
  * moved and re-billed together, with the calendar mirrored per class and reminders refreshed once.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class ClassRepositoryGroupTest {
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val repo = env.classRepo
 
     private val start = Instant.parse("2026-09-01T09:00:00Z")
@@ -114,7 +119,7 @@ class ClassRepositoryGroupTest {
             "a lesson with nobody in it bills no one, got $failure",
             failure is IllegalArgumentException,
         )
-        assertTrue(env.classDao.items.value.isEmpty())
+        assertTrue(env.classes().isEmpty())
     }
 
     @Test
@@ -245,7 +250,7 @@ class ClassRepositoryGroupTest {
         )
         assertTrue(after.classes.all { it.durationMinutes == 90 && it.mode == ClassMode.REMOTE })
         // An edit updates rows in place — income can't be double-counted.
-        assertEquals(2, env.classDao.items.value.size)
+        assertEquals(2, env.classes().size)
     }
 
     @Test
@@ -325,7 +330,7 @@ class ClassRepositoryGroupTest {
         val after = repo.getSessionFor(ids.first())!!
         assertEquals("only Ann is left in the lesson", listOf(ann), after.classes.map { it.studentId })
         // The row is gone, not cancelled: they were never in the lesson, rather than having missed it.
-        assertEquals(1, env.classDao.items.value.size)
+        assertEquals(1, env.classes().size)
         assertTrue(env.calendar.deletes.contains(bobsEvent))
     }
 
@@ -347,7 +352,7 @@ class ClassRepositoryGroupTest {
         assertEquals(listOf(ann), after.classes.map { it.studentId })
         // Ann's own charge is untouched — the correction was about who was there, not about the rate.
         assertEquals(groupRate, after.classes.single().charge)
-        assertTrue("Bob has no class left to bill", env.classDao.items.value.none { it.studentId == bob })
+        assertTrue("Bob has no class left to bill", env.classes().none { it.studentId == bob })
     }
 
     @Test
@@ -420,7 +425,7 @@ class ClassRepositoryGroupTest {
         ).written()
 
         assertEquals(listOf(bob), written.map { it.studentId })
-        assertEquals("Ann's class went, Bob's arrived", 1, env.classDao.items.value.size)
+        assertEquals("Ann's class went, Bob's arrived", 1, env.classes().size)
         // Still one lesson of the group's, reachable from the class that now stands for it.
         val after = repo.getSessionFor(written.single().id)!!
         assertEquals(groupId, after.groupId)
@@ -488,7 +493,7 @@ class ClassRepositoryGroupTest {
 
         val after = repo.getSessionFor(ids.first())!!
         assertEquals(setOf(ann, bob), after.classes.map { it.studentId }.toSet())
-        assertEquals(2, env.classDao.items.value.size)
+        assertEquals(2, env.classes().size)
     }
 
     @Test
@@ -500,7 +505,7 @@ class ClassRepositoryGroupTest {
 
         repo.delete(repo.getSessionFor(ids.first())!!)
 
-        assertTrue(env.classDao.items.value.isEmpty())
+        assertTrue(env.classes().isEmpty())
         assertEquals(eventIds.toSet(), env.calendar.deletes.toSet())
     }
 
@@ -527,6 +532,6 @@ class ClassRepositoryGroupTest {
 
         assertEquals(setOf(start), repo.getSessionFor(first.first())!!.classes.map { it.start }.toSet())
         assertEquals(2, repo.getSessionFor(later.first())!!.size)
-        assertEquals(4, env.classDao.items.value.size)
+        assertEquals(4, env.classes().size)
     }
 }

@@ -9,8 +9,18 @@ Where a test goes in Klas, and what the test setup expects. Commands and what CI
   only, no fixtures, fakes or project files. A test that needs any of those is not a domain test and
   goes in `app`.
 - **`app/src/test`** (`:app:testDebugUnitTest`, ~85 classes): backup format, view models, repository side
-  effects, mappers, formatters — against in-memory fake DAOs. `isReturnDefaultValues` is off (a test
-  needing Android has found a missing port). Seed through `testutil/Fixtures`, never DAOs directly.
+  effects, mappers, formatters. `isReturnDefaultValues` is off (a test needing Android has found a missing
+  port). Seed through `testutil/Fixtures`, never DAOs directly (`DirectSeedingRatchetTest` counts the
+  exceptions).
+- **Repository, backup and view-model tests run on the real database.** `testutil/TestDatabase` opens the
+  production `AppDatabase` in memory (schema, converters, foreign keys, cascades) on the bundled SQLite
+  driver, under `RobolectricTestRunner` for the `Context`; `TestEnv` wires the real repositories on it and
+  is a `@get:Rule`, so the database closes after each test. Every write goes through the real
+  `RoomTransactor`, counted by `RecordingTransactor`, whose `failAt` makes a transaction fail to commit
+  and roll back. Queries run inline (`Dispatchers.Unconfined`), so a write and the `Flow`s it invalidates
+  have settled when it returns and `advanceUntilIdle()` stays the only clock. Only the device ports
+  (calendar, notifier, permissions, schedulers, clock) are doubles; there are no fake DAOs. Rows must
+  exist before something names them — a test that books for subject `1` seeds subject `1` first.
 - A handful of tripwire tests guard silent drift by deriving expectations from a real artifact rather than
   restating them (schema coverage, enum names, whole-table writes, screen-state/shell surface rules,
   migration chain wiring, the view each step leaves and the tables it rebuilds). `MigrationChainTest` is

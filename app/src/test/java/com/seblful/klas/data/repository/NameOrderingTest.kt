@@ -7,16 +7,21 @@ import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
- * Name ordering as the UI receives it. The fake DAOs return rows unordered on purpose, so what these
- * assert is the repositories' own use of `format/NameOrder` — the single place the order is decided,
- * on the device and here alike.
+ * Name ordering as the UI receives it, over the real queries — whose own order is SQLite's, and SQLite
+ * folds case for ASCII only. So what these assert is the repositories' own use of `format/NameOrder`,
+ * the single place the order is decided, on the device and here alike.
  */
+@RunWith(RobolectricTestRunner::class)
 class NameOrderingTest {
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
 
     @Test
     fun `subjects come out in reader order, whatever order they were added in`() = runTest {

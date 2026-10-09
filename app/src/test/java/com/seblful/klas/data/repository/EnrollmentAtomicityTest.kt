@@ -9,7 +9,10 @@ import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Instant
 
 /**
@@ -20,12 +23,18 @@ import java.time.Instant
  * problem, but it was never the only one. `EnrollmentRepository` exists to keep a subject link and its
  * price in step across three tables, and `GroupRepository.save` is the only writer of membership — for
  * both, a write that stopped halfway would break precisely the invariant the class was written to
- * hold. The fake DAOs cannot roll back, so what is asserted is the transaction *count* and, where the
- * repository reports an outcome, that a failed write reports it as a failure rather than a success.
+ * hold. So what is asserted is the transaction *count*, that a failed write reports itself as a failure
+ * rather than a success, and that it left nothing behind — the database rolls it back, as a phone's would.
  */
+@RunWith(RobolectricTestRunner::class)
 class EnrollmentAtomicityTest {
 
-    private class Fixture(val env: TestEnv = TestEnv()) {
+    @get:Rule
+    val env = TestEnv()
+
+    private inner class Fixture {
+        val env: TestEnv get() = this@EnrollmentAtomicityTest.env
+
         var ivan = 0L
         var algebra = 0L
         var physics = 0L
@@ -70,7 +79,7 @@ class EnrollmentAtomicityTest {
         assertEquals("no nesting", 1, f.env.transactor.maxDepth)
         // And it really did both halves, so the transaction isn't wrapping a no-op.
         assertEquals(listOf(f.physics), f.env.studentDao.getSubjectIds(f.ivan))
-        assertEquals(listOf(f.physics), f.env.priceDao.items.value.map { it.subjectId })
+        assertEquals(listOf(f.physics), f.env.stored().prices.map { it.subjectId })
     }
 
     @Test
@@ -83,7 +92,7 @@ class EnrollmentAtomicityTest {
         f.env.enrollmentRepo.reprice(f.ivan, f.algebra, Money.ofMajor(35))
 
         assertEquals("a rate never changes without its log", 1, f.env.transactor.count - before)
-        assertEquals(2, f.env.rateHistoryDao.items.value.size) // the initial rate, then the change
+        assertEquals(2, f.env.stored().rateHistory.size) // the initial rate, then the change
     }
 
     @Test
@@ -98,7 +107,7 @@ class EnrollmentAtomicityTest {
         assertEquals(EnrollmentRepository.Unenroll.Ok, outcome)
         assertEquals(1, f.env.transactor.count - before)
         assertEquals(emptyList<Long>(), f.env.studentDao.getSubjectIds(f.ivan))
-        assertEquals(emptyList<Any>(), f.env.rateHistoryDao.items.value)
+        assertEquals(emptyList<Any>(), f.env.stored().rateHistory)
     }
 
     /**
@@ -136,6 +145,9 @@ class EnrollmentAtomicityTest {
         val failure = runCatching { f.env.enrollmentRepo.enroll(f.ivan, f.algebra, Money.ofMajor(30)) }
 
         assertTrue("the caller has to hear about it", failure.isFailure)
+        val stored = f.env.stored()
+        assertEquals("no link without its price", emptyList<Any>(), stored.studentSubjects)
+        assertEquals("no price without its link", emptyList<Any>(), stored.prices)
     }
 
     // --- Groups: the row, its rate log and the whole roster --------------------------------------
@@ -189,7 +201,7 @@ class EnrollmentAtomicityTest {
         f.env.groupRepo.save(Group(id = id, name = "11 «А»", price = Money.ofMajor(25)), emptySet())
 
         assertEquals(1, f.env.transactor.count - before)
-        assertEquals("the rise is logged", 2, f.env.rateHistoryDao.items.value.size)
+        assertEquals("the rise is logged", 2, f.env.stored().rateHistory.size)
     }
 
     @Test
@@ -204,5 +216,9 @@ class EnrollmentAtomicityTest {
         }
 
         assertTrue("a half-saved group must not read as a saved one", failure.isFailure)
+        val stored = f.env.stored()
+        assertEquals("no group row", emptyList<Any>(), stored.groups)
+        assertEquals("no roster", emptyList<Any>(), stored.groupMembers)
+        assertEquals("no opening rate", emptyList<Any>(), stored.rateHistory)
     }
 }

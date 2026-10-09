@@ -8,8 +8,8 @@ import com.seblful.klas.data.local.SettingsEntity
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.format.AppLocale
 import com.seblful.klas.testutil.AppLocaleRule
-import com.seblful.klas.testutil.FakeSettingsDao
 import com.seblful.klas.testutil.RussianMinskPhone
+import com.seblful.klas.testutil.TestDatabase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +23,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Instant
 import java.util.Locale
 
@@ -32,6 +34,7 @@ import java.util.Locale
  * and that changing one setting doesn't disturb the others.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class SettingsRepositoryTest {
 
     /**
@@ -42,7 +45,10 @@ class SettingsRepositoryTest {
     @get:Rule
     val locale = AppLocaleRule.russian()
 
-    private val dao = FakeSettingsDao()
+    @get:Rule
+    val database = TestDatabase()
+
+    private val dao = database.db.settingsDao()
     private val repo = SettingsRepository(dao, RussianMinskPhone)
 
     @Test
@@ -70,9 +76,10 @@ class SettingsRepositoryTest {
      */
     @Test
     fun `a phone with no row is captioned in its own currency`() = runTest {
-        val american = SettingsRepository(FakeSettingsDao(), listOf(Locale.forLanguageTag("en-US")))
-        val german = SettingsRepository(FakeSettingsDao(), listOf(Locale.forLanguageTag("de-DE")))
-        val unknown = SettingsRepository(FakeSettingsDao(), listOf(Locale.forLanguageTag("en-GB")))
+        // One empty table for all three: reading a missing row writes nothing.
+        val american = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-US")))
+        val german = SettingsRepository(dao, listOf(Locale.forLanguageTag("de-DE")))
+        val unknown = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-GB")))
 
         assertEquals(Currency.USD, american.get().currency)
         assertEquals(Currency.EUR, german.get().currency)
@@ -82,7 +89,6 @@ class SettingsRepositoryTest {
     /** And the very first write is what makes that stick, rather than it being re-derived every launch. */
     @Test
     fun `the first write persists the currency the phone named`() = runTest {
-        val dao = FakeSettingsDao()
         val repo = SettingsRepository(dao, listOf(Locale.forLanguageTag("de-DE")))
 
         // Anything at all — here the flag that ends first run, which is what «Пропустить» writes.
@@ -118,7 +124,6 @@ class SettingsRepositoryTest {
     /** SYSTEM is a rule and not a value, so it answers with *this* phone rather than with a constant. */
     @Test
     fun `system resolves against the phone the app is on`() = runTest {
-        val dao = FakeSettingsDao()
         val american = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-US")))
 
         american.update { it.copy(language = AppLanguage.SYSTEM) }
@@ -188,9 +193,9 @@ class SettingsRepositoryTest {
     // --- Two updates at once ----------------------------------------------------------------------
 
     /**
-     * A settings DAO whose read suspends, as a real one does — Room's suspend queries hand off to its
-     * own executor. The plain fake returns from `get()` without ever yielding, so it cannot express
-     * the interleaving this is about.
+     * A settings DAO whose read suspends, as Room's does on a device — its suspend queries hand off to
+     * its own executor. The test database answers inline on the asking thread (see [TestDatabase]), so
+     * its `get()` never yields and cannot express the interleaving this is about.
      */
     private class SuspendingSettingsDao : SettingsDao {
         val row = MutableStateFlow<SettingsEntity?>(null)

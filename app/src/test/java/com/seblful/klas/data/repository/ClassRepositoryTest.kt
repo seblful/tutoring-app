@@ -13,23 +13,40 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Instant
 
 /**
  * Exercises the side effects [ClassRepository] owns — calendar mirroring and reminder refresh —
- * which the instrumented tests can only check on a device. Uses fake DAOs + fake ports.
+ * which the instrumented tests can only check on a device. A real in-memory database under fake ports.
  *
  * Every write takes a lesson, so an individual class is booked and changed as a session of one; the
  * group cases live in `ClassRepositoryGroupTest`.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class ClassRepositoryTest {
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val repo = env.classRepo
 
     private val defaultStart: Instant = Instant.parse("2026-06-20T10:00:00Z")
+
+    /**
+     * The subject (id 1) and the students ([STUDENT], [OTHER]) the writes below name by id. They have to
+     * exist: the database refuses a lesson for a subject or a student it does not hold.
+     */
+    @Before
+    fun seed() = runTest {
+        check(env.fixtures.subject() == 1L)
+        check(env.fixtures.student() == STUDENT)
+        check(env.fixtures.student("Боря") == OTHER)
+    }
 
     /**
      * The moment these tests treat as "now" — two hours after [defaultStart], so a lesson booked at
@@ -246,7 +263,7 @@ class ClassRepositoryTest {
     @Test
     fun `an individual class can be re-attributed to another student`() = runTest {
         val id = book()
-        val other = 2L
+        val other = OTHER
 
         repo.apply(
             session(id),
@@ -310,7 +327,7 @@ class ClassRepositoryTest {
             first,
             (outcome as LessonWrite.HourTaken).clash.first.id,
         )
-        assertEquals("nothing was written", 1, env.classDao.items.value.size)
+        assertEquals("nothing was written", 1, env.classes().size)
     }
 
     @Test
@@ -370,5 +387,6 @@ class ClassRepositoryTest {
 
     private companion object {
         const val STUDENT = 1L
+        const val OTHER = 2L
     }
 }

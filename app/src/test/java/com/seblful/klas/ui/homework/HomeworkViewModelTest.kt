@@ -17,6 +17,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Duration
 import java.time.Instant
 
@@ -28,13 +30,15 @@ import java.time.Instant
  * so the scheduler is never idle. Time is advanced by stated amounts instead.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class HomeworkViewModelTest {
 
     @get:Rule
     val mainRule = MainDispatcherRule()
 
     // 15:00 in Minsk on Monday the 1st of June — the environment's clock.
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val fixtures = env.fixtures
 
     private val lastMonday: Instant = Instant.parse("2026-05-25T12:00:00Z")

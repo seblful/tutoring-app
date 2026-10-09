@@ -7,7 +7,7 @@ package com.seblful.klas.format
  * built-in `NOCASE` folds only the 26 ASCII letters, so in a Russian-language app it does not fold
  * case at all: «Ярослав» sorted *before* «анна», because every capital Cyrillic letter has a lower
  * code point than every small one. And because the ordering lived in the query, the in-memory fake
- * DAOs the JVM tests run against had to restate it in Kotlin — where `lowercase()` *does* fold
+ * DAOs the JVM tests then ran against had to restate it in Kotlin — where `lowercase()` *does* fold
  * Cyrillic — so the tests asserted an order the app never produced.
  *
  * Ordering by name is therefore done here, in Kotlin, once: the app and its tests run the same code,

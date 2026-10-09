@@ -8,16 +8,21 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Instant
 
 /**
  * [HomeworkRepository]: what a write stores and what it leaves alone, the reads that pair homework with
  * its lessons, and that none of it reaches the calendar or the reminders.
  */
+@RunWith(RobolectricTestRunner::class)
 class HomeworkRepositoryTest {
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val repo = env.homeworkRepo
     private val fixtures = env.fixtures
 

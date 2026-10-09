@@ -8,7 +8,10 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Instant
 
 /**
@@ -16,9 +19,11 @@ import java.time.Instant
  * can only be driven from a device — and it is a button that **bills**, so it is the last thing that
  * should be reachable only by holding a phone.
  */
+@RunWith(RobolectricTestRunner::class)
 class ReminderActionsTest {
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val notifier = RecordingNotifier()
 
     private val actions = ReminderActions(classes = env.classRepo, notifier = notifier)

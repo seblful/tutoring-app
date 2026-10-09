@@ -98,7 +98,7 @@ object ProjectFiles {
     const val TEST_SOURCE_ROOT = "src/test/java/com/seblful/klas"
 
     /**
-     * A unit-test source file under [TEST_SOURCE_ROOT], e.g. `testutil/FakeDaos.kt`.
+     * A unit-test source file under [TEST_SOURCE_ROOT], e.g. `testutil/Fixtures.kt`.
      *
      * The doubles are worth scanning for the same reason the DAOs are: a fake that restates a stored
      * enum name or a piece of production arithmetic can be left behind by a rename that the compiler

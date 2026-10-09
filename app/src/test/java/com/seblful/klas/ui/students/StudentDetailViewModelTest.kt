@@ -40,6 +40,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * **Never `advanceUntilIdle()` here**: the card's homework is due as of `Clock.days()`, which sleeps until
@@ -47,6 +49,7 @@ import org.junit.Test
  * is advanced by stated amounts.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class StudentDetailViewModelTest {
 
     @get:Rule
@@ -59,7 +62,8 @@ class StudentDetailViewModelTest {
     private val today: LocalDate = LocalDate.of(2026, 5, 17)
     private val clock = MutableClock(today.atTime(14, 30).atZone(zone).toInstant(), zone)
 
-    private val env = TestEnv(clock = clock)
+    @get:Rule
+    val env = TestEnv(clock = clock)
 
     private fun vm(id: Long) = StudentDetailViewModel(
         savedStateHandle = SavedStateHandle(mapOf("id" to id)),
@@ -279,11 +283,11 @@ class StudentDetailViewModelTest {
 
         vm.addPayment(Money.ZERO, today)
         runCurrent()
-        assertTrue(env.paymentDao.items.value.isEmpty())
+        assertTrue(env.stored().payments.isEmpty())
 
         vm.addPayment(Money.ofMajor(10), today)
         runCurrent()
-        assertEquals(1, env.paymentDao.items.value.size)
+        assertEquals(1, env.stored().payments.size)
     }
 
     @Test
@@ -303,7 +307,7 @@ class StudentDetailViewModelTest {
             assertEquals(
                 "the start of that day: there is no hour the tutor could have supplied",
                 lastTuesday.atStartOfDay(zone).toInstant().toEpochMilli(),
-                env.paymentDao.items.value.single().dateMillis,
+                env.stored().payments.single().dateMillis,
             )
         }
 
@@ -327,7 +331,7 @@ class StudentDetailViewModelTest {
             vm.addPayment(Money.ofMajor(20), today)
             runCurrent()
 
-            val stamps = env.paymentDao.items.value.sortedBy { it.id }.map { it.dateMillis }
+            val stamps = env.stored().payments.sortedBy { it.id }.map { it.dateMillis }
             assertEquals("two different instants, not two midnights", 2, stamps.distinct().size)
             assertTrue("the second is later", stamps[1] > stamps[0])
             assertEquals(
@@ -348,14 +352,14 @@ class StudentDetailViewModelTest {
             val recordedOn = today.minusDays(3)
             vm.addPayment(Money.ofMajor(40), recordedOn)
             runCurrent()
-            val original = env.paymentDao.items.value.single()
+            val original = env.stored().payments.single()
 
             // A mistyped amount used to mean deleting the payment and entering it again — two writes,
             // a window where the balance is wrong, and a new id for the same money.
             vm.editPayment(original.toDomain(), Money.ofMajor(45), recordedOn)
             runCurrent()
 
-            val corrected = env.paymentDao.items.value.single()
+            val corrected = env.stored().payments.single()
             assertEquals("the same row", original.id, corrected.id)
             assertEquals(Money.ofMajor(45).minor, corrected.amountMinor)
             assertEquals(
@@ -519,7 +523,7 @@ class StudentDetailViewModelTest {
         vm.setArchived(true)
         runCurrent()
 
-        val byId = env.classDao.items.value.associateBy { it.id }
+        val byId = env.classes().associateBy { it.id }
         assertEquals(LessonStatus.CANCELLED, byId.getValue(future).status)
         assertEquals("a past lesson nobody confirmed is not about to become income", LessonStatus.CANCELLED, byId.getValue(pastPlanned).status)
         assertEquals("what actually happened is history and stays", LessonStatus.COMPLETED, byId.getValue(done).status)
@@ -582,7 +586,7 @@ class StudentDetailViewModelTest {
         runCurrent()
 
         assertFalse(env.studentDao.getById(sid)!!.archived)
-        assertEquals(LessonStatus.CANCELLED, env.classDao.items.value.single().status)
+        assertEquals(LessonStatus.CANCELLED, env.classes().single().status)
     }
 
     /** The freed hour really is free: a cancelled class gives its slot back. */
@@ -639,7 +643,7 @@ class StudentDetailViewModelTest {
         vm.setPrice(subject, Money.ofMajor(40))
         runCurrent()
 
-        assertTrue("no payment was recorded", env.paymentDao.items.value.isEmpty())
+        assertTrue("no payment was recorded", env.stored().payments.isEmpty())
         assertEquals("the student was not renamed", "Аня", env.studentDao.getById(sid)!!.name)
         assertEquals(
             "the rate was not changed",
@@ -664,13 +668,13 @@ class StudentDetailViewModelTest {
         val stored = vm.state.current.payments.single()
         vm.deletePayment(stored)
         runCurrent()
-        assertTrue("the delete went through first", env.paymentDao.items.value.isEmpty())
+        assertTrue("the delete went through first", env.stored().payments.isEmpty())
 
         mainRule.appScope.cancel()
         vm.restorePayment(stored)
         runCurrent()
 
-        assertTrue("and the undo needed that scope to be alive", env.paymentDao.items.value.isEmpty())
+        assertTrue("and the undo needed that scope to be alive", env.stored().payments.isEmpty())
     }
 
     // --- The write tail: one failure report for every mutator -----------------------------------
@@ -696,9 +700,8 @@ class StudentDetailViewModelTest {
         vm.addSubject(subj, Money.ofMajor(30))
         runCurrent()
 
-        // Only the report is asserted: the fake DAOs cannot roll back, so what a failed transaction
-        // leaves behind is Room's to prove (see `ClassRepositoryAtomicityTest`'s note).
         assertEquals(listOf(StudentDetailViewModel.Event.WriteFailed), events)
+        assertEquals("and nothing of it was kept", emptyList<Long>(), env.studentDao.getSubjectIds(sid))
     }
 
     @Test
@@ -714,7 +717,7 @@ class StudentDetailViewModelTest {
         runCurrent()
 
         assertTrue("nothing to report about a payment that recorded", events.isEmpty())
-        assertEquals(1, env.paymentDao.items.value.size)
+        assertEquals(1, env.stored().payments.size)
     }
 
     /**

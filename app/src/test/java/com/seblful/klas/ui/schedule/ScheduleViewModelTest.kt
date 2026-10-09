@@ -32,6 +32,8 @@ import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.valueOrNull
 import com.seblful.klas.ui.navigation.Arrival
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.Instant
@@ -41,12 +43,14 @@ import java.time.YearMonth
 import java.time.ZoneId
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class ScheduleViewModelTest {
 
     @get:Rule
     val mainRule = MainDispatcherRule()
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val zone: ZoneId = ZoneId.systemDefault()
 
     private fun vm(
@@ -861,7 +865,7 @@ class ScheduleViewModelTest {
         vm.setStatus(env.classRepo.getSessionFor(id)!!, LessonStatus.COMPLETED)
         advanceUntilIdle()
 
-        val saved = env.classDao.items.value.single { it.id == id }
+        val saved = env.classes().single { it.id == id }
         assertEquals(LessonStatus.COMPLETED, saved.status)
         assertEquals(Money.ofMajor(45).minor, saved.chargeMinor) // 30/h * 90 min
     }
@@ -885,7 +889,7 @@ class ScheduleViewModelTest {
         assertEquals(
             "the lesson stayed where it was",
             startMillisOn(day, LocalTime.of(9, 0)),
-            env.classDao.items.value.single { it.id == moving }.startMillis,
+            env.classes().single { it.id == moving }.startMillis,
         )
 
         vm.dismissTimeConflict()
@@ -916,7 +920,7 @@ class ScheduleViewModelTest {
         assertEquals(
             "the lesson stayed cancelled",
             LessonStatus.CANCELLED,
-            env.classDao.items.value.single { it.id == cancelled }.status,
+            env.classes().single { it.id == cancelled }.status,
         )
     }
 
@@ -936,7 +940,7 @@ class ScheduleViewModelTest {
         advanceUntilIdle()
 
         assertNull("nothing holds the hour, so nothing to refuse", vm.timeConflict.value)
-        assertEquals(LessonStatus.SCHEDULED, env.classDao.items.value.single().status)
+        assertEquals(LessonStatus.SCHEDULED, env.classes().single().status)
     }
 
     // --- A write that fails is said out loud, not crashed on -------------------------------------
@@ -1031,7 +1035,7 @@ class ScheduleViewModelTest {
         advanceUntilIdle()
 
         assertNull(vm.timeConflict.value)
-        assertEquals(LessonStatus.COMPLETED, env.classDao.items.value.single().status)
+        assertEquals(LessonStatus.COMPLETED, env.classes().single().status)
     }
 
     @Test
@@ -1049,7 +1053,7 @@ class ScheduleViewModelTest {
         assertNull(vm.timeConflict.value)
         assertEquals(
             startMillisOn(day, LocalTime.of(9, 10)),
-            env.classDao.items.value.single().startMillis,
+            env.classes().single().startMillis,
         )
     }
 
@@ -1073,7 +1077,7 @@ class ScheduleViewModelTest {
         assertEquals(
             "both members moved together",
             listOf(moved, moved),
-            env.classDao.items.value.map { it.startMillis },
+            env.classes().map { it.startMillis },
         )
     }
 
@@ -1149,7 +1153,7 @@ class ScheduleViewModelTest {
         vm.setStatus(vm.dayContent.rows.single().session, LessonStatus.COMPLETED)
         advanceUntilIdle()
 
-        val saved = env.classDao.items.value
+        val saved = env.classes()
         assertTrue(saved.all { it.status == LessonStatus.COMPLETED })
         // Each member billed at their own rate.
         assertEquals(
@@ -1168,7 +1172,7 @@ class ScheduleViewModelTest {
         vm.delete(env.classRepo.getSessionFor(id)!!)
         advanceUntilIdle()
 
-        assertTrue(env.classDao.items.value.isEmpty())
+        assertTrue(env.classes().isEmpty())
     }
 
     /**

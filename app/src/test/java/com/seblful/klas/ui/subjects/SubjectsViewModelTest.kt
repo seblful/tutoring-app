@@ -14,14 +14,18 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class SubjectsViewModelTest {
 
     @get:Rule
     val mainRule = MainDispatcherRule()
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
 
     private fun vm() = SubjectsViewModel(env.subjectRepo, mainRule.appScope, mainRule.dispatcher)
 
@@ -32,11 +36,11 @@ class SubjectsViewModelTest {
 
         vm.save(id = 0, name = "   ")
         advanceUntilIdle()
-        assertTrue(env.subjectDao.items.value.isEmpty())
+        assertTrue(env.stored().subjects.isEmpty())
 
         vm.save(id = 0, name = "  Математика  ")
         advanceUntilIdle()
-        assertEquals(listOf("Математика"), env.subjectDao.items.value.map { it.name })
+        assertEquals(listOf("Математика"), env.stored().subjects.map { it.name })
     }
 
     @Test
@@ -49,13 +53,13 @@ class SubjectsViewModelTest {
         vm.delete(Subject(id = id, name = "Математика"))
         advanceUntilIdle()
 
-        assertTrue(env.subjectDao.items.value.isEmpty())
+        assertTrue(env.stored().subjects.isEmpty())
     }
 
     @Test
     fun `deleting a subject that still has classes is blocked and emits an event`() = runTest(mainRule.dispatcher) {
-        val id = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        env.fixtures.storedClass(studentId = 1, subjectId = id, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED)
+        val id = env.fixtures.subject("Математика")
+        env.fixtures.storedClass(studentId = env.fixtures.student(), subjectId = id, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED)
         val vm = vm()
         val events = mutableListOf<SubjectsViewModel.Event>()
         observing(vm.subjects)
@@ -66,7 +70,7 @@ class SubjectsViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(SubjectsViewModel.Event.DELETE_BLOCKED_HAS_CLASSES), events)
-        assertEquals(1, env.subjectDao.items.value.size) // not deleted
+        assertEquals(1, env.stored().subjects.size) // not deleted
     }
 
     @Test
@@ -82,6 +86,6 @@ class SubjectsViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(SubjectsViewModel.Event.NAME_TAKEN), events)
-        assertEquals(1, env.subjectDao.items.value.size)
+        assertEquals(1, env.stored().subjects.size)
     }
 }

@@ -4,7 +4,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * How many places still seed a test by writing rows straight to a fake DAO. **This number may only go
+ * How many places still seed a test by writing rows straight to a DAO. **This number may only go
  * down.**
  *
  * Seeding through the DAOs skips the repository that owns the invariant, so a test can set up a state
@@ -31,11 +31,11 @@ class DirectSeedingRatchetTest {
      * Lower this when you migrate a file to [Fixtures]. Never raise it: if a change needs a direct
      * write, say why in the test that needs it and take the number down somewhere else first.
      */
-    private val cap = 253
+    private val cap = 251
 
     /**
-     * Writes through a fake DAO. Matches the field name loosely (`classDao`, `rateHistoryDao`) so a new
-     * DAO cannot slip past under an unfamiliar name; the method list is the fakes' write surface.
+     * Writes through a DAO. Matches the field name loosely (`classDao`, `rateHistoryDao`) so a new DAO
+     * cannot slip past under an unfamiliar name; the method list is the DAOs' write surface.
      */
     private val seedCall = Regex("""[A-Za-z]*[Dd]ao\.(?:insertAll|upsert|insert)\(""")
 
@@ -51,7 +51,7 @@ class DirectSeedingRatchetTest {
         val worst = counts.entries.sortedByDescending { it.value }
             .joinToString("\n") { "  ${it.value}\t${it.key}" }
         assertTrue(
-            "Tests seed rows straight through $total fake-DAO writes, over the cap of $cap. Seed " +
+            "Tests seed rows straight through $total DAO writes, over the cap of $cap. Seed " +
                 "through `env.fixtures` instead — it goes in through the repositories, so the " +
                 "invariant is applied and the charge is the production rule's. If a direct write is " +
                 "genuinely needed, lower the cap in this test to pay for it.\n$worst",
@@ -71,7 +71,7 @@ class DirectSeedingRatchetTest {
             .sumOf { seedCall.findAll(it.readText()).count() }
 
         assertTrue(
-            "Only $total direct fake-DAO seed calls are left but the cap is still $cap. Lower it to " +
+            "Only $total direct DAO seed calls are left but the cap is still $cap. Lower it to " +
                 "$total so the next one that appears is caught.",
             total >= cap,
         )

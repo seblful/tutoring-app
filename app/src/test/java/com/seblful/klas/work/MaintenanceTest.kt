@@ -16,6 +16,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -25,12 +27,14 @@ import java.time.LocalDate
  * `MaintenanceWorker.doWork` and could only run on a device, so none of them had a test.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class MaintenanceTest {
 
     @get:Rule
     val mainRule = MainDispatcherRule()
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val now: Instant = Instant.parse("2026-06-15T12:00:00Z")
 
     /** The environment's own — the same instance the settings screen's switch runs. */

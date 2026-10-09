@@ -14,6 +14,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * What the app decides before it draws anything: theme, currency, and whether onboarding is owed.
@@ -23,12 +25,14 @@ import org.junit.Test
  * show a spinner instead of choosing between onboarding and the tabs on a guess.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class RootViewModelTest {
 
     @get:Rule
     val mainRule = MainDispatcherRule()
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
 
     /**
      * Seeding `AppSettings()` as the initial value instead would read as a fresh install for the

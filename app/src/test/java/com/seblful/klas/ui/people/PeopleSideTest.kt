@@ -11,6 +11,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * The bar above «Люди» works one [PeopleSide]; the two view models are its adapters. What the seam
@@ -20,12 +22,14 @@ import org.junit.Test
  * where no test could flip the tab.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class PeopleSideTest {
 
     @get:Rule
     val mainRule = MainDispatcherRule()
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
 
     @Test
     fun `each side holds its own search and archive toggle`() = runTest(mainRule.dispatcher) {

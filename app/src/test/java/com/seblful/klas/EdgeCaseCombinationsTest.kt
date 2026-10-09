@@ -30,6 +30,8 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -50,12 +52,14 @@ import java.time.ZoneId
  * test and not only a paragraph of prose.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class EdgeCaseCombinationsTest {
 
     @get:Rule
     val mainRule = MainDispatcherRule()
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val zone: ZoneId = ZoneId.systemDefault()
 
     // ---- Regressions ---------------------------------------------------------------------------

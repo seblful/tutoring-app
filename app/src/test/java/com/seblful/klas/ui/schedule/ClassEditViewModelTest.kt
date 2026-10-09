@@ -43,14 +43,18 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class ClassEditViewModelTest {
 
     @get:Rule
     val mainRule = MainDispatcherRule()
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val zone: ZoneId = ZoneId.systemDefault()
 
     private fun vm(id: Long = 0L, groupId: Long = 0L, day: LocalDate? = null) = ClassEditViewModel(
@@ -436,23 +440,19 @@ class ClassEditViewModelTest {
 
         val watching = launch { vm.state.collect {} }
         advanceUntilIdle()
-        assertTrue("the query is live while the screen watches", env.studentDao.items.subscriptionCount.value > 0)
+        assertTrue(
+            "the query is live while the screen watches",
+            "students" in env.database.watchedTables(),
+        )
 
         watching.cancel()
         // Past the sharing timeout, so WhileSubscribed has had its chance to stop the upstream.
         advanceTimeBy(10_000)
         advanceUntilIdle()
 
-        assertEquals(
-            "the students query is dropped once nothing is watching",
-            0,
-            env.studentDao.items.subscriptionCount.value,
-        )
-        assertEquals(
-            "and so is the subject-price query",
-            0,
-            env.priceDao.items.subscriptionCount.value,
-        )
+        val watched = env.database.watchedTables()
+        assertFalse("the students query is dropped once nothing is watching", "students" in watched)
+        assertFalse("and so is the subject-price query", "prices" in watched)
     }
 
     // --- Unsaved changes: what the back arrow and the back gesture consult ---
@@ -823,7 +823,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         assertTrue(done)
-        val saved = env.classDao.items.value.single()
+        val saved = env.classes().single()
         assertEquals(studentId, saved.studentId)
         assertEquals(subjectId, saved.subjectId)
         assertEquals(90, saved.durationMinutes)
@@ -861,7 +861,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         assertFalse("no save can complete once the scope that owns writes is gone", done)
-        assertTrue("and nothing was written", env.classDao.items.value.isEmpty())
+        assertTrue("and nothing was written", env.classes().isEmpty())
     }
 
     // --- Save: a time that is already taken ---
@@ -924,7 +924,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         assertFalse("the save must not go through", done)
-        assertEquals("still only the lesson that was there", 1, env.classDao.items.value.size)
+        assertEquals("still only the lesson that was there", 1, env.classes().size)
         assertEquals("a refused save leaves the clash named", "Борис", vm.state.current.conflict?.who)
     }
 
@@ -947,7 +947,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         assertTrue(done)
-        assertEquals(2, env.classDao.items.value.size)
+        assertEquals(2, env.classes().size)
     }
 
     @Test
@@ -967,7 +967,7 @@ class ClassEditViewModelTest {
         assertNull("a cancelled lesson is not happening, so the slot is free", vm.state.current.conflict)
         vm.save { }
         advanceUntilIdle()
-        assertEquals(2, env.classDao.items.value.size)
+        assertEquals(2, env.classes().size)
     }
 
     @Test
@@ -991,7 +991,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         assertTrue(done)
-        assertEquals(90, env.classDao.items.value.single().durationMinutes)
+        assertEquals(90, env.classes().single().durationMinutes)
     }
 
     @Test
@@ -1002,7 +1002,7 @@ class ClassEditViewModelTest {
         // after 23:00 opened this one as a negative range and the save quietly did nothing.
         val start = LocalDate.now(zone).plusDays(3).atTime(10, 0).atZone(zone).toInstant()
         val ids = env.classRepo.book(
-            groupId = groupId, subjectId = env.subjectDao.items.value.first().id, start = start,
+            groupId = groupId, subjectId = env.stored().subjects.first().id, start = start,
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
             price = groupRate,
@@ -1019,7 +1019,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         assertTrue(done)
-        assertEquals(2, env.classDao.items.value.size)
+        assertEquals(2, env.classes().size)
     }
 
     /** Every clash [vm]'s screen would draw from now on, in order. */
@@ -1050,7 +1050,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         assertTrue(done)
-        assertEquals(1, env.classDao.items.value.size)
+        assertEquals(1, env.classes().size)
         assertEquals("no clash was drawn at any point", emptyList<TimeConflict>(), clashes)
     }
 
@@ -1064,7 +1064,7 @@ class ClassEditViewModelTest {
         runTest(mainRule.dispatcher) {
             val (groupId, ann, bob) = seedGroup()
             val ids = env.classRepo.book(
-                groupId = groupId, subjectId = env.subjectDao.items.value.first().id,
+                groupId = groupId, subjectId = env.stored().subjects.first().id,
                 start = LocalDate.now(zone).plusDays(3).atTime(10, 0).atZone(zone).toInstant(),
                 durationMinutes = 60, mode = ClassMode.IN_PERSON,
                 studentIds = listOf(ann),
@@ -1081,7 +1081,7 @@ class ClassEditViewModelTest {
             advanceUntilIdle()
 
             assertTrue(done)
-            assertEquals(2, env.classDao.items.value.size)
+            assertEquals(2, env.classes().size)
             assertEquals("no clash was drawn at any point", emptyList<TimeConflict>(), clashes)
         }
 
@@ -1106,7 +1106,7 @@ class ClassEditViewModelTest {
         vm.save { done++ }
         advanceUntilIdle()
 
-        assertEquals(1, env.classDao.items.value.size)
+        assertEquals(1, env.classes().size)
         assertEquals(1, done)
         assertEquals(emptyList<ClassEditViewModel.Event>(), sent)
     }
@@ -1116,7 +1116,7 @@ class ClassEditViewModelTest {
         val (groupId, ann, bob) = seedGroup()
         val date = LocalDate.now(zone).plusDays(4)
         env.classRepo.book(
-            groupId = groupId, subjectId = env.subjectDao.items.value.first().id,
+            groupId = groupId, subjectId = env.stored().subjects.first().id,
             start = date.atTime(10, 0).atZone(zone).toInstant(),
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
@@ -1134,7 +1134,7 @@ class ClassEditViewModelTest {
         assertEquals("11 «А»", vm.state.current.conflict?.who)
         vm.save { }
         advanceUntilIdle()
-        assertEquals("no third class was written", 2, env.classDao.items.value.size)
+        assertEquals("no third class was written", 2, env.classes().size)
     }
 
     @Test
@@ -1161,7 +1161,7 @@ class ClassEditViewModelTest {
             advanceUntilIdle()
 
             assertFalse("nothing was written", done)
-            assertEquals(1, env.classDao.items.value.size)
+            assertEquals(1, env.classes().size)
             assertEquals(
                 ClassEditViewModel.Event.SAVE_REFUSED_TIME_TAKEN,
                 vm.events.stream.first(),
@@ -1192,13 +1192,17 @@ class ClassEditViewModelTest {
             assertFalse("a failed write must not navigate away as though it had saved", done)
             assertEquals(ClassEditViewModel.Event.SAVE_FAILED, vm.events.stream.first())
 
-            // The tutor can try again. The fake cannot roll back, so the failed attempt's rows are still
-            // there and the retry is turned down for that hour — what matters is that it was made at all.
+            assertTrue("the failed attempt rolled back whole", env.classes().isEmpty())
+
+            // The tutor can try again, and since nothing of the failed attempt was left behind to hold the
+            // hour, the retry goes through as the first save would have.
             val sent = mutableListOf<ClassEditViewModel.Event>()
             backgroundScope.launch { vm.events.stream.collect(sent::add) }
             vm.save { done = true }
             advanceUntilIdle()
-            assertEquals(listOf(ClassEditViewModel.Event.SAVE_REFUSED_TIME_TAKEN), sent)
+            assertEquals(emptyList<ClassEditViewModel.Event>(), sent)
+            assertTrue("the retry saved and navigated", done)
+            assertEquals(listOf(ann), env.classes().map { it.studentId })
         }
 
     /** Nobody to tick is not a form that can be saved and then refused for having nobody ticked. */
@@ -1247,7 +1251,7 @@ class ClassEditViewModelTest {
             advanceUntilIdle()
 
             assertFalse(done)
-            assertTrue("a lesson billing nobody is not written", env.classDao.items.value.isEmpty())
+            assertTrue("a lesson billing nobody is not written", env.classes().isEmpty())
             assertEquals(
                 ClassEditViewModel.Event.SAVE_REFUSED_NO_MEMBERS,
                 vm.events.stream.first(),
@@ -1360,7 +1364,7 @@ class ClassEditViewModelTest {
         vm.save { done = true }
         advanceUntilIdle()
         assertFalse(done)
-        assertTrue(env.classDao.items.value.isEmpty())
+        assertTrue(env.classes().isEmpty())
     }
 
     // --- Save: edit an existing class (move + rebill) ---
@@ -1403,11 +1407,11 @@ class ClassEditViewModelTest {
         vm.save { }
         advanceUntilIdle()
 
-        val saved = env.classDao.items.value.single { it.id == id }
+        val saved = env.classes().single { it.id == id }
         assertEquals(LessonStatus.SCHEDULED, saved.status)
         assertEquals(0L, saved.chargeMinor)
         // Still one row — an edit is an in-place update, never a duplicate insert.
-        assertEquals(1, env.classDao.items.value.size)
+        assertEquals(1, env.classes().size)
     }
 
     // --- Group lessons ---
@@ -1510,7 +1514,7 @@ class ClassEditViewModelTest {
         vm.save { }
         advanceUntilIdle()
 
-        assertEquals("only the active member is billed", listOf(ann), env.classDao.items.value.map { it.studentId })
+        assertEquals("only the active member is billed", listOf(ann), env.classes().map { it.studentId })
     }
 
     @Test
@@ -1542,7 +1546,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         assertTrue(done)
-        val saved = env.classDao.items.value
+        val saved = env.classes()
         assertEquals(2, saved.size)
         assertTrue("every class belongs to the group", saved.all { it.groupId == groupId })
         assertTrue("and to the same lesson", saved.map { it.startMillis }.distinct().size == 1)
@@ -1571,7 +1575,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         assertTrue(done)
-        val saved = env.classDao.items.value
+        val saved = env.classes()
         assertEquals(1, saved.size)
         assertEquals(ann, saved.single().studentId)
         // Excluding is not cancelling: there is no class of Bob's in any state.
@@ -1596,7 +1600,7 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         // A lesson nobody attends is not a lesson; nothing is written rather than an ownerless row.
-        assertTrue(env.classDao.items.value.isEmpty())
+        assertTrue(env.classes().isEmpty())
     }
 
     @Test
@@ -1641,7 +1645,7 @@ class ClassEditViewModelTest {
         val (groupId, ann, bob) = seedGroup()
         val start = Instant.parse("2026-09-01T09:00:00Z")
         val ids = env.classRepo.book(
-            groupId = groupId, subjectId = env.subjectDao.items.value.first().id, start = start,
+            groupId = groupId, subjectId = env.stored().subjects.first().id, start = start,
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
             price = groupRate,
@@ -1661,7 +1665,7 @@ class ClassEditViewModelTest {
         vm.save { }
         advanceUntilIdle()
 
-        val saved = env.classDao.items.value
+        val saved = env.classes()
         assertEquals(2, saved.size)
         assertTrue(saved.all { it.durationMinutes == 90 })
         assertTrue("one rate applies to the whole lesson", saved.all { it.priceMinor == Money.ofMajor(28).minor })
@@ -1675,7 +1679,7 @@ class ClassEditViewModelTest {
     @Test
     fun `editing an old lesson offers the current roster but ticks only its own members`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
-        val algebra = env.subjectDao.items.value.first().id
+        val algebra = env.stored().subjects.first().id
         val ids = env.classRepo.book(
             groupId = groupId, subjectId = algebra, start = Instant.parse("2026-09-01T09:00:00Z"),
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
@@ -1700,15 +1704,15 @@ class ClassEditViewModelTest {
         // Re-saving must not create a class for the newcomer, nor drop the departed member's.
         vm.save { }
         advanceUntilIdle()
-        assertEquals(2, env.classDao.items.value.size)
-        assertEquals(setOf(ann, bob), env.classDao.items.value.map { it.studentId }.toSet())
+        assertEquals(2, env.classes().size)
+        assertEquals(setOf(ann, bob), env.classes().map { it.studentId }.toSet())
     }
 
     @Test
     fun `unticking a member of a booked lesson removes their class on save`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
         val ids = env.classRepo.book(
-            groupId = groupId, subjectId = env.subjectDao.items.value.first().id,
+            groupId = groupId, subjectId = env.stored().subjects.first().id,
             start = Instant.parse("2026-09-01T09:00:00Z"),
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
@@ -1723,14 +1727,14 @@ class ClassEditViewModelTest {
         vm.save { }
         advanceUntilIdle()
 
-        assertEquals(listOf(ann), env.classDao.items.value.map { it.studentId })
+        assertEquals(listOf(ann), env.classes().map { it.studentId })
     }
 
     @Test
     fun `ticking a group member who was not in a booked lesson adds their class`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
         val ids = env.classRepo.book(
-            groupId = groupId, subjectId = env.subjectDao.items.value.first().id,
+            groupId = groupId, subjectId = env.stored().subjects.first().id,
             start = Instant.parse("2026-09-01T09:00:00Z"),
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann),
@@ -1746,7 +1750,7 @@ class ClassEditViewModelTest {
         vm.save { }
         advanceUntilIdle()
 
-        val saved = env.classDao.items.value
+        val saved = env.classes()
         assertEquals(setOf(ann, bob), saved.map { it.studentId }.toSet())
         assertTrue("the joiner is in the same lesson", saved.all { it.groupId == groupId })
         assertEquals(1, saved.map { it.startMillis }.distinct().size)
@@ -1756,7 +1760,7 @@ class ClassEditViewModelTest {
     fun `emptying a booked lesson of every member is refused, not saved`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
         val ids = env.classRepo.book(
-            groupId = groupId, subjectId = env.subjectDao.items.value.first().id,
+            groupId = groupId, subjectId = env.stored().subjects.first().id,
             start = Instant.parse("2026-09-01T09:00:00Z"),
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
@@ -1773,7 +1777,7 @@ class ClassEditViewModelTest {
 
         assertTrue(vm.state.current.allMembersExcluded)
         assertFalse("nothing left to bill", vm.state.current.canSave)
-        assertEquals("both classes are still there", 2, env.classDao.items.value.size)
+        assertEquals("both classes are still there", 2, env.classes().size)
     }
 
     /** Removing somebody who has already been billed is worth a question, so the form counts them. */
@@ -1781,7 +1785,7 @@ class ClassEditViewModelTest {
     fun `unticking a billed member is counted, an unbilled one is not`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
         val ids = env.classRepo.book(
-            groupId = groupId, subjectId = env.subjectDao.items.value.first().id,
+            groupId = groupId, subjectId = env.stored().subjects.first().id,
             start = Instant.parse("2026-09-01T09:00:00Z"),
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
             studentIds = listOf(ann, bob),
@@ -1856,7 +1860,7 @@ class ClassEditViewModelTest {
         vm.save { }
         advanceUntilIdle()
 
-        val saved = env.classDao.items.value.single { it.id == id }
+        val saved = env.classes().single { it.id == id }
         assertEquals(LessonStatus.COMPLETED, saved.status)
         assertEquals(Money.ofMajor(60).minor, saved.chargeMinor)
     }

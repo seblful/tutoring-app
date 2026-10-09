@@ -20,8 +20,11 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class OnboardingViewModelTest {
 
     @get:Rule
@@ -31,7 +34,8 @@ class OnboardingViewModelTest {
     @get:Rule
     val locale = AppLocaleRule.russian()
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
 
     private fun vm() = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope)
 
@@ -75,14 +79,15 @@ class OnboardingViewModelTest {
     /** The one case the guess gets half right, and the reason the step exists at all. */
     @Test
     fun `an English phone in Minsk is offered English and rubles`() = runTest(mainRule.dispatcher) {
-        val env = TestEnv(deviceLocales = listOf(java.util.Locale.forLanguageTag("en-BY")))
-        val vm = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope)
-        observing(vm.locale)
-        advanceUntilIdle()
+        TestEnv(deviceLocales = listOf(java.util.Locale.forLanguageTag("en-BY"))).use { env ->
+            val vm = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope)
+            observing(vm.locale)
+            advanceUntilIdle()
 
-        val chosen = (vm.locale.value as Loadable.Ready).value
-        assertEquals(AppLanguage.SYSTEM, chosen.language)
-        assertEquals("the region is what says which currency, never the language", Currency.BYN, chosen.currency)
+            val chosen = (vm.locale.value as Loadable.Ready).value
+            assertEquals(AppLanguage.SYSTEM, chosen.language)
+            assertEquals("the region is what says which currency, never the language", Currency.BYN, chosen.currency)
+        }
     }
 
     /**
@@ -113,14 +118,15 @@ class OnboardingViewModelTest {
      */
     @Test
     fun `skipping the setup still persists the currency the phone named`() = runTest(mainRule.dispatcher) {
-        val env = TestEnv(deviceLocales = listOf(java.util.Locale.forLanguageTag("de-DE")))
-        val vm = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope)
+        TestEnv(deviceLocales = listOf(java.util.Locale.forLanguageTag("de-DE"))).use { env ->
+            val vm = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope)
 
-        vm.complete()
-        advanceUntilIdle()
+            vm.complete()
+            advanceUntilIdle()
 
-        assertEquals(Currency.EUR, env.settingsDao.row.value?.currency)
-        assertTrue(env.settingsRepo.get().onboardingComplete)
+            assertEquals(Currency.EUR, env.settingsDao.get()?.currency)
+            assertTrue(env.settingsRepo.get().onboardingComplete)
+        }
     }
 
     @Test
@@ -130,11 +136,11 @@ class OnboardingViewModelTest {
 
         vm.addSubject("   ")
         advanceUntilIdle()
-        assertTrue(env.subjectDao.items.value.isEmpty())
+        assertTrue(env.stored().subjects.isEmpty())
 
         vm.addSubject("  Математика  ")
         advanceUntilIdle()
-        assertEquals(listOf("Математика"), env.subjectDao.items.value.map { it.name })
+        assertEquals(listOf("Математика"), env.stored().subjects.map { it.name })
     }
 
     /**
@@ -153,7 +159,7 @@ class OnboardingViewModelTest {
         vm.addSubject("  математика ")
         advanceUntilIdle()
 
-        assertEquals(listOf("Математика"), env.subjectDao.items.value.map { it.name })
+        assertEquals(listOf("Математика"), env.stored().subjects.map { it.name })
         assertEquals(listOf(OnboardingViewModel.Event.NAME_TAKEN), events)
     }
 
@@ -219,7 +225,7 @@ class OnboardingViewModelTest {
         advanceUntilIdle()
 
         assertTrue(env.settingsRepo.get().onboardingComplete)
-        assertTrue(env.subjectDao.items.value.isEmpty())
-        assertTrue(env.studentDao.items.value.isEmpty())
+        assertTrue(env.stored().subjects.isEmpty())
+        assertTrue(env.stored().students.isEmpty())
     }
 }

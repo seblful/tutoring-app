@@ -5,6 +5,8 @@ import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
 import com.seblful.klas.data.backup.BackupManager
 import com.seblful.klas.data.backup.BackupRestore
+import com.seblful.klas.data.local.ClassRow
+import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.Transactor
 import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.repository.ClassRepository
@@ -33,6 +35,8 @@ import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentSharing
 import com.seblful.klas.storage.DocumentStore
 import com.seblful.klas.work.Maintenance
+import org.junit.rules.TestRule
+import java.io.Closeable
 
 /** Records reminder-refresh requests and armed plans so tests can assert side effects fired. */
 class RecordingReminderScheduler : ReminderScheduler {
@@ -204,17 +208,17 @@ class RecordingNotifier : Notifier {
 }
 
 /**
- * Runs transactions inline — the fake DAOs are plain in-memory maps, so there is no real atomicity
- * to reproduce. It counts them instead, which is what tests actually need to assert: that a lesson's
- * rows are written in **one** transaction rather than several.
+ * The production [Transactor] — a real Room transaction, see [TestDatabase] — counted, which is what a
+ * test asserts beyond atomicity itself: that a lesson's rows are written in **one** transaction rather
+ * than several, and that they are not nested.
  *
- * [failAt] makes that numbered transaction throw after the block has run, standing in for a commit
- * that doesn't land; it is a `var` so a test can seed its data over successful transactions and then
- * arm the failure for the one it is actually about. The fake DAOs cannot roll back, so a test uses it
- * to assert that the *calendar* and the reminder scheduler are left alone when a write fails — the
- * observable half of atomicity that doesn't need a database to check.
+ * [failAt] makes that numbered transaction throw after its block has run but before it commits, so
+ * SQLite rolls the block's writes back exactly as it would on a device; it is a `var` so a test can seed
+ * its data over successful transactions and then arm the failure for the one it is actually about.
+ * Both halves of atomicity are then observable: the rows are as they were, and the calendar and the
+ * reminder scheduler were never told.
  */
-class RecordingTransactor(var failAt: Int? = null) : Transactor {
+class RecordingTransactor(private val delegate: Transactor, var failAt: Int? = null) : Transactor {
     var count = 0
         private set
 
@@ -227,13 +231,13 @@ class RecordingTransactor(var failAt: Int? = null) : Transactor {
         private set
 
     override suspend fun <T> transaction(block: suspend () -> T): T {
-        count++
+        val number = ++count
         depth++
         maxDepth = maxOf(maxDepth, depth)
         try {
-            val result = block()
-            if (count == failAt) error("Transaction $count failed to commit")
-            return result
+            return delegate.transaction {
+                block().also { if (number == failAt) error("Transaction $number failed to commit") }
+            }
         } finally {
             depth--
         }
@@ -362,12 +366,6 @@ class RecordingDocumentSharing(var failing: Boolean = false) : DocumentSharing {
 }
 
 /**
- * A ready-made set of fake DAOs and the real repositories wired on top, for view-model and
- * repository tests. The repositories are the production classes — only the DAOs and the ports
- * (calendar, calendar permission, reminder scheduler) are fakes — so mapping logic and repository
- * side effects are exercised for real.
- */
-/**
  * The phone the fixtures assume: Russian, in Belarus — the app's original tutor.
  *
  * Which matters to exactly two answers, both of them about a settings row nobody has written yet: what
@@ -376,8 +374,16 @@ class RecordingDocumentSharing(var failing: Boolean = false) : DocumentSharing {
  */
 val RussianMinskPhone: List<java.util.Locale> = listOf(java.util.Locale.forLanguageTag("ru-BY"))
 
+/**
+ * The real repositories over a real database ([TestDatabase]), for repository, backup and view-model
+ * tests. Only the ports to the device are doubles — calendar, permissions, notifier, reminder and digest
+ * scheduling, the clock — so mapping, repository side effects and the SQL under them all run for real.
+ *
+ * A [TestRule] so the database is closed after the test: declare it `@get:Rule val env = TestEnv()` in a
+ * class run by `RobolectricTestRunner`. A second one opened inside a test is closed with `use {}`.
+ */
 class TestEnv(
-    val transactor: RecordingTransactor = RecordingTransactor(),
+    val database: TestDatabase = TestDatabase(),
     val deviceLocales: List<java.util.Locale> = RussianMinskPhone,
     /**
      * The environment's clock, pinned — what the engine's defaulted `now`s read in a test, so the shipped
@@ -392,26 +398,40 @@ class TestEnv(
         java.time.Instant.parse("2026-06-01T12:00:00Z"),
         java.time.ZoneId.of("Europe/Minsk"),
     ),
-) {
-    val subjectDao = FakeSubjectDao()
-    val studentDao = FakeStudentDao()
-    val groupDao = FakeGroupDao()
-    val priceDao = FakePriceDao()
-    val rateHistoryDao = FakeRateHistoryDao()
+) : TestRule by database, Closeable by database {
+    private val db = database.db
+
+    /** Every write the repositories make is a real transaction, counted. */
+    val transactor: RecordingTransactor = database.transactor
+
+    val subjectDao = db.subjectDao()
+    val studentDao = db.studentDao()
+    val groupDao = db.groupDao()
+    val priceDao = db.priceDao()
+    val rateHistoryDao = db.rateHistoryDao()
 
     /** The two lesson tables, and the join over them. */
-    val classStore = FakeClassStore()
-    val classDao = FakeClassDao(classStore)
-    val lessonDao = FakeLessonDao(classStore)
-    val attendanceDao = FakeAttendanceDao(classStore)
-    val settingsDao = FakeSettingsDao()
-    val paymentDao = FakePaymentDao()
-    val homeworkDao = FakeHomeworkDao(groupDao)
+    val classDao = db.classDao()
+    val lessonDao = db.lessonDao()
+    val attendanceDao = db.attendanceDao()
+    val settingsDao = db.settingsDao()
+    val paymentDao = db.paymentDao()
+    val homeworkDao = db.homeworkDao()
 
     /** The same rows again, whole tables at a time — what backup and restore see. */
-    val snapshotDao = FakeSnapshotDao(
-        subjectDao, studentDao, groupDao, priceDao, rateHistoryDao, classStore, paymentDao, homeworkDao,
-    )
+    val snapshotDao = db.snapshotDao()
+
+    /**
+     * Every row stored, table by table — what a test asserting on the database itself reads, rather than
+     * one of the questions the DAOs are written to answer.
+     */
+    suspend fun stored(): DatabaseSnapshot = snapshotDao.read()
+
+    /**
+     * Every class (the `attendance JOIN lessons` rows), in id order — the order they were booked in.
+     * `ClassDao.getAll` promises none, and SQLite's is whichever table the planner scans first.
+     */
+    suspend fun classes(): List<ClassRow> = classDao.getAll().sortedBy { it.id }
 
     val calendar = FakeCalendarSync()
     val calendarPermission = FakeCalendarPermission()
@@ -450,10 +470,10 @@ class TestEnv(
     val homeworkRepo = HomeworkRepository(homeworkDao, classRepo, clock)
 
     /**
-     * The real backup manager and restore, on the same fake DAOs. Reachable in a JVM test because
-     * both take the [com.seblful.klas.data.local.Transactor] port rather than an `AppDatabase` — which
-     * is what lets the *failure* paths (an unsupported version, a file that isn't a backup) be
-     * exercised through the production code that classifies them.
+     * The real backup manager and restore, on the same database — so an import is the real
+     * replace-all, in one real transaction, and a file whose rows break a foreign key is refused by
+     * SQLite rather than by a likeness of it. The *failure* paths (an unsupported version, a file that
+     * isn't a backup) run through the production code that classifies them.
      */
     val backupManager = BackupManager(transactor = transactor, snapshot = snapshotDao)
 

@@ -6,16 +6,21 @@ import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Instant
 
 /**
  * The reminder's second line: the current homework attached to the lesson. Read as the reminder fires,
  * which is why setting homework or ticking it done does not have to re-plan anything.
  */
+@RunWith(RobolectricTestRunner::class)
 class DueReminderHomeworkTest {
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val notifier = RecordingNotifier()
     private val fixtures = env.fixtures
 

@@ -12,15 +12,20 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * `GroupRepository` is the only writer of group membership, so these cover the two things that can
  * corrupt a roster: an edit leaving stale members behind, and deleting a group that lessons refer to.
  */
+@RunWith(RobolectricTestRunner::class)
 class GroupRepositoryTest {
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val repo = env.groupRepo
 
     private suspend fun students(vararg names: String): List<Long> =
@@ -130,7 +135,7 @@ class GroupRepositoryTest {
         assertTrue(repo.delete(repo.getById(id)!!))
 
         assertEquals(null, repo.getById(id))
-        assertTrue(env.groupDao.members.value.isEmpty())
+        assertTrue(env.stored().groupMembers.isEmpty())
     }
 
     @Test

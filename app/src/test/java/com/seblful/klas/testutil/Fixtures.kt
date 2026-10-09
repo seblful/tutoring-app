@@ -4,6 +4,7 @@ import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.local.upsertedId
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
@@ -18,7 +19,7 @@ import java.time.Instant
  * Seeds a test's starting state in the vocabulary the app uses — a student, a lesson, a group with a
  * roster — by going through the **repositories**.
  *
- * Tests used to seed by writing entities straight to the fake DAOs. Two things followed from that.
+ * Tests used to seed by writing entities straight to the DAOs. Two things followed from that.
  *
  * The first is that the invariant each repository exists to hold was skipped on the way in, so a test
  * could set up a state the app cannot reach and then assert something about it. The second is that
@@ -166,10 +167,10 @@ class Fixtures(private val env: TestEnv) {
         // hour twice. An individual class is always its own lesson.
         val existing = lessonId.takeIf { it != 0L }
             ?: groupId?.let { g ->
-                env.lessonDao.items.value
+                env.stored().lessons
                     .firstOrNull { it.groupId == g && it.startMillis == startMillis }?.id
             }
-        val lesson = env.lessonDao.upsert(
+        val lessonRow = env.lessonDao.upsert(
             LessonEntity(
                 id = existing ?: 0,
                 subjectId = subjectId,
@@ -180,6 +181,8 @@ class Fixtures(private val env: TestEnv) {
                 mode = mode,
             ),
         )
+        // Joining an existing lesson is an update, which `@Upsert` answers with -1 rather than the id.
+        val lesson = upsertedId(lessonRow, current = existing ?: 0)
         return env.attendanceDao.upsert(
             AttendanceEntity(
                 lessonId = lesson,

@@ -12,6 +12,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Instant
 import java.time.LocalDate
 
@@ -23,12 +25,14 @@ import java.time.LocalDate
  * `Notifier` is a double.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class DueDigestTest {
 
     @get:Rule
     val mainRule = MainDispatcherRule()
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
 
     /** Monday 15 June 2026. The environment's zone is Europe/Minsk (UTC+3), so this is 09:00 local. */
     private val morning: Instant = Instant.parse("2026-06-15T06:00:00Z")

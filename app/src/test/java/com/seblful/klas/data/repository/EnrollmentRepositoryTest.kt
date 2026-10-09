@@ -8,13 +8,30 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class EnrollmentRepositoryTest {
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
     private val repo = env.enrollmentRepo
+
+    /**
+     * Student 1 and subjects 1–3, which the tests below name by id: a link or a price for a student or a
+     * subject the database does not hold is refused by its foreign key. Subject 1 is the one nobody here
+     * enrols in — "another subject".
+     */
+    @Before
+    fun seed() = runTest {
+        check(env.fixtures.student("Боря") == 1L)
+        check(listOf("Физика", "Алгебра", "Геометрия").map { env.fixtures.subject(it) } == listOf(1L, 2L, 3L))
+    }
 
     private suspend fun seedClass(studentId: Long, subjectId: Long) {
         env.fixtures.storedClass(
@@ -58,7 +75,7 @@ class EnrollmentRepositoryTest {
     @Test
     fun `a class for a different subject does not block unenrolling`() = runTest {
         repo.enroll(studentId = 1, subjectId = 2, price = Money.ofMajor(30))
-        seedClass(studentId = 1, subjectId = 99) // class is for another subject
+        seedClass(studentId = 1, subjectId = 1) // class is for another subject
 
         assertEquals(EnrollmentRepository.Unenroll.Ok, repo.unenroll(studentId = 1, subjectId = 2))
     }
@@ -137,7 +154,7 @@ class EnrollmentRepositoryTest {
         )
 
         assertEquals("one flat transaction, not one per subject", 1, env.transactor.count - before)
-        assertEquals("Аня", env.studentDao.items.value.single().name)
+        assertEquals("Аня", env.stored().students.single { it.id == id }.name)
         assertEquals(listOf(2L, 3L), env.studentDao.getSubjectIds(id).sorted())
         assertEquals(Money.ofMajor(30), env.priceDao.get(id, 2)?.amountMinor?.let { Money(it) })
         assertEquals(Money.ofMajor(25), env.priceDao.get(id, 3)?.amountMinor?.let { Money(it) })
@@ -148,7 +165,7 @@ class EnrollmentRepositoryTest {
     fun `createStudent logs each opening rate`() = runTest {
         val id = repo.createStudent(Student(name = "Аня"), mapOf(2L to Money.ofMajor(30)))
 
-        val logged = env.rateHistoryDao.items.value.single()
+        val logged = env.stored().rateHistory.single()
         assertEquals(id, logged.studentId)
         assertNull("no previous rate: the history starts here", logged.fromMinor)
         assertEquals(Money.ofMajor(30).minor, logged.toMinor)

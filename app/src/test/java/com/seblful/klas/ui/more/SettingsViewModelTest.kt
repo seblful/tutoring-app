@@ -22,14 +22,18 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class SettingsViewModelTest {
 
     @get:Rule
     val mainRule = MainDispatcherRule()
 
-    private val env = TestEnv()
+    @get:Rule
+    val env = TestEnv()
 
     private fun vm() = SettingsViewModel(
         env.settingsRepo, env.calendarMirror, env.reminders, env.maintenance,
@@ -364,7 +368,7 @@ class SettingsViewModelTest {
         assertFalse(env.settingsRepo.get().calendarSyncEnabled)
         assertEquals(listOf("evt-1"), env.calendar.deletes)
         // The event id is cleared off the class.
-        assertEquals(null, env.classDao.items.value.single().calendarEventId)
+        assertEquals(null, env.classes().single().calendarEventId)
     }
 
     // --- Turning auto-completion on ----------------------------------------------------------------

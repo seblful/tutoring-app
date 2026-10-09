@@ -15,7 +15,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Instant
 
 /**
@@ -24,18 +27,24 @@ import java.time.Instant
  *
  * A group lesson is *n* rows, so without a transaction a failure halfway through leaves a torn
  * lesson: some members dropped, others still at the old time, joiners missing — a shape the domain
- * has no name for. These are the tests that keep the phases in [ClassRepository] in that order; the
- * fake DAOs cannot roll back, so what is asserted is the *count* of transactions and the fact that
- * the calendar and the reminder scheduler are left untouched when a write fails.
+ * has no name for. These are the tests that keep the phases in [ClassRepository] in that order: the
+ * *count* of transactions, that a write which fails to commit leaves every row as it was, and that the
+ * calendar and the reminder scheduler are left untouched when it does.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class ClassRepositoryAtomicityTest {
+
+    @get:Rule
+    val env = TestEnv()
 
     private val start = Instant.parse("2026-09-01T09:00:00Z")
     private val groupRate = Money.ofMajor(20)
 
     /** A three-member group, so a lesson is unambiguously several rows rather than one. */
-    private class Fixture(val env: TestEnv = TestEnv()) {
+    private inner class Fixture {
+        val env: TestEnv get() = this@ClassRepositoryAtomicityTest.env
+
         var ann = 0L
         var bob = 0L
         var cleo = 0L
@@ -137,8 +146,8 @@ class ClassRepositoryAtomicityTest {
     // --- What a failed write must not do ------------------------------------------------------
 
     /**
-     * The observable half of atomicity that needs no real database: when the write does not land,
-     * nothing downstream of it may run. A calendar event for a lesson that was never committed would
+     * Both halves of atomicity: when the write does not land, none of its rows do, and nothing
+     * downstream of it may run. A calendar event for a lesson that was never committed would
      * be an event with no lesson behind it, and a reminder plan built from rows that do not exist.
      */
     @Test
@@ -154,6 +163,7 @@ class ClassRepositoryAtomicityTest {
         val failure = runCatching { f.book(listOf(f.ann, f.bob, f.cleo)) }
 
         assertTrue("the failure is reported, not swallowed", failure.isFailure)
+        assertEquals("not one member's row was kept", emptyList<Any>(), f.env.classes())
         assertEquals("no event for an uncommitted lesson", emptyList<Any>(), f.env.calendar.calls)
         assertEquals("no reminder refresh either", remindersBefore, f.env.reminders.refreshCount)
     }
@@ -173,6 +183,11 @@ class ClassRepositoryAtomicityTest {
         val failure = runCatching { f.env.classRepo.setStatus(session, LessonStatus.CANCELLED) }
 
         assertTrue(failure.isFailure)
+        assertEquals(
+            "both members' rows rolled back together",
+            listOf(LessonStatus.SCHEDULED, LessonStatus.SCHEDULED),
+            f.env.classes().map { it.status },
+        )
         // Cancelling mirrors as a *delete*, so neither kind of calendar write may have happened.
         assertEquals(emptyList<Any>(), f.env.calendar.calls)
         assertEquals(emptyList<String>(), f.env.calendar.deletes)
@@ -189,7 +204,6 @@ class ClassRepositoryAtomicityTest {
      */
     @Test
     fun `the calendar is never written while a transaction is open`() = runTest {
-        val env = TestEnv()
         val depths = mutableListOf<Int>()
         val spying = object : CalendarSync {
             override suspend fun upsert(

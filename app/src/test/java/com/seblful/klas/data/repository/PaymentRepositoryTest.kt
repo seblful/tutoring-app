@@ -8,7 +8,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -21,6 +24,7 @@ import java.time.ZoneId
  * applied by the view model on the way in. The rule is here now, so it can be asserted here.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class PaymentRepositoryTest {
 
     private val zone: ZoneId = ZoneId.of("Europe/Minsk")
@@ -28,7 +32,8 @@ class PaymentRepositoryTest {
     private val afternoon: Instant = today.atTime(14, 30).atZone(zone).toInstant()
     private val clock = MutableClock(afternoon, zone)
 
-    private val env = TestEnv(clock = clock)
+    @get:Rule
+    val env = TestEnv(clock = clock)
     private val payments = env.paymentRepo
 
     private suspend fun student(): Long = env.fixtures.student()

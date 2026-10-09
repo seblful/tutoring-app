@@ -225,6 +225,10 @@ dependencies {
     // Screenshot tests (Robolectric + Roborazzi), and the Robolectric runtime other framework-backed
     // JVM tests can share.
     testImplementation(libs.robolectric)
+    // Repository, backup and view-model tests run on a real in-memory Room database (testutil/TestDatabase):
+    // Robolectric supplies the Context Room asks for, the bundled driver the SQLite.
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.sqlite.bundled.jvm)
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
     testImplementation(libs.roborazzi)
