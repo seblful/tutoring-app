@@ -18,21 +18,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
-import com.seblful.klas.domain.AvatarPalette
+import com.seblful.klas.domain.people.AvatarPalette
 import com.seblful.klas.ui.theme.klasColors
 
 /**
  * Monograms: one student's, and a whole roster's.
  *
- * The colour keys off the student's **id** rather than their name (`domain/AvatarPalette`), so a rename does
+ * The colour keys off the student's **id** rather than their name (`domain/people/AvatarPalette`), so a rename does
  * not move it. A monogram is a *picture* and says nothing to a screen reader — every caller puts the full
  * name in the same row, so [Avatar] clears its own semantics, and [AvatarStack] replaces its children with
  * one description naming every member, including the ones behind «+N»: the truncation is what a row's width

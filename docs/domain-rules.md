@@ -14,13 +14,16 @@ calendar and the tray is in [calendar-and-reminders.md](calendar-and-reminders.m
   re-pricing never touches existing classes.
 - Balance = Σ(charges on completed lessons) − Σ(payments). Balances and income are always derived, never
   stored. Partial payments and over-payment («Переплата») both work.
+- A lesson row shows the amount it billed, or none where it billed nobody (`Billing.billedOrNull`): a
+  taught lesson at a zero rate shows «0»; one the student missed unbilled shows nothing. The student and
+  group cards read the same answer.
 - Status: `scheduled → completed | cancelled`. The app cannot detect attendance, only the clock, so a
   lesson that didn't happen is **cancelled**, which voids its charge. «Идёт» is derived, not a fourth
   status (see [Lessons](#lessons)).
 - Auto-completion (opt-in): a `scheduled` lesson becomes `completed` once its end time passes, which is
   what bills it — in the periodic upkeep and in-process at app start. Turning it on sweeps the whole
   backlog, asks first, reports what it settled; the background pass never asks.
-- Reports cover active students only, over a period (`domain/ReportPeriod`) — debts are always the whole
+- Reports cover active students only, over a period (`domain/reports/ReportPeriod`) — debts are always the whole
   history. `Reports.of` is the only entry point. A period still in progress is compared with the same
   number of days of the one before (`ReportPeriod.daysElapsed`), not with the whole of it.
 
@@ -29,7 +32,7 @@ calendar and the tray is in [calendar-and-reminders.md](calendar-and-reminders.m
 - A lesson is a row; attendance is another (`lessons` + `attendance`, joined in `ClassDao`'s queries). The
   lesson holds hour/subject/one status; each member's row holds attendance, rate, charge.
   `ABSENT_BILLED` = absent but charged; only an explicit absence stops a charge.
-- A lesson's phase is derived, never stored (`domain/LessonPhase`: `UPCOMING|IN_PROGRESS|OVERDUE|SETTLED`),
+- A lesson's phase is derived, never stored (`domain/lesson/LessonPhase`: `UPCOMING|IN_PROGRESS|OVERDUE|SETTLED`),
   from status + injected clock — not a fourth `LessonStatus`.
 - A lesson carries none of the tutor's text: the note was removed at the tutor's request (v9), and
   homework is its own table, attached by rule.
@@ -39,7 +42,7 @@ calendar and the tray is in [calendar-and-reminders.md](calendar-and-reminders.m
   (`LessonWrite.HourTaken`).
 - Editing/deleting allowed in any status; charge recomputed in place; deleting a completed lesson removes
   its income (UI warns).
-- A repeating booking writes ordinary lessons, not a series (`domain/Recurrence`, `ClassRepository.bookSeries`)
+- A repeating booking writes ordinary lessons, not a series (`domain/schedule/Recurrence`, `ClassRepository.bookSeries`)
   — no series table, no expand-on-read, no "cancel the rest" in one tap. A taken hour is *reported*, not
   refused (`SeriesWrite`), and the whole run is one transaction.
 
@@ -51,7 +54,7 @@ calendar and the tray is in [calendar-and-reminders.md](calendar-and-reminders.m
   wanted.
 - **Attached to its assignee's next lesson** after it was given — a student's next lesson of any kind
   (a group's included), a group's next lesson; cancelled ones skipped; strictly after, so homework set
-  during a lesson is for the next one. **Derived, never stored** (`domain/HomeworkRules`), because with
+  during a lesson is for the next one. **Derived, never stored** (`domain/homework/HomeworkRules`), because with
   no series the next lesson is often not booked yet, and it can move.
 - Set from the «Задания» tab's add button (nobody preselected; the list puts whoever's lesson is nearest
   now first, and the dialog names the lesson it will go to) or from a student's or group's card (fixed
@@ -70,7 +73,7 @@ calendar and the tray is in [calendar-and-reminders.md](calendar-and-reminders.m
 - A group is taught one fixed subject; only priced students may be members; roster is intersected on save,
   and the form asks first when that would take somebody off it (`GroupFormViewModel.UiState.leavingOnSave`).
 - Attendance is separate from roster membership and correctable afterwards.
-- A lesson is captioned by one module (`domain/Captions`): group lesson titled by group, individual by student;
+- A lesson is captioned by one module (`domain/people/Captions`): group lesson titled by group, individual by student;
   a group with no known name falls back to a student. Reminders and the booking form name a lesson by the
   same rule (`Captions.title`).
 - Groups are archive-only once they have lessons; mirror as one calendar event per member; reminders per lesson.
@@ -82,7 +85,7 @@ calendar and the tray is in [calendar-and-reminders.md](calendar-and-reminders.m
 - Class mode (in person/remote): student default, overridable per class, mirrored into the calendar location.
 - History is structurally protected: `classes`/`payments` use `ON DELETE RESTRICT`; students archive-only;
   subjects/groups deletable only while unreferenced — for a subject, by lessons, a group or a student who
-  takes it. A subject's name is unique whatever its case (`domain/SubjectNames`).
+  takes it. A subject's name is unique whatever its case (`domain/people/SubjectNames`).
 - A rate's past is a log (`price_history`, one table for student price + group rate). Unchanged rate logs
   nothing; un-enrolling forgets its log.
 
@@ -97,4 +100,4 @@ Kept because the reasoning still gets re-proposed:
 - **No `missed` or `moved` status.** The lifecycle is `scheduled → completed | cancelled`. A "missed"
   lesson is a cancelled one (charge voided); a "moved" one is the same lesson with a new time.
 - **No series entity.** A repeating booking writes ordinary one-off lessons (see [Lessons](#lessons));
-  why a series table would fight the rest of the app is in `domain/Recurrence`'s KDoc.
+  why a series table would fight the rest of the app is in `domain/schedule/Recurrence`'s KDoc.

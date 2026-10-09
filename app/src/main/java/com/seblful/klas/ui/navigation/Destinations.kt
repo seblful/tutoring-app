@@ -60,7 +60,7 @@ object Routes {
      * the schedule, which is the one place that knows what else the hour holds.
      *
      * [day] is the day the schedule is on, and it is only where the date **picker** opens: the booking
-     * form still starts with an empty date on purpose (see [com.seblful.klas.ui.schedule.ClassForm]).
+     * form still starts with an empty date on purpose (see [com.seblful.klas.ui.schedule.booking.ClassForm]).
      * A date argument used to be declared here, passed by the schedule and read by nobody, so paging to
      * next Thursday and tapping + opened the picker on today.
      */

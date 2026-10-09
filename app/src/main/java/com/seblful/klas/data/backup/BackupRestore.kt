@@ -2,8 +2,8 @@ package com.seblful.klas.data.backup
 
 import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.runCatchingCancellable
-import com.seblful.klas.domain.ReminderScheduler
 import javax.inject.Inject
 import javax.inject.Singleton
 

@@ -24,7 +24,7 @@ sealed interface Assignee {
  * to decide than the tutor wanted. Now it is current until it is swiped done, and done is the archive.
  *
  * @param givenAt when it was set — what "the next lesson" is counted from. The lesson it is attached to is
- *   derived from this, never stored (`domain/HomeworkRules`).
+ *   derived from this, never stored (`domain/homework/HomeworkRules`).
  * @param doneAt when it was marked done, or null while it is current.
  */
 data class Homework(

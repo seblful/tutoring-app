@@ -10,7 +10,7 @@ import com.seblful.klas.data.toEntity
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.RateOwner
-import com.seblful.klas.format.NameOrder
+import com.seblful.klas.domain.people.NameOrder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject

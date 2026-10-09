@@ -1,8 +1,8 @@
 package com.seblful.klas.ui.students
 
-import com.seblful.klas.domain.Phone
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Student
+import com.seblful.klas.domain.people.Phone
 
 /**
  * [onto] with a student's fields as the tutor typed them, in the shape they are stored in: the name, email

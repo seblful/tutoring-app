@@ -34,17 +34,17 @@ import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabListPadding
-import com.seblful.klas.ui.common.NoSearchResults
 import com.seblful.klas.ui.common.IconAvatar
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
-import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.NoSearchResults
 import com.seblful.klas.ui.common.ScreenSearch
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TextFieldDialog
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.state.Loadable
 
 @Composable
 fun SubjectsScreen(

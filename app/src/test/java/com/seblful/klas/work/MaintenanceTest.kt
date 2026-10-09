@@ -2,11 +2,11 @@ package com.seblful.klas.work
 
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
-import com.seblful.klas.domain.Digests
-import com.seblful.klas.domain.Reminders
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.reminders.Digests
+import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.RecordingNotifier
 import com.seblful.klas.testutil.TestEnv

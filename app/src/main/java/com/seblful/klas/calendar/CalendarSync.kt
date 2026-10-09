@@ -1,7 +1,7 @@
 package com.seblful.klas.calendar
 
-import com.seblful.klas.domain.Reminders
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.reminders.Reminders
 
 /**
  * The student an event is for, as far as the calendar is concerned: the address that identifies

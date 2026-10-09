@@ -212,13 +212,6 @@ fun bulletJoin(vararg parts: String): String = bulletJoin(parts.asList())
 
 private const val BULLET = " · "
 
-/** Formats an epoch-month key (year * 12 + monthIndex) as e.g. "Июнь 2026" / "June 2026". */
-fun formatMonthKey(key: Int): String {
-    val year = key / 12
-    val month = key % 12 + 1
-    return formatMonth(YearMonth.of(year, month))
-}
-
 /**
  * The month of an epoch-month key on its own, e.g. "Июнь" — for a list that already sits under the
  * year it belongs to, where repeating "2026" on all twelve rows says nothing.

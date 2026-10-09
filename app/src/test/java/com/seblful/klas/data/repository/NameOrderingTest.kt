@@ -14,7 +14,7 @@ import org.robolectric.RobolectricTestRunner
 
 /**
  * Name ordering as the UI receives it, over the real queries — whose own order is SQLite's, and SQLite
- * folds case for ASCII only. So what these assert is the repositories' own use of `format/NameOrder`,
+ * folds case for ASCII only. So what these assert is the repositories' own use of `domain/people/NameOrder`,
  * the single place the order is decided, on the device and here alike.
  */
 @RunWith(RobolectricTestRunner::class)

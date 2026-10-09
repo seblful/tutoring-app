@@ -5,8 +5,8 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
-import com.seblful.klas.ui.common.Loadable
-import com.seblful.klas.ui.common.valueOrNull
+import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.state.valueOrNull
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle

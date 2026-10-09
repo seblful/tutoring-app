@@ -8,14 +8,14 @@ import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.repository.SettingsChange
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
-import com.seblful.klas.domain.ReminderScheduler
+import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.notifications.ExactAlarmPermission
 import com.seblful.klas.notifications.NotificationPermission
-import com.seblful.klas.ui.common.Loadable
-import com.seblful.klas.ui.common.UiEvents
-import com.seblful.klas.ui.common.hold
-import com.seblful.klas.ui.common.ready
-import com.seblful.klas.ui.common.write
+import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.state.UiEvents
+import com.seblful.klas.ui.common.state.hold
+import com.seblful.klas.ui.common.state.ready
+import com.seblful.klas.ui.common.state.write
 import com.seblful.klas.work.Maintenance
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -112,8 +111,8 @@ class SettingsViewModel @Inject constructor(
     val notificationPermissionsRequired: List<String> get() = notificationPermission.required
 
     /**
-     * Whether the calendar may actually be written to — the platform's answer, beside the tutor's intent
-     * in [AppSettings.calendarSyncEnabled].
+     * What is actually happening to the calendar mirror — the platform's answer, beside the tutor's intent
+     * in [AppSettings.calendarSyncEnabled]. See [CalendarDelivery].
      *
      * The notification row already did this and this one did not, though the permission behind it is
      * revocable from exactly the same place: system settings, while the app is away. Revoking it leaves
@@ -123,13 +122,15 @@ class SettingsViewModel @Inject constructor(
      *
      * Note what this is *not*: the reason sync cannot be **enabled** without the grant. That rule is
      * [setCalendarSyncEnabled]'s and is a refusal; this is a report. Off is off either way, so it only has
-     * something to say while the setting is on.
+     * something to say while the setting is on — which [CalendarDelivery.of] decides, rather than the row
+     * weighing the two booleans itself.
      *
      * Re-asked on resume through [refreshPermissions], like its counterpart: a permission is not a `Flow`.
      */
-    val calendarPermitted: StateFlow<Boolean> = permissionChecks
-        .map { calendarPermission.isGranted() }
-        .hold(this, true)
+    val calendarDelivery: StateFlow<CalendarDelivery> =
+        combine(settings.observe(), permissionChecks) { s, _ ->
+            CalendarDelivery.of(enabled = s.calendarSyncEnabled, permitted = calendarPermission.isGranted())
+        }.hold(this, CalendarDelivery.OFF)
 
     /**
      * Turns reminders [on] — **storing the setting and saying what that owes the platform, in one call.**
@@ -205,6 +206,17 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
+     * The calendar request came back with [grants]: with all of them, sync goes on through
+     * [setCalendarSyncEnabled] — the one place its refusal lives — and anything less leaves it off. An
+     * empty answer is a refusal too: the platform returns one when the request was dismissed unseen.
+     */
+    fun calendarPermissionAnswered(grants: Map<String, Boolean>): CalendarSyncToggle {
+        refreshPermissions()
+        val granted = grants.isNotEmpty() && grants.values.all { it }
+        return if (granted) setCalendarSyncEnabled(true) else CalendarSyncToggle.PERMISSION_NEEDED
+    }
+
+    /**
      * The permissions the screen must request after a [CalendarSyncToggle.PERMISSION_NEEDED].
      * Surfaced here so the screen needs no import from `calendar/` at all.
      */
@@ -221,7 +233,7 @@ class SettingsViewModel @Inject constructor(
      * language change re-mirrors it, and in `viewModelScope` a back press straight after the switch
      * cancelled that half-way — the switch said on while the calendar held half the lessons, and turning
      * invites off could leave invitations behind. A failure is [failed], not a crash — the shared
-     * guarded-write tail (`ui/common/Writes.kt`).
+     * guarded-write tail (`ui/common/state/Writes.kt`).
      */
     fun update(transform: (AppSettings) -> AppSettings) {
         appScope.write(failed, Unit) { apply(transform) }
@@ -367,6 +379,34 @@ enum class ReminderDelivery {
             !permitted -> BLOCKED
             !exact -> LATE
             else -> ON_TIME
+        }
+    }
+}
+
+/**
+ * What is actually happening to the calendar mirror — the one answer the sync row reports, as
+ * [ReminderDelivery] is for the reminder row.
+ *
+ * Its permission is revoked from system settings while the app is away, which leaves the switch **on** and
+ * the mirror dead. Off is the tutor's choice and has nothing to report about the platform.
+ */
+enum class CalendarDelivery {
+
+    /** The tutor has switched sync off. */
+    OFF,
+
+    /** On, and the calendar may be written to. */
+    ON,
+
+    /** On, but the permission is gone, so nothing is mirrored. */
+    BLOCKED,
+    ;
+
+    companion object {
+        fun of(enabled: Boolean, permitted: Boolean): CalendarDelivery = when {
+            !enabled -> OFF
+            !permitted -> BLOCKED
+            else -> ON
         }
     }
 }

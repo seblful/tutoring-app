@@ -1,11 +1,11 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.domain.GroupRules
-import com.seblful.klas.domain.Recurrence
-import com.seblful.klas.domain.Repeat
+import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.schedule.Recurrence
+import com.seblful.klas.domain.schedule.Repeat
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -76,7 +76,7 @@ class ClassRepositorySeriesTest {
         assertEquals(4, written.lessons)
         assertEquals(4, written.bookedIds.size)
         assertTrue("nothing stood in the way of an empty schedule", written.skipped.isEmpty())
-        assertEquals(4, GroupRules.sessions(repo.getAll()).size)
+        assertEquals(4, SessionRules.sessions(repo.getAll()).size)
     }
 
     @Test
@@ -260,7 +260,7 @@ class ClassRepositorySeriesTest {
         // Four evenings for the tutor, eight classes to bill — the count the tutor reads is lessons.
         assertEquals(4, written.lessons)
         assertEquals(8, written.bookedIds.size)
-        assertEquals(4, GroupRules.sessions(repo.getAll()).size)
+        assertEquals(4, SessionRules.sessions(repo.getAll()).size)
     }
 
     // --- What a caller may not ask for -----------------------------------------------------------

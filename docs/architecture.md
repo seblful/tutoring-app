@@ -27,7 +27,15 @@ flowchart TB
 
 | Package | Responsibility |
 |---|---|
-| `domain/` (`:domain` module) | Pure Kotlin, no Android deps (compiler-enforced): billing, class/group rules, scheduling, recurrence, calendar policy, reminders, `LessonPhase`, `HomeworkRules`, `Digests`, reports, search, formatting-adjacent models (`Balance`, `Currency`, `AppLanguage`, `ThemeChoice`). All JVM-tested. |
+| `domain/` (`:domain` module) | Pure Kotlin, no Android deps (compiler-enforced), all JVM-tested, one subpackage per concept (below). |
+| `domain/model/` | The types every rule shares: `TutoringClass`, `ClassSession` (one lesson's classes), `Student`, `Group`, `Money`, `Balance`, `Currency`, `AppLanguage`, `ThemeChoice`. |
+| `domain/lesson/` | What a lesson is and how it changes: `ClassRules`, `SessionRules` (every lesson: sessions, edits, transitions), `GroupRules` (a group's roster), `LessonEdits`, `LessonPhase`, `LessonKind`, `DeleteWarning`, `CalendarSyncPolicy`. |
+| `domain/schedule/` | Time: `Scheduling` (slots, the one-tutor refusal, bookable subjects), `Recurrence`, `DayBounds`, `CalendarLayout`, `DaySummary`, `TimeConflict`, `ScheduleEmpty`. |
+| `domain/billing/` | `Billing` (what counts as income, balances, a row's amount), `PaymentDate`. |
+| `domain/reports/` | `Reports`, `ReportPeriod`, `ReportCsv`, `Taught`. |
+| `domain/reminders/` | `Reminders`, `ReminderScheduler` port, `Digests`, `DigestScheduler` port. |
+| `domain/homework/` | `HomeworkRules`. |
+| `domain/people/` | Names and finding people: `PeopleSearch`, `NameOrder`, `Captions`, `SubjectNames`, `Phone`, `AvatarPalette`. |
 | `data/local/` | Room entities, DAOs, `AppDatabase`, `Migrations`, `EnumConverters`, `Transactor` port. `SnapshotDao` is the separate whole-table seam. |
 | `data/Mappers.kt` | Entities ⇄ domain models. |
 | `data/repository/` | One invariant each, end to end, one transaction (see [Who owns each rule](#who-owns-each-rule)). |
@@ -35,13 +43,16 @@ flowchart TB
 | `calendar/` | `CalendarSync`/`CalendarPermission` ports, `CalendarContract` adapter, calendar/guest choice rules. |
 | `notifications/` | `Notifier` + permission ports/adapters, reminder/digest content, tray actions/navigation, alarm scheduling. |
 | `work/` | Periodic maintenance worker, three digest workers, `WorkScheduler`, `BootReceiver`, `Maintenance`. |
-| `diagnostics/` | `CrashLogger` over a capped local log file; viewed/exported from `ui/diagnostics`. No Crashlytics/Sentry — Play Vitals still receives the crash. |
+| `diagnostics/` | `CrashLogger` over a capped local log file, and `Diagnostics` (what a crash entry says); viewed/exported from `ui/diagnostics`. No Crashlytics/Sentry — Play Vitals still receives the crash. |
 | `storage/` | `DocumentStore` (SAF) and `DocumentSharing` (`ACTION_SEND`) ports. |
-| `format/` | Date/time/money formatting, `AppLocale`, `MoneyField`, `NameOrder`, the lesson-mode word (`ClassMode.labelRes`, read by screens and the calendar alike). |
-| `ui/` | Compose screens + `@HiltViewModel`s, `navigation/`, shared `common/` atoms, `onboarding/`, `RootViewModel`. The «Задания» tab and the homework parts the student and group cards share in `ui/homework/`. Settings/About in `ui/more/`. Theme in `ui/theme/`. |
+| `format/` | Date/time/money formatting, `AppLocale`, `MoneyField`, the lesson-mode word (`ClassMode.labelRes`, read by screens and the calendar alike), and what the device says: `Localization.kt` (`Context.inLanguage()`, `deviceLocales()`), `WeekStart.kt` (the phone's first day of the week). |
+| `ui/` | Compose screens + `@HiltViewModel`s, one package per feature, `onboarding/`, `RootViewModel`, `AppRoot` (theme, locale, the tabs' chrome). The «Задания» tab and the homework parts the student and group cards share in `ui/homework/`. Settings/About in `ui/more/`. Theme in `ui/theme/`. |
+| `ui/navigation/` | `Routes`, the graph (`KlasNavGraph.kt`: `klasGraph`, `navigateToTab`), the tabs, what a tray tap opens (`TrayArrivals.kt`), `Arrival`. |
+| `ui/common/` | Shared atoms (`KlasScreen`, `detailCard`, fields, dialogs, badges…) and, in `state/`, the view models' plumbing with no Compose in it: `Loadable`, `derive`/`hold`, `Clock.days()`, `UiEvents`, `write`/`writeAwaited`. A part only one feature uses lives in that feature. |
+| `ui/schedule/` | The schedule screen (split into the screen, `LessonCard`, `ScheduleHeaders`, `ClassActionsSheet`, `CalendarViews`) and its view model and models; the booking form in `booking/` (`ClassForm`, `ClassFormState`, `BookingForm`, the edit screen and view model). |
 | `preview/` (debug only) | `@Preview`s of `ui/common/`. |
 | `di/` | DB module, scopes/dispatchers, `Clock`, week-start, device locales. |
-| root | `KlasApp` (`@HiltAndroidApp`, WorkManager config, in-process startup upkeep), `MainActivity` → `AppRoot()`, `Coroutines.kt` (`runCatchingCancellable`), `Localization.kt` (`Context.inLanguage()`, `deviceLocales()`). |
+| root | `KlasApp` (`@HiltAndroidApp`, WorkManager config, in-process startup upkeep), `MainActivity` → `AppRoot()`, `Coroutines.kt` (`runCatchingCancellable`, and `launchAsync` for every broadcast receiver). |
 
 ## Who owns each rule
 
@@ -69,7 +80,7 @@ ViewModels observe repository `Flow`s, expose `StateFlow`. Writes: ViewModel →
 (repository) mirrors calendar + refreshes reminders.
 
 Reads live in `viewModelScope`; writes go to the injected `@ApplicationScope` so a save outlives its
-screen, through `write`/`writeAwaited` (`ui/common/Writes.kt`). Deriving state happens off the main thread
+screen, through `write`/`writeAwaited` (`ui/common/state/Writes.kt`). Deriving state happens off the main thread
 (`combine(...).derive(scope, computation, initial)`). A failed write is never fatal: a guarded one is
 reported to the screen as an event, and an unguarded one reaches the application scope's handler, which
 records it to the crash log. ViewModel

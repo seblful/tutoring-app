@@ -2,6 +2,7 @@ package com.seblful.klas.ui.common
 
 import com.seblful.klas.testutil.ProjectFiles
 import com.seblful.klas.testutil.SourceText
+import com.seblful.klas.ui.common.state.map
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -48,7 +49,7 @@ class StatusBadgeSurfaceTest {
 
         assertTrue(
             "Expected the schedule, the student card and the group card to badge a lesson's status: $users",
-            users.containsAll(setOf("ScheduleScreen.kt", "StudentDetailScreen.kt", "GroupDetailScreen.kt")),
+            users.containsAll(setOf("LessonCard.kt", "StudentDetailScreen.kt", "GroupDetailScreen.kt")),
         )
     }
 

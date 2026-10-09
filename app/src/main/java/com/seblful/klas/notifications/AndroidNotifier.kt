@@ -11,15 +11,15 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
-import com.seblful.klas.domain.Digests
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.daySummaryText
 import com.seblful.klas.format.formatTime
+import com.seblful.klas.format.inAppLanguage
 import com.seblful.klas.format.money
-import com.seblful.klas.inAppLanguage
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDate
 import javax.inject.Inject
@@ -40,7 +40,7 @@ class AndroidNotifier @Inject constructor(
 
     /**
      * The context every **word** in this class is read from: the application's, in the language the tutor
-     * chose ([com.seblful.klas.inAppLanguage]).
+     * chose ([com.seblful.klas.format.inAppLanguage]).
      *
      * [context] itself cannot be it. The application's base context is pinned to whatever language the
      * *phone* asks for, because the settings row cannot be read before a context exists (`KlasApp`), and a

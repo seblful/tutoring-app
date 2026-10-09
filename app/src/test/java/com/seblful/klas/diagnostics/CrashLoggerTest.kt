@@ -1,6 +1,5 @@
 package com.seblful.klas.diagnostics
 
-import com.seblful.klas.domain.Diagnostics
 import com.seblful.klas.testutil.MutableClock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

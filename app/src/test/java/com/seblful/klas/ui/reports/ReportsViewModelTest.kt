@@ -4,33 +4,28 @@ import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
-import com.seblful.klas.domain.ReportCsv
 import com.seblful.klas.domain.model.LessonStatus
-import com.seblful.klas.format.AppLocale
-import com.seblful.klas.domain.ReportPeriod
-import com.seblful.klas.domain.Reports
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.reports.ReportCsv
+import com.seblful.klas.domain.reports.ReportPeriod
+import com.seblful.klas.domain.reports.Reports
+import com.seblful.klas.format.AppLocale
 import com.seblful.klas.testutil.CountingDispatcher
 import com.seblful.klas.testutil.FakeDocumentStore
-import com.seblful.klas.testutil.RecordingDocumentSharing
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.MutableClock
+import com.seblful.klas.testutil.RecordingDocumentSharing
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
-import java.time.Clock
-import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
+import com.seblful.klas.ui.navigation.Arrival
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import com.seblful.klas.ui.navigation.Arrival
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -38,6 +33,11 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * **Never `advanceUntilIdle()` here**: the report's "today" is `Clock.days()`, which sleeps until the next

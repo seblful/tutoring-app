@@ -30,18 +30,18 @@ import com.seblful.klas.R
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.KlasScreen
-import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.LoadingFormScreen
-import com.seblful.klas.ui.common.RateHistory
 import com.seblful.klas.ui.common.MemberPickRow
 import com.seblful.klas.ui.common.ModeField
 import com.seblful.klas.ui.common.MoneyTextField
+import com.seblful.klas.ui.common.RateHistory
 import com.seblful.klas.ui.common.SaveAction
 import com.seblful.klas.ui.common.SectionTitle
+import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.rememberMessages
-import com.seblful.klas.ui.common.ShowMessagesFor
+import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.supportingTextOf
 
 /**

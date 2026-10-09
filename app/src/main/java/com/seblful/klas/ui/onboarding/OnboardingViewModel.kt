@@ -9,13 +9,13 @@ import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Subject
-import com.seblful.klas.ui.common.Loadable
-import com.seblful.klas.ui.common.UiEvents
-import com.seblful.klas.ui.common.hold
-import com.seblful.klas.ui.common.ready
-import com.seblful.klas.ui.common.valueOrNull
-import com.seblful.klas.ui.common.write
-import com.seblful.klas.ui.common.writeAwaited
+import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.state.UiEvents
+import com.seblful.klas.ui.common.state.hold
+import com.seblful.klas.ui.common.state.ready
+import com.seblful.klas.ui.common.state.valueOrNull
+import com.seblful.klas.ui.common.state.write
+import com.seblful.klas.ui.common.state.writeAwaited
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +32,7 @@ import javax.inject.Inject
  * a backup ends first run too, but that path belongs to `BackupRestore` (it does far more than flip
  * the flag), not here.
  *
- * Every write goes to [appScope] through the shared guarded tail (`ui/common/Writes.kt`), like every
+ * Every write goes to [appScope] through the shared guarded tail (`ui/common/state/Writes.kt`), like every
  * other screen's: they used to be bare `viewModelScope.launch`es, so a database error closed the app in
  * the middle of its first minute, and «Готово» followed by a quick back could cancel the flag's write.
  */

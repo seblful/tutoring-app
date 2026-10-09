@@ -23,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
-import com.seblful.klas.domain.LessonKind
+import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabClearance
@@ -32,13 +32,13 @@ import com.seblful.klas.ui.common.FilterMenuAction
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.ListSkeleton
-import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.SegmentedPage
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.state.Loadable
 
 /** The tab's two lists: what is set and not done yet, and what is done. */
 private enum class HomeworkSide(val labelRes: Int) {

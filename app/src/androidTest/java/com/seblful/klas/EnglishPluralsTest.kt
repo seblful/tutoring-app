@@ -1,6 +1,7 @@
 package com.seblful.klas
 
 import androidx.test.platform.app.InstrumentationRegistry
+import com.seblful.klas.format.inLanguage
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertTrue

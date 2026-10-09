@@ -3,34 +3,34 @@ package com.seblful.klas.ui.groups
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.seblful.klas.di.ApplicationScope
-import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.HomeworkRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
-import com.seblful.klas.domain.Attendance
-import com.seblful.klas.domain.ClassSession
-import com.seblful.klas.domain.Billing
-import com.seblful.klas.domain.Captions
-import com.seblful.klas.domain.GroupRules
-import com.seblful.klas.domain.HomeworkRules
-import com.seblful.klas.domain.Taught
+import com.seblful.klas.di.ApplicationScope
+import com.seblful.klas.di.Computation
+import com.seblful.klas.domain.billing.Billing
+import com.seblful.klas.domain.homework.HomeworkRules
+import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.domain.model.Attendance
+import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.TutoringClass
-import com.seblful.klas.ui.common.Loadable
-import com.seblful.klas.ui.common.UiEvents
-import com.seblful.klas.ui.common.days
-import com.seblful.klas.ui.common.derive
-import com.seblful.klas.ui.common.ready
-import com.seblful.klas.ui.common.valueOrNull
-import com.seblful.klas.ui.common.write
-import com.seblful.klas.ui.common.writeAwaited
+import com.seblful.klas.domain.people.Captions
+import com.seblful.klas.domain.reports.Taught
+import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.state.UiEvents
+import com.seblful.klas.ui.common.state.days
+import com.seblful.klas.ui.common.state.derive
+import com.seblful.klas.ui.common.state.ready
+import com.seblful.klas.ui.common.state.valueOrNull
+import com.seblful.klas.ui.common.state.write
+import com.seblful.klas.ui.common.state.writeAwaited
 import com.seblful.klas.ui.homework.AssigneeChoice
 import com.seblful.klas.ui.homework.HomeworkActions
 import com.seblful.klas.ui.homework.HomeworkLists
@@ -61,11 +61,12 @@ data class GroupMemberRow(val student: Student, val attended: Int)
  * One of the group's lessons: the classes of a single session, plus what it came to.
  *
  * @param charge the whole lesson's recognized income — the sum over its members, since each of them
- *   is billed the group's rate separately (see `Group.price`).
+ *   is billed the group's rate separately (see `Group.price`) — or null where it billed nobody. See
+ *   `Billing.billedOrNull`.
  */
 data class GroupLessonRow(
     val session: ClassSession,
-    val charge: Money,
+    val charge: Money?,
 ) {
     /**
      * How the members read on this row.
@@ -148,7 +149,7 @@ class GroupDetailViewModel @Inject constructor(
     ) { group, memberIds, allStudents, allSubjects, groupClasses ->
         // Sessions, newest first: one lesson is n member classes sharing a group and a start, and the
         // card counts lessons the tutor taught, not classes billed (see Taught.byGroup).
-        val sessions = GroupRules.sessions(groupClasses).reversed()
+        val sessions = SessionRules.sessions(groupClasses).reversed()
         val attendedByStudent = groupClasses.groupingBy { it.studentId }.eachCount()
         val roster = memberIds.toSet()
         val card = GroupDetailState(
@@ -163,7 +164,7 @@ class GroupDetailViewModel @Inject constructor(
             lessons = sessions.map { session ->
                 GroupLessonRow(
                     session = session,
-                    charge = Billing.charged(session.classes),
+                    charge = Billing.billedOrNull(session.classes),
                 )
             },
         )

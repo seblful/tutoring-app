@@ -6,9 +6,9 @@ import com.seblful.klas.data.local.Transactor
 import com.seblful.klas.data.local.upsertedId
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
-import com.seblful.klas.domain.SubjectNames
 import com.seblful.klas.domain.model.Subject
-import com.seblful.klas.format.NameOrder
+import com.seblful.klas.domain.people.NameOrder
+import com.seblful.klas.domain.people.SubjectNames
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject

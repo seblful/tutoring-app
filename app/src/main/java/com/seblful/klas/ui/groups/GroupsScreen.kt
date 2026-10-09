@@ -21,17 +21,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
-import com.seblful.klas.ui.common.AvatarStack
 import com.seblful.klas.ui.common.ArchivedBadge
+import com.seblful.klas.ui.common.AvatarStack
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabListPadding
-import com.seblful.klas.ui.common.NoSearchResults
 import com.seblful.klas.ui.common.IconAvatar
 import com.seblful.klas.ui.common.ListSkeleton
-import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.NoSearchResults
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
+import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
 
 /**

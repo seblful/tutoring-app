@@ -32,20 +32,20 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
-import com.seblful.klas.domain.Attendance
+import com.seblful.klas.domain.model.Attendance
 import com.seblful.klas.ui.common.ArchiveMenuItem
 import com.seblful.klas.ui.common.ArchivedBadge
 import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.ConfirmDialog
+import com.seblful.klas.ui.common.DetailCard
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KlasScreen
-import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.LoadingDetailScreen
 import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.OpensScreenMark
@@ -53,20 +53,21 @@ import com.seblful.klas.ui.common.OverflowMenu
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.Stat
-import com.seblful.klas.ui.common.StatRow
 import com.seblful.klas.ui.common.StatusBadge
-import com.seblful.klas.ui.common.TrailingAmount
 import com.seblful.klas.ui.common.StickyViewMenu
 import com.seblful.klas.ui.common.TitleSize
+import com.seblful.klas.ui.common.TrailingAmount
 import com.seblful.klas.ui.common.animateInPlace
-import com.seblful.klas.ui.common.dateTimeText
-import com.seblful.klas.ui.common.insetRowPress
-import com.seblful.klas.ui.common.lessonsStat
-import com.seblful.klas.ui.common.earnedStat
-import com.seblful.klas.ui.common.hoursStat
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
+import com.seblful.klas.ui.common.dateTimeText
+import com.seblful.klas.ui.common.detailCard
+import com.seblful.klas.ui.common.earnedStat
+import com.seblful.klas.ui.common.hoursStat
+import com.seblful.klas.ui.common.insetRowPress
+import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.homework.AssigneeChoice
 import com.seblful.klas.ui.homework.CardHomeworkDialogs
@@ -183,55 +184,45 @@ private fun GroupCard(
             contentPadding = PaddingValues(bottom = Spacing.sectionGap),
         ) {
             // Identity, then the numbers, then the tabs — the same three in the same order as the
-            // student's card. The two used to disagree: the student led with the stat row and put the
-            // "what is this" block second.
-            item(key = GroupDetailKeys.HEADER) {
-                GroupHeader(
-                    state = state,
-                    modifier = Modifier.padding(
-                        horizontal = Spacing.gutter,
-                        vertical = Spacing.inline,
-                    ),
-                )
-            }
-
-            item(key = GroupDetailKeys.STATS) {
-                StatRow(
-                    stats = groupStats(state),
-                    modifier = Modifier.padding(
-                        horizontal = Spacing.gutter,
-                        vertical = Spacing.inline,
-                    ),
-                )
-            }
-
-            stickyHeader(key = GroupDetailKeys.TABS) {
-                StickyViewMenu(
-                    options = GroupTab.entries,
-                    selected = tab,
-                    onSelect = { tab = it },
-                    label = { stringResource(it.labelRes) },
-                    icon = { it.icon },
-                    count = { entry ->
-                        when (entry) {
-                            GroupTab.LESSONS -> state.lessons.size
-                            GroupTab.HOMEWORK -> state.homework.current.size
-                            GroupTab.STUDENTS -> state.members.size
-                        }
-                    },
-                )
-            }
-
-            when (tab) {
-                GroupTab.LESSONS -> lessonsTab(state, onLessonClick)
-                GroupTab.HOMEWORK -> homeworkItems(
-                    lists = state.homework,
-                    messages = messages,
-                    onAdd = { addingHomework = viewModel.homeworkChoice() },
-                    onOpen = { openedHomework = it },
-                    onDone = homeworkUndo::swiped,
-                )
-                GroupTab.STUDENTS -> studentsTab(state, onMemberClick, onEditMembers = onEdit)
+            // student's card (see [detailCard]). The two used to disagree: the student led with the stat
+            // row and put the "what is this" block second.
+            detailCard(
+                identity = {
+                    item(key = GroupDetailKeys.HEADER) {
+                        GroupHeader(
+                            state = state,
+                            modifier = Modifier.padding(
+                                horizontal = Spacing.gutter,
+                                vertical = Spacing.inline,
+                            ),
+                        )
+                    }
+                },
+                stats = { groupStats(state) },
+                views = GroupTab.entries,
+                selected = tab,
+                onSelect = { tab = it },
+                label = { stringResource(it.labelRes) },
+                icon = { it.icon },
+                count = { entry ->
+                    when (entry) {
+                        GroupTab.LESSONS -> state.lessons.size
+                        GroupTab.HOMEWORK -> state.homework.current.size
+                        GroupTab.STUDENTS -> state.members.size
+                    }
+                },
+            ) { shown ->
+                when (shown) {
+                    GroupTab.LESSONS -> lessonsTab(state, onLessonClick)
+                    GroupTab.HOMEWORK -> homeworkItems(
+                        lists = state.homework,
+                        messages = messages,
+                        onAdd = { addingHomework = viewModel.homeworkChoice() },
+                        onOpen = { openedHomework = it },
+                        onDone = homeworkUndo::swiped,
+                    )
+                    GroupTab.STUDENTS -> studentsTab(state, onMemberClick, onEditMembers = onEdit)
+                }
             }
         }
     }
@@ -443,7 +434,7 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
                     )
                 }
             },
-            trailingContent = { if (!row.charge.isZero) TrailingAmount(row.charge.text()) },
+            trailingContent = { row.charge?.let { TrailingAmount(it.text()) } },
             modifier = Modifier
                 .insetRowPress { Modifier.clickable(it, indication = null) { onLessonClick(row.session.first.id) } }
                 .then(animateInPlace()),
@@ -459,8 +450,8 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
  */
 private object GroupDetailKeys {
     const val HEADER = "header"
-    const val STATS = "stats"
-    const val TABS = "tabs"
+    const val STATS = DetailCard.STATS_KEY
+    const val TABS = DetailCard.VIEWS_KEY
     const val STUDENTS_EMPTY = "students:empty"
     const val LESSONS_EMPTY = "lessons:empty"
 

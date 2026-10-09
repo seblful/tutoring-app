@@ -221,7 +221,7 @@
     <string name="class_status_cancelled">Cancelled</string>
     <!--
       Not a fourth status: a lesson is "on now" because of the clock, not because the tutor said so, so
-      this is derived (domain/LessonPhase) and never stored. It replaces the "Planned" badge for the
+      this is derived (domain/lesson/LessonPhase) and never stored. It replaces the "Planned" badge for the
       length of the lesson and is the only place in the app written in the amber of KlasColors.live.
     -->
     <string name="class_status_in_progress">On now</string>

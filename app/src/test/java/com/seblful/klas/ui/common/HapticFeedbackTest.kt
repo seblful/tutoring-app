@@ -2,6 +2,7 @@ package com.seblful.klas.ui.common
 
 import com.seblful.klas.testutil.ProjectFiles
 import com.seblful.klas.testutil.SourceText
+import com.seblful.klas.ui.common.state.map
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -119,7 +120,7 @@ class HapticFeedbackTest {
      */
     @Test
     fun `a refusal is felt wherever the booking form refuses an hour`() {
-        val form = SourceText.code(ProjectFiles.sourceFile("ui/schedule/ClassEditScreen.kt").readText())
+        val form = SourceText.code(ProjectFiles.sourceFile("ui/schedule/booking/ClassEditScreen.kt").readText())
         val refusal = SourceText.argumentLists(form, "ShowMessagesFor(").joinToString()
 
         assertTrue(

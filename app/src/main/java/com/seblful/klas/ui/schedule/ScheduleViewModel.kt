@@ -2,39 +2,41 @@ package com.seblful.klas.ui.schedule
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.seblful.klas.di.Computation
-import com.seblful.klas.di.FirstDayOfWeek
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.HomeworkRepository
 import com.seblful.klas.data.repository.LessonWrite
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
-import com.seblful.klas.domain.CalendarLayout
-import com.seblful.klas.domain.Captions
-import com.seblful.klas.domain.ClassSession
-import com.seblful.klas.domain.DayBounds
-import com.seblful.klas.domain.DaySummary
-import com.seblful.klas.domain.GroupRules
-import com.seblful.klas.domain.LessonPhase
-import com.seblful.klas.domain.NowMarker
+import com.seblful.klas.di.ApplicationScope
+import com.seblful.klas.di.Computation
+import com.seblful.klas.di.FirstDayOfWeek
+import com.seblful.klas.domain.lesson.LessonPhase
+import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.LessonStatus
-import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.TutoringClass
-import com.seblful.klas.di.ApplicationScope
-import com.seblful.klas.ui.common.Loadable
-import com.seblful.klas.ui.common.UiEvents
-import com.seblful.klas.ui.common.days
-import com.seblful.klas.ui.common.derive
-import com.seblful.klas.ui.common.hold
-import com.seblful.klas.ui.common.map
-import com.seblful.klas.ui.common.ready
-import com.seblful.klas.ui.common.readyOrLoadingAfter
-import com.seblful.klas.ui.common.valueOrNull
-import com.seblful.klas.ui.common.write
+import com.seblful.klas.domain.people.Captions
+import com.seblful.klas.domain.schedule.CalendarLayout
+import com.seblful.klas.domain.schedule.DayBounds
+import com.seblful.klas.domain.schedule.DaySummary
+import com.seblful.klas.domain.schedule.NowMarker
+import com.seblful.klas.domain.schedule.ScheduleEmpty
+import com.seblful.klas.domain.schedule.TimeConflict
+import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.state.UiEvents
+import com.seblful.klas.ui.common.state.days
+import com.seblful.klas.ui.common.state.derive
+import com.seblful.klas.ui.common.state.hold
+import com.seblful.klas.ui.common.state.map
+import com.seblful.klas.ui.common.state.ready
+import com.seblful.klas.ui.common.state.readyOrLoadingAfter
+import com.seblful.klas.ui.common.state.valueOrNull
+import com.seblful.klas.ui.common.state.write
+import com.seblful.klas.ui.homework.HomeworkActions
 import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.navigation.ArrivalGate
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -63,308 +65,18 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
-import kotlin.time.Duration.Companion.milliseconds
 import javax.inject.Inject
-
-/**
- * One row of the day's schedule: a lesson, which is either one student's class or a whole group
- * session.
- *
- * [members] names a group lesson's students so the row can say who is in the room. Names only, and
- * not a row per member: a lesson is acted on as a whole here, and **who** is in one is changed on
- * the lesson's own form — the schedule's actions are about the lesson's time and status.
- */
-data class ScheduleRow(
-    val session: ClassSession,
-    /** Group name for a group lesson, student name otherwise. */
-    val title: String,
-    val subjectName: String,
-    /** A group lesson's students, in class order. Empty for an individual lesson — [title] is them. */
-    val members: List<String> = emptyList(),
-) {
-    val klass: TutoringClass get() = session.first
-    val isGroup: Boolean get() = session.isGroup
-    val classes: List<TutoringClass> get() = session.classes
-
-    /** What deleting this lesson has to warn about — see [DeleteWarning]. */
-    val deleteWarning: DeleteWarning get() = DeleteWarning.of(session)
-
-    /**
-     * The statuses this lesson may be moved to — what the sheet's segmented control enables, and
-     * what [canSwipeComplete] is gated on. [GroupRules.sessionTransitions] asked once, here, where
-     * a test can reach it; it used to be asked by two composables, so the rule gating the product's
-     * highest-frequency gesture could be exercised only by swiping a card on a phone.
-     */
-    val statusChoices: Set<LessonStatus> get() = GroupRules.sessionTransitions(session)
-
-    /**
-     * Whether the swipe-to-complete gesture is offered at all: completing must be legal for some
-     * member, so the gesture can never do what the sheet's menu would refuse.
-     *
-     * It cannot contradict the card's badge, which is worth knowing rather than guarding: only a
-     * *scheduled* class may be completed, and a lesson with a scheduled member reads «Запланировано»
-     * ([ClassSession.status]). So a lesson badged «Проведено» — including a taught one whose absentee
-     * was cancelled afterwards — offers no swipe, because reinstating that member is a correction to
-     * their class and not a thing done to the whole lesson.
-     */
-    val canSwipeComplete: Boolean get() = LessonStatus.COMPLETED in statusChoices
-
-    /**
-     * Whether the card recedes — dimmed, its time struck through. A cancelled lesson is a record,
-     * not a plan, and the question a glance at the day answers is "how full is it": a lesson whose
-     * every class was called off gave its hour back. One whose members disagree keeps full strength,
-     * because some of it did happen — which is exactly what [ClassSession.status] answers.
-     */
-    val recedes: Boolean get() = session.status == LessonStatus.CANCELLED
-
-    companion object {
-        /**
-         * [session] captioned by [captions] — the whole of turning a stored lesson into a drawable row.
-         *
-         * Here rather than in the view model's private helper because the rule it carries is small,
-         * shared and easy to get subtly wrong: a group lesson is titled by its **group** and names its
-         * members, an individual one is titled by its **student** and names nobody. It was reachable only
-         * through 1,352 lines of `ScheduleViewModelTest` before, being private to the view model.
-         */
-        fun of(session: ClassSession, captions: Captions): ScheduleRow = ScheduleRow(
-            session = session,
-            title = captions.titleOf(session),
-            subjectName = captions.subjectOf(session),
-            members = captions.membersOf(session),
-        )
-    }
-}
-
-/**
- * Which of the four warnings deleting a lesson owes, and how many classes go with it.
- *
- * Two facts decide it, and both are about the lesson rather than about the screen: whether any of its
- * classes has **billed**, because deleting a completed lesson takes recognized income with it, and
- * whether it is a group's, because then it is several students' classes at once.
- *
- * **[kind] is the decision; the four strings are the screen's.** This type used to publish the two facts
- * instead, and the four-armed `when` combining them stayed in the composable — so what had moved out was
- * the two extractions, not the *picking*, which is the part that can be got wrong and the part no test
- * could reach. Named cases make the screen's `when` exhaustive over an answer somebody else gave, which
- * is the shape `SaveIntent` and `SubjectNotice` already have.
- */
-data class DeleteWarning(val kind: Kind, val classes: Int) {
-
-    /** What deleting this lesson costs, in the four combinations that read differently. */
-    enum class Kind {
-        /** One student's class, nothing billed: the ordinary case. */
-        PLAIN,
-
-        /** One student's class that has billed — deleting it removes recognized income. */
-        BILLED,
-
-        /** A group's lesson, nothing billed: several students' classes at once. */
-        GROUP,
-
-        /** A group's lesson that has billed: both at once, and the only case naming both. */
-        BILLED_GROUP,
-    }
-
-    companion object {
-        /**
-         * Billed is the billing rule's ([TutoringClass.isBillable]), not "completed": a lesson taught to
-         * nobody who was there — every member marked absent — earned nothing, and deleting it takes no
-         * income with it.
-         */
-        fun of(session: ClassSession): DeleteWarning {
-            val billed = session.classes.any { it.isBillable }
-            return DeleteWarning(
-                kind = when {
-                    billed && session.isGroup -> Kind.BILLED_GROUP
-                    billed -> Kind.BILLED
-                    session.isGroup -> Kind.GROUP
-                    else -> Kind.PLAIN
-                },
-                classes = session.size,
-            )
-        }
-    }
-}
-
-/**
- * **Why the schedule has nothing to show** — and therefore what, if anything, to offer instead.
- *
- * One answer for every view, because the two that ask were answering it separately and had already
- * drifted: the day and month views weighed three cases and the week view two, so a tutor with no students
- * met «Добавить ученика» on «День» and a dead end on «Неделя». An empty list carrying no way out of
- * itself is the defect `EmptyState` exists to prevent, and it was shipping on one of the app's three
- * busiest surfaces.
- *
- * Both copies lived in composables, so neither could be tested; this can be, and is.
- */
-enum class ScheduleEmpty {
-    /**
-     * A filter is on. **Takes precedence over the other two** — a schedule narrowed to one student is not
-     * a quiet one, and the way out is the chip rather than anything on the page. It offers no action
-     * deliberately: «Записать занятие» here would book into the day being *looked at* and not for the
-     * student being looked *for*, which is not what the tutor asked. The searchable lists follow the same
-     * rule — a list empty because nothing matched says so and offers nothing.
-     */
-    FILTERED,
-
-    /** Genuinely nothing booked, and something can be: the ordinary case, offering to book one. */
-    QUIET,
-
-    /**
-     * Nothing booked and nothing bookable — there is no student, or no priced subject, yet. Naming the
-     * emptiness and stopping there would leave the tutor to find the step that unblocks it, so this
-     * offers that step instead.
-     */
-    NEEDS_STUDENT,
-    ;
-
-    companion object {
-        /** @param filtered whether the schedule is narrowed to one student — see [StudentFilter]. */
-        fun of(filtered: Boolean, canAddClass: Boolean): ScheduleEmpty = when {
-            filtered -> FILTERED
-            canAddClass -> QUIET
-            else -> NEEDS_STUDENT
-        }
-    }
-}
-
-/**
- * One day's section of the week agenda. Only days that actually have classes get one.
- *
- * @param summary what the day adds up to — see [DaySummary]. Carried rather than computed by the header
- *   that prints it, because it sums money over every class of every lesson and belongs in the derivation
- *   that already runs off the main thread.
- */
-data class WeekSection(
-    val date: LocalDate,
-    val rows: List<ScheduleRow>,
-    val summary: DaySummary,
-)
-
-/**
- * One piece of homework attached to the lesson a sheet is open on — see `HomeworkRules.attachedToLesson`.
- *
- * @param who whom it is for, **only where the sheet does not already say**: a group lesson's sheet is
- *   titled by the group, so a member's own homework attached to it names the member; the group's, and an
- *   individual lesson's, need nobody named.
- */
-data class SheetHomework(val homework: Homework, val who: String? = null)
-
-/**
- * How the schedule presents its classes: one day at a time, a whole week's agenda, or a month grid
- * over the selected day's list.
- */
-enum class ScheduleViewMode { DAY, WEEK, MONTH }
-
-/**
- * Where a tap in the tray asks the schedule to be — see [ScheduleViewModel.arrive]. The view the tutor
- * left it in is kept; what moves is the day, and for a reminder the lesson's sheet.
- */
-sealed interface ScheduleTarget {
-
-    /** Today — the reminders' summary, and an evening digest posted before digests carried their day. */
-    data object Today : ScheduleTarget
-
-    /** A digest's day, or the latest day auto-completion settled. */
-    data class Day(val date: LocalDate) : ScheduleTarget
-
-    /**
-     * The day the lesson [classId] belongs to is on **now**, with its sheet open — a tap on its reminder.
-     * An id rather than a day, because a lesson can be moved after its reminder was posted.
-     */
-    data class Lesson(val classId: Long) : ScheduleTarget
-}
-
-/**
- * The schedule narrowed to one student — who, and the name the chip saying so is drawn from.
- *
- * **The name is carried rather than looked up by the screen**, and that is the point of the type: it is
- * read from every student rather than the active ones, so archiving somebody the schedule is currently
- * filtered by leaves the chip naming them instead of going blank. The same value is what the lesson
- * queries narrow on, so the chip and the list cannot disagree about whether a filter is applied — a
- * filtered calendar looking empty for no visible reason is the failure this whole feature has to avoid.
- *
- * Resolving to null when the id matches nobody is deliberate and is why both read this and not the id: a
- * restored backup can take a student away, and an empty schedule filtered by a person who no longer
- * exists would have no way out.
- */
-data class StudentFilter(val studentId: Long, val name: String)
-
-/**
- * The lessons the schedule body shows — the [Week] the view model assembles, and the [Day] read off it.
- *
- * There is one assembly rather than a flow per view: the view model reads the week that holds what is on
- * screen (see [ScheduleViewModel.content]), and the day and month views read their day out of it.
- */
-sealed interface ScheduleContent {
-
-    /**
-     * The selected day's rows and what they add up to — what the day and month views both show.
-     *
-     * [date] is the day these rows *are*, which is not always the day selected: when a tap lands in
-     * another week, the previous week stays up for the frames the new one takes to read (see
-     * [readyOrLoadingAfter]), and a heading over it must name the day it shows rather than the one asked
-     * for.
-     */
-    data class Day(
-        val date: LocalDate,
-        val rows: List<ScheduleRow>,
-        val summary: DaySummary,
-    ) : ScheduleContent
-
-    /**
-     * The week's sections, earliest day first; each day carries its own summary. [start] is the week's
-     * first day, so a day the week holds no section for is known to be free *in this week* — see [day].
-     */
-    data class Week(val start: LocalDate, val sections: List<WeekSection>) : ScheduleContent
-
-    /**
-     * Every lesson row this content holds, whichever shape it is — asked by [ScheduleViewModel.running],
-     * which is about the clock and not about the view, and by a reminder's tap looking for its lesson.
-     */
-    val rowsShown: List<ScheduleRow>
-        get() = when (this) {
-            is Day -> rows
-            is Week -> sections.flatMap { it.rows }
-        }
-}
-
-/**
- * **[date]'s day, read off the week that holds it** — its section, or a free day if it has none.
- *
- * The day and month views used to run a query of their own, re-keyed on every tap: each day tap blinked
- * the list out and back while the next day was read, and «Неделя» → «День» stood empty for the frames
- * that took although every lesson on that day was already in hand. Reading the day out of its week makes
- * both a lookup.
- *
- * A week that does not cover [date] answers [Loadable.Loading]: it is the previous week, still up while
- * [date]'s is read, and says nothing about this day. That is what keeps yesterday's lessons from being
- * listed under today's date, and an empty Tuesday from saying «Нет занятий» about a busy Wednesday.
- */
-fun Loadable<ScheduleContent.Week>.day(date: LocalDate): Loadable<ScheduleContent.Day> {
-    val week = valueOrNull() ?: return Loadable.Loading
-    if (date < week.start || date >= week.start.plusDays(CalendarLayout.DAYS_IN_WEEK.toLong())) {
-        return Loadable.Loading
-    }
-    val section = week.sections.firstOrNull { it.date == date }
-    return Loadable.Ready(
-        ScheduleContent.Day(
-            date = date,
-            rows = section?.rows.orEmpty(),
-            summary = section?.summary ?: DaySummary.NONE,
-        ),
-    )
-}
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * These classes as the schedule shows them under [filter]: **whole lessons** the student is in, never
- * their class pulled out of one — see [GroupRules.lessonsWith] — or all of them with no filter on. A
+ * their class pulled out of one — see [SessionRules.lessonsWith] — or all of them with no filter on. A
  * filter changes what is on screen, not what a lesson is, so the sheet's actions still act on the session
  * the lesson consists of. One rule for the list and the calendar's tallies, so a cell cannot count lessons
  * the list under it does not show.
  */
 private fun List<TutoringClass>.shownFor(filter: StudentFilter?): List<TutoringClass> =
-    filter?.let { GroupRules.lessonsWith(this, it.studentId) } ?: this
+    filter?.let { SessionRules.lessonsWith(this, it.studentId) } ?: this
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -483,6 +195,9 @@ class ScheduleViewModel @Inject constructor(
     }
 
     val events = UiEvents<Event>()
+
+    /** The sheet's homework tick, the same guarded write the «Задания» tab and both cards make. */
+    private val homeworkActions = HomeworkActions(homework, appScope, events, Event.ACTION_FAILED)
 
     /**
      * A class can only be booked once there is at least one student and one priced subject — a
@@ -875,7 +590,7 @@ class ScheduleViewModel @Inject constructor(
      * two, and an `Instant` parameter obliged the caller to turn them into one — which `MoveClassFlow` duly
      * did, inside a composable, with `ZoneId.systemDefault()` of its own. That was a third definition of
      * "which zone" (against `clock.zone` here and in `ClassEditViewModel`), on the path that changes *when*
-     * a lesson happens, and it is exactly what `domain/PaymentDate` was extracted to stop being possible on
+     * a lesson happens, and it is exactly what `domain/billing/PaymentDate` was extracted to stop being possible on
      * the path that records money. The conversion crosses the seam as the values the tutor picked, and the
      * one statement of the zone is this class's.
      */
@@ -933,11 +648,9 @@ class ScheduleViewModel @Inject constructor(
         }.flowOn(computation)
 
     /** Ticks [item] done from the sheet, or takes the tick back. */
-    fun setHomeworkDone(item: Homework, done: Boolean) {
-        write { homework.setDone(item, done) }
-    }
+    fun setHomeworkDone(item: Homework, done: Boolean) = homeworkActions.setDone(item, done)
 
-    /** One lesson write, a failure reported as [Event.ACTION_FAILED] — see `ui/common/Writes.kt`. */
+    /** One lesson write, a failure reported as [Event.ACTION_FAILED] — see `ui/common/state/Writes.kt`. */
     private fun write(block: suspend () -> Unit) = appScope.write(events, Event.ACTION_FAILED, block = block)
 
     /** Points both calendar pages at [date], so whichever view opens next contains it. */
@@ -953,7 +666,7 @@ class ScheduleViewModel @Inject constructor(
      * and a single row in the other.
      */
     private fun sessionRows(dayClasses: List<TutoringClass>, captions: Captions): List<ScheduleRow> =
-        GroupRules.sessions(dayClasses).map { ScheduleRow.of(it, captions) }
+        SessionRules.sessions(dayClasses).map { ScheduleRow.of(it, captions) }
 
     /** What these rows come to — [DaySummary] over the lessons they stand for. */
     private fun List<ScheduleRow>.summarised(): DaySummary = DaySummary.of(map { it.session })

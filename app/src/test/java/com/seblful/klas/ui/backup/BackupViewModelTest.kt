@@ -7,9 +7,9 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.testutil.FakeDocumentStore
 import com.seblful.klas.testutil.MainDispatcherRule
-import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.TestEnv
-import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.testutil.current
+import com.seblful.klas.ui.common.state.Loadable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle

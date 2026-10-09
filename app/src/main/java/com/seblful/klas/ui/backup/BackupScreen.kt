@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.format.formatDate
@@ -34,7 +35,6 @@ import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.KlasScreen
-import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.SkeletonBlock
@@ -42,7 +42,7 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.rememberMessages
-import androidx.compose.ui.unit.dp
+import com.seblful.klas.ui.common.state.Loadable
 import java.time.Instant
 
 /**

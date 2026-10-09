@@ -1,9 +1,9 @@
 package com.seblful.klas.notifications
 
-import com.seblful.klas.domain.Digests
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.reminders.Digests
 import java.time.LocalDate
 
 /**
@@ -16,7 +16,7 @@ import java.time.LocalDate
  * **Five kinds, five channels** (see [ensureChannels]). They differ in what being late would cost, and
  * the app's scheduling follows that rather than the other way round: the reminder is an alarm because an
  * hour's warning delivered during the lesson is wrong rather than late, and the other four are ordinary
- * deferrable work (`domain/Digests`, `work/`).
+ * deferrable work (`domain/reminders/Digests`, `work/`).
  *
  * Amounts are printed in a [Currency] passed **in**, not read here. Currency is a display setting, and an
  * adapter that reached into `SettingsRepository` for it would have `notifications/` depending on

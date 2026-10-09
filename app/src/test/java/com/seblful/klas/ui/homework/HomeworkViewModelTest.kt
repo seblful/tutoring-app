@@ -1,12 +1,12 @@
 package com.seblful.klas.ui.homework
 
-import com.seblful.klas.domain.HomeworkRules
+import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
-import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.state.Loadable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceTimeBy

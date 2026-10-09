@@ -2,7 +2,7 @@ package com.seblful.klas.notifications
 
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.LessonWrite
-import com.seblful.klas.domain.GroupRules
+import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.LessonStatus
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -30,7 +30,7 @@ class ReminderActions @Inject constructor(
      * «Проведено» has to settle the room the same way the schedule's swipe does: one status, and every
      * still-expected member carried to present and billed ([ClassRepository.setStatus]).
      *
-     * **Legality is asked the same way the sheet asks it** ([GroupRules.sessionTransitions]), so the
+     * **Legality is asked the same way the sheet asks it** ([SessionRules.sessionTransitions]), so the
      * button can never do what the app's own menu would refuse. It matters here more than on screen,
      * because a notification is a stale view of the lesson by construction: it can sit in the tray for
      * hours while the lesson is cancelled, deleted, or already completed by hand, and the tutor tapping
@@ -45,7 +45,7 @@ class ReminderActions @Inject constructor(
         val session = classes.getSessionFor(classId)
         when {
             session == null -> false
-            LessonStatus.COMPLETED !in GroupRules.sessionTransitions(session) -> false
+            LessonStatus.COMPLETED !in SessionRules.sessionTransitions(session) -> false
             else -> classes.setStatus(session, LessonStatus.COMPLETED) is LessonWrite.Written
         }
     } finally {

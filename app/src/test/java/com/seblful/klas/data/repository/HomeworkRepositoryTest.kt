@@ -1,6 +1,6 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.domain.HomeworkRules
+import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.flow.first

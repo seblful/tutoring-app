@@ -1,10 +1,10 @@
 package com.seblful.klas.ui.homework
 
-import com.seblful.klas.domain.Captions
-import com.seblful.klas.domain.HomeworkRules
+import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.people.Captions
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId

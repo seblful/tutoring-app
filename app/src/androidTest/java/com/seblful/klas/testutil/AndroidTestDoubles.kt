@@ -1,7 +1,7 @@
 package com.seblful.klas.testutil
 
-import com.seblful.klas.domain.ReminderScheduler
-import com.seblful.klas.domain.Reminders
+import com.seblful.klas.domain.reminders.ReminderScheduler
+import com.seblful.klas.domain.reminders.Reminders
 import java.util.Locale
 
 /**

@@ -9,9 +9,9 @@ import com.seblful.klas.data.local.GroupDao
 import com.seblful.klas.data.local.StudentDao
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectDao
-import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toAttendanceEntity
-import com.seblful.klas.domain.CalendarSyncPolicy
+import com.seblful.klas.data.toDomain
+import com.seblful.klas.domain.lesson.CalendarSyncPolicy
 import com.seblful.klas.domain.model.TutoringClass
 import javax.inject.Inject
 import javax.inject.Singleton

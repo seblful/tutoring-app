@@ -10,12 +10,11 @@ import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentStore
+import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.state.UiEvents
+import com.seblful.klas.ui.common.state.hold
+import com.seblful.klas.ui.common.state.ready
 import dagger.hilt.android.lifecycle.HiltViewModel
-import com.seblful.klas.ui.common.Loadable
-import com.seblful.klas.ui.common.UiEvents
-import com.seblful.klas.ui.common.hold
-import com.seblful.klas.ui.common.ready
-import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +23,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import javax.inject.Inject
 
 /**

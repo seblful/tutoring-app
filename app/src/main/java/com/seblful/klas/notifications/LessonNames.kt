@@ -3,8 +3,8 @@ package com.seblful.klas.notifications
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
-import com.seblful.klas.domain.Reminders
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.reminders.Reminders
 
 /**
  * The words a tray entry names a lesson by — who it is with and what it is in — read by id as it posts.

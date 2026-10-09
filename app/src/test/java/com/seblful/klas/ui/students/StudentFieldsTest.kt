@@ -1,8 +1,8 @@
 package com.seblful.klas.ui.students
 
-import com.seblful.klas.domain.Phone
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Student
+import com.seblful.klas.domain.people.Phone
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

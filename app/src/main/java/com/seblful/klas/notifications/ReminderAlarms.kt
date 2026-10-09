@@ -1,6 +1,6 @@
 package com.seblful.klas.notifications
 
-import com.seblful.klas.domain.Reminders
+import com.seblful.klas.domain.reminders.Reminders
 import javax.inject.Inject
 import javax.inject.Singleton
 

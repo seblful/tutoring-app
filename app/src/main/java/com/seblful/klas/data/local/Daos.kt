@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.Flow
 
 // Rows are returned unordered wherever the order would depend on **name** collation: SQLite's
 // `COLLATE NOCASE` folds ASCII only, so it cannot order Russian names, and restating the real rule in
-// SQL is not possible. Name ordering is applied once in Kotlin — see `format/NameOrder` — by the
+// SQL is not possible. Name ordering is applied once in Kotlin — see `domain/people/NameOrder` — by the
 // repositories. Ordering by time or id stays here, where no collation is involved.
 
 @Dao

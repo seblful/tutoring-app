@@ -67,7 +67,7 @@ data class Price(
  * nothing above storage assembles it by hand.
  *
  * @param lessonId the lesson this belongs to. Its members are exactly the classes sharing it — see
- *   `GroupRules.sessions`, which used to have to group by `(groupId, start)` and could be fooled by a
+ *   `SessionRules.sessions`, which used to have to group by `(groupId, start)` and could be fooled by a
  *   member being moved on their own.
  * @param status the **lesson's** — whether the hour happened. Shared by every class of one lesson,
  *   because it is one fact about one hour.

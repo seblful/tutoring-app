@@ -8,6 +8,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.seblful.klas.domain.model.AppLanguage
+import com.seblful.klas.format.deviceLocales
+import com.seblful.klas.format.inLanguage
 import com.seblful.klas.ui.AppRoot
 import com.seblful.klas.ui.RootViewModel
 import dagger.hilt.android.AndroidEntryPoint

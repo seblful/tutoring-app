@@ -17,18 +17,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
-import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.ArchivedBadge
+import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabListPadding
-import com.seblful.klas.ui.common.NoSearchResults
 import com.seblful.klas.ui.common.ListSkeleton
-import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.NoSearchResults
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
-import com.seblful.klas.ui.common.balanceColor
-import com.seblful.klas.ui.common.balanceDescription
+import com.seblful.klas.ui.common.state.Loadable
 
 /**
  * The students list — a **body**, without a scaffold of its own.

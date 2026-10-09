@@ -2,15 +2,12 @@ package com.seblful.klas.ui.reports
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.PaymentRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
-import com.seblful.klas.domain.ReportCsv
-import com.seblful.klas.domain.ReportPeriod
-import com.seblful.klas.domain.Reports
+import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.GroupId
 import com.seblful.klas.domain.model.Payment
@@ -18,16 +15,19 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.SubjectId
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.reports.ReportCsv
+import com.seblful.klas.domain.reports.ReportPeriod
+import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.format.AppLocale
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentSharing
 import com.seblful.klas.storage.DocumentStore
-import com.seblful.klas.ui.common.Loadable
-import com.seblful.klas.ui.common.UiEvents
-import com.seblful.klas.ui.common.days
-import com.seblful.klas.ui.common.derive
-import com.seblful.klas.ui.common.ready
+import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.state.UiEvents
+import com.seblful.klas.ui.common.state.days
+import com.seblful.klas.ui.common.state.derive
+import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.navigation.ArrivalGate
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -62,7 +62,7 @@ class ReportsViewModel @Inject constructor(
      *
      * It was `ZoneId.systemDefault()`, which made this the one view model outside the app's own clock seam
      * — on the screen where a month boundary decides the money. `di/TimeModule` states the rule and
-     * `domain/PaymentDate` exists entirely because one surface broke it. The cost was visible in the test:
+     * `domain/billing/PaymentDate` exists entirely because one surface broke it. The cost was visible in the test:
      * `ReportsViewModelTest` had to re-declare the zone, derive its fixtures from the real current year and
      * assert the opening period by **re-evaluating the production expression**, which is an assertion that
      * cannot fail. A report across a year boundary could not be written at all.

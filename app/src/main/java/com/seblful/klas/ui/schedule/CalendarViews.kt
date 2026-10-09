@@ -35,15 +35,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
-import com.seblful.klas.domain.CalendarLayout
+import com.seblful.klas.domain.schedule.CalendarLayout
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.shortName
-import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
-import com.seblful.klas.ui.common.map
 import com.seblful.klas.ui.common.rememberPlaceholderShown
-import com.seblful.klas.ui.common.valueOrNull
+import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.state.map
+import com.seblful.klas.ui.common.state.valueOrNull
 import java.time.DayOfWeek
 import java.time.LocalDate
 

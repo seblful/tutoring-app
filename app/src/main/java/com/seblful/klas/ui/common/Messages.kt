@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import com.seblful.klas.ui.common.state.UiEvents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 

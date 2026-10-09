@@ -5,13 +5,13 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.seblful.klas.domain.Reminders
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.ThemeChoice
+import com.seblful.klas.domain.reminders.Reminders
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -251,7 +251,7 @@ data class AttendanceEntity(
  * copy per member. `Mappers.kt` reads the pair back as a sealed `Assignee`.
  *
  * **Not tied to a lesson by any column.** The lesson it is checked at is derived: whoever it is for, their
- * next lesson after [givenAtMillis] (`domain/HomeworkRules`). The next lesson is often not booked when
+ * next lesson after [givenAtMillis] (`domain/homework/HomeworkRules`). The next lesson is often not booked when
  * homework is set, and can move or be cancelled once it is; a stored link would need a writer at each of
  * those, where a derived one follows them for free.
  *

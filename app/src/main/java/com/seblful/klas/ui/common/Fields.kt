@@ -1,23 +1,18 @@
 package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.FilterChip
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
-import com.seblful.klas.format.MoneyField
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Checkbox
@@ -26,6 +21,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,11 +45,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Student
+import com.seblful.klas.format.MoneyField
 
 /**
  * The inline form fields: picking one of a few things, and the search box.
@@ -365,75 +363,6 @@ fun MoneyTextField(
         modifier = modifier.fillMaxWidth(),
     )
 }
-/**
- * Who a student is and how to reach them — name, phone, email, note, and where they are usually taught —
- * asked the same way by the add form and by the card's edit dialog.
- *
- * Written twice before this, and the copies had already parted: the form said a blank name was required
- * and the dialog only greyed its «Сохранить», leaving the tutor to guess which of five fields it meant.
- * Said as a **hint, not an error**: a blank name on a form that has just opened is incomplete rather than
- * wrong.
- *
- * Each field's keyboard says what goes in it, and «Далее» walks down the fields: a name capitalised as
- * one, a note as sentences. Emitted as siblings, so they take the caller's spacing.
- */
-@Composable
-fun StudentContactFields(
-    name: String,
-    onName: (String) -> Unit,
-    phone: String,
-    onPhone: (String) -> Unit,
-    email: String,
-    onEmail: (String) -> Unit,
-    note: String,
-    onNote: (String) -> Unit,
-    mode: ClassMode,
-    onMode: (ClassMode) -> Unit,
-) {
-    OutlinedTextField(
-        value = name,
-        onValueChange = onName,
-        label = { Text(stringResource(R.string.student_name_label)) },
-        supportingText = supportingTextOf(
-            hint = stringResource(R.string.field_required).takeIf { name.isBlank() },
-        ),
-        singleLine = true,
-        keyboardOptions = NameKeyboard,
-        modifier = Modifier.fillMaxWidth(),
-    )
-    OutlinedTextField(
-        value = phone,
-        onValueChange = onPhone,
-        label = { Text(stringResource(R.string.student_phone_label)) },
-        singleLine = true,
-        keyboardOptions = PhoneKeyboard,
-        modifier = Modifier.fillMaxWidth(),
-    )
-    OutlinedTextField(
-        value = email,
-        onValueChange = onEmail,
-        label = { Text(stringResource(R.string.student_email_label)) },
-        singleLine = true,
-        keyboardOptions = EmailKeyboard,
-        modifier = Modifier.fillMaxWidth(),
-    )
-    OutlinedTextField(
-        value = note,
-        onValueChange = onNote,
-        label = { Text(stringResource(R.string.student_note_label)) },
-        keyboardOptions = NoteKeyboard,
-        modifier = Modifier.fillMaxWidth(),
-    )
-    ModeField(
-        label = stringResource(R.string.student_mode_label),
-        selected = mode,
-        onSelect = onMode,
-    )
-}
-private val NameKeyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next)
-private val PhoneKeyboard = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next)
-private val EmailKeyboard = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
-private val NoteKeyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
 /**
  * A **shortlist with an escape hatch**, as chips: one per preset, then [customLabel], which asks for
  * anything else.

@@ -2,14 +2,23 @@ package com.seblful.klas.ui.schedule
 
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
-import com.seblful.klas.domain.model.Attended
+import com.seblful.klas.domain.lesson.DeleteWarning
 import com.seblful.klas.domain.model.Assignee
-import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.Group
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.schedule.CalendarLayout
+import com.seblful.klas.domain.schedule.DaySummary
+import com.seblful.klas.domain.schedule.ScheduleEmpty
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.MutableClock
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.current
+import com.seblful.klas.testutil.observing
+import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.state.valueOrNull
+import com.seblful.klas.ui.navigation.Arrival
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -25,13 +34,6 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import com.seblful.klas.domain.CalendarLayout
-import com.seblful.klas.domain.DaySummary
-import com.seblful.klas.testutil.current
-import com.seblful.klas.testutil.observing
-import com.seblful.klas.ui.common.Loadable
-import com.seblful.klas.ui.common.valueOrNull
-import com.seblful.klas.ui.navigation.Arrival
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.time.Clock
@@ -221,7 +223,7 @@ class ScheduleViewModelTest {
     /**
      * The **"you are here"** mark moves with the clock.
      *
-     * Both halves matter and only the second needs a schedule: [com.seblful.klas.domain.NowMarker] decides
+     * Both halves matter and only the second needs a schedule: [com.seblful.klas.domain.schedule.NowMarker] decides
      * *where* the mark goes and is tested on the JVM, but nothing else says the view model keeps asking.
      * A mark computed once is a mark that is wrong for the rest of the day, on a screen a tutor leaves
      * open all of it.
@@ -1404,7 +1406,7 @@ class ScheduleViewModelTest {
      *
      * Keeping only the filtered student's own class would leave a group lesson drawn as a session of one
      * — a group row with a roster of one — and, worse, the sheet's «Проведено» would then act on a
-     * session the lesson does not consist of. See `GroupRules.lessonsWith`.
+     * session the lesson does not consist of. See `SessionRules.lessonsWith`.
      */
     @Test
     fun `a group lesson the student is in stays a whole lesson`() = runTest(mainRule.dispatcher) {

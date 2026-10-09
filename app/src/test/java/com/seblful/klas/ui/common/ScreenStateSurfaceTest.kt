@@ -1,6 +1,8 @@
 package com.seblful.klas.ui.common
 
 import com.seblful.klas.testutil.ProjectFiles
+import com.seblful.klas.ui.common.state.derive
+import com.seblful.klas.ui.common.state.map
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -36,7 +38,7 @@ class ScreenStateSurfaceTest {
 
         assertEquals(
             "A flow spells its own `stateIn`/`SharingStarted` instead of ending in `derive` or `hold`. " +
-                "The grace period and the sharing rule live in `ui/common/ScreenState.kt`, so a flow " +
+                "The grace period and the sharing rule live in `ui/common/state/ScreenState.kt`, so a flow " +
                 "that states them again is a second policy: $offenders",
             emptyList<String>(),
             offenders,

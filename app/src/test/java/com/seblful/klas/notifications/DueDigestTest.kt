@@ -1,8 +1,8 @@
 package com.seblful.klas.notifications
 
-import com.seblful.klas.domain.Digests
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -97,7 +97,7 @@ class DueDigestTest {
 
     /**
      * The summary is the same «4 занятия · 5 ч · 240 BYN» the schedule prints under the day, because it is
-     * the same [com.seblful.klas.domain.DaySummary]. Two arithmetics for one morning would both look right.
+     * the same [com.seblful.klas.domain.schedule.DaySummary]. Two arithmetics for one morning would both look right.
      */
     @Test
     fun `the summary is what the day comes to`() = runTest(mainRule.dispatcher) {

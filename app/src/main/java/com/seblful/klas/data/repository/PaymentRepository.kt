@@ -3,7 +3,7 @@ package com.seblful.klas.data.repository
 import com.seblful.klas.data.local.PaymentDao
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
-import com.seblful.klas.domain.PaymentDate
+import com.seblful.klas.domain.billing.PaymentDate
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import kotlinx.coroutines.flow.Flow

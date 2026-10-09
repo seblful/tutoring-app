@@ -7,19 +7,19 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
-import com.seblful.klas.domain.DigestScheduler
-import com.seblful.klas.domain.Digests
-import com.seblful.klas.domain.ReminderScheduler
+import com.seblful.klas.domain.reminders.DigestScheduler
+import com.seblful.klas.domain.reminders.Digests
+import com.seblful.klas.domain.reminders.ReminderScheduler
+import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.notifications.ReminderAlarms
-import com.seblful.klas.domain.Reminders
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.first
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.flow.first
 
 /**
  * The app's time-driven scheduling, split by what each half actually needs.

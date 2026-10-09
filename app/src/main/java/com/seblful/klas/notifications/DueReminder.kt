@@ -6,7 +6,7 @@ import com.seblful.klas.data.repository.HomeworkRepository
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
-import com.seblful.klas.domain.Reminders
+import com.seblful.klas.domain.reminders.Reminders
 import java.time.Clock
 import java.time.Instant
 import javax.inject.Inject

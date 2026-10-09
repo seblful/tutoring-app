@@ -2,15 +2,15 @@ package com.seblful.klas.ui.common
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.platform.LocalContext
 import androidx.test.platform.app.InstrumentationRegistry
 import com.seblful.klas.R
-import com.seblful.klas.inLanguage
+import com.seblful.klas.format.inLanguage
 import com.seblful.klas.ui.theme.KlasTheme
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest

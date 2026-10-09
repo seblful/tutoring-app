@@ -11,7 +11,7 @@ it draws with.
   hold the rules. Clock reads for money/scheduling go through the injected `Clock`, never
   `Instant.now()`/`ZoneId.systemDefault()` in a composable.
 - The booking form's whole mutable surface is `BookingForm.change(intent, context)`
-  (`ui/schedule/BookingForm.kt`); reads it needs come back as data (`Lookup`) through the same `change`.
+  (`ui/schedule/booking/BookingForm.kt`); reads it needs come back as data (`Lookup`) through the same `change`.
 - Every screen's loading/ready state is `Loadable<T>` (`Loading | Ready`), drawn as a skeleton, never a
   spinner; applies to forms too (a blank form is a real, wrong state until data arrives). A placeholder
   draws only after 150 ms of waiting (`rememberPlaceholderShown`), so a fast local read goes straight to
@@ -21,7 +21,7 @@ it draws with.
 - `derive`/`hold` end every screen flow; `ShowMessagesFor`/`rememberMessages` end one-shot snackbar events;
   the guarded-write tail is `appScope.write(events, failure)` (application scope + `runCatchingCancellable`
   + failure event), and a write the screen waits on is `appScope.writeAwaited { }` — both in
-  `ui/common/Writes.kt`. The homework writes the tab and both cards share are `ui/homework/HomeworkActions`.
+  `ui/common/state/Writes.kt`. The homework writes the tab and both cards share are `ui/homework/HomeworkActions`.
 - One-shot outcomes report through one snackbar helper (`ui/common/Messages`) — no `Toast`. A message
   about a save that closes its screen is lost with the screen, so such a form asks *before* saving instead.
 - Turning the phone or resizing its window is handled in place (`configChanges` on `MainActivity`), so an
@@ -36,8 +36,8 @@ it draws with.
   `values/`/`values-ru/` (strings, plurals, format args, array lengths). A language change re-syncs the
   calendar (mirrored text is baked in).
 - **Time**: `java.time` everywhere (desugared, minSdk 24); 12/24-hour and week-start both follow the
-  *phone's* setting, not the app language; today rolls over at local midnight off the injected `Clock` (`Clock.days()`, `ui/common/Days.kt` —
-  never a "today" read once per emission); a day as instants is `domain/DayBounds`.
+  *phone's* setting, not the app language; today rolls over at local midnight off the injected `Clock` (`Clock.days()`, `ui/common/state/Days.kt` —
+  never a "today" read once per emission); a day as instants is `domain/schedule/DayBounds`.
 - **Haptics**: five named moments only (`ui/common/Haptics`), wired into shared atoms (a refusal through
   `ShowMessagesFor(refused = …)`), never per-screen; ordinary taps stay silent.
 - **Shell**: every screen is a `KlasScreen` (owns `Scaffold`, insets, width cap, snackbar host, back arrow,
@@ -53,7 +53,8 @@ it draws with.
   bottom sheet draws `SheetHandle` itself with `dragHandle = null` — Material's handle is a tooltipped
   button (`PressSurfaceTest`). Detail cards are all
   identity → `StatRow` → one pinned view menu (`StickyViewMenu`, «Занятия ▾» — page-coloured at rest, the collapsed bar's colour once pinned), not a tab row — four
-  tabs were too much to read at a glance. Held, a bar's icon names itself (`NamedIconButton`, over `HoldToName`) — top-bar
+  tabs were too much to read at a glance — built by one `detailCard` (`ui/common/DetailCard.kt`), so the two
+  cards cannot drift apart again. Held, a bar's icon names itself (`NamedIconButton`, over `HoldToName`) — top-bar
   icons and the bottom bar's tabs. One control per kind of question: `SegmentedChoice` (fixed few,
   swipeable), `ChoiceRow` (settings-shaped choice, segments up to 4 then a field), chips (shortlist +
   escape hatch). Text sits on the gutter: page sides are `Spacing.gutter`, and a tappable row that needs
@@ -73,7 +74,7 @@ it draws with.
 - **List motion**: lazy list items animate only through `animateInPlace` — a move slides, nothing fades
   in or out, because a fading row keeps drawing over whatever replaces it. A list that shows several pages
   (the schedule's views and days) keys its items per page, so a swap is never read as every row moving.
-- **Lists**: shared search rule (`domain/PeopleSearch`) across the three list screens — case-insensitive,
+- **Lists**: shared search rule (`domain/people/PeopleSearch`) across the three list screens — case-insensitive,
   substring, terms in any order. Empty lists always carry the way out (`EmptyState`); a search that matched nothing is
   `NoSearchResults`. «в архиве» is `ArchivedBadge`; a list under an add button pads with `FabListPadding`. State is a
   `StatusBadge`, never a font style (`StatusBadgeSurfaceTest`), and on a lesson it leads the second line —
@@ -83,7 +84,7 @@ it draws with.
 - **Schedule**: three views (Day/Week/Month) via segmented control, all fed by one assembly of the week
   holding the selected day (`ScheduleViewModel.content`) — Day and Month read their day out of it, so a
   view switch or a day tap inside the week reads nothing; a day is always summarized as
-  count·hours·money (`domain/DaySummary`); a "now" hairline on today only; completing a lesson is a
+  count·hours·money (`domain/schedule/DaySummary`); a "now" hairline on today only; completing a lesson is a
   revocable swipe (green panel); a cancelled lesson recedes, badge stays red. Can be narrowed to one
   student (dismissible chip — `FilterMenuAction` + `FilterChipRow`, shared with «Задания»). Booking is by
   length, not end time; a new booking starts on the selected schedule day so the tutor need not choose

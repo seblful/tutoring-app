@@ -1,9 +1,9 @@
 package com.seblful.klas.notifications
 
-import com.seblful.klas.domain.Reminders
+import com.seblful.klas.domain.reminders.Reminders
+import com.seblful.klas.testutil.FakeArmedReminders
 import com.seblful.klas.testutil.FakeExactAlarmPermission
 import com.seblful.klas.testutil.RecordingAlarmClock
-import com.seblful.klas.testutil.FakeArmedReminders
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

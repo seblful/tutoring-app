@@ -30,7 +30,9 @@ database, never a source (see [architecture.md](architecture.md)).
   tutor's first booking (`ClassEditViewModel.notificationsToAskFor`) — never over first launch, when there
   is no lesson to be reminded of.
 - `ReminderDelivery` (`OFF|ON_TIME|BLOCKED|LATE`) reports the two permission grants (post-notifications,
-  exact-alarm) as one settings row with a link to the right system page.
+  exact-alarm) as one settings row with a link to the right system page. `CalendarDelivery`
+  (`OFF|ON|BLOCKED`) does the same for the sync row: on, with the calendar permission revoked in system
+  settings, is a report rather than a silent dead mirror.
 
 ## Digests
 

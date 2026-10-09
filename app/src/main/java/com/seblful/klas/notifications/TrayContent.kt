@@ -1,6 +1,6 @@
 package com.seblful.klas.notifications
 
-import com.seblful.klas.domain.Digests
+import com.seblful.klas.domain.reminders.Digests
 
 /**
  * What a tray entry shows, decided where a JVM test can reach it.

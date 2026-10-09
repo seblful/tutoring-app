@@ -1,17 +1,17 @@
 package com.seblful.klas.ui.subjects
 
 import androidx.lifecycle.ViewModel
+import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
-import com.seblful.klas.data.repository.SubjectRepository
-import com.seblful.klas.domain.PeopleSearch
 import com.seblful.klas.domain.model.Subject
+import com.seblful.klas.domain.people.PeopleSearch
+import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.state.UiEvents
+import com.seblful.klas.ui.common.state.derive
+import com.seblful.klas.ui.common.state.ready
+import com.seblful.klas.ui.common.state.write
 import dagger.hilt.android.lifecycle.HiltViewModel
-import com.seblful.klas.ui.common.Loadable
-import com.seblful.klas.ui.common.UiEvents
-import com.seblful.klas.ui.common.derive
-import com.seblful.klas.ui.common.ready
-import com.seblful.klas.ui.common.write
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -87,7 +87,7 @@ class SubjectsViewModel @Inject constructor(
     }
 
     /**
-     * The guarded-write tail (`ui/common/Writes.kt`): in the application scope, so a rename outlives a
+     * The guarded-write tail (`ui/common/state/Writes.kt`): in the application scope, so a rename outlives a
      * quick back, and a database error reported as [Event.WRITE_FAILED] rather than thrown out of a bare
      * `launch`, where nothing caught it and the app closed.
      */

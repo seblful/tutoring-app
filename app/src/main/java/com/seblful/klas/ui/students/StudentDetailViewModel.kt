@@ -2,9 +2,6 @@ package com.seblful.klas.ui.students
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.seblful.klas.di.ApplicationScope
-import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.EnrollmentRepository
 import com.seblful.klas.data.repository.GroupRepository
@@ -13,15 +10,15 @@ import com.seblful.klas.data.repository.PaymentRepository
 import com.seblful.klas.data.repository.RateHistoryRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
-import com.seblful.klas.format.NameOrder
-import com.seblful.klas.domain.Billing
-import com.seblful.klas.domain.HomeworkRules
-import com.seblful.klas.domain.LessonKind
-import com.seblful.klas.domain.Taught
-import com.seblful.klas.domain.Captions
+import com.seblful.klas.di.ApplicationScope
+import com.seblful.klas.di.Computation
+import com.seblful.klas.domain.billing.Billing
+import com.seblful.klas.domain.homework.HomeworkRules
+import com.seblful.klas.domain.lesson.LessonFilter
+import com.seblful.klas.domain.lesson.LessonKind
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
@@ -30,17 +27,20 @@ import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.people.Captions
+import com.seblful.klas.domain.people.NameOrder
+import com.seblful.klas.domain.reports.Taught
+import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.state.UiEvents
+import com.seblful.klas.ui.common.state.days
+import com.seblful.klas.ui.common.state.derive
+import com.seblful.klas.ui.common.state.ready
+import com.seblful.klas.ui.common.state.valueOrNull
+import com.seblful.klas.ui.common.state.write
 import com.seblful.klas.ui.homework.AssigneeChoice
 import com.seblful.klas.ui.homework.HomeworkActions
 import com.seblful.klas.ui.homework.HomeworkLists
 import dagger.hilt.android.lifecycle.HiltViewModel
-import com.seblful.klas.ui.common.Loadable
-import com.seblful.klas.ui.common.UiEvents
-import com.seblful.klas.ui.common.days
-import com.seblful.klas.ui.common.derive
-import com.seblful.klas.ui.common.ready
-import com.seblful.klas.ui.common.valueOrNull
-import com.seblful.klas.ui.common.write
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -82,6 +82,9 @@ data class ClassRow(
 ) {
     /** Read off the class, so a group lesson whose group row can't be found still reads as one. */
     val kind: LessonKind get() = LessonKind.of(klass)
+
+    /** The amount at the row's trailing edge, or null where the lesson billed them nothing. See [Billing.billedOrNull]. */
+    val shownCharge: Money? get() = Billing.billedOrNull(listOf(klass))
 }
 
 data class StudentDetailState(
@@ -107,6 +110,23 @@ data class StudentDetailState(
      * gets no chips: every chip but one would be empty, and «Все» would filter nothing.
      */
     val hasBothKinds: Boolean get() = lessonKinds.size > 1
+
+    /** The subjects that can still be added: every subject not already priced for them. */
+    val addableSubjects: List<Subject>
+        get() {
+            val priced = subjects.mapTo(mutableSetOf()) { it.subject.id }
+            return allSubjects.filter { it.id !in priced }
+        }
+
+    /**
+     * The lessons tab's rows under [filter].
+     *
+     * A filter that isn't on screen doesn't apply. The chips come and go with the data — deleting a
+     * student's last group lesson from the schedule takes them away — and a selection left behind would go
+     * on hiding their remaining lessons with nothing left to say why, or to undo it.
+     */
+    fun lessonsShown(filter: LessonFilter): List<ClassRow> =
+        if (hasBothKinds) filter.accepted(classes) { it.kind } else classes
 
     /**
      * When they last paid, or null if they never have — the line under the balance. It used to repeat the
@@ -313,7 +333,7 @@ class StudentDetailViewModel @Inject constructor(
 
     /**
      * One write in the application scope, a failure reported as [Event.WriteFailed] — the shared tail
-     * (`ui/common/Writes.kt`) with this card's failure filled in. [onWritten] is for the writes that answer
+     * (`ui/common/state/Writes.kt`) with this card's failure filled in. [onWritten] is for the writes that answer
      * something on success: a refusal or a count coming back is an event of its own, and only a database
      * error may reach [Event.WriteFailed].
      */

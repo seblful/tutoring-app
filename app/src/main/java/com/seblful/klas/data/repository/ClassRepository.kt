@@ -7,18 +7,19 @@ import com.seblful.klas.data.local.Transactor
 import com.seblful.klas.data.toAttendanceEntity
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toLessonEntity
-import com.seblful.klas.domain.ClassRules
-import com.seblful.klas.domain.ClassSession
-import com.seblful.klas.domain.GroupRules
-import com.seblful.klas.domain.LessonEdit
-import com.seblful.klas.domain.ReminderScheduler
-import com.seblful.klas.domain.Scheduling
-import com.seblful.klas.domain.SessionEdit
+import com.seblful.klas.domain.lesson.ClassRules
+import com.seblful.klas.domain.lesson.GroupRules
+import com.seblful.klas.domain.lesson.LessonEdit
+import com.seblful.klas.domain.lesson.SessionEdit
+import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
+import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.reminders.ReminderScheduler
+import com.seblful.klas.domain.schedule.Scheduling
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Duration
@@ -103,7 +104,7 @@ class ClassRepository @Inject constructor(
 
     /**
      * Every class booked as part of [groupId] — one *lesson* of a three-member group is three of
-     * these, so a caller showing lessons collapses them with [GroupRules.sessions].
+     * these, so a caller showing lessons collapses them with [SessionRules.sessions].
      */
     fun observeForGroup(groupId: Long): Flow<List<TutoringClass>> =
         dao.observeForGroup(groupId).map { list -> list.map { it.toDomain() } }
@@ -480,12 +481,12 @@ class ClassRepository @Inject constructor(
     ): LessonWrite<List<TutoringClass>> {
         holdingHour(session, newStart, changes.durationMinutes)
             ?.let { return LessonWrite.HourTaken(it) }
-        // The rules are one call, and the sequence they compose in is theirs — see [GroupRules.lessonEdit].
+        // The rules are one call, and the sequence they compose in is theirs — see [SessionRules.lessonEdit].
         // This used to assemble three of them here and read the lesson's own new fields out of the
         // surviving classes, which is how swapping a roster whole kept the lesson at its old time.
         // Leavers are dropped inside the same transaction as the edit, which is what stops a member being
         // billed on their way out: the delete and the re-bill cannot half-happen.
-        return LessonWrite.Written(persist(GroupRules.lessonEdit(session, changes, newStart, now, roster)))
+        return LessonWrite.Written(persist(SessionRules.lessonEdit(session, changes, newStart, now, roster)))
     }
 
     /**
@@ -675,7 +676,7 @@ class ClassRepository @Inject constructor(
         // One pass, one transaction: an upkeep run that recognized half of an evening's income and
         // then failed would leave a group lesson billing some of its members and not the rest.
         return write(refreshesReminders = false) {
-            GroupRules.sessions(due).forEach { rewrite(lesson = it.first, classes = it.classes) }
+            SessionRules.sessions(due).forEach { rewrite(lesson = it.first, classes = it.classes) }
             Committed(due)
         }
     }

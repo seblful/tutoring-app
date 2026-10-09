@@ -7,8 +7,8 @@ import com.seblful.klas.diagnostics.CrashLogger
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentStore
+import com.seblful.klas.ui.common.state.UiEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
-import com.seblful.klas.ui.common.UiEvents
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch

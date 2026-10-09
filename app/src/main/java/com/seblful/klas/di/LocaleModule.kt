@@ -1,6 +1,6 @@
 package com.seblful.klas.di
 
-import com.seblful.klas.deviceLocales
+import com.seblful.klas.format.deviceLocales
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

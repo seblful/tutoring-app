@@ -1,19 +1,19 @@
 package com.seblful.klas.ui.students
 
 import androidx.lifecycle.ViewModel
-import com.seblful.klas.di.Computation
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.PaymentRepository
 import com.seblful.klas.data.repository.StudentRepository
-import com.seblful.klas.format.NameOrder
-import com.seblful.klas.domain.Billing
-import com.seblful.klas.domain.PeopleSearch
+import com.seblful.klas.di.Computation
+import com.seblful.klas.domain.billing.Billing
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
-import com.seblful.klas.ui.common.Loadable
-import com.seblful.klas.ui.common.derive
-import com.seblful.klas.ui.common.ready
+import com.seblful.klas.domain.people.NameOrder
+import com.seblful.klas.domain.people.PeopleSearch
+import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.state.derive
+import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.people.PeopleSide
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher

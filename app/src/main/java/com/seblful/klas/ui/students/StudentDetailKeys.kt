@@ -1,5 +1,7 @@
 package com.seblful.klas.ui.students
 
+import com.seblful.klas.ui.common.DetailCard
+
 /**
  * Stable item keys for the single `LazyColumn` in [StudentDetailScreen].
  *
@@ -19,9 +21,9 @@ package com.seblful.klas.ui.students
  */
 internal object StudentDetailKeys {
     const val BALANCE = "balance"
-    const val STATS = "stats"
+    const val STATS = DetailCard.STATS_KEY
     const val CONTACTS = "contacts"
-    const val TABS = "tabs"
+    const val TABS = DetailCard.VIEWS_KEY
     const val SUBJECTS_ADD = "subjects:add"
     const val SUBJECTS_EMPTY = "subjects:empty"
     const val CLASSES_FILTER = "classes:filter"

@@ -3,10 +3,10 @@ package com.seblful.klas.data.repository
 import com.seblful.klas.data.local.HomeworkDao
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
-import com.seblful.klas.domain.ClassSession
-import com.seblful.klas.domain.HomeworkRules
-import com.seblful.klas.domain.takes
+import com.seblful.klas.domain.homework.HomeworkRules
+import com.seblful.klas.domain.homework.takes
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.TutoringClass
 import kotlinx.coroutines.ExperimentalCoroutinesApi

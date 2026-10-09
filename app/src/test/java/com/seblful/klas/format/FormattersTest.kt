@@ -1,6 +1,6 @@
 package com.seblful.klas.format
 
-import com.seblful.klas.domain.ClassRules
+import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.AppLocaleRule
 import org.junit.Assert.assertEquals
@@ -32,24 +32,13 @@ class FormattersTest {
     private fun keyOf(year: Int, month: Int) = year * 12 + (month - 1)
 
     @Test
-    fun `formatMonthKey decodes the year and month and labels it`() {
-        val jan = formatMonthKey(keyOf(2026, 1))
-        val dec = formatMonthKey(keyOf(2026, 12))
-        val nextJan = formatMonthKey(keyOf(2027, 1))
-
-        assertTrue("January 2026 carries its year", jan.contains("2026"))
-        assertTrue("December 2026 carries its year", dec.contains("2026"))
-        assertTrue("January 2027 rolls over the year", nextJan.contains("2027"))
-        assertNotEquals("different months produce different labels", jan, dec)
-        assertTrue("month label is capitalised", jan.first().isUpperCase())
-    }
-
-    @Test
-    fun `month key is consistent with the encoding used by Reports`() {
+    fun `month key is decoded with the encoding used by Reports`() {
         // Reports encodes as year * 12 + (monthValue - 1); decoding must invert it.
         val date = LocalDate.of(2026, 6, 1)
         val key = date.year * 12 + (date.monthValue - 1)
-        assertTrue(formatMonthKey(key).contains("2026"))
+        assertEquals("Июнь", formatMonthName(key))
+        assertEquals("Январь", formatMonthName(keyOf(2027, 1)))
+        assertEquals("Декабрь", formatMonthName(keyOf(2026, 12)))
     }
 
     @Test
@@ -60,11 +49,6 @@ class FormattersTest {
         assertTrue("capitalised", june.first().isUpperCase())
         assertNotEquals(june, formatMonth(YearMonth.of(2026, 7)))
         assertNotEquals("the year is part of the label", june, formatMonth(YearMonth.of(2027, 6)))
-    }
-
-    @Test
-    fun `formatMonth agrees with the month-key label`() {
-        assertEquals(formatMonthKey(keyOf(2026, 6)), formatMonth(YearMonth.of(2026, 6)))
     }
 
     @Test

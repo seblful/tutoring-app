@@ -2,6 +2,7 @@ package com.seblful.klas.ui.common
 
 import com.seblful.klas.testutil.ProjectFiles
 import com.seblful.klas.testutil.SourceText
+import com.seblful.klas.ui.common.state.map
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

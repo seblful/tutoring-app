@@ -1,9 +1,9 @@
 package com.seblful.klas.ui.groups
 
 import androidx.lifecycle.SavedStateHandle
-import com.seblful.klas.domain.Attendance
-import com.seblful.klas.domain.HomeworkRules
+import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.domain.model.Attendance
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv

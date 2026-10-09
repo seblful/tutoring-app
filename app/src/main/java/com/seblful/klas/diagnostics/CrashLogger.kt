@@ -1,6 +1,5 @@
 package com.seblful.klas.diagnostics
 
-import com.seblful.klas.domain.Diagnostics
 import java.time.Clock
 import java.time.Instant
 import javax.inject.Inject

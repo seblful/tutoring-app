@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.common
 
+import com.seblful.klas.ui.common.state.map
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

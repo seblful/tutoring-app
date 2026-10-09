@@ -38,7 +38,7 @@ annotation class ApplicationScope
  * those halves used to run on the main thread. Room's own `Flow` hands its rows over on Room's
  * executor, but `flowOn` only governs what is **upstream** of it — every operator after it runs in the
  * collector's context, and `stateIn(viewModelScope)` collects on `Dispatchers.Main.immediate`. So the
- * repositories' entity→domain mapping, `NameOrder.sorted` over every name, `GroupRules.sessions`,
+ * repositories' entity→domain mapping, `NameOrder.sorted` over every name, `SessionRules.sessions`,
  * `Taught.overall`, `Billing.balancesFor` and the whole of `Reports` were all running on the UI thread,
  * on every emission.
  *

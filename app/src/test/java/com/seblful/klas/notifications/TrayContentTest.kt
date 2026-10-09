@@ -1,8 +1,8 @@
 package com.seblful.klas.notifications
 
-import com.seblful.klas.domain.DaySummary
-import com.seblful.klas.domain.Digests
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.reminders.Digests
+import com.seblful.klas.domain.schedule.DaySummary
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.Instant

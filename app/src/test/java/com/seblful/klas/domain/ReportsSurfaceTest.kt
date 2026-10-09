@@ -1,5 +1,6 @@
 package com.seblful.klas.domain
 
+import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.testutil.ProjectFiles
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

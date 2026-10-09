@@ -2,12 +2,12 @@ package com.seblful.klas.work
 
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.SettingsRepository
-import com.seblful.klas.domain.Billing
-import com.seblful.klas.domain.DigestScheduler
-import com.seblful.klas.domain.Digests
-import com.seblful.klas.domain.ReminderScheduler
-import com.seblful.klas.domain.Reminders
+import com.seblful.klas.domain.billing.Billing
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.reminders.DigestScheduler
+import com.seblful.klas.domain.reminders.Digests
+import com.seblful.klas.domain.reminders.ReminderScheduler
+import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.notifications.Notifier
 import java.time.Clock
 import java.time.Duration

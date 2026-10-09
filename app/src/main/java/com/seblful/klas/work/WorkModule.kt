@@ -1,7 +1,7 @@
 package com.seblful.klas.work
 
-import com.seblful.klas.domain.DigestScheduler
-import com.seblful.klas.domain.ReminderScheduler
+import com.seblful.klas.domain.reminders.DigestScheduler
+import com.seblful.klas.domain.reminders.ReminderScheduler
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

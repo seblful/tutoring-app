@@ -5,8 +5,8 @@ import android.content.ContentValues
 import android.content.Context
 import android.provider.CalendarContract
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.format.inAppLanguage
 import com.seblful.klas.format.labelRes
-import com.seblful.klas.inAppLanguage
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

@@ -1,6 +1,6 @@
 package com.seblful.klas.testutil
 
-import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.state.Loadable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -31,7 +31,7 @@ fun TestScope.observing(vararg flows: Flow<*>) {
  * The state a screen would actually be drawing — [Loadable.Ready]'s value, insisted upon.
  *
  * Screen state is wrapped in [Loadable] so a list that has not loaded is distinguishable from one that
- * is empty (see `ui/common/Loadable.kt`). Tests read the loaded value, and reading it through this
+ * is empty (see `ui/common/state/Loadable.kt`). Tests read the loaded value, and reading it through this
  * rather than through `.value` turns "the flow never emitted" from a silent empty list into a failure
  * naming the cause: before this, a test that forgot [observing] — or advanced the scheduler too early —
  * asserted happily against the placeholder, because the placeholder was an empty list of exactly the

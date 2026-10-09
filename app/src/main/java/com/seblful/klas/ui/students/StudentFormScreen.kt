@@ -35,17 +35,16 @@ import com.seblful.klas.format.MoneyField
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
-import com.seblful.klas.ui.common.Loadable
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.MoneyTextField
 import com.seblful.klas.ui.common.SaveAction
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.StudentContactFields
 import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.subjects.SubjectNameDialog
 
 /** Full-screen "add student" with required subjects + prices. */

@@ -38,8 +38,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
-import com.seblful.klas.domain.HomeworkRules
-import com.seblful.klas.domain.LessonKind
+import com.seblful.klas.domain.homework.HomeworkRules
+import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.format.bulletJoin
@@ -54,8 +54,8 @@ import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.SwipeToConfirmBox
 import com.seblful.klas.ui.common.SwipeReveal
+import com.seblful.klas.ui.common.SwipeToConfirmBox
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.insetRowPress

@@ -5,7 +5,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.diagnostics.CrashLogger
-import com.seblful.klas.domain.ReminderScheduler
+import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.work.Maintenance
 import dagger.hilt.android.HiltAndroidApp

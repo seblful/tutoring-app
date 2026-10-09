@@ -3,8 +3,8 @@ package com.seblful.klas.ui.homework
 import com.seblful.klas.data.repository.HomeworkRepository
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
-import com.seblful.klas.ui.common.UiEvents
-import com.seblful.klas.ui.common.write
+import com.seblful.klas.ui.common.state.UiEvents
+import com.seblful.klas.ui.common.state.write
 import kotlinx.coroutines.CoroutineScope
 
 /**

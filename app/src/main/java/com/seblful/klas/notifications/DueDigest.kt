@@ -6,16 +6,16 @@ import com.seblful.klas.data.repository.PaymentRepository
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
-import com.seblful.klas.domain.Billing
-import com.seblful.klas.domain.ClassSession
-import com.seblful.klas.domain.DayBounds
-import com.seblful.klas.domain.DaySummary
-import com.seblful.klas.domain.Digests
-import com.seblful.klas.domain.GroupRules
-import com.seblful.klas.domain.LessonPhase
-import com.seblful.klas.domain.Reports
+import com.seblful.klas.domain.billing.Billing
+import com.seblful.klas.domain.lesson.LessonPhase
+import com.seblful.klas.domain.lesson.SessionRules
+import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.reminders.Digests
+import com.seblful.klas.domain.reports.Reports
+import com.seblful.klas.domain.schedule.DayBounds
+import com.seblful.klas.domain.schedule.DaySummary
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -71,9 +71,9 @@ class DueDigest @Inject constructor(
         val day = now.atZone(clock.zone).toLocalDate()
         val dayClasses = classesOn(day)
 
-        // One entry per lesson, a group's included — `GroupRules.sessions` collapses its members' classes
+        // One entry per lesson, a group's included — `SessionRules.sessions` collapses its members' classes
         // and sorts by start, so the tray lists the tutor's morning exactly as the schedule would.
-        val sessions = GroupRules.sessions(dayClasses)
+        val sessions = SessionRules.sessions(dayClasses)
         val agenda = Digests.Agenda(
             day = day,
             summary = DaySummary.of(sessions),
@@ -113,7 +113,7 @@ class DueDigest @Inject constructor(
 
         val digest = Digests.Unfinished(
             day = day,
-            lessons = GroupRules.sessions(dayClasses)
+            lessons = SessionRules.sessions(dayClasses)
                 .filter { LessonPhase.of(it, now).isUnfinished }
                 .map { session -> entryFor(session) },
         )

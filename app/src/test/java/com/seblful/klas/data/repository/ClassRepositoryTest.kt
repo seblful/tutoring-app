@@ -2,7 +2,7 @@ package com.seblful.klas.data.repository
 
 import com.seblful.klas.calendar.Guest
 import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.domain.SessionEdit
+import com.seblful.klas.domain.lesson.SessionEdit
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money

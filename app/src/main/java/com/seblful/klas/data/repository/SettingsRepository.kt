@@ -2,11 +2,11 @@ package com.seblful.klas.data.repository
 
 import com.seblful.klas.data.local.SettingsDao
 import com.seblful.klas.data.local.SettingsEntity
-import com.seblful.klas.domain.Reminders
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.ThemeChoice
+import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.format.AppLocale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -36,7 +36,7 @@ data class AppSettings(
      * Minutes rather than a `LocalTime`, because this is a stored column and `AppSettings` is the shape of
      * the row: an `Int` needs no converter and no total parse function on the way back (contrast
      * `EnumConverters`, which exists because a *name* can come back unreadable). The minutes are turned
-     * into a wall-clock time by `domain/Digests`, which is also where "what if that time is already past
+     * into a wall-clock time by `domain/reminders/Digests`, which is also where "what if that time is already past
      * today" is answered.
      */
     val agendaMinuteOfDay: Int = 9 * 60,
@@ -55,7 +55,7 @@ data class AppSettings(
     val debtMinuteOfDay: Int = 9 * 60,
     /**
      * Whether the evening digest naming the day's **unfinished** lessons is posted — the lessons that
-     * have finished and that nobody has said happened or not ([com.seblful.klas.domain.LessonPhase.OVERDUE]).
+     * have finished and that nobody has said happened or not ([com.seblful.klas.domain.lesson.LessonPhase.OVERDUE]).
      *
      * Off by default, as [dailyAgendaEnabled]. It is the counterpart of [autoCompleteEnabled] rather than
      * a companion to it: with auto-completion on there is nothing left unfinished by the time this fires,

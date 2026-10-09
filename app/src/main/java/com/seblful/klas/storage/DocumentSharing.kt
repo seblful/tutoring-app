@@ -9,7 +9,7 @@ package com.seblful.klas.storage
  * a messenger, Drive — and the file is a temporary means to that end.
  *
  * A port for the reason every Android edge in this app is one: a view model may not touch a `Context`,
- * a `Uri` or an `Intent`. What a report *is* stays in `domain/ReportCsv` and what it is called stays in
+ * a `Uri` or an `Intent`. What a report *is* stays in `domain/reports/ReportCsv` and what it is called stays in
  * `res/values`; this carries the bytes out.
  */
 interface DocumentSharing {

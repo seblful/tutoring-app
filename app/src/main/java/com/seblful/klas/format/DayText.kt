@@ -2,8 +2,8 @@ package com.seblful.klas.format
 
 import android.content.res.Resources
 import com.seblful.klas.R
-import com.seblful.klas.domain.DaySummary
 import com.seblful.klas.domain.model.Currency
+import com.seblful.klas.domain.schedule.DaySummary
 
 /**
  * What a day comes to, in words: «4 занятия · 5 ч · 240 BYN» — or **null** when there is nothing to say

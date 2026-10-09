@@ -3,8 +3,8 @@ package com.seblful.klas.ui.common
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
-import com.seblful.klas.domain.Taught
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.reports.Taught
 import com.seblful.klas.format.formatHours
 
 /**

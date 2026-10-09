@@ -5,7 +5,7 @@ import com.seblful.klas.data.repository.AppSettings
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.di.DeviceLocales
 import com.seblful.klas.domain.model.AppLanguage
-import com.seblful.klas.ui.common.hold
+import com.seblful.klas.ui.common.state.hold
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
 import java.util.Locale

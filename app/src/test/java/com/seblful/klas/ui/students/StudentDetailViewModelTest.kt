@@ -7,27 +7,22 @@ import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.data.toDomain
-import com.seblful.klas.domain.HomeworkRules
-import com.seblful.klas.domain.LessonKind
-import com.seblful.klas.domain.Phone
-import com.seblful.klas.domain.Scheduling
-import com.seblful.klas.domain.model.Balance
+import com.seblful.klas.domain.homework.HomeworkRules
+import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.people.Phone
+import com.seblful.klas.domain.schedule.Scheduling
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.MutableClock
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.homework.AssigneeChoice
-import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -42,6 +37,11 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 /**
  * **Never `advanceUntilIdle()` here**: the card's homework is due as of `Clock.days()`, which sleeps until

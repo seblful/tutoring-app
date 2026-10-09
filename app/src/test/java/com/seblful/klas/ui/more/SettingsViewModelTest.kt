@@ -1,17 +1,17 @@
 package com.seblful.klas.ui.more
 
 import com.seblful.klas.calendar.Guest
+import com.seblful.klas.data.local.StudentEntity
+import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.testutil.MainDispatcherRule
-import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
-import com.seblful.klas.ui.common.Loadable
+import com.seblful.klas.ui.common.state.Loadable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -334,6 +334,60 @@ class SettingsViewModelTest {
         advanceUntilIdle()
 
         assertTrue(env.settingsRepo.get().calendarSyncEnabled)
+    }
+
+    @Test
+    fun `the sync row reports a revoked permission only while sync is on`() {
+        assertEquals(CalendarDelivery.OFF, CalendarDelivery.of(enabled = false, permitted = false))
+        assertEquals(CalendarDelivery.OFF, CalendarDelivery.of(enabled = false, permitted = true))
+        assertEquals(CalendarDelivery.BLOCKED, CalendarDelivery.of(enabled = true, permitted = false))
+        assertEquals(CalendarDelivery.ON, CalendarDelivery.of(enabled = true, permitted = true))
+    }
+
+    @Test
+    fun `revoking the calendar permission while away turns the sync row blocked`() = runTest(mainRule.dispatcher) {
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
+        val vm = vm()
+        observing(vm.calendarDelivery)
+        advanceUntilIdle()
+        assertEquals(CalendarDelivery.ON, vm.calendarDelivery.value)
+
+        env.calendarPermission.granted = false
+        vm.refreshPermissions()
+        advanceUntilIdle()
+
+        assertEquals(CalendarDelivery.BLOCKED, vm.calendarDelivery.value)
+    }
+
+    @Test
+    fun `a calendar request answered with every grant turns sync on`() = runTest(mainRule.dispatcher) {
+        env.calendarPermission.granted = false
+        val vm = vm()
+        assertEquals(CalendarSyncToggle.PERMISSION_NEEDED, vm.setCalendarSyncEnabled(true))
+
+        // What the dialog closing with «Разрешить» amounts to.
+        env.calendarPermission.granted = true
+        val answer = vm.calendarPermissionAnswered(mapOf("read" to true, "write" to true))
+        advanceUntilIdle()
+
+        assertEquals(CalendarSyncToggle.APPLIED, answer)
+        assertTrue(env.settingsRepo.get().calendarSyncEnabled)
+    }
+
+    @Test
+    fun `a calendar request refused in part, or dismissed unseen, leaves sync off`() = runTest(mainRule.dispatcher) {
+        env.calendarPermission.granted = false
+        val vm = vm()
+
+        assertEquals(
+            CalendarSyncToggle.PERMISSION_NEEDED,
+            vm.calendarPermissionAnswered(mapOf("read" to true, "write" to false)),
+        )
+        // An empty answer is what the platform returns for a request it never showed.
+        assertEquals(CalendarSyncToggle.PERMISSION_NEEDED, vm.calendarPermissionAnswered(emptyMap()))
+        advanceUntilIdle()
+
+        assertFalse(env.settingsRepo.get().calendarSyncEnabled)
     }
 
     @Test
