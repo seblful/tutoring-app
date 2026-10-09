@@ -40,6 +40,19 @@ desugar = "2.1.5"
 robolectric = "4.17"
 roborazzi = "1.76.0"
 composablePreviewScanner = "0.9.3"
+# Linters, applied to every module from the root build.gradle.kts.
+#
+# detekt is on the 2.0 alpha line on purpose: 1.23.8 is the last 1.x and was built against Kotlin
+# 2.0.21 / AGP 8.8, and it predates AGP 9's built-in Kotlin. 2.0.0-alpha.6 is built against our exact
+# AGP (9.3.1) and Gradle (9.6.1). Its own Kotlin (2.4.10) runs in detekt's isolated classpath, not on
+# the build's, so it does not fight the 2.3 cap above. Move to 2.0.0 the day it is final; rule ids
+# and config keys shifted between the 2.0 alphas, so re-run `detektBaseline` after any bump.
+detekt = "2.0.0-alpha.6"
+# ktlint-gradle supports AGP 9 built-in Kotlin from 14.1.0. The ktlint engine it runs is pinned
+# separately (`ktlint { version }` in build.gradle.kts) rather than left to the plugin's default: a new
+# ktlint adds or changes rules, which is a deliberate bump plus `ktlintGenerateBaseline`, not drift.
+ktlintGradle = "14.2.0"
+ktlint = "1.8.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -109,3 +122,5 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
+detekt = { id = "dev.detekt", version.ref = "detekt" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintGradle" }

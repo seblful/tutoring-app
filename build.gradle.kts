@@ -21,6 +21,40 @@ plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.roborazzi) apply false
+    alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.ktlint) apply false
+}
+
+// ktlint (formatting) and detekt (static smells) on every module, from here rather than from each
+// module's script: a module added later is linted without anyone remembering to opt it in. Every
+// module in this build is Kotlin, so there is no "is it Kotlin?" test to get wrong.
+//
+// Both are enforced from the day they were added without reformatting the code they found: each
+// module carries a baseline of the findings that existed then (config/ktlint/baseline.xml,
+// config/detekt/baseline.xml under the module). New code is held to the rules. Regenerating the
+// baselines is in the README (Build & Test).
+val detektVersion = libs.versions.detekt.get()
+val ktlintVersion = libs.versions.ktlint.get()
+val detektConfig = rootProject.file("config/detekt/detekt.yml")
+subprojects {
+    apply(plugin = "org.jlleitschuh.gradle.ktlint")
+    configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+        version = ktlintVersion
+        // Rules come from the root .editorconfig, the same file the IDE formatter reads, so
+        // "Reformat Code" and ktlintFormat agree.
+        baseline = file("config/ktlint/baseline.xml")
+    }
+
+    apply(plugin = "dev.detekt")
+    configure<dev.detekt.gradle.extensions.DetektExtension> {
+        toolVersion = detektVersion
+        buildUponDefaultConfig = true
+        config.setFrom(detektConfig)
+        baseline = file("config/detekt/baseline.xml")
+        // Every source set, not detekt's default of main + test: the device tests and the debug-only
+        // previews are this project's code too. detekt reads only .kt/.kts out of the tree.
+        source.setFrom("src")
+    }
 }
 
 // The pin above and the catalog's `kotlin` must be the same version: they are AGP's Kotlin compiler

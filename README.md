@@ -58,13 +58,24 @@ Architecture is MVVM over a pure, unit-tested domain layer — see **[docs/archi
 ./gradlew :app:recordRoborazziDebug     # re-record the goldens in app/src/test/screenshots after a deliberate UI change
 ./gradlew :app:lintDebug                # lint (release lint is off: an AGP file-locking bug on Windows, see app/build.gradle.kts)
 ./gradlew :app:assembleDebugAndroidTest # build instrumented tests (Room, calendar, backup round-trip)
+
+./gradlew ktlintCheck detekt                     # formatting (ktlint) and static analysis (detekt), every module
+./gradlew ktlintFormat                           # auto-format: rewrites every file it can fix, baselined ones too
+./gradlew ktlintGenerateBaseline detektBaseline  # regenerate both baselines from the code as it stands
 ```
+
+ktlint's rules are in `.editorconfig` (the IDE formatter reads the same file), detekt's departures from
+its defaults in `config/detekt/detekt.yml`. Findings that predate the linters are recorded per module in
+`config/ktlint/baseline.xml` and `config/detekt/baseline.xml` and are not reported; anything new fails.
+ktlint's baseline is keyed by line and column, so editing above a recorded finding resurfaces it: fix it,
+or regenerate the baselines after a refactor that moves a lot of code. `ktlintFormat` touches the whole
+tree, so review its diff before keeping it.
 
 The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk` and installs without any signing
 setup. It carries a `.debug` application id, so it sits beside a release install with its own database.
 
 CI (`.github/workflows/ci.yml`) runs both unit suites with screenshot verification (uploading the diff
-images when one fails), `lintDebug`, the debug APK and the *compilation*
+images when one fails), `lintDebug`, ktlint, detekt, the debug APK and the *compilation*
 of the instrumented tests on every push to `main` and every PR targeting `main` (any branch can be run
 on demand). Running the instrumented tests themselves needs a connected device
 (`./gradlew :app:connectedDebugAndroidTest`).

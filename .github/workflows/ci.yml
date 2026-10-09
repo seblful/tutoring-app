@@ -76,6 +76,14 @@ jobs:
         # AGP 9.2.1 file-locking bug on Windows, so debug is where lint actually runs.
         run: ./gradlew :app:lintDebug --stacktrace
 
+      # Unqualified task names, so every module is checked, not just :app. Findings that predate the
+      # linters sit in each module's config/{ktlint,detekt}/baseline.xml; anything new fails here.
+      - name: Formatting (ktlint)
+        run: ./gradlew ktlintCheck --stacktrace
+
+      - name: Static analysis (detekt)
+        run: ./gradlew detekt --stacktrace
+
       # The instrumented tests need a device and there is no emulator in this project's workflow, but
       # compiling them still catches the breakage that matters most often: a schema or entity change
       # that leaves a test referring to something that no longer exists.
@@ -93,6 +101,8 @@ jobs:
           path: |
             app/build/reports/tests/
             app/build/reports/lint-results-*.html
+            */build/reports/ktlint/
+            */build/reports/detekt/
             app/build/test-results/
             domain/build/reports/tests/
             domain/build/test-results/

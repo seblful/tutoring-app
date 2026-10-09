@@ -1,0 +1,46 @@
+# Only the departures from detekt's defaults: the build sets `buildUponDefaultConfig`, so every rule not
+# named here runs as detekt ships it. `./gradlew :app:detektGenerateConfig` (after moving this file
+# aside) prints the full default set for reference.
+#
+# Findings that existed when detekt was added live in each module's config/detekt/baseline.xml.
+
+# Formatting belongs to ktlint (see .editorconfig). These would report the same line twice, under two
+# rule names and possibly two different limits.
+style:
+  MaxLineLength:
+    active: false
+  NewLineAtEndOfFile:
+    active: false
+  WildcardImport:
+    active: false
+  SpacingAfterPackageAndImports:
+    active: false
+  ModifierOrder:
+    active: false
+  TrailingWhitespace:
+    active: false
+  NoTabs:
+    active: false
+
+  # Compose: dp, sp, weights, alphas and durations are layout values read at their call site; a named
+  # constant per `16.dp` would move each one away from the only place it means anything.
+  MagicNumber:
+    ignoreAnnotated: ['Composable']
+  # A @Preview is called by the IDE, never by the code.
+  UnusedPrivateFunction:
+    ignoreAnnotated: ['Preview']
+
+naming:
+  # Composables are nouns in PascalCase (`StudentCard`), not verbs in camelCase.
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+  # Compose's convention names constants in PascalCase (`DisabledAlpha`); the rest of the code keeps
+  # SCREAMING_SNAKE (`DEFAULT_LESSON_MINUTES`). Both are in use and both are fine.
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Z][_A-Za-z0-9]*'
+
+complexity:
+  # A composable takes `modifier: Modifier = Modifier` and a defaulted parameter per optional slot; those
+  # are the API working as intended, not a parameter list that wants a class.
+  LongParameterList:
+    ignoreDefaultParameters: true

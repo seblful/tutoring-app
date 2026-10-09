@@ -1,0 +1,44 @@
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+# Two trailing spaces are a Markdown line break.
+trim_trailing_whitespace = false
+
+[*.{kt,kts}]
+# Kotlin's own coding conventions — what `kotlin.code.style=official` makes the IDE formatter produce —
+# rather than ktlint_official, which would rewrite signatures, chains and blank lines the whole codebase
+# already agrees on.
+ktlint_code_style = intellij_idea
+# The code is written to about 110 columns (KDoc wraps there); 120 leaves room for a long call without
+# turning the limit into a reflow of every comment.
+max_line_length = 120
+# Composables are nouns in PascalCase (`StudentCard`), not verbs in camelCase.
+ktlint_function_naming_ignore_when_annotated_with = Composable
+
+# Rules switched off because the code follows a different, consistent habit — between them about 2,100
+# findings that are this codebase's style rather than mistakes in it. Turning one back on is a reformat
+# of the whole tree, to be done on purpose in a commit of its own.
+#
+# Several arguments share a wrapped line; parameter lists wrap one per line even when they would fit
+# on one; an expression body starts on the line after `=`. The IDE formatter leaves all three alone.
+ktlint_standard_argument-list-wrapping = disabled
+ktlint_standard_function-signature = disabled
+ktlint_standard_class-signature = disabled
+# `onClick = { close(); onCall(phone) }`: short multi-statement lambdas stay on one line.
+ktlint_standard_statement-wrapping = disabled
+# A two-branch `if` used as an expression wraps without braces; `when` branches are not padded with
+# blank lines; adjacent one-line declarations (Hilt @Provides, KDoc'd fields) are not either.
+ktlint_standard_multiline-if-else = disabled
+ktlint_standard_blank-line-between-when-conditions = disabled
+ktlint_standard_spacing-between-declarations-with-comments = disabled
+ktlint_standard_spacing-between-declarations-with-annotations = disabled
+# Naming is detekt's (config/detekt/detekt.yml). ktlint can accept only one constant style, and the code
+# has two: Compose's PascalCase (`DisabledAlpha`) beside SCREAMING_SNAKE (`DEFAULT_LESSON_MINUTES`).
+ktlint_standard_property-naming = disabled

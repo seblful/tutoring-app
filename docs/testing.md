@@ -26,6 +26,9 @@ Where a test goes in Klas, and what the test setup expects. Commands and what CI
   migration chain wiring, the view each step leaves and the tables it rebuilds). `MigrationChainTest` is
   the only one in the unit suite guarding the upgrade path. They live in `app` (they read files through `testutil/ProjectFiles`),
   even one about the domain such as `ReportsSurfaceTest`; a whole-tree scan covers both modules' sources.
+- ktlint and detekt own generic formatting and static smells (line length, naming, complexity); the
+  source-reading tripwire tests above own the rules specific to this project, which no off-the-shelf
+  linter knows.
 
 ## Screenshot tests (`@Preview` → `src/test/screenshots`)
 
