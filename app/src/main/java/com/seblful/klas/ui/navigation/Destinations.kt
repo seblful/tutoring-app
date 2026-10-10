@@ -13,6 +13,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.navigation.NavBackStackEntry
 import com.seblful.klas.R
 import java.time.LocalDate
 
@@ -106,10 +107,21 @@ enum class TopDestination(
     ),
     SCHEDULE(Routes.SCHEDULE, R.string.nav_schedule, Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
     REPORTS(Routes.REPORTS, R.string.nav_reports, Icons.Filled.BarChart, Icons.Outlined.BarChart),
-    MORE(Routes.MORE, R.string.nav_more, Icons.Filled.MoreHoriz, Icons.Outlined.MoreHoriz);
+    MORE(Routes.MORE, R.string.nav_more, Icons.Filled.MoreHoriz, Icons.Outlined.MoreHoriz),
+    ;
 
     companion object {
         /** The routes that are tabs — what the bottom bar is shown for. */
         val routes: Set<String> = entries.map { it.route }.toSet()
     }
 }
+
+/**
+ * The tab that owns whatever is on top of [backStack], or null when none is on it: **the deepest entry
+ * that is a tab**. A screen pushed over a tab belongs to the tab it was opened from.
+ *
+ * One answer for the bar, which marks that tab, and for `navigateToTab`, which has to know whether the tab it
+ * is asked for is the one a pushed screen is sitting on.
+ */
+fun owningTabRoute(backStack: List<NavBackStackEntry>): String? =
+    backStack.lastOrNull { it.destination.route in TopDestination.routes }?.destination?.route

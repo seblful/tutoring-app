@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.navigation
 
+import android.annotation.SuppressLint
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -168,16 +169,39 @@ private fun NavGraphBuilder.moreScreens(navController: NavHostController) {
  *
  * **The tab already showing is left alone.** Switching to it would pop it and restore the same entry,
  * which re-targets the fade it is arriving with: a second tap inside the first frames of that fade — the
- * slow ones, on a cold or idle app — made the screen lurch forward instead of finishing it. Another tab,
- * or a tab reached from a screen pushed on top of it, still switches.
+ * slow ones, on a cold or idle app — made the screen lurch forward instead of finishing it.
+ *
+ * **A screen pushed over the tab asked for is closed.** The tab is already under it, so the pop and restore
+ * used to land on that same screen again and a tray tap that named the tab did nothing the tutor could see
+ * — the schedule's day, a lesson's sheet and the debts all waited behind the open form or card. What was
+ * typed into the closed screen is not kept; Back is what asks first. A screen pushed over a *different*
+ * tab still waits with its tab and comes back with it.
  */
+// `currentBackStack` is `@RestrictedApi`, for the reason `AppRoot` gives where it reads the same list.
+@SuppressLint("RestrictedApi")
 fun NavController.navigateToTab(route: String) {
     if (currentDestination?.route == route) return
+    if (owningTabRoute(currentBackStack.value) == route && popBackStack(route, inclusive = false)) return
     navigate(route) {
         popUpTo(graph.startDestinationId) { saveState = true }
         launchSingleTop = true
         restoreState = true
     }
+}
+
+/**
+ * Opens lesson [classId]'s form for a tray tap, **over whatever is open** — and not twice: a second tap on the
+ * same notification finds the form already on top and leaves it.
+ *
+ * It used to be `launchSingleTop`, which also *replaces* the form on top when it is for another lesson. A
+ * form being edited asks before it is left, but only through Back, so a tap in the tray went round the
+ * question and threw away what had been typed. Pushed over it instead, the form being edited waits
+ * underneath and Back finds it again.
+ */
+fun NavController.openLessonForm(classId: Long) {
+    val top = currentBackStackEntry
+    val alreadyOpen = top?.destination?.route == Routes.CLASS_EDIT && top.arguments?.getLong("id") == classId
+    if (!alreadyOpen) navigate(Routes.classEdit(classId))
 }
 
 /** The `{id}` every card and form route carries. */

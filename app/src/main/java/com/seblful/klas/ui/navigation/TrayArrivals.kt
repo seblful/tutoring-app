@@ -57,9 +57,7 @@ internal fun OpensWhatTheTrayNames(
                 ?.getLongExtra(TrayNavigation.EXTRA_DAY, 0L),
         )
         when (destination) {
-            // `launchSingleTop` so two taps on the same notification do not stack the same screen twice.
-            is TrayNavigation.Destination.Lesson ->
-                navController.navigate(Routes.classEdit(destination.classId)) { launchSingleTop = true }
+            is TrayNavigation.Destination.Lesson -> navController.openLessonForm(destination.classId)
             is TrayNavigation.Destination.LessonOnSchedule ->
                 toSchedule(ScheduleTarget.Lesson(destination.classId))
             // A **tab**, so it is switched to the way the bottom bar switches to it. Pushing «Отчёты» on

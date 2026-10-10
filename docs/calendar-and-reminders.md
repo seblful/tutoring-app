@@ -19,8 +19,9 @@ database, never a source (see [architecture.md](architecture.md)).
 
 - Reminders are alarms (`AlarmManager`), not workers — exact where the OS allows, inexact fallback
   otherwise; re-derived from scratch over a fixed horizon on every change; re-armed after reboot.
-- Tray actions: «Проведено» bills in place via a broadcast; «Перенести» opens the lesson. Both re-check
-  legality against the current lesson state (a notification can be stale).
+- Tray actions: «Проведено» bills in place via a broadcast; «Перенести» opens the lesson's form over whatever
+  is open (`openLessonForm`) — a form being edited waits underneath, since only Back asks before leaving it.
+  Both re-check legality against the current lesson state (a notification can be stale).
 - **Every tray entry opens what it names** (`notifications/TrayNavigation`), never just the app: a reminder →
   the schedule on the lesson's *current* day with its sheet open; the agenda and the evening digest → the
   schedule on the day they are about (carried in the intent, so a tap after midnight still lands there);

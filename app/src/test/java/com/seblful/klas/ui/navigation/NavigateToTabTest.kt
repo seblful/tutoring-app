@@ -4,8 +4,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -13,8 +15,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * What the bar's tap does, on the real graph builder and the real `navigateToTab`: the tab already showing
- * is left alone, and everything else still switches.
+ * What switching to a tab does, on the real graph builder and the real `navigateToTab`: the tab already
+ * showing is left alone, everything else still switches, and a screen pushed over the tab asked for is
+ * closed by it — where one pushed over another tab waits with that tab.
  *
  * The fade a re-tap used to disturb is pinned on pixels by `TabReselectFadeTest` (a device test); this is
  * the contract around the guard, where a mistake would not be a glitch but a tab that cannot be reached.
@@ -42,9 +45,22 @@ class NavigateToTabTest {
             }
             NavHost(navController, startDestination = Routes.SCHEDULE) {
                 TopDestination.entries.forEach { tab -> screen(tab.route) {} }
-                screen(Routes.SUBJECTS) {}
+                screen(Routes.STUDENT_DETAIL, arguments = listOf(navArgument("id") { type = NavType.LongType })) {}
+                screen(
+                    Routes.CLASS_EDIT,
+                    arguments = listOf(
+                        navArgument("id") { type = NavType.LongType },
+                        navArgument("group") { type = NavType.LongType; defaultValue = 0L },
+                        navArgument("day") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    ),
+                ) {}
             }
         }
+    }
+
+    /** What is on the back stack, bottom first, by route — the screens pushed over a tab by what they are. */
+    private fun stack(): List<String> = navController.currentBackStack.value.mapNotNull { entry ->
+        entry.destination.route?.substringBefore('?')?.replace("/{id}", "")
     }
 
     private fun tap(tab: TopDestination) = onUiThread { navController.navigateToTab(tab.route) }
@@ -87,5 +103,43 @@ class NavigateToTabTest {
         assertEquals(Routes.PEOPLE, navController.currentDestination?.route)
         tap(TopDestination.HOMEWORK)
         assertEquals(Routes.HOMEWORK, navController.currentDestination?.route)
+    }
+
+    /** The tray's case: «Сегодня» tapped while a booking form, opened from the schedule, is on top of it. */
+    @Test
+    fun `a tap on the schedule closes a form opened from it`() {
+        showTabs()
+        onUiThread { navController.navigate(Routes.classEdit(5)) }
+
+        tap(TopDestination.SCHEDULE)
+
+        assertEquals(listOf(Routes.SCHEDULE), stack())
+    }
+
+    /** The debt digest, tapped while a student's card, opened from the reports, is on top of them. */
+    @Test
+    fun `a tap on the reports closes a card opened from them`() {
+        showTabs()
+        tap(TopDestination.REPORTS)
+        onUiThread { navController.navigate(Routes.studentDetail(1)) }
+
+        tap(TopDestination.REPORTS)
+
+        assertEquals(listOf(Routes.SCHEDULE, Routes.REPORTS), stack())
+        assertEquals(Routes.REPORTS, navController.currentDestination?.route)
+    }
+
+    /** What did not need fixing, kept as it was: a screen over *another* tab waits with that tab. */
+    @Test
+    fun `a screen pushed over another tab waits with it and comes back with it`() {
+        showTabs()
+        tap(TopDestination.PEOPLE)
+        onUiThread { navController.navigate(Routes.studentDetail(1)) }
+
+        tap(TopDestination.SCHEDULE)
+        assertEquals(listOf(Routes.SCHEDULE), stack())
+
+        tap(TopDestination.PEOPLE)
+        assertEquals(listOf(Routes.SCHEDULE, Routes.PEOPLE, "student"), stack())
     }
 }

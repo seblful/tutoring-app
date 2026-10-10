@@ -34,6 +34,7 @@ import com.seblful.klas.ui.navigation.TopDestination
 import com.seblful.klas.ui.navigation.klasGraph
 import com.seblful.klas.ui.navigation.klasTabs
 import com.seblful.klas.ui.navigation.navigateToTab
+import com.seblful.klas.ui.navigation.owningTabRoute
 import com.seblful.klas.ui.onboarding.OnboardingScreen
 import com.seblful.klas.ui.schedule.ScheduleTarget
 import com.seblful.klas.ui.theme.KlasTheme
@@ -125,9 +126,7 @@ private fun MainApp() {
     // — a remembered "last tab seen" would be a guess restored from nothing on any arrival that did not
     // start at a tab.
     val backStack by navController.currentBackStack.collectAsState()
-    val selectedTabRoute = backStack
-        .lastOrNull { it.destination.route in TopDestination.routes }
-        ?.destination?.route
+    val selectedTabRoute = owningTabRoute(backStack)
 
     /**
      * The latest tray tap that asked a tab for something more than itself — the schedule for a day or a
