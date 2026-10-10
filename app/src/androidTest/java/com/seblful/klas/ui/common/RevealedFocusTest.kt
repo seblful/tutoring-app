@@ -37,9 +37,10 @@ import org.junit.Test
  *
  * `@HiltAndroidTest` although nothing here is injected: instrumentation swaps the app class for
  * `HiltTestApplication`, and any of the app's own components starting in that process — `MainActivity`
- * if the phone's owner opens the app mid-run, `BootReceiver` after the run's own install — asks it for a
- * component. Without the rule there is none, and the *whole run* dies reporting zero tests rather than a
- * failure. The rule creates one, so a stray wake-up injects and is harmless.
+ * if the phone's owner opens the app mid-run — asks it for a component. Without the rule there is none,
+ * and the *whole run* dies reporting zero tests rather than a failure. The rule creates one, so a stray
+ * wake-up injects and is harmless. (`BootReceiver`'s wake-up before the first test is the runner's: see
+ * `HiltTestRunner`.)
  */
 @HiltAndroidTest
 class RevealedFocusTest {

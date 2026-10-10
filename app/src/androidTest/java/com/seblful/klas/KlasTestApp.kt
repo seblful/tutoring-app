@@ -20,7 +20,9 @@ import dagger.hilt.android.testing.CustomTestApplication
  * about workers, and the point is only that WorkManager can answer for itself without killing the run.
  *
  * A test that expects the app's *own* components to start (an activity, `BootReceiver`) still needs
- * `@HiltAndroidTest` + `HiltAndroidRule` so a Hilt component exists for them to be injected from.
+ * `@HiltAndroidTest` + `HiltAndroidRule` so a Hilt component exists for them to be injected from. A
+ * receiver the system wakes *before* the first test — `BOOT_COMPLETED`, at the start of the process — has
+ * no rule to wait for, and is dropped by [HiltTestRunner].
  */
 open class WorkAwareTestApp : Application(), Configuration.Provider {
     override val workManagerConfiguration: Configuration get() = Configuration.Builder().build()

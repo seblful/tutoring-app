@@ -57,10 +57,16 @@ Where a test goes in Klas, and what the test setup expects. Commands and what CI
 
 ## Instrumented tests (`src/androidTest`)
 
-- 37 classes cover what needs a device: Room/FK integration, backup round-trip, calendar sync,
+- 38 classes cover what needs a device: Room/FK integration, backup round-trip, calendar sync,
   auto-completion, text measurement, gesture behavior, plural rules, screen-reader semantics, and the
   shape of a fade frame by frame (`TabReselectFadeTest`, `ItemMotionTest`: pixels on a paused clock).
 - Every class runs under a custom `KlasTestApp` (the app's own receivers/workers wake mid-run and need a
-  real Hilt component).
+  real Hilt component). A receiver woken *before* the first test builds one — some phones send the app
+  `BOOT_COMPLETED` at every process start — is dropped by `HiltTestRunner.onException`; it used to kill the
+  run with zero tests reported.
+- **Running one class without Gradle's results folder**, which a crashed run leaves locked on Windows:
+  `./gradlew :app:installDebug :app:installDebugAndroidTest`, then
+  `adb shell am instrument -w -e class <class> com.seblful.klas.debug.test/com.seblful.klas.HiltTestRunner`.
+  Run it a dozen times from a stopped app (`am force-stop`) to tell a start-up race from a test failure.
 - Every migration has a device test validating column-for-column against the exported schema.
 - Notification display and real calendar writes can only be observed on a device.
