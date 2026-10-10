@@ -70,7 +70,9 @@ it draws with.
   Pinned at 1.3× and 1.5× by `BottomBarLabelTest`/`BarTitleFitTest`; 2× is not.
 - **Navigation**: bottom bar «Люди·Задания·Расписание·Отчёты·Ещё», opens on the schedule (the middle tab);
   Students+Groups share one tab via a segmented control. Which tab is marked is read off the back stack.
-  Destinations cross-fade; predictive back is on.
+  Destinations cross-fade; predictive back is on. Tapping the tab already showing does nothing
+  (`navigateToTab`): switching to it would pop and restore the entry mid-fade, and a second tap in the
+  first frames of the fade made the screen lurch (`TabReselectFadeTest`).
 - **List motion**: lazy list items animate only through `animateInPlace` — a move slides, nothing fades
   in or out, because a fading row keeps drawing over whatever replaces it. A list that shows several pages
   (the schedule's views and days) keys its items per page, so a swap is never read as every row moving.

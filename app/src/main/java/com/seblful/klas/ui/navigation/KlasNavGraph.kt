@@ -165,11 +165,19 @@ private fun NavGraphBuilder.moreScreens(navController: NavHostController) {
  * Switches to the tab at [route] the way the bar does — back to the start destination with the state
  * saved, so each tab keeps where the tutor was in it rather than stacking one tab on another. The bar and
  * a tray tap that names a tab both switch this way; they used to spell it out once each.
+ *
+ * **The tab already showing is left alone.** Switching to it would pop it and restore the same entry,
+ * which re-targets the fade it is arriving with: a second tap inside the first frames of that fade — the
+ * slow ones, on a cold or idle app — made the screen lurch forward instead of finishing it. Another tab,
+ * or a tab reached from a screen pushed on top of it, still switches.
  */
-fun NavController.navigateToTab(route: String) = navigate(route) {
-    popUpTo(graph.startDestinationId) { saveState = true }
-    launchSingleTop = true
-    restoreState = true
+fun NavController.navigateToTab(route: String) {
+    if (currentDestination?.route == route) return
+    navigate(route) {
+        popUpTo(graph.startDestinationId) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
 }
 
 /** The `{id}` every card and form route carries. */
