@@ -16,6 +16,11 @@ an *upload* key.
    keytool -genkeypair -v -keystore ~/keystores/klas-upload.jks -alias upload \
      -keyalg RSA -keysize 2048 -validity 10000
    ```
+   `-validity` is in days and must not be shortened: Play rejects a certificate that expires before
+   **22 October 2033** ("signed with a certificate that expires too soon"), and a key can't be
+   lengthened afterwards. Check any key with `keytool -list -v -keystore <file> -alias upload` (the
+   *Valid from … until* line); the release workflow checks it too.
+
    Back up the keystore file and its passwords *off this machine* (e.g. a password-manager attachment).
    Losing the upload key means a manual reset with Google; losing it before Play App Signing is enabled
    would block all future updates.
@@ -80,8 +85,9 @@ Play requires an **App Bundle** (`.aab`), not an APK. After the first upload the
 **Choose the signing key deliberately when you create that first release.** With a Google-generated key,
 the Play build is signed with a key you don't hold, so a copy sideloaded from a GitHub release (signed
 with the upload key) can't be updated from Play: it has to be uninstalled first, and its data goes with
-it — export a backup first. To keep updating existing installs in place, upload the existing key to Play
-App Signing instead (Console → the release's signing-key step); the upload key can be reset later.
+it — export a backup first. Uploading an existing key to Play App Signing instead keeps those installs
+updating in place, but only if that key is valid past October 2033 (Klas's first key was valid to
+March 2029, so it could not be used and the sideloaded 0.4.x installs had to be reinstalled).
 
 ### Play Console
 

@@ -104,6 +104,19 @@ jobs:
             echo "keyPassword=$KEY_PASSWORD"
           } > keystore.properties
 
+      # Play rejects an upload certificate that expires before 22 Oct 2033, and says so only after the
+      # whole build; fail here, in a second, instead. -checkend takes seconds from now.
+      - name: Upload key outlives Play's 2033 minimum
+        env:
+          STORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          secs=$(( $(date -d 2033-10-23 +%s) - $(date +%s) ))
+          keytool -exportcert -rfc -keystore "$RUNNER_TEMP/upload.jks" -alias "$KEY_ALIAS" \
+            -storepass:env STORE_PASSWORD | openssl x509 -noout -enddate -checkend "$secs" ||
+            { echo "::error::The upload key expires before 22 Oct 2033; generate a longer-lived one (docs/releasing.md)"; exit 1; }
+
       - name: Build the signed APK and AAB
         run: ./gradlew :app:assembleRelease :app:bundleRelease --stacktrace
 
