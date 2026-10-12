@@ -13,7 +13,7 @@ an *upload* key.
    mixed up with other apps' keys:
    ```bash
    mkdir -p ~/keystores
-   keytool -genkeypair -v -keystore ~/keystores/klas-upload.jks -alias upload \
+   keytool -genkeypair -v -keystore ~/keystores/klas-upload-v2.jks -alias upload \
      -keyalg RSA -keysize 2048 -validity 10000
    ```
    `-validity` is in days and must not be shortened: Play rejects a certificate that expires before
@@ -30,7 +30,7 @@ an *upload* key.
    cp keystore.properties.example keystore.properties
    ```
    ```properties
-   storeFile=C:/Users/<you>/keystores/klas-upload.jks
+   storeFile=C:/Users/<you>/keystores/klas-upload-v2.jks
    storePassword=<your keystore password>
    keyAlias=upload
    keyPassword=<your key password>
@@ -123,7 +123,7 @@ re-uploads the files to the existing GitHub release.
 each of the last three prompts for its value):
 
 ```bash
-base64 -w0 ~/keystores/klas-upload.jks | gh secret set UPLOAD_KEYSTORE_BASE64
+base64 -w0 ~/keystores/klas-upload-v2.jks | gh secret set UPLOAD_KEYSTORE_BASE64
 gh secret set UPLOAD_KEYSTORE_PASSWORD
 gh secret set UPLOAD_KEY_ALIAS
 gh secret set UPLOAD_KEY_PASSWORD
