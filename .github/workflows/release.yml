@@ -1,0 +1,169 @@
+name: Release
+
+# A `vX.Y.Z` tag is the whole release procedure: push it and this builds the signed APK and AAB,
+# attaches them to a GitHub release, and — once Play publishing is switched on — uploads the AAB to a
+# Google Play track. Setup and the first manual upload are in docs/releasing.md.
+#
+# The tag is only a trigger. The version is the one in app/build.gradle.kts, bumped by the
+# `chore(release)` commit, so `check` refuses a tag that disagrees with it or that is not on main.
+on:
+  push:
+    tags: ['v*']
+  # Re-run a release (or publish it again) from the Actions tab by picking the tag as the ref.
+  workflow_dispatch:
+    inputs:
+      track:
+        description: Play track to upload to (blank = the PLAY_TRACK variable, else internal)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  # Two runs for one tag would race to create the same GitHub release; a second waits for the first.
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PACKAGE_NAME: com.seblful.klas
+
+jobs:
+  # Cheap and first, so a wrong tag fails in seconds rather than after the whole suite.
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Tag matches the app version and is on main
+        run: |
+          set -euo pipefail
+          case "$GITHUB_REF" in
+            refs/tags/v*) ;;
+            *) echo "::error::A release runs on a v* tag, not on $GITHUB_REF"; exit 1 ;;
+          esac
+          name=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts)
+          if [ "$GITHUB_REF_NAME" != "v$name" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match versionName $name in app/build.gradle.kts"
+            exit 1
+          fi
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_REF_NAME is not on main; fast-forward main to the release commit first"
+            exit 1
+          fi
+
+  # The same suite that guards main, run on the tagged commit.
+  verify:
+    needs: check
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write # create the GitHub release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # Pinned to a commit, like the Play upload: this job holds the signing key. v4.4.4.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1
+        with:
+          cache-read-only: true
+
+      # The same keystore.properties a developer keeps locally; the build script signs the release
+      # only when it exists. The key goes through env, never into the command line or the log.
+      - name: Restore the upload key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Secret UPLOAD_KEYSTORE_BASE64 is not set; see docs/releasing.md"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/upload.jks"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+
+      - name: Build the signed APK and AAB
+        run: ./gradlew :app:assembleRelease :app:bundleRelease --stacktrace
+
+      # Without keystore.properties Gradle still succeeds and leaves an unsigned APK, so a missing
+      # signature has to be caught here and not discovered on a phone or in the Console.
+      - name: Check the signatures
+        run: |
+          set -euo pipefail
+          apk=app/build/outputs/apk/release/app-release.apk
+          aab=app/build/outputs/bundle/release/app-release.aab
+          test -f "$apk" || { echo "::error::$apk is missing (unsigned build?)"; exit 1; }
+          test -f "$aab" || { echo "::error::$aab is missing"; exit 1; }
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          "$apksigner" verify --print-certs "$apk"
+          jarsigner -verify "$aab"
+          mkdir dist
+          cp "$apk" "$aab" dist/
+
+      - name: Keep the build for the publish job
+        uses: actions/upload-artifact@v4
+        with:
+          name: klas-release
+          path: dist/
+          retention-days: 30
+
+      # Notes are generated from the commits since the last tag; edit them afterwards with
+      # `gh release edit <tag> --notes-file …`. A release made by hand first just gets the files.
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/app-release.apk dist/app-release.aab --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/app-release.apk dist/app-release.aab \
+              --title "$GITHUB_REF_NAME" --generate-notes --verify-tag
+          fi
+
+  # Off until the repository variable PLAY_PUBLISH is `true` — Play refuses the API until the first
+  # bundle has been uploaded by hand (docs/releasing.md). Separate from `build`, so a Play failure
+  # never loses the GitHub release and can be re-run alone.
+  publish:
+    needs: build
+    if: vars.PLAY_PUBLISH == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: klas-release
+          path: dist
+
+      # Pinned to a commit: this action holds the key to the Play account. v1.1.5.
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ env.PACKAGE_NAME }}
+          releaseFiles: dist/app-release.aab
+          track: ${{ inputs.track || vars.PLAY_TRACK || 'internal' }}
+          # `draft` until the app's first release has been through Play review; then `completed`.
+          status: ${{ vars.PLAY_STATUS || 'completed' }}

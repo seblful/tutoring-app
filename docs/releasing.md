@@ -64,9 +64,10 @@ app won't update over it — uninstall the sideloaded copy first.
 **New personal accounts** must run a **closed test with 12+ testers for 14 continuous days** before
 they can publish to production. Start recruiting testers early — this is the usual bottleneck.
 
-### Build the bundle
+### Build the bundle by hand (the first upload only)
 
-Play requires an **App Bundle** (`.aab`), not an APK.
+Play requires an **App Bundle** (`.aab`), not an APK. After the first upload the
+[release workflow](#release-from-a-tag) builds and uploads it.
 
 1. **Bump `versionCode`** in `app/build.gradle.kts` — every upload needs a higher value. `versionName`
    is cosmetic.
@@ -75,6 +76,12 @@ Play requires an **App Bundle** (`.aab`), not an APK.
    ./gradlew :app:bundleRelease
    ```
    Output: `app/build/outputs/bundle/release/app-release.aab`
+
+**Choose the signing key deliberately when you create that first release.** With a Google-generated key,
+the Play build is signed with a key you don't hold, so a copy sideloaded from a GitHub release (signed
+with the upload key) can't be updated from Play: it has to be uninstalled first, and its data goes with
+it — export a backup first. To keep updating existing installs in place, upload the existing key to Play
+App Signing instead (Console → the release's signing-key step); the upload key can be reset later.
 
 ### Play Console
 
@@ -87,13 +94,66 @@ questionnaires and the rollout. Two answers are specific to Klas:
   sharing. This matches `allowBackup="false"` in the manifest — Play's Auto Backup is deliberately
   off so `klas.db` is never copied to Google's servers. Keep the two consistent.
 
+## Release from a tag
+
+Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`:
+
+1. **`check`** — the tag equals `versionName` in `app/build.gradle.kts` and is on `main`.
+2. **`verify`** — the whole of `ci.yml` on the tagged commit.
+3. **`build`** — restores the upload key, builds the signed APK and AAB, checks both are signed
+   (the log prints the APK's certificate), and attaches them to a GitHub release with generated notes.
+   Rewrite the notes afterwards with `gh release edit vX.Y.Z --notes-file …`.
+4. **`publish`** — uploads the AAB to a Play track. Skipped until `PLAY_PUBLISH` is `true`.
+
+To release: bump `versionCode` and `versionName` in a `chore(release): X.Y.Z` commit on `develop`,
+fast-forward `main` to it, then tag and push (`git tag -a vX.Y.Z -m "Klas X.Y.Z"`,
+`git push origin main vX.Y.Z`). A failed `publish` can be re-run alone from the Actions tab, and a release
+can be repeated by running the workflow on its tag (the **Run workflow** ref picker) — that also
+re-uploads the files to the existing GitHub release.
+
+### Set up the pipeline (once)
+
+**Signing.** Four repository secrets give the workflow the upload key (run from a terminal with `gh`;
+each of the last three prompts for its value):
+
+```bash
+base64 -w0 ~/keystores/klas-upload.jks | gh secret set UPLOAD_KEYSTORE_BASE64
+gh secret set UPLOAD_KEYSTORE_PASSWORD
+gh secret set UPLOAD_KEY_ALIAS
+gh secret set UPLOAD_KEY_PASSWORD
+```
+
+**Play publishing**, after the first bundle is uploaded by hand and the app exists in the Console:
+
+1. In Google Cloud, create a project, enable the **Google Play Android Developer API**, create a
+   **service account** and download a JSON key for it.
+2. In Play Console → **Users and permissions**, invite the service account's email and grant it the
+   release permissions for Klas (testing tracks and, when ready, production). If the Console still shows
+   a Setup → API access page, link the Cloud project there too.
+3. Store the key and switch publishing on:
+   ```bash
+   gh secret set PLAY_SERVICE_ACCOUNT_JSON < service-account.json
+   gh variable set PLAY_PUBLISH --body true
+   ```
+4. Delete the downloaded JSON; the secret is the only copy that needs to exist.
+
+Two optional variables steer where a release goes; both can be changed without touching the workflow:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `PLAY_TRACK` | `internal` | `internal`, `alpha` (the default closed-testing track), `beta`, `production`, or a custom closed track's name. The workflow's manual run takes a `track` input that overrides it once. |
+| `PLAY_STATUS` | `completed` | Set `draft` until the app's first release has passed Play review — the API only accepts drafts for an unpublished app — and the release is then finished in the Console. |
+
+Without a service account, nothing is lost: the tag still produces the GitHub release, and the AAB
+can be uploaded in the Console by hand. Promoting a release between tracks (closed test → production) is
+easiest in the Console.
+
 ## Per-release checklist
 
-- [ ] Bump `versionCode` (and `versionName` if user-facing)
 - [ ] Schema change? A migration is shipped, `MigrationChainTest` passes, and its migration test passes on a device
-- [ ] `keystore.properties` present and correct
-- [ ] `./gradlew :domain:test :app:testDebugUnitTest` and `:app:lintDebug` pass
-- [ ] `./gradlew :app:bundleRelease` succeeds
+- [ ] `./gradlew :domain:test :app:verifyRoborazziDebug :app:lintDebug ktlintCheck detekt` pass (CI runs the same)
+- [ ] `./gradlew :app:connectedDebugAndroidTest` passes on a phone
 - [ ] Backup round-trip verified on a release build (device)
-- [ ] Upload `.aab` to the chosen track
-- [ ] Release notes filled in
+- [ ] `chore(release)` commit bumps `versionCode` (and `versionName`); `main` fast-forwarded; tag pushed
+- [ ] Release workflow green; GitHub release notes rewritten
+- [ ] Play track shows the new version (and its release notes are filled in, in the Console)

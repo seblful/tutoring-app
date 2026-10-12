@@ -80,6 +80,9 @@ of the instrumented tests on every push to `main` and every PR targeting `main` 
 on demand). Running the instrumented tests themselves needs a connected device
 (`./gradlew :app:connectedDebugAndroidTest`).
 
+Pushing a `vX.Y.Z` tag runs the release workflow (`.github/workflows/release.yml`): the same suite, then a
+signed APK and AAB attached to a GitHub release and, once switched on, uploaded to Google Play.
+
 ## Docs
 
 The reasoning behind a rule lives in KDoc next to the code; these docs are the map.
@@ -90,7 +93,7 @@ The reasoning behind a rule lives in KDoc next to the code; these docs are the m
 - [Database and backup](docs/database-and-backup.md) — changing the schema or the backup file without losing data
 - [UI conventions](docs/ui-conventions.md) — how a screen is built
 - [Testing](docs/testing.md) — where a test goes, and what the test setup expects
-- [Releasing](docs/releasing.md) — a signed release APK, sideloading it, and publishing to Google Play
+- [Releasing](docs/releasing.md) — a signed release APK, sideloading it, and the tag-driven release to GitHub and Google Play
 
 ## License
 
