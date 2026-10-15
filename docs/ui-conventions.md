@@ -39,7 +39,8 @@ it draws with.
   `values/`/`values-ru/` (strings, plurals, format args, array lengths). A language change re-syncs the
   calendar (mirrored text is baked in).
 - **Time**: `java.time` everywhere (desugared, minSdk 24); 12/24-hour and week-start both follow the
-  *phone's* setting, not the app language; today rolls over at local midnight off the injected `Clock` (`Clock.days()`, `ui/common/state/Days.kt` —
+  *phone's* setting, not the app language (the clock is asked of the application context, so a bottom sheet
+  agrees with the screen under it); today rolls over at local midnight off the injected `Clock` (`Clock.days()`, `ui/common/state/Days.kt` —
   never a "today" read once per emission); a day as instants is `domain/schedule/DayBounds`.
 - **Haptics**: five named moments only (`ui/common/Haptics`), wired into shared atoms (a refusal through
   `ShowMessagesFor(refused = …)`), never per-screen; ordinary taps stay silent.

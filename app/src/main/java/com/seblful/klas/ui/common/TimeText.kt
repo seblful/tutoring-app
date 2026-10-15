@@ -23,10 +23,16 @@ import java.time.LocalTime
  * What keeps `HH:mm` is a report, an export, a backup — read long after the phone that produced it, where
  * a marker means nothing and `HH:mm` sorts. `ClockFormatTest` keeps a screen from reaching past these
  * three to the raw formatter, and keeps the reminder asking.
+ *
+ * Asked of the **application** context, never the composition's. With the phone's 12/24-hour switch on
+ * "automatic", Android answers from the context's locale — and the screens' context is localized to the
+ * *app's* language (`ProvideLocalizedResources`), while a bottom sheet is a window of its own holding the
+ * phone's. A Russian app on an English phone printed a lesson at 16:30 in the schedule and 4:30 PM in its
+ * sheet. The application context is the phone's in every window, as `AndroidNotifier`'s is (`TimeTextTest`).
  */
 @Composable
 @ReadOnlyComposable
-private fun hour12(): Boolean = !DateFormat.is24HourFormat(LocalContext.current)
+private fun hour12(): Boolean = !DateFormat.is24HourFormat(LocalContext.current.applicationContext)
 
 /** e.g. "21:00", or "9:00 PM" on a phone set to a 12-hour clock. */
 @Composable
