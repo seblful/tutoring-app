@@ -6,21 +6,31 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import androidx.annotation.StringRes
+import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
@@ -292,14 +302,7 @@ class StoreScreenshots {
         val add = hasContentDescription(string(R.string.homework_add)) and hasClickAction()
         capture("homework", marks = mapOf("first" to row(tutor.group.homework), "add" to add))
 
-        // The month rather than the year it opens on: the year's total is the one figure on these screens
-        // that would run past a thousand.
-        tab(R.string.nav_reports)
-        waitFor(string(R.string.reports_total_income))
-        compose.onNode(hasContentDescription(string(R.string.reports_period))).performClick()
-        click(string(R.string.reports_period_month))
-        settle()
-        capture("reports", marks = mapOf("income" to hasText(string(R.string.reports_total_income))))
+        reportsTour()
 
         tab(R.string.nav_more)
         settle()
@@ -325,8 +328,57 @@ class StoreScreenshots {
         filmTour()
     }
 
-    /** The same day after dark, for the listing's dark-theme shot; light again after. */
+    /**
+     * The month's report, and the same report scrolled to its last breakdowns for the video to scroll
+     * through — the two shots overlap, and «Income by student» is on both, so it can tell how far the
+     * list moved. The month rather than the year it opens on: the year's total is the one figure on these
+     * screens that would run past a thousand.
+     */
+    private fun reportsTour() {
+        val label = string(R.string.reports_total_income)
+        val byStudent = string(R.string.reports_by_student)
+        tab(R.string.nav_reports)
+        waitFor(label)
+        compose.onNode(hasContentDescription(string(R.string.reports_period))).performClick()
+        click(string(R.string.reports_period_month))
+        settle()
+        val list = hasScrollAction()
+        // The figure under the label: the one the video counts up.
+        val total = hasAnySibling(hasText(label)) and hasText(tutor.currency.name, substring = true)
+        capture(
+            "reports",
+            marks = mapOf("income" to hasText(label), "list" to list, "anchor" to hasText(byStudent)),
+            texts = mapOf("total" to total),
+        )
+        scrollToTop(byStudent)
+        capture("film-reports-end", marks = mapOf("list" to list, "anchor" to hasText(byStudent)))
+        // Back to the top, where the dark-theme shot of the same screen expects it.
+        compose.onNode(list).performScrollToIndex(0)
+        settle()
+    }
+
+    /**
+     * The theme switched to dark from Settings, as the video shows it, then the same day after dark for
+     * the listing's dark-theme shot; light again after.
+     */
     private fun darkTour() {
+        val dark = hasText(string(R.string.theme_dark)) and isSelectable()
+        tab(R.string.nav_more)
+        click(string(R.string.settings_title))
+        waitFor(string(R.string.settings_notifications_desc))
+        // Brought into view first: the section is most of the screen's length down, and a scroll that far
+        // in one step leaves the list where it was.
+        compose.onNode(dark).performScrollTo()
+        scrollToTop(string(R.string.settings_section_appearance))
+        capture("film-theme", marks = mapOf("dark" to dark))
+        compose.onNode(dark).performClick()
+        // The choice is saved off the main thread, which the test clock does not wait for: wait for it to
+        // come back as the selected segment, as the dark theme does.
+        compose.waitUntil(TIMEOUT_MS) { compose.onAllNodes(dark and isSelected()).fetchSemanticsNodes().isNotEmpty() }
+        settle()
+        capture("film-theme-dark", dark = true, marks = mapOf("dark" to dark))
+        back()
+
         runBlocking { settings.update { it.copy(themeMode = ThemeChoice.DARK) } }
         tab(R.string.nav_schedule)
         waitFor(string(R.string.class_status_in_progress))
@@ -458,12 +510,14 @@ class StoreScreenshots {
 
     /**
      * Saves the screen as [name], noting where each of [marks] is on it: a name the video refers to, and
-     * the one node it means.
+     * the one node it means. Each of [texts] is a line of text the video redraws, noted with how the app
+     * set it.
      */
     private fun capture(
         name: String,
         dark: Boolean = false,
         marks: Map<String, SemanticsMatcher> = emptyMap(),
+        texts: Map<String, SemanticsMatcher> = emptyMap(),
     ) {
         settle()
         checkAmounts(name)
@@ -477,6 +531,7 @@ class StoreScreenshots {
             bottom = image.getRGB(probeX, image.height - 2),
             dark = dark,
             marks = marks.mapValues { (mark, node) -> bounds(name, mark, node) },
+            texts = texts.mapValues { (mark, node) -> textStyle(name, mark, node) },
         )
     }
 
@@ -484,15 +539,50 @@ class StoreScreenshots {
     private fun row(text: String) = hasText(text, substring = true) and hasClickAction()
 
     /**
-     * Where the one node [matcher] finds is, in the capture's pixels: on the screen rather than in its
-     * window, so a mark on a sheet or a dialog lands where it is drawn.
+     * Where the one node [matcher] finds is, in the capture's pixels — left, top, right, bottom, and the
+     * radius of its corners, so the video can lift a card off the screen in the card's own shape. On the
+     * screen rather than in its window, so a mark on a sheet or a dialog lands where it is drawn.
      */
     private fun bounds(shot: String, mark: String, matcher: SemanticsMatcher): List<Int> {
         val nodes = compose.onAllNodes(matcher).fetchSemanticsNodes()
         check(nodes.size == 1) { "«$shot» mark «$mark» matches ${nodes.size} nodes, not one" }
         val node = nodes.single()
         val at = node.positionOnScreen
-        return listOf(at.x, at.y, at.x + node.size.width, at.y + node.size.height).map { it.toInt() }
+        val size = node.size.toSize()
+        val corner = (node.config.getOrNull(SemanticsProperties.Shape) as? CornerBasedShape)
+            ?.topStart?.toPx(size, compose.density) ?: 0f
+        return listOf(at.x, at.y, at.x + size.width, at.y + size.height, corner).map { it.toInt() }
+    }
+
+    /**
+     * The one line of text [matcher] finds, as JSON: its words, and the size, weight, colour, letter
+     * spacing and baseline the app laid it out with, in the capture's pixels — so the video can draw it
+     * changing (an amount counting up) in the app's own type.
+     */
+    private fun textStyle(shot: String, mark: String, matcher: SemanticsMatcher): String {
+        val nodes = compose.onAllNodes(matcher).fetchSemanticsNodes()
+        check(nodes.size == 1) { "«$shot» text «$mark» matches ${nodes.size} nodes, not one" }
+        val node = nodes.single()
+        val layouts = mutableListOf<TextLayoutResult>()
+        node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+        val layout = layouts.singleOrNull() ?: error("«$shot» text «$mark» has no text layout")
+        check(layout.lineCount == 1) { "«$shot» text «$mark» runs to ${layout.lineCount} lines, not one" }
+        val style = layout.layoutInput.style
+        val size = with(compose.density) { style.fontSize.toPx() }
+        val spacing = style.letterSpacing.let {
+            when {
+                it.isSp -> with(compose.density) { it.toPx() }
+                it.isEm -> it.value * size
+                else -> 0f
+            }
+        }
+        val at = node.positionOnScreen
+        return "{ \"text\": ${json(layout.layoutInput.text.text)}, \"size\": $size, " +
+            "\"weight\": ${(style.fontWeight ?: FontWeight.Normal).weight}, " +
+            "\"color\": \"${hex(style.color.toArgb())}\", \"spacing\": $spacing, " +
+            "\"left\": ${at.x + layout.getLineLeft(0)}, \"right\": ${at.x + layout.getLineRight(0)}, " +
+            "\"top\": ${at.y + layout.getLineTop(0)}, \"bottom\": ${at.y + layout.getLineBottom(0)}, " +
+            "\"baseline\": ${at.y + layout.firstBaseline} }"
     }
 
     /**
@@ -523,8 +613,9 @@ class StoreScreenshots {
     private fun writeManifest() {
         val entries = shots.joinToString(",\n") { s ->
             val marks = s.marks.entries.joinToString(", ", "{ ", " }") { (mark, box) -> "\"$mark\": $box" }
+            val texts = s.texts.entries.joinToString(", ", "{ ", " }") { (mark, style) -> "\"$mark\": $style" }
             """  "${s.name}": { "top": "${hex(s.top)}", "bottom": "${hex(s.bottom)}", "dark": ${s.dark}, """ +
-                """"marks": $marks }"""
+                """"marks": $marks, "texts": $texts }"""
         }
         File(out, "shots.json").writeText("{\n$entries\n}\n")
     }
@@ -583,6 +674,7 @@ class StoreScreenshots {
         val bottom: Int,
         val dark: Boolean,
         val marks: Map<String, List<Int>>,
+        val texts: Map<String, String>,
     )
 
     private fun hex(argb: Int) = "#%06x".format(argb and 0xFFFFFF)

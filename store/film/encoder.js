@@ -1,11 +1,38 @@
-// Chrome's own encoders, through WebCodecs: each frame video.mjs screenshots comes back here as a PNG and
-// is encoded to H.264, the soundtrack to AAC. What they produce goes back to Node in pieces, as base64,
+// Chrome's own encoders, through WebCodecs: each frame video.mjs screenshots comes back here as JPEGs —
+// one, or several exposures of a moving frame to blend into one — and is encoded to H.264, the soundtrack
+// to AAC. What they produce goes back to Node in pieces, as base64,
 // to be written into an MP4 (store/lib/mp4.mjs).
 
 "use strict";
 
 window.encoder = (() => {
   let video, fps, chunks = [], avcC = null, color = null, failure = null;
+  let canvas = null;
+
+  /**
+   * The exposures of one frame, averaged: what a camera's open shutter records of something moving, a
+   * blur along its path. One exposure is the frame as it is.
+   */
+  async function blend(jpegs) {
+    const bitmaps = await Promise.all(jpegs.map((jpeg) =>
+      createImageBitmap(new Blob([Uint8Array.fromBase64(jpeg)], { type: "image/jpeg" }))));
+    if (bitmaps.length === 1) return bitmaps[0];
+    const { width, height } = bitmaps[0];
+    if (!canvas || canvas.width !== width || canvas.height !== height) canvas = new OffscreenCanvas(width, height);
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const sum = new Uint16Array(width * height * 4);
+    for (const bitmap of bitmaps) {
+      ctx.drawImage(bitmap, 0, 0);
+      bitmap.close();
+      const { data } = ctx.getImageData(0, 0, width, height);
+      for (let i = 0; i < data.length; i++) sum[i] += data[i];
+    }
+    // A clamped array rounds to the nearest on its own.
+    const out = ctx.createImageData(width, height), n = bitmaps.length;
+    for (let i = 0; i < sum.length; i++) out.data[i] = sum[i] / n;
+    ctx.putImageData(out, 0, 0);
+    return canvas.transferToImageBitmap();
+  }
 
   const take = () => {
     if (failure) throw failure;
@@ -37,9 +64,9 @@ window.encoder = (() => {
       video.configure(config);
     },
 
-    /** Encodes frame [index] from a base64 JPEG, and returns what the encoder has finished so far. */
-    async frame(jpeg, index) {
-      const bitmap = await createImageBitmap(new Blob([Uint8Array.fromBase64(jpeg)], { type: "image/jpeg" }));
+    /** Encodes frame [index] from its exposures, base64 JPEGs, and returns what the encoder has finished so far. */
+    async frame(jpegs, index) {
+      const bitmap = await blend(jpegs);
       const frame = new VideoFrame(bitmap, { timestamp: Math.round((index * 1e6) / fps), duration: Math.round(1e6 / fps) });
       bitmap.close();
       // A key frame every two seconds, so YouTube and a scrubbing player can start anywhere.
@@ -47,6 +74,16 @@ window.encoder = (() => {
       frame.close();
       while (video.encodeQueueSize > 4) await new Promise((r) => video.addEventListener("dequeue", r, { once: true }));
       return take();
+    },
+
+    /** A frame's exposures blended, as a base64 PNG: a still of the moment as the video shows it. */
+    async still(jpegs) {
+      const bitmap = await blend(jpegs);
+      const still = new OffscreenCanvas(bitmap.width, bitmap.height);
+      still.getContext("2d").drawImage(bitmap, 0, 0);
+      bitmap.close();
+      const blob = await still.convertToBlob({ type: "image/png" });
+      return new Uint8Array(await blob.arrayBuffer()).toBase64();
     },
 
     /** Finishes the video: the last frames, and how the stream describes itself. */

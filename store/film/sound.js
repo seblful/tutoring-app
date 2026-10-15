@@ -1,13 +1,14 @@
 // The promo video's soundtrack: the music and every effect synthesised here, in an OfflineAudioContext,
 // so the sound is the same each run, comes out in step with the frames, and owes no one a licence.
 //
-// `soundtrack({ duration, bpm, cues, sections })` → an AudioBuffer. The music follows `sections` (an
-// opening, the groove, a break, the close) over a I–V–vi–IV in C; `cues` are the effects film.js
-// placed on the pictures: keys, taps, whooshes, chimes.
+// `soundtrack({ duration, bpm, cues, sections, downbeat })` → an AudioBuffer. The music follows `sections`
+// (an opening, the groove, a break, the close) over a I–V–vi–IV in C, its bars counted from `downbeat`
+// (a cut may start mid-bar); `cues` are the effects film.js placed on the pictures: keys, taps, whooshes,
+// chimes.
 
 "use strict";
 
-window.soundtrack = async function soundtrack({ duration, bpm, cues, sections, sampleRate = 48000 }) {
+window.soundtrack = async function soundtrack({ duration, bpm, cues, sections, downbeat = 0, sampleRate = 48000 }) {
   const ctx = new OfflineAudioContext(2, Math.ceil(duration * sampleRate), sampleRate);
   const BEAT = 60 / bpm, BAR = 4 * BEAT;
   const random = seeded(11);
@@ -165,6 +166,26 @@ window.soundtrack = async function soundtrack({ duration, bpm, cues, sections, s
     depth.connect(carrier.frequency);
     tone("sine", f * 3.5, t, 1.6, depth);
   }
+  /** A key's tick: a burst of bright noise a couple of milliseconds long. */
+  function keyStrike(t, v, pitch, to) {
+    const bp = filter("bandpass", 4200 * pitch, 1.4);
+    bp.connect(hit(t, 0.5 * v, 0.0004, 0.006, to));
+    noiseAt(t, 0.012, bp);
+  }
+  /** A key's ring: inharmonic partials `[ratio, level, decay]` over [f], each dying in a few tens of ms. */
+  function keyRing(t, v, f, partials, to) {
+    for (const [ratio, level, decay] of partials) {
+      tone("sine", f * ratio * between(0.985, 1.015), t, decay * 5, hit(t, level * v, 0.0006, decay, to));
+    }
+  }
+  /** A key bottoming out: a low knock that drops in pitch, with the case's dull rattle under it. */
+  function keyThock(t, v, f, decay, to) {
+    const o = tone("sine", f, t, decay * 3, hit(t, 0.4 * v, 0.001, decay, to));
+    o.frequency.exponentialRampToValueAtTime(f * 0.7, t + decay);
+    const lp = filter("lowpass", 1100, 0.9);
+    lp.connect(hit(t, 0.28 * v, 0.0008, decay * 0.4, to));
+    noiseAt(t, decay, lp);
+  }
   function riser(from, to, v = 1) {
     const bp = filter("bandpass", 300, 2.2);
     bp.frequency.setValueAtTime(300, from);
@@ -180,23 +201,34 @@ window.soundtrack = async function soundtrack({ duration, bpm, cues, sections, s
 
   // --- Effects -----------------------------------------------------------------------------------
   const FX = {
-    key(t, { v = 1 }) {
-      const out = panned(between(-0.25, 0.25), effects);
-      const bp = filter("bandpass", between(2600, 4400), 2.5);
-      bp.connect(hit(t, 0.5 * v, 0.0008, 0.018, out));
-      noiseAt(t, 0.03, bp);
-      tone("sine", between(170, 250), t, 0.05, hit(t, 0.32 * v, 0.001, 0.035, out));
-      const up = t + between(0.04, 0.06);
-      const hp = filter("highpass", 5200);
-      hp.connect(hit(up, 0.1 * v, 0.0008, 0.012, out));
-      noiseAt(up, 0.02, hp);
+    /**
+     * A key of a mechanical keyboard, in four parts: the hard tick of the keycap meeting the switch, the
+     * keycap's own short ring, the low «thock» of the stem bottoming out through the case, and — as the
+     * finger lifts — the quieter, higher tick of the key springing back. Each key [c] has a pitch of its
+     * own, as a real board's keys do, and sits a little left or right.
+     */
+    key(t, { v = 1, c = 0 }) {
+      const own = seeded(1000 + c * 7919);
+      const pitch = 0.88 + own() * 0.28;
+      const out = panned((own() - 0.5) * 0.5, effects);
+      out.connect(gain(0.1, reverb));
+      keyStrike(t, v, pitch, out);
+      keyRing(t, v, pitch * 1250, [[1, 0.2, 0.03], [1.53, 0.11, 0.022], [2.31, 0.07, 0.016], [3.7, 0.045, 0.01]], out);
+      keyThock(t + 0.003, v, pitch * 210, 0.045, out);
+      const up = t + between(0.075, 0.115);
+      keyStrike(up, 0.38 * v, pitch * 1.25, out);
+      keyRing(up, 0.35 * v, pitch * 1700, [[1, 0.16, 0.018], [1.6, 0.08, 0.012]], out);
     },
+    /** The space bar: longer and deeper, with its stabiliser's rattle on the way down and up. */
     space(t, { v = 1 }) {
       const out = panned(0, effects);
-      const bp = filter("bandpass", 1300, 1.6);
-      bp.connect(hit(t, 0.5 * v, 0.001, 0.03, out));
-      noiseAt(t, 0.05, bp);
-      tone("sine", 135, t, 0.08, hit(t, 0.4 * v, 0.001, 0.06, out));
+      out.connect(gain(0.14, reverb));
+      for (const at of [0, 0.006]) keyStrike(t + at, (at ? 0.4 : 0.6) * v, 0.75, out);
+      keyRing(t, v, 620, [[1, 0.2, 0.05], [1.58, 0.12, 0.04], [2.47, 0.07, 0.03]], out);
+      keyThock(t + 0.004, 1.15 * v, 135, 0.07, out);
+      const up = t + between(0.09, 0.12);
+      for (const at of [0, 0.008]) keyStrike(up + at, (at ? 0.2 : 0.3) * v, 0.9, out);
+      keyRing(up, 0.4 * v, 900, [[1, 0.14, 0.03], [1.6, 0.07, 0.02]], out);
     },
     tap(t) {
       const g = hit(t, 0.3, 0.001, 0.05, effects);
@@ -213,6 +245,14 @@ window.soundtrack = async function soundtrack({ duration, bpm, cues, sections, s
       o.frequency.exponentialRampToValueAtTime(820, t + 0.06);
       const h = tone("triangle", 600, t, 0.12, gain(0.25, g));
       h.frequency.exponentialRampToValueAtTime(1640, t + 0.06);
+    },
+    /** A figure counting up: a short, dry tick, like a mechanical counter's wheel. */
+    tick(t, { v = 1 }) {
+      const g = hit(t, 0.1 * v, 0.0005, 0.016, panned(0.15, effects));
+      tone("sine", 3300, t, 0.03, g);
+      const hp = filter("highpass", 6000);
+      hp.connect(hit(t, 0.05 * v, 0.0004, 0.004, effects));
+      noiseAt(t, 0.008, hp);
     },
     blip(t, { n = 0 }) {
       const scale = [84, 86, 88, 91, 93, 96, 98];
@@ -335,12 +375,19 @@ window.soundtrack = async function soundtrack({ duration, bpm, cues, sections, s
     [72, null, 76, null, null, 74, 72, null],
     [72, null, 69, null, 72, null, 74, null],
   ];
-  const partAt = (t) => sections.find((s) => t >= s.from && t < s.to)?.part ?? "outro";
-  const bars = Math.floor(duration / BAR);
-  for (let b = 0; b < bars; b++) {
-    const t0 = b * BAR, part = partAt(t0 + 0.01), chord = CHORDS[b % 4];
+  // Each bar takes the part playing at its middle: a cut's sections can start a little off the bar.
+  const sectionAt = (t) => sections.find((s) => t >= s.from && t < s.to);
+  const partAt = (t) => sectionAt(t)?.part ?? "outro";
+  const grooves = sections.filter((s) => s.part === "groove");
+  // A cut that starts before its first bar opens on the chord before the first, rising into it.
+  if (downbeat > 0.05) {
+    pad(0, CHORDS[3].pad, downbeat, 1200);
+    riser(0, downbeat, 0.9);
+  }
+  for (let b = 0; downbeat + b * BAR < duration - 0.05; b++) {
+    const t0 = downbeat + b * BAR, part = partAt(t0 + BAR / 2), chord = CHORDS[b % 4];
     if (part === "outro") {
-      if (t0 === sections.find((s) => s.part === "outro").from) {
+      if (Math.abs(t0 - sections.find((s) => s.part === "outro").from) < BAR / 2) {
         pad(t0, [48, 55, 60, 64, 67, 72], duration - t0 - 0.6, 2600);
         bass(t0, 36, 2.5);
         [72, 76, 79, 84].forEach((n, i) => bell(t0 + 0.9 + i * 0.12, n, 0.5));
@@ -358,7 +405,8 @@ window.soundtrack = async function soundtrack({ duration, bpm, cues, sections, s
       else pluck(t, n, v * 0.7);
     }
     if (part === "groove") {
-      const second = t0 >= 22;
+      const section = sectionAt(t0 + BAR / 2);
+      const second = grooves.indexOf(section) >= 1;
       for (let beat = 0; beat < 4; beat++) {
         const t = t0 + beat * BEAT;
         kick(t);
@@ -369,11 +417,12 @@ window.soundtrack = async function soundtrack({ duration, bpm, cues, sections, s
         bass(t + BEAT / 2, chord.bass, BEAT * 0.45);
         if (beat === 0 || beat === 2) bass(t, chord.bass, BEAT * 0.22);
       }
-      if (second && t0 + BAR <= 34) {
+      // The hook over the second groove, all but its last bar, which rolls into the close.
+      if (second && t0 + 2 * BAR <= section.to + 0.05) {
         HOOK[b % 4].forEach((n, i) => n && bell(t0 + i * (BEAT / 2), n, 0.32));
       }
       // A roll into the break and into the close.
-      const next = partAt(t0 + BAR + 0.01);
+      const next = partAt(t0 + 1.5 * BAR);
       if (next !== "groove") {
         for (let i = 0; i < 8; i++) clap(t0 + 3 * BEAT + i * (BEAT / 8), 0.25 + i * 0.08);
       }
@@ -387,7 +436,7 @@ window.soundtrack = async function soundtrack({ duration, bpm, cues, sections, s
       }
     }
     if (part === "intro" && b === 1) riser(t0 + 0.4, t0 + BAR, 0.9);
-    if (part === "break" && partAt(t0 + BAR + 0.01) === "groove") riser(t0 + 0.6, t0 + BAR, 0.8);
+    if (part === "break" && partAt(t0 + 1.5 * BAR) === "groove") riser(t0 + 0.6, t0 + BAR, 0.8);
   }
 
   for (const c of cues) {
