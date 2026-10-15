@@ -34,6 +34,7 @@ internal class DemoSeeder @Inject constructor(
 ) {
 
     private val now: Instant = DemoTutor.NOW.atZone(DemoTutor.ZONE).toInstant()
+    private lateinit var roster: Roster
 
     /** A taught lesson's charge to one student, which is what a payment settles. */
     private data class Charge(val studentId: Long, val day: LocalDate, val amount: Money)
@@ -57,7 +58,7 @@ internal class DemoSeeder @Inject constructor(
                 themeMode = ThemeChoice.LIGHT,
             )
         }
-        val roster = enroll(tutor)
+        roster = enroll(tutor)
         pay(tutor, teach(tutor, roster), roster)
         setHomework(tutor, roster)
     }
@@ -114,6 +115,11 @@ internal class DemoSeeder @Inject constructor(
             day = day.plusDays(1)
         }
         return charges
+    }
+
+    /** The homework the promo video types, set for the student whose lesson is on now ([DemoTutor.onNow]). */
+    suspend fun giveTypedHomework(tutor: DemoTutor) {
+        homework.give(Assignee.Student(roster.studentIds.getValue(tutor.onNow.name)), tutor.typedHomework)
     }
 
     private suspend fun setHomework(tutor: DemoTutor, roster: Roster) {

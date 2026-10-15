@@ -93,7 +93,9 @@ import javax.inject.Inject
  *
  * Each language writes `<out>/<lang>/<shot>.png` and a `shots.json` beside them naming the colours at
  * the top and bottom edge — what `store/render.mjs` paints the frame's status and gesture bars with, so
- * the phone around the screenshot is continuous with what is on it. See docs/store-listing.md.
+ * the phone around the screenshot is continuous with what is on it — and, for the promo video
+ * (`store/video.mjs`), where on a shot the things it zooms to or taps are. The video's own moments are
+ * shot last ([filmTour]). See docs/store-listing.md.
  */
 @OptIn(ExperimentalRoborazziApi::class)
 @HiltAndroidTest
@@ -251,7 +253,7 @@ class StoreScreenshots {
 
         // The schedule opens on today: taught, on now, still to come.
         waitFor(string(R.string.class_status_in_progress))
-        capture("schedule-day")
+        capture("schedule-day", marks = mapOf("onNow" to row(tutor.onNow.name)))
 
         // A lesson's sheet: what it is, who is in it, the homework riding on it.
         click(group)
@@ -270,7 +272,8 @@ class StoreScreenshots {
 
         tab(R.string.nav_people)
         waitFor(student)
-        capture("people")
+        val credit = tutor.students.first { it.prepaysLessons > 0 }.name
+        capture("people", marks = mapOf("debtor" to row(student), "credit" to row(credit)))
 
         click(student)
         waitFor(string(R.string.stat_debt))
@@ -286,7 +289,8 @@ class StoreScreenshots {
 
         tab(R.string.nav_homework)
         waitFor(tutor.group.homework)
-        capture("homework")
+        val add = hasContentDescription(string(R.string.homework_add)) and hasClickAction()
+        capture("homework", marks = mapOf("first" to row(tutor.group.homework), "add" to add))
 
         // The month rather than the year it opens on: the year's total is the one figure on these screens
         // that would run past a thousand.
@@ -295,7 +299,7 @@ class StoreScreenshots {
         compose.onNode(hasContentDescription(string(R.string.reports_period))).performClick()
         click(string(R.string.reports_period_month))
         settle()
-        capture("reports")
+        capture("reports", marks = mapOf("income" to hasText(string(R.string.reports_total_income))))
 
         tab(R.string.nav_more)
         settle()
@@ -307,11 +311,22 @@ class StoreScreenshots {
         waitFor(string(R.string.settings_notifications_desc))
         capture("settings")
         scrollToTop(string(R.string.settings_section_calendar))
-        capture("settings-calendar")
+        capture(
+            "settings-calendar",
+            marks = mapOf(
+                "sync" to row(string(R.string.settings_calendar_sync)),
+                "invites" to row(string(R.string.settings_email_invites)),
+            ),
+        )
         back()
         recordNotifications()
 
-        // The same day after dark, for the listing's dark-theme shot.
+        darkTour()
+        filmTour()
+    }
+
+    /** The same day after dark, for the listing's dark-theme shot; light again after. */
+    private fun darkTour() {
         runBlocking { settings.update { it.copy(themeMode = ThemeChoice.DARK) } }
         tab(R.string.nav_schedule)
         waitFor(string(R.string.class_status_in_progress))
@@ -319,6 +334,39 @@ class StoreScreenshots {
         tab(R.string.nav_reports)
         waitFor(string(R.string.reports_total_income))
         capture("reports-dark", dark = true)
+        runBlocking { settings.update { it.copy(themeMode = ThemeChoice.LIGHT) } }
+    }
+
+    /**
+     * The promo video's moments, which a still cannot show: the lesson on now marked taught from its sheet,
+     * then the homework list once the tutor has set its student some more for next time. Last, because
+     * both change the books every screen above was shot on.
+     *
+     * The homework is saved through the repository, not typed into the app's dialog: under Robolectric
+     * that dialog never lets Compose go idle, so nothing on screen can be found or shot while it is open.
+     * The video types it in a card of its own and lands it on this list.
+     */
+    private fun filmTour() {
+        val student = tutor.onNow.name
+        // The sheet's segment, not the «Taught» badges on the schedule behind it.
+        val taught = hasText(string(R.string.class_status_completed)) and isSelectable()
+        tab(R.string.nav_schedule)
+        waitFor(string(R.string.class_status_in_progress))
+        click(student)
+        settle()
+        capture("film-sheet", marks = mapOf("taught" to taught))
+        compose.onNode(taught).performClick()
+        settle()
+        capture("film-taught", marks = mapOf("row" to row(student)))
+
+        runBlocking { seeder.giveTypedHomework(tutor) }
+        tab(R.string.nav_homework)
+        waitFor(tutor.typedHomework)
+        capture("film-homework", marks = mapOf("added" to row(tutor.typedHomework)))
+        // What the video types, and for whom: the words of the row it lands on.
+        File(out, "film.json").writeText(
+            "{ \"student\": ${json(student)}, \"homework\": ${json(tutor.typedHomework)} }\n",
+        )
     }
 
     /**
@@ -408,7 +456,15 @@ class StoreScreenshots {
         append('"')
     }
 
-    private fun capture(name: String, dark: Boolean = false) {
+    /**
+     * Saves the screen as [name], noting where each of [marks] is on it: a name the video refers to, and
+     * the one node it means.
+     */
+    private fun capture(
+        name: String,
+        dark: Boolean = false,
+        marks: Map<String, SemanticsMatcher> = emptyMap(),
+    ) {
         settle()
         checkAmounts(name)
         val file = File(out, "$name.png")
@@ -420,7 +476,23 @@ class StoreScreenshots {
             top = image.getRGB(probeX, 1),
             bottom = image.getRGB(probeX, image.height - 2),
             dark = dark,
+            marks = marks.mapValues { (mark, node) -> bounds(name, mark, node) },
         )
+    }
+
+    /** The tappable row holding [text]: the whole row, not just the words. */
+    private fun row(text: String) = hasText(text, substring = true) and hasClickAction()
+
+    /**
+     * Where the one node [matcher] finds is, in the capture's pixels: on the screen rather than in its
+     * window, so a mark on a sheet or a dialog lands where it is drawn.
+     */
+    private fun bounds(shot: String, mark: String, matcher: SemanticsMatcher): List<Int> {
+        val nodes = compose.onAllNodes(matcher).fetchSemanticsNodes()
+        check(nodes.size == 1) { "«$shot» mark «$mark» matches ${nodes.size} nodes, not one" }
+        val node = nodes.single()
+        val at = node.positionOnScreen
+        return listOf(at.x, at.y, at.x + node.size.width, at.y + node.size.height).map { it.toInt() }
     }
 
     /**
@@ -450,7 +522,9 @@ class StoreScreenshots {
 
     private fun writeManifest() {
         val entries = shots.joinToString(",\n") { s ->
-            """  "${s.name}": { "top": "${hex(s.top)}", "bottom": "${hex(s.bottom)}", "dark": ${s.dark} }"""
+            val marks = s.marks.entries.joinToString(", ", "{ ", " }") { (mark, box) -> "\"$mark\": $box" }
+            """  "${s.name}": { "top": "${hex(s.top)}", "bottom": "${hex(s.bottom)}", "dark": ${s.dark}, """ +
+                """"marks": $marks }"""
         }
         File(out, "shots.json").writeText("{\n$entries\n}\n")
     }
@@ -503,7 +577,13 @@ class StoreScreenshots {
     private fun string(@StringRes id: Int): String =
         ApplicationProvider.getApplicationContext<Context>().getString(id)
 
-    private data class Shot(val name: String, val top: Int, val bottom: Int, val dark: Boolean)
+    private data class Shot(
+        val name: String,
+        val top: Int,
+        val bottom: Int,
+        val dark: Boolean,
+        val marks: Map<String, List<Int>>,
+    )
 
     private fun hex(argb: Int) = "#%06x".format(argb and 0xFFFFFF)
 

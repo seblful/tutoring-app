@@ -1,0 +1,98 @@
+/* The promo video's stage: 1920 × 1080, every element placed and moved by film.js, frame by frame. */
+
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+body { font-family: Golos, sans-serif; -webkit-font-smoothing: antialiased; color: #fff; }
+
+#stage { position: absolute; inset: 0; overflow: hidden; }
+.hidden { display: none !important; }
+
+/* The backdrop: the listing's indigo, its night version faded over it, and slow-drifting light. */
+.bg { position: absolute; inset: -40px; background: linear-gradient(160deg, #6170dc 0%, #4c5bc4 45%, #2f3a9a 100%); }
+.bg.night { background: linear-gradient(160deg, #262b52 0%, #161936 50%, #0b0c1a 100%); opacity: 0; }
+.glow { position: absolute; left: 0; top: 0; border-radius: 50%; filter: blur(110px); }
+.glow.one { width: 900px; height: 900px; background: #a9edff; opacity: .32; }
+.glow.two { width: 1100px; height: 1100px; background: #006879; opacity: .55; }
+.glow.three { width: 700px; height: 700px; background: #bcc2ff; opacity: .25; }
+.dot { position: absolute; left: 0; top: 0; border-radius: 50%; background: #fff; }
+
+/* Captions: a title whose words rise out of a mask, and a line under it. */
+.caption { position: absolute; top: 0; height: 1080px; width: 840px; display: flex; flex-direction: column;
+  justify-content: center; }
+.caption.left { left: 150px; }
+.caption.right { left: 920px; }
+.caption.top { justify-content: flex-start; padding-top: 84px; }
+.caption h1 { font-weight: 700; font-size: 88px; line-height: 1.06; letter-spacing: -2px; }
+.caption .line { display: block; white-space: nowrap; }
+.caption .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .08em; margin-bottom: -.08em; }
+.caption .w > span { display: inline-block; }
+.caption p { margin-top: 30px; font-weight: 500; font-size: 36px; line-height: 1.32; color: rgba(255, 255, 255, .86);
+  max-width: 760px; text-wrap: balance; }
+.caption .bar { width: 84px; height: 8px; border-radius: 4px; background: #a9edff; margin-bottom: 34px; transform-origin: left; }
+
+/* The phone, sized by --phone (film.js changes its width rather than scaling it, so it stays sharp). */
+#phone { left: 0; top: 0; transform-origin: 50% 50%; }
+.stack { position: relative; height: calc(var(--phone) * .956 * 3660 / 1648 + var(--phone) * .092); }
+.layer { position: absolute; inset: 0; overflow: hidden; }
+.layer .app { display: block; width: 100%; }
+.layer .screen { border-radius: 0; }
+
+/* Lifted copies of a row of the screen, and the taps on it. Inside the phone, so they turn with it. */
+.callout { position: absolute; background-repeat: no-repeat; border-radius: calc(var(--phone) * .04);
+  transform-origin: 50% 50%; }
+.ring { position: absolute; border-radius: calc(var(--phone) * .05); border: calc(var(--phone) * .009) solid #a9edff;
+  transform-origin: 50% 50%; }
+.tap { position: absolute; width: calc(var(--phone) * .16); height: calc(var(--phone) * .16); margin: calc(var(--phone) * -.08);
+  border-radius: 50%; }
+.tap .finger { position: absolute; inset: 18%; border-radius: 50%; background: rgba(255, 255, 255, .55);
+  box-shadow: 0 0 0 calc(var(--phone) * .006) rgba(76, 91, 196, .45); }
+.tap .wave { position: absolute; inset: 0; border-radius: 50%; border: calc(var(--phone) * .006) solid rgba(255, 255, 255, .9); }
+.scrim { position: absolute; inset: 0; background: #000; opacity: 0; }
+#overlay { position: absolute; left: 0; top: 0; z-index: 5; }
+
+/* The homework being typed: the app's own «Set homework» dialog, drawn larger than the phone. */
+#typing { position: absolute; width: 640px; padding: 44px 44px 30px; border-radius: 40px; background: #eeecf4;
+  color: #1b1b21; box-shadow: 0 40px 90px rgba(8, 10, 48, .45); transform-origin: 50% 50%; }
+#typing h2 { font-weight: 500; font-size: 38px; line-height: 1.2; margin-bottom: 30px; }
+#typing .field { position: relative; border: 2px solid #777680; border-radius: 10px; padding: 26px 24px 22px;
+  font-size: 30px; line-height: 1.35; margin-bottom: 26px; }
+#typing .field.focus { border: 4px solid #4c5bc4; padding: 24px 22px 20px; }
+#typing .label { position: absolute; left: 16px; top: -16px; padding: 0 8px; background: #eeecf4; font-size: 22px;
+  line-height: 1.3; color: #46464f; }
+#typing .field.focus .label { color: #4c5bc4; top: -18px; }
+#typing .text { min-height: 4.05em; }
+#typing .typed { white-space: pre-wrap; }
+#typing .caret { display: inline-block; width: 3px; height: 1.1em; margin-left: 1px; vertical-align: -.18em;
+  background: #4c5bc4; }
+#typing .buttons { display: flex; justify-content: flex-end; gap: 40px; font-weight: 600; font-size: 28px; color: #4c5bc4;
+  padding: 6px 8px 0; }
+#typing .save { position: relative; }
+
+/* The calendar the lessons land in, beside the settings that send them there. */
+#calendar { position: absolute; width: 520px; border-radius: 34px; background: #fbf8ff; color: #1b1b21;
+  box-shadow: 0 40px 90px rgba(8, 10, 48, .45); overflow: hidden; transform-origin: 50% 50%; }
+#calendar .head { display: flex; align-items: center; gap: 16px; padding: 26px 30px 18px; }
+#calendar .head svg { width: 40px; height: 40px; flex: none; }
+#calendar .date { font-weight: 600; font-size: 30px; color: #1b1b21; }
+#calendar .events { padding: 0 22px 22px; display: flex; flex-direction: column; gap: 10px; }
+#calendar .event { border-radius: 14px; padding: 9px 18px; background: #dfe0ff; color: #000f5c; font-size: 21px;
+  line-height: 1.25; border-left: 8px solid #4c5bc4; }
+#calendar .event b { display: block; font-weight: 600; font-size: 23px; }
+#calendar .event.taught { background: #e9e7ef; color: #46464f; border-left-color: #777680; }
+
+/* The brand, at the start and the end. */
+.brand { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.brand .lockup { display: flex; align-items: center; gap: 44px; }
+.brand .tile { width: 210px; height: 210px; border-radius: 56px; background: #dfe0ff; display: grid; place-items: center;
+  box-shadow: 0 30px 70px rgba(8, 10, 48, .4); }
+.brand .wordmark { font-weight: 700; font-size: 200px; line-height: 1; letter-spacing: -5px; }
+.brand .wordmark span { display: inline-block; }
+.brand .tagline { margin-top: 46px; font-weight: 500; font-size: 46px; line-height: 1.3; color: rgba(255, 255, 255, .9);
+  height: 1.3em; white-space: nowrap; }
+.brand .tagline .caret { display: inline-block; width: 4px; height: 1.05em; margin-left: 4px; vertical-align: -.16em;
+  background: #a9edff; }
+.brand .cta { margin-top: 56px; display: flex; align-items: center; gap: 22px; padding: 22px 46px 22px 34px;
+  border-radius: 999px; background: #fff; color: #2f3a9a; font-weight: 600; font-size: 38px;
+  box-shadow: 0 24px 60px rgba(8, 10, 48, .4); }
+.brand .cta svg { width: 46px; height: 46px; }
+#intro .tagline { text-align: left; }

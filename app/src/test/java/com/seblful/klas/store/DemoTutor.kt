@@ -40,7 +40,22 @@ internal data class DemoTutor(
     val group: DemoGroup,
     /** Done and archived, so the homework screen has a history as well as a to-do list. */
     val doneHomework: List<Pair<String, String>>,
+    /**
+     * What the promo video types, a key at a time, as the homework for the lesson «on now» once it is
+     * marked taught (store/video.mjs). Short enough to type in about two seconds.
+     */
+    val typedHomework: String,
 ) {
+    /** The student whose lesson is under way at [NOW]. */
+    val onNow: DemoStudent
+        get() = students.first { student ->
+            val time = NOW.toLocalTime()
+            student.slots.any { slot ->
+                slot.day == NOW.dayOfWeek && !time.isBefore(slot.time) &&
+                    time.isBefore(slot.time.plusMinutes(slot.minutes.toLong()))
+            }
+        }
+
     data class Subjects(val math: String, val physics: String, val language: String)
 
     companion object {
@@ -115,6 +130,7 @@ internal data class DemoTutor(
                 "Olivia Brooks" to "Vocabulary list 6 and a short essay",
                 "Noah Bennett" to "Momentum: problems 4.1–4.9",
             ),
+            typedHomework = "Ser vs estar: ex. 1–6, p. 58",
         )
 
         val russian = DemoTutor(
@@ -174,6 +190,7 @@ internal data class DemoTutor(
                 "София Лебедева" to "Слова к уроку 6 и короткое эссе",
                 "Артём Новиков" to "Импульс: задачи 4.1–4.9",
             ),
+            typedHomework = "Past Simple: упр. 1–6, стр. 58",
         )
     }
 }
