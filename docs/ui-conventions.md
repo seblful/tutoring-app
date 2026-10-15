@@ -31,6 +31,9 @@ it draws with.
 
 ## Look and behaviour
 
+- **Money**: shown through `Money.money()`, grouped in thousands with the language's separator
+  (`16 037,50 BYN`, `16,037.50 USD`); a field is seeded with the ungrouped `amount()`, because
+  `parseMoneyOrNull` reads a comma as a decimal point. CSV export writes its own ungrouped amounts.
 - **Language**: `AppLanguage` (SYSTEM|RUSSIAN|ENGLISH) is a setting; pinned onto resources via
   `ProvideLocalizedResources`, never `Locale.setDefault()`. `StringCoverageTest` pins parity between
   `values/`/`values-ru/` (strings, plurals, format args, array lengths). A language change re-syncs the

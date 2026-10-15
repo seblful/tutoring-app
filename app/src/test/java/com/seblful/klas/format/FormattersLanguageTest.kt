@@ -100,15 +100,33 @@ class FormattersLanguageTest {
     fun `money is written with the language's decimal separator, whatever the currency`() {
         inLanguage(AppLocaleRule.RUSSIAN) {
             assertEquals(',', AppLocale.decimalSeparator)
-            assertEquals("1500,50 USD", Money(150050).money(Currency.USD))
+            assertEquals("1 500,50 USD", Money(150050).money(Currency.USD))
             assertEquals("1500,50", Money(150050).amount())
             assertEquals("-0,50", Money(-50).toAmountInput())
         }
         inLanguage(AppLocaleRule.ENGLISH) {
             assertEquals('.', AppLocale.decimalSeparator)
-            assertEquals("1500.50 BYN", Money(150050).money(Currency.BYN))
+            assertEquals("1,500.50 BYN", Money(150050).money(Currency.BYN))
             assertEquals("1500.50", Money(150050).amount())
             assertEquals("-0.50", Money(-50).toAmountInput())
+        }
+    }
+
+    /**
+     * A shown amount is grouped in thousands — a **no-break** space in Russian, so `16 037` never splits
+     * across a line — and a typed one is not: an English field seeded `1,500` would read back as 1.5,
+     * because to `parseMoneyOrNull` a comma is a decimal separator.
+     */
+    @Test
+    fun `a shown amount is grouped in thousands and a typed one reads back as itself`() {
+        val total = Money(1_603_750)
+        inLanguage(AppLocaleRule.RUSSIAN) {
+            assertEquals("16 037,50 BYN", total.money(Currency.BYN))
+            assertEquals(total, parseMoneyOrNull(total.toAmountInput()))
+        }
+        inLanguage(AppLocaleRule.ENGLISH) {
+            assertEquals("16,037.50 USD", total.money(Currency.USD))
+            assertEquals(total, parseMoneyOrNull(total.toAmountInput()))
         }
     }
 
@@ -139,8 +157,9 @@ class FormattersLanguageTest {
     /** The clock is the phone's answer and **not** the language's — it must not move with this. */
     @Test
     fun `the 24-hour face is the same in both languages`() {
-        val russian = inLanguageValue(AppLocaleRule.RUSSIAN) { java.time.LocalTime.of(21, 0).formatTime(hour12 = false) }
-        val english = inLanguageValue(AppLocaleRule.ENGLISH) { java.time.LocalTime.of(21, 0).formatTime(hour12 = false) }
+        val nine = java.time.LocalTime.of(21, 0)
+        val russian = inLanguageValue(AppLocaleRule.RUSSIAN) { nine.formatTime(hour12 = false) }
+        val english = inLanguageValue(AppLocaleRule.ENGLISH) { nine.formatTime(hour12 = false) }
 
         assertEquals("21:00", russian)
         assertEquals("a clock face is not a language", russian, english)

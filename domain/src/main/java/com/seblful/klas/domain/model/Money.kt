@@ -2,7 +2,7 @@ package com.seblful.klas.domain.model
 
 /**
  * An amount of money, stored as an integer number of minor units (kopecks, cents) to avoid
- * floating-point rounding. Displayed with the currency's ISO code after it, e.g. `1500 BYN`.
+ * floating-point rounding. Displayed with the currency's ISO code after it, e.g. `1 500 BYN`.
  *
  * **The amount carries no currency**, deliberately: which one it is captioned with is a display setting
  * ([Currency]), so the same stored number reads as rubles or as dollars without being touched.
@@ -37,11 +37,32 @@ value class Money(val minor: Long) : Comparable<Money> {
         return if (kopecks == 0) "$sign$major" else "$sign$major$decimal${kopecks.toString().padStart(2, '0')}"
     }
 
-    /** Formats as an amount in [currency], e.g. `1500 BYN` or `1500.50 USD`. See [amountText]. */
-    fun format(currency: Currency, decimal: Char): String = "${amountText(decimal)} ${currency.name}"
+    /**
+     * The amount as a reader is shown it — [amountText] with the whole part in groups of three, e.g.
+     * `16 037,50` or `16,037.50`. A five-figure total without them reads as a string of digits.
+     *
+     * **Display only.** [amountText] stays what a text field is seeded with, because a typed amount's comma
+     * is a decimal separator to `parseMoneyOrNull`: an English field seeded `1,500` would read back as 1.5.
+     * [grouping] has no default for the reason [amountText]'s separator has none.
+     */
+    fun displayText(decimal: Char, grouping: Char): String {
+        val plain = amountText(decimal)
+        val sign = if (plain.startsWith('-')) "-" else ""
+        val digits = plain.removePrefix(sign)
+        val whole = digits.substringBefore(decimal)
+        val fraction = digits.substring(whole.length)
+        val grouped = whole.reversed().chunked(DIGITS_PER_GROUP).joinToString(grouping.toString()).reversed()
+        return "$sign$grouped$fraction"
+    }
+
+    /** Formats as an amount in [currency], e.g. `1 500 BYN` or `1,500.50 USD`. See [displayText]. */
+    fun format(currency: Currency, decimal: Char, grouping: Char): String =
+        "${displayText(decimal, grouping)} ${currency.name}"
 
     companion object {
         val ZERO = Money(0)
+
+        private const val DIGITS_PER_GROUP = 3
 
         /**
          * The largest amount the app accepts, 1 000 000,00 — enforced once, at the parse gate every

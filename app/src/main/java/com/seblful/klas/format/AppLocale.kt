@@ -46,16 +46,27 @@ object AppLocale {
      * here.
      */
     val decimalSeparator: Char get() = DecimalFormatSymbols.getInstance(current).decimalSeparator
+
+    /**
+     * The thousands separator [current] groups a displayed amount with: a no-break space in Russian (so
+     * `16 037` never breaks across a line), `,` in English. From the platform's tables, like
+     * [decimalSeparator].
+     */
+    val groupingSeparator: Char get() = DecimalFormatSymbols.getInstance(current).groupingSeparator
 }
 
 /**
- * The amount with no currency, in the app's language — `1500,50` or `1500.50`.
+ * The amount as it is **typed**, in the app's language — `1500,50` or `1500.50`, never grouped: what a money
+ * field is seeded with, and what `parseMoneyOrNull` reads back.
  *
  * The `format/` half of [Money.amountText]: the domain states how an amount is built and refuses to guess
- * the separator, and this supplies the app's answer to it. Every display of money goes through one of these
- * two functions, so an amount cannot render two ways.
+ * the separator, and this supplies the app's answer to it.
  */
 fun Money.amount(): String = amountText(AppLocale.decimalSeparator)
 
-/** The amount captioned with [currency], in the app's language — `1500,50 BYN`, `1500.50 USD`. */
-fun Money.money(currency: Currency): String = format(currency, AppLocale.decimalSeparator)
+/**
+ * The amount as it is **shown**, captioned with [currency], in the app's language — `16 037,50 BYN`,
+ * `16,037.50 USD`. Every display of money goes through this, so an amount cannot render two ways.
+ */
+fun Money.money(currency: Currency): String =
+    format(currency, AppLocale.decimalSeparator, AppLocale.groupingSeparator)
