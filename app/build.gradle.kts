@@ -117,6 +117,12 @@ android {
             // renderer, which draws what a phone does (elevation shadows, rounded clips) rather than the
             // software path's approximation. Only a screenshot ever reads it.
             it.systemProperty("robolectric.pixelCopyRenderMode", "hardware")
+            // The Play listing's raw screenshots (`store.StoreScreenshots`) are taken only when asked for
+            // with `-PstoreScreenshots`; without the property that test skips itself. docs/store-listing.md.
+            if (project.hasProperty("storeScreenshots")) {
+                it.systemProperty("klas.store.out", rootProject.file("store/build/raw").absolutePath)
+                it.outputs.upToDateWhen { false }
+            }
             // Robolectric reaches into JDK internals (a FileDescriptor's raw int, the font and text
             // classes) that JDK 17+ closes to reflection; without these every Robolectric test fails in
             // setup. The list is Robolectric's own documented one for JDK 17+ (robolectric.org/getting-started).
@@ -235,6 +241,10 @@ dependencies {
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.roborazzi.compose.preview.scanner.support)
     testImplementation(libs.composable.preview.scanner)
+    // The store screenshots run the whole app — MainActivity and its Hilt graph — under Robolectric.
+    testImplementation(libs.hilt.android.testing)
+    testImplementation(libs.androidx.espresso.core)
+    kspTest(libs.hilt.compiler)
 
     // Instrumented tests
     androidTestImplementation(libs.androidx.junit)

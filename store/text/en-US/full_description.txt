@@ -1,0 +1,44 @@
+Klas is a lesson book for a private tutor: your schedule, your students, who has paid and who owes — worked out for you, on your phone.
+
+YOUR TEACHING DAY AT A GLANCE
+• Day, week and month views of every lesson
+• See what's taught, what's on now and who's next
+• Book a lesson once or repeat it every week or two
+• An overlapping time is refused, so you're never double-booked
+• Mark a lesson taught with a swipe — or let Klas do it once the lesson ends
+
+MONEY WITHOUT THE SPREADSHEET
+• An hourly price per student and subject, with a price history
+• Changing a price never rewrites lessons already taught
+• Record payments; balances, debts and credit are worked out for you
+• Sort students by who owes the most
+
+GROUPS
+• Book one lesson for the whole group at the group's own price
+• Billing stays per student — including "this one didn't come"
+
+HOMEWORK THAT FINDS THE NEXT LESSON
+• Set homework for a student or a group in a few words
+• It attaches to their next lesson on its own
+• Share it with the student in one tap, tick it off when it's done
+
+REPORTS
+• Income for a month, a year or all time, compared with the period before
+• Breakdowns by month, subject, student and group, individual vs group
+• Outstanding debts in one list
+• Export to CSV for a spreadsheet or your accountant
+
+REMINDERS AND CALENDAR
+• A notification before each lesson, on time
+• Optional morning agenda, evening list of unmarked lessons and weekly debt summary
+• Optional sync to your phone's calendar, with email invitations for students
+
+PRIVATE BY DESIGN
+• No account, no sign-up, no internet needed
+• Your data stays on your phone — Klas has no servers to send it to
+• Full backup to a file you keep, and restore on a new phone
+• No ads and no trackers
+
+Made for a tutor who works alone. Russian or English, money in BYN, RUB, USD or EUR. Light and dark themes.
+
+Klas is open source under the GNU GPL v3.

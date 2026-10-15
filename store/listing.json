@@ -1,0 +1,108 @@
+{
+  "$comment": "What the Play listing's graphics say, per language. Order = order on the store page (Play shows up to 8). `shot` names a raw capture from StoreScreenshots (spares: student, schedule-week, schedule-month, group, settings, more, reports-dark); `kind: lockscreen` draws the notifications it recorded instead; `theme` picks the backdrop. Titles break at \n. See docs/store-listing.md.",
+  "locales": {
+    "en-US": {
+      "clock": "3:20",
+      "tagline": "Lessons, payments and debts for a private tutor"
+    },
+    "ru-RU": {
+      "clock": "15:20",
+      "tagline": "Расписание, оплаты и долги учеников — в одном месте"
+    }
+  },
+  "screenshots": [
+    {
+      "shot": "schedule-day",
+      "en-US": {
+        "title": "Your teaching day,\nat a glance",
+        "subtitle": "What's done, what's on now and who's next"
+      },
+      "ru-RU": {
+        "title": "Весь рабочий день —\nна одном экране",
+        "subtitle": "Что проведено, что идёт сейчас и кто следующий"
+      }
+    },
+    {
+      "shot": "people",
+      "en-US": {
+        "title": "See who owes\nat a glance",
+        "subtitle": "Balances worked out from every lesson and payment"
+      },
+      "ru-RU": {
+        "title": "Сразу видно,\nкто должен",
+        "subtitle": "Долги и переплаты считаются сами — по урокам и оплатам"
+      }
+    },
+    {
+      "shot": "reports",
+      "en-US": {
+        "title": "Watch your\nincome grow",
+        "subtitle": "By month, subject, student and group — with CSV export"
+      },
+      "ru-RU": {
+        "title": "Доход растёт —\nи это видно",
+        "subtitle": "По месяцам, предметам, ученикам и группам. Экспорт в CSV"
+      }
+    },
+    {
+      "shot": "reminders",
+      "kind": "lockscreen",
+      "en-US": {
+        "title": "Never miss\na lesson",
+        "subtitle": "A reminder before each lesson, a morning agenda and a weekly debt summary"
+      },
+      "ru-RU": {
+        "title": "Ни одного\nзабытого урока",
+        "subtitle": "Напоминание перед уроком, расписание на утро и сводка долгов раз в неделю"
+      }
+    },
+    {
+      "shot": "homework",
+      "en-US": {
+        "title": "Homework that finds\nthe next lesson",
+        "subtitle": "Set it once — it rides on the student's next class"
+      },
+      "ru-RU": {
+        "title": "Задание само\nнайдёт урок",
+        "subtitle": "Задайте один раз — оно привяжется к ближайшему занятию"
+      }
+    },
+    {
+      "shot": "settings-calendar",
+      "en-US": {
+        "title": "Lessons in your\nphone's calendar",
+        "subtitle": "Kept in sync for you, with email invites for students"
+      },
+      "ru-RU": {
+        "title": "Уроки — в календаре\nтелефона",
+        "subtitle": "Синхронизируются сами, а ученикам приходит приглашение на почту"
+      }
+    },
+    {
+      "shot": "lesson-sheet",
+      "en-US": {
+        "title": "Lessons marked\nin one tap",
+        "subtitle": "Status, homework and rescheduling in one place"
+      },
+      "ru-RU": {
+        "title": "Отметить урок —\nв одно касание",
+        "subtitle": "Статус, задание и перенос — в одном окне"
+      }
+    },
+    {
+      "shot": "schedule-day-dark",
+      "theme": "dark",
+      "en-US": {
+        "title": "No account.\nNo cloud. Yours.",
+        "subtitle": "Works offline — your data stays on your phone"
+      },
+      "ru-RU": {
+        "title": "Без регистрации\nи интернета",
+        "subtitle": "Никаких аккаунтов и облака — данные остаются на телефоне"
+      }
+    }
+  ],
+  "featureGraphic": {
+    "shot": "schedule-day"
+  }
+}

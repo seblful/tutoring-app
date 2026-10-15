@@ -92,7 +92,8 @@ March 2029, so it could not be used and the sideloaded 0.4.x installs had to be 
 ### Play Console
 
 Create the app with Russian as its default language; the Console walks you through the listing, the
-questionnaires and the rollout. Two answers are specific to Klas:
+questionnaires and the rollout. The listing's screenshots, feature graphic, icon and text are generated —
+see [Store listing](store-listing.md). Two answers are specific to Klas:
 
 - **Privacy policy URL** — required: the app stores student names, phones, emails and payment data.
   All data stays on-device, no backend, so the policy is simple.

@@ -1,0 +1,216 @@
+package com.seblful.klas.store
+
+import com.seblful.klas.domain.model.AppLanguage
+import com.seblful.klas.domain.model.ClassMode
+import com.seblful.klas.domain.model.Currency
+import java.time.DayOfWeek
+import java.time.DayOfWeek.FRIDAY
+import java.time.DayOfWeek.MONDAY
+import java.time.DayOfWeek.SATURDAY
+import java.time.DayOfWeek.SUNDAY
+import java.time.DayOfWeek.THURSDAY
+import java.time.DayOfWeek.TUESDAY
+import java.time.DayOfWeek.WEDNESDAY
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
+import java.util.Locale
+
+/**
+ * The tutor the store screenshots show: half a year of teaching, told once and spoken in either language.
+ *
+ * **Everything is fiction and has to look like a working week.** A store screenshot of an empty app sells
+ * nothing, and one of `Student 1 … Student 5` reads as a mock-up — so the names, subjects, prices and
+ * homework are what a tutor in each market would actually type, and the history is long enough for
+ * the reports to have a trend. The week is the same in both languages (same days, hours, who owes and
+ * who is in credit), so the two listings show one app, not two.
+ *
+ * The clock stops on a Wednesday afternoon ([NOW]), mid-lesson, so the schedule opens on a full day with
+ * a lesson «on now» between the taught ones and the planned ones.
+ */
+internal data class DemoTutor(
+    val language: AppLanguage,
+    /** The phone the shots are taken on: its strings, its plural rules and its 12/24-hour clock. */
+    val locale: Locale,
+    val firstDayOfWeek: DayOfWeek,
+    val currency: Currency,
+    val subjects: Subjects,
+    val students: List<DemoStudent>,
+    val group: DemoGroup,
+    /** Done and archived, so the homework screen has a history as well as a to-do list. */
+    val doneHomework: List<Pair<String, String>>,
+) {
+    data class Subjects(val math: String, val physics: String, val language: String)
+
+    companion object {
+        val ZONE: ZoneId = ZoneId.of("Europe/Minsk")
+        val NOW: LocalDateTime = LocalDateTime.of(2026, 10, 14, 15, 20)
+
+        /**
+         * The first day taught: the summer before, with students joining through to late September — so
+         * the month on the reports is up on the one before, as the caption over it says. Short on
+         * purpose — every amount on the screenshots, a student's lifetime earnings included, stays within
+         * a thousand, which is what a private tutor's numbers look like rather than a business's.
+         */
+        val FIRST_DAY: LocalDate = LocalDate.of(2026, 7, 1)
+
+        /** How far ahead the schedule is booked, so next week's view is not empty. */
+        val BOOKED_UNTIL: LocalDate = NOW.toLocalDate().plusWeeks(3)
+
+        val english = DemoTutor(
+            language = AppLanguage.ENGLISH,
+            locale = Locale.US,
+            firstDayOfWeek = SUNDAY,
+            currency = Currency.USD,
+            subjects = Subjects(math = "Math", physics = "Physics", language = "Spanish"),
+            students = listOf(
+                DemoStudent(
+                    name = "Emma Wilson", subject = Subject.MATH, rate = 30, from = LocalDate.of(2026, 7, 1),
+                    slots = listOf(Slot(MONDAY, 17, 0, 60), Slot(WEDNESDAY, 14, 0, 60)),
+                    phone = "+1 202 555 0143", email = "emma.wilson@example.com",
+                    homework = "Ch. 4, problems 12–20: quadratic equations",
+                ),
+                DemoStudent(
+                    name = "Liam Carter", subject = Subject.PHYSICS, rate = 25, from = LocalDate.of(2026, 7, 2),
+                    slots = listOf(Slot(TUESDAY, 16, 0, 90), Slot(FRIDAY, 16, 0, 60)),
+                    phone = "+1 202 555 0178",
+                    homework = "Newton's laws: problems 5.12–5.20",
+                    paysUntil = LocalDate.of(2026, 9, 20),
+                ),
+                DemoStudent(
+                    name = "Olivia Brooks", subject = Subject.LANGUAGE, rate = 20, from = LocalDate.of(2026, 7, 15),
+                    slots = listOf(Slot(WEDNESDAY, 15, 0, 60), Slot(SATURDAY, 11, 0, 60)),
+                    email = "olivia.brooks@example.com",
+                    homework = "Preterite vs imperfect: ex. 4–7, p. 52",
+                ),
+                DemoStudent(
+                    name = "Noah Bennett", subject = Subject.PHYSICS, rate = 25, from = LocalDate.of(2026, 8, 3),
+                    slots = listOf(Slot(MONDAY, 19, 0, 60), Slot(WEDNESDAY, 18, 30, 60)),
+                    mode = ClassMode.REMOTE,
+                    homework = "Pendulum lab: write up the report",
+                ),
+                DemoStudent(
+                    name = "Ava Thompson", subject = Subject.MATH, rate = 30, from = LocalDate.of(2026, 9, 24),
+                    slots = listOf(Slot(THURSDAY, 17, 0, 90)),
+                    phone = "+1 202 555 0119",
+                    paysUntil = LocalDate.of(2026, 9, 30),
+                ),
+                DemoStudent(
+                    name = "Ethan Hughes", subject = Subject.LANGUAGE, rate = 20, from = LocalDate.of(2026, 9, 16),
+                    slots = listOf(Slot(WEDNESDAY, 11, 0, 60), Slot(FRIDAY, 11, 0, 60)),
+                    email = "ethan.hughes@example.com",
+                    prepaysLessons = 8,
+                ),
+            ),
+            group = DemoGroup(
+                name = "SAT Math Prep", rate = 12, from = LocalDate.of(2026, 9, 16),
+                slots = listOf(Slot(WEDNESDAY, 16, 30, 90), Slot(SATURDAY, 13, 0, 90)),
+                members = listOf("Mia Foster", "Lucas Reed", "Chloe Adams", "Jack Morgan"),
+                owing = "Lucas Reed",
+                homework = "Practice test 3, section 3: no calculator",
+            ),
+            doneHomework = listOf(
+                "Emma Wilson" to "Ch. 3 review: linear inequalities",
+                "Olivia Brooks" to "Vocabulary list 6 and a short essay",
+                "Noah Bennett" to "Momentum: problems 4.1–4.9",
+            ),
+        )
+
+        val russian = DemoTutor(
+            language = AppLanguage.RUSSIAN,
+            locale = Locale.forLanguageTag("ru-RU"),
+            firstDayOfWeek = MONDAY,
+            currency = Currency.BYN,
+            subjects = Subjects(math = "Математика", physics = "Физика", language = "Английский"),
+            students = listOf(
+                DemoStudent(
+                    name = "Аня Смирнова", subject = Subject.MATH, rate = 30, from = LocalDate.of(2026, 7, 1),
+                    slots = listOf(Slot(MONDAY, 17, 0, 60), Slot(WEDNESDAY, 14, 0, 60)),
+                    phone = "+375 29 123-45-67", email = "anya.smirnova@example.com",
+                    homework = "§ 14, № 312–318: квадратные уравнения",
+                ),
+                DemoStudent(
+                    name = "Максим Ковалёв", subject = Subject.PHYSICS, rate = 25, from = LocalDate.of(2026, 7, 2),
+                    slots = listOf(Slot(TUESDAY, 16, 0, 90), Slot(FRIDAY, 16, 0, 60)),
+                    phone = "+375 33 765-43-21",
+                    homework = "Законы Ньютона: задачи 5.12–5.20",
+                    paysUntil = LocalDate.of(2026, 9, 20),
+                ),
+                DemoStudent(
+                    name = "София Лебедева", subject = Subject.LANGUAGE, rate = 20, from = LocalDate.of(2026, 7, 15),
+                    slots = listOf(Slot(WEDNESDAY, 15, 0, 60), Slot(SATURDAY, 11, 0, 60)),
+                    email = "sofia.lebedeva@example.com",
+                    homework = "Present Perfect: упр. 4–7, стр. 52",
+                ),
+                DemoStudent(
+                    name = "Артём Новиков", subject = Subject.PHYSICS, rate = 25, from = LocalDate.of(2026, 8, 3),
+                    slots = listOf(Slot(MONDAY, 19, 0, 60), Slot(WEDNESDAY, 18, 30, 60)),
+                    mode = ClassMode.REMOTE,
+                    homework = "Лабораторная «Маятник»: оформить отчёт",
+                ),
+                DemoStudent(
+                    name = "Ева Морозова", subject = Subject.MATH, rate = 30, from = LocalDate.of(2026, 9, 24),
+                    slots = listOf(Slot(THURSDAY, 17, 0, 90)),
+                    phone = "+375 44 555-01-19",
+                    paysUntil = LocalDate.of(2026, 9, 30),
+                ),
+                DemoStudent(
+                    name = "Ольга Кузнецова", subject = Subject.LANGUAGE, rate = 20, from = LocalDate.of(2026, 9, 16),
+                    slots = listOf(Slot(WEDNESDAY, 11, 0, 60), Slot(FRIDAY, 11, 0, 60)),
+                    email = "olga.k@example.com",
+                    prepaysLessons = 8,
+                ),
+            ),
+            group = DemoGroup(
+                name = "Подготовка к ЦТ", rate = 12, from = LocalDate.of(2026, 9, 16),
+                slots = listOf(Slot(WEDNESDAY, 16, 30, 90), Slot(SATURDAY, 13, 0, 90)),
+                members = listOf("Даниил Волков", "Мила Соколова", "Тимур Орлов", "Полина Егорова"),
+                owing = "Тимур Орлов",
+                homework = "ЦТ, вариант 7: часть А, задания 1–18",
+            ),
+            doneHomework = listOf(
+                "Аня Смирнова" to "Повторить § 12: линейные неравенства",
+                "София Лебедева" to "Слова к уроку 6 и короткое эссе",
+                "Артём Новиков" to "Импульс: задачи 4.1–4.9",
+            ),
+        )
+    }
+}
+
+internal enum class Subject { MATH, PHYSICS, LANGUAGE }
+
+/** A weekly lesson: the day, the start time and how long it runs. */
+internal data class Slot(val day: DayOfWeek, val hour: Int, val minute: Int, val minutes: Int) {
+    val time: LocalTime get() = LocalTime.of(hour, minute)
+}
+
+internal data class DemoStudent(
+    val name: String,
+    val subject: Subject,
+    /** Per hour, in the currency's major unit. */
+    val rate: Long,
+    val from: LocalDate,
+    val slots: List<Slot>,
+    val phone: String = "",
+    val email: String = "",
+    val mode: ClassMode = ClassMode.IN_PERSON,
+    /** Set and still open, so it rides on the student's next lesson. */
+    val homework: String? = null,
+    /** Pays after each lesson up to this day and not since: the debt the cards and reports show. */
+    val paysUntil: LocalDate? = null,
+    /** Paid this many lessons ahead at the start of the month, so one card shows a credit. */
+    val prepaysLessons: Int = 0,
+)
+
+internal data class DemoGroup(
+    val name: String,
+    /** Per hour and per member. */
+    val rate: Long,
+    val from: LocalDate,
+    val slots: List<Slot>,
+    val members: List<String>,
+    /** The one member who stopped paying a fortnight ago. */
+    val owing: String,
+    val homework: String,
+)

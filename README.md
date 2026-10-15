@@ -94,6 +94,7 @@ The reasoning behind a rule lives in KDoc next to the code; these docs are the m
 - [UI conventions](docs/ui-conventions.md) — how a screen is built
 - [Testing](docs/testing.md) — where a test goes, and what the test setup expects
 - [Releasing](docs/releasing.md) — a signed release APK, sideloading it, and the tag-driven release to GitHub and Google Play
+- [Store listing](docs/store-listing.md) — regenerating the Play screenshots, feature graphic, icon and text from the real app
 
 ## License
 
