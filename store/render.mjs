@@ -14,8 +14,9 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { openChrome } from "./lib/chrome.mjs";
+import { evaluate, openChrome } from "./lib/chrome.mjs";
 import { ICON_MARK, LOGO, PHONE_CSS, appScreen, fontFaces, lines, lockScreen, text, url } from "./lib/phone.mjs";
+import { cardAround, outlinedRow } from "./lib/find.mjs";
 import { decode, encode } from "./lib/png.mjs";
 
 const STORE = dirname(fileURLToPath(import.meta.url));
@@ -38,12 +39,44 @@ const ICON = { width: 512, height: 512, scale: 1, supersample: 4 };
 /** Where the phone starts on a screenshot, and the least room left between it and the caption above. */
 const PHONE_TOP = 735;
 const CAPTION_GAP = 56;
+/** The phone on a screenshot: its width and left edge, laid out at [SHOT]'s size. */
+const PHONE = { width: 1010, left: 215 };
+/**
+ * How much a called-out row grows as it lifts off the screen: enough to stand clear of the phone's edge,
+ * so the one thing a screenshot is about can be read at the size Play shows it in a list.
+ */
+const LIFT = 1.12;
+/** A row lifted off a screen with no card of its own still gets a gentle rounding: 12 dp. */
+const ROW_CORNER = 12 * 4;
+/**
+ * Things a screenshot can call out that StoreScreenshots did not mark, found on the capture instead: the
+ * lesson sheet's row of statuses, and the report's whole income card around its label.
+ */
+const FOUND = {
+  status: (image) => outlinedRow(image, Math.floor(image.height / 2)),
+  "income-card": (image, marks) => {
+    const label = marks.income ?? fail("no «income» mark on «reports»");
+    // In the card's padding, left of its label: 12 dp of the 20 there are.
+    return cardAround(image, label[0] - 48, Math.round((label[1] + label[3]) / 2), 16 * 4);
+  },
+};
+/**
+ * A caption's least contrast with what is behind it — WCAG's for body text, though the captions are large:
+ * Play shows a screenshot at a fraction of its size, where large text is small again.
+ */
+const MIN_CONTRAST = 4.5;
 /** Where the feature graphic's phone starts; the brand's words must stop short of it. */
 const FEATURE_PHONE_LEFT = 588;
+/**
+ * The middle of the feature graphic, where Play draws its play button once the listing has a video: no
+ * words of the brand may fall inside it.
+ */
+const PLAY_BUTTON = { x: 512, y: 250, r: 96 };
 
 const listing = JSON.parse(readFileSync(join(STORE, "listing.json"), "utf8"));
 let browser;
-browser = await openChrome(join(STORE, "build", "chrome-profile")).catch((e) => fail(e.message));
+// A profile of its own, so the listing can be drawn while video.mjs encodes in its own Chrome.
+browser = await openChrome(join(STORE, "build", "chrome-profile-listing")).catch((e) => fail(e.message));
 
 rmSync(WORK, { recursive: true, force: true });
 mkdirSync(WORK, { recursive: true });
@@ -60,15 +93,19 @@ for (const [locale, words] of Object.entries(listing.locales)) {
   rmSync(out, { recursive: true, force: true });
   mkdirSync(join(out, "phoneScreenshots"), { recursive: true });
 
+  const themes = listing.screenshots.map((entry) => entry.theme ?? "light");
   for (const [i, entry] of listing.screenshots.entries()) {
     const shot = entry.kind === "lockscreen" ? null : shots[entry.shot] ?? fail(`${locale}: no capture named "${entry.shot}"`);
     const copy = entry[locale] ?? fail(`${locale}: no caption for "${entry.shot}"`);
     const name = `${String(i + 1).padStart(2, "0")}-${entry.shot}`;
-    const dark = entry.theme === "dark";
     const screen = entry.kind === "lockscreen"
       ? lockScreen(JSON.parse(readFileSync(join(raw, "notifications.json"), "utf8")))
       : appScreen(raw, entry.shot, shot ?? {}, words.clock);
-    await draw(screenshotPage({ screen, copy, dark }), SHOT, join(out, "phoneScreenshots", `${name}.png`), `${locale}-${name}`);
+    const behind = entry.behind &&
+      appScreen(raw, entry.behind, shots[entry.behind] ?? fail(`${locale}: no capture named "${entry.behind}"`), words.clock);
+    const lifts = entry.kind === "lockscreen" ? "" : callouts(raw, entry, shot, `${locale} ${entry.shot}`);
+    await draw(screenshotPage({ screen, behind, lifts, entry, copy, index: i, themes }), SHOT,
+      join(out, "phoneScreenshots", `${name}.png`), `${locale}-${name}`);
   }
 
   const feature = listing.featureGraphic.shot;
@@ -93,19 +130,118 @@ function copyText(locale, out) {
   }
 }
 
+// --- Callouts -----------------------------------------------------------------------------------
+
+/**
+ * The rows an entry calls out (`callout`, by mark name), lifted off the phone's screen as one card —
+ * several rows that sit together, as settings' switches do, lift as one. In the phone's own pixels, so it
+ * sits where the row does and turns with the phone.
+ */
+function callouts(raw, entry, shot, name) {
+  if (!entry.callout?.length) return "";
+  const image = decode(readFileSync(join(raw, `${entry.shot}.png`)));
+  const boxes = entry.callout.map((mark) => {
+    const box = FOUND[mark]?.(image, shot.marks) ?? shot.marks[mark] ?? fail(`${name}: no mark «${mark}» to call out`);
+    return [...box.slice(0, 4), box[4] ?? 0];
+  });
+  const [l, t, r, b] = [0, 1, 2, 3].map((k) => (k < 2 ? Math.min : Math.max)(...boxes.map((box) => box[k])));
+  const corner = Math.max(ROW_CORNER, ...boxes.map((box) => box[4]));
+  // As shares of the phone's width, as PHONE_CSS draws it — a 2.2% bezel, a 95.6% screen, a 9.2% status
+  // bar — so the lift fits a phone of any size.
+  const k = 0.956 / image.width, of = (share) => `calc(var(--phone) * ${share})`;
+  return `
+      <div class="lift" style="left: ${of(0.022 + l * k)}; top: ${of(0.022 + 0.092 + t * k)}; width: ${of((r - l) * k)};
+        height: ${of((b - t) * k)}; border-radius: ${of(corner * k)};
+        background-image: url(&quot;${url(join(raw, `${entry.shot}.png`))}&quot;);
+        background-size: ${of(0.956)} auto; background-position: ${of(-l * k)} ${of(-t * k)};"></div>`;
+}
+
 // --- Pages -------------------------------------------------------------------------------------
 
-function screenshotPage({ screen, copy, dark }) {
+/**
+ * A screenshot: the caption, and under it the phone — straight on; or `layout: "tilted"`, turned so its
+ * edge shows; or `layout: "pair"`, in front of a second phone showing `behind`. The backdrop is one long
+ * picture across all the screenshots, each showing its own stretch of it ([panorama]).
+ */
+function screenshotPage({ screen, behind, lifts, entry, copy, index, themes }) {
+  const layout = entry.layout ?? "straight";
+  const phones = {
+    straight: `
+      <div class="phone" style="--phone: ${PHONE.width}px; left: ${PHONE.left}px; top: ${PHONE_TOP}px;">${phoneBody()}${screen}${lifts}</div>`,
+    tilted: `
+      <div class="phone tilted" style="--phone: 860px; left: 300px; top: ${PHONE_TOP + 20}px;">${phoneBody(true)}${screen}${lifts}</div>`,
+    pair: `
+      <div class="phone behind" style="--phone: 900px; left: 15px; top: ${PHONE_TOP + 110}px;">${phoneBody()}${behind}</div>
+      <div class="phone front" style="--phone: 940px; left: 420px; top: ${PHONE_TOP + 25}px;">${phoneBody()}${screen}${lifts}</div>`,
+  };
   return page(SHOT, `
-    <div class="backdrop ${dark ? "dark" : ""}">
-      <div class="glow one"></div><div class="glow two"></div>
+    <div class="backdrop">
+      ${panorama(themes, index)}
       <header>
         <h1>${lines(copy.title)}</h1>
         <p>${text(copy.subtitle)}</p>
       </header>
-      <div class="phone" style="--phone: 1010px; left: 215px; top: ${PHONE_TOP}px;">${screen}</div>
+      ${phones[layout] ?? fail(`No screenshot layout «${layout}»`)}
     </div>
+    ${entry.kind === "lockscreen" && entry.callout?.includes("reminder") ? liftReminder() : ""}
     ${fitCaption()}`);
+}
+
+/**
+ * The lock screen's reminder — the card with the buttons — lifted off it, as an app screen's row is: a
+ * copy of the card over it, grown, standing out from the tilted phone.
+ */
+function liftReminder() {
+  return `<script>
+    document.fonts.ready.then(() => {
+      const phone = document.querySelector(".phone");
+      const card = [...phone.querySelectorAll(".card")].find((c) => c.querySelector(".card-actions"));
+      let x = 0, y = 0;
+      for (let el = card; el && el !== phone; el = el.offsetParent) { x += el.offsetLeft; y += el.offsetTop; }
+      const lift = card.cloneNode(true);
+      lift.classList.add("lift", "card-lift");
+      Object.assign(lift.style, { left: x + "px", top: y + "px", width: card.offsetWidth + "px", height: card.offsetHeight + "px", margin: "0" });
+      phone.append(lift);
+    });
+  </script>`;
+}
+
+/**
+ * The phone's body around its face: the buttons on its side and light lying across the glass — and, for a
+ * phone turned in [depth], its edge, in layers down to the back, which casts the shadow. A phone facing
+ * the camera cannot show its edge, so it is not drawn: every layer is a whole phone's worth of pixels,
+ * and two phones of them at the screenshots' scale were more than Chrome would draw.
+ */
+function phoneBody(depth = false) {
+  const sides = depth
+    ? Array.from({ length: 7 }, (_, i) =>
+      `<div class="side${i === 6 ? " back" : ""}" style="--z: ${((i + 1) * 0.012).toFixed(3)}"></div>`).join("")
+    : "";
+  return `${sides}<div class="key power"></div><div class="key volume"></div><div class="glass"></div>`;
+}
+
+/**
+ * The backdrop as one picture across every screenshot, of which screenshot [index] shows its own stretch:
+ * a gradient that drifts in tone from one to the next — into night under a dark-theme one — and glows
+ * sitting on the joins, half on each side, so that side by side in Play's gallery the screenshots run on
+ * into each other. The glows sit low, behind the phones, never behind the captions.
+ */
+function panorama(themes, index) {
+  const w = SHOT.width, tones = ["#5261cd", "#4a58c2", "#5866d2", "#4553bf"];
+  const stops = themes.map((theme, i) => `${theme === "dark" ? "#14172f" : tones[i % tones.length]} ${i * w + w / 2}px`);
+  const glows = themes.slice(1).map((theme, i) => {
+    const dark = theme === "dark" || themes[i] === "dark";
+    const light = i % 2 === 0;
+    const size = light ? 900 : 1100, y = light ? 1500 : 2050;
+    const color = dark ? (light ? "#4c5bc4" : "#003640") : light ? "#a9edff" : "#006879";
+    const opacity = dark ? 0.45 : light ? 0.3 : 0.55;
+    return `<div class="glow" style="left: ${(i + 1) * w - size / 2}px; top: ${y - size / 2}px; width: ${size}px;
+      height: ${size}px; background: ${color}; opacity: ${opacity}"></div>`;
+  }).join("");
+  return `
+      <div class="pano" style="left: ${-index * w}px; width: ${themes.length * w}px;
+        background: linear-gradient(180deg, rgba(10, 12, 60, .1) 0%, rgba(10, 12, 60, 0) 30%, rgba(10, 12, 60, .45) 100%),
+          linear-gradient(90deg, ${stops.join(", ")});">${glows}</div>`;
 }
 
 /**
@@ -117,7 +253,7 @@ function fitCaption() {
   return `<script>
     document.fonts.ready.then(() => {
       const header = document.querySelector("header"), title = header.querySelector("h1"), sub = header.querySelector("p");
-      const limit = ${PHONE_TOP - CAPTION_GAP};
+      const limit = Math.min(...[...document.querySelectorAll(".phone")].map((p) => p.getBoundingClientRect().top)) - ${CAPTION_GAP};
       const lines = (el) => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight));
       const fits = () => lines(title) <= 2 && lines(sub) <= 2 && header.getBoundingClientRect().bottom <= limit;
       let size = parseFloat(getComputedStyle(title).fontSize);
@@ -129,26 +265,35 @@ function fitCaption() {
   </script>`;
 }
 
+/**
+ * The feature graphic: the brand on the left — its name, then the tagline under it — and the phone on the
+ * right. The words keep out of the phone's way, and out of the middle, where Play's play button goes.
+ */
 function featurePage({ raw, shot, colors, tagline, clock }) {
   return page(FEATURE, `
     <div class="backdrop feature">
       <div class="glow one"></div><div class="glow two"></div>
       <div class="brand">
-        <div class="mark"><img src="${url(LOGO)}"></div>
-        <div>
+        <div class="lockup">
+          <div class="mark"><img src="${url(LOGO)}"></div>
           <div class="wordmark">Klas</div>
-          <div class="tagline">${text(tagline)}</div>
         </div>
+        <div class="tagline">${text(tagline)}</div>
       </div>
       <div class="phone" style="--phone: 400px; left: ${FEATURE_PHONE_LEFT}px; top: 62px;">
-        ${appScreen(raw, shot, colors, clock)}
+        ${phoneBody()}${appScreen(raw, shot, colors, clock)}
       </div>
     </div>
     <script>
       document.fonts.ready.then(() => {
         const words = document.querySelector(".brand").getBoundingClientRect();
-        document.body.dataset.fits = [...document.querySelectorAll(".brand *")]
-          .every((el) => el.getBoundingClientRect().right <= ${FEATURE_PHONE_LEFT - CAPTION_GAP / 2}) && words.bottom <= 500;
+        const { x, y, r } = ${JSON.stringify(PLAY_BUTTON)};
+        const clear = (box) => Math.hypot(Math.max(box.left - x, 0, x - box.right), Math.max(box.top - y, 0, y - box.bottom)) > r;
+        document.body.dataset.fits = [...document.querySelectorAll(".brand .mark, .brand .wordmark, .brand .tagline")]
+          .every((el) => {
+            const box = el.getBoundingClientRect();
+            return box.right <= ${FEATURE_PHONE_LEFT - CAPTION_GAP / 2} && clear(box);
+          }) && words.bottom <= 500;
       });
     </script>`);
 }
@@ -170,27 +315,58 @@ function page(size, body) {
       position: relative; width: 100%; height: 100%; overflow: hidden; color: #fff;
       background: linear-gradient(165deg, #6170dc 0%, #4c5bc4 42%, #2f3a9a 100%);
     }
-    .backdrop.dark { background: linear-gradient(165deg, #262b52 0%, #161936 50%, #0b0c1a 100%); }
+    .pano { position: absolute; top: 0; height: 100%; }
     .glow { position: absolute; border-radius: 50%; filter: blur(120px); opacity: .55; }
     .glow.one { width: 900px; height: 900px; right: -320px; top: -260px; background: #a9edff; opacity: .35; }
     .glow.two { width: 1100px; height: 1100px; left: -420px; bottom: -380px; background: #006879; }
-    .dark .glow.one { background: #4c5bc4; opacity: .5; }
-    .dark .glow.two { background: #003640; opacity: .8; }
 
     header { position: absolute; left: 120px; right: 120px; top: 170px; text-align: center; }
     h1 { font-weight: 700; font-size: 124px; line-height: 1.06; letter-spacing: -2.5px; text-wrap: balance; }
     header p { margin: 44px auto 0; max-width: 1080px; font-weight: 500; font-size: 52px; line-height: 1.3;
-      color: rgba(255, 255, 255, .84); text-wrap: balance; }
+      color: rgba(255, 255, 255, .92); text-wrap: balance; }
     ${PHONE_CSS}
 
-    .feature .brand { position: absolute; left: 56px; top: 0; bottom: 0; width: 492px;
-      display: flex; align-items: center; gap: 30px; }
-    .feature .mark { flex: none; width: 150px; height: 150px; border-radius: 40px; background: #dfe0ff;
+    /* The phone's body (phoneBody): the face's rim catching the light, the side buttons, the glare — and on
+       a turned phone the edge stacked behind it, whose back casts the shadow, so it does not cross the edge. */
+    .phone { background: #0c0d11;
+      box-shadow: 0 0 0 calc(var(--phone) * .004) #5e616c inset, 0 0 0 calc(var(--phone) * .008) #1b1c22 inset,
+        0 calc(var(--phone) * .06) calc(var(--phone) * .14) rgba(8, 10, 48, .55); }
+    .phone .side { position: absolute; inset: 0; border-radius: inherit;
+      background: linear-gradient(90deg, #474954, #24252c 10%, #18191e 50%, #24252c 90%, #474954);
+      transform: translateZ(calc(var(--phone) * var(--z) * -1)); }
+    .phone .side.back { box-shadow: 0 calc(var(--phone) * .06) calc(var(--phone) * .14) rgba(8, 10, 48, .55); }
+    .phone .key { position: absolute; right: calc(var(--phone) * -.011); width: calc(var(--phone) * .011);
+      border-radius: 0 calc(var(--phone) * .006) calc(var(--phone) * .006) 0;
+      background: linear-gradient(90deg, #26272d, #5a5c67 60%, #33343b); }
+    .phone .key.power { top: 25%; height: 8%; }
+    .phone .key.volume { top: 36%; height: 14%; }
+    .phone .glass { position: absolute; inset: calc(var(--phone) * .022); border-radius: calc(var(--phone) * .104);
+      z-index: 2; pointer-events: none;
+      background: linear-gradient(112deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, .06) 42%,
+        rgba(255, 255, 255, .02) 50%, rgba(255, 255, 255, 0) 58%); }
+    .phone.tilted { transform-origin: 50% 30%; transform-style: preserve-3d;
+      transform: perspective(3200px) rotateY(-17deg) rotateX(5deg) rotateZ(-2.5deg);
+      box-shadow: 0 0 0 calc(var(--phone) * .004) #5e616c inset, 0 0 0 calc(var(--phone) * .008) #1b1c22 inset; }
+    .phone.tilted .key { transform: translateZ(calc(var(--phone) * -.042)); }
+    .phone.behind { transform-origin: 50% 30%; transform: rotate(-6deg); }
+    .phone.front { transform-origin: 50% 30%; transform: rotate(3deg); }
+
+    /* A row lifted off the screen (callouts): bigger, and shadowed so it stands off the phone. */
+    .lift { position: absolute; z-index: 3; background-repeat: no-repeat; transform: scale(${LIFT});
+      box-shadow: 0 calc(var(--phone) * .03) calc(var(--phone) * .07) rgba(8, 10, 48, .45); }
+    .tilted .lift { transform: translateZ(calc(var(--phone) * .06)) scale(1.08); }
+    /* Opaque, unlike the lock screen's own frosted cards, or the card it lifts off shows through it. */
+    .lift.card-lift { background: #fbf8ff; }
+
+    .feature .brand { position: absolute; left: 52px; top: 0; bottom: 0; width: 340px;
+      display: flex; flex-direction: column; justify-content: center; }
+    .feature .lockup { display: flex; align-items: center; gap: 24px; }
+    .feature .mark { flex: none; width: 112px; height: 112px; border-radius: 30px; background: #dfe0ff;
       display: grid; place-items: center; box-shadow: 0 18px 40px rgba(8, 10, 48, .35); }
-    .feature .mark img { width: ${Math.round(150 * ICON_MARK)}px; }
-    .feature .wordmark { font-weight: 700; font-size: 104px; line-height: 1; letter-spacing: -2px; }
-    .feature .tagline { margin-top: 16px; font-weight: 500; font-size: 28px; line-height: 1.28;
-      color: rgba(255, 255, 255, .86); text-wrap: balance; }
+    .feature .mark img { width: ${Math.round(112 * ICON_MARK)}px; }
+    .feature .wordmark { font-weight: 700; font-size: 92px; line-height: 1; letter-spacing: -2px; }
+    .feature .tagline { margin-top: 26px; font-weight: 500; font-size: 28px; line-height: 1.28;
+      color: rgba(255, 255, 255, .9); text-wrap: balance; }
     .feature .glow { filter: blur(80px); }
     .feature .glow.one { width: 500px; height: 500px; right: -160px; top: -200px; }
     .feature .glow.two { width: 600px; height: 600px; left: -260px; bottom: -380px; }
@@ -226,6 +402,7 @@ async function draw(html, size, out, name, { opaque = true } = {}) {
     })`,
   });
   if (result.value === "false") fail(`${name}: the words run into the phone; shorten the caption or tagline in listing.json`);
+  await checkContrast(name);
 
   const { data } = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
   const image = decode(Buffer.from(data, "base64"));
@@ -235,6 +412,54 @@ async function draw(html, size, out, name, { opaque = true } = {}) {
   // Play takes a "24-bit PNG (no alpha)" for screenshots and the feature graphic, but a "32-bit PNG" for
   // the icon.
   writeFileSync(out, encode(image, size.supersample, opaque ? 3 : 4));
+}
+
+/**
+ * Fails a page whose caption is hard to read: each block of words against the backdrop behind it,
+ * measured with the words taken away, at the lightest that backdrop gets under them (its 98th
+ * percentile, so a stray bright pixel of a glow does not count).
+ */
+async function checkContrast(name) {
+  const { send } = browser;
+  const blocks = await evaluate(send, `[...document.querySelectorAll("header h1, header p")].map((el) => {
+    const box = el.getBoundingClientRect(), style = getComputedStyle(el);
+    el.style.visibility = "hidden";
+    return { x: box.left, y: box.top, width: box.width, height: box.height, color: style.color, what: el.tagName };
+  })`);
+  if (!blocks.length) return;
+  const settled = "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))";
+  await evaluate(send, settled);
+  for (const block of blocks) {
+    const { data } = await send("Page.captureScreenshot",
+      { format: "png", fromSurface: true, clip: { x: block.x, y: block.y, width: block.width, height: block.height, scale: 0.25 } });
+    const behind = decode(Buffer.from(data, "base64"));
+    const [r, g, b, a = 1] = block.color.match(/[\d.]+/g).map(Number);
+    const ratios = [];
+    for (let i = 0; i < behind.width * behind.height; i++) {
+      const at = i * behind.channels, px = [0, 1, 2].map((k) => behind.pixels[at + k]);
+      ratios.push(contrast(luminance([r, g, b].map((v, k) => a * v + (1 - a) * px[k])), luminance(px)));
+    }
+    ratios.sort((p, q) => p - q);
+    const worst = ratios[Math.floor(ratios.length * 0.02)];
+    if (worst < MIN_CONTRAST) {
+      fail(`${name}: the caption's ${block.what === "H1" ? "title" : "subtitle"} is ${worst.toFixed(2)}:1 against ` +
+        `the backdrop; it needs ${MIN_CONTRAST}:1`);
+    }
+  }
+  await evaluate(send, `document.querySelectorAll("header h1, header p").forEach((el) => (el.style.visibility = ""))`);
+  await evaluate(send, settled);
+}
+
+/** WCAG's relative luminance of an sRGB colour, and the contrast between two. */
+function luminance(rgb) {
+  const [r, g, b] = rgb.map((v) => {
+    const c = v / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function contrast(a, b) {
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 }
 
 function fail(message) {

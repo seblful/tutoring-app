@@ -13,6 +13,7 @@
   "screenshots": [
     {
       "shot": "schedule-day",
+      "callout": ["onNow"],
       "en-US": {
         "title": "Your teaching day,\nat a glance",
         "subtitle": "What's done, what's on now and who's next"
@@ -23,7 +24,20 @@
       }
     },
     {
+      "shot": "lesson-sheet",
+      "callout": ["status"],
+      "en-US": {
+        "title": "Lessons marked\nin one tap",
+        "subtitle": "Status, homework and rescheduling in one place"
+      },
+      "ru-RU": {
+        "title": "Отметить урок —\nв одно касание",
+        "subtitle": "Статус, задание и перенос — в одном окне"
+      }
+    },
+    {
       "shot": "people",
+      "callout": ["debtor"],
       "en-US": {
         "title": "See who owes\nat a glance",
         "subtitle": "Balances worked out from every lesson and payment"
@@ -35,6 +49,7 @@
     },
     {
       "shot": "reports",
+      "callout": ["income-card"],
       "en-US": {
         "title": "Watch your\nincome grow",
         "subtitle": "By month, subject, student and group — with CSV export"
@@ -47,6 +62,8 @@
     {
       "shot": "reminders",
       "kind": "lockscreen",
+      "callout": ["reminder"],
+      "layout": "tilted",
       "en-US": {
         "title": "Never miss\na lesson",
         "subtitle": "A reminder before each lesson, a morning agenda and a weekly debt summary"
@@ -58,6 +75,7 @@
     },
     {
       "shot": "homework",
+      "callout": ["first"],
       "en-US": {
         "title": "Homework that finds\nthe next lesson",
         "subtitle": "Set it once — it rides on the student's next class"
@@ -69,6 +87,7 @@
     },
     {
       "shot": "settings-calendar",
+      "callout": ["sync", "invites"],
       "en-US": {
         "title": "Lessons in your\nphone's calendar",
         "subtitle": "Kept in sync for you, with email invites for students"
@@ -79,19 +98,10 @@
       }
     },
     {
-      "shot": "lesson-sheet",
-      "en-US": {
-        "title": "Lessons marked\nin one tap",
-        "subtitle": "Status, homework and rescheduling in one place"
-      },
-      "ru-RU": {
-        "title": "Отметить урок —\nв одно касание",
-        "subtitle": "Статус, задание и перенос — в одном окне"
-      }
-    },
-    {
       "shot": "schedule-day-dark",
       "theme": "dark",
+      "layout": "pair",
+      "behind": "schedule-day",
       "en-US": {
         "title": "No account.\nNo cloud. Yours.",
         "subtitle": "Works offline — your data stays on your phone"

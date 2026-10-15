@@ -40,6 +40,27 @@ Store presence → Main store listing (per language):
    at 2× (the fixed-size graphics at 4×) and averaged down for smooth text. It is then re-encoded in the
    format Play asks for, and the text in `store/text/<locale>/` is copied beside it.
 
+## How the screenshots look
+
+Play shows a screenshot at a fraction of its size, in a row with the others, so each one is built to be
+read small and to sit well beside the next:
+
+- **One thing called out.** The row a caption is about — the lesson on now, the debtor, the month's
+  income — lifts off the screen, bigger and shadowed, standing past the phone's edge (`callout` in
+  `listing.json`, by mark name; several marks lift as one). Two are found in the capture's pixels rather
+  than marked: `status`, the lesson sheet's row of statuses, and `income-card`, the report's whole card
+  (`store/lib/find.mjs`).
+- **One backdrop across all eight.** The gradient drifts in tone from one screenshot to the next, into
+  night under the dark-theme one, and its glows sit on the joins, half on each side, so the row in Play's
+  gallery reads as one picture.
+- **Two compositions break the row:** `layout: "tilted"` turns the lock screen's phone so its edge shows,
+  with the reminder lifted off it; `layout: "pair"` puts the dark theme in front of the light one
+  (`behind`).
+- **The order is the one people meet:** the day, a lesson marked taught, who owes, the income. Most
+  visitors see only the first three.
+- **The feature graphic** keeps its words out of its middle: once the listing has a video, Play draws its
+  play button there.
+
 ## Promo video
 
 ```bash
@@ -91,7 +112,7 @@ and the scripts make the same ones again from the captures.
   sampled, so there is no licence to clear, and every run sounds the same.
 - **Encoding** — `store/film/encoder.js` blends each frame's screenshots and hands them to Chrome's
   WebCodecs encoders; `store/lib/mp4.mjs` writes the MP4 with its index first. `node --test store/`
-  runs the tests of the muxer, the list join and `parts.js`.
+  runs the tests of the muxer, the list join, `parts.js` and the stills' finders (`find.mjs`).
 
 ## Guards
 
@@ -100,7 +121,10 @@ Each step refuses rather than writing a bad listing:
 - **No amount over 1,000** on any screen (`StoreScreenshots.MAX_AMOUNT`). The capture reads every
   amount on screen and fails if one is larger: the listing shows a private tutor, not a business.
 - **Captions fit.** A caption shrinks to at most two lines clear of the phone, and the feature graphic's
-  words must stop short of its phone. What still does not fit fails the render: shorten it in `listing.json`.
+  words must stop short of its phone and of the play button's circle in its middle. What still does not
+  fit fails the render: shorten it in `listing.json`.
+- **Captions can be read.** Each caption's title and subtitle must keep 4.5:1 contrast with the backdrop
+  behind them, measured with the words taken away. A glow moved under a caption fails the render.
 - **Text fits** Play's character limits, checked before it is copied.
 - **The video's words fit.** A caption line that does not fit its column at the smallest size, a
   caption that runs into the phone in the tall frame, or a tagline too long to type in two seconds or
@@ -115,7 +139,8 @@ Each step refuses rather than writing a bad listing:
 ## Changing things
 
 - **Captions, order, which screens** — `store/listing.json`; the video reuses its captions and
-  tagline. Play shows at most 8 phone screenshots;
+  tagline. `callout`, `layout` and `behind` shape each screenshot (above). Play shows at most 8 phone
+  screenshots;
   spare captures (`student`, `schedule-week`, `schedule-month`, `group`, `settings`, `more`,
   `reports-dark`) can be swapped in by name.
 - **Demo data** — `DemoTutor.kt`. Russian uses BYN and Belarusian names for things (ЦТ, +375); English
