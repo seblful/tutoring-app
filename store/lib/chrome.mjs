@@ -9,14 +9,20 @@ import { join } from "node:path";
  * Starts Chrome with its profile in [profile] and returns `send(method, params)` for its page, and
  * `close()`. CHROME=<path> overrides where Chrome is looked for.
  *
- * Chrome draws in software: the same on every machine, and faster than a GPU here — every frame is read
- * back, and a laptop's discrete GPU took 1.3 s a frame to hand one over, against 0.1 s in software.
+ * Chrome draws in software unless [gpu]: the same on every machine, and faster than a GPU for a page that
+ * is read back — a laptop's discrete GPU took 1.3 s a frame to hand a screenshot over, against 0.1 s in
+ * software. With [gpu] it draws on the fastest GPU there is, with html-in-canvas on and no frame-rate cap,
+ * for the video drawn and encoded without leaving it (store/film/gpu.js).
  */
-export async function openChrome(profile) {
+export async function openChrome(profile, { gpu = false } = {}) {
   const portFile = join(profile, "DevToolsActivePort");
   rmSync(portFile, { force: true });
+  const graphics = gpu
+    ? ["--enable-gpu", ...(process.platform === "win32" ? ["--use-angle=d3d11"] : []), "--force_high_performance_gpu",
+      "--enable-blink-features=CanvasDrawElement", "--disable-frame-rate-limit", "--disable-gpu-vsync"]
+    : ["--disable-gpu"];
   const chrome = spawn(findChrome(), [
-    "--headless=new", "--disable-gpu", "--hide-scrollbars", "--no-first-run", "--no-default-browser-check",
+    "--headless=new", ...graphics, "--hide-scrollbars", "--no-first-run", "--no-default-browser-check",
     "--allow-file-access-from-files", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank",
   ], { stdio: "ignore" });
 

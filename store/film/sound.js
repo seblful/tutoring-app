@@ -166,25 +166,15 @@ window.soundtrack = async function soundtrack({ duration, bpm, cues, sections, d
     depth.connect(carrier.frequency);
     tone("sine", f * 3.5, t, 1.6, depth);
   }
-  /** A key's tick: a burst of bright noise a couple of milliseconds long. */
-  function keyStrike(t, v, pitch, to) {
-    const bp = filter("bandpass", 4200 * pitch, 1.4);
-    bp.connect(hit(t, 0.5 * v, 0.0004, 0.006, to));
-    noiseAt(t, 0.012, bp);
-  }
-  /** A key's ring: inharmonic partials `[ratio, level, decay]` over [f], each dying in a few tens of ms. */
-  function keyRing(t, v, f, partials, to) {
-    for (const [ratio, level, decay] of partials) {
-      tone("sine", f * ratio * between(0.985, 1.015), t, decay * 5, hit(t, level * v, 0.0006, decay, to));
-    }
-  }
-  /** A key bottoming out: a low knock that drops in pitch, with the case's dull rattle under it. */
-  function keyThock(t, v, f, decay, to) {
-    const o = tone("sine", f, t, decay * 3, hit(t, 0.4 * v, 0.001, decay, to));
-    o.frequency.exponentialRampToValueAtTime(f * 0.7, t + decay);
-    const lp = filter("lowpass", 1100, 0.9);
-    lp.connect(hit(t, 0.28 * v, 0.0008, decay * 0.4, to));
-    noiseAt(t, decay, lp);
+  /**
+   * A key: one soft click — a few milliseconds of noise around [f], and a faint knock under it — the way
+   * a phone's keyboard answers a tap, not a desk keyboard's clatter.
+   */
+  function keyClick(t, v, f, length, to) {
+    const bp = filter("bandpass", f, 1.1);
+    bp.connect(hit(t, 0.45 * v, 0.0005, length, to));
+    noiseAt(t, length * 3, bp);
+    tone("sine", f * 0.42, t, length * 4, hit(t, 0.12 * v, 0.0008, length, to));
   }
   function riser(from, to, v = 1) {
     const bp = filter("bandpass", 300, 2.2);
@@ -201,34 +191,14 @@ window.soundtrack = async function soundtrack({ duration, bpm, cues, sections, d
 
   // --- Effects -----------------------------------------------------------------------------------
   const FX = {
-    /**
-     * A key of a mechanical keyboard, in four parts: the hard tick of the keycap meeting the switch, the
-     * keycap's own short ring, the low «thock» of the stem bottoming out through the case, and — as the
-     * finger lifts — the quieter, higher tick of the key springing back. Each key [c] has a pitch of its
-     * own, as a real board's keys do, and sits a little left or right.
-     */
+    /** A key, each [c] at a pitch of its own, as no two taps sound quite the same. */
     key(t, { v = 1, c = 0 }) {
       const own = seeded(1000 + c * 7919);
-      const pitch = 0.88 + own() * 0.28;
-      const out = panned((own() - 0.5) * 0.5, effects);
-      out.connect(gain(0.1, reverb));
-      keyStrike(t, v, pitch, out);
-      keyRing(t, v, pitch * 1250, [[1, 0.2, 0.03], [1.53, 0.11, 0.022], [2.31, 0.07, 0.016], [3.7, 0.045, 0.01]], out);
-      keyThock(t + 0.003, v, pitch * 210, 0.045, out);
-      const up = t + between(0.075, 0.115);
-      keyStrike(up, 0.38 * v, pitch * 1.25, out);
-      keyRing(up, 0.35 * v, pitch * 1700, [[1, 0.16, 0.018], [1.6, 0.08, 0.012]], out);
+      keyClick(t, v, 2600 * (0.92 + own() * 0.16), 0.012, effects);
     },
-    /** The space bar: longer and deeper, with its stabiliser's rattle on the way down and up. */
+    /** The space bar: the same click, lower and a little longer. */
     space(t, { v = 1 }) {
-      const out = panned(0, effects);
-      out.connect(gain(0.14, reverb));
-      for (const at of [0, 0.006]) keyStrike(t + at, (at ? 0.4 : 0.6) * v, 0.75, out);
-      keyRing(t, v, 620, [[1, 0.2, 0.05], [1.58, 0.12, 0.04], [2.47, 0.07, 0.03]], out);
-      keyThock(t + 0.004, 1.15 * v, 135, 0.07, out);
-      const up = t + between(0.09, 0.12);
-      for (const at of [0, 0.008]) keyStrike(up + at, (at ? 0.2 : 0.3) * v, 0.9, out);
-      keyRing(up, 0.4 * v, 900, [[1, 0.14, 0.03], [1.6, 0.07, 0.02]], out);
+      keyClick(t, v, 1900, 0.016, effects);
     },
     tap(t) {
       const g = hit(t, 0.3, 0.001, 0.05, effects);

@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 // The promo video: the real app's captures in motion, with music and sound, per locale in listing.json —
 // 42 seconds or a 17-second cut, wide (16:9) or tall (9:16). No npm dependencies and no ffmpeg — a
-// headless Chrome draws each frame (store/film/film.js), synthesises the soundtrack (store/film/sound.js)
-// and encodes both with its own WebCodecs encoders (store/film/encoder.js); store/lib/mp4.mjs writes the file.
+// headless Chrome lays out each frame (store/film/film.js), draws it on the GPU (store/film/gpu.js),
+// synthesises the soundtrack (store/film/sound.js) and encodes both with its own WebCodecs encoders
+// (store/film/encoder.js); store/lib/mp4.mjs writes the file. Where Chrome cannot draw the page on the GPU,
+// or with --software, every exposure is a screenshot instead: the same frames, ten times slower.
 //
 //   ./gradlew :app:testDebugUnitTest --tests "*StoreScreenshots*" -PstoreScreenshots   # captures
 //   node store/video.mjs                     # every format and cut: store/build/video/klas-<locale>….mp4
 //   node store/video.mjs --format landscape --cut full     # just the Play listing's one
 //   node store/video.mjs --4k                # 2160p instead (slower, and twice the size)
 //   node store/video.mjs --locale ru-RU --stills 6.2,7.5   # single frames as PNGs, to check a moment
+//   node store/video.mjs --software          # screenshots instead of the GPU
 //
 // CHROME=<path> overrides where Chrome is looked for. See docs/store-listing.md.
 
@@ -19,6 +22,7 @@ import { evaluate, openChrome } from "./lib/chrome.mjs";
 import { mp4 } from "./lib/mp4.mjs";
 import { ICON_MARK, LOGO, PHONE_CSS, RES, fontFaces, lockScreen, statusBar, text, url } from "./lib/phone.mjs";
 import { decode } from "./lib/png.mjs";
+import { difference } from "./lib/compare.mjs";
 import { joinScroll } from "./lib/scroll.mjs";
 
 const STORE = dirname(fileURLToPath(import.meta.url));
@@ -32,6 +36,13 @@ const CUTS = ["full", "short"];
 /** Tall: the captions end above this line, where the phone starts (film.js keeps it there). */
 const CAPTION_FLOOR = 640;
 const DOWNLOAD_ICON = `<svg viewBox="0 0 24 24"><path fill="#4c5bc4" d="M11 3h2v9.6l3.3-3.3 1.4 1.4L12 16.4l-5.7-5.7 1.4-1.4 3.3 3.3V3ZM5 19h14v2H5v-2Z"/></svg>`;
+/**
+ * The GPU's frames are held against screenshots at these points of each video (shares of its length),
+ * and may differ from them by at most [GPU_MEAN] levels on average and [GPU_OFF] of their pixels far out.
+ */
+const GPU_CHECKS = [0.2, 0.45, 0.85];
+const GPU_MEAN = 3;
+const GPU_OFF = 0.01;
 const CALENDAR_ICON = `<svg viewBox="0 0 24 24"><path fill="#4c5bc4" d="M7 2h2v2h6V2h2v2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2V2Zm12 8H5v10h14V10Z"/></svg>`;
 
 /** The captures on the phone's screen during the film; the lock screen is drawn from notifications.json. */
@@ -54,9 +65,10 @@ const CAPTION_SIDES = {
 const options = parseArgs(process.argv.slice(2));
 const listing = JSON.parse(readFileSync(join(STORE, "listing.json"), "utf8"));
 const locales = options.locale ? [options.locale] : Object.keys(listing.locales);
-let browser;
-browser = await openChrome(join(STORE, "build", "chrome-profile")).catch((e) => fail(e.message));
-const { send } = browser;
+let browser, send;
+/** Whether frames are drawn on the GPU, until a page says this Chrome cannot (see [load]). */
+let onGpu = !options.software;
+await launch();
 mkdirSync(WORK, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 
@@ -70,6 +82,63 @@ try {
   fail(e.stack ?? e.message);
 }
 browser.close();
+
+async function launch() {
+  browser = await openChrome(join(STORE, "build", "chrome-profile"), { gpu: onGpu }).catch((e) => fail(e.message));
+  send = browser.send;
+}
+
+/**
+ * Opens the film's page and waits for it; on the GPU, first makes sure this Chrome can draw it there,
+ * and starts again in software if not.
+ */
+async function load(source, stage, scale) {
+  await send("Emulation.setDeviceMetricsOverride",
+    { width: stage.width, height: stage.height, deviceScaleFactor: scale, mobile: false });
+  await send("Page.navigate", { url: url(source) });
+  await evaluate(send, `new Promise((ready, broken) => {
+    const loaded = () => location.href === ${JSON.stringify(url(source))} && document.readyState === "complete";
+    const wait = () => {
+      if (window.pageErrors?.length) return broken(new Error(window.pageErrors.join("; ")));
+      loaded() && window.film ? ready() : setTimeout(wait, 20);
+    };
+    wait();
+  })`);
+  if (onGpu && !await evaluate(send, "gpu.available()")) {
+    console.log("This Chrome cannot draw the page on the GPU (html-in-canvas); taking screenshots instead, ten times slower.");
+    browser.close();
+    onGpu = false;
+    await launch();
+    await load(source, stage, scale);
+  }
+}
+
+/**
+ * Holds frames drawn on the GPU against screenshots of the same moments, before a video is trusted to
+ * it: html-in-canvas is experimental, and a Chrome that drew the page wrong would otherwise go unnoticed.
+ * The two differ by anti-aliasing along edges, a level or so on average; anything missing or moved
+ * differs by far more.
+ */
+async function checkGpu(name, moments, width, height) {
+  const shots = [];
+  for (const t of moments) {
+    await evaluate(send, `film.seek(${t})`);
+    shots.push((await send("Page.captureScreenshot", { format: "png", fromSurface: true })).data);
+  }
+  await evaluate(send, `gpu.setUp(${width}, ${height})`);
+  for (const [i, t] of moments.entries()) {
+    const drawn = decode(Buffer.from(await evaluate(send, `gpu.moment(${t})`), "base64"));
+    const shot = decode(Buffer.from(shots[i], "base64"));
+    const { mean, off } = difference(drawn, shot);
+    if (mean > GPU_MEAN || off > GPU_OFF) {
+      const out = join(OUT, "stills", `${name}-gpu-check-${t.toFixed(2)}.png`);
+      mkdirSync(dirname(out), { recursive: true });
+      writeFileSync(out, Buffer.from(await evaluate(send, `gpu.moment(${t})`), "base64"));
+      fail(`${name}: the GPU draws ${t.toFixed(2)} s unlike a screenshot of it (off by ${mean.toFixed(1)} levels, ` +
+        `${(off * 100).toFixed(1)}% of pixels far out; see ${out}). Run with --software.`);
+    }
+  }
+}
 
 async function film(locale, layout, cut) {
   const words = listing.locales[locale] ?? fail(`No locale ${locale} in listing.json`);
@@ -90,17 +159,7 @@ async function film(locale, layout, cut) {
   const source = join(WORK, `${name}.html`);
   writeFileSync(source, page({ locale, layout, cut, stage, words, raw, shots, tray, typed }));
   const scale = options.scale;
-  await send("Emulation.setDeviceMetricsOverride",
-    { width: stage.width, height: stage.height, deviceScaleFactor: scale, mobile: false });
-  await send("Page.navigate", { url: url(source) });
-  await evaluate(send, `new Promise((ready, broken) => {
-    const loaded = () => location.href === ${JSON.stringify(url(source))} && document.readyState === "complete";
-    const wait = () => {
-      if (window.pageErrors?.length) return broken(new Error(window.pageErrors.join("; ")));
-      loaded() && window.film ? ready() : setTimeout(wait, 20);
-    };
-    wait();
-  })`);
+  await load(source, stage, scale);
   const info = await evaluate(send, "film.ready");
   const tooWide = await evaluate(send, `[...document.querySelectorAll(".caption .line")]
     .filter((line) => line.scrollWidth > line.closest(".caption").clientWidth).map((line) => line.textContent)`);
@@ -116,6 +175,10 @@ async function film(locale, layout, cut) {
   }
 
   const fps = options.fps;
+  const width = stage.width * scale, height = stage.height * scale;
+  if (onGpu) {
+    await checkGpu(name, GPU_CHECKS.map((at) => Math.round(at * info.duration * fps) / fps), width, height);
+  }
   /** The frame at [t], blended from as many exposures as its motion needs, as base64 JPEGs. */
   const exposures = async (t) => {
     const jpegs = [];
@@ -131,7 +194,8 @@ async function film(locale, layout, cut) {
 
   if (options.stills) {
     for (const t of options.stills) {
-      const png = await evaluate(send, `encoder.still(${JSON.stringify(await exposures(t))})`);
+      const png = onGpu ? await evaluate(send, `gpu.still(${t}, ${fps}, ${scale})`)
+        : await evaluate(send, `encoder.still(${JSON.stringify(await exposures(t))})`);
       const out = join(OUT, "stills", `${name}-${t.toFixed(2)}.png`);
       mkdirSync(dirname(out), { recursive: true });
       writeFileSync(out, Buffer.from(png, "base64"));
@@ -141,23 +205,34 @@ async function film(locale, layout, cut) {
   }
 
   const frames = Math.round(info.duration * fps);
-  const width = stage.width * scale, height = stage.height * scale;
   // H.264 High profile at the level the size and rate need; bitrates as YouTube asks of an upload, a
   // little over, since it re-encodes everything it is given.
   const codec = scale > 1 ? (fps > 30 ? "avc1.640034" : "avc1.640033") : fps > 30 ? "avc1.64002a" : "avc1.640028";
   const bitrate = (scale > 1 ? 50e6 : 16e6) * (fps > 30 ? 1 : 0.7);
-  await evaluate(send, `encoder.start(${JSON.stringify({ width, height, rate: fps, bitrate, codec })})`);
+  await evaluate(send, `encoder.start(${JSON.stringify({ width, height, rate: fps, bitrate, codec, hardware: onGpu })})`);
   const samples = [];
   const started = Date.now();
   let blended = 0;
-  for (let i = 0; i < frames; i++) {
-    const jpegs = await exposures(i / fps);
-    if (jpegs.length > 1) blended++;
-    samples.push(...await evaluate(send, `encoder.frame(${JSON.stringify(jpegs)}, ${i})`));
-    if (i % (fps * 2) === 0 || i === frames - 1) {
-      const done = (i + 1) / frames, spent = (Date.now() - started) / 1000;
-      process.stdout.write(`\r${name}: frame ${i + 1}/${frames}, ${Math.round(spent)} s, ` +
-        `about ${Math.round(spent / done - spent)} s to go   `);
+  const progress = (i) => {
+    const done = (i + 1) / frames, spent = (Date.now() - started) / 1000;
+    process.stdout.write(`\r${name}: frame ${i + 1}/${frames}, ${Math.round(spent)} s, ` +
+      `about ${Math.round(spent / done - spent)} s to go   `);
+  };
+  if (onGpu) {
+    // A second of frames at a time, drawn and encoded in the page: only the encoded video comes back.
+    for (let i = 0; i < frames; i += fps) {
+      const to = Math.min(frames, i + fps);
+      const batch = await evaluate(send, `gpu.frames(${i}, ${to}, ${fps}, ${scale})`);
+      samples.push(...batch.chunks);
+      blended += batch.blended;
+      progress(to - 1);
+    }
+  } else {
+    for (let i = 0; i < frames; i++) {
+      const jpegs = await exposures(i / fps);
+      if (jpegs.length > 1) blended++;
+      samples.push(...await evaluate(send, `encoder.frame(${JSON.stringify(jpegs)}, ${i})`));
+      if (i % (fps * 2) === 0 || i === frames - 1) progress(i);
     }
   }
   const end = await evaluate(send, "encoder.finish()");
@@ -316,6 +391,7 @@ function page({ locale, layout, cut, stage, words, raw, shots, tray, typed }) {
   <script src="${url(join(FILM, "film.js"))}"></script>
   <script src="${url(join(FILM, "sound.js"))}"></script>
   <script src="${url(join(FILM, "encoder.js"))}"></script>
+  <script src="${url(join(FILM, "gpu.js"))}"></script>
 </body></html>`;
 }
 
@@ -397,7 +473,7 @@ function appStrings(locale) {
 }
 
 function parseArgs(args) {
-  const options = { fps: 60, scale: 1, locale: null, stills: null, formats: Object.keys(STAGES), cuts: CUTS };
+  const options = { fps: 60, scale: 1, locale: null, stills: null, formats: Object.keys(STAGES), cuts: CUTS, software: false };
   const list = (value, known, what) => {
     const picked = value.split(",");
     const unknown = picked.filter((v) => !known.includes(v));
@@ -407,6 +483,7 @@ function parseArgs(args) {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === "--4k") options.scale = 2;
+    else if (arg === "--software") options.software = true;
     else if (arg === "--fps") options.fps = Number(args[++i]);
     else if (arg === "--locale") options.locale = args[++i];
     else if (arg === "--stills") options.stills = args[++i].split(",").map(Number);

@@ -73,9 +73,10 @@ body { font-family: Golos, sans-serif; -webkit-font-smoothing: antialiased; colo
   transform-origin: 50% 50%; }
 .tap { position: absolute; width: calc(var(--phone) * .16); height: calc(var(--phone) * .16); margin: calc(var(--phone) * -.08);
   border-radius: 50%; }
-.tap .finger { position: absolute; inset: 18%; border-radius: 50%; background: rgba(255, 255, 255, .55);
-  box-shadow: 0 0 0 calc(var(--phone) * .006) rgba(76, 91, 196, .45); }
-.tap .wave { position: absolute; inset: 0; border-radius: 50%; border: calc(var(--phone) * .006) solid rgba(255, 255, 255, .9); }
+/* In the app's indigo: every tap lands on a light screen, where white would not show. */
+.tap .finger { position: absolute; inset: 18%; border-radius: 50%; background: rgba(76, 91, 196, .28);
+  box-shadow: 0 0 0 calc(var(--phone) * .006) rgba(76, 91, 196, .75); }
+.tap .wave { position: absolute; inset: 0; border-radius: 50%; border: calc(var(--phone) * .006) solid rgba(76, 91, 196, .8); }
 .scrim { position: absolute; inset: 0; background: #000; opacity: 0; }
 
 /* A row being swiped: a band of the screen as tall as the row, holding the panel the swipe uncovers and the
@@ -83,7 +84,8 @@ body { font-family: Golos, sans-serif; -webkit-font-smoothing: antialiased; colo
 .swipe { position: absolute; overflow: hidden; background-repeat: no-repeat; }
 .swipe .reveal, .swipe .row, .swipe .rows { position: absolute; background-repeat: no-repeat; }
 .swipe .row { top: 0; height: 100%; }
-#overlay { position: absolute; left: 0; top: 0; z-index: 5; }
+/* Over every layer of the screen, the lesson sheet's (60) too, or the tap on its «Taught» hides under it. */
+#overlay { position: absolute; left: 0; top: 0; z-index: 100; }
 
 /* The homework being typed: the app's own «Set homework» dialog, drawn larger than the phone. */
 #typing { position: absolute; left: 0; top: 0; width: 640px; padding: 44px 44px 30px; border-radius: 40px; background: #eeecf4;

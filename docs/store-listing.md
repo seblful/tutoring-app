@@ -68,6 +68,7 @@ node store/video.mjs                                   # every format and cut, p
 node store/video.mjs --format landscape --cut full     # just the one for the Play listing
 node store/video.mjs --4k                              # twice the size each way
 node store/video.mjs --locale ru-RU --stills 6.2,7.5   # single frames as PNGs, to check a moment
+node store/video.mjs --software                        # screenshots instead of the GPU (slow)
 ```
 
 It takes the same captures as the stills (step 1 above) and needs only Node and Chrome: no ffmpeg.
@@ -80,8 +81,8 @@ Each language gets four MP4s in `store/build/video/` (H.264 and AAC, 60 fps):
 | `klas-<locale>-vertical.mp4` | 1080 × 1920 | 42 s | Shorts, Reels, stories |
 | `klas-<locale>-vertical-short.mp4` | 1080 × 1920 | 17 s | the same, short |
 
-A full-length one takes about forty minutes with motion blur, a short one about fifteen. Chrome draws in software, which on a
-laptop beat its discrete GPU by ten times (every frame is read back). Play takes a video only as a
+A full-length one takes about two minutes on the GPU (see **Drawing** below), against about forty minutes in
+software. Play takes a video only as a
 **YouTube link** (Main store listing → Video): upload the wide full-length file to YouTube, public or
 unlisted, with ads off, and paste its URL. The files are not committed: they are tens of megabytes,
 and the scripts make the same ones again from the captures.
@@ -118,11 +119,19 @@ and the scripts make the same ones again from the captures.
   a glare that slides as it turns.
 - **The sound** — `store/film/sound.js` synthesises all of it in Chrome's Web Audio, offline: a
   I–V–vi–IV groove in C with a quieter break under the reminders, and an effect on every cue the cut
-  sets — mechanical-keyboard keys, taps, the count's ticks, whooshes, notification chimes. Nothing is
+  sets — soft key clicks, taps, the count's ticks, whooshes, notification chimes. Nothing is
   sampled, so there is no licence to clear, and every run sounds the same.
-- **Encoding** — `store/film/encoder.js` blends each frame's screenshots and hands them to Chrome's
-  WebCodecs encoders; `store/lib/mp4.mjs` writes the MP4 with its index first. `node --test store/`
-  runs the tests of the muxer, the list join, `parts.js` and the stills' finders (`find.mjs`).
+- **Drawing** — the page is laid out as a web page, but drawn on the GPU with nothing read back
+  (`store/film/gpu.js`): Chrome's html-in-canvas (`texElementImage2D`, behind its `CanvasDrawElement`
+  flag) puts the stage into a WebGL texture at each exposure, the exposures are added up in a float
+  buffer, and the canvas goes straight to the encoder — Chrome's hardware H.264 where the GPU has one.
+  Chrome runs on the fastest GPU, with no frame-rate cap (`store/lib/chrome.mjs`). Taking a screenshot
+  of every exposure instead, as it first did, was the slow part: a 1080p screenshot took longer than
+  drawing and encoding the frame. A Chrome without html-in-canvas, or `--software`, still does that.
+- **Encoding** — `store/film/encoder.js` hands each frame to Chrome's WebCodecs encoders (blending the
+  screenshots first, in software); `store/lib/mp4.mjs` writes the MP4 with its index first.
+  `node --test store/` runs the tests of the muxer, the list join, `parts.js`, the image comparison
+  (`compare.mjs`) and the stills' finders (`find.mjs`).
 
 ## Guards
 
@@ -139,6 +148,10 @@ Each step refuses rather than writing a bad listing:
 - **The video's words fit.** A caption line that does not fit its column at the smallest size, a
   caption that runs into the phone in the tall frame, or a tagline too long to type in two seconds or
   to set on two lines, stops the video.
+- **The GPU draws what a screenshot shows.** html-in-canvas is experimental, so before each video three
+  of its frames are held against screenshots of the same moments (`GPU_CHECKS` in `video.mjs`): off by
+  more than 3 levels on average, or 1% of pixels far out, stops the video and saves the frame drawn.
+  Anti-aliasing along edges differs by about one.
 - **The scrolled list lines up.** The two captures of the report must overlap and match to the pixel
   once shifted, or the video stops rather than show a seam.
 - **The video plays.** Each file is played back in Chrome before it counts: the right size and length,

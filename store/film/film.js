@@ -993,6 +993,8 @@
       seek(t);
       requestAnimationFrame(() => done());
     }),
+    /** Sets the page to frame [t] without waiting for it to be drawn: gpu.js waits for its own paint. */
+    set: (t) => seek(t),
     /** The moments frame [t] is blended from, at [fps] and the output's [scale]. */
     exposures: (t, fps, scale) => exposuresAt(t, fps, scale),
   };

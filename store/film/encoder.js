@@ -1,6 +1,6 @@
-// Chrome's own encoders, through WebCodecs: each frame video.mjs screenshots comes back here as JPEGs —
-// one, or several exposures of a moving frame to blend into one — and is encoded to H.264, the soundtrack
-// to AAC. What they produce goes back to Node in pieces, as base64,
+// Chrome's own encoders, through WebCodecs: each frame is encoded to H.264, the soundtrack to AAC. A frame
+// comes from the GPU's canvas as it is (gpu.js), or, where Chrome cannot draw the page on the GPU, as the
+// JPEGs video.mjs screenshotted — one, or several exposures of a moving frame to blend into one. What they produce goes back to Node in pieces, as base64,
 // to be written into an MP4 (store/lib/mp4.mjs).
 
 "use strict";
@@ -41,13 +41,27 @@ window.encoder = (() => {
     return out;
   };
 
+  /** Encodes [source] (an image or a canvas) as frame [index]. */
+  async function encode(source, index) {
+    const frame = new VideoFrame(source, { timestamp: Math.round((index * 1e6) / fps), duration: Math.round(1e6 / fps) });
+    // A key frame every two seconds, so YouTube and a scrubbing player can start anywhere.
+    video.encode(frame, { keyFrame: index % (2 * fps) === 0 });
+    frame.close();
+    while (video.encodeQueueSize > 4) await new Promise((r) => video.addEventListener("dequeue", r, { once: true }));
+    return take();
+  }
+
   return {
-    /** Opens the video encoder; throws if Chrome cannot encode [codec] at this size. */
-    async start({ width, height, rate, bitrate, codec }) {
+    /**
+     * Opens the video encoder — the GPU's own when [hardware], Chrome's software one otherwise; throws if
+     * Chrome cannot encode [codec] at this size.
+     */
+    async start({ width, height, rate, bitrate, codec, hardware = false }) {
       fps = rate;
       const config = {
         codec, width, height, bitrate, framerate: fps,
         avc: { format: "avc" }, latencyMode: "quality", bitrateMode: "variable",
+        hardwareAcceleration: hardware ? "prefer-hardware" : "no-preference",
       };
       const { supported } = await VideoEncoder.isConfigSupported(config);
       if (!supported) throw new Error(`Chrome cannot encode ${codec} at ${width}×${height}`);
@@ -67,14 +81,13 @@ window.encoder = (() => {
     /** Encodes frame [index] from its exposures, base64 JPEGs, and returns what the encoder has finished so far. */
     async frame(jpegs, index) {
       const bitmap = await blend(jpegs);
-      const frame = new VideoFrame(bitmap, { timestamp: Math.round((index * 1e6) / fps), duration: Math.round(1e6 / fps) });
+      const out = await encode(bitmap, index);
       bitmap.close();
-      // A key frame every two seconds, so YouTube and a scrubbing player can start anywhere.
-      video.encode(frame, { keyFrame: index % (2 * fps) === 0 });
-      frame.close();
-      while (video.encodeQueueSize > 4) await new Promise((r) => video.addEventListener("dequeue", r, { once: true }));
-      return take();
+      return out;
     },
+
+    /** Encodes frame [index] from what [canvas] shows now, and returns what the encoder has finished so far. */
+    canvas: (canvas, index) => encode(canvas, index),
 
     /** A frame's exposures blended, as a base64 PNG: a still of the moment as the video shows it. */
     async still(jpegs) {
