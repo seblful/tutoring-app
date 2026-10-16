@@ -87,12 +87,14 @@ and the scripts make the same ones again from the captures.
 
 - **The cut** — `store/film/film.js` draws every frame as a function of its time, so frames can be made
   in any order. The phone moves through poses (`POSES`); the captions are `listing.json`'s, word by
-  word; rows lift off the screen at the marks the capture recorded, rimmed in
-  white light; taps land on them. Scenes start on 2-second bars, the music's downbeats. The intro types
+  word; rows lift off the screen at the marks the capture recorded, set off by
+  their shadow alone; taps land on them. Scenes start on 2-second bars, the music's downbeats. The intro types
   the tagline; the close shows `cta` in a white pill — words only, as Google allows its Play logo only
   on its own badge.
 - **Taps** are the app's own feedback, not a marker over the video: Material's ripple spreading inside
-  what is tapped, cut to its shape, under a finger dot. A card or button standing on its own (the
+  what is tapped, cut to its shape, with no dot for the finger — the phone draws none, and the ripple
+  already shows where it landed. Only a swipe keeps its thumb: a row sliding off by itself would not
+  read as one. A card or button standing on its own (the
   lesson row, the add button) is also pressed in and springs back — a copy of it, shrunk over a patch
   the colour beside it. A segment of a control only ripples: shrunk, it would break the control's
   outline. Each tap is drawn inside the screen it lands on, so the sheet, the dialog or the dark theme

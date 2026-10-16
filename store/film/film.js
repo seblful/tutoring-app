@@ -251,14 +251,6 @@
     overlay.append(el);
     callouts[id] = { el, shot, name };
   }
-  /** The finger: a dot over everything, where a tap lands. */
-  function finger(parent) {
-    const el = document.createElement("div");
-    el.className = "tap";
-    el.innerHTML = `<div class="finger"></div>`;
-    parent.append(el);
-    return el;
-  }
   callout("swiped", "film-swiped", "swipe");
   callout("cancelled", "film-cancelled", "cancel");
   callout("debtor", "people", "debtor");
@@ -266,8 +258,6 @@
   callout("added", "film-homework", "added");
   callout("sync", "settings-calendar", "sync");
   callout("invites", "settings-calendar", "invites");
-  const saveTap = finger(stage);
-  saveTap.style.setProperty("--phone", "560px");
   /** The dialog's «Save» is a text button: its ripple fills the pill round its word. */
   const saveRipple = (() => {
     const box = document.createElement("span");
@@ -422,9 +412,10 @@
   const BESIDE = 24;
   /**
    * A tap as the app shows one: Material's ripple spreading from the finger inside what is tapped, cut
-   * to its shape, and a card or button pressed in and let back. Drawn inside the screen it lands on, so
-   * whatever covers that screen next — the sheet, the dialog, the dark theme — covers the tap as well.
-   * What is pressed is a copy of it, over a patch the colour of what is behind it, so it can shrink.
+   * to its shape, and a card or button pressed in and let back — and no dot for the finger, which the
+   * phone does not draw. Drawn inside the screen it lands on, so whatever covers that screen next — the
+   * sheet, the dialog, the dark theme — covers the tap as well. What is pressed is a copy of it, over a
+   * patch the colour of what is behind it, so it can shrink.
    */
   for (const tap of TAPS) {
     const k = LG.k, [l, top, r, bottom, corner] = mark(tap.shot, tap.mark);
@@ -445,7 +436,6 @@
     tap.hole.append(tap.target);
     (tap.shot === "film-sheet" ? sheetPart : layers[tap.shot]).append(tap.hole);
     tap.size = { w, h, reach: Math.hypot(w, h) / 2 };
-    tap.finger = finger(overlay);
   }
   /**
    * The rows swiped towards the end of the line, as the app's `SwipeToConfirmBox` has them: dragged off
@@ -851,9 +841,8 @@
     });
     c.el.style.backgroundSize = `${CW * g.k}px auto`;
     c.el.style.backgroundPosition = `${-m[0] * g.k}px ${-m[1] * g.k}px`;
-    // Marked by light, not colour: a thin white rim and a soft cool glow round it, over its shadow.
-    c.el.style.boxShadow = `0 0 0 ${0.004 * g.W}px rgba(255, 255, 255, ${0.95 * p}), ` +
-      `0 0 ${0.06 * g.W}px rgba(190, 200, 255, ${0.9 * p}), 0 ${18 * p}px ${46 * p}px rgba(8, 10, 48, ${0.35 * p})`;
+    // Lifted, not outlined: its shadow alone sets it off the screen.
+    c.el.style.boxShadow = `0 ${18 * p}px ${46 * p}px rgba(8, 10, 48, ${0.35 * p})`;
     c.el.style.opacity = "1";
   }
 
@@ -861,14 +850,11 @@
     const d = t - tap.at;
     const on = d > -0.25 && d < 0.6;
     tap.hole.classList.toggle("hidden", !on);
-    tap.finger.classList.toggle("hidden", !on);
     if (!on) return;
     // In as the finger lands, and back with a little give.
     const sink = span(d, -0.1, 0, E.out) * (1 - span(d, 0.04, 0.4, E.spring));
     tap.target.style.transform = tap.lift ? `scale(${1 - (1 - PRESSED) * sink})` : "";
     ripple(tap.ripple, d, tap.size.w / 2, tap.size.h / 2, tap.size.reach);
-    const m = mark(tap.shot, tap.mark), p = local(LG, (m[0] + m[2]) / 2, (m[1] + m[3]) / 2);
-    drawTap(tap.finger, d, p.x, p.y);
   }
 
   /**
@@ -914,19 +900,10 @@
     }
   }
 
-  function drawTap(el, d, x, y) {
-    el.style.left = `${x}px`;
-    el.style.top = `${y}px`;
-    const down = span(d, -0.25, 0, E.out);
-    $(".finger", el).style.opacity = String(down * (1 - span(d, 0.1, 0.35, E.linear)));
-    $(".finger", el).style.transform = `scale(${1.25 - 0.25 * down})`;
-  }
-
   /** «Set homework»: out of the tapped button, typed into, saved, and landed on the list as its new row. */
   function typingCard(t, pose) {
     const on = t > DIALOG[0] - 0.02 && t < LAND[1] + 0.02;
     typing.classList.toggle("hidden", !on);
-    saveTap.classList.toggle("hidden", !(t > SAVE_AT - 0.25 && t < SAVE_AT + 0.5));
     const rest = TALL ? { x: SW / 2, y: 1150 } : { x: 1340, y: 540 };
     const width = typing.offsetWidth, height = typing.offsetHeight;
     if (on) {
@@ -951,10 +928,6 @@
       $(".typed", typing).textContent = typedText.slice(0, shown);
       const blink = shown === typedAt.length && Math.floor((t - typedAt.at(-1)) * 2.2) % 2 === 1;
       $(".caret", typing).style.opacity = t >= DIALOG[1] + 0.05 && !blink && t < SAVE_AT ? "1" : "0";
-    }
-    if (t > SAVE_AT - 0.25 && t < SAVE_AT + 0.5) {
-      const save = $(".save", typing).getBoundingClientRect();
-      drawTap(saveTap, t - SAVE_AT, (save.left + save.right) / 2, (save.top + save.bottom) / 2);
     }
     const pill = saveRipple.parentElement;
     ripple(saveRipple, t - SAVE_AT, pill.offsetWidth / 2, pill.offsetHeight / 2, Math.hypot(pill.offsetWidth, pill.offsetHeight) / 2);
@@ -997,9 +970,9 @@
   /** Everything that moves on its own, whose edges tell how fast the frame is changing. */
   let moving = [];
   function setUpMotion() {
-    moving = [phone, typing, calendar, intro, outro, sheetPart, report.content, saveTap,
+    moving = [phone, typing, calendar, intro, outro, sheetPart, report.content,
       ...$$(".caption .w > span, .caption p, .caption .bar"), ...$$(".brand .tile, .brand .wordmark span, .brand .tagline, .brand .cta"),
-      ...Object.values(callouts).map((c) => c.el), ...TAPS.flatMap((tap) => [tap.finger, tap.target, tap.ripple]),
+      ...Object.values(callouts).map((c) => c.el), ...TAPS.flatMap((tap) => [tap.target, tap.ripple]),
       saveRipple, ...cardWraps.map((c) => c.card),
       ...Object.values(SWIPES).flatMap((s) => [s.row, s.finger, s.below].filter(Boolean)),
       ...$$(".event", calendar), ...$$(".layer .app")];

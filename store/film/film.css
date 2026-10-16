@@ -72,12 +72,12 @@ body { font-family: Golos, sans-serif; -webkit-font-smoothing: antialiased; colo
 .scroller .content > div { position: absolute; left: 0; width: 100%; background-repeat: no-repeat; }
 .scroller .count { position: absolute; overflow: visible; }
 
-/* Lifted copies of a row of the screen, and the taps on it. Inside the phone, so they turn with it. */
+/* Lifted copies of a row of the screen, and the thumb that swipes one. Inside the phone, so they turn with it. */
 .callout { position: absolute; background-repeat: no-repeat;
   transform-origin: 50% 50%; }
 .tap { position: absolute; width: calc(var(--phone) * .16); height: calc(var(--phone) * .16); margin: calc(var(--phone) * -.08);
   border-radius: 50%; }
-/* In the app's indigo: every tap lands on a light screen, where white would not show. */
+/* In the app's indigo: every swipe is on a light screen, where white would not show. */
 .tap .finger { position: absolute; inset: 18%; border-radius: 50%; background: rgba(76, 91, 196, .28);
   box-shadow: 0 0 0 calc(var(--phone) * .006) rgba(76, 91, 196, .75); }
 /* What a tap lands on: a patch over it, the thing itself (a copy, when it is pressed in) cut to its
