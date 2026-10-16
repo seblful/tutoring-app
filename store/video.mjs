@@ -46,10 +46,13 @@ const GPU_OFF = 0.01;
 const CALENDAR_ICON = `<svg viewBox="0 0 24 24"><path fill="#4c5bc4" d="M7 2h2v2h6V2h2v2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2V2Zm12 8H5v10h14V10Z"/></svg>`;
 
 /** The captures on the phone's screen during the film; the lock screen is drawn from notifications.json. */
-const SHOTS = ["film-day", "film-sheet", "film-taught", "film-swiped", "people", "reports", "film-homework-list",
+const SHOTS = ["film-day", "film-swiped", "film-sheet", "film-cancelled", "people", "reports", "film-homework-list",
   "film-homework-done", "film-homework", "settings-calendar", "film-theme", "film-theme-dark", "schedule-day-dark"];
-/** Captures the film takes parts of rather than whole screens: rows shot mid-swipe, short of the mark and past it. */
-const PIECES = ["film-swipe-unarmed", "film-swipe-armed", "film-homework-swipe-unarmed", "film-homework-swipe-armed"];
+/**
+ * Captures the film takes parts of rather than whole screens: the status control with «Cancelled» chosen,
+ * and rows shot mid-swipe, short of the mark and past it.
+ */
+const PIECES = ["film-sheet-cancelled", "film-swipe-unarmed", "film-swipe-armed", "film-homework-swipe-unarmed", "film-homework-swipe-armed"];
 /**
  * The screens shown after the lock screen's reminder, whose status bar reads its time rather than the
  * schedule's: the clock must not run backwards. The schedule's day keeps its own, as its «now» line is
@@ -134,8 +137,9 @@ async function checkGpu(name, moments, width, height) {
       const out = join(OUT, "stills", `${name}-gpu-check-${t.toFixed(2)}.png`);
       mkdirSync(dirname(out), { recursive: true });
       writeFileSync(out, Buffer.from(await evaluate(send, `gpu.moment(${t})`), "base64"));
+      writeFileSync(out.replace(/\.png$/, "-screenshot.png"), Buffer.from(shots[i], "base64"));
       fail(`${name}: the GPU draws ${t.toFixed(2)} s unlike a screenshot of it (off by ${mean.toFixed(1)} levels, ` +
-        `${(off * 100).toFixed(1)}% of pixels far out; see ${out}). Run with --software.`);
+        `${(off * 100).toFixed(1)}% of pixels far out; see ${out} and the screenshot beside it). Run with --software.`);
     }
   }
 }
@@ -360,6 +364,7 @@ function page({ locale, layout, cut, stage, words, raw, shots, tray, typed }) {
     <div class="phone" id="phone">
       ${sides}
       <div class="key power"></div><div class="key volume"></div>
+      <div class="face"></div>
       <div class="screen"><div class="stack">
         ${SHOTS.map(layer).join("")}
         <div class="layer" data-shot="lockscreen">${lockScreen(tray)}</div>

@@ -395,10 +395,12 @@ class StoreScreenshots {
      * The promo video's moments, which a still cannot show. Last, because they change the books every
      * screen above was shot on.
      *
-     * The day again, with a lesson earlier on that was never marked: the lesson on now marked taught
-     * from its sheet, then the unmarked one swiped taught — just short of the swipe's mark, past it, and
-     * let go. Then a piece of homework swiped done the same way, and the homework list once the tutor has
-     * set the student whose lesson it was some more for next time.
+     * The day again, with a lesson earlier on that was never marked: swiped taught — just short of the
+     * swipe's mark, past it, and let go. Then the day's last lesson called off from its sheet: the sheet
+     * as it opens, the day once «Cancelled» is tapped (which closes it), and the sheet opened again, to
+     * show «Cancelled» chosen — the app closes the sheet on the tap, so it is never seen chosen there.
+     * Then a piece of homework swiped done the same way, and the homework list once the tutor has set the
+     * student whose lesson is on now some more for next time.
      *
      * The homework is saved through the repository, not typed into the app's dialog: under Robolectric
      * that dialog never lets Compose go idle, so nothing on screen can be found or shot while it is open.
@@ -407,19 +409,27 @@ class StoreScreenshots {
     private fun filmTour() {
         val student = tutor.onNow.name
         val unmarked = row(runBlocking { seeder.bookUnmarkedLesson(tutor) })
-        // The sheet's segment, not the «Taught» badges on the schedule behind it.
-        val taught = hasText(string(R.string.class_status_completed)) and isSelectable()
+        val today = DemoTutor.NOW.dayOfWeek
+        val last = tutor.students.filter { s -> s.slots.any { it.day == today } }
+            .maxBy { s -> s.slots.first { it.day == today }.time }.name
+        // The sheet's segment, not the badges on the schedule behind it.
+        val cancelled = hasText(string(R.string.class_status_cancelled)) and isSelectable()
         tab(R.string.nav_schedule)
         waitFor(string(R.string.class_status_in_progress))
-        capture("film-day", marks = mapOf("onNow" to row(student), "swipe" to unmarked))
-        click(student)
-        settle()
-        capture("film-sheet", marks = mapOf("taught" to taught))
-        compose.onNode(taught).performClick()
-        settle()
-        capture("film-taught", marks = mapOf("row" to row(student), "swipe" to unmarked))
+        capture("film-day", marks = mapOf("swipe" to unmarked, "cancel" to row(last)))
         swipe(unmarked, "film-swipe")
-        capture("film-swiped", marks = mapOf("swipe" to unmarked))
+        capture("film-swiped", marks = mapOf("swipe" to unmarked, "cancel" to row(last)))
+        click(last)
+        settle()
+        capture("film-sheet", marks = mapOf("cancelled" to cancelled))
+        compose.onNode(cancelled).performClick()
+        settle()
+        capture("film-cancelled", marks = mapOf("cancel" to row(last)))
+        click(last)
+        settle()
+        capture("film-sheet-cancelled", marks = mapOf("cancelled" to cancelled))
+        back()
+        settle()
 
         val homework = row(student)
         val add = hasContentDescription(string(R.string.homework_add)) and hasClickAction()

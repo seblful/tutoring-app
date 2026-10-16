@@ -39,9 +39,13 @@ body { font-family: Golos, sans-serif; -webkit-font-smoothing: antialiased; colo
 
 /* Its body: the face's rim catching the light, the edge stacked behind it in depth so it shows as the
    phone turns, the buttons on its side, and light sliding over the glass. The shadow is cast from the
-   back, not the face, so it does not fall across the edge. */
-#phone { transform-style: preserve-3d; background: #0c0d11;
+   back, not the face, so it does not fall across the edge. The face is a layer of its own, after the
+   edge: drawn on the GPU (html-in-canvas), the page is painted in order with no sorting by depth, and the
+   edge painted over a face that was the phone's own background. */
+#phone { transform-style: preserve-3d; background: none; box-shadow: none; }
+#phone .face { position: absolute; inset: 0; border-radius: inherit; background: #0c0d11;
   box-shadow: 0 0 0 calc(var(--phone) * .004) #5e616c inset, 0 0 0 calc(var(--phone) * .008) #1b1c22 inset; }
+#phone .screen { position: relative; }
 #phone .side { position: absolute; inset: 0; border-radius: inherit;
   background: linear-gradient(90deg, #474954, #24252c 10%, #18191e 50%, #24252c 90%, #474954);
   transform: translateZ(calc(var(--phone) * var(--z) * -1)); }

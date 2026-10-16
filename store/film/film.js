@@ -38,8 +38,8 @@
     Math.min(span(t, a, a + inFor, E.out), 1 - span(t, b - outFor, b, E.in));
 
   /**
-   * The cuts: the whole film, and seventeen seconds of it for an ad or a short — the lessons marked taught,
-   * the reminders, the close. Each piece starts a whole number of bars from where it sat, so the music
+   * The cuts: the whole film, and seventeen seconds of it for an ad or a short — the lessons marked, the
+   * reminders, the close. Each piece starts a whole number of bars from where it sat, so the music
    * keeps its downbeats, and the joins fall mid-swing, where the film already changes screens.
    */
   const CUTS = {
@@ -154,16 +154,16 @@
     [3.55, OFF_IN],
     [4.5, RIGHT, E.out5],
     [5.45, { ...RIGHT, ry: -6, rx: 2 }, E.linear],
-    // The lesson on now, tapped: its sheet comes up, «Taught» is tapped, and the row says so. Then the one
-    // before it, left unmarked, swiped taught.
-    [6.0, aim("film-day", "onNow", 1.38, ...Q_R)],
-    [6.8, aim("film-day", "onNow", 1.38, ...Q_R)],
-    [7.25, aim("film-sheet", "taught", 1.62, ...Q_R)],
-    [7.9, aim("film-sheet", "taught", 1.62, ...Q_R)],
-    [8.45, aim("film-taught", "row", 1.42, ...Q_R)],
-    [9.05, aim("film-taught", "row", 1.42, ...Q_R)],
-    [9.45, aim("film-taught", "swipe", 1.42, ...Q_R)],
-    [11.25, aim("film-taught", "swipe", 1.42, ...Q_R)],
+    // A lesson left unmarked swiped taught; then the day's last one tapped, and called off from its sheet.
+    [6.0, aim("film-day", "swipe", 1.42, ...Q_R)],
+    [7.6, aim("film-day", "swipe", 1.42, ...Q_R)],
+    [8.0, aim("film-swiped", "cancel", 1.42, ...Q_R)],
+    [8.3, aim("film-swiped", "cancel", 1.42, ...Q_R)],
+    // «Cancelled» is the right-hand segment: aimed further right, so the phone keeps clear of the caption.
+    [8.85, aim("film-sheet", "cancelled", 1.62, 1530, Q_R[1])],
+    [9.85, aim("film-sheet", "cancelled", 1.62, 1530, Q_R[1])],
+    [10.4, aim("film-cancelled", "cancel", 1.42, ...Q_R)],
+    [11.25, aim("film-cancelled", "cancel", 1.42, ...Q_R)],
     [11.75, FRONT_R],
     // Who owes.
     [12.35, LEFT, E.inOut, SWING_TO_L],
@@ -230,6 +230,23 @@
   const sheetPart = sheet.cloneNode(true);
   sheetPart.dataset.shot = "film-sheet-part";
   stack.append(sheetPart);
+  /**
+   * «Cancelled» chosen once it is tapped: the status control off the sheet opened again on the cancelled
+   * lesson, laid over the same control. Only the control: the rest of that sheet changed with the lesson
+   * (its homework moved on to the next one, so it is shorter), and taken whole it jumped.
+   */
+  const chosen = (() => {
+    const g = LG, k = g.k, pad = 12;
+    const [, from, , fromEnd] = mark("film-sheet", "cancelled"), [, to] = mark("film-sheet-cancelled", "cancelled");
+    const el = document.createElement("div");
+    Object.assign(el.style, {
+      position: "absolute", left: "0", width: "100%", top: `${g.status + (from - pad) * k}px`,
+      height: `${(fromEnd - from + 2 * pad) * k}px`, backgroundImage: `url("${F.shots["film-sheet-cancelled"].src}")`,
+      backgroundSize: `${CW * k}px auto`, backgroundPosition: `0 ${-(to - pad) * k}px`, backgroundRepeat: "no-repeat",
+    });
+    sheetPart.append(el);
+    return el;
+  })();
   const scrim = document.createElement("div");
   scrim.className = "scrim";
   stack.append(scrim);
@@ -252,14 +269,14 @@
     overlay.append(el);
     taps[id] = el;
   }
-  callout("row", "film-taught", "row");
   callout("swiped", "film-swiped", "swipe");
+  callout("cancelled", "film-cancelled", "cancel");
   callout("debtor", "people", "debtor");
   callout("credit", "people", "credit");
   callout("added", "film-homework", "added");
   callout("sync", "settings-calendar", "sync");
   callout("invites", "settings-calendar", "invites");
-  for (const id of ["onNow", "taught", "add", "themeDark"]) tap(id);
+  for (const id of ["open", "cancelled", "add", "themeDark"]) tap(id);
   const saveTap = document.createElement("div");
   saveTap.className = "tap";
   saveTap.style.setProperty("--phone", "560px");
@@ -382,8 +399,8 @@
   ];
   /** When each lifted row is up. */
   const CALLOUTS = [
-    ["row", 8.48, 9.1, 1.1],
-    ["swiped", 10.6, 11.35, 1.1],
+    ["swiped", 7.5, 7.95, 1.1],
+    ["cancelled", 10.5, 11.35, 1.1],
     ["debtor", 13.0, 14.95, 1.1],
     ["credit", 13.65, 14.95, 1.1],
     ["added", 29.0, 29.65, 1.1],
@@ -393,8 +410,8 @@
   ];
   /** When each tap lands, and on what. */
   const TAPS = [
-    ["onNow", 6.12, "film-day", "onNow"],
-    ["taught", 7.42, "film-sheet", "taught"],
+    ["open", 8.1, "film-swiped", "cancel"],
+    ["cancelled", 9.2, "film-sheet", "cancelled"],
     ["add", 25.9, "film-homework-done", "add"],
     ["themeDark", 34.95, "film-theme", "dark"],
   ];
@@ -406,7 +423,7 @@
    * list, and the rows below it close up (`close` seconds, video.mjs measured how far).
    */
   const SWIPES = {
-    lesson: { before: "film-taught", shot: "film-swipe", down: 9.5, drag: [9.55, 10.2], release: 10.45 },
+    lesson: { before: "film-day", shot: "film-swipe", down: 6.5, drag: [6.55, 7.2], release: 7.4 },
     homework: { before: "film-homework-list", shot: "film-homework-swipe", down: 24.75, drag: [24.8, 25.3], release: 25.45, close: 0.4 },
   };
   /** Where the thumb holds the row, across it. */
@@ -454,13 +471,14 @@
     cue(s.release, "chime");
     if (s.close) cue(s.release + 0.02, "swish", { v: 0.3 });
   }
-  const SHEET_UP = [6.28, 6.66];
+  const SHEET_UP = [8.25, 8.6];
   /** Material's scrim behind a modal sheet: black at 32%, what the capture's dimmed top measures. */
   const SCRIM = 0.32;
   /** The sheet's top corners: Material's extra-large shape, 28 dp, in the capture's 4× pixels. */
   const SHEET_CORNER = 28 * 4;
-  const TAUGHT_AT = 7.47;
-  const SHEET_DOWN = [7.6, 7.92];
+  /** «Cancelled» chosen, a beat after the tap lands; the sheet stays up long enough to see it. */
+  const CANCEL_AT = 9.25;
+  const SHEET_DOWN = [9.9, 10.2];
   /** The month's total counting up as the phone closes in on it, then the list scrolling. */
   const COUNT = [16.9, 17.75];
   const SCROLL = [18.45, 19.5];
@@ -526,7 +544,7 @@
   for (const t of [11.78, 15.78, 19.78, 23.78, 29.78, 33.78]) cue(t, "whoosh", { d: 0.6, v: 0.8 });
   for (const [, at] of TAPS) cue(at, "tap");
   cue(SHEET_UP[0], "swish", { v: 0.5 });
-  cue(7.47, "chime");
+  cue(CANCEL_AT, "switch");
   cue(SHEET_DOWN[0], "swish", { v: 0.4 });
   for (const [id, at] of CALLOUTS) cue(at, id === "sync" || id === "invites" ? "switch" : "pop");
   cue(COUNT[1], "coin");
@@ -683,22 +701,23 @@
 
     let dim = 0;
     if (t < 11.9) {
-      // The row says «Taught» from the moment it is tapped, under the sheet, as it does in the app; the
-      // one before it from the moment the swipe lets go of it.
-      show(t < TAUGHT_AT ? "film-day" : t < SWIPES.lesson.release ? "film-taught" : "film-swiped");
+      // The swiped row says «Taught» from the moment the swipe lets go of it; the cancelled one says so
+      // from its tap, under the sheet, as the app has it.
+      show(t < SWIPES.lesson.release ? "film-day" : t < CANCEL_AT ? "film-swiped" : "film-cancelled");
       const up = span(t, SHEET_UP[0], SHEET_UP[1], E.out) * (1 - span(t, SHEET_DOWN[0], SHEET_DOWN[1], E.in));
       if (up > 0) {
         // Only the sheet comes from its capture, cut to its own rounded top. The dimming behind it is
         // Material's scrim drawn here, over whichever schedule is underneath: taken from the capture as
         // well, it left an undimmed band between its edge and the moving sheet.
         const top = g.status + F.sheetTop * g.k, height = g.status + CH * g.k, round = SHEET_CORNER * g.k;
+        chosen.classList.toggle("hidden", t < CANCEL_AT);
         show("film-sheet-part", 1, {
           clipPath: `inset(${top}px 0 0 0 round ${round}px ${round}px 0 0)`,
           transform: `translateY(${(1 - up) * (height - top)}px)`,
         });
         dim = SCRIM * up;
       }
-    } else if (t < 16) swap("film-swiped", "people", 12.02);
+    } else if (t < 16) swap("film-cancelled", "people", 12.02);
     else if (t < 20) swap("people", "reports", 16.02);
     else if (t < 24) swap("reports", "lockscreen", 20.02);
     else if (t < 30) {

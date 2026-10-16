@@ -102,8 +102,12 @@ and the scripts make the same ones again from the captures.
   records the text's size, weight and colour) and its list scrolls: two captures of it (`reports`,
   `film-reports-end`) joined into one, at a row no text crosses, after finding to the pixel how far it
   moved. The dark theme spreads from the tap on Settings' «Dark» (`film-theme`, `film-theme-dark`).
-- **The swipes** — a lesson marked taught by swiping it, after the one on now is marked from its sheet,
-  and a piece of homework swiped done before the next is set. The capture books a lesson earlier today
+- **The lesson scene** — a lesson swiped taught, then the day's last one called off from its sheet. The
+  app closes the sheet on the tap, so «Cancelled» is never seen chosen there; the capture opens the sheet
+  again on the cancelled lesson (`film-sheet-cancelled`) and the film lays just its status control over
+  the sheet as it opened — the rest of that sheet changed with the lesson (its homework moved on), and
+  swapped whole it jumped.
+- **The swipes** — that lesson, and a piece of homework swiped done before the next is set. The capture books a lesson earlier today
   that was never marked (`DemoSeeder.bookUnmarkedLesson`, film-only: the listing's shots are taken
   first), then drags each row with a real touch and shoots it twice on the way, just short of the mark
   and past it (`film-swipe-unarmed`, `film-swipe-armed`, and `film-homework-swipe-…`): the panel the
@@ -150,8 +154,10 @@ Each step refuses rather than writing a bad listing:
   to set on two lines, stops the video.
 - **The GPU draws what a screenshot shows.** html-in-canvas is experimental, so before each video three
   of its frames are held against screenshots of the same moments (`GPU_CHECKS` in `video.mjs`): off by
-  more than 3 levels on average, or 1% of pixels far out, stops the video and saves the frame drawn.
-  Anti-aliasing along edges differs by about one.
+  more than 3 levels on average, or 1% of pixels far out, stops the video and saves the frame drawn
+  and the screenshot. Anti-aliasing along edges differs by about one. html-in-canvas paints in page
+  order, with no sorting by depth, so nothing may rely on `translateZ` to hide behind a later element:
+  the phone's face is its own layer after the edge stacked behind it.
 - **The scrolled list lines up.** The two captures of the report must overlap and match to the pixel
   once shifted, or the video stops rather than show a seam.
 - **The video plays.** Each file is played back in Chrome before it counts: the right size and length,
