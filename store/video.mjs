@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 // The promo video: the real app's captures in motion, with music and sound, per locale in listing.json —
-// 42 seconds or a 17-second cut, wide (16:9) or tall (9:16). No npm dependencies and no ffmpeg — a
+// 42 seconds, wide (16:9) or tall (9:16). No npm dependencies and no ffmpeg — a
 // headless Chrome lays out each frame (store/film/film.js), draws it on the GPU (store/film/gpu.js),
 // synthesises the soundtrack (store/film/sound.js) and encodes both with its own WebCodecs encoders
 // (store/film/encoder.js); store/lib/mp4.mjs writes the file. Where Chrome cannot draw the page on the GPU,
 // or with --software, every exposure is a screenshot instead: the same frames, ten times slower.
 //
 //   ./gradlew :app:testDebugUnitTest --tests "*StoreScreenshots*" -PstoreScreenshots   # captures
-//   node store/video.mjs                     # every format and cut: store/build/video/klas-<locale>….mp4
-//   node store/video.mjs --format landscape --cut full     # just the Play listing's one
+//   node store/video.mjs                     # both formats: store/build/video/klas-<locale>….mp4
+//   node store/video.mjs --format landscape  # just the Play listing's one
 //   node store/video.mjs --4k                # 2160p instead (slower, and twice the size)
 //   node store/video.mjs --locale ru-RU --stills 6.2,7.5   # single frames as PNGs, to check a moment
 //   node store/video.mjs --software          # screenshots instead of the GPU
@@ -32,7 +32,6 @@ const OUT = join(STORE, "build", "video");
 const FILM = join(STORE, "film");
 /** The frame, wide for the Play listing and YouTube, tall for Shorts, Reels and stories. */
 const STAGES = { landscape: { width: 1920, height: 1080 }, vertical: { width: 1080, height: 1920 } };
-const CUTS = ["full", "short"];
 /** Tall: the captions end above this line, where the phone starts (film.js keeps it there). */
 const CAPTION_FLOOR = 640;
 const DOWNLOAD_ICON = `<svg viewBox="0 0 24 24"><path fill="#4c5bc4" d="M11 3h2v9.6l3.3-3.3 1.4 1.4L12 16.4l-5.7-5.7 1.4-1.4 3.3 3.3V3ZM5 19h14v2H5v-2Z"/></svg>`;
@@ -78,7 +77,7 @@ mkdirSync(OUT, { recursive: true });
 try {
   for (const locale of locales) {
     for (const layout of options.formats) {
-      for (const cut of options.cuts) await film(locale, layout, cut);
+      await film(locale, layout);
     }
   }
 } catch (e) {
@@ -144,7 +143,7 @@ async function checkGpu(name, moments, width, height) {
   }
 }
 
-async function film(locale, layout, cut) {
+async function film(locale, layout) {
   const words = listing.locales[locale] ?? fail(`No locale ${locale} in listing.json`);
   const raw = join(RAW, locale);
   for (const file of ["shots.json", "notifications.json", "film.json"]) {
@@ -156,12 +155,11 @@ async function film(locale, layout, cut) {
   const shots = JSON.parse(readFileSync(join(raw, "shots.json"), "utf8"));
   const tray = JSON.parse(readFileSync(join(raw, "notifications.json"), "utf8"));
   const typed = JSON.parse(readFileSync(join(raw, "film.json"), "utf8"));
-  const name = `klas-${locale}${layout === "vertical" ? "-vertical" : ""}${cut === "short" ? "-short" : ""}` +
-    `${options.scale > 1 ? "-4k" : ""}`;
+  const name = `klas-${locale}${layout === "vertical" ? "-vertical" : ""}${options.scale > 1 ? "-4k" : ""}`;
   const stage = STAGES[layout];
 
   const source = join(WORK, `${name}.html`);
-  writeFileSync(source, page({ locale, layout, cut, stage, words, raw, shots, tray, typed }));
+  writeFileSync(source, page({ locale, layout, stage, words, raw, shots, tray, typed }));
   const scale = options.scale;
   await load(source, stage, scale);
   const info = await evaluate(send, "film.ready");
@@ -300,7 +298,7 @@ async function check(file, duration, width, height) {
 
 // --- The page --------------------------------------------------------------------------------------
 
-function page({ locale, layout, cut, stage, words, raw, shots, tray, typed }) {
+function page({ locale, layout, stage, words, raw, shots, tray, typed }) {
   const strings = appStrings(locale);
   const caption = (entry) => {
     const still = entry[locale] ?? fail(`${locale}: no caption for «${entry.shot}» in listing.json`);
@@ -339,7 +337,7 @@ function page({ locale, layout, cut, stage, words, raw, shots, tray, typed }) {
 
   const sheet = decode(readFileSync(join(raw, "film-sheet.png")));
   const data = {
-    layout, cut, stage,
+    layout, stage,
     capture: { width: sheet.width, height: sheet.height },
     shots: Object.fromEntries([...SHOTS, ...PIECES].map((name) => [name, { src: url(join(raw, `${name}.png`)), marks: shot(name).marks }])),
     words: { tagline: words.tagline },
@@ -478,7 +476,7 @@ function appStrings(locale) {
 }
 
 function parseArgs(args) {
-  const options = { fps: 60, scale: 1, locale: null, stills: null, formats: Object.keys(STAGES), cuts: CUTS, software: false };
+  const options = { fps: 60, scale: 1, locale: null, stills: null, formats: Object.keys(STAGES), software: false };
   const list = (value, known, what) => {
     const picked = value.split(",");
     const unknown = picked.filter((v) => !known.includes(v));
@@ -493,7 +491,6 @@ function parseArgs(args) {
     else if (arg === "--locale") options.locale = args[++i];
     else if (arg === "--stills") options.stills = args[++i].split(",").map(Number);
     else if (arg === "--format") options.formats = list(args[++i], Object.keys(STAGES), "format");
-    else if (arg === "--cut") options.cuts = list(args[++i], CUTS, "cut");
     else fail(`Unknown option ${arg}`);
   }
   if (![24, 25, 30, 50, 60].includes(options.fps)) fail("--fps takes 24, 25, 30, 50 or 60");

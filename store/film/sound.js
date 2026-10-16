@@ -1,14 +1,13 @@
 // The promo video's soundtrack: the music and every effect synthesised here, in an OfflineAudioContext,
 // so the sound is the same each run, comes out in step with the frames, and owes no one a licence.
 //
-// `soundtrack({ duration, bpm, cues, sections, downbeat })` → an AudioBuffer. The music follows `sections`
-// (an opening, the groove, a break, the close) over a I–V–vi–IV in C, its bars counted from `downbeat`
-// (a cut may start mid-bar); `cues` are the effects film.js placed on the pictures: keys, taps, whooshes,
-// chimes.
+// `soundtrack({ duration, bpm, cues, sections })` → an AudioBuffer. The music follows `sections` (an
+// opening, the groove, a break, the close) over a I–V–vi–IV in C, a bar every four beats from the start;
+// `cues` are the effects film.js placed on the pictures: keys, taps, whooshes, chimes.
 
 "use strict";
 
-window.soundtrack = async function soundtrack({ duration, bpm, cues, sections, downbeat = 0, sampleRate = 48000 }) {
+window.soundtrack = async function soundtrack({ duration, bpm, cues, sections, sampleRate = 48000 }) {
   const ctx = new OfflineAudioContext(2, Math.ceil(duration * sampleRate), sampleRate);
   const BEAT = 60 / bpm, BAR = 4 * BEAT;
   const random = seeded(11);
@@ -345,17 +344,12 @@ window.soundtrack = async function soundtrack({ duration, bpm, cues, sections, d
     [72, null, 76, null, null, 74, 72, null],
     [72, null, 69, null, 72, null, 74, null],
   ];
-  // Each bar takes the part playing at its middle: a cut's sections can start a little off the bar.
+  // Each bar takes the part playing at its middle.
   const sectionAt = (t) => sections.find((s) => t >= s.from && t < s.to);
   const partAt = (t) => sectionAt(t)?.part ?? "outro";
   const grooves = sections.filter((s) => s.part === "groove");
-  // A cut that starts before its first bar opens on the chord before the first, rising into it.
-  if (downbeat > 0.05) {
-    pad(0, CHORDS[3].pad, downbeat, 1200);
-    riser(0, downbeat, 0.9);
-  }
-  for (let b = 0; downbeat + b * BAR < duration - 0.05; b++) {
-    const t0 = downbeat + b * BAR, part = partAt(t0 + BAR / 2), chord = CHORDS[b % 4];
+  for (let b = 0; b * BAR < duration - 0.05; b++) {
+    const t0 = b * BAR, part = partAt(t0 + BAR / 2), chord = CHORDS[b % 4];
     if (part === "outro") {
       if (Math.abs(t0 - sections.find((s) => s.part === "outro").from) < BAR / 2) {
         pad(t0, [48, 55, 60, 64, 67, 72], duration - t0 - 0.6, 2600);

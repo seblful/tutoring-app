@@ -64,26 +64,24 @@ read small and to sit well beside the next:
 ## Promo video
 
 ```bash
-node store/video.mjs                                   # every format and cut, per language
-node store/video.mjs --format landscape --cut full     # just the one for the Play listing
+node store/video.mjs                                   # both formats, per language
+node store/video.mjs --format landscape                # just the one for the Play listing
 node store/video.mjs --4k                              # twice the size each way
 node store/video.mjs --locale ru-RU --stills 6.2,7.5   # single frames as PNGs, to check a moment
 node store/video.mjs --software                        # screenshots instead of the GPU (slow)
 ```
 
 It takes the same captures as the stills (step 1 above) and needs only Node and Chrome: no ffmpeg.
-Each language gets four MP4s in `store/build/video/` (H.264 and AAC, 60 fps):
+Each language gets two MP4s in `store/build/video/` (H.264 and AAC, 60 fps):
 
 | File | Frame | Length | For |
 |---|---|---|---|
 | `klas-<locale>.mp4` | 1920 × 1080 | 42 s | the Play listing, YouTube |
-| `klas-<locale>-short.mp4` | 1920 × 1080 | 17 s | ads, posts |
 | `klas-<locale>-vertical.mp4` | 1080 × 1920 | 42 s | Shorts, Reels, stories |
-| `klas-<locale>-vertical-short.mp4` | 1080 × 1920 | 17 s | the same, short |
 
-A full-length one takes about two minutes on the GPU (see **Drawing** below), against about forty minutes in
+One takes about two minutes on the GPU (see **Drawing** below), against about forty minutes in
 software. Play takes a video only as a
-**YouTube link** (Main store listing → Video): upload the wide full-length file to YouTube, public or
+**YouTube link** (Main store listing → Video): upload the wide file to YouTube, public or
 unlisted, with ads off, and paste its URL. The files are not committed: they are tens of megabytes,
 and the scripts make the same ones again from the captures.
 
@@ -93,9 +91,8 @@ and the scripts make the same ones again from the captures.
   white light; taps land on them. Scenes start on 2-second bars, the music's downbeats. The intro types
   the tagline; the close shows `cta` in a white pill — words only, as Google allows its Play logo only
   on its own badge.
-- **The short cut** is three pieces of the same timeline (`CUTS` in `film.js`): the lessons marked
-  taught, the reminders, the close. Each piece starts a whole number of bars from where it sat, so the
-  music keeps its beat; `store/film/parts.js` maps the times and the music's sections.
+- **No short cut.** A 17-second cut (three pieces of the timeline joined on the beat) was removed, with
+  the mapping of times and music through its joins (`cut` in `parts.js`); git history has it.
 - **The tall frame** puts every caption above the phone, which stays in the middle and zooms less so it
   never reaches them.
 - **What the app does on screen** — the report's total counts up in the app's own type (the capture
@@ -122,7 +119,7 @@ and the scripts make the same ones again from the captures.
   many as its fastest edge needs; a still frame is one. The phone has depth: its edge, side buttons and
   a glare that slides as it turns.
 - **The sound** — `store/film/sound.js` synthesises all of it in Chrome's Web Audio, offline: a
-  I–V–vi–IV groove in C with a quieter break under the reminders, and an effect on every cue the cut
+  I–V–vi–IV groove in C with a quieter break under the reminders, and an effect on every cue the film
   sets — soft key clicks, taps, the count's ticks, whooshes, notification chimes. Nothing is
   sampled, so there is no licence to clear, and every run sounds the same.
 - **Drawing** — the page is laid out as a web page, but drawn on the GPU with nothing read back
@@ -182,7 +179,7 @@ Each step refuses rather than writing a bad listing:
 - **Description** — `store/text/<locale>/*.txt`. Claim only what the app does; the README's features are
   the reference.
 - **The video's timing** — `film.js`: `POSES` for the phone, `CAPTIONS`, `CALLOUTS` and `TAPS` for what
-  happens when, `CUTS` for the short cut. A new mark is a `marks` entry on a `capture(...)` in
+  happens when. A new mark is a `marks` entry on a `capture(...)` in
   `StoreScreenshots`, a redrawn text a `texts` one. The music is `sound.js`, its sections at the end of
   `film.js`.
 - **The close** — words only. Google allows the Play logo only on its own badge; anything else with it

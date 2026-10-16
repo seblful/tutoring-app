@@ -7,58 +7,19 @@ import { runInNewContext } from "node:vm";
 
 const context = {};
 runInNewContext(readFileSync(new URL("./parts.js", import.meta.url), "utf8"), context);
-const { cut, exposures, counting, swipe } = context.filmParts;
+const { exposures, counting, swipe } = context.filmParts;
 
 const plain = (x) => JSON.parse(JSON.stringify(x));
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} ≠ ${expected}`);
 
-test("a cut plays its segments end to end", () => {
-  const short = cut([[3.3, 10.02], [18.02, 22], [36, 40]]);
-  close(short.duration, 14.7);
-  close(short.source(0).t, 3.3);
-  close(short.source(6.72).t, 18.02);
-  close(short.source(10.7).t, 36);
-  close(short.source(14.69).t, 39.99);
-  assert.equal(short.source(6.71).part, short.parts[0]);
-});
-
-test("a cut places the full film's moments, and drops what it leaves out", () => {
-  const short = cut([[3.3, 10.02], [18.02, 22], [36, 40]]);
-  close(short.place(4), 0.7);
-  close(short.place(21.78), 10.48);
-  assert.equal(short.place(12), null);
-  assert.equal(short.place(2), null);
-});
-
-test("a cut's music keeps the full film's bars", () => {
-  const sections = [
-    { from: 0, to: 4, part: "intro" }, { from: 4, to: 18, part: "groove" }, { from: 18, to: 22, part: "break" },
-    { from: 22, to: 36, part: "groove" }, { from: 36, to: 40, part: "outro" },
-  ];
-  const { sections: out, downbeat } = cut([[3.3, 10.02], [18.02, 22], [36, 40]]).music(sections, 2);
-  close(downbeat, 0.7);
-  assert.deepEqual(plain(out.map((s) => s.part)), ["intro", "groove", "break", "outro"]);
-  close(out[1].from, 0.7);
-  close(out[2].from, 6.72);
-  close(out[3].from, 10.7);
-
-  const full = cut([[0, 40]]).music(sections, 2);
-  close(full.downbeat, 0);
-  assert.deepEqual(plain(full.sections), sections);
-});
-
-test("a cut whose segments are not whole bars apart is refused", () => {
-  assert.throws(() => cut([[0, 4], [9, 12]]).music([{ from: 0, to: 40, part: "groove" }], 2), /bars/);
-});
-
-test("a still frame is one exposure, a moving one several, inside its segment", () => {
+test("a still frame is one exposure, a moving one several, inside the film", () => {
   assert.deepEqual(plain(exposures(5, 0.5, { fps: 60 })), [5]);
   const moving = exposures(5, 20, { fps: 60 });
   assert.equal(moving.length, 4);
   close(moving[0], 5 - (0.375 * 0.5) / 60);
   close(moving[3], 5 + (0.375 * 0.5) / 60);
   assert.equal(exposures(5, 6, { fps: 60, scale: 2 }).length, 3);
-  assert.ok(exposures(6.72, 20, { fps: 60, lo: 6.72, hi: 7 }).every((t) => t >= 6.72));
+  assert.ok(exposures(0, 20, { fps: 60, lo: 0, hi: 42 }).every((t) => t >= 0));
 });
 
 test("a frame moving faster than its exposures can blend is shot with a shorter shutter", () => {

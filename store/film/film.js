@@ -3,17 +3,16 @@
 // draws the frame at t seconds, in any order — and lists the sounds that go with it (`film.cues`), so the
 // frames and the soundtrack are made separately and still land together.
 //
-// One timeline, the full 42 seconds, in two shapes and two cuts: the frame is wide (1920 × 1080) or tall
-// (1080 × 1920, the captions above the phone rather than beside it), and the film is played whole or
-// as its short cut, three pieces of the same timeline end to end (parts.js).
+// One timeline, 42 seconds, in two shapes: the frame is wide (1920 × 1080) or tall (1080 × 1920, the
+// captions above the phone rather than beside it).
 //
-// Bars of 2 s (120 bpm): every scene starts on a bar, so the cuts fall on the music's downbeats.
+// Bars of 2 s (120 bpm): every scene starts on a bar, so the screens change on the music's downbeats.
 
 "use strict";
 
 (() => {
   const F = window.FILM;
-  const { counting, cut, exposures, swipe: swiping } = window.filmParts;
+  const { counting, exposures, swipe: swiping } = window.filmParts;
   const DURATION = 42;
   const SW = F.stage.width, SH = F.stage.height;
   const TALL = F.layout === "vertical";
@@ -37,16 +36,6 @@
   const held = (t, a, b, inFor = 0.3, outFor = inFor) =>
     Math.min(span(t, a, a + inFor, E.out), 1 - span(t, b - outFor, b, E.in));
 
-  /**
-   * The cuts: the whole film, and seventeen seconds of it for an ad or a short — the lessons marked, the
-   * reminders, the close. Each piece starts a whole number of bars from where it sat, so the music
-   * keeps its downbeats, and the joins fall mid-swing, where the film already changes screens.
-   */
-  const CUTS = {
-    full: [[0, DURATION]],
-    short: [[3.3, 12.02], [20.02, 24], [38, DURATION]],
-  };
-  const CUT = cut(CUTS[F.cut] ?? fail(`no cut «${F.cut}»`));
 
   /**
    * A value through keyframes `[time, value, ease, bump]`: each value eased in from the one before. A
@@ -67,7 +56,7 @@
     return { ...list[list.length - 1][1] };
   }
 
-  /** The same jitter every run: typing rhythm and the drifting light are part of the cut, not noise. */
+  /** The same jitter every run: typing rhythm and the drifting light are part of the film, not noise. */
   function random(seed) {
     return () => {
       seed = (seed + 0x6d2b79f5) | 0;
@@ -381,7 +370,7 @@
     return `${text.slice(0, at)}\n${text.slice(at + 1)}`;
   }
 
-  // --- The cut -------------------------------------------------------------------------------------
+  // --- The timeline -------------------------------------------------------------------------------
 
   /**
    * When each caption is on, by the capture it belongs to. The next one starts only once the last word of
@@ -582,22 +571,15 @@
 
   // --- Drawing a frame -------------------------------------------------------------------------------
 
-  /** The frame at the cut's time [t]: the full timeline's moment it plays, kept to its own piece. */
+  /** The frame at [t] seconds. */
   function seek(t) {
-    const { t: at, part } = CUT.source(t);
-    draw(at, part);
-  }
-
-  function draw(t, part) {
-    background(t, part);
+    background(t);
     brand(t);
     const pose = keys(t, POSES);
     shake(t, pose);
     placePhone(pose);
     screen(t);
-    // A caption shows only in the piece it starts in: one leaving as a piece ends must not reappear,
-    // half gone, in the next.
-    for (const [id, a, b] of CAPTIONS) caption(captions[id], t, a, b, a >= part.from - 0.05);
+    for (const [id, a, b] of CAPTIONS) caption(captions[id], t, a, b);
     for (const [id, a, b, lift] of CALLOUTS) liftRow(callouts[id], t, a, b, lift);
     for (const [id, at, shot, name] of TAPS) press(taps[id], t, at, shot, name);
     for (const s of Object.values(SWIPES)) swipe(s, t);
@@ -607,10 +589,9 @@
     stage.style.opacity = String(1 - span(t, DURATION - 0.7, DURATION, E.in));
   }
 
-  function background(t, part) {
-    // The night comes with the dark theme, so a piece without it stays in the day.
-    const dark = part.from <= DARK[0] && part.to > DARK[0];
-    const nightness = dark ? span(t, DARK[0], DARK[1]) * (1 - span(t, 37.6, 38.8)) : 0;
+  function background(t) {
+    // The night comes with the dark theme.
+    const nightness = span(t, DARK[0], DARK[1]) * (1 - span(t, 37.6, 38.8));
     night.style.opacity = String(nightness);
     const fx = SW / 1920, fy = SH / 1080;
     const drift = [[1250, -300, 0.13, 0], [-420, 520, 0.09, 2], [700, 700, 0.11, 4]];
@@ -786,8 +767,8 @@
     report.tinted.style.opacity = String(span(t, SCROLL[0], SCROLL[0] + 0.25, E.linear));
   }
 
-  function caption(el, t, a, b, allowed) {
-    const on = allowed && t >= a - 0.05 && t <= b + 0.6;
+  function caption(el, t, a, b) {
+    const on = t >= a - 0.05 && t <= b + 0.6;
     el.classList.toggle("hidden", !on);
     if (!on) return;
     $$(".w > span", el).forEach((word, i) => {
@@ -944,12 +925,10 @@
   }
   /**
    * The moments to blend frame [t] from: how far the fastest edge on the stage moves in one frame, found
-   * by drawing the frame half a frame either side, decides how many (parts.js). Kept inside the cut's
-   * piece, so a frame on a join is not blended with the piece before.
+   * by drawing the frame half a frame either side, decides how many (parts.js). Kept inside the film.
    */
   function exposuresAt(t, fps, scale) {
-    const part = CUT.source(t).part;
-    const lo = part.start, hi = part.end - 1e-4;
+    const lo = 0, hi = DURATION - 1e-4;
     const a = clamp(t - 0.5 / fps, lo, hi), b = clamp(t + 0.5 / fps, lo, hi);
     if (b <= a) return [t];
     const edges = () => moving.map((el) => {
@@ -992,7 +971,7 @@
     $(".typed", typed).textContent = "";
     setUpMotion();
     // The music's shape: an opening, the groove, a quieter bar pair under the reminders' chimes, the
-    // groove again, and the close — as much of it as the cut plays.
+    // groove again, and the close.
     const sections = [
       { from: 0, to: 4, part: "intro" },
       { from: 4, to: 20, part: "groove" },
@@ -1000,10 +979,8 @@
       { from: 24, to: 38, part: "groove" },
       { from: 38, to: DURATION, part: "outro" },
     ];
-    const bpm = 120;
-    const music = CUT.music(sections, (4 * 60) / bpm);
-    const placed = cues.map((c) => ({ ...c, t: CUT.place(c.t) })).filter((c) => c.t !== null).sort((a, b) => a.t - b.t);
-    return { duration: CUT.duration, bpm, cues: placed, sections: music.sections, downbeat: music.downbeat };
+    const placed = cues.filter((c) => c.t >= 0 && c.t < DURATION).sort((a, b) => a.t - b.t);
+    return { duration: DURATION, bpm: 120, cues: placed, sections };
   })();
 
   window.film = {

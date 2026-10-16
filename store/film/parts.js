@@ -1,65 +1,10 @@
-// The film's arithmetic that does not touch the page: how a cut lays pieces of the timeline end to end,
-// how many exposures a moving frame is blended from, how an amount reads as it counts up, and where a
-// swiped row is. A plain
-// script, so the page loads it before film.js and store/film/parts.test.mjs runs it in Node.
+// The film's arithmetic that does not touch the page: how many exposures a moving frame is blended from,
+// how an amount reads as it counts up, and where a swiped row is. A plain script, so the page loads it
+// before film.js and store/film/parts.test.mjs runs it in Node.
 
 "use strict";
 
 (function (root) {
-  /**
-   * A cut of the film: [segments] of the full timeline, `[from, to)` in seconds, played one after another.
-   * The full film is one segment; the short one is three, each starting where the one before ends.
-   */
-  function cut(segments) {
-    let at = 0;
-    const parts = segments.map(([from, to]) => {
-      if (!(to > from)) throw new Error(`A cut's segment must run forwards: ${from} → ${to}`);
-      const part = { from, to, start: at, end: at + to - from };
-      at = part.end;
-      return part;
-    });
-    const duration = at;
-    const partAt = (t) => parts.find((p) => t < p.end) ?? parts[parts.length - 1];
-    return {
-      duration,
-      parts,
-      /** The full timeline's time at this cut's [t], and the segment it falls in. */
-      source(t) {
-        const part = partAt(t);
-        return { t: part.from + t - part.start, part };
-      },
-      /** Where a moment of the full timeline plays in this cut, or null if it is cut out. */
-      place(t) {
-        const part = parts.find((p) => t >= p.from && t < p.to);
-        return part ? part.start + t - part.from : null;
-      },
-      /**
-       * The music's sections in this cut's time: each of the full film's that a segment plays, the same
-       * part merged across a join. Every segment must keep the full film's bars where they were — its
-       * start moved by whole bars — or the cuts stop falling on downbeats; [downbeat] is where the first
-       * bar of this cut starts.
-       */
-      music(sections, bar) {
-        const shifts = parts.map((p) => ((((p.start - p.from) % bar) + bar) % bar));
-        if (shifts.some((s) => Math.abs(s - shifts[0]) > 1e-6 && Math.abs(Math.abs(s - shifts[0]) - bar) > 1e-6)) {
-          throw new Error("The cut's segments are not whole bars apart; its cuts would miss the beat");
-        }
-        const out = [];
-        for (const p of parts) {
-          for (const s of sections) {
-            const from = Math.max(p.from, s.from), to = Math.min(p.to, s.to);
-            if (to <= from) continue;
-            const section = { from: p.start + from - p.from, to: p.start + to - p.from, part: s.part };
-            const last = out[out.length - 1];
-            if (last && last.part === section.part && Math.abs(last.to - section.from) < 1e-6) last.to = section.to;
-            else out.push(section);
-          }
-        }
-        return { sections: out, downbeat: shifts[0] };
-      },
-    };
-  }
-
   /** The share of a frame's time the virtual shutter is open: 180°, as a film camera's. */
   const SHUTTER = 0.5;
   /** How far apart, in output pixels, the blended copies of a moving edge may be before they read as steps. */
@@ -69,7 +14,7 @@
   /**
    * The moments a frame at [t] is blended from, for something on it moving [motion] stage pixels a frame:
    * one for a still frame, more the faster it moves, spread over the open shutter and kept inside
-   * `[lo, hi]` — a segment of a cut, so no frame blends across a jump. Past what [MAX_EXPOSURES] can
+   * `[lo, hi]` — the film, so no frame blends in a moment before it starts or after it ends. Past what [MAX_EXPOSURES] can
    * blend smoothly, the shutter closes down instead, as a camera's would for a fast pan: a shorter
    * smear, rather than copies far enough apart to be seen.
    */
@@ -124,5 +69,5 @@
     return { at, crossing };
   }
 
-  root.filmParts = { cut, exposures, counting, swipe, SHUTTER };
+  root.filmParts = { exposures, counting, swipe, SHUTTER };
 })(globalThis);
