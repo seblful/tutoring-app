@@ -108,7 +108,7 @@ and the scripts make the same ones again from the captures.
   the sheet as it opened — the rest of that sheet changed with the lesson (its homework moved on), and
   swapped whole it jumped.
 - **The swipes** — that lesson, and a piece of homework swiped done before the next is set. The capture books a lesson earlier today
-  that was never marked (`DemoSeeder.bookUnmarkedLesson`, film-only: the listing's shots are taken
+  that was never marked (`DemoTutor.UNMARKED`, booked through what `DemoSeeder.seed` returns; film-only: the listing's shots are taken
   first), then drags each row with a real touch and shoots it twice on the way, just short of the mark
   and past it (`film-swipe-unarmed`, `film-swipe-armed`, and `film-homework-swipe-…`): the panel the
   film slides the row off is the app's own, glyph grown at the mark. Let go, the lesson's row is home at
@@ -174,7 +174,10 @@ Each step refuses rather than writing a bad listing:
   spare captures (`student`, `schedule-week`, `schedule-month`, `group`, `settings`, `more`,
   `reports-dark`) can be swapped in by name.
 - **Demo data** — `DemoTutor.kt`. Russian uses BYN and Belarusian names for things (ЦТ, +375); English
-  uses USD. Keep both languages the same week, so the two listings show the same app.
+  uses USD. Keep both languages the same week, so the two listings show the same app; `DemoTutorTest`
+  holds them to it, and to the moments the film relies on (a lesson on now, the day's last one still to
+  come, a free gap for the unmarked one). Who plays a part is asked of the tutor (`onNow`, `debtor`,
+  `lastToday`, …), never picked by position in a list.
 - **A new screen** — add a step to `StoreScreenshots.tour()`, then reference it from `listing.json`.
 - **Description** — `store/text/<locale>/*.txt`. Claim only what the app does; the README's features are
   the reference.

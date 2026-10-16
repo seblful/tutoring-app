@@ -127,7 +127,7 @@ class StoreScreenshots {
 
     @BindValue
     @JvmField
-    val clock: Clock = Clock.fixed(DemoTutor.NOW.atZone(DemoTutor.ZONE).toInstant(), DemoTutor.ZONE)
+    val clock: Clock = DemoTutor.CLOCK
 
     @BindValue
     @FirstDayOfWeek
@@ -158,6 +158,9 @@ class StoreScreenshots {
 
     @Inject
     internal lateinit var seeder: DemoSeeder
+
+    /** The tutor's book once [seeder] has written it, for the promo video's changes to it. */
+    private lateinit var seeded: DemoSeeder.Seeded
 
     @Inject
     lateinit var settings: SettingsRepository
@@ -207,7 +210,7 @@ class StoreScreenshots {
         Locale.setDefault(tutor.locale)
         RuntimeEnvironment.setQualifiers("+$qualifier")
         hilt.inject()
-        runBlocking { seeder.seed(tutor) }
+        seeded = runBlocking { seeder.seed(tutor) }
 
         launchOnToday()
         writeManifest()
@@ -260,7 +263,7 @@ class StoreScreenshots {
 
     /** Every screen worth showing, in the order a tutor would meet them. */
     private fun tour() {
-        val student = tutor.students[1].name
+        val student = tutor.debtor.name
         val group = tutor.group.name
 
         // The schedule opens on today: taught, on now, still to come.
@@ -284,7 +287,7 @@ class StoreScreenshots {
 
         tab(R.string.nav_people)
         waitFor(student)
-        val credit = tutor.students.first { it.prepaysLessons > 0 }.name
+        val credit = tutor.inCredit.name
         capture("people", marks = mapOf("debtor" to row(student), "credit" to row(credit)))
 
         click(student)
@@ -408,10 +411,8 @@ class StoreScreenshots {
      */
     private fun filmTour() {
         val student = tutor.onNow.name
-        val unmarked = row(runBlocking { seeder.bookUnmarkedLesson(tutor) })
-        val today = DemoTutor.NOW.dayOfWeek
-        val last = tutor.students.filter { s -> s.slots.any { it.day == today } }
-            .maxBy { s -> s.slots.first { it.day == today }.time }.name
+        val unmarked = row(runBlocking { seeded.bookUnmarkedLesson() })
+        val last = tutor.lastToday.name
         // The sheet's segment, not the badges on the schedule behind it.
         val cancelled = hasText(string(R.string.class_status_cancelled)) and isSelectable()
         tab(R.string.nav_schedule)
@@ -439,7 +440,7 @@ class StoreScreenshots {
         swipe(homework, "film-homework-swipe")
         capture("film-homework-done", marks = mapOf("add" to add))
 
-        runBlocking { seeder.giveTypedHomework(tutor) }
+        runBlocking { seeded.giveTypedHomework() }
         // The «moved to the archive» message still up: it stays ten seconds, longer than the typing takes.
         waitFor(tutor.typedHomework)
         capture("film-homework", marks = mapOf("added" to row(tutor.typedHomework)))
