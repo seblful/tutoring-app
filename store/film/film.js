@@ -383,16 +383,17 @@
     ["settings-calendar", 30.25, 33.6],
     ["schedule-day-dark", 34.3, 37.5],
   ];
-  /** When each lifted row is up. */
+  /** When each lifted row is up, and how far it grows: a little, so it stays in its place on the screen. */
   const CALLOUTS = [
-    ["swiped", 7.5, 7.95, 1.1],
-    ["cancelled", 10.5, 11.35, 1.1],
-    ["debtor", 13.0, 14.95, 1.1],
-    ["credit", 13.65, 14.95, 1.1],
-    ["added", 29.0, 29.65, 1.1],
-    // Settings rows sit edge to edge under a section title, so they lift less, not to cover it.
-    ["sync", 30.9, 32.2, 1.03],
-    ["invites", 31.35, 32.2, 1.03],
+    ["swiped", 7.5, 7.95, 1.045],
+    ["cancelled", 10.5, 11.35, 1.045],
+    ["debtor", 13.0, 14.95, 1.045],
+    ["credit", 13.65, 14.95, 1.045],
+    ["added", 29.0, 29.65, 1.045],
+    // Settings rows sit edge to edge under a section title, so they lift less, not to cover it, and
+    // one after the other: up together, the lower one's edge and shadow lie over the upper one.
+    ["sync", 30.85, 31.5, 1.03],
+    ["invites", 31.4, 32.3, 1.03],
   ];
   /**
    * When each tap lands, and on what. A card or a button standing on its own is pressed in (`lift`); a
