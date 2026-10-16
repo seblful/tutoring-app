@@ -122,6 +122,27 @@ internal class DemoSeeder @Inject constructor(
         homework.give(Assignee.Student(roster.studentIds.getValue(tutor.onNow.name)), tutor.typedHomework)
     }
 
+    /**
+     * One more lesson today, over before the one on now and never marked — as a tutor who has not got round
+     * to it would have it — for the promo video to swipe taught: with a student who has none today, in the
+     * gap between the morning's lesson and the afternoon's. Returns whom it is with, which names its row.
+     */
+    suspend fun bookUnmarkedLesson(tutor: DemoTutor): String {
+        val today = DemoTutor.NOW.toLocalDate()
+        val student = tutor.students.first { s -> s.slots.none { it.day == today.dayOfWeek } }
+        val slot = Slot(today.dayOfWeek, UNMARKED_HOUR, UNMARKED_MINUTE, UNMARKED_MINUTES)
+        classes.book(
+            subjectId = roster.subjectIds.getValue(student.subject),
+            start = today.atTime(slot.time).atZone(DemoTutor.ZONE).toInstant(),
+            durationMinutes = slot.minutes,
+            mode = student.mode,
+            studentIds = listOf(roster.studentIds.getValue(student.name)),
+            price = Money.ofMajor(student.rate),
+            groupId = null,
+        ).written()
+        return student.name
+    }
+
     private suspend fun setHomework(tutor: DemoTutor, roster: Roster) {
         for (s in tutor.students) {
             s.homework?.let { homework.give(Assignee.Student(roster.studentIds.getValue(s.name)), it) }
@@ -197,5 +218,10 @@ internal class DemoSeeder @Inject constructor(
     private companion object {
         /** Roughly one lesson in seventeen is called off, as in any real half-year. */
         const val CANCEL_EVERY = 17
+
+        /** The unmarked lesson: 12:30 for an hour, after the 11:00 and before the 14:00 in both languages. */
+        const val UNMARKED_HOUR = 12
+        const val UNMARKED_MINUTE = 30
+        const val UNMARKED_MINUTES = 60
     }
 }

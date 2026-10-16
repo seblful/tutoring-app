@@ -77,6 +77,12 @@ body { font-family: Golos, sans-serif; -webkit-font-smoothing: antialiased; colo
   box-shadow: 0 0 0 calc(var(--phone) * .006) rgba(76, 91, 196, .45); }
 .tap .wave { position: absolute; inset: 0; border-radius: 50%; border: calc(var(--phone) * .006) solid rgba(255, 255, 255, .9); }
 .scrim { position: absolute; inset: 0; background: #000; opacity: 0; }
+
+/* A row being swiped: a band of the screen as tall as the row, holding the panel the swipe uncovers and the
+   row over it, moved sideways; and, for a row that leaves its list, the rows below closing up. */
+.swipe { position: absolute; overflow: hidden; background-repeat: no-repeat; }
+.swipe .reveal, .swipe .row, .swipe .rows { position: absolute; background-repeat: no-repeat; }
+.swipe .row { top: 0; height: 100%; }
 #overlay { position: absolute; left: 0; top: 0; z-index: 5; }
 
 /* The homework being typed: the app's own «Set homework» dialog, drawn larger than the phone. */

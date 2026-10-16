@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The promo video: the real app's captures in motion, with music and sound, per locale in listing.json —
-// 40 seconds or a 15-second cut, wide (16:9) or tall (9:16). No npm dependencies and no ffmpeg — a
+// 42 seconds or a 17-second cut, wide (16:9) or tall (9:16). No npm dependencies and no ffmpeg — a
 // headless Chrome draws each frame (store/film/film.js), synthesises the soundtrack (store/film/sound.js)
 // and encodes both with its own WebCodecs encoders (store/film/encoder.js); store/lib/mp4.mjs writes the file.
 //
@@ -35,14 +35,16 @@ const DOWNLOAD_ICON = `<svg viewBox="0 0 24 24"><path fill="#4c5bc4" d="M11 3h2v
 const CALENDAR_ICON = `<svg viewBox="0 0 24 24"><path fill="#4c5bc4" d="M7 2h2v2h6V2h2v2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2V2Zm12 8H5v10h14V10Z"/></svg>`;
 
 /** The captures on the phone's screen during the film; the lock screen is drawn from notifications.json. */
-const SHOTS = ["schedule-day", "film-sheet", "film-taught", "people", "reports", "homework", "film-homework",
-  "settings-calendar", "film-theme", "film-theme-dark", "schedule-day-dark"];
+const SHOTS = ["film-day", "film-sheet", "film-taught", "film-swiped", "people", "reports", "film-homework-list",
+  "film-homework-done", "film-homework", "settings-calendar", "film-theme", "film-theme-dark", "schedule-day-dark"];
+/** Captures the film takes parts of rather than whole screens: rows shot mid-swipe, short of the mark and past it. */
+const PIECES = ["film-swipe-unarmed", "film-swipe-armed", "film-homework-swipe-unarmed", "film-homework-swipe-armed"];
 /**
  * The screens shown after the lock screen's reminder, whose status bar reads its time rather than the
  * schedule's: the clock must not run backwards. The schedule's day keeps its own, as its «now» line is
  * drawn at it — but not after dark, which follows the 3:30 of Settings straight on.
  */
-const AFTER_REMINDER = ["homework", "film-homework", "settings-calendar", "film-theme", "film-theme-dark", "schedule-day-dark"];
+const AFTER_REMINDER = ["film-homework-list", "film-homework-done", "film-homework", "settings-calendar", "film-theme", "film-theme-dark", "schedule-day-dark"];
 /** Which side of the frame each caption is on, when wide: the phone is on the other. */
 const CAPTION_SIDES = {
   "schedule-day": "left", "lesson-sheet": "left", people: "right", reports: "left", reminders: "right",
@@ -81,7 +83,7 @@ async function film(locale, layout, cut) {
   const shots = JSON.parse(readFileSync(join(raw, "shots.json"), "utf8"));
   const tray = JSON.parse(readFileSync(join(raw, "notifications.json"), "utf8"));
   const typed = JSON.parse(readFileSync(join(raw, "film.json"), "utf8"));
-  const name = `klas-${locale}${layout === "vertical" ? "-vertical" : ""}${cut === "short" ? "-15s" : ""}` +
+  const name = `klas-${locale}${layout === "vertical" ? "-vertical" : ""}${cut === "short" ? "-short" : ""}` +
     `${options.scale > 1 ? "-4k" : ""}`;
   const stage = STAGES[layout];
 
@@ -222,7 +224,9 @@ async function check(file, duration, width, height) {
 function page({ locale, layout, cut, stage, words, raw, shots, tray, typed }) {
   const strings = appStrings(locale);
   const caption = (entry) => {
-    const copy = entry[locale] ?? fail(`${locale}: no caption for «${entry.shot}» in listing.json`);
+    const still = entry[locale] ?? fail(`${locale}: no caption for «${entry.shot}» in listing.json`);
+    // The video's own wording where it shows more than the still: the lesson sheet's scene swipes too.
+    const copy = still.film ?? still;
     const title = copy.title.split("\n").map((line) => `<span class="line">${text(line)}</span>`).join("");
     return `
     <div class="caption ${CAPTION_SIDES[entry.shot] ?? "left"}" data-shot="${entry.shot}">
@@ -258,11 +262,12 @@ function page({ locale, layout, cut, stage, words, raw, shots, tray, typed }) {
   const data = {
     layout, cut, stage,
     capture: { width: sheet.width, height: sheet.height },
-    shots: Object.fromEntries(SHOTS.map((name) => [name, { src: url(join(raw, `${name}.png`)), marks: shot(name).marks }])),
+    shots: Object.fromEntries([...SHOTS, ...PIECES].map((name) => [name, { src: url(join(raw, `${name}.png`)), marks: shot(name).marks }])),
     words: { tagline: words.tagline },
     film: typed,
     sheetTop: sheetTop(sheet, shot("film-sheet").bottom),
     ...reportParts(raw, shot("reports"), shot("film-reports-end")),
+    closeUp: closeUp(raw, shot("film-homework-list")),
   };
   // Beside the settings when wide; over the phone's lower half, under the rows it calls out, when tall.
   const calendarAt = layout === "vertical" ? "left: 280px; top: 1240px;" : "left: 920px; top: 440px;";
@@ -333,6 +338,32 @@ function reportParts(raw, opened, scrolled) {
     scroll: { list, d, seam, src: url(join(raw, "film-reports-end.png")) },
     count: { ...total, background },
   };
+}
+
+/**
+ * What the video needs to close the homework list up over the row swiped off it: how far the rows below
+ * rose, found to the pixel between the lists before and after; where the rows end, just under the last
+ * card — the message the swipe brings up comes in below it, over the screen's foot; and the screen's
+ * background, for the gap they rise into.
+ */
+function closeUp(raw, before) {
+  const list = decode(readFileSync(join(raw, "film-homework-list.png")));
+  const done = decode(readFileSync(join(raw, "film-homework-done.png")));
+  const [, top, , bottom] = before.marks.swipe;
+  const px = (x, y) => [0, 1, 2].map((k) => list.pixels[(y * list.width + x) * list.channels + k]);
+  const ground = px(8, Math.round((top + bottom) / 2));
+  const plain = (y) => {
+    for (let x = 0; x < list.width; x += 2) {
+      if (px(x, y).some((v, k) => Math.abs(v - ground[k]) > 6)) return false;
+    }
+    return true;
+  };
+  let last = before.marks.add[1] - 1;
+  while (last > bottom && plain(last)) last--;
+  const foot = last + 8;
+  const { d: pitch } = joinScroll(list, done, [0, top, list.width, foot], bottom - top + 48);
+  const background = `#${ground.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+  return { pitch, bottom: foot, background };
 }
 
 /**

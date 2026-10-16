@@ -1,5 +1,5 @@
 {
-  "$comment": "What the Play listing's graphics say, per language. Order = order on the store page (Play shows up to 8). `shot` names a raw capture from StoreScreenshots (spares: student, schedule-week, schedule-month, group, settings, more, reports-dark); `kind: lockscreen` draws the notifications it recorded instead; `theme` picks the backdrop. Titles break at \n. The promo video (video.mjs) reuses the captions, the tagline and `cta`. See docs/store-listing.md.",
+  "$comment": "What the Play listing's graphics say, per language. Order = order on the store page (Play shows up to 8). `shot` names a raw capture from StoreScreenshots (spares: student, schedule-week, schedule-month, group, settings, more, reports-dark); `kind: lockscreen` draws the notifications it recorded instead; `theme` picks the backdrop. Titles break at \n. The promo video (video.mjs) reuses the captions, the tagline and `cta`; a caption's `film` is its wording in the video instead, where the video shows more than the still. See docs/store-listing.md.",
   "locales": {
     "en-US": {
       "clock": "3:20",
@@ -30,11 +30,19 @@
       "callout": ["status"],
       "en-US": {
         "title": "Lessons marked\nin one tap",
-        "subtitle": "Status, homework and rescheduling in one place"
+        "subtitle": "Status, homework and rescheduling in one place",
+        "film": {
+          "title": "Lessons marked\nin a tap or a swipe",
+          "subtitle": "Swipe a lesson to mark it taught, or open it for the rest"
+        }
       },
       "ru-RU": {
         "title": "Отметить урок —\nв одно касание",
-        "subtitle": "Статус, задание и перенос — в одном окне"
+        "subtitle": "Статус, задание и перенос — в одном окне",
+        "film": {
+          "title": "Отметить урок —\nкасанием или свайпом",
+          "subtitle": "Смахните урок, чтобы отметить, или откройте его для остального"
+        }
       }
     },
     {

@@ -75,14 +75,14 @@ Each language gets four MP4s in `store/build/video/` (H.264 and AAC, 60 fps):
 
 | File | Frame | Length | For |
 |---|---|---|---|
-| `klas-<locale>.mp4` | 1920 × 1080 | 40 s | the Play listing, YouTube |
-| `klas-<locale>-15s.mp4` | 1920 × 1080 | 15 s | ads, posts |
-| `klas-<locale>-vertical.mp4` | 1080 × 1920 | 40 s | Shorts, Reels, stories |
-| `klas-<locale>-vertical-15s.mp4` | 1080 × 1920 | 15 s | the same, short |
+| `klas-<locale>.mp4` | 1920 × 1080 | 42 s | the Play listing, YouTube |
+| `klas-<locale>-short.mp4` | 1920 × 1080 | 17 s | ads, posts |
+| `klas-<locale>-vertical.mp4` | 1080 × 1920 | 42 s | Shorts, Reels, stories |
+| `klas-<locale>-vertical-short.mp4` | 1080 × 1920 | 17 s | the same, short |
 
-A 40-second one takes about ten minutes, a short one four. Chrome draws in software, which on a
+A full-length one takes about forty minutes with motion blur, a short one about fifteen. Chrome draws in software, which on a
 laptop beat its discrete GPU by ten times (every frame is read back). Play takes a video only as a
-**YouTube link** (Main store listing → Video): upload the wide 40-second file to YouTube, public or
+**YouTube link** (Main store listing → Video): upload the wide full-length file to YouTube, public or
 unlisted, with ads off, and paste its URL. The files are not committed: they are tens of megabytes,
 and the scripts make the same ones again from the captures.
 
@@ -92,7 +92,7 @@ and the scripts make the same ones again from the captures.
   white light; taps land on them. Scenes start on 2-second bars, the music's downbeats. The intro types
   the tagline; the close shows `cta` in a white pill — words only, as Google allows its Play logo only
   on its own badge.
-- **The short cut** is three pieces of the same timeline (`CUTS` in `film.js`): the lesson marked
+- **The short cut** is three pieces of the same timeline (`CUTS` in `film.js`): the lessons marked
   taught, the reminders, the close. Each piece starts a whole number of bars from where it sat, so the
   music keeps its beat; `store/film/parts.js` maps the times and the music's sections.
 - **The tall frame** puts every caption above the phone, which stays in the middle and zooms less so it
@@ -101,6 +101,15 @@ and the scripts make the same ones again from the captures.
   records the text's size, weight and colour) and its list scrolls: two captures of it (`reports`,
   `film-reports-end`) joined into one, at a row no text crosses, after finding to the pixel how far it
   moved. The dark theme spreads from the tap on Settings' «Dark» (`film-theme`, `film-theme-dark`).
+- **The swipes** — a lesson marked taught by swiping it, after the one on now is marked from its sheet,
+  and a piece of homework swiped done before the next is set. The capture books a lesson earlier today
+  that was never marked (`DemoSeeder.bookUnmarkedLesson`, film-only: the listing's shots are taken
+  first), then drags each row with a real touch and shoots it twice on the way, just short of the mark
+  and past it (`film-swipe-unarmed`, `film-swipe-armed`, and `film-homework-swipe-…`): the panel the
+  film slides the row off is the app's own, glyph grown at the mark. Let go, the lesson's row is home at
+  once saying «Taught» (`film-swiped`), as the app redraws it rather than springing it back; the
+  homework leaves its list, and the rows below rise into the gap by as far as the lists before and after
+  (`film-homework-list`, `film-homework-done`) show they moved, found to the pixel.
 - **The homework being typed** is drawn by the film in the app's own words (`strings.xml`): under
   Robolectric the app's homework dialog never lets Compose go idle, so it cannot be shot. What it
   lands on, the list with the new row, is the real app (`film-homework`).
@@ -140,7 +149,8 @@ Each step refuses rather than writing a bad listing:
 ## Changing things
 
 - **Captions, order, which screens** — `store/listing.json`; the video reuses its captions, tagline and
-  `cta`. `callout`, `layout` and `behind` shape each screenshot (above). Play shows at most 8 phone
+  `cta` — a caption's `film` is its wording in the video instead, where the video shows more than the
+  still (the lesson scene swipes as well as taps). `callout`, `layout` and `behind` shape each screenshot (above). Play shows at most 8 phone
   screenshots;
   spare captures (`student`, `schedule-week`, `schedule-month`, `group`, `settings`, `more`,
   `reports-dark`) can be swapped in by name.

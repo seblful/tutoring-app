@@ -3,7 +3,7 @@
 // draws the frame at t seconds, in any order — and lists the sounds that go with it (`film.cues`), so the
 // frames and the soundtrack are made separately and still land together.
 //
-// One timeline, the full 40 seconds, in two shapes and two cuts: the frame is wide (1920 × 1080) or tall
+// One timeline, the full 42 seconds, in two shapes and two cuts: the frame is wide (1920 × 1080) or tall
 // (1080 × 1920, the captions above the phone rather than beside it), and the film is played whole or
 // as its short cut, three pieces of the same timeline end to end (parts.js).
 //
@@ -13,8 +13,8 @@
 
 (() => {
   const F = window.FILM;
-  const { counting, cut, exposures } = window.filmParts;
-  const DURATION = 40;
+  const { counting, cut, exposures, swipe: swiping } = window.filmParts;
+  const DURATION = 42;
   const SW = F.stage.width, SH = F.stage.height;
   const TALL = F.layout === "vertical";
 
@@ -38,13 +38,13 @@
     Math.min(span(t, a, a + inFor, E.out), 1 - span(t, b - outFor, b, E.in));
 
   /**
-   * The cuts: the whole film, and fifteen seconds of it for an ad or a short — the lesson marked taught,
+   * The cuts: the whole film, and seventeen seconds of it for an ad or a short — the lessons marked taught,
    * the reminders, the close. Each piece starts a whole number of bars from where it sat, so the music
    * keeps its downbeats, and the joins fall mid-swing, where the film already changes screens.
    */
   const CUTS = {
     full: [[0, DURATION]],
-    short: [[3.3, 10.02], [18.02, 22], [36, DURATION]],
+    short: [[3.3, 12.02], [20.02, 24], [38, DURATION]],
   };
   const CUT = cut(CUTS[F.cut] ?? fail(`no cut «${F.cut}»`));
 
@@ -154,46 +154,51 @@
     [3.55, OFF_IN],
     [4.5, RIGHT, E.out5],
     [5.45, { ...RIGHT, ry: -6, rx: 2 }, E.linear],
-    // The lesson on now, tapped: its sheet comes up, «Taught» is tapped, and the row says so.
-    [6.0, aim("schedule-day", "onNow", 1.38, ...Q_R)],
-    [6.8, aim("schedule-day", "onNow", 1.38, ...Q_R)],
+    // The lesson on now, tapped: its sheet comes up, «Taught» is tapped, and the row says so. Then the one
+    // before it, left unmarked, swiped taught.
+    [6.0, aim("film-day", "onNow", 1.38, ...Q_R)],
+    [6.8, aim("film-day", "onNow", 1.38, ...Q_R)],
     [7.25, aim("film-sheet", "taught", 1.62, ...Q_R)],
     [7.9, aim("film-sheet", "taught", 1.62, ...Q_R)],
     [8.45, aim("film-taught", "row", 1.42, ...Q_R)],
-    [9.3, aim("film-taught", "row", 1.42, ...Q_R)],
-    [9.75, FRONT_R],
+    [9.05, aim("film-taught", "row", 1.42, ...Q_R)],
+    [9.45, aim("film-taught", "swipe", 1.42, ...Q_R)],
+    [11.25, aim("film-taught", "swipe", 1.42, ...Q_R)],
+    [11.75, FRONT_R],
     // Who owes.
-    [10.35, LEFT, E.inOut, SWING_TO_L],
-    [10.95, { ...FRONT_L, s: 1.05 }],
+    [12.35, LEFT, E.inOut, SWING_TO_L],
     [12.95, { ...FRONT_L, s: 1.05 }],
-    [13.75, FRONT_L],
+    [14.95, { ...FRONT_L, s: 1.05 }],
+    [15.75, FRONT_L],
     // The month's income, counted up, then the rest of the report scrolled through.
-    [14.35, RIGHT, E.inOut, SWING_TO_R],
-    [14.95, aim("reports", "income", 1.5, 1330, 470, 150)],
-    [15.95, aim("reports", "income", 1.53, 1330, 470, 150), E.linear],
-    [16.4, FRONT_R],
-    [17.75, FRONT_R],
+    [16.35, RIGHT, E.inOut, SWING_TO_R],
+    [16.95, aim("reports", "income", 1.5, 1330, 470, 150)],
+    [17.95, aim("reports", "income", 1.53, 1330, 470, 150), E.linear],
+    [18.4, FRONT_R],
+    [19.75, FRONT_R],
     // Reminders on the lock screen.
-    [18.35, LEFT, E.inOut, SWING_TO_L],
-    [19.0, { ...LEFT, ry: 5, rx: 2, s: 1.04 }],
-    [21.45, { ...LEFT, ry: 2, rx: 1, s: 1.08 }, E.linear],
-    [21.75, FRONT_L],
-    // Homework, typed and landed on the list.
-    [22.35, RIGHT, E.inOut, SWING_TO_R],
-    [22.85, FRONT_R],
-    [27.75, FRONT_R],
+    [20.35, LEFT, E.inOut, SWING_TO_L],
+    [21.0, { ...LEFT, ry: 5, rx: 2, s: 1.04 }],
+    [23.45, { ...LEFT, ry: 2, rx: 1, s: 1.08 }, E.linear],
+    [23.75, FRONT_L],
+    // Homework: last time's swiped done, then the next typed and landed on the list.
+    [24.35, RIGHT, E.inOut, SWING_TO_R],
+    [24.85, aim("film-homework-list", "swipe", 1.3, ...Q_R)],
+    [25.6, aim("film-homework-list", "swipe", 1.3, ...Q_R)],
+    [26.1, FRONT_R],
+    [29.75, FRONT_R],
     // The calendar.
-    [28.35, LEFT, E.inOut, SWING_TO_L],
-    [28.8, FRONT_L],
-    [31.75, FRONT_L],
+    [30.35, LEFT, E.inOut, SWING_TO_L],
+    [30.8, FRONT_L],
+    [33.75, FRONT_L],
     // After dark: switched on in Settings, and the schedule in it. Aimed right of the usual point, so the
     // phone, closing in on the right of its screen, keeps clear of the caption.
-    [32.35, RIGHT, E.inOut, SWING_TO_R],
-    [32.8, aim("film-theme", "dark", 1.32, 1420, 560)],
-    [33.75, aim("film-theme", "dark", 1.36, 1420, 560), E.linear],
-    [34.15, { ...RIGHT, ry: -4, rx: 2, s: 1.02 }],
-    [35.45, { ...RIGHT, ry: -9, rx: 3, s: 1.07 }, E.linear],
-    [36.1, OFF_OUT, E.in],
+    [34.35, RIGHT, E.inOut, SWING_TO_R],
+    [34.8, aim("film-theme", "dark", 1.32, 1420, 560)],
+    [35.75, aim("film-theme", "dark", 1.36, 1420, 560), E.linear],
+    [36.15, { ...RIGHT, ry: -4, rx: 2, s: 1.02 }],
+    [37.45, { ...RIGHT, ry: -9, rx: 3, s: 1.07 }, E.linear],
+    [38.1, OFF_OUT, E.in],
   ];
 
   // --- Sounds -------------------------------------------------------------------------------------
@@ -248,6 +253,7 @@
     taps[id] = el;
   }
   callout("row", "film-taught", "row");
+  callout("swiped", "film-swiped", "swipe");
   callout("debtor", "people", "debtor");
   callout("credit", "people", "credit");
   callout("added", "film-homework", "added");
@@ -366,31 +372,88 @@
    */
   const CAPTIONS = [
     ["schedule-day", 4.15, 6.15],
-    ["lesson-sheet", 6.75, 9.6],
-    ["people", 10.25, 13.6],
-    ["reports", 14.25, 17.6],
-    ["reminders", 18.25, 21.6],
-    ["homework", 22.25, 27.6],
-    ["settings-calendar", 28.25, 31.6],
-    ["schedule-day-dark", 32.3, 35.5],
+    ["lesson-sheet", 6.75, 11.6],
+    ["people", 12.25, 15.6],
+    ["reports", 16.25, 19.6],
+    ["reminders", 20.25, 23.6],
+    ["homework", 24.25, 29.6],
+    ["settings-calendar", 30.25, 33.6],
+    ["schedule-day-dark", 34.3, 37.5],
   ];
   /** When each lifted row is up. */
   const CALLOUTS = [
-    ["row", 8.48, 9.35, 1.1],
-    ["debtor", 11.0, 12.95, 1.1],
-    ["credit", 11.65, 12.95, 1.1],
-    ["added", 26.95, 27.65, 1.1],
+    ["row", 8.48, 9.1, 1.1],
+    ["swiped", 10.6, 11.35, 1.1],
+    ["debtor", 13.0, 14.95, 1.1],
+    ["credit", 13.65, 14.95, 1.1],
+    ["added", 29.0, 29.65, 1.1],
     // Settings rows sit edge to edge under a section title, so they lift less, not to cover it.
-    ["sync", 28.9, 30.2, 1.03],
-    ["invites", 29.35, 30.2, 1.03],
+    ["sync", 30.9, 32.2, 1.03],
+    ["invites", 31.35, 32.2, 1.03],
   ];
   /** When each tap lands, and on what. */
   const TAPS = [
-    ["onNow", 6.12, "schedule-day", "onNow"],
+    ["onNow", 6.12, "film-day", "onNow"],
     ["taught", 7.42, "film-sheet", "taught"],
-    ["add", 23.05, "homework", "add"],
-    ["themeDark", 32.95, "film-theme", "dark"],
+    ["add", 25.9, "film-homework-done", "add"],
+    ["themeDark", 34.95, "film-theme", "dark"],
   ];
+  /**
+   * The rows swiped towards the end of the line, as the app's `SwipeToConfirmBox` has them: dragged off
+   * what the swipe promises — the panel behind the row, from captures shot mid-drag just short of the mark
+   * and past it, where its glyph has grown — and let go past the mark, which acts. Nothing springs back:
+   * a lesson's row is home at once, saying «Taught», as the app redraws it; a piece of homework leaves the
+   * list, and the rows below it close up (`close` seconds, video.mjs measured how far).
+   */
+  const SWIPES = {
+    lesson: { before: "film-taught", shot: "film-swipe", down: 9.5, drag: [9.55, 10.2], release: 10.45 },
+    homework: { before: "film-homework-list", shot: "film-homework-swipe", down: 24.75, drag: [24.8, 25.3], release: 25.45, close: 0.4 },
+  };
+  /** Where the thumb holds the row, across it. */
+  const THUMB = 0.3;
+  for (const s of Object.values(SWIPES)) {
+    const g = LG, k = g.k;
+    const m = (s.m = mark(s.before, "swipe"));
+    const [l, top, r, bottom, corner] = m;
+    s.unarmed = mark(`${s.shot}-unarmed`, "swipe")[0] - l;
+    Object.assign(s, swiping({ unarmed: s.unarmed, armed: mark(`${s.shot}-armed`, "swipe")[0] - l, drag: s.drag, release: s.release, ease: E.inOut }));
+    const piece = (cls, src, from, style) => {
+      const el = document.createElement("div");
+      el.className = cls;
+      Object.assign(el.style, { backgroundImage: `url("${src}")`, backgroundSize: `${CW * k}px auto`, backgroundPosition: `${-from[0] * k}px ${-from[1] * k}px`, ...style });
+      return el;
+    };
+    s.band = document.createElement("div");
+    s.band.className = "swipe";
+    Object.assign(s.band.style, { left: `${g.pad}px`, top: `${g.pad + g.status + top * k}px`, width: `${g.sw}px`, height: `${(bottom - top) * k}px` });
+    const reveal = { inset: "0" };
+    s.armedReveal = piece("reveal", F.shots[`${s.shot}-armed`].src, [0, top], reveal);
+    // Short of the mark the capture shows only as much of the panel as the row had uncovered.
+    s.unarmedReveal = piece("reveal", F.shots[`${s.shot}-unarmed`].src, [0, top], { ...reveal, clipPath: `inset(0 ${(CW - l - s.unarmed) * k}px 0 0)` });
+    s.row = piece("row", F.shots[s.before].src, [l, top], { left: `${l * k}px`, width: `${(r - l) * k}px`, borderRadius: `${Math.max(corner, ROW_CORNER) * k}px` });
+    s.band.append(s.armedReveal, s.unarmedReveal, s.row);
+    s.finger = document.createElement("div");
+    s.finger.className = "tap";
+    s.finger.innerHTML = `<div class="finger"></div>`;
+    overlay.append(s.band, s.finger);
+    if (s.close) {
+      // The list below the row, from its capture before the swipe, rising into the gap over the screen's
+      // background; under it, the screen's foot fading into the one after, where the message has come up.
+      const { pitch, bottom: foot, background } = F.closeUp;
+      s.gap = document.createElement("div");
+      s.gap.className = "swipe";
+      Object.assign(s.gap.style, { left: `${g.pad}px`, top: `${g.pad + g.status + top * k}px`, width: `${g.sw}px`, height: `${(foot - top) * k}px`, background });
+      s.below = piece("rows", F.shots[s.before].src, [0, bottom], { left: "0", width: "100%", height: `${(foot - bottom) * k}px` });
+      s.gap.append(s.below);
+      s.foot = piece("swipe", F.shots[s.before].src, [0, foot], { left: `${g.pad}px`, top: `${g.pad + g.status + foot * k}px`, width: `${g.sw}px`, height: `${(CH - foot) * k}px` });
+      s.pitch = pitch;
+      overlay.append(s.gap, s.foot);
+    }
+    cue(s.down, "tap");
+    cue(s.crossing, "tick", { v: 1 });
+    cue(s.release, "chime");
+    if (s.close) cue(s.release + 0.02, "swish", { v: 0.3 });
+  }
   const SHEET_UP = [6.28, 6.66];
   /** Material's scrim behind a modal sheet: black at 32%, what the capture's dimmed top measures. */
   const SCRIM = 0.32;
@@ -399,26 +462,33 @@
   const TAUGHT_AT = 7.47;
   const SHEET_DOWN = [7.6, 7.92];
   /** The month's total counting up as the phone closes in on it, then the list scrolling. */
-  const COUNT = [14.9, 15.75];
-  const SCROLL = [16.45, 17.5];
-  const CARD_ARRIVALS = [18.75, 19.6, 20.45];
-  const TYPE_FROM = 23.75;
-  const SAVE_AT = 26.3;
-  const LAND = [26.45, 26.95];
+  const COUNT = [16.9, 17.75];
+  const SCROLL = [18.45, 19.5];
+  const CARD_ARRIVALS = [20.75, 21.6, 22.45];
+  /** «Set homework» opening out of the tapped button, typed into in the time there is, saved, landed. */
+  const DIALOG = [25.95, 26.4];
+  const TYPING = [26.55, 28.15];
+  const SAVE_AT = 28.35;
+  const LAND = [28.5, 29.0];
   /** The theme switched to dark, spreading from the tap; then back out of Settings to the schedule. */
-  const DARK = [33.05, 33.7];
-  const LEAVE = [34.2, 34.6];
+  const DARK = [35.05, 35.7];
+  const LEAVE = [36.2, 36.6];
 
+  // Typed at a typist's rhythm, sped up to fit the time there is.
   const typedText = F.film.homework;
   const typedAt = [];
   {
     const next = random(7);
-    let t = TYPE_FROM;
-    for (const ch of typedText) {
+    const chars = [...typedText];
+    const gaps = chars.map((ch) => (ch === " " ? 0.11 : 0.062) + next() * 0.04);
+    const pace = Math.min(1, (TYPING[1] - TYPING[0]) / gaps.reduce((a, b) => a + b, 0));
+    if ((TYPING[1] - TYPING[0]) / chars.length < 0.03) fail("The film's homework is too long to type in time; shorten DemoTutor.typedHomework");
+    let t = TYPING[0];
+    chars.forEach((ch, i) => {
       typedAt.push(t);
       cue(t, ch === " " ? "space" : "key", { v: 0.75 + next() * 0.25, c: ch.codePointAt(0) });
-      t += (ch === " " ? 0.11 : 0.062) + next() * 0.04;
-    }
+      t += gaps[i] * pace;
+    });
   }
   // The tagline is typed between the name landing and the cut to the phone, as fast as it has to be.
   const taglineAt = [];
@@ -453,7 +523,7 @@
   cue(0.55, "whoosh", { d: 0.5, v: 0.5 });
   cue(3.3, "whoosh", { d: 0.7, v: 0.9 });
   cue(4.0, "impact", { v: 0.55 });
-  for (const t of [9.78, 13.78, 17.78, 21.78, 27.78, 31.78]) cue(t, "whoosh", { d: 0.6, v: 0.8 });
+  for (const t of [11.78, 15.78, 19.78, 23.78, 29.78, 33.78]) cue(t, "whoosh", { d: 0.6, v: 0.8 });
   for (const [, at] of TAPS) cue(at, "tap");
   cue(SHEET_UP[0], "swish", { v: 0.5 });
   cue(7.47, "chime");
@@ -465,14 +535,14 @@
     cue(t, "ding");
     cue(t, "buzz");
   });
-  cue(23.15, "swish", { v: 0.45 });
+  cue(DIALOG[0] + 0.05, "swish", { v: 0.45 });
   cue(SAVE_AT, "tap");
   cue(LAND[0] + 0.05, "whoosh", { d: 0.45, v: 0.45 });
   cue(DARK[0] - 0.05, "switch");
   cue(DARK[0], "whoosh", { d: 0.9, v: 0.5 });
   cue(LEAVE[0], "swish", { v: 0.35 });
-  cue(36.0, "impact", { v: 1 });
-  cue(37.2, "sparkle");
+  cue(38.0, "impact", { v: 1 });
+  cue(39.2, "sparkle");
 
   /**
    * The lock screen's cards, each in a wrapper whose height grows as it arrives — from the bottom of the
@@ -512,6 +582,7 @@
     for (const [id, a, b] of CAPTIONS) caption(captions[id], t, a, b, a >= part.from - 0.05);
     for (const [id, a, b, lift] of CALLOUTS) liftRow(callouts[id], t, a, b, lift);
     for (const [id, at, shot, name] of TAPS) press(taps[id], t, at, shot, name);
+    for (const s of Object.values(SWIPES)) swipe(s, t);
     typingCard(t, pose);
     calendarCard(t);
     // The film fades out with the music.
@@ -521,7 +592,7 @@
   function background(t, part) {
     // The night comes with the dark theme, so a piece without it stays in the day.
     const dark = part.from <= DARK[0] && part.to > DARK[0];
-    const nightness = dark ? span(t, DARK[0], DARK[1]) * (1 - span(t, 35.6, 36.8)) : 0;
+    const nightness = dark ? span(t, DARK[0], DARK[1]) * (1 - span(t, 37.6, 38.8)) : 0;
     night.style.opacity = String(nightness);
     const fx = SW / 1920, fy = SH / 1080;
     const drift = [[1250, -300, 0.13, 0], [-420, 520, 0.09, 2], [700, 700, 0.11, 4]];
@@ -554,13 +625,13 @@
     $(".caret", intro).style.opacity = t < 1.15 ? "0" : typingNow || Math.floor(t * 2.4) % 2 === 0 ? "1" : "0";
 
     // The close: the same, with the tagline settled and the way to get it.
-    outro.classList.toggle("hidden", t < 35.8);
-    lockup(outro, t, 36.0);
-    const line = span(t, 36.65, 37.15, E.out);
+    outro.classList.toggle("hidden", t < 37.8);
+    lockup(outro, t, 38.0);
+    const line = span(t, 38.65, 39.15, E.out);
     $(".tagline", outro).style.opacity = String(line);
     $(".tagline", outro).style.transform = `translateY(${(1 - line) * 30}px)`;
-    const cta = span(t, 37.2, 37.75, E.back);
-    $(".cta", outro).style.opacity = String(span(t, 37.2, 37.4));
+    const cta = span(t, 39.2, 39.75, E.back);
+    $(".cta", outro).style.opacity = String(span(t, 39.2, 39.4));
     $(".cta", outro).style.transform = `scale(${0.6 + 0.4 * cta})`;
   }
 
@@ -611,9 +682,10 @@
     const swap = (from, to, at) => show(t < at ? from : to);
 
     let dim = 0;
-    if (t < 9.9) {
-      // The row says «Taught» from the moment it is tapped, under the sheet, as it does in the app.
-      show(t < TAUGHT_AT ? "schedule-day" : "film-taught");
+    if (t < 11.9) {
+      // The row says «Taught» from the moment it is tapped, under the sheet, as it does in the app; the
+      // one before it from the moment the swipe lets go of it.
+      show(t < TAUGHT_AT ? "film-day" : t < SWIPES.lesson.release ? "film-taught" : "film-swiped");
       const up = span(t, SHEET_UP[0], SHEET_UP[1], E.out) * (1 - span(t, SHEET_DOWN[0], SHEET_DOWN[1], E.in));
       if (up > 0) {
         // Only the sheet comes from its capture, cut to its own rounded top. The dimming behind it is
@@ -626,19 +698,20 @@
         });
         dim = SCRIM * up;
       }
-    } else if (t < 14) swap("film-taught", "people", 10.02);
-    else if (t < 18) swap("people", "reports", 14.02);
-    else if (t < 22) swap("reports", "lockscreen", 18.02);
-    else if (t < 28) {
-      swap("lockscreen", t < LAND[0] ? "homework" : "film-homework", 22.02);
-    } else if (t < 32) swap("film-homework", "settings-calendar", 28.02);
+    } else if (t < 16) swap("film-swiped", "people", 12.02);
+    else if (t < 20) swap("people", "reports", 16.02);
+    else if (t < 24) swap("reports", "lockscreen", 20.02);
+    else if (t < 30) {
+      const list = t < SWIPES.homework.release ? "film-homework-list" : t < LAND[0] ? "film-homework-done" : "film-homework";
+      swap("lockscreen", list, 24.02);
+    } else if (t < 34) swap("film-homework", "settings-calendar", 30.02);
     else {
       // From the tap on «Dark»: the dark settings spread over the light ones, then the schedule slides in
       // from the left as Settings is left for it.
       const wipe = span(t, DARK[0], DARK[1], E.inOut), leave = span(t, LEAVE[0], LEAVE[1], E.inOut);
       if (leave >= 1) show("schedule-day-dark");
       else {
-        if (wipe < 1) swap("settings-calendar", "film-theme", 32.02);
+        if (wipe < 1) swap("settings-calendar", "film-theme", 34.02);
         if (leave > 0) show("schedule-day-dark", 1, { app: `translateX(${(leave - 1) * 30}%)` });
         if (wipe > 0) {
           const m = mark("film-theme", "dark"), x = ((m[0] + m[2]) / 2) * g.k, y = g.status + ((m[1] + m[3]) / 2) * g.k;
@@ -681,7 +754,7 @@
     if (shown.reports) reports(t);
 
     // The sheet's scrim, or the typing card's.
-    scrim.style.opacity = String(Math.max(dim, 0.45 * held(t, 23.12, 26.85, 0.25, 0.35)));
+    scrim.style.opacity = String(Math.max(dim, 0.45 * held(t, DIALOG[0] + 0.02, LAND[1] - 0.1, 0.25, 0.35)));
   }
 
   /** The report: its total counting up from nothing, then the list scrolled down to its last breakdowns. */
@@ -746,6 +819,37 @@
     drawTap(el, d, p.x, p.y);
   }
 
+  /** A row being swiped: the thumb down on it, the row dragged off its panel, and what the lift leaves. */
+  function swipe(s, t) {
+    const [l, top, r, bottom] = s.m;
+    const x = s.at(t);
+    const on = t > s.down - 0.2 && t < s.release;
+    s.band.classList.toggle("hidden", !on);
+    if (on) {
+      s.row.style.transform = `translateX(${x * LG.k}px)`;
+      // The glyph grows at the mark: the panel short of it fades into the one past it.
+      s.unarmedReveal.style.opacity = String(1 - span(t, s.crossing, s.crossing + 0.15, E.linear));
+    }
+    const thumb = t > s.down - 0.2 && t < s.release + 0.25;
+    s.finger.classList.toggle("hidden", !thumb);
+    if (thumb) {
+      const p = local(LG, l + THUMB * (r - l) + x, (top + bottom) / 2);
+      const down = span(t, s.down - 0.2, s.down, E.out), lift = span(t, s.release, s.release + 0.25, E.linear);
+      Object.assign(s.finger.style, { left: `${p.x}px`, top: `${p.y}px` });
+      $(".finger", s.finger).style.opacity = String(down * (1 - lift));
+      $(".finger", s.finger).style.transform = `scale(${1.25 - 0.25 * down + 0.2 * lift})`;
+    }
+    if (!s.close) return;
+    const closing = t >= s.release && t < s.release + s.close;
+    s.gap.classList.toggle("hidden", !closing);
+    s.foot.classList.toggle("hidden", !closing);
+    if (closing) {
+      const p = span(t, s.release, s.release + s.close, E.out);
+      s.below.style.top = `${(bottom - top - p * s.pitch) * LG.k}px`;
+      s.foot.style.opacity = String(1 - span(t, s.release, s.release + 0.25, E.linear));
+    }
+  }
+
   function drawTap(el, d, x, y) {
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
@@ -758,16 +862,16 @@
 
   /** «Set homework»: out of the tapped button, typed into, saved, and landed on the list as its new row. */
   function typingCard(t, pose) {
-    const on = t > 23.08 && t < LAND[1] + 0.02;
+    const on = t > DIALOG[0] - 0.02 && t < LAND[1] + 0.02;
     typing.classList.toggle("hidden", !on);
     saveTap.classList.toggle("hidden", !(t > SAVE_AT - 0.25 && t < SAVE_AT + 0.5));
     const rest = TALL ? { x: SW / 2, y: 1150 } : { x: 1340, y: 540 };
     const width = typing.offsetWidth, height = typing.offsetHeight;
     if (on) {
-      const add = onStage(pose, "homework", "add");
-      const open = span(t, 23.1, 23.55, E.out5);
+      const add = onStage(pose, "film-homework-done", "add");
+      const open = span(t, DIALOG[0], DIALOG[1], E.out5);
       let x = lerp((add.l + add.r) / 2, rest.x, open), y = lerp((add.t + add.b) / 2, rest.y, open);
-      let sx = lerp(0.12, 1, open), sy = sx, alpha = span(t, 23.1, 23.2, E.linear);
+      let sx = lerp(0.12, 1, open), sy = sx, alpha = span(t, DIALOG[0], DIALOG[0] + 0.1, E.linear);
       const land = span(t, LAND[0], LAND[1], E.inOut);
       if (land > 0) {
         const row = onStage(pose, "film-homework", "added");
@@ -780,11 +884,11 @@
       }
       typing.style.transform = `translate(${x - width / 2}px, ${y - height / 2}px) scale(${sx}, ${sy})`;
       typing.style.opacity = String(alpha);
-      $(".field.task", typing).classList.toggle("focus", t >= 23.6);
+      $(".field.task", typing).classList.toggle("focus", t >= DIALOG[1] + 0.05);
       const shown = typedAt.filter((at) => t >= at).length;
       $(".typed", typing).textContent = typedText.slice(0, shown);
       const blink = shown === typedAt.length && Math.floor((t - typedAt.at(-1)) * 2.2) % 2 === 1;
-      $(".caret", typing).style.opacity = t >= 23.6 && !blink && t < SAVE_AT ? "1" : "0";
+      $(".caret", typing).style.opacity = t >= DIALOG[1] + 0.05 && !blink && t < SAVE_AT ? "1" : "0";
     }
     if (t > SAVE_AT - 0.25 && t < SAVE_AT + 0.5) {
       const save = $(".save", typing).getBoundingClientRect();
@@ -794,14 +898,14 @@
 
   /** The day as the phone's calendar shows it once the lessons are synced, beside the switch for it. */
   function calendarCard(t) {
-    const p = held(t, 29.85, 31.75, 0.5, 0.3);
+    const p = held(t, 31.85, 33.75, 0.5, 0.3);
     calendar.classList.toggle("hidden", p <= 0);
     if (p <= 0) return;
-    const rise = span(t, 29.85, 30.35, E.out5);
+    const rise = span(t, 31.85, 32.35, E.out5);
     calendar.style.opacity = String(p);
     calendar.style.transform = `translateY(${(1 - rise) * 60}px) scale(${0.96 + 0.04 * rise})`;
     $$(".event", calendar).forEach((ev, i) => {
-      const at = 30.0 + i * 0.16;
+      const at = 32.0 + i * 0.16;
       const q = span(t, at, at + 0.35, E.back);
       ev.style.opacity = String(span(t, at, at + 0.12, E.linear));
       ev.style.transform = `translateX(${(1 - q) * 50}px)`;
@@ -816,6 +920,7 @@
     moving = [phone, typing, calendar, intro, outro, sheetPart, report.content, saveTap,
       ...$$(".caption .w > span, .caption p, .caption .bar"), ...$$(".brand .tile, .brand .wordmark span, .brand .tagline, .brand .cta"),
       ...Object.values(callouts).map((c) => c.el), ...Object.values(taps), ...cardWraps.map((c) => c.card),
+      ...Object.values(SWIPES).flatMap((s) => [s.row, s.finger, s.below].filter(Boolean)),
       ...$$(".event", calendar), ...$$(".layer .app")];
   }
   /**
@@ -851,7 +956,7 @@
 
   // --- Ready ---------------------------------------------------------------------------------------
 
-  $$(".event", calendar).forEach((_, i) => cue(30.0 + i * 0.16, "blip", { n: i }));
+  $$(".event", calendar).forEach((_, i) => cue(32.0 + i * 0.16, "blip", { n: i }));
 
   const ready = (async () => {
     await document.fonts.ready;
@@ -871,10 +976,10 @@
     // groove again, and the close — as much of it as the cut plays.
     const sections = [
       { from: 0, to: 4, part: "intro" },
-      { from: 4, to: 18, part: "groove" },
-      { from: 18, to: 22, part: "break" },
-      { from: 22, to: 36, part: "groove" },
-      { from: 36, to: DURATION, part: "outro" },
+      { from: 4, to: 20, part: "groove" },
+      { from: 20, to: 24, part: "break" },
+      { from: 24, to: 38, part: "groove" },
+      { from: 38, to: DURATION, part: "outro" },
     ];
     const bpm = 120;
     const music = CUT.music(sections, (4 * 60) / bpm);

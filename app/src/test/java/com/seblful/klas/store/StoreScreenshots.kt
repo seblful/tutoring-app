@@ -7,6 +7,7 @@ import android.app.NotificationManager
 import android.content.Context
 import androidx.annotation.StringRes
 import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -27,6 +28,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -390,9 +392,13 @@ class StoreScreenshots {
     }
 
     /**
-     * The promo video's moments, which a still cannot show: the lesson on now marked taught from its sheet,
-     * then the homework list once the tutor has set its student some more for next time. Last, because
-     * both change the books every screen above was shot on.
+     * The promo video's moments, which a still cannot show. Last, because they change the books every
+     * screen above was shot on.
+     *
+     * The day again, with a lesson earlier on that was never marked: the lesson on now marked taught
+     * from its sheet, then the unmarked one swiped taught — just short of the swipe's mark, past it, and
+     * let go. Then a piece of homework swiped done the same way, and the homework list once the tutor has
+     * set the student whose lesson it was some more for next time.
      *
      * The homework is saved through the repository, not typed into the app's dialog: under Robolectric
      * that dialog never lets Compose go idle, so nothing on screen can be found or shot while it is open.
@@ -400,25 +406,61 @@ class StoreScreenshots {
      */
     private fun filmTour() {
         val student = tutor.onNow.name
+        val unmarked = row(runBlocking { seeder.bookUnmarkedLesson(tutor) })
         // The sheet's segment, not the «Taught» badges on the schedule behind it.
         val taught = hasText(string(R.string.class_status_completed)) and isSelectable()
         tab(R.string.nav_schedule)
         waitFor(string(R.string.class_status_in_progress))
+        capture("film-day", marks = mapOf("onNow" to row(student), "swipe" to unmarked))
         click(student)
         settle()
         capture("film-sheet", marks = mapOf("taught" to taught))
         compose.onNode(taught).performClick()
         settle()
-        capture("film-taught", marks = mapOf("row" to row(student)))
+        capture("film-taught", marks = mapOf("row" to row(student), "swipe" to unmarked))
+        swipe(unmarked, "film-swipe")
+        capture("film-swiped", marks = mapOf("swipe" to unmarked))
+
+        val homework = row(student)
+        val add = hasContentDescription(string(R.string.homework_add)) and hasClickAction()
+        tab(R.string.nav_homework)
+        waitFor(tutor.group.homework)
+        capture("film-homework-list", marks = mapOf("swipe" to homework, "add" to add))
+        swipe(homework, "film-homework-swipe")
+        capture("film-homework-done", marks = mapOf("add" to add))
 
         runBlocking { seeder.giveTypedHomework(tutor) }
-        tab(R.string.nav_homework)
+        // The «moved to the archive» message still up: it stays ten seconds, longer than the typing takes.
         waitFor(tutor.typedHomework)
         capture("film-homework", marks = mapOf("added" to row(tutor.typedHomework)))
         // What the video types, and for whom: the words of the row it lands on.
         File(out, "film.json").writeText(
             "{ \"student\": ${json(student)}, \"homework\": ${json(tutor.typedHomework)} }\n",
         )
+    }
+
+    /**
+     * Swipes the row [matcher] finds towards the end of the line, as a thumb would, and shoots it on the
+     * way: `<name>-unarmed` just short of the mark (a third of the row), `<name>-armed` well past it — what
+     * shows behind the row before and after the swipe promises to act — then lets go, which acts. Each
+     * shot's `swipe` mark is the row where the drag has it, so the video knows how far it had gone.
+     */
+    private fun swipe(matcher: SemanticsMatcher, name: String) {
+        val row = compose.onNode(matcher)
+        val home = row.fetchSemanticsNode().positionOnScreen.x
+        val width = row.fetchSemanticsNode().size.width
+        fun dragged() = compose.onNode(matcher).fetchSemanticsNode().positionOnScreen.x - home
+        fun dragTo(fraction: Float, step: Float) {
+            while (dragged() < width * fraction) row.performTouchInput { moveBy(Offset(step, 0f)) }
+        }
+        row.performTouchInput { down(Offset(width * SWIPE_FROM, height / 2f)) }
+        // In small steps, so the last one before the mark stops just short of it.
+        dragTo(SWIPE_MARK - SHORT_OF_MARK, SWIPE_STEP)
+        capture("$name-unarmed", marks = mapOf("swipe" to matcher))
+        dragTo(SWIPE_ARMED, SWIPE_STEP * 4)
+        capture("$name-armed", marks = mapOf("swipe" to matcher))
+        row.performTouchInput { up() }
+        settle()
     }
 
     /**
@@ -698,6 +740,17 @@ class StoreScreenshots {
         /** Room left above a row [scrollToTop] brings up, so a section title is not flush with the bar. */
         val ROW_TOP_MARGIN = 12.dp
         const val SETTLE_MS = 2_000L
+
+        /**
+         * The swipe: where the thumb lands across the row, the mark (`SwipeToConfirm`'s third of the row),
+         * how far short of it the first shot stops, how far past it the second goes, and how far each move
+         * is — all as fractions of the row's width but the step, in pixels.
+         */
+        const val SWIPE_FROM = 0.15f
+        const val SWIPE_MARK = 0.33f
+        const val SHORT_OF_MARK = 0.012f
+        const val SWIPE_ARMED = 0.5f
+        const val SWIPE_STEP = 4f
 
         const val SECONDS_PER_MINUTE = 60L
         const val SECONDS_PER_HOUR = 3_600L

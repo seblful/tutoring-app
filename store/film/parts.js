@@ -1,5 +1,6 @@
 // The film's arithmetic that does not touch the page: how a cut lays pieces of the timeline end to end,
-// how many exposures a moving frame is blended from, and how an amount reads as it counts up. A plain
+// how many exposures a moving frame is blended from, how an amount reads as it counts up, and where a
+// swiped row is. A plain
 // script, so the page loads it before film.js and store/film/parts.test.mjs runs it in Node.
 
 "use strict";
@@ -108,5 +109,20 @@
     };
   }
 
-  root.filmParts = { cut, exposures, counting, SHUTTER };
+  /**
+   * A row swiped as the app's `SwipeToConfirmBox` has it: dragged out to [armed] pixels over [drag], eased,
+   * held there, and gone on the lift at [release] — nothing springs back. `at(t)` is how far it is;
+   * `crossing` the first moment it is past [unarmed], where it was shot just short of the mark: when the
+   * phone ticks and the glyph behind it grows.
+   */
+  function swipe({ unarmed, armed, drag: [from, to], release, ease = (p) => p }) {
+    if (!(unarmed > 0 && unarmed < armed)) throw new Error("A swipe's shots must be short of its mark and past it");
+    if (!(from < to && to <= release)) throw new Error("A swipe must be dragged, then let go");
+    const at = (t) => (t < release ? armed * ease(Math.min(1, Math.max(0, (t - from) / (to - from)))) : 0);
+    let crossing = from;
+    while (at(crossing) <= unarmed && crossing < to) crossing += 1 / 240;
+    return { at, crossing };
+  }
+
+  root.filmParts = { cut, exposures, counting, swipe, SHUTTER };
 })(globalThis);

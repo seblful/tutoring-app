@@ -7,7 +7,7 @@ import { runInNewContext } from "node:vm";
 
 const context = {};
 runInNewContext(readFileSync(new URL("./parts.js", import.meta.url), "utf8"), context);
-const { cut, exposures, counting } = context.filmParts;
+const { cut, exposures, counting, swipe } = context.filmParts;
 
 const plain = (x) => JSON.parse(JSON.stringify(x));
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} ≠ ${expected}`);
@@ -89,4 +89,25 @@ test("an amount counts up written the app's way", () => {
 
 test("words with no number are refused", () => {
   assert.throws(() => counting("No income"), /No number/);
+});
+
+test("a swiped row goes out over the drag, holds, and is gone on the lift", () => {
+  const s = swipe({ unarmed: 30, armed: 50, drag: [1, 2], release: 2.5 });
+  assert.equal(s.at(0.5), 0);
+  close(s.at(1.5), 25);
+  assert.equal(s.at(2.2), 50);
+  assert.equal(s.at(2.5), 0);
+});
+
+test("a swipe crosses its mark the first moment it is past the shot short of it", () => {
+  const s = swipe({ unarmed: 30, armed: 50, drag: [1, 2], release: 2.5 });
+  assert.ok(s.at(s.crossing) > 30);
+  assert.ok(s.at(s.crossing - 1 / 240) <= 30);
+  assert.ok(Math.abs(s.crossing - 1.6) <= 1 / 240, `${s.crossing}`);
+});
+
+test("a swipe needs shots short of its mark and past it, and a drag before the lift", () => {
+  assert.throws(() => swipe({ unarmed: 50, armed: 30, drag: [1, 2], release: 2.5 }), /short of its mark/);
+  assert.throws(() => swipe({ unarmed: 0, armed: 30, drag: [1, 2], release: 2.5 }), /short of its mark/);
+  assert.throws(() => swipe({ unarmed: 10, armed: 30, drag: [1, 2], release: 1.5 }), /dragged, then let go/);
 });
