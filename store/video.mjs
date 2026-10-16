@@ -31,6 +31,7 @@ const STAGES = { landscape: { width: 1920, height: 1080 }, vertical: { width: 10
 const CUTS = ["full", "short"];
 /** Tall: the captions end above this line, where the phone starts (film.js keeps it there). */
 const CAPTION_FLOOR = 640;
+const DOWNLOAD_ICON = `<svg viewBox="0 0 24 24"><path fill="#4c5bc4" d="M11 3h2v9.6l3.3-3.3 1.4 1.4L12 16.4l-5.7-5.7 1.4-1.4 3.3 3.3V3ZM5 19h14v2H5v-2Z"/></svg>`;
 const CALENDAR_ICON = `<svg viewBox="0 0 24 24"><path fill="#4c5bc4" d="M7 2h2v2h6V2h2v2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2V2Zm12 8H5v10h14V10Z"/></svg>`;
 
 /** The captures on the phone's screen during the film; the lock screen is drawn from notifications.json. */
@@ -249,8 +250,6 @@ function page({ locale, layout, cut, stage, words, raw, shots, tray, typed }) {
         <div class="tile"><img src="${url(LOGO)}" style="width: ${Math.round(210 * ICON_MARK)}px"></div>
         <div class="wordmark">${[..."Klas"].map((c) => `<span>${c}</span>`).join("")}</div>
       </div>`;
-  const badge = join(FILM, "badges", `google-play-${locale.split("-")[0]}.png`);
-  if (!existsSync(badge)) fail(`${locale}: no Google Play badge at ${badge}; get it from Google's badge page`);
   // The edge of the phone: layers stacked behind its face, down to the back, which casts the shadow.
   const sides = Array.from({ length: 7 }, (_, i) =>
     `<div class="side${i === 6 ? " back" : ""}" style="--z: ${((i + 1) * 0.012).toFixed(3)}"></div>`).join("");
@@ -304,7 +303,7 @@ function page({ locale, layout, cut, stage, words, raw, shots, tray, typed }) {
     </div>
     <div class="brand hidden" id="outro">${lockup}
       <div class="tagline">${text(words.tagline)}</div>
-      <div class="badge"><img src="${url(badge)}"></div>
+      <div class="cta">${DOWNLOAD_ICON}<span>${text(words.cta ?? fail(`${locale}: no «cta» in listing.json`))}</span></div>
     </div>
   </div>
   <script>window.FILM = ${JSON.stringify(data)};</script>

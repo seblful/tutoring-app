@@ -101,8 +101,6 @@
   const LG = geo(WL);
   /** A lifted row's least corner rounding, for a row with no card of its own: 12 dp in capture pixels. */
   const ROW_CORNER = 12 * 4;
-  /** A lifted row's ring, as a share of the phone's width. */
-  const RING = 0.009;
   const mark = (shot, name) => F.shots[shot]?.marks?.[name] ?? fail(`no mark «${name}» on «${shot}»`);
 
   /** The phone at scale s, placed so the capture point (x, y) sits at (qx, qy) on the stage. */
@@ -234,16 +232,13 @@
   const callouts = {};
   const taps = {};
 
-  /** A lifted copy of [name] on [shot], drawn over the phone's screen. */
-  function callout(id, shot, name, color) {
+  /** A lifted copy of [name] on [shot], drawn over the phone's screen, raised and shadowed. */
+  function callout(id, shot, name) {
     const el = document.createElement("div");
     el.className = "callout";
     el.style.backgroundImage = `url("${F.shots[shot].src}")`;
-    const ring = document.createElement("div");
-    ring.className = "ring";
-    ring.style.borderColor = color;
-    overlay.append(el, ring);
-    callouts[id] = { el, ring, shot, name };
+    overlay.append(el);
+    callouts[id] = { el, shot, name };
   }
   function tap(id) {
     const el = document.createElement("div");
@@ -252,12 +247,12 @@
     overlay.append(el);
     taps[id] = el;
   }
-  callout("row", "film-taught", "row", "#a6f2b5");
-  callout("debtor", "people", "debtor", "#ffb4ab");
-  callout("credit", "people", "credit", "#a6f2b5");
-  callout("added", "film-homework", "added", "#a9edff");
-  callout("sync", "settings-calendar", "sync", "#a9edff");
-  callout("invites", "settings-calendar", "invites", "#a9edff");
+  callout("row", "film-taught", "row");
+  callout("debtor", "people", "debtor");
+  callout("credit", "people", "credit");
+  callout("added", "film-homework", "added");
+  callout("sync", "settings-calendar", "sync");
+  callout("invites", "settings-calendar", "invites");
   for (const id of ["onNow", "taught", "add", "themeDark"]) tap(id);
   const saveTap = document.createElement("div");
   saveTap.className = "tap";
@@ -289,7 +284,13 @@
       });
       return el;
     };
-    content.append(piece(F.shots.reports.src, 0, seam, t), piece(src, seam, b - t + d - seam, t + seam - d));
+    // Overlapping by a couple of rows, which are the same plain rows on both: meeting edge to edge at a
+    // fraction of a pixel, they let a hairline of what is under them show through.
+    const overlap = 2;
+    content.append(piece(F.shots.reports.src, 0, seam + overlap, t),
+      piece(src, seam - overlap, b - t + d - seam + overlap, t + seam - overlap - d));
+    // As tall as the whole list, so its motion can be measured for the blur.
+    content.style.height = `${(b - t + d) * k}px`;
 
     // The month's total, redrawn in the app's type to count up: the figure the capture shows, covered by
     // its card's colour, with the same words over it at each step on the way.
@@ -491,28 +492,6 @@
     list.style.gap = "0";
   }
 
-  /** The Play badge cut to its own edge, whatever margin its file has, at [height] px tall. */
-  function setUpBadge(height) {
-    const img = $(".badge img", outro);
-    const canvas = document.createElement("canvas");
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(img, 0, 0);
-    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    let l = canvas.width, t = canvas.height, r = 0, b = 0;
-    for (let y = 0; y < canvas.height; y++) {
-      for (let x = 0; x < canvas.width; x++) {
-        if (data[(y * canvas.width + x) * 4 + 3] > 8) {
-          l = Math.min(l, x); r = Math.max(r, x + 1); t = Math.min(t, y); b = Math.max(b, y + 1);
-        }
-      }
-    }
-    const scale = height / (b - t);
-    Object.assign($(".badge", outro).style, { width: `${(r - l) * scale}px`, height: `${height}px` });
-    Object.assign(img.style, { width: `${canvas.width * scale}px`, left: `${-l * scale}px`, top: `${-t * scale}px` });
-  }
-
   // --- Drawing a frame -------------------------------------------------------------------------------
 
   /** The frame at the cut's time [t]: the full timeline's moment it plays, kept to its own piece. */
@@ -580,9 +559,9 @@
     const line = span(t, 36.65, 37.15, E.out);
     $(".tagline", outro).style.opacity = String(line);
     $(".tagline", outro).style.transform = `translateY(${(1 - line) * 30}px)`;
-    const badge = span(t, 37.2, 37.75, E.back);
-    $(".badge", outro).style.opacity = String(span(t, 37.2, 37.4));
-    $(".badge", outro).style.transform = `scale(${0.6 + 0.4 * badge})`;
+    const cta = span(t, 37.2, 37.75, E.back);
+    $(".cta", outro).style.opacity = String(span(t, 37.2, 37.4));
+    $(".cta", outro).style.transform = `scale(${0.6 + 0.4 * cta})`;
   }
 
   /** The tile springs in at [at], and the name's letters rise after it. */
@@ -736,7 +715,6 @@
     const p = held(t, a, b, 0.32, 0.28);
     const visible = p > 0.001;
     c.el.classList.toggle("hidden", !visible);
-    c.ring.classList.toggle("hidden", !visible);
     if (!visible) return;
     const g = LG, m = mark(c.shot, c.name);
     const pos = local(g, m[0], m[1]);
@@ -745,24 +723,17 @@
     const scale = 1 + (lift - 1) * pop;
     // Cut to the card's own corners (the app's shape, recorded with the mark), so no corner of the card
     // shows inside a rounder or squarer copy of it; a row with no card of its own gets a gentle rounding.
-    // The ring sits just outside that edge, following it.
     const round = Math.max(m[4] ?? 0, ROW_CORNER) * g.k;
-    const edge = RING * g.W, gap = 0.004 * g.W;
-    const place = (el, out) => {
-      el.style.left = `${pos.x - out}px`;
-      el.style.top = `${pos.y - out}px`;
-      el.style.width = `${w + 2 * out}px`;
-      el.style.height = `${h + 2 * out}px`;
-      el.style.borderRadius = `${round + out}px`;
-      el.style.transform = `scale(${scale})`;
-    };
-    place(c.el, 0);
-    place(c.ring, edge + gap);
+    Object.assign(c.el.style, {
+      left: `${pos.x}px`, top: `${pos.y}px`, width: `${w}px`, height: `${h}px`,
+      borderRadius: `${round}px`, transform: `scale(${scale})`,
+    });
     c.el.style.backgroundSize = `${CW * g.k}px auto`;
     c.el.style.backgroundPosition = `${-m[0] * g.k}px ${-m[1] * g.k}px`;
-    c.el.style.boxShadow = `0 ${18 * p}px ${46 * p}px rgba(8, 10, 48, ${0.4 * p})`;
+    // Marked by light, not colour: a thin white rim and a soft cool glow round it, over its shadow.
+    c.el.style.boxShadow = `0 0 0 ${0.004 * g.W}px rgba(255, 255, 255, ${0.95 * p}), ` +
+      `0 0 ${0.06 * g.W}px rgba(190, 200, 255, ${0.9 * p}), 0 ${18 * p}px ${46 * p}px rgba(8, 10, 48, ${0.35 * p})`;
     c.el.style.opacity = "1";
-    c.ring.style.opacity = String(p);
   }
 
   function press(el, t, at, shot, name) {
@@ -843,7 +814,7 @@
   let moving = [];
   function setUpMotion() {
     moving = [phone, typing, calendar, intro, outro, sheetPart, report.content, saveTap,
-      ...$$(".caption .w > span, .caption p, .caption .bar"), ...$$(".brand .tile, .brand .wordmark span, .brand .tagline, .brand .badge"),
+      ...$$(".caption .w > span, .caption p, .caption .bar"), ...$$(".brand .tile, .brand .wordmark span, .brand .tagline, .brand .cta"),
       ...Object.values(callouts).map((c) => c.el), ...Object.values(taps), ...cardWraps.map((c) => c.card),
       ...$$(".event", calendar), ...$$(".layer .app")];
   }
@@ -887,7 +858,6 @@
     await Promise.all($$("img").map((img) => img.decode().catch(() => fail(`could not load ${img.src}`))));
     setUpCaptions();
     setUpCards();
-    setUpBadge(TALL ? 132 : 120);
     tagline = taglineLines(F.words.tagline);
     $(".tagline", outro).textContent = tagline;
     // Typed from the left of where the whole line will end up, not grown out of the middle.

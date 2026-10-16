@@ -1,13 +1,15 @@
 {
-  "$comment": "What the Play listing's graphics say, per language. Order = order on the store page (Play shows up to 8). `shot` names a raw capture from StoreScreenshots (spares: student, schedule-week, schedule-month, group, settings, more, reports-dark); `kind: lockscreen` draws the notifications it recorded instead; `theme` picks the backdrop. Titles break at \n. The promo video (video.mjs) reuses the captions and the tagline. See docs/store-listing.md.",
+  "$comment": "What the Play listing's graphics say, per language. Order = order on the store page (Play shows up to 8). `shot` names a raw capture from StoreScreenshots (spares: student, schedule-week, schedule-month, group, settings, more, reports-dark); `kind: lockscreen` draws the notifications it recorded instead; `theme` picks the backdrop. Titles break at \n. The promo video (video.mjs) reuses the captions, the tagline and `cta`. See docs/store-listing.md.",
   "locales": {
     "en-US": {
       "clock": "3:20",
-      "tagline": "Lessons, payments and debts for a private tutor"
+      "tagline": "Lessons, payments and debts for a private tutor",
+      "cta": "Get it on Google Play"
     },
     "ru-RU": {
       "clock": "15:20",
-      "tagline": "Расписание, оплаты и долги учеников — в одном месте"
+      "tagline": "Расписание, оплаты и долги учеников — в одном месте",
+      "cta": "Доступно в Google Play"
     }
   },
   "screenshots": [

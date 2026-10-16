@@ -88,9 +88,10 @@ and the scripts make the same ones again from the captures.
 
 - **The cut** — `store/film/film.js` draws every frame as a function of its time, so frames can be made
   in any order. The phone moves through poses (`POSES`); the captions are `listing.json`'s, word by
-  word; rows lift off the screen at the marks the capture recorded; taps land on them. Scenes start on
-  2-second bars, the music's downbeats. The intro types the tagline; the close shows Google's own
-  Play badge (`store/film/badges/`, as downloaded from Google's badge page, one per language).
+  word; rows lift off the screen at the marks the capture recorded, rimmed in
+  white light; taps land on them. Scenes start on 2-second bars, the music's downbeats. The intro types
+  the tagline; the close shows `cta` in a white pill — words only, as Google allows its Play logo only
+  on its own badge.
 - **The short cut** is three pieces of the same timeline (`CUTS` in `film.js`): the lesson marked
   taught, the reminders, the close. Each piece starts a whole number of bars from where it sat, so the
   music keeps its beat; `store/film/parts.js` maps the times and the music's sections.
@@ -138,8 +139,8 @@ Each step refuses rather than writing a bad listing:
 
 ## Changing things
 
-- **Captions, order, which screens** — `store/listing.json`; the video reuses its captions and
-  tagline. `callout`, `layout` and `behind` shape each screenshot (above). Play shows at most 8 phone
+- **Captions, order, which screens** — `store/listing.json`; the video reuses its captions, tagline and
+  `cta`. `callout`, `layout` and `behind` shape each screenshot (above). Play shows at most 8 phone
   screenshots;
   spare captures (`student`, `schedule-week`, `schedule-month`, `group`, `settings`, `more`,
   `reports-dark`) can be swapped in by name.
@@ -152,8 +153,7 @@ Each step refuses rather than writing a bad listing:
   happens when, `CUTS` for the short cut. A new mark is a `marks` entry on a `capture(...)` in
   `StoreScreenshots`, a redrawn text a `texts` one. The music is `sound.js`, its sections at the end of
   `film.js`.
-- **The badge** — Google's rules: use the badge as given, in the language of the video, with a quarter
-  of its height clear around it. A TV advert or a campaign past a million impressions needs Google
-  Play's brand team to approve it first.
+- **The close** — words only. Google allows the Play logo only on its own badge; anything else with it
+  (a button of our own, say) needs its brand team's approval first.
 - **After a UI change**, rerun the steps: the listing is the real app, so it goes stale with it.
   `store/build/` is scratch; `store/listing/` is what gets uploaded.
