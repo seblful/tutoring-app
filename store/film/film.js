@@ -200,6 +200,7 @@
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const stage = $("#stage");
+  const fade = $("#fade");
   const phone = $("#phone");
   phone.style.setProperty("--phone", `${WL}px`);
   const stack = $(".stack", phone);
@@ -241,7 +242,6 @@
   stack.append(scrim);
 
   const callouts = {};
-  const taps = {};
 
   /** A lifted copy of [name] on [shot], drawn over the phone's screen, raised and shadowed. */
   function callout(id, shot, name) {
@@ -251,12 +251,13 @@
     overlay.append(el);
     callouts[id] = { el, shot, name };
   }
-  function tap(id) {
+  /** The finger: a dot over everything, where a tap lands. */
+  function finger(parent) {
     const el = document.createElement("div");
     el.className = "tap";
-    el.innerHTML = `<div class="wave"></div><div class="finger"></div>`;
-    overlay.append(el);
-    taps[id] = el;
+    el.innerHTML = `<div class="finger"></div>`;
+    parent.append(el);
+    return el;
   }
   callout("swiped", "film-swiped", "swipe");
   callout("cancelled", "film-cancelled", "cancel");
@@ -265,12 +266,18 @@
   callout("added", "film-homework", "added");
   callout("sync", "settings-calendar", "sync");
   callout("invites", "settings-calendar", "invites");
-  for (const id of ["open", "cancelled", "add", "themeDark"]) tap(id);
-  const saveTap = document.createElement("div");
-  saveTap.className = "tap";
+  const saveTap = finger(stage);
   saveTap.style.setProperty("--phone", "560px");
-  saveTap.innerHTML = `<div class="wave"></div><div class="finger"></div>`;
-  stage.append(saveTap);
+  /** The dialog's «Save» is a text button: its ripple fills the pill round its word. */
+  const saveRipple = (() => {
+    const box = document.createElement("span");
+    box.className = "pill";
+    const ripple = document.createElement("span");
+    ripple.className = "ripple";
+    box.append(ripple);
+    $(".save", typing).append(box);
+    return ripple;
+  })();
 
   /**
    * The report as one list to scroll: the capture as it opens, joined below to the capture scrolled down
@@ -397,13 +404,49 @@
     ["sync", 30.9, 32.2, 1.03],
     ["invites", 31.35, 32.2, 1.03],
   ];
-  /** When each tap lands, and on what. */
+  /**
+   * When each tap lands, and on what. A card or a button standing on its own is pressed in (`lift`); a
+   * segment of a control only ripples, as the control is one outline and a segment shrunk out of it
+   * breaks it. `end` is a control's last segment, round at its end only — a shape the capture's mark,
+   * which keeps one corner radius, does not record.
+   */
   const TAPS = [
-    ["open", 8.1, "film-swiped", "cancel"],
-    ["cancelled", 9.2, "film-sheet", "cancelled"],
-    ["add", 25.9, "film-homework-done", "add"],
-    ["themeDark", 34.95, "film-theme", "dark"],
+    { id: "open", at: 8.1, shot: "film-swiped", mark: "cancel", lift: true },
+    { id: "cancelled", at: 9.2, shot: "film-sheet", mark: "cancelled", end: true },
+    { id: "add", at: 25.9, shot: "film-homework-done", mark: "add", lift: true },
+    { id: "themeDark", at: 34.95, shot: "film-theme", mark: "dark", end: true },
   ];
+  /** How far a pressed card or button sinks. */
+  const PRESSED = 0.965;
+  /** How far beside a pressed thing its patch's colour is taken, in capture pixels: clear of its shadow. */
+  const BESIDE = 24;
+  /**
+   * A tap as the app shows one: Material's ripple spreading from the finger inside what is tapped, cut
+   * to its shape, and a card or button pressed in and let back. Drawn inside the screen it lands on, so
+   * whatever covers that screen next — the sheet, the dialog, the dark theme — covers the tap as well.
+   * What is pressed is a copy of it, over a patch the colour of what is behind it, so it can shrink.
+   */
+  for (const tap of TAPS) {
+    const k = LG.k, [l, top, r, bottom, corner] = mark(tap.shot, tap.mark);
+    const w = (r - l) * k, h = (bottom - top) * k;
+    const radius = tap.end ? `0 ${h / 2}px ${h / 2}px 0` : `${corner * k}px`;
+    tap.hole = document.createElement("div");
+    tap.hole.className = "press";
+    Object.assign(tap.hole.style, { left: `${l * k}px`, top: `${LG.status + top * k}px`, width: `${w}px`, height: `${h}px`, borderRadius: radius });
+    tap.target = document.createElement("div");
+    tap.target.className = "target";
+    tap.target.style.borderRadius = radius;
+    if (tap.lift) {
+      Object.assign(tap.target.style, { backgroundImage: `url("${F.shots[tap.shot].src}")`, backgroundSize: `${CW * k}px auto`, backgroundPosition: `${-l * k}px ${-top * k}px` });
+    }
+    tap.ripple = document.createElement("div");
+    tap.ripple.className = "ripple";
+    tap.target.append(tap.ripple);
+    tap.hole.append(tap.target);
+    (tap.shot === "film-sheet" ? sheetPart : layers[tap.shot]).append(tap.hole);
+    tap.size = { w, h, reach: Math.hypot(w, h) / 2 };
+    tap.finger = finger(overlay);
+  }
   /**
    * The rows swiped towards the end of the line, as the app's `SwipeToConfirmBox` has them: dragged off
    * what the swipe promises — the panel behind the row, from captures shot mid-drag just short of the mark
@@ -415,6 +458,11 @@
     lesson: { before: "film-day", shot: "film-swipe", down: 6.5, drag: [6.55, 7.2], release: 7.4 },
     homework: { before: "film-homework-list", shot: "film-homework-swipe", down: 24.75, drag: [24.8, 25.3], release: 25.45, close: 0.4 },
   };
+  /**
+   * Moments the picture jumps rather than moves: a swiped row let go is home, or gone, in a frame, as the
+   * app has it. Blended across, the frame showed the row in both places.
+   */
+  const JUMPS = Object.values(SWIPES).map((s) => s.release);
   /** Where the thumb holds the row, across it. */
   const THUMB = 0.3;
   for (const s of Object.values(SWIPES)) {
@@ -531,7 +579,7 @@
   cue(3.3, "whoosh", { d: 0.7, v: 0.9 });
   cue(4.0, "impact", { v: 0.55 });
   for (const t of [11.78, 15.78, 19.78, 23.78, 29.78, 33.78]) cue(t, "whoosh", { d: 0.6, v: 0.8 });
-  for (const [, at] of TAPS) cue(at, "tap");
+  for (const { at } of TAPS) cue(at, "tap");
   cue(SHEET_UP[0], "swish", { v: 0.5 });
   cue(CANCEL_AT, "switch");
   cue(SHEET_DOWN[0], "swish", { v: 0.4 });
@@ -581,12 +629,12 @@
     screen(t);
     for (const [id, a, b] of CAPTIONS) caption(captions[id], t, a, b);
     for (const [id, a, b, lift] of CALLOUTS) liftRow(callouts[id], t, a, b, lift);
-    for (const [id, at, shot, name] of TAPS) press(taps[id], t, at, shot, name);
+    for (const tap of TAPS) press(tap, t);
     for (const s of Object.values(SWIPES)) swipe(s, t);
     typingCard(t, pose);
     calendarCard(t);
     // The film fades out with the music.
-    stage.style.opacity = String(1 - span(t, DURATION - 0.7, DURATION, E.in));
+    fade.style.opacity = String(span(t, DURATION - 0.7, DURATION, E.in));
   }
 
   function background(t) {
@@ -809,14 +857,28 @@
     c.el.style.opacity = "1";
   }
 
-  function press(el, t, at, shot, name) {
-    const d = t - at;
-    const on = d > -0.25 && d < 0.5;
-    el.classList.toggle("hidden", !on);
+  function press(tap, t) {
+    const d = t - tap.at;
+    const on = d > -0.25 && d < 0.6;
+    tap.hole.classList.toggle("hidden", !on);
+    tap.finger.classList.toggle("hidden", !on);
     if (!on) return;
-    const g = LG, m = mark(shot, name);
-    const p = local(g, (m[0] + m[2]) / 2, (m[1] + m[3]) / 2);
-    drawTap(el, d, p.x, p.y);
+    // In as the finger lands, and back with a little give.
+    const sink = span(d, -0.1, 0, E.out) * (1 - span(d, 0.04, 0.4, E.spring));
+    tap.target.style.transform = tap.lift ? `scale(${1 - (1 - PRESSED) * sink})` : "";
+    ripple(tap.ripple, d, tap.size.w / 2, tap.size.h / 2, tap.size.reach);
+    const m = mark(tap.shot, tap.mark), p = local(LG, (m[0] + m[2]) / 2, (m[1] + m[3]) / 2);
+    drawTap(tap.finger, d, p.x, p.y);
+  }
+
+  /**
+   * Material's ripple, [d] seconds after the finger lands: out from (x, y) until it fills what it is
+   * cut to ([reach], the farthest corner), and faded once the finger is up.
+   */
+  function ripple(el, d, x, y, reach) {
+    const r = reach * (0.2 + 0.8 * span(d, -0.03, 0.35, E.out));
+    Object.assign(el.style, { left: `${x - r}px`, top: `${y - r}px`, width: `${2 * r}px`, height: `${2 * r}px` });
+    el.style.opacity = String(span(d, -0.03, 0.03, E.linear) * (1 - span(d, 0.25, 0.55, E.linear)));
   }
 
   /** A row being swiped: the thumb down on it, the row dragged off its panel, and what the lift leaves. */
@@ -827,6 +889,8 @@
     s.band.classList.toggle("hidden", !on);
     if (on) {
       s.row.style.transform = `translateX(${x * LG.k}px)`;
+      // Only what the row has uncovered: right of it, the capture shot past the mark has the row itself.
+      s.armedReveal.style.clipPath = `inset(0 ${(CW - l - x) * LG.k}px 0 0)`;
       // The glyph grows at the mark: the panel short of it fades into the one past it.
       s.unarmedReveal.style.opacity = String(1 - span(t, s.crossing, s.crossing + 0.15, E.linear));
     }
@@ -853,11 +917,9 @@
   function drawTap(el, d, x, y) {
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
-    const down = span(d, -0.25, 0, E.out), up = span(d, 0.05, 0.4, E.out);
+    const down = span(d, -0.25, 0, E.out);
     $(".finger", el).style.opacity = String(down * (1 - span(d, 0.1, 0.35, E.linear)));
     $(".finger", el).style.transform = `scale(${1.25 - 0.25 * down})`;
-    $(".wave", el).style.opacity = String(d > 0 ? 1 - up : 0);
-    $(".wave", el).style.transform = `scale(${0.6 + up * 1.4})`;
   }
 
   /** «Set homework»: out of the tapped button, typed into, saved, and landed on the list as its new row. */
@@ -894,6 +956,8 @@
       const save = $(".save", typing).getBoundingClientRect();
       drawTap(saveTap, t - SAVE_AT, (save.left + save.right) / 2, (save.top + save.bottom) / 2);
     }
+    const pill = saveRipple.parentElement;
+    ripple(saveRipple, t - SAVE_AT, pill.offsetWidth / 2, pill.offsetHeight / 2, Math.hypot(pill.offsetWidth, pill.offsetHeight) / 2);
   }
 
   /** The day as the phone's calendar shows it once the lessons are synced, beside the switch for it. */
@@ -914,21 +978,40 @@
 
   // --- Motion blur ---------------------------------------------------------------------------------
 
+  /**
+   * The patch under each card or button pressed in: the colour just beside it on its capture, what it
+   * stands on, so the ring it uncovers as it sinks is the screen behind and not its own edge.
+   */
+  function setUpTaps() {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    for (const tap of TAPS.filter((x) => x.lift)) {
+      const [l, top, , bottom] = mark(tap.shot, tap.mark);
+      ctx.drawImage($(".app", layers[tap.shot]), l - BESIDE, (top + bottom) / 2, 1, 1, 0, 0, 1, 1);
+      const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+      tap.hole.style.background = `rgb(${r}, ${g}, ${b})`;
+    }
+  }
+
   /** Everything that moves on its own, whose edges tell how fast the frame is changing. */
   let moving = [];
   function setUpMotion() {
     moving = [phone, typing, calendar, intro, outro, sheetPart, report.content, saveTap,
       ...$$(".caption .w > span, .caption p, .caption .bar"), ...$$(".brand .tile, .brand .wordmark span, .brand .tagline, .brand .cta"),
-      ...Object.values(callouts).map((c) => c.el), ...Object.values(taps), ...cardWraps.map((c) => c.card),
+      ...Object.values(callouts).map((c) => c.el), ...TAPS.flatMap((tap) => [tap.finger, tap.target, tap.ripple]),
+      saveRipple, ...cardWraps.map((c) => c.card),
       ...Object.values(SWIPES).flatMap((s) => [s.row, s.finger, s.below].filter(Boolean)),
       ...$$(".event", calendar), ...$$(".layer .app")];
   }
   /**
    * The moments to blend frame [t] from: how far the fastest edge on the stage moves in one frame, found
-   * by drawing the frame half a frame either side, decides how many (parts.js). Kept inside the film.
+   * by drawing the frame half a frame either side, decides how many (parts.js). Kept between the jumps
+   * ([JUMPS]), so a frame just after one is not blended with the moment before it.
    */
   function exposuresAt(t, fps, scale) {
-    const lo = 0, hi = DURATION - 1e-4;
+    const lo = Math.max(0, ...JUMPS.filter((j) => j <= t));
+    const hi = Math.min(DURATION, ...JUMPS.filter((j) => j > t)) - 1e-4;
     const a = clamp(t - 0.5 / fps, lo, hi), b = clamp(t + 0.5 / fps, lo, hi);
     if (b <= a) return [t];
     const edges = () => moving.map((el) => {
@@ -961,6 +1044,7 @@
     await Promise.all($$("img").map((img) => img.decode().catch(() => fail(`could not load ${img.src}`))));
     setUpCaptions();
     setUpCards();
+    setUpTaps();
     tagline = taglineLines(F.words.tagline);
     $(".tagline", outro).textContent = tagline;
     // Typed from the left of where the whole line will end up, not grown out of the middle.

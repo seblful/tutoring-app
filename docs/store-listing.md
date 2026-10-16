@@ -91,6 +91,13 @@ and the scripts make the same ones again from the captures.
   white light; taps land on them. Scenes start on 2-second bars, the music's downbeats. The intro types
   the tagline; the close shows `cta` in a white pill — words only, as Google allows its Play logo only
   on its own badge.
+- **Taps** are the app's own feedback, not a marker over the video: Material's ripple spreading inside
+  what is tapped, cut to its shape, under a finger dot. A card or button standing on its own (the
+  lesson row, the add button) is also pressed in and springs back — a copy of it, shrunk over a patch
+  the colour beside it. A segment of a control only ripples: shrunk, it would break the control's
+  outline. Each tap is drawn inside the screen it lands on, so the sheet, the dialog or the dark theme
+  covers it as they cover the app. `TAPS` in `film.js` (`lift`, and `end` for a control's last segment,
+  whose rounded end the mark does not record).
 - **No short cut.** A 17-second cut (three pieces of the timeline joined on the beat) was removed, with
   the mapping of times and music through its joins (`cut` in `parts.js`); git history has it.
 - **The tall frame** puts every caption above the phone, which stays in the middle and zooms less so it
@@ -154,7 +161,10 @@ Each step refuses rather than writing a bad listing:
   more than 3 levels on average, or 1% of pixels far out, stops the video and saves the frame drawn
   and the screenshot. Anti-aliasing along edges differs by about one. html-in-canvas paints in page
   order, with no sorting by depth, so nothing may rely on `translateZ` to hide behind a later element:
-  the phone's face is its own layer after the edge stacked behind it.
+  the phone's face is its own layer after the edge stacked behind it. It also ignores the stage's own
+  styles, so the fade to black at the end is a layer over the stage (`#fade`), not its opacity.
+- **No frame blends across a jump.** A swiped row let go is home (or gone) in one frame, as in the app;
+  motion blur stops at those moments (`JUMPS` in `film.js`), or the frame shows the row in both places.
 - **The scrolled list lines up.** The two captures of the report must overlap and match to the pixel
   once shifted, or the video stops rather than show a seam.
 - **The video plays.** Each file is played back in Chrome before it counts: the right size and length,

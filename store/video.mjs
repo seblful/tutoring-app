@@ -388,6 +388,7 @@ function page({ locale, layout, stage, words, raw, shots, tray, typed }) {
       <div class="tagline">${text(words.tagline)}</div>
       <div class="cta">${DOWNLOAD_ICON}<span>${text(words.cta ?? fail(`${locale}: no «cta» in listing.json`))}</span></div>
     </div>
+    <div id="fade"></div>
   </div>
   <script>window.FILM = ${JSON.stringify(data)};</script>
   <script src="${url(join(FILM, "parts.js"))}"></script>

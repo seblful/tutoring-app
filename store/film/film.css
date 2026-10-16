@@ -80,7 +80,12 @@ body { font-family: Golos, sans-serif; -webkit-font-smoothing: antialiased; colo
 /* In the app's indigo: every tap lands on a light screen, where white would not show. */
 .tap .finger { position: absolute; inset: 18%; border-radius: 50%; background: rgba(76, 91, 196, .28);
   box-shadow: 0 0 0 calc(var(--phone) * .006) rgba(76, 91, 196, .75); }
-.tap .wave { position: absolute; inset: 0; border-radius: 50%; border: calc(var(--phone) * .006) solid rgba(76, 91, 196, .8); }
+/* What a tap lands on: a patch over it, the thing itself (a copy, when it is pressed in) cut to its
+   shape, and Material's ripple inside — the app's indigo, a little stronger than its own pressed state
+   so it reads at the video's size. */
+.press { position: absolute; }
+.press .target { position: absolute; inset: 0; overflow: hidden; background-repeat: no-repeat; }
+.ripple { position: absolute; border-radius: 50%; background: rgba(76, 91, 196, .22); opacity: 0; }
 .scrim { position: absolute; inset: 0; background: #000; opacity: 0; }
 
 /* A row being swiped: a band of the screen as tall as the row, holding the panel the swipe uncovers and the
@@ -108,6 +113,7 @@ body { font-family: Golos, sans-serif; -webkit-font-smoothing: antialiased; colo
 #typing .buttons { display: flex; justify-content: flex-end; gap: 40px; font-weight: 600; font-size: 28px; color: #4c5bc4;
   padding: 6px 8px 0; }
 #typing .save { position: relative; }
+#typing .pill { position: absolute; inset: -14px -22px; border-radius: 999px; overflow: hidden; }
 
 /* The calendar the lessons land in, beside the settings that send them there. */
 #calendar { position: absolute; width: 520px; border-radius: 34px; background: #fbf8ff; color: #1b1b21;
@@ -120,6 +126,10 @@ body { font-family: Golos, sans-serif; -webkit-font-smoothing: antialiased; colo
   line-height: 1.25; border-left: 8px solid #4c5bc4; }
 #calendar .event b { display: block; font-weight: 600; font-size: 23px; }
 #calendar .event.taught { background: #e9e7ef; color: #46464f; border-left-color: #777680; }
+
+/* The fade to black at the end: a layer over the stage, not the stage's own opacity, which the GPU's
+   html-in-canvas ignores on the element it draws. */
+#fade { position: absolute; inset: 0; z-index: 1000; background: #000; opacity: 0; }
 
 /* The brand, at the start and the end. */
 .brand { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
