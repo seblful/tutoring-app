@@ -1,0 +1,7 @@
+Fixes and reliability:
+• Amounts are grouped by thousands: "16,037.50 USD".
+• Lesson times follow the phone's clock format everywhere.
+• A reminder no longer disappears before its lesson and is re-planned after a time zone change.
+• Restoring a backup keeps past lessons' calendar events.
+• Saving a lesson form no longer undoes "Taught".
+• Reports no longer flicker when you change the period.
