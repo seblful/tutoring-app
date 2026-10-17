@@ -105,15 +105,20 @@ generated — see [Store listing](store-listing.md); the video goes in as a YouT
 
 Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`:
 
-1. **`check`** — the tag equals `versionName` in `app/build.gradle.kts` and is on `main`.
+1. **`check`** — the tag equals `versionName` in `app/build.gradle.kts` and is on `main`; with Play
+   publishing on, the [Play release notes](#play-release-notes) are filled in, fit, and are new.
 2. **`verify`** — the whole of `ci.yml` on the tagged commit.
-3. **`build`** — restores the upload key, builds the signed APK and AAB, checks both are signed
+3. **`device-tests`** — `device-tests.yml`, alongside `verify`: the instrumented suite on an API 35
+   emulator, and the data-layer tests (migrations, backup, repositories) on an API 24 one, minSdk's old
+   SQLite. It can also be run by hand on any branch from the Actions tab.
+4. **`build`** — restores the upload key, builds the signed APK and AAB, checks both are signed
    (the log prints the APK's certificate), and attaches them to a GitHub release with generated notes.
    Rewrite the notes afterwards with `gh release edit vX.Y.Z --notes-file …`.
-4. **`publish`** — uploads the AAB to a Play track. Skipped until `PLAY_PUBLISH` is `true`.
+5. **`publish`** — uploads the AAB to a Play track with the Play release notes. Skipped until
+   `PLAY_PUBLISH` is `true`.
 
-To release: bump `versionCode` and `versionName` in a `chore(release): X.Y.Z` commit on `develop`,
-fast-forward `main` to it, then tag and push (`git tag -a vX.Y.Z -m "Klas X.Y.Z"`,
+To release: bump `versionCode` and `versionName` and write the Play release notes in a
+`chore(release): X.Y.Z` commit on `develop`, fast-forward `main` to it, then tag and push (`git tag -a vX.Y.Z -m "Klas X.Y.Z"`,
 `git push origin main vX.Y.Z`). A failed `publish` can be re-run alone from the Actions tab, and a release
 can be repeated by running the workflow on its tag (the **Run workflow** ref picker) — that also
 re-uploads the files to the existing GitHub release.
@@ -155,12 +160,30 @@ Without a service account, nothing is lost: the tag still produces the GitHub re
 can be uploaded in the Console by hand. Promoting a release between tracks (closed test → production) is
 easiest in the Console.
 
+### Play release notes
+
+Play's "What's new" for a release comes from `store/whatsnew/whatsnew-ru-RU` and `whatsnew-en-US`
+(plain text, at most 500 characters each; Play's locale codes, as in `store/listing/`). Rewrite both in
+every `chore(release)` commit: while `PLAY_PUBLISH` is `true`, `check` refuses a tag whose notes are
+empty, too long, or unchanged since the previous tag, so last release's text can't go out again. Write
+them for the tutor, from the commit bodies — the GitHub release notes are the place for detail.
+
+A language added to the listing needs its own `whatsnew-<locale>` file and a line in `check`.
+
+### Dependabot
+
+`.github/dependabot.yml` opens one pull request a month into `develop` bumping the workflows' actions,
+the commit-pinned ones too; `ci.yml` runs on it. Merge it when green. Gradle dependencies are updated by
+hand. The config only takes effect once it is on `main`, GitHub's default branch.
+
 ## Per-release checklist
 
 - [ ] Schema change? A migration is shipped, `MigrationChainTest` passes, and its migration test passes on a device
 - [ ] `./gradlew :domain:test :app:verifyRoborazziDebug :app:lintDebug ktlintCheck detekt` pass (CI runs the same)
-- [ ] `./gradlew :app:connectedDebugAndroidTest` passes on a phone
+- [ ] `./gradlew :app:connectedDebugAndroidTest` passes on a phone if the release touches notifications,
+      calendar sync or gestures — the emulators in `device-tests` cover the rest
 - [ ] Backup round-trip verified on a release build (device)
-- [ ] `chore(release)` commit bumps `versionCode` (and `versionName`); `main` fast-forwarded; tag pushed
+- [ ] `chore(release)` commit bumps `versionCode` (and `versionName`) and rewrites `store/whatsnew/`;
+      `main` fast-forwarded; tag pushed
 - [ ] Release workflow green; GitHub release notes rewritten
-- [ ] Play track shows the new version (and its release notes are filled in, in the Console)
+- [ ] Play track shows the new version (a draft, while `PLAY_STATUS` is `draft`: roll it out in the Console)

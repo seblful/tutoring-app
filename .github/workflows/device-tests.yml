@@ -1,0 +1,86 @@
+name: Device tests
+
+# The instrumented suite (src/androidTest) on emulators, so a release no longer depends on a phone being
+# plugged in. CI only compiles these tests; this runs them. It is too slow for every push to main, so it
+# runs where a broken migration or backup would reach users: release.yml calls it on every tag, and it can
+# be run by hand on any branch from the Actions tab.
+#
+# Two emulators, in parallel:
+# - API 35, the whole suite — the platform the app's users are mostly on.
+# - API 24 (minSdk), the data layer only. Its SQLite is 3.9, which has no `ALTER TABLE … DROP COLUMN` or
+#   `RENAME COLUMN`; a migration that leans on either passes on every modern phone and breaks only here.
+#   The UI tests are left out: they measure text and frames, which an old image renders differently
+#   from any device the goldens and tolerances were set on.
+#
+# Notification display and real calendar sync can still only be judged on a phone (docs/testing.md).
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  connected:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      # One API level failing says nothing about the other; let both finish so a run shows every failure.
+      fail-fast: false
+      matrix:
+        include:
+          - api-level: 35
+            target: google_apis
+            scope: all
+          - api-level: 24
+            target: default
+            scope: data
+    name: API ${{ matrix.api-level }} (${{ matrix.scope }})
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+
+      # Hardware acceleration for the emulator; without it an x86_64 image boots for many minutes, if at all.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Built before the emulator starts, so its boot is not spent waiting on the compiler.
+      - name: Build the app and its tests
+        run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
+
+      # Animations stay on: TabReselectFadeTest and ItemMotionTest read fades frame by frame, and the suite
+      # is otherwise run on a phone with its animations on. The package filter is a runner argument
+      # AndroidJUnitRunner reads; HiltTestRunner passes it through.
+      - name: Run the instrumented tests
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
+          arch: x86_64
+          disable-animations: false
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: ./gradlew :app:connectedDebugAndroidTest --stacktrace ${{ matrix.scope == 'data' && '-Pandroid.testInstrumentationRunnerArguments.package=com.seblful.klas.data' || '' }}
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: device-test-reports-api${{ matrix.api-level }}
+          path: |
+            app/build/reports/androidTests/connected/
+            app/build/outputs/androidTest-results/connected/
+          retention-days: 14
+          if-no-files-found: ignore

@@ -69,4 +69,9 @@ Where a test goes in Klas, and what the test setup expects. Commands and what CI
   `adb shell am instrument -w -e class <class> com.seblful.klas.debug.test/com.seblful.klas.HiltTestRunner`.
   Run it a dozen times from a stopped app (`am force-stop`) to tell a start-up race from a test failure.
 - Every migration has a device test validating column-for-column against the exported schema.
+- **On emulators in CI**: every release tag runs `.github/workflows/device-tests.yml` — the whole suite
+  on API 35, and the `com.seblful.klas.data` package on API 24, where SQLite 3.9 has no
+  `DROP COLUMN`/`RENAME COLUMN` (the UI tests stay off it: an old image measures text differently). Run it
+  by hand from the Actions tab before a release, or the data half locally with
+  `-Pandroid.testInstrumentationRunnerArguments.package=com.seblful.klas.data`.
 - Notification display and real calendar writes can only be observed on a device.

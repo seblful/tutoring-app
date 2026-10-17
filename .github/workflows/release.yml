@@ -2,7 +2,8 @@ name: Release
 
 # A `vX.Y.Z` tag is the whole release procedure: push it and this builds the signed APK and AAB,
 # attaches them to a GitHub release, and — once Play publishing is switched on — uploads the AAB to a
-# Google Play track. Setup and the first manual upload are in docs/releasing.md.
+# Google Play track with the notes in store/whatsnew. Setup and the first manual upload are in
+# docs/releasing.md.
 #
 # The tag is only a trigger. The version is the one in app/build.gradle.kts, bumped by the
 # `chore(release)` commit, so `check` refuses a tag that disagrees with it or that is not on main.
@@ -56,13 +57,46 @@ jobs:
             exit 1
           fi
 
+      # Play shows these as the release's "What's new", and once releases stop being drafts nobody gets to
+      # fix them in the Console first. So each language's file must be filled in, fit Play's 500
+      # characters, and have been rewritten since the previous tag — last release's notes again would
+      # pass every other check.
+      - name: Play release notes are written for this version
+        if: vars.PLAY_PUBLISH == 'true'
+        env:
+          LC_ALL: C.UTF-8 # wc -m counts characters, not the bytes of Cyrillic text
+        run: |
+          set -euo pipefail
+          prev=$(git describe --tags --abbrev=0 --match 'v*' "$GITHUB_SHA^" 2>/dev/null || true)
+          for f in store/whatsnew/whatsnew-ru-RU store/whatsnew/whatsnew-en-US; do
+            if ! grep -q '[^[:space:]]' "$f" 2>/dev/null; then
+              echo "::error file=$f::$f is missing or empty; write this release's notes (docs/releasing.md)"
+              exit 1
+            fi
+            chars=$(wc -m < "$f")
+            if [ "$chars" -gt 500 ]; then
+              echo "::error file=$f::$f is $chars characters; Play takes at most 500"
+              exit 1
+            fi
+            if [ -n "$prev" ] && git diff --quiet "$prev" "$GITHUB_SHA" -- "$f"; then
+              echo "::error file=$f::$f has not changed since $prev; write this release's notes"
+              exit 1
+            fi
+          done
+
   # The same suite that guards main, run on the tagged commit.
   verify:
     needs: check
     uses: ./.github/workflows/ci.yml
 
+  # The instrumented suite on emulators, alongside `verify`: migrations and the backup round-trip, which
+  # only a device can run.
+  device-tests:
+    needs: check
+    uses: ./.github/workflows/device-tests.yml
+
   build:
-    needs: verify
+    needs: [verify, device-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -76,9 +110,10 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      # Pinned to a commit, like the Play upload: this job holds the signing key. v4.4.4.
+      # Pinned to a commit, like the Play upload: this job holds the signing key. Dependabot moves the pin
+      # and the version comment together (.github/dependabot.yml).
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1
+        uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
         with:
           cache-read-only: true
 
@@ -170,13 +205,20 @@ jobs:
           name: klas-release
           path: dist
 
-      # Pinned to a commit: this action holds the key to the Play account. v1.1.5.
+      # Only the release notes; `check` has already made sure they are this version's.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: store/whatsnew
+          path: src
+
+      # Pinned to a commit: this action holds the key to the Play account.
       - name: Upload to Google Play
-        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: ${{ env.PACKAGE_NAME }}
           releaseFiles: dist/app-release.aab
-          track: ${{ inputs.track || vars.PLAY_TRACK || 'internal' }}
+          whatsNewDirectory: src/store/whatsnew
+          tracks: ${{ inputs.track || vars.PLAY_TRACK || 'internal' }}
           # `draft` until the app's first release has been through Play review; then `completed`.
           status: ${{ vars.PLAY_STATUS || 'completed' }}

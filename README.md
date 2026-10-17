@@ -76,12 +76,13 @@ setup. It carries a `.debug` application id, so it sits beside a release install
 
 CI (`.github/workflows/ci.yml`) runs both unit suites with screenshot verification (uploading the diff
 images when one fails), `lintDebug`, ktlint, detekt, the debug APK and the *compilation*
-of the instrumented tests on every push to `main` and every PR targeting `main` (any branch can be run
+of the instrumented tests on every push to `main` and every PR targeting `main` or `develop` (any branch can be run
 on demand). Running the instrumented tests themselves needs a connected device
-(`./gradlew :app:connectedDebugAndroidTest`).
+(`./gradlew :app:connectedDebugAndroidTest`) or the emulators of `.github/workflows/device-tests.yml`.
 
-Pushing a `vX.Y.Z` tag runs the release workflow (`.github/workflows/release.yml`): the same suite, then a
-signed APK and AAB attached to a GitHub release and, once switched on, uploaded to Google Play.
+Pushing a `vX.Y.Z` tag runs the release workflow (`.github/workflows/release.yml`): the same suite and the
+instrumented tests on emulators, then a signed APK and AAB attached to a GitHub release and uploaded to
+Google Play with the notes in `store/whatsnew/`. Dependabot keeps the workflows' actions current.
 
 ## Docs
 

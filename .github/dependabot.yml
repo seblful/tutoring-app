@@ -1,0 +1,16 @@
+# Keeps the workflows' actions current, the commit-pinned ones in release.yml included (it moves the pin and
+# its `# vX.Y.Z` comment together). One grouped pull request a month, into develop like any other change;
+# ci.yml runs on pull requests into develop for it. Gradle dependencies are left to hand, in
+# gradle/libs.versions.toml: Kotlin, KSP, AGP and Room have to move in step (README → Tech Stack).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ['*']
+    commit-message:
+      prefix: ci
