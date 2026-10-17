@@ -302,7 +302,9 @@ fun BackupData.toSnapshot(): DatabaseSnapshot {
         // A v8 file's homework is read into its own rows below, and leaves the lesson as the table holds
         // it; an older file's note is not the app's any more and is never read at all.
         lessons = lessons.map { it.toEntity() } + splitLessons,
-        attendance = attendance.map { it.toEntity() } + splitAttendance,
+        // Calendar ids belong to the exporting device, not to the lesson. Never let a file choose
+        // which of this device's appointments the mirror may update or delete.
+        attendance = (attendance.map { it.toEntity() } + splitAttendance).map { it.copy(calendarEventId = null) },
         payments = payments,
         // The v1-v5 classes carry no homework, so only the file's own lessons are looked at.
         homework = homework + legacyHomework(lessons, attendance),

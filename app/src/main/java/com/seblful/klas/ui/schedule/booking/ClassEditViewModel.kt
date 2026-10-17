@@ -22,6 +22,7 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.schedule.Scheduling
 import com.seblful.klas.domain.schedule.TimeConflict
 import com.seblful.klas.format.MoneyField
+import com.seblful.klas.format.zones
 import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
@@ -68,7 +69,7 @@ class ClassEditViewModel @Inject constructor(
     private val clock: Clock,
 ) : ViewModel() {
 
-    private val zone: ZoneId = clock.zone
+    private val zone: ZoneId get() = clock.zone
     private val classId: Long = savedStateHandle["id"] ?: 0L
 
     /** Non-zero when the form was opened from a group, to book that group straight away. */
@@ -305,7 +306,7 @@ class ClassEditViewModel @Inject constructor(
 
     private fun liveConflict(): Flow<TimeConflict?> =
         combine(
-            form.map { it.slot(zone) }.distinctUntilChanged(),
+            form.combine(clock.zones()) { f, zone -> f.slot(zone) }.distinctUntilChanged(),
             // The lesson itself, not its class ids: which of them a clash scan has to skip is
             // `ClassSession.ids`' to derive, and this was the fourth place deriving it by hand.
             // Already a `StateFlow`, so it conflates equal values itself.
@@ -361,7 +362,7 @@ class ClassEditViewModel @Inject constructor(
     val state: StateFlow<Loadable<ClassFormState>> =
         combine(
             pickers,
-            booking,
+            booking.combine(clock.zones()) { held, _ -> held },
             conflict,
             session,
             filled,
@@ -374,6 +375,7 @@ class ClassEditViewModel @Inject constructor(
             Loadable.Ready(
                 ClassFormState(
                     form = f,
+                    ending = f.ends(zone),
                     // The names the pickers show, resolved here rather than in the composable. Blank where
                     // nothing is chosen, which is what an unfilled picker says. Spelled three times
                     // rather than through one helper because `Student`, `Group` and `Subject` share `id`
@@ -555,6 +557,7 @@ class ClassEditViewModel @Inject constructor(
 
                 is Lookup.PriceOf -> change(
                     BookingIntent.PriceLoaded(
+                        studentId = lookup.studentId,
                         subjectId = lookup.subjectId,
                         amount = enrollment.priceFor(lookup.studentId, lookup.subjectId)?.amount,
                     ),

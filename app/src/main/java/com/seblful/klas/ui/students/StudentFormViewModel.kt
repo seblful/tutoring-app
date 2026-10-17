@@ -87,7 +87,10 @@ class StudentFormViewModel @Inject constructor(
     val state: StateFlow<UiState> = combine(
         form,
         subjectsRepo.observeAll(),
-    ) { f, subjects -> UiState(f, Loadable.Ready(subjects)) }
+    ) { f, subjects ->
+        val existing = subjects.mapTo(mutableSetOf()) { it.id }
+        UiState(f.copy(subjectPrices = f.subjectPrices.filterKeys { it in existing }), Loadable.Ready(subjects))
+    }
         // The form itself is usable from the first frame, so the state is not wrapped — the one part of it
         // that has to have been read carries its own answer (see [UiState.allSubjects]).
         .derive(this, computation, UiState())

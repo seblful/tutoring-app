@@ -175,8 +175,8 @@ class EdgeCaseCombinationsTest {
             price = MoneyField(text = "30"),
         )
         assertTrue(form.isValid)
-        assertEquals(LocalTime.of(0, 30), form.ends?.time)
-        assertEquals(true, form.ends?.nextDay)
+        assertEquals(LocalTime.of(0, 30), form.ends(ZoneId.of("Europe/Minsk"))?.time)
+        assertEquals(true, form.ends(ZoneId.of("Europe/Minsk"))?.nextDay)
 
         val slot = form.slot(ZoneId.of("Europe/Minsk"))!!
         assertEquals(

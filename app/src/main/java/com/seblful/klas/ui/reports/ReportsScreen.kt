@@ -90,7 +90,6 @@ import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
-import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.navigation.Arrival
 import kotlinx.coroutines.flow.first
@@ -136,7 +135,7 @@ fun ReportsScreen(
     // The period is its own flow, so the navigator is live while the report behind it is still being
     // assembled — the frame is the thing the tutor steers this screen with, and it needs no data.
     val period by viewModel.period.collectAsState()
-    val report = reportState.valueOrNull()
+    val report = reportState.forPeriod(period)
     val messages = rememberMessages()
     val noPickerMsg = stringResource(R.string.student_contact_failed)
 
@@ -757,11 +756,12 @@ private fun AmountRow(
                     // The ripple needs room either side of the text, and taking it from inside the card
                     // put the debts' names a step to the right of every other label on the screen. It is
                     // taken from the card's padding instead, so the text stays on the shared edge.
-                    onClick != null -> Modifier
-                        .outsetRowPress { Modifier.clickable(it, indication = null, onClick = onClick) }
-                        .heightIn(min = MinTouchTarget)
+                    onClick != null ->
+                        Modifier
+                            .outsetRowPress { Modifier.clickable(it, indication = null, onClick = onClick) }
+                            .heightIn(min = MinTouchTarget)
                     else -> Modifier
-                }
+                },
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {

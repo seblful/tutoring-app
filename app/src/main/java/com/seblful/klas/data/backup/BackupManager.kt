@@ -31,7 +31,7 @@ class BackupManager @Inject constructor(
         encodeDefaults = true
     }
 
-    suspend fun export(): BackupData = snapshot.read().toBackupData()
+    suspend fun export(): BackupData = transactor.transaction { snapshot.read() }.toBackupData()
 
     suspend fun exportJson(): String = json.encodeToString(export())
 

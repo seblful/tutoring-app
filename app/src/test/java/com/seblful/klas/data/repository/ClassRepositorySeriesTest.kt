@@ -208,7 +208,7 @@ class ClassRepositorySeriesTest {
         // Nothing committed means nothing owed: re-deriving the reminder plan to arrive back where it
         // started is work a refused booking must not do.
         assertEquals(refreshesBefore, env.reminders.refreshCount)
-        assertEquals(transactionsBefore, env.transactor.count)
+        assertEquals("one transaction checks the refusal", transactionsBefore + 1, env.transactor.count)
     }
 
     @Test

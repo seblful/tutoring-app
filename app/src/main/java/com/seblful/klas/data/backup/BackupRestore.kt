@@ -3,7 +3,6 @@ package com.seblful.klas.data.backup
 import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.domain.reminders.ReminderScheduler
-import com.seblful.klas.runCatchingCancellable
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,12 +27,11 @@ class BackupRestore @Inject constructor(
      * transaction, so a rejected file leaves the current data (and the onboarding flag) untouched.
      */
     suspend fun restore(json: String) {
-        backup.importJson(json)
-        settings.update { it.copy(onboardingComplete = true) }
-        // Imported classes change what's upcoming/overdue — re-run auto-complete & reminders.
-        reminders.refreshNow()
-        // Best-effort, like all calendar work — but a *cancellation* still propagates, so a restore
-        // that was abandoned partway cannot return as though it had finished.
-        runCatchingCancellable { calendar.resyncAll() }
+        calendar.remirrorAfter {
+            backup.importJson(json)
+            settings.update { it.copy(onboardingComplete = true) }
+            // Imported classes change what's upcoming/overdue — re-run auto-complete & reminders.
+            reminders.refreshNow()
+        }
     }
 }

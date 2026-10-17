@@ -9,10 +9,10 @@ import com.seblful.klas.data.local.GroupDao
 import com.seblful.klas.data.local.StudentDao
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectDao
-import com.seblful.klas.data.toAttendanceEntity
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.domain.lesson.CalendarSyncPolicy
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.runCatchingCancellable
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -85,6 +85,19 @@ class CalendarMirror @Inject constructor(
     }
 
     /**
+     * A replace-all restore retires only bindings read from this database, never ids supplied by a file.
+     * Wait for the replacement to succeed before withdrawing anything; its failure must remain visible.
+     */
+    suspend fun remirrorAfter(replace: suspend () -> Unit) {
+        val previous = classDao.withCalendarEvent().mapNotNull { it.calendarEventId }.distinct()
+        replace()
+        runCatchingCancellable {
+            previous.forEach { calendarSync.delete(it) }
+            resyncAll()
+        }
+    }
+
+    /**
      * Removes every mirrored event. Run when the tutor turns calendar sync off. Only the classes that
      * actually carry an event id are read: the rest have nothing to withdraw.
      */
@@ -134,7 +147,7 @@ class CalendarMirror @Inject constructor(
     private suspend fun detach(klass: TutoringClass) {
         val eventId = klass.calendarEventId ?: return
         calendarSync.delete(eventId)
-        attendanceDao.update(klass.copy(calendarEventId = null).toAttendanceEntity())
+        attendanceDao.setCalendarEventId(klass.id, null)
     }
 
     /**
@@ -158,7 +171,7 @@ class CalendarMirror @Inject constructor(
                     reminderLeadMinutes = settings.reminderLeadMinutes,
                 )
                 if (eventId != null && eventId != klass.calendarEventId) {
-                    attendanceDao.update(klass.copy(calendarEventId = eventId).toAttendanceEntity())
+                    attendanceDao.setCalendarEventId(klass.id, eventId)
                 }
             }
             // A lesson already taught: its event is kept true, and none is brought into being. No id

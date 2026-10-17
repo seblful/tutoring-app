@@ -77,7 +77,7 @@ object SessionRules {
             // only fields every class of it shares, so any of them states them correctly.
             lesson = resolved.first().second,
             updated = resolved.filterNot { (id, _) -> id in leaving }.map { (_, c) -> c },
-            joining = change.joining,
+            joining = change.joining.map { ClassRules.move(it, newStart, now) },
             dropped = change.dropped,
         )
     }

@@ -71,7 +71,8 @@ flowchart TB
 - `StudentRepository` — archiving calls off a retired student's planned lessons first.
 - `SubjectRepository` — deletable only while unreferenced.
 
-**A write spanning tables is one transaction**, in three phases: pure rules → rows inside
+**A write spanning tables is one transaction**, including any conflict reads that guard its writes;
+otherwise two saves can both reserve an apparently free hour. The phases are pure rules → rows inside
 `Transactor.transaction` → calendar/reminders after commit.
 
 ## Data flow

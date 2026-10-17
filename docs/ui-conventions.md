@@ -42,6 +42,8 @@ it draws with.
   *phone's* setting, not the app language (the clock is asked of the application context, so a bottom sheet
   agrees with the screen under it); today rolls over at local midnight off the injected `Clock` (`Clock.days()`, `ui/common/state/Days.kt` —
   never a "today" read once per emission); a day as instants is `domain/schedule/DayBounds`.
+  The injected device clock follows timezone changes; open calendars re-query their bounds on the
+  system broadcast, and form endings use the same elapsed-time slot as booking, including DST.
 - **Haptics**: five named moments only (`ui/common/Haptics`), wired into shared atoms (a refusal through
   `ShowMessagesFor(refused = …)`), never per-screen; ordinary taps stay silent.
 - **Shell**: every screen is a `KlasScreen` (owns `Scaffold`, insets, width cap, snackbar host, back arrow,

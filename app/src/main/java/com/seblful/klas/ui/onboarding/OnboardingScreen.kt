@@ -143,6 +143,8 @@ fun OnboardingScreen(
     val removeFailedMsg = stringResource(R.string.onboarding_subject_remove_failed)
     val nameTakenMsg = stringResource(R.string.subject_name_taken)
     val saveFailedMsg = stringResource(R.string.save_failed)
+    val studentVm: StudentFormViewModel = hiltViewModel()
+    ShowMessagesFor(studentVm.events, messages) { saveFailedMsg }
     ShowMessagesFor(viewModel.events, messages) { event ->
         when (event) {
             OnboardingViewModel.Event.REMOVE_REFUSED -> removeFailedMsg
@@ -381,7 +383,6 @@ fun OnboardingScreen(
                 }
 
                 Step.STUDENT -> {
-                    val studentVm: StudentFormViewModel = hiltViewModel()
                     val studentState by studentVm.state.collectAsState()
                     StudentFormContent(
                         state = studentState,

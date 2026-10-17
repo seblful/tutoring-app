@@ -1,7 +1,9 @@
 package com.seblful.klas.ui.common.state
 
+import com.seblful.klas.format.zones
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import java.time.Clock
 import java.time.Duration
@@ -21,12 +23,15 @@ import java.time.LocalDate
  * `advanceUntilIdle()`.** A clock has no last emission, so there is always another `delay` on the
  * scheduler and "until idle" never arrives — it hangs rather than failing.
  */
-fun Clock.days(): Flow<LocalDate> = flow {
-    while (true) {
-        val today = LocalDate.now(this@days)
-        emit(today)
-        val midnight = today.plusDays(1).atStartOfDay(zone).toInstant()
-        // At least a tick, so a clock already past midnight cannot spin on a zero-length sleep.
-        delay(Duration.between(instant(), midnight).toMillis().coerceAtLeast(1))
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+fun Clock.days(): Flow<LocalDate> = zones().flatMapLatest { zone ->
+    flow {
+        while (true) {
+            val today = instant().atZone(zone).toLocalDate()
+            emit(today)
+            val midnight = today.plusDays(1).atStartOfDay(zone).toInstant()
+            // At least a tick, so a clock already past midnight cannot spin on a zero-length sleep.
+            delay(Duration.between(instant(), midnight).toMillis().coerceAtLeast(1))
+        }
     }
 }

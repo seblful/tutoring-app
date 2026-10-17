@@ -278,7 +278,7 @@ private fun ClassEditForm(
             DurationPicker(
                 options = durations,
                 selected = form.durationMinutes,
-                ends = form.ends,
+                ends = state.ending,
                 onSelect = { minutes -> viewModel.change(BookingIntent.LastsFor(minutes)) },
                 onCustom = { showDurationPicker = true },
             )

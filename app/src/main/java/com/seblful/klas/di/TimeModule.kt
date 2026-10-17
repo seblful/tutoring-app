@@ -1,15 +1,18 @@
 package com.seblful.klas.di
 
+import android.content.Context
+import com.seblful.klas.format.DeviceClock
 import com.seblful.klas.format.deviceFirstDayOfWeek
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import java.time.Clock
 import java.time.DayOfWeek
 import javax.inject.Qualifier
 
-/**
+/*
  * Where the app reads the wall clock, the device's time zone, and which day its week starts on.
  *
  * Most of the code needs neither injected: the domain takes `now` as a parameter, on the rule that
@@ -40,7 +43,7 @@ annotation class FirstDayOfWeek
 object TimeModule {
 
     @Provides
-    fun provideClock(): Clock = Clock.systemDefaultZone()
+    fun provideClock(@ApplicationContext context: Context): Clock = DeviceClock(context)
 
     @Provides
     @FirstDayOfWeek

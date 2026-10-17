@@ -118,8 +118,8 @@ sealed interface BookingIntent {
     /** The group the form was pointed at, with its rate, mode and subject. */
     data class GroupLoaded(val group: Group) : Answer
 
-    /** The student's price for [subjectId], or null where they have none. */
-    data class PriceLoaded(val subjectId: Long, val amount: Money?) : Answer
+    /** This student's price for this subject, or null where they have none; both ids identify the answer. */
+    data class PriceLoaded(val studentId: Long, val subjectId: Long, val amount: Money?) : Answer
 
     /**
      * The single subject the current target can be booked for — there was nothing to pick.
@@ -216,7 +216,7 @@ data class BookingForm(
         is BookingIntent.DefaultLength -> defaultLength(answer.minutes)
         is BookingIntent.OnlyStudent -> onlyStudent(answer.student, context)
         is BookingIntent.GroupLoaded -> groupLoaded(answer.group)
-        is BookingIntent.PriceLoaded -> priceLoaded(answer.subjectId, answer.amount)
+        is BookingIntent.PriceLoaded -> priceLoaded(answer.studentId, answer.subjectId, answer.amount)
         is BookingIntent.OnlySubject -> onlySubject(answer.askedFor, answer.subjectId)
     }
 
@@ -327,9 +327,11 @@ data class BookingForm(
             Applied(this)
         }
 
-    /** Only auto-fills an empty field, and only while the subject it was asked about is still chosen. */
-    private fun priceLoaded(subjectId: Long, amount: Money?): Applied {
-        if (form.subjectId != subjectId) return Applied(this)
+    /** Only auto-fills an empty field while both the student and subject it was asked about are still chosen. */
+    private fun priceLoaded(studentId: Long, subjectId: Long, amount: Money?): Applied {
+        if (form.target != ClassTarget.STUDENT || form.studentId != studentId || form.subjectId != subjectId) {
+            return Applied(this)
+        }
         return settled(form.copy(price = form.price.prefilledWith(amount)))
     }
 
@@ -350,12 +352,10 @@ data class BookingForm(
      * is different from booking and then cancelling: there is no cancelled lesson in their history,
      * because the lesson was never theirs.
      */
-    private fun includeMember(studentId: Long, included: Boolean): Applied = settled(
-        form.copy(
-            excludedMemberIds =
-                if (included) form.excludedMemberIds - studentId else form.excludedMemberIds + studentId,
-        ),
-    )
+    private fun includeMember(studentId: Long, included: Boolean): Applied {
+        val excluded = if (included) form.excludedMemberIds - studentId else form.excludedMemberIds + studentId
+        return settled(form.copy(excludedMemberIds = excluded))
+    }
 
     /**
      * Picking or changing the start keeps whatever length the lesson has, and gives a lesson that has

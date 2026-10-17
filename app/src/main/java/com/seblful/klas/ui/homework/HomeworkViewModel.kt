@@ -66,7 +66,7 @@ class HomeworkViewModel @Inject constructor(
     private val clock: Clock,
 ) : ViewModel() {
 
-    private val zone = clock.zone
+    private val zone get() = clock.zone
 
     private val filter = MutableStateFlow<Assignee?>(null)
 

@@ -23,6 +23,7 @@ import java.time.LocalTime
  * arriving after the target moved) were `if` guards inside a coroutine that nothing could reach at all.
  */
 class BookingFormTest {
+    private val zone = java.time.ZoneId.of("Europe/Minsk")
 
     private val anya = Student(id = 1, name = "Аня", defaultMode = ClassMode.REMOTE)
     private val boris = Student(id = 2, name = "Борис")
@@ -220,7 +221,8 @@ class BookingFormTest {
             BookingIntent.ChooseSubject(4),
         )
 
-        val stale = moved.after(BookingIntent.PriceLoaded(subjectId = 3, amount = Money.ofMajor(30)))
+        val answer = BookingIntent.PriceLoaded(studentId = anya.id, subjectId = 3, amount = Money.ofMajor(30))
+        val stale = moved.after(answer)
 
         assertEquals("", stale.form.price.text)
     }
@@ -262,7 +264,7 @@ class BookingFormTest {
         ).form
 
         assertEquals(90, started.form.durationMinutes)
-        assertEquals(LocalTime.of(11, 30), started.form.ends?.time)
+        assertEquals(LocalTime.of(11, 30), started.form.ends(zone)?.time)
     }
 
     @Test
@@ -274,7 +276,7 @@ class BookingFormTest {
         )
 
         assertEquals(90, lesson.form.durationMinutes)
-        assertEquals(LocalTime.of(15, 30), lesson.form.ends?.time)
+        assertEquals(LocalTime.of(15, 30), lesson.form.ends(zone)?.time)
     }
 
     /**
@@ -288,7 +290,7 @@ class BookingFormTest {
 
         assertEquals(90, early.form.durationMinutes)
         assertTrue("and it is the tutor's work, so the form is unsaved", early.touched)
-        assertNull("with nowhere to end until there is a start", early.form.ends)
+        assertNull("with nowhere to end until there is a start", early.form.ends(zone))
 
         assertEquals(
             "either order, same lesson",
@@ -309,8 +311,8 @@ class BookingFormTest {
         )
 
         assertEquals(60, late.form.durationMinutes)
-        assertEquals(LocalTime.MIDNIGHT, late.form.ends?.time)
-        assertEquals(true, late.form.ends?.nextDay)
+        assertEquals(LocalTime.MIDNIGHT, late.form.ends(zone)?.time)
+        assertEquals(true, late.form.ends(zone)?.nextDay)
     }
 
     // ---- Whose work it was --------------------------------------------------------------------------

@@ -24,6 +24,7 @@ import java.time.ZoneId
  * clash they report — without the view model around them, so without a dispatcher or a database.
  */
 class ClassFormTest {
+    private val zone = ZoneId.of("Europe/Minsk")
 
     // --- ClassForm validation (pure) ---
 
@@ -41,7 +42,7 @@ class ClassFormTest {
             price = MoneyField("30"),
         )
         assertTrue(full.isValid)
-        assertEquals(LocalTime.of(11, 0), full.ends?.time)
+        assertEquals(LocalTime.of(11, 0), full.ends(zone)?.time)
     }
 
     /**
@@ -59,7 +60,7 @@ class ClassFormTest {
             price = MoneyField("30"),
         )
         assertFalse(empty.isValid)
-        assertNull(empty.ends)
+        assertNull(empty.ends(zone))
         assertNull(empty.slot(ZoneId.of("Europe/Minsk")))
     }
 
@@ -78,20 +79,20 @@ class ClassFormTest {
             price = MoneyField("30"),
         )
         assertTrue(late.isValid)
-        assertEquals(LocalTime.of(0, 30), late.ends?.time)
-        assertEquals(true, late.ends?.nextDay)
+        assertEquals(LocalTime.of(0, 30), late.ends(zone)?.time)
+        assertEquals(true, late.ends(zone)?.nextDay)
     }
 
     /** The flag is about passing midnight, not about the clock reading less than the start. */
     @Test
     fun `a lesson ending exactly at midnight is the next day, one ending before it is not`() {
         val toMidnight = ClassForm(timeFrom = LocalTime.of(23, 0), durationMinutes = 60)
-        assertEquals(LocalTime.MIDNIGHT, toMidnight.ends?.time)
-        assertEquals(true, toMidnight.ends?.nextDay)
+        assertEquals(LocalTime.MIDNIGHT, toMidnight.ends(zone)?.time)
+        assertEquals(true, toMidnight.ends(zone)?.nextDay)
 
         val justBefore = ClassForm(timeFrom = LocalTime.of(23, 0), durationMinutes = 59)
-        assertEquals(LocalTime.of(23, 59), justBefore.ends?.time)
-        assertEquals(false, justBefore.ends?.nextDay)
+        assertEquals(LocalTime.of(23, 59), justBefore.ends(zone)?.time)
+        assertEquals(false, justBefore.ends(zone)?.nextDay)
     }
 
     // --- Decisions the screen used to make for itself ---

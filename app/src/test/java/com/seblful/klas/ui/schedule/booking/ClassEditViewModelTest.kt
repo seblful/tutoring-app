@@ -358,7 +358,7 @@ class ClassEditViewModelTest {
         vm.change(BookingIntent.StartAt(LocalTime.of(10, 0)))
         advanceUntilIdle()
         assertEquals(90, vm.state.current.form.durationMinutes)
-        assertEquals(LocalTime.of(11, 30), vm.state.current.form.ends?.time)
+        assertEquals(LocalTime.of(11, 30), vm.state.current.ending?.time)
     }
 
     @Test
@@ -398,7 +398,7 @@ class ClassEditViewModelTest {
         // Moving the start later leaves it 90 minutes long, now 14:00–15:30.
         vm.change(BookingIntent.StartAt(LocalTime.of(14, 0)))
         assertEquals(90, vm.state.current.form.durationMinutes)
-        assertEquals(LocalTime.of(15, 30), vm.state.current.form.ends?.time)
+        assertEquals(LocalTime.of(15, 30), vm.state.current.ending?.time)
     }
 
     @Test
@@ -569,8 +569,8 @@ class ClassEditViewModelTest {
 
         val state = vm.state.current
         assertEquals(60, state.form.durationMinutes)
-        assertEquals(LocalTime.MIDNIGHT, state.form.ends?.time)
-        assertEquals(true, state.form.ends?.nextDay)
+        assertEquals(LocalTime.MIDNIGHT, state.ending?.time)
+        assertEquals(true, state.ending?.nextDay)
         assertTrue("a lesson already in the schedule is one the form can save", state.canSave)
     }
 

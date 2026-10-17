@@ -109,6 +109,7 @@ class BackupRoundTripTest {
             emptyDb.close()
         }
 
-        assertEquals(original, reproduced)
+        val expected = original.copy(attendance = original.attendance.map { it.copy(calendarEventId = null) })
+        assertEquals(expected, reproduced)
     }
 }

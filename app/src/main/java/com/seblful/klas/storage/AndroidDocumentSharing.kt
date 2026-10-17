@@ -18,14 +18,14 @@ import javax.inject.Singleton
  * A shared file is a **handover, not a copy the tutor keeps**: the receiving app reads it and the tutor
  * never looks for it again. The cache is where Android puts exactly that, and it is the only directory
  * the system will clean up on the app's behalf — which matters here more than usual, because the file is
- * a spreadsheet of a tutor's income. Each share clears the directory first, so at most one is ever on
- * disk however many are sent and whenever the OS gets round to the cache.
+ * a spreadsheet of a tutor's income. Each share has a unique path, and files older than a week are
+ * removed on the next share; a new handover must not replace a file another app is still reading.
  *
  * ### Why a content URI and not a path
  *
  * `file://` URIs have been refused since Android 7 (`FileUriExposedException`). [FileProvider] hands out
  * a `content://` URI scoped to one file, and `FLAG_GRANT_READ_URI_PERMISSION` lends the receiving app
- * read access for as long as the chooser lives — so the CSV is readable by the app the tutor picked and
+ * read access while the receiving activity stack remains active — so the CSV is readable by that app and
  * by nothing else. The provider is declared `exported="false"` with `grantUriPermissions="true"`, which
  * is what makes the grant the *only* way in.
  *
@@ -47,13 +47,7 @@ class AndroidDocumentSharing @Inject constructor(
         require(filename == File(filename).name) { "A share filename may not contain a path" }
 
         val uri = withContext(Dispatchers.IO) {
-            val directory = File(context.cacheDir, SHARE_DIRECTORY).apply { mkdirs() }
-            // **Emptied first, so at most one shared file is ever on disk.** These are a tutor's income,
-            // and the cache is cleaned up on the OS's schedule rather than on ours — a share per month
-            // would otherwise leave a year of them lying about waiting for it. Deleting the previous one
-            // is safe by the time we are here: the receiving app's read grant died with its chooser.
-            directory.listFiles()?.forEach { it.delete() }
-            val file = File(directory, filename).apply { writeText(text) }
+            val file = SharedDocuments(File(context.cacheDir, SHARE_DIRECTORY)).write(filename, text)
             FileProvider.getUriForFile(context, "${context.packageName}.$AUTHORITY_SUFFIX", file)
         }
 

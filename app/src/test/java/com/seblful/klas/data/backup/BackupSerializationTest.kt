@@ -271,7 +271,7 @@ class BackupSerializationTest {
             snapshot.lessons.single(),
         )
         assertEquals(
-            AttendanceEntity(9, 4, 1, Attended.PRESENT, priceMinor = 3000, chargeMinor = 3000, calendarEventId = "evt-1"),
+            AttendanceEntity(9, 4, 1, Attended.PRESENT, priceMinor = 3000, chargeMinor = 3000),
             snapshot.attendance.single(),
         )
         assertTrue(snapshot.homework.isEmpty())

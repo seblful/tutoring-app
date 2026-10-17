@@ -165,8 +165,17 @@ fun parseMoneyOrNull(text: String): Money? {
     val normalized = text.trim().replace(',', '.').replace(" ", "")
     if (normalized.isEmpty()) return null
     val value = normalized.toBigDecimalOrNull()?.takeIf { it.signum() >= 0 } ?: return null
-    val minor = value.movePointRight(2).setScale(0, RoundingMode.HALF_UP)
-    return runCatching { Money(minor.longValueExact()) }.getOrNull()?.takeIf { it <= Money.MAX }
+    // Compare before expanding an exponent into digits. Keep a rounding margin above the ceiling,
+    // and return zero directly below half a kopeck so an extreme negative scale cannot allocate gigabytes.
+    val unroundedLimit = java.math.BigDecimal.valueOf(Money.MAX.minor, 2).add(java.math.BigDecimal.ONE)
+    if (value > unroundedLimit) return null
+    if (value < java.math.BigDecimal("0.005")) return Money.ZERO
+    return try {
+        val minor = value.movePointRight(2).setScale(0, RoundingMode.HALF_UP)
+        Money(minor.longValueExact()).takeIf { it <= Money.MAX }
+    } catch (_: ArithmeticException) {
+        null
+    }
 }
 
 /**

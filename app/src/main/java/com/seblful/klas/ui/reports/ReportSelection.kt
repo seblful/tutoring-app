@@ -1,0 +1,10 @@
+package com.seblful.klas.ui.reports
+
+import com.seblful.klas.domain.reports.ReportPeriod
+import com.seblful.klas.domain.reports.Reports
+import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.state.valueOrNull
+
+/** A computed report that can be drawn and exported under the requested period's labels. */
+internal fun Loadable<Reports.Report>.forPeriod(period: ReportPeriod): Reports.Report? =
+    valueOrNull()?.takeIf { it.period == period }

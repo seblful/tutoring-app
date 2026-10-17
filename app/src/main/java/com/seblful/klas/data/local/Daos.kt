@@ -340,13 +340,16 @@ interface LessonDao {
 /** One student's place in a lesson: their attendance, their rate, their charge, their calendar event. */
 @Dao
 interface AttendanceDao {
+    @Query("UPDATE attendance SET calendarEventId = :eventId WHERE id = :id")
+    suspend fun setCalendarEventId(id: Long, eventId: String?)
+
     /**
      * How many lessons a student has on one subject — used to refuse un-enrolling a subject whose
      * lessons (taught ones especially) are billed history that must keep referencing a price.
      */
     @Query(
         "SELECT COUNT(*) FROM attendance a JOIN lessons l ON l.id = a.lessonId " +
-            "WHERE a.studentId = :studentId AND l.subjectId = :subjectId"
+            "WHERE a.studentId = :studentId AND l.subjectId = :subjectId",
     )
     suspend fun countForStudentSubject(studentId: Long, subjectId: Long): Int
 
@@ -379,7 +382,7 @@ interface HomeworkDao {
     /** A student's own homework and their groups' — what their card lists. */
     @Query(
         "SELECT * FROM homework WHERE studentId = :studentId " +
-            "OR groupId IN (SELECT groupId FROM group_members WHERE studentId = :studentId)"
+            "OR groupId IN (SELECT groupId FROM group_members WHERE studentId = :studentId)",
     )
     fun observeForStudent(studentId: Long): Flow<List<HomeworkEntity>>
 

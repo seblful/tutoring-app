@@ -146,8 +146,8 @@ class ClassRepository @Inject constructor(
 
     /**
      * The lesson already holding the hour [session] is being written into, if any — asked by every write
-     * that would (re)occupy time, before its transaction (a read that only decides whether to write
-     * stays outside it).
+     * that would (re)occupy time, inside the same transaction that reserves it. A preflight read outside
+     * the transaction lets two writers both see a free hour.
      *
      * **It derives its own exclusions.** The classes [session] consists of cannot stand in their own way,
      * and that set is [ClassSession.ids]' to state. Every caller used to assemble it by hand alongside a
@@ -260,13 +260,16 @@ class ClassRepository @Inject constructor(
         val value: T,
         val mirror: List<TutoringClass> = emptyList(),
         val drop: List<TutoringClass> = emptyList(),
-    )
+        val changed: Boolean = true,
+    ) {
+        fun <R> mapValue(transform: (T) -> R): Committed<R> = Committed(transform(value), mirror, drop, changed)
+    }
 
     /**
      * The three phases of a lesson write, in the one order they may happen in:
      *
-     *   1. the rules run (pure, no I/O) — before the call, in the caller;
-     *   2. every row the lesson touches is written inside [Transactor.transaction] — [rows];
+     *   1. the caller shapes the edit with pure rules;
+     *   2. conflict guards and every row the lesson touches share [Transactor.transaction] — [rows];
      *   3. the calendar is mirrored and reminders refreshed, *after* the commit — from [Written].
      *
      * This used to be a comment, and then twelve hand-written stacks of the same three steps. The
@@ -291,6 +294,7 @@ class ClassRepository @Inject constructor(
         rows: suspend () -> Committed<T>,
     ): T {
         val written = transactor.transaction { rows() }
+        if (!written.changed) return written.value
         // Leavers' events go before the survivors are mirrored, mirroring the row order inside (2).
         written.drop.forEach { calendar.drop(it) }
         // An empty list is how a write says it has nothing to mirror; the mirror returns immediately.
@@ -351,9 +355,8 @@ class ClassRepository @Inject constructor(
      * Every occurrence is an ordinary lesson; what this owns is that they are decided and written
      * **together**, in the three phases [write] states:
      *
-     *   1. one read over the union of the occurrences' windows, partitioning them into free and taken
-     *      (a read that only *decides* whether to write stays outside the transaction);
-     *   2. every free occurrence's rows inside one transaction;
+     *   1. shape the windows with pure rules;
+     *   2. classify free and taken occurrences and write the free ones inside one transaction;
      *   3. one calendar mirror and one reminder refresh for the lot.
      *
      * A loop over [book] would have been the obvious implementation and is the thing to avoid: it would
@@ -387,19 +390,14 @@ class ClassRepository @Inject constructor(
         // `Scheduling.windowFor`'s to shape, for every slot at once, so the write path and the read path
         // ask the same module which classes a clash scan has to be given.
         val window = Scheduling.windowFor(slots)
-        val around = getBetween(window.from, window.toExclusive)
-        val free = mutableListOf<Scheduling.Slot>()
-        val skipped = mutableListOf<SeriesWrite.Skipped>()
-        slots.forEach { slot ->
-            val clash = Scheduling.conflicts(slot, around).firstOrNull()
-            if (clash == null) free += slot else skipped += SeriesWrite.Skipped(slot.start, clash)
-        }
-        // Returned before [write] rather than through it: with nothing to commit there is nothing to
-        // mirror and nothing to re-plan, and running the phases anyway would re-derive the entire
-        // reminder plan to arrive back where it started.
-        if (free.isEmpty()) return SeriesWrite(emptyList(), lessons = 0, skipped = skipped)
-
-        val booked = write {
+        return write {
+            val around = getBetween(window.from, window.toExclusive)
+            val free = mutableListOf<Scheduling.Slot>()
+            val skipped = mutableListOf<SeriesWrite.Skipped>()
+            slots.forEach { slot ->
+                val clash = Scheduling.conflicts(slot, around).firstOrNull()
+                if (clash == null) free += slot else skipped += SeriesWrite.Skipped(slot.start, clash)
+            }
             val rows = free.flatMap { slot ->
                 insertLesson(
                     subjectId = subjectId,
@@ -411,9 +409,12 @@ class ClassRepository @Inject constructor(
                     groupId = groupId,
                 )
             }
-            Committed(rows, mirror = rows)
+            Committed(
+                SeriesWrite(rows.map { it.id }, lessons = free.size, skipped = skipped),
+                mirror = rows,
+                changed = rows.isNotEmpty(),
+            )
         }
-        return SeriesWrite(booked.map { it.id }, lessons = free.size, skipped = skipped)
     }
 
     /**
@@ -479,14 +480,17 @@ class ClassRepository @Inject constructor(
         now: Instant,
         roster: Set<Long>? = null,
     ): LessonWrite<List<TutoringClass>> {
-        holdingHour(session, newStart, changes.durationMinutes)
-            ?.let { return LessonWrite.HourTaken(it) }
         // The rules are one call, and the sequence they compose in is theirs — see [SessionRules.lessonEdit].
         // This used to assemble three of them here and read the lesson's own new fields out of the
         // surviving classes, which is how swapping a roster whole kept the lesson at its old time.
         // Leavers are dropped inside the same transaction as the edit, which is what stops a member being
         // billed on their way out: the delete and the re-bill cannot half-happen.
-        return LessonWrite.Written(persist(SessionRules.lessonEdit(session, changes, newStart, now, roster)))
+        return write {
+            holdingHour(session, newStart, changes.durationMinutes)
+                ?.let { return@write Committed(LessonWrite.HourTaken(it), changed = false) }
+            persistRows(SessionRules.lessonEdit(session, changes, newStart, now, roster))
+                .mapValue { LessonWrite.Written(it) }
+        }
     }
 
     /**
@@ -500,9 +504,12 @@ class ClassRepository @Inject constructor(
         newStart: Instant,
         now: Instant,
     ): LessonWrite<List<TutoringClass>> {
-        holdingHour(session, newStart, session.durationMinutes)
-            ?.let { return LessonWrite.HourTaken(it) }
-        return LessonWrite.Written(persist(session.classes.map { ClassRules.move(it, newStart, now) }))
+        return write {
+            holdingHour(session, newStart, session.durationMinutes)
+                ?.let { return@write Committed(LessonWrite.HourTaken(it), changed = false) }
+            val moved = session.classes.map { ClassRules.move(it, newStart, now) }
+            persistRows(LessonEdit(lesson = moved.first(), updated = moved)).mapValue { LessonWrite.Written(it) }
+        }
     }
 
     /**
@@ -521,10 +528,13 @@ class ClassRepository @Inject constructor(
      */
     suspend fun setStatus(session: ClassSession, to: LessonStatus): LessonWrite<List<TutoringClass>> {
         if (session.status == to) return LessonWrite.Written(emptyList())
-        if (to.occupiesTime && !session.status.occupiesTime) {
-            holdingHour(session)?.let { return LessonWrite.HourTaken(it) }
+        return write {
+            if (to.occupiesTime && !session.status.occupiesTime) {
+                holdingHour(session)?.let { return@write Committed(LessonWrite.HourTaken(it), changed = false) }
+            }
+            val resolved = session.classes.map { ClassRules.applyStatus(it, to) }
+            persistRows(LessonEdit(lesson = resolved.first(), updated = resolved)).mapValue { LessonWrite.Written(it) }
         }
-        return LessonWrite.Written(persist(session.classes.map { ClassRules.applyStatus(it, to) }))
     }
 
     /**
@@ -566,7 +576,7 @@ class ClassRepository @Inject constructor(
      * database ends up with. Mirroring follows the commit, per [write]; a joiner is mirrored with the
      * id its insert returned, so the event id lands back on the right row.
      */
-    private suspend fun persist(edit: LessonEdit): List<TutoringClass> = write {
+    private suspend fun persistRows(edit: LessonEdit): Committed<List<TutoringClass>> {
         // Leavers go first, so the updates below have nobody left to re-bill on their way out.
         edit.dropped.forEach { attendance.deleteById(it.id) }
         // The lesson's own row **once**, and from the edit's own statement of it rather than from
@@ -581,7 +591,7 @@ class ClassRepository @Inject constructor(
         // inside this transaction, so a half-emptied lesson is never something another read can see.
         if (edit.dropped.isNotEmpty()) lessons.deleteEmpty()
         val touched = edit.updated + joined
-        Committed(touched, mirror = touched, drop = edit.dropped)
+        return Committed(touched, mirror = touched, drop = edit.dropped)
     }
 
     /**
@@ -590,7 +600,7 @@ class ClassRepository @Inject constructor(
      */
     private suspend fun persist(resolved: List<TutoringClass>): List<TutoringClass> {
         require(resolved.isNotEmpty()) { "A write touches at least one class of the lesson" }
-        return persist(LessonEdit(lesson = resolved.first(), updated = resolved))
+        return write { persistRows(LessonEdit(lesson = resolved.first(), updated = resolved)) }
     }
 
     /**

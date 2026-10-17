@@ -35,6 +35,7 @@ enum class SubjectNotice {
 // before this state exists. A copy on a value nobody consults is a second answer waiting to disagree.
 data class ClassFormState(
     val form: ClassForm = ClassForm(),
+    val ending: ClassForm.Ending? = null,
     /**
      * What the three pickers **say** — the chosen row's name, resolved, or blank where nothing is chosen.
      *

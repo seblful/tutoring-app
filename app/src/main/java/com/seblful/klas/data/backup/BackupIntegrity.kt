@@ -70,7 +70,7 @@ object BackupIntegrity {
 
     private fun checkAttendance(a: AttendanceEntity) {
         checkAmount(a.priceMinor, "class ${a.id}'s rate")
-        checkAmount(a.chargeMinor, "class ${a.id}'s charge")
+        checkAmount(a.chargeMinor, "class ${a.id}'s charge", maximumChargeMinor)
     }
 
     private fun checkGroup(g: GroupEntity) {
@@ -78,8 +78,8 @@ object BackupIntegrity {
     }
 
     /**
-     * An amount has to be one the app's arithmetic survives: within `0..`[Money.MAX], the same bound
-     * every typed amount is held to by `parseMoneyOrNull`.
+     * An amount has to be one the app's arithmetic survives: typed amounts use `0..`[Money.MAX],
+     * while a derived charge uses the maximum charge an accepted rate and stored duration can produce.
      *
      * This is the second way in, and until it was checked the only one left open. A rate is not read
      * back through a parser — it is a bare `Long` of kopecks, so nothing about it can fail to *load*.
@@ -91,11 +91,16 @@ object BackupIntegrity {
      * It belongs here with the duration check because it is the same kind of fact: a column
      * this build cannot make sense of, caught before it becomes the saved data.
      */
-    private fun checkAmount(minor: Long, what: String) {
-        if (minor < 0 || minor > Money.MAX.minor) {
-            refuse("$what is $minor kopecks, outside 0..${Money.MAX.minor}")
+    private fun checkAmount(minor: Long, what: String, maximum: Long = Money.MAX.minor) {
+        if (minor < 0 || minor > maximum) {
+            refuse("$what is $minor kopecks, outside 0..$maximum")
         }
     }
+
+    // A stored duration is a positive Int. Charges scale an accepted rate by that duration; they are
+    // not typed amounts, so the rate ceiling must not reject the app's own calculated charges.
+    private val maximumChargeMinor =
+        com.seblful.klas.domain.lesson.ClassRules.chargeFor(Money.MAX, Int.MAX_VALUE).minor
 
     /**
      * A rate change is about a (student, subject) price or a group's rate. A row that is about neither

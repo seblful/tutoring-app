@@ -118,15 +118,21 @@ data class ClassForm(
      * Carries [Ending.nextDay] rather than only a clock time because "до 00:00" on its own is the one
      * end a tutor could misread as the start of the day they are booking.
      */
-    val ends: Ending?
-        get() {
-            val from = timeFrom ?: return null
-            val minutes = durationMinutes?.takeIf { it > 0 } ?: return null
-            return Ending(
+    fun ends(zone: ZoneId): Ending? {
+        val from = timeFrom
+        val minutes = durationMinutes?.takeIf { it > 0 }
+        if (from == null || minutes == null) return null
+        val end = slot(zone)?.end?.atZone(zone)
+        return if (end != null) {
+            Ending(time = end.toLocalTime(), nextDay = end.toLocalDate().isAfter(date))
+        } else {
+            // Before a date is selected there is no DST transition to resolve yet.
+            Ending(
                 time = from.plusMinutes(minutes.toLong()),
                 nextDay = from.toSecondOfDay() + minutes * 60L >= Duration.ofDays(1).seconds,
             )
         }
+    }
 
     /** A lesson's end as a wall clock, and whether reaching it means passing midnight. */
     data class Ending(val time: LocalTime, val nextDay: Boolean)

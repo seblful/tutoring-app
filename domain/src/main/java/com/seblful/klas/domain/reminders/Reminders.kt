@@ -75,8 +75,13 @@ object Reminders {
      * past the start is still worth seeing before the end — earns the notification, and only while
      * reminders are switched on ([notificationsEnabled] — opt-out, on by default).
      */
-    fun shouldPost(klass: TutoringClass, notificationsEnabled: Boolean, now: Instant): Boolean =
-        notificationsEnabled && when (LessonPhase.of(klass, now)) {
+    fun shouldPost(
+        klass: TutoringClass,
+        notificationsEnabled: Boolean,
+        now: Instant,
+        lead: Duration = DEFAULT_LEAD,
+    ): Boolean =
+        notificationsEnabled && !klass.start.minus(lead).isAfter(now) && when (LessonPhase.of(klass, now)) {
             LessonPhase.UPCOMING, LessonPhase.IN_PROGRESS -> true
             LessonPhase.OVERDUE, LessonPhase.SETTLED -> false
         }

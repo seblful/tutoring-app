@@ -26,6 +26,7 @@ import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.domain.schedule.NowMarker
 import com.seblful.klas.domain.schedule.ScheduleEmpty
 import com.seblful.klas.domain.schedule.TimeConflict
+import com.seblful.klas.format.zones
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.days
@@ -94,7 +95,7 @@ class ScheduleViewModel @Inject constructor(
 ) : ViewModel() {
 
     // From the clock, so the one thing that watches the date can be moved in a test. See TimeModule.
-    private val zone: ZoneId = clock.zone
+    private val zone: ZoneId get() = clock.zone
 
     private val _selectedDate = MutableStateFlow(LocalDate.now(clock))
     val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
@@ -103,7 +104,7 @@ class ScheduleViewModel @Inject constructor(
      * The class whose lesson a reminder's tap asked to see, until its sheet is open — see [askedSheet].
      * Declared this early because [selectDate] clears it, and nothing may call that before it exists.
      */
-    private val _askedLesson = MutableStateFlow<Long?>(null)
+    private val askedLessonId = MutableStateFlow<Long?>(null)
 
     /**
      * Today — **re-emitted when the date changes**, not read once ([days]).
@@ -138,7 +139,7 @@ class ScheduleViewModel @Inject constructor(
     private val _viewMode = MutableStateFlow(ScheduleViewMode.DAY)
     val viewMode: StateFlow<ScheduleViewMode> = _viewMode.asStateFlow()
 
-    private val _filterStudentId = MutableStateFlow<Long?>(null)
+    private val filterStudentId = MutableStateFlow<Long?>(null)
 
     /**
      * Whose lessons the schedule is showing, or null for everyone's — see [StudentFilter].
@@ -148,7 +149,7 @@ class ScheduleViewModel @Inject constructor(
      * construction rather than at first collection.
      */
     val studentFilter: StateFlow<StudentFilter?> =
-        combine(_filterStudentId, students.observeAll()) { id, all ->
+        combine(filterStudentId, students.observeAll()) { id, all ->
             id?.let { wanted -> all.firstOrNull { it.id == wanted } }
                 ?.let { StudentFilter(it.id, it.name) }
         }
@@ -166,7 +167,7 @@ class ScheduleViewModel @Inject constructor(
 
     /** Narrows the schedule to one student, or shows everyone again with null. */
     fun setStudentFilter(studentId: Long?) {
-        _filterStudentId.value = studentId
+        filterStudentId.value = studentId
     }
 
     /**
@@ -251,8 +252,9 @@ class ScheduleViewModel @Inject constructor(
      * once and it is only their numbers that arrive.
      */
     val dayLoads: StateFlow<Loadable<Map<LocalDate, CalendarLayout.DayLoad>>> =
-        combine(_viewMode, _visibleMonth, _visibleWeek, studentFilter, ::MarkerKey)
+        combine(_viewMode, _visibleMonth, _visibleWeek, studentFilter, clock.zones(), ::MarkerKey)
             .flatMapLatest { key ->
+                val zone = key.zone
                 val range = when (key.mode) {
                     ScheduleViewMode.DAY -> null
                     ScheduleViewMode.WEEK -> key.week to key.week.plusDays(DAYS_IN_WEEK)
@@ -276,7 +278,7 @@ class ScheduleViewModel @Inject constructor(
                         .readyOrLoadingAfter(PAGE_TURN_GRACE)
                 }
             }
-                .derive(this, computation, Loadable.Loading)
+            .derive(this, computation, Loadable.Loading)
 
     /**
      * What one page of calendar markers is *about*: which view, which page, and whose lessons.
@@ -291,6 +293,7 @@ class ScheduleViewModel @Inject constructor(
         val month: YearMonth,
         val week: LocalDate,
         val filter: StudentFilter?,
+        val zone: ZoneId,
     ) {
         fun narrow(classes: List<TutoringClass>): List<TutoringClass> = classes.shownFor(filter)
     }
@@ -307,8 +310,8 @@ class ScheduleViewModel @Inject constructor(
      * per emission rather than once per view. The views read their day out of it with [day].
      */
     val content: StateFlow<Loadable<ScheduleContent.Week>> =
-        combine(_visibleWeek, studentFilter, ::Pair)
-            .flatMapLatest { (week, filter) ->
+        combine(_visibleWeek, studentFilter, clock.zones(), ::Triple)
+            .flatMapLatest { (week, filter, zone) ->
                 val bounds = DayBounds.of(week, week.plusDays(DAYS_IN_WEEK), zone)
                 combine(
                     classes.observeBetween(bounds.start, bounds.end),
@@ -342,10 +345,10 @@ class ScheduleViewModel @Inject constructor(
                     // a week that does not hold it, and a day's heading names the day its content carries.
                     .readyOrLoadingAfter(PAGE_TURN_GRACE)
             }
-                // `ScheduleContent.Day(emptyList())` used to be the initial value, which is a *day with
-                // no lessons* — so a cold open drew «Нет занятий» over the tutor's actual morning, with
-                // the book-a-lesson button under it, until the query returned. See [Loadable].
-                .derive(this, computation, Loadable.Loading)
+            // `ScheduleContent.Day(emptyList())` used to be the initial value, which is a *day with
+            // no lessons* — so a cold open drew «Нет занятий» over the tutor's actual morning, with
+            // the book-a-lesson button under it, until the query returned. See [Loadable].
+            .derive(this, computation, Loadable.Loading)
 
     /**
      * **The day the day and month views draw** — the selected day read off [content], or, while the week
@@ -494,10 +497,10 @@ class ScheduleViewModel @Inject constructor(
             events.send(Event.LESSON_GONE)
             return
         }
-        val filter = _filterStudentId.value
+        val filter = filterStudentId.value
         if (filter != null && session.classes.none { it.studentId == filter }) setStudentFilter(null)
         selectDate(session.start.atZone(zone).toLocalDate())
-        _askedLesson.value = classId
+        askedLessonId.value = classId
     }
 
     /**
@@ -506,7 +509,7 @@ class ScheduleViewModel @Inject constructor(
      * for the day just selected and the row is not there to be found until that answers.
      */
     val askedSheet: StateFlow<ScheduleRow?> =
-        combine(content, _askedLesson) { loaded, classId ->
+        combine(content, askedLessonId) { loaded, classId ->
             classId?.let { id ->
                 loaded.valueOrNull()?.rowsShown?.firstOrNull { row -> row.classes.any { it.id == id } }
             }
@@ -515,7 +518,7 @@ class ScheduleViewModel @Inject constructor(
 
     /** The asked-for sheet is open; the ask is spent. */
     fun sheetShown() {
-        _askedLesson.value = null
+        askedLessonId.value = null
     }
 
     /**
@@ -526,7 +529,7 @@ class ScheduleViewModel @Inject constructor(
      * moved on from.
      */
     fun selectDate(date: LocalDate) {
-        _askedLesson.value = null
+        askedLessonId.value = null
         _selectedDate.value = date
         showPagesFor(date)
     }

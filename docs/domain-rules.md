@@ -6,7 +6,8 @@ calendar and the tray is in [calendar-and-reminders.md](calendar-and-reminders.m
 
 ## Money and billing
 
-- Money is integer minor units (kopecks), no floats, bounded by `Money.MAX`.
+- Money is integer minor units (kopecks), no floats. Typed rates/payments are bounded by `Money.MAX`;
+  a lesson's derived charge scales that rate by its duration and can exceed the input ceiling.
 - Currency (`BYN|RUB|USD|EUR`) is a **display** setting: changing it re-labels stored amounts, never
   converts. Always printed as ISO code, never a symbol. Fresh install defaults from phone region.
 - Decimal separator follows the app **language**, not the currency.

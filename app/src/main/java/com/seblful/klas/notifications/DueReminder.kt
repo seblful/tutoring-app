@@ -42,7 +42,9 @@ class DueReminder @Inject constructor(
      */
     suspend fun post(classId: Long, now: Instant = clock.instant()): Boolean {
         val klass = classes.getById(classId) ?: return false
-        if (!Reminders.shouldPost(klass, settings.get().notificationsEnabled, now)) return false
+        val settings = settings.get()
+        val lead = java.time.Duration.ofMinutes(settings.reminderLeadMinutes.toLong())
+        if (!Reminders.shouldPost(klass, settings.notificationsEnabled, now, lead)) return false
 
         val who = names.who(klass)
         // Read now rather than when the reminder was planned, which is what lets homework be set and ticked

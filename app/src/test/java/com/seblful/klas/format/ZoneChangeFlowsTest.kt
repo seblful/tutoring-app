@@ -1,0 +1,95 @@
+package com.seblful.klas.format
+
+import android.content.Context
+import android.content.Intent
+import android.os.Looper
+import androidx.test.core.app.ApplicationProvider
+import com.seblful.klas.testutil.MainDispatcherRule
+import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.current
+import com.seblful.klas.testutil.observing
+import com.seblful.klas.ui.common.state.days
+import com.seblful.klas.ui.schedule.ScheduleViewModel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
+import java.time.Clock
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneOffset
+import java.util.TimeZone
+
+@RunWith(RobolectricTestRunner::class)
+class ZoneChangeFlowsTest {
+    @get:Rule
+    val main = MainDispatcherRule()
+
+    @get:Rule
+    val env = TestEnv()
+
+    private val instant = Instant.parse("2026-06-01T00:30:00Z")
+
+    @Test
+    fun `today wakes on a zone change instead of waiting for the old midnight`() = runTest(main.dispatcher) {
+        inUtc { context, clock ->
+            val days = mutableListOf<LocalDate>()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { clock.days().collect { days += it } }
+            runCurrent()
+
+            changeToNewYork(context)
+            runCurrent()
+
+            assertEquals(listOf(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 5, 31)), days)
+        }
+    }
+
+    @Test
+    fun `an open schedule requeries zone bounds and moves lessons in the current zone`() = runTest(main.dispatcher) {
+        inUtc { context, clock ->
+            val subject = env.fixtures.subject()
+            val student = env.fixtures.pricedStudent(subjectId = subject)
+            val id = env.fixtures.lesson(subject, listOf(student), instant).single()
+            val vm = ScheduleViewModel(
+                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo,
+                main.appScope, main.dispatcher, clock,
+            )
+            observing(vm.content)
+            runCurrent()
+            assertEquals(1, vm.content.current.sections.size)
+
+            changeToNewYork(context)
+            runCurrent()
+
+            assertTrue("The lesson is now on Sunday, outside the selected week", vm.content.current.sections.isEmpty())
+            vm.moveTo(env.classRepo.getSessionFor(id)!!, LocalDate.of(2026, 6, 2), LocalTime.of(10, 0))
+            runCurrent()
+            assertEquals(Instant.parse("2026-06-02T14:00:00Z"), env.classRepo.getById(id)!!.start)
+        }
+    }
+
+    private suspend fun inUtc(block: suspend (Context, DeviceClock) -> Unit) {
+        val previous = TimeZone.getDefault()
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            block(context, DeviceClock(context, Clock.fixed(instant, ZoneOffset.UTC)))
+        } finally {
+            TimeZone.setDefault(previous)
+        }
+    }
+
+    private fun changeToNewYork(context: Context) {
+        TimeZone.setDefault(TimeZone.getTimeZone("America/New_York"))
+        context.sendBroadcast(Intent(Intent.ACTION_TIMEZONE_CHANGED))
+        shadowOf(Looper.getMainLooper()).idle()
+    }
+}
