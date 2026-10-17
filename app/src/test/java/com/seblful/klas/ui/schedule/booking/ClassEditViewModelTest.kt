@@ -1187,6 +1187,48 @@ class ClassEditViewModelTest {
         assertEquals(1, env.classes().size)
     }
 
+    /**
+     * **A save does not un-teach a lesson that was taught underneath the form.**
+     *
+     * The form holds the lesson as it was when it opened, and the lesson's *state* moves on while it is
+     * up: the upkeep pass completes one whose hour has passed — and completing is what bills it — and the
+     * reminder's «Проведено» does the same by hand. `apply` starts every class from the state it is
+     * handed, so a save that wrote the snapshot back left a lesson the tutor had taught reading
+     * «Запланировано», its attendance back to expected and its charge voided, over an edit that only meant
+     * to change a price. The lesson is read again at the moment of writing for exactly this.
+     */
+    @Test
+    fun `an edit saved over a lesson completed underneath the form keeps it taught and billed`() =
+        runTest(mainRule.dispatcher) {
+            val start = Instant.parse("2026-06-15T07:00:00Z")
+            val (studentId, subjectId) = seedStudentWithPricedSubject()
+            val id = env.fixtures.storedClass(
+                studentId = studentId, subjectId = subjectId, startMillis = start.toEpochMilli(),
+                durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED,
+            )
+            val vm = vm(id)
+            observing(vm.state)
+            advanceUntilIdle()
+
+            // Taught, and so billed, with the form still open on it.
+            env.classRepo.setStatus(env.classRepo.getSessionFor(id)!!, LessonStatus.COMPLETED)
+
+            // The tutor changes the price — the one thing the form is actually holding an opinion about.
+            vm.change(BookingIntent.Edit { it.copy(price = MoneyField("45")) })
+            vm.save { }
+            advanceUntilIdle()
+
+            val saved = env.classRepo.getById(id)!!
+            assertEquals("still taught", LessonStatus.COMPLETED, saved.status)
+            assertEquals("still there", Attended.PRESENT, saved.attended)
+            assertEquals(
+                "and re-billed at the price that was just set",
+                Money.ofMajor(45).minor,
+                saved.charge.minor,
+            )
+            assertEquals("still one row, not a second booking", 1, env.classes().size)
+        }
+
     // --- Group lessons ---
 
     /** The group's own hourly rate — deliberately unlike either member's individual price. */

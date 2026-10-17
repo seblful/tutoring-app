@@ -28,4 +28,19 @@ class ArrivalGate {
         last = arrival
         return arrival.target
     }
+
+    /**
+     * Whether [arrival] is one this gate still owes — **offering it does not spend it**.
+     *
+     * For an ask whose acting cannot happen the moment it is offered: the debts tap has to wait for a
+     * report to be laid out before it can scroll to anything, and a screen that recorded the arrival on
+     * the offer would leave it spent on nothing if the tutor left the tab while it was still assembling
+     * ([honour] is the other half). [admit] keeps the one-step shape for the asks that act immediately.
+     */
+    fun <T> owes(arrival: Arrival<T>?): Boolean = arrival != null && arrival !== last
+
+    /** Records [arrival] as honoured, so [owes] answers false for it from here on. No arrival, nothing. */
+    fun honour(arrival: Arrival<*>?) {
+        if (arrival != null) last = arrival
+    }
 }

@@ -15,6 +15,7 @@ import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -206,6 +207,39 @@ class ClassRepositoryGroupTest {
         assertEquals(Attended.ABSENT, after.classes.single { it.studentId == bob }.attended)
         assertEquals("and bills only the one who came", groupRate, after.classes.single { it.studentId == ann }.charge)
         assertEquals(Money.ZERO, after.classes.single { it.studentId == bob }.charge)
+    }
+
+    /**
+     * **Archiving a member takes their invitation with them.**
+     *
+     * Their class is *excused*, not cancelled — the lesson goes ahead for everybody else and stays
+     * `SCHEDULED` — so the event was left standing in the tutor's calendar and in the student's inbox,
+     * and a re-sync (`CalendarMirror.resyncAll`) put it back after they had deleted it. A member who is
+     * not coming is not invited, whichever way they stopped coming.
+     *
+     * The student who *is* coming keeps their own event and its id: this is a per-member correction, and
+     * the lesson it belongs to is untouched.
+     */
+    @Test
+    fun `archiving a member withdraws their event from a lesson that still goes ahead`() = runTest {
+        seed()
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
+        val ids = bookSession()
+        val session = repo.getSessionFor(ids.first())!!
+        val bobEvent = session.classes.single { it.studentId == bob }.calendarEventId
+        val annEvent = session.classes.single { it.studentId == ann }.calendarEventId
+        assertNotNull(bobEvent)
+
+        env.studentRepo.setArchived(env.studentRepo.getById(bob)!!, archived = true)
+
+        val after = repo.getSessionFor(ids.first())!!
+        val away = after.classes.single { it.studentId == bob }
+        val coming = after.classes.single { it.studentId == ann }
+        assertEquals("the lesson was not called off", LessonStatus.SCHEDULED, after.status)
+        assertEquals("they are simply not coming", Attended.ABSENT, away.attended)
+        assertEquals("their event is gone from the calendar", listOf(bobEvent), env.calendar.deletes)
+        assertNull("and the id is forgotten with it", repo.getById(away.id)!!.calendarEventId)
+        assertEquals("while the member who is coming keeps theirs", annEvent, repo.getById(coming.id)!!.calendarEventId)
     }
 
     @Test

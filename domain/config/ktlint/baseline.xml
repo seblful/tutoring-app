@@ -66,9 +66,6 @@
     <file name="src/test/java/com/seblful/klas/domain/people/CaptionsTest.kt">
         <error line="82" column="121" source="standard:max-line-length" />
     </file>
-    <file name="src/test/java/com/seblful/klas/domain/reminders/RemindersTest.kt">
-        <error line="167" column="121" source="standard:max-line-length" />
-    </file>
     <file name="src/test/java/com/seblful/klas/domain/reports/ReportsTest.kt">
         <error line="465" column="121" source="standard:max-line-length" />
     </file>

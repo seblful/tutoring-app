@@ -462,6 +462,14 @@ class ClassRepository @Inject constructor(
      * *here* — a caller has no way to hand over an already-resolved class, and so no way to persist a
      * charge that no longer matches the price and duration it was billed from.
      *
+     * **[session] has to be the lesson as it is now**, not the snapshot a form opened with: it is read as
+     * the state every class starts from, so a stale one writes a stale status, attendance and charge back
+     * over whatever has happened since — a lesson auto-completed (or marked taught by hand) underneath an
+     * open form would be un-completed and un-billed by a save that only meant to change its price. A
+     * caller that has been sitting on a snapshot re-reads it at the moment of writing; that read and this
+     * write are still two `now`s apart, and closing that would mean taking the whole session as a question
+     * rather than as an argument.
+     *
      * [roster] additionally says who the lesson is for afterwards: members outside it lose their
      * class, members in it without one get one ([GroupRules.rosterChange]). Null leaves the roster
      * exactly as it is, which is all an individual lesson can mean. Changing who was in a lesson and

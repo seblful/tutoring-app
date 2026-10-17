@@ -28,8 +28,8 @@ class ReminderAlarmsTest {
 
     private val t0: Instant = Instant.parse("2026-09-01T08:00:00Z")
 
-    private fun plan(classId: Long, minutesFromT0: Long = 0) =
-        Reminders.Plan(classId = classId, fireAt = t0.plusSeconds(minutesFromT0 * 60))
+    private fun plan(classId: Long, minutesFromT0: Long = 0, due: Boolean = false) =
+        Reminders.Plan(classId = classId, fireAt = t0.plusSeconds(minutesFromT0 * 60), due = due)
 
     @Test
     fun `arming a plan sets one alarm per lesson, at the instant the plan carries`() {
@@ -59,6 +59,25 @@ class ReminderAlarmsTest {
         assertEquals("every previously armed id, and nothing else", listOf(1L, 2L, 3L), clockPort.cancelled)
         assertEquals(listOf(3L, 4L), clockPort.armed.map { it.classId })
         assertEquals(setOf(3L, 4L), armed.read())
+    }
+
+    /**
+     * **A reminder that has come due is neither cancelled nor set again.** The plan cannot arm an instant
+     * already behind it — setting it would fire on the spot, on every refresh — but the alarm it set when
+     * the moment was still ahead may not have fired yet: where the exact-alarm grant is missing the alarm
+     * is inexact by design and Doze may hold it. Taking it away is a reminder that silently never arrives,
+     * which is the one thing this class exists to prevent. See [Reminders.plan].
+     */
+    @Test
+    fun `a reminder that has come due is left armed, and is not set again`() {
+        alarms.set(listOf(plan(1, minutesFromT0 = -30), plan(2, minutesFromT0 = 120)))
+        clockPort.clear()
+
+        alarms.set(listOf(plan(1, minutesFromT0 = -30, due = true), plan(3, minutesFromT0 = 180)))
+
+        assertEquals("the lesson the new plan dropped is the only one cancelled", listOf(2L), clockPort.cancelled)
+        assertEquals("and nothing owed is set a second time", listOf(3L), clockPort.armed.map { it.classId })
+        assertEquals("it stays recorded, so a later pass can still reach it", setOf(1L, 3L), armed.read())
     }
 
     /** A lesson still in the plan is cancelled and armed again, not left alone: its time may have moved. */

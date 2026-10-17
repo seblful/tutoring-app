@@ -31,7 +31,10 @@ class SessionMoveJoinersTest {
                 assertEquals(LessonStatus.SCHEDULED, joining.status)
                 assertEquals(Attended.EXPECTED, joining.attended)
                 assertEquals(Money.ZERO, joining.charge)
-                assertEquals(CalendarSyncPolicy.Action.UPSERT, CalendarSyncPolicy.actionFor(joining.status))
+                assertEquals(
+                    CalendarSyncPolicy.Action.UPSERT,
+                    CalendarSyncPolicy.actionFor(joining.status, joining.attended),
+                )
             }
         }
     }

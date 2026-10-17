@@ -53,25 +53,50 @@ class RemindersTest {
     }
 
     @Test
-    fun `a class nearer than the lead gets no reminder`() {
-        // Booking a lesson for the next hour must not announce it on the spot: the plan is
-        // re-derived on every change, so an immediate firing would repeat with each one.
+    fun `a class nearer than the lead is owed rather than armed`() {
+        // Booking a lesson for the next hour must not announce it on the spot: the plan is re-derived
+        // on every change, so arming an instant already behind us would repeat with each one. It is
+        // still *stated*, so that an alarm already set for it is not taken away — see `ReminderAlarms`.
         val start = now.plus(Duration.ofMinutes(20)) // within the 60-min lead
-        assertTrue(Reminders.plan(now, listOf(klass(1, start)), lead, horizon).isEmpty())
+        val plan = Reminders.plan(now, listOf(klass(1, start)), lead, horizon).single()
+
+        assertEquals(now.minus(Duration.ofMinutes(40)), plan.fireAt)
+        assertTrue(plan.due)
     }
 
     @Test
-    fun `re-planning after a reminder has come due does not plan it again`() {
+    fun `re-planning after a reminder has come due keeps it owed and never arms it again`() {
         val klass = klass(1, now.plus(Duration.ofMinutes(70)))
 
-        // Planned for 10 minutes out...
-        assertEquals(
-            now.plus(Duration.ofMinutes(10)),
-            Reminders.plan(now, listOf(klass), lead, horizon).single().fireAt,
-        )
-        // ...and once that moment has passed (a later class change re-plans everything), gone.
+        // Planned for 10 minutes out, and still to be armed...
+        val planned = Reminders.plan(now, listOf(klass), lead, horizon).single()
+        assertEquals(now.plus(Duration.ofMinutes(10)), planned.fireAt)
+        assertFalse(planned.due)
+
+        // ...and once that moment has passed (a later class change re-plans everything) it comes back
+        // owed: the alarm that plan set is still waiting, and the adapter has to leave it alone.
         val later = now.plus(Duration.ofMinutes(15))
-        assertTrue(Reminders.plan(later, listOf(klass), lead, horizon).isEmpty())
+        val replanned = Reminders.plan(later, listOf(klass), lead, horizon).single()
+        assertEquals(now.plus(Duration.ofMinutes(10)), replanned.fireAt)
+        assertTrue(replanned.due)
+    }
+
+    /**
+     * A lesson the tutor is in the middle of is still worth being told about — [Reminders.shouldPost]
+     * keeps posting until it ends — so its reminder stays owed while it runs, and the alarm waiting to
+     * deliver it is not taken away underneath it.
+     */
+    @Test
+    fun `a lesson that has started is still owed its reminder`() {
+        val running = klass(1, now.minus(Duration.ofMinutes(5)))
+        assertTrue(Reminders.plan(now, listOf(running), lead, horizon).single().due)
+    }
+
+    /** Once the lesson is over there is nothing left to warn about, and its alarm may finally go. */
+    @Test
+    fun `a lesson that has ended leaves the plan`() {
+        val ended = klass(1, now.minus(Duration.ofMinutes(70)))
+        assertTrue(Reminders.plan(now, listOf(ended), lead, horizon).isEmpty())
     }
 
     @Test
@@ -163,9 +188,8 @@ class RemindersTest {
         assertTrue(Reminders.shouldPost(upcoming, notificationsEnabled = true, now = now))
         assertTrue(Reminders.shouldPost(running, notificationsEnabled = true, now = now))
         assertFalse("its end is the boundary", Reminders.shouldPost(ended, notificationsEnabled = true, now = now))
-        assertFalse(
-            Reminders.shouldPost(upcoming.copy(status = LessonStatus.CANCELLED), notificationsEnabled = true, now = now),
-        )
+        val calledOff = upcoming.copy(status = LessonStatus.CANCELLED)
+        assertFalse(Reminders.shouldPost(calledOff, notificationsEnabled = true, now = now))
         assertFalse(Reminders.shouldPost(upcoming, notificationsEnabled = false, now = now))
     }
 }

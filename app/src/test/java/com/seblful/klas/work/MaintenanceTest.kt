@@ -316,11 +316,15 @@ class MaintenanceTest {
     fun `the lead time comes from settings`() = runTest(mainRule.dispatcher) {
         // 90 minutes ahead: inside a 120-minute lead (so it is already too late to announce) but
         // outside the default 60-minute one.
-        seedClass(now.plusSeconds(90 * 60))
+        val id = seedClass(now.plusSeconds(90 * 60))
         env.settingsRepo.update { it.copy(reminderLeadMinutes = 120) }
 
         maintenance().run(now)
 
-        assertTrue("its lead moment has already passed", env.reminders.armed.isEmpty())
+        // The tutor's own lead puts the moment half an hour behind us, so there is nothing left to arm —
+        // and the lesson comes back *owed* rather than dropped, so an alarm already set for it stays put.
+        val planned = env.reminders.armed.single()
+        assertEquals(id, planned.classId)
+        assertTrue("its lead moment has already passed", planned.due)
     }
 }

@@ -11,14 +11,19 @@ import java.time.Instant
 object Reminders {
 
     /**
-     * A planned reminder: which class, and the **instant** it fires.
+     * A planned reminder: which class, the **instant** it fires, and whether that instant has already
+     * arrived.
      *
      * An absolute instant, not a delay. The delay was WorkManager's shape (`setInitialDelay`), kept
      * after reminders became alarms — and it made the only adapter reconstruct the firing time
      * against a second clock read of its own, some moments after the one the plan was derived from.
      * When a reminder fires is this module's decision; an adapter arms what it is handed.
+     *
+     * [due] is that "already arrived" — the one fact the adapter cannot read off the instant alone
+     * without a clock of its own, and the fact it needs to tell "arm this" from "this one is owed".
+     * See [plan].
      */
-    data class Plan(val classId: Long, val fireAt: Instant)
+    data class Plan(val classId: Long, val fireAt: Instant, val due: Boolean = false)
 
     /**
      * How long before a lesson its reminder fires, until the tutor picks otherwise — in minutes, because
@@ -34,17 +39,33 @@ object Reminders {
     val DEFAULT_HORIZON: Duration = Duration.ofDays(7)
 
     /**
-     * Plans a reminder for every [LessonPhase.UPCOMING] lesson — scheduled, starting after [now] — that
-     * starts within [horizon]. Each fires [lead] before the lesson start. Past, cancelled and completed
-     * classes are skipped — only a class that will still happen earns a reminder.
+     * Plans a reminder for every lesson still worth hearing about at [now] that starts within
+     * [horizon] — one that is [LessonPhase.UPCOMING], and one that is [LessonPhase.IN_PROGRESS], since
+     * a reminder that arrives after the hour has begun is still a warning about a lesson the tutor can
+     * still do something about ([shouldPost] keeps posting until it ends). Each fires [lead] before the
+     * lesson start. Past, cancelled and completed classes are skipped — only a class that will still
+     * happen earns a reminder.
      *
-     * A lesson whose lead moment has **already passed** earns no reminder: the whole plan is
-     * re-derived from scratch on every class change, every app start and every maintenance tick,
-     * so firing "late" reminders immediately would announce the same imminent lesson again on each
-     * of those — the tutor books a class for the next hour and is told about it right away, then
-     * told again the next time anything changes. A reminder is a warning *ahead* of a lesson; once
-     * that moment is behind us there is nothing left to warn about, and the tutor who just booked
-     * the lesson is looking at it anyway.
+     * A lesson whose lead moment has **already passed** is still planned, but as [Plan.due] rather than
+     * as something to arm. Two obligations meet in that one entry, and this is where they are told
+     * apart:
+     *
+     * - **It must not be armed.** The plan is re-derived on every class change, every app start and
+     *   every maintenance tick, so setting an instant that has already passed fires on the spot and
+     *   would announce the same imminent lesson again on each of those — the tutor books a class for
+     *   the next hour and is told about it right away, then told again the next time anything changes.
+     *   A reminder is a warning *ahead* of a lesson; a moment behind us is not a moment to set an
+     *   alarm for.
+     * - **It must not be taken away either.** The adapter tunes the alarms to this plan by cancelling
+     *   what it armed before (`ReminderAlarms.set`), and an alarm set for this lesson may not have
+     *   fired yet: where `SCHEDULE_EXACT_ALARM` is not granted the alarm is inexact by design, and
+     *   Doze may hold it past the moment it was asked for. Dropping the lesson once its moment arrived
+     *   would cancel that waiting alarm, and a reminder the tutor was promised would silently never
+     *   arrive. So the plan says the lesson is owed, and the adapter leaves its alarm exactly where it
+     *   is — the discipline `Digests.stillOwed` states for the same reason on the other scheduler.
+     *
+     * A lesson that has *ended* leaves the plan altogether, which is what finally lets its alarm go: at
+     * that point [shouldPost] would refuse to post it anyway.
      *
      * A **group lesson gets one reminder, not one per member** ([SessionRules.sessions] collapses the
      * members' classes into a single session, and the plan points at its first class): the tutor is
@@ -57,12 +78,13 @@ object Reminders {
         horizon: Duration = DEFAULT_HORIZON,
     ): List<Plan> {
         val horizonEnd = now.plus(horizon)
-        val upcoming = classes
-            .filter { LessonPhase.of(it, now) == LessonPhase.UPCOMING && !it.start.isAfter(horizonEnd) }
-        return SessionRules.sessions(upcoming).mapNotNull { session ->
+        val owed = classes.filter { klass ->
+            val phase = LessonPhase.of(klass, now)
+            (phase == LessonPhase.UPCOMING || phase.isRunning) && !klass.start.isAfter(horizonEnd)
+        }
+        return SessionRules.sessions(owed).map { session ->
             val fireAt = session.start.minus(lead)
-            if (!fireAt.isAfter(now)) return@mapNotNull null
-            Plan(session.first.id, fireAt)
+            Plan(session.first.id, fireAt, due = !fireAt.isAfter(now))
         }
     }
 

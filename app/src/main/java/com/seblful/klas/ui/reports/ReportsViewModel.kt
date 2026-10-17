@@ -116,11 +116,19 @@ class ReportsViewModel @Inject constructor(
     private val arrivals = ArrivalGate()
 
     /**
-     * Whether [arrival] — the debt digest's tap — is one the screen has not scrolled for yet. The screen
+     * Whether [arrival] — the debt digest's tap — is one the screen still owes a scroll for. The screen
      * hands it over every time the tab comes back, and scrolling each time would take the tutor away from
      * wherever they had read to. See [Arrival].
+     *
+     * Asked *before* the scroll and recorded only after it ([debtsScrolled]), because the scroll cannot
+     * happen until a report has been laid out: the tap arrives while the report is still being assembled,
+     * so an arrival recorded on the offer would be spent by leaving the tab at the wrong moment, and the
+     * tutor's tap would do nothing at all on the way back.
      */
-    fun admitDebts(arrival: Arrival<Unit>?): Boolean = arrivals.admit(arrival) != null
+    fun owesDebts(arrival: Arrival<Unit>?): Boolean = arrivals.owes(arrival)
+
+    /** The scroll the tap asked for has run. That is the point it can no longer be owed again. */
+    fun debtsScrolled(arrival: Arrival<Unit>?) = arrivals.honour(arrival)
 
     /**
      * Whether the export landed. One-shot, because a file written is not a state to be in.

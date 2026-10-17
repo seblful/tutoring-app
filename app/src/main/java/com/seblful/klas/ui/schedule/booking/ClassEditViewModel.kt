@@ -671,6 +671,15 @@ class ClassEditViewModel @Inject constructor(
         data class SavedPartly(val outcome: SeriesOutcome) : SaveOutcome
 
         data class Refused(val reason: Event) : SaveOutcome
+
+        /**
+         * The lesson was removed while the form was open, so there is nothing to write into.
+         *
+         * Not a [Refused]: nothing the tutor can change about it, and nothing to say — the screen has
+         * already turned into the "that lesson is gone" state it draws from `gone` ([save] returns early
+         * once it is set, so this is the one save that can raise it *after* being asked for).
+         */
+        data object Gone : SaveOutcome
     }
 
     /**
@@ -744,6 +753,9 @@ class ClassEditViewModel @Inject constructor(
                     saving.value = false
                     events.send(settled.reason)
                 }
+                // Nothing to write into and nothing to say: the screen is already showing the lesson as
+                // gone, and a form that stayed live over it would offer to book it again.
+                SaveOutcome.Gone -> saving.value = false
                 // Both written cases clear `touched` first: the lessons are in the database, so leaving
                 // must not go on asking whether to save them. They differ only in who closes the screen —
                 // the partial one hands that to the dialog it raises.
@@ -772,7 +784,22 @@ class ClassEditViewModel @Inject constructor(
      * screen may be gone, and a write must not depend on state that is still moving.
      */
     private suspend fun write(valid: ValidForm): SaveOutcome {
-        val existing = session.value
+        // **The lesson is re-read here, not taken from [session].** That snapshot was read when the form
+        // opened, and a lesson's *state* moves on underneath an open form: the upkeep pass completes one
+        // whose hour has passed — and completing is what bills it — and the reminder's «Проведено» does
+        // the same by hand. `apply` starts every class from the state it is handed, so saving the snapshot
+        // back would un-complete a lesson that was taught and void its charge, over an edit that only
+        // meant to change a price. Only the form's own fields are the form's to state.
+        val editing = session.value != null
+        val existing = if (editing) classes.getSessionFor(classId) else null
+        if (editing && existing == null) {
+            // Deleted while the form was open — from a report, or by a restore. There is nothing left to
+            // edit, and an edit is not a booking: writing the snapshot back would put the lesson back as a
+            // new one, at an id nobody asked for. The screen says it is gone ([gone]); this is the half
+            // that stops a save making that untrue.
+            _gone.value = true
+            return SaveOutcome.Gone
+        }
         val written = if (existing != null) {
             // Who the lesson covers afterwards, so one write settles both its fields and its
             // roster. Null for an individual lesson, which has no roster to reconcile.

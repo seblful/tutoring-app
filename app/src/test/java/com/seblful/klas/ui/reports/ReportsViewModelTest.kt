@@ -556,15 +556,21 @@ class ReportsViewModelTest {
     /**
      * The debt digest's tap scrolls to the debts once. The screen hands it over every time the tab comes
      * back, and scrolling each time would take the tutor away from wherever they had read to.
+     *
+     * Owed until the scroll has run, not merely offered: the arrival lands while the report is still
+     * being assembled, so the scroll cannot happen yet. Recording it there would spend the tap on
+     * nothing if the tutor left the tab before the report arrived.
      */
     @Test
-    fun `the debt digest's tap is acted on once, and a new tap again`() {
+    fun `the debt digest's tap is owed until it is honoured, and a new tap again`() {
         val vm = vm()
         val tap = Arrival(Unit)
 
-        assertTrue(vm.admitDebts(tap))
-        assertFalse("the same tap, on the tab's return", vm.admitDebts(tap))
-        assertTrue("a second tap on the notification", vm.admitDebts(Arrival(Unit)))
-        assertFalse("nobody asked", vm.admitDebts(null))
+        assertTrue(vm.owesDebts(tap))
+        assertTrue("offering it does not spend it", vm.owesDebts(tap))
+        vm.debtsScrolled(tap)
+        assertFalse("the same tap, on the tab's return", vm.owesDebts(tap))
+        assertTrue("a second tap on the notification", vm.owesDebts(Arrival(Unit)))
+        assertFalse("nobody asked", vm.owesDebts(null))
     }
 }

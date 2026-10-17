@@ -124,11 +124,14 @@ fun ReportsScreen(
 ) {
     val listState = rememberLazyListState()
     // The debts are the last card, below every breakdown — on a busy year, several screens down. There is
-    // no list to scroll until the report has arrived, so this waits for one to have been laid out.
+    // no list to scroll until the report has arrived, so this waits for one to have been laid out; and the
+    // tap is recorded only once the scroll has run, so leaving the tab while the report is still being
+    // assembled leaves it owed rather than spent on a scroll that never happened.
     LaunchedEffect(debtsArrival) {
-        if (!viewModel.admitDebts(debtsArrival)) return@LaunchedEffect
+        if (!viewModel.owesDebts(debtsArrival)) return@LaunchedEffect
         val items = snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it > 0 }
         listState.scrollToItem(items - 1)
+        viewModel.debtsScrolled(debtsArrival)
     }
 
     val reportState by viewModel.state.collectAsState()

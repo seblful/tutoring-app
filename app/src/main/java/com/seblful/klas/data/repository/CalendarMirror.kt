@@ -151,7 +151,7 @@ class CalendarMirror @Inject constructor(
     }
 
     /**
-     * Reflects [klass]'s status into the calendar. Only reached through [mirror], which is what has
+     * Reflects [klass]'s state into the calendar. Only reached through [mirror], which is what has
      * already established that sync is on.
      *
      * Which of the three arms a lesson takes is `CalendarSyncPolicy`'s and not this module's: what is
@@ -159,7 +159,7 @@ class CalendarMirror @Inject constructor(
      * no guest to invite.
      */
     private suspend fun mirrorOne(klass: TutoringClass, settings: AppSettings) {
-        when (CalendarSyncPolicy.actionFor(klass.status)) {
+        when (CalendarSyncPolicy.actionFor(klass.status, klass.attended)) {
             CalendarSyncPolicy.Action.UPSERT -> {
                 // One read of the student, not two: their name titles the event and their address is
                 // what invites them to it, and the title and the guest each used to fetch the row.

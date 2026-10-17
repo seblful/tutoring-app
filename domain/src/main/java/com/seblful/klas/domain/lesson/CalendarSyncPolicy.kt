@@ -1,13 +1,17 @@
 package com.seblful.klas.domain.lesson
 
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
 
 /**
- * Decides how a class's calendar event should mirror its status. Kept pure so the rule is
- * unit-testable independently of any calendar backend.
+ * Decides how a class's calendar event should mirror its state — its status **and** whether this member
+ * is coming. Kept pure so the rule is unit-testable independently of any calendar backend.
  *
  * - A class that will still happen ([LessonStatus.SCHEDULED]) should have an up-to-date event.
- * - A class that won't happen ([LessonStatus.CANCELLED]) should have none.
+ * - A class that won't happen should have none, and that is two different things: the lesson was called
+ *   off ([LessonStatus.CANCELLED]), or only this member is not coming ([Attended.ABSENT]) while the
+ *   lesson goes ahead for everybody else. An event is an invitation and a reminder, and nobody is being
+ *   invited to an hour they will not be at.
  * - A [LessonStatus.COMPLETED] class is history — and history the tutor is still allowed to correct,
  *   so its event is kept true without one ever being created for it ([Action.REFRESH]).
  */
@@ -42,10 +46,22 @@ object CalendarSyncPolicy {
      * What [Action.REFRESH] keeps of the old rule is the half that was right: **no event is created for
      * a lesson that has already happened.** Turning sync on does not backfill the tutor's past into
      * their calendar, and an event they deleted from it themselves is not resurrected by an edit.
+     *
+     * **Attendance is read here too, not only the status.** A group lesson goes ahead without a member
+     * who is not coming: that is a per-member correction and the lesson's own status stays [SCHEDULED],
+     * so a rule that read only the status went on inviting them — their event stayed in the calendar, and
+     * a re-sync (`CalendarMirror.resyncAll`) put it back after they had deleted it. Archiving a student
+     * is where that was found (`ClassRepository.cancelScheduledFor`), but it is the same answer for a
+     * member marked away from a lesson that has not happened yet, however they got there.
+     *
+     * Once the lesson has been **taught**, an absence stops making that call: the hour happened, the
+     * calendar is the record of the tutor's day rather than a bill, and the event is treated like any
+     * other member's — kept true, never created.
      */
-    fun actionFor(status: LessonStatus): Action = when (status) {
-        LessonStatus.SCHEDULED -> Action.UPSERT
-        LessonStatus.COMPLETED -> Action.REFRESH
-        LessonStatus.CANCELLED -> Action.DELETE
+    fun actionFor(status: LessonStatus, attended: Attended): Action = when {
+        status == LessonStatus.COMPLETED -> Action.REFRESH
+        status == LessonStatus.CANCELLED -> Action.DELETE
+        attended == Attended.ABSENT || attended == Attended.ABSENT_BILLED -> Action.DELETE
+        else -> Action.UPSERT
     }
 }

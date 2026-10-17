@@ -41,6 +41,12 @@ import com.seblful.klas.ui.theme.KlasTheme
 
 @Composable
 fun AppRoot(rootViewModel: RootViewModel = hiltViewModel()) {
+    // The upkeep pass that the tutor's own arrival is worth: settle, in process, whatever the clock
+    // passed while the app was closed, so the schedule and the reports they are about to look at are
+    // current — and so the passes that run while nobody is here keep the report they are owed. See
+    // [RootViewModel.catchUp] for why this is not `Application.onCreate`'s to do.
+    LaunchedEffect(Unit) { rootViewModel.catchUp() }
+
     // Read into a plain local rather than a `by` delegate: a delegated property is a getter call each
     // time it is read, so Kotlin cannot smart-cast it and the branches below had to re-assert with
     // `settings!!` what `settings == null` had just ruled out.

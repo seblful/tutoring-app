@@ -61,11 +61,25 @@ class ReminderAlarms @Inject constructor(
      * cancelled first, then the new plan is armed, then the record is replaced. Writing the record before
      * arming would lose the old ids on a failure partway and leave alarms nobody can reach; arming before
      * cancelling would cancel an id the new plan had just re-armed.
+     *
+     * **One exception to the cancel, and it is the one alarm that has to survive.** A plan entry that is
+     * already [Reminders.Plan.due] cannot be armed — its instant has passed, and setting it would fire on
+     * the spot — but it is still *owed*: an inexact alarm (the fallback where the exact-alarm grant is
+     * missing) may not have fired yet, and Doze is free to hold it past the moment it was asked for.
+     * Cancelling it because the plan can no longer re-state it is how a promised reminder silently never
+     * arrives, so a due entry is left exactly where it is and kept in the record. That costs nothing
+     * else: the entry stays in the plan only while its lesson is still to come or running, so its alarm
+     * is cancelled and forgotten by the first pass after the lesson ends ([Reminders.plan]).
      */
     fun set(plans: List<Reminders.Plan>) {
-        armed.read().forEach { alarms.cancel(it) }
+        val owed = plans.filter { it.due }.mapTo(mutableSetOf()) { it.classId }
+        armed.read().filterNot { it in owed }.forEach { alarms.cancel(it) }
         // The plan carries the firing instant itself — nothing here reads a clock.
         plans.forEach { plan ->
+            // Owed, not owed *again*: an alarm is already set for the instant this entry names, and
+            // setting it a second time is the reminder arriving twice — or, the instant being behind us,
+            // arriving on the spot.
+            if (plan.due) return@forEach
             val at = plan.fireAt.toEpochMilli()
             // The one decision here, and it is read from the port rather than answered privately.
             if (exactAlarms.isGranted()) alarms.setExact(plan.classId, at) else alarms.setInexact(plan.classId, at)
