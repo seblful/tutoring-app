@@ -79,12 +79,16 @@ jobs:
       # Animations stay on: TabReselectFadeTest and ItemMotionTest read fades frame by frame, and the suite
       # is otherwise run on a phone with its animations on. The package filter is a runner argument
       # AndroidJUnitRunner reads; HiltTestRunner passes it through.
+      # profile: without one, avdmanager makes a 320dp-wide screen, and the text-fit tests that lay a
+      # bar or a tile out at 360dp and 411dp were squeezed to 320 and failed (StatRowAutoSizeTest,
+      # BottomBarLabelTest). A Pixel 6 is 411dp wide, the widest any of them asks for.
       - name: Run the instrumented tests
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: ${{ matrix.api-level }}
           target: ${{ matrix.target }}
           arch: x86_64
+          profile: pixel_6
           disable-animations: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: ./gradlew :app:connectedDebugAndroidTest --stacktrace ${{ matrix.scope == 'data' && '-Pandroid.testInstrumentationRunnerArguments.package=com.seblful.klas.data' || '' }}
