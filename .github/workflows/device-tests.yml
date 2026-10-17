@@ -37,6 +37,21 @@ jobs:
             scope: data
     name: API ${{ matrix.api-level }} (${{ matrix.scope }})
     steps:
+      # An emulator wants 1.2x its data partition free — 7.4 GB for these images' 6 GB — and a runner
+      # has about 6 GB left after the build, so it died at start ("Not enough space to create userdata
+      # partition") and the action waited out its boot timeout. Shrinking the partition doesn't work:
+      # the action's `disk-size` is appended to config.ini after avdmanager's own value, which wins.
+      # So make room instead, from toolchains this job never touches (the Android SDK and the JDK that
+      # setup-java installs into /opt/hostedtoolcache stay).
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/share/swift /usr/local/.ghcup /opt/ghc /usr/local/share/boost \
+            /usr/local/share/powershell /usr/local/share/chromium /usr/local/lib/node_modules /opt/microsoft \
+            /opt/az /opt/google /usr/local/julia* /opt/hostedtoolcache/CodeQL /opt/hostedtoolcache/go \
+            /opt/hostedtoolcache/PyPy /opt/hostedtoolcache/Ruby
+          df -h /
+
       - uses: actions/checkout@v4
 
       - name: Set up JDK 21
@@ -64,16 +79,12 @@ jobs:
       # Animations stay on: TabReselectFadeTest and ItemMotionTest read fades frame by frame, and the suite
       # is otherwise run on a phone with its animations on. The package filter is a runner argument
       # AndroidJUnitRunner reads; HiltTestRunner passes it through.
-      # disk-size: the images' default data partition needs 7.4 GB free, and a runner has about 6 left
-      # after the build, so the emulator died at start ("Not enough space to create userdata partition")
-      # and the action waited out its boot timeout. Two APKs and a test database fit in 2 GB.
       - name: Run the instrumented tests
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: ${{ matrix.api-level }}
           target: ${{ matrix.target }}
           arch: x86_64
-          disk-size: 2048M
           disable-animations: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: ./gradlew :app:connectedDebugAndroidTest --stacktrace ${{ matrix.scope == 'data' && '-Pandroid.testInstrumentationRunnerArguments.package=com.seblful.klas.data' || '' }}
