@@ -42,7 +42,7 @@ flowchart TB
 | `data/backup/` | File format: export, transactional replace-all import, integrity/failure classification, restore. |
 | `calendar/` | `CalendarSync`/`CalendarPermission` ports, `CalendarContract` adapter, calendar/guest choice rules. |
 | `notifications/` | `Notifier` + permission ports/adapters, reminder/digest content, tray actions/navigation, alarm scheduling. |
-| `work/` | Periodic maintenance worker, three digest workers, `WorkScheduler`, `BootReceiver`, `Maintenance`. |
+| `work/` | Periodic maintenance worker, three digest workers, `WorkScheduler`, `BootReceiver`, `ClockChangeReceiver`, `Maintenance`. |
 | `diagnostics/` | `CrashLogger` over a capped local log file, and `Diagnostics` (what a crash entry says); viewed/exported from `ui/diagnostics`. No Crashlytics/Sentry — Play Vitals still receives the crash. |
 | `storage/` | `DocumentStore` (SAF) and `DocumentSharing` (`ACTION_SEND`) ports. |
 | `format/` | Date/time/money formatting, `AppLocale`, `MoneyField`, the lesson-mode word (`ClassMode.labelRes`, read by screens and the calendar alike), and what the device says: `Localization.kt` (`Context.inLanguage()`, `deviceLocales()`), `WeekStart.kt` (the phone's first day of the week). |
@@ -52,7 +52,7 @@ flowchart TB
 | `ui/schedule/` | The schedule screen (split into the screen, `LessonCard`, `ScheduleHeaders`, `ClassActionsSheet`, `CalendarViews`) and its view model and models; the booking form in `booking/` (`ClassForm`, `ClassFormState`, `BookingForm`, the edit screen and view model). |
 | `preview/` (debug only) | `@Preview`s of `ui/common/`. |
 | `di/` | DB module, scopes/dispatchers, `Clock`, week-start, device locales. |
-| root | `KlasApp` (`@HiltAndroidApp`, WorkManager config, in-process startup upkeep), `MainActivity` → `AppRoot()`, `Coroutines.kt` (`runCatchingCancellable`, and `launchAsync` for every broadcast receiver). |
+| root | `KlasApp` (`@HiltAndroidApp`, WorkManager config, notification channels, the periodic upkeep pass; the catch-up as the UI opens is `RootViewModel.catchUp`), `MainActivity` → `AppRoot()`, `Coroutines.kt` (`runCatchingCancellable`, and `launchAsync` for every broadcast receiver). |
 
 ## Who owns each rule
 

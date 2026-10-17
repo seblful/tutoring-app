@@ -80,7 +80,7 @@
     </file>
     <file name="src/main/java/com/seblful/klas/data/local/Daos.kt">
         <error line="151" column="46" source="standard:trailing-comma-on-call-site" />
-        <error line="299" column="72" source="standard:trailing-comma-on-call-site" />
+        <error line="310" column="72" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/di/DatabaseModule.kt">
         <error line="3" column="1" source="standard:import-ordering" />
@@ -483,15 +483,15 @@
         <error line="1171" column="1" source="standard:indent" />
         <error line="1172" column="1" source="standard:indent" />
         <error line="1173" column="1" source="standard:indent" />
-        <error line="1259" column="121" source="standard:max-line-length" />
-        <error line="1495" column="121" source="standard:max-line-length" />
-        <error line="1654" column="121" source="standard:max-line-length" />
-        <error line="1661" column="1" source="standard:indent" />
-        <error line="1662" column="1" source="standard:indent" />
-        <error line="1663" column="1" source="standard:indent" />
-        <error line="1664" column="1" source="standard:indent" />
-        <error line="1672" column="19" source="standard:wrapping" />
-        <error line="1674" column="9" source="standard:wrapping" />
+        <error line="1289" column="121" source="standard:max-line-length" />
+        <error line="1525" column="121" source="standard:max-line-length" />
+        <error line="1684" column="121" source="standard:max-line-length" />
+        <error line="1691" column="1" source="standard:indent" />
+        <error line="1692" column="1" source="standard:indent" />
+        <error line="1693" column="1" source="standard:indent" />
+        <error line="1694" column="1" source="standard:indent" />
+        <error line="1702" column="19" source="standard:wrapping" />
+        <error line="1704" column="9" source="standard:wrapping" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/students/StudentDetailViewModelTest.kt">
         <error line="100" column="121" source="standard:max-line-length" />

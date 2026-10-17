@@ -90,6 +90,19 @@
         </receiver>
 
         <!--
+          Digests are planned in the zone of the pass that planned them, so a timezone change (or a
+          wall clock set by hand) re-plans them, rather than leaving the next upkeep pass to notice.
+        -->
+        <receiver
+            android:name=".work.ClockChangeReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+            </intent-filter>
+        </receiver>
+
+        <!--
           Lends one file at a time to whichever app the tutor picks from the share sheet — the report
           CSV, written to `cache/shared` by `AndroidDocumentSharing`.
 

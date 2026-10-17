@@ -578,7 +578,8 @@ class ScheduleViewModel @Inject constructor(
         write {
             when (val changed = classes.setStatus(session, status)) {
                 is LessonWrite.HourTaken -> reportHourTaken(changed.clash)
-                is LessonWrite.Written -> Unit
+                // Written, or deleted underneath the sheet: either way the schedule already shows it.
+                is LessonWrite.Written, LessonWrite.Gone -> Unit
             }
         }
     }
@@ -602,7 +603,7 @@ class ScheduleViewModel @Inject constructor(
         write {
             when (val moved = classes.move(session, newStart, now = clock.instant())) {
                 is LessonWrite.HourTaken -> reportHourTaken(moved.clash)
-                is LessonWrite.Written -> Unit
+                is LessonWrite.Written, LessonWrite.Gone -> Unit
             }
         }
     }

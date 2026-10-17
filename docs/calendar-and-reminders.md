@@ -13,12 +13,20 @@ database, never a source (see [architecture.md](architecture.md)).
 - A completed lesson's event is kept true but never (re)created (`Action.REFRESH`). Its description is
   **always written empty** (`CalendarEvent.DESCRIPTION`): a lesson carries no text of the tutor's, and the
   write clears the note (v7) or homework (v8) an older build put in front of an invited student.
+- A member **not coming** to a lesson that is still scheduled (absent, billed or not — e.g. excused by
+  archiving) has no event: `CalendarSyncPolicy.actionFor` reads attendance as well as status. Marked
+  present again, the event is re-created; once the lesson is completed, absence no longer matters.
 - Email invites are a separate, off-by-default setting; turning it off and re-syncing withdraws invites.
 
 ## Reminders
 
 - Reminders are alarms (`AlarmManager`), not workers — exact where the OS allows, inexact fallback
   otherwise; re-derived from scratch over a fixed horizon on every change; re-armed after reboot.
+- A reminder whose moment has passed but whose lesson has not ended is **owed** (`Reminders.Plan.due`):
+  never armed again, never cancelled, because an inexact alarm Doze is holding may still be on its way.
+  The plan is read from every lesson not yet ended (`ClassRepository.notEndedWithin`), so a running
+  lesson keeps its alarm until it ends. `Reminders.shouldPost` re-checks the lesson and the current lead
+  when an alarm fires.
 - Tray actions: «Проведено» bills in place via a broadcast; «Перенести» opens the lesson's form over whatever
   is open (`openLessonForm`) — a form being edited waits underneath, since only Back asks before leaving it.
   Both re-check legality against the current lesson state (a notification can be stale).
@@ -40,5 +48,7 @@ database, never a source (see [architecture.md](architecture.md)).
 - Three digests (morning agenda, evening unmarked lessons, weekly debts), opt-in, scheduled by the upkeep
   pass, are workers (lateness is fine). A run already due is left alone rather than skipped; a digest
   with nothing to say sends nothing.
+- Their times are wall-clock times in the device's zone, so a timezone change (or a clock set by hand)
+  runs an upkeep pass at once (`work/ClockChangeReceiver`) rather than waiting for the next tick.
 - The evening digest is auto-completion's counterpart (asks vs. assumes), counts lessons only, today only,
   no action button.

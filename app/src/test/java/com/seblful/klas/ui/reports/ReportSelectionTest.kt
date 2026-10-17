@@ -23,4 +23,20 @@ class ReportSelectionTest {
         assertSame(report, Loadable.Ready(report).forPeriod(period))
         assertNull(Loadable.Loading.forPeriod(period))
     }
+
+    @Test
+    fun `stepping to another period keeps the previous report on screen but not in a file`() {
+        val view = Loadable.Ready(report).viewFor(period.shifted(-1))
+
+        assertSame(report, view.shown)
+        assertNull(view.exportable)
+    }
+
+    @Test
+    fun `a cold open has nothing to show until the first report arrives`() {
+        val view = Loadable.Loading.viewFor(period)
+
+        assertNull(view.shown)
+        assertNull(view.exportable)
+    }
 }

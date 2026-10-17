@@ -160,13 +160,18 @@ fun LocalTime.formatTime(hour12: Boolean): String = format(if (hour12) formats.t
  * already lost its meaning. Fitting in a `Long` is not enough: the charge for a lesson is
  * `rate × minutes`, so a rate that fits can still bill a wrapped, negative amount. See [Money.MAX]
  * for why that particular ceiling.
+ *
+ * **Digits and one separator, nothing else.** `BigDecimal` also reads scientific notation, so a pasted
+ * `1e3` was a thousand and `1e2147483647` an exponent to expand; nobody writes a price that way, and
+ * an amount the tutor did not type as digits is not one they meant. Spaces — plain and the no-break
+ * ones Russian groups thousands with — are dropped, so a pasted `1 500` still reads.
  */
 fun parseMoneyOrNull(text: String): Money? {
-    val normalized = text.trim().replace(',', '.').replace(" ", "")
-    if (normalized.isEmpty()) return null
-    val value = normalized.toBigDecimalOrNull()?.takeIf { it.signum() >= 0 } ?: return null
-    // Compare before expanding an exponent into digits. Keep a rounding margin above the ceiling,
-    // and return zero directly below half a kopeck so an extreme negative scale cannot allocate gigabytes.
+    val normalized = text.trim().replace(',', '.').filterNot { it.isWhitespace() }
+    if (!PLAIN_AMOUNT.matches(normalized)) return null
+    val value = normalized.toBigDecimalOrNull() ?: return null
+    // Compare before scaling, so a pasted run of digits is refused without being multiplied out. Keep a
+    // rounding margin above the ceiling, and return zero directly below half a kopeck.
     val unroundedLimit = java.math.BigDecimal.valueOf(Money.MAX.minor, 2).add(java.math.BigDecimal.ONE)
     if (value > unroundedLimit) return null
     if (value < java.math.BigDecimal("0.005")) return Money.ZERO
@@ -177,6 +182,9 @@ fun parseMoneyOrNull(text: String): Money? {
         null
     }
 }
+
+/** An amount as a person writes one: digits, optionally a separator and more digits — `500`, `45.5`, `.5`. */
+private val PLAIN_AMOUNT = Regex("""\d+(\.\d*)?|\.\d+""")
 
 /**
  * Formats [Money] as a plain editable amount with no currency sign, e.g. "50", "45,05", "-0,50".

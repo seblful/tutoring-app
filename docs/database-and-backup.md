@@ -50,7 +50,11 @@ schema change, see the checklist in [releasing.md](releasing.md#per-release-chec
   a v8 file's homework is converted into rows (`legacyHomework`, `MIGRATION_8_9`'s twin) and an older
   file's notes are not restored. Imported calendar event ids are discarded: they name appointments on
   the exporting device, never permission to update or delete this device's appointments.
-  After a successful restore, known local mirrors are withdrawn before the restored schedule is mirrored.
+  After a successful restore, this database's own event ids are handed back to the restored classes
+  that are the same class (row id, lesson, student, start — `CalendarMirror.remirrorAfter`); only the
+  ones no restored class claims are withdrawn, then the schedule is re-mirrored. So restoring this
+  phone's own backup keeps past lessons in the calendar (no event is ever created for one) and does
+  not re-invite students to every upcoming lesson.
   A schema change that only drops columns that were always blank (v10)
   does not bump the file version.
 - `BackupData.version` is independent of the schema version — it's the only bridge out of the old

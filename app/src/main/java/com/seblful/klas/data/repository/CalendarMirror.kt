@@ -85,17 +85,39 @@ class CalendarMirror @Inject constructor(
     }
 
     /**
-     * A replace-all restore retires only bindings read from this database, never ids supplied by a file.
-     * Wait for the replacement to succeed before withdrawing anything; its failure must remain visible.
+     * A replace-all restore trusts only bindings read from this database, never ids supplied by a file.
+     * Wait for the replacement to succeed before touching anything; its failure must remain visible.
+     *
+     * An event this database made is handed back to the restored row that is **the same class** — same
+     * row id, lesson, student and start — rather than withdrawn. Retiring every binding was safe and
+     * cost the tutor's history: a taught lesson's event is only ever kept true, never created
+     * ([CalendarSyncPolicy.Action.REFRESH]), so restoring this phone's own backup deleted every past
+     * lesson from their calendar for good, and re-invited each student to every upcoming one. Re-binding
+     * stays safe for the reason the file's ids are dropped: the id came from this device's calendar.
+     * Only the bindings no restored class claims are withdrawn.
      */
     suspend fun remirrorAfter(replace: suspend () -> Unit) {
-        val previous = classDao.withCalendarEvent().mapNotNull { it.calendarEventId }.distinct()
+        val previous = classDao.withCalendarEvent().map { it.toDomain() }
         replace()
         runCatchingCancellable {
-            previous.forEach { calendarSync.delete(it) }
+            val restored = classDao.getAll().map { it.toDomain() }.associateBy { it.binding() }
+            val kept = mutableSetOf<String>()
+            previous.forEach { old ->
+                val eventId = old.calendarEventId ?: return@forEach
+                val same = restored[old.binding()]
+                if (same != null && same.calendarEventId == null && eventId !in kept) {
+                    attendanceDao.setCalendarEventId(same.id, eventId)
+                    kept += eventId
+                }
+            }
+            previous.mapNotNull { it.calendarEventId }.distinct().filterNot { it in kept }
+                .forEach { calendarSync.delete(it) }
             resyncAll()
         }
     }
+
+    /** What makes a restored class the one an event of this database was mirroring. */
+    private fun TutoringClass.binding() = listOf(id, lessonId, studentId, start)
 
     /**
      * Removes every mirrored event. Run when the tutor turns calendar sync off. Only the classes that

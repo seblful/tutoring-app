@@ -115,7 +115,7 @@ class MaintenanceTest {
      *
      * The two bounds disagree by one millisecond on purpose — `ClassDao.getBetween` excludes its upper
      * bound while `Reminders.plan` keeps a lesson starting exactly on the horizon — so this is the case
-     * that fails if the compensation in `ClassRepository.startingWithin` is ever tidied away. It fails
+     * that fails if the compensation in `ClassRepository.notEndedWithin` is ever tidied away. It fails
      * the quiet way, too: the lesson simply never gets a reminder, which is indistinguishable from
      * there being no lesson.
      */
@@ -126,6 +126,20 @@ class MaintenanceTest {
         maintenance().run(now)
 
         assertEquals(listOf(id), env.reminders.armed.map { it.classId })
+    }
+
+    /**
+     * A lesson in progress keeps its reminder owed through a pass, so an inexact alarm Doze has held past
+     * the start is left to fire. The plan said so all along; the window the pass fetched began at `now`,
+     * so the running lesson never reached the plan and its alarm was withdrawn at the first pass.
+     */
+    @Test
+    fun `a lesson in progress stays owed through a pass`() = runTest(mainRule.dispatcher) {
+        val id = seedClass(now.minusSeconds(600))
+
+        maintenance().run(now)
+
+        assertEquals(listOf(id to true), env.reminders.armed.map { it.classId to it.due })
     }
 
     @Test

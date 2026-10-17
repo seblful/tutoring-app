@@ -30,8 +30,10 @@ class BackupRestore @Inject constructor(
         calendar.remirrorAfter {
             backup.importJson(json)
             settings.update { it.copy(onboardingComplete = true) }
-            // Imported classes change what's upcoming/overdue — re-run auto-complete & reminders.
-            reminders.refreshNow()
         }
+        // Imported classes change what's upcoming/overdue — re-run auto-complete & reminders. After the
+        // re-mirror rather than inside it: the rows are already replaced, and a failure here must not
+        // leave the old events standing beside the new ones.
+        reminders.refreshNow()
     }
 }

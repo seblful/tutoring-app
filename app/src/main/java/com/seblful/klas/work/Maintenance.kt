@@ -73,12 +73,13 @@ class Maintenance @Inject constructor(
         scheduler.schedule(
             Reminders.plan(
                 now = now,
-                // Only the classes the plan could keep, not every class ever taught. This runs at
+                // Only the classes the plan could keep — the coming week's and the one in progress —
+                // not every class ever taught. This runs at
                 // every app start, on every periodic tick and behind every class write, and it used to
                 // read (and map, and parse the status text of) the tutor's whole history each time to
                 // decide about the coming week. `plan` still applies the real filter — the window is
                 // deliberately a superset of it.
-                classes = classes.startingWithin(now, horizon),
+                classes = classes.notEndedWithin(now, horizon),
                 lead = Duration.ofMinutes(s.reminderLeadMinutes.toLong()),
                 horizon = horizon,
             ),

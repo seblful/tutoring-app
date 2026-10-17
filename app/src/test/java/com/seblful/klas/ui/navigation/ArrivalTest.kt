@@ -1,7 +1,9 @@
 package com.seblful.klas.ui.navigation
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -30,5 +32,27 @@ class ArrivalTest {
     @Test
     fun `no arrival is nothing to act on`() {
         assertNull(ArrivalGate().admit<String>(null))
+    }
+
+    @Test
+    fun `an arrival stays owed until it is honoured, however often it is offered`() {
+        val gate = ArrivalGate()
+        val tap = Arrival(Unit)
+
+        assertTrue(gate.owes(tap))
+        assertTrue("asking must not spend it — the tab may leave before acting", gate.owes(tap))
+        gate.honour(tap)
+        assertFalse("acted on once is acted on", gate.owes(tap))
+        assertTrue("a second tap is a new ask", gate.owes(Arrival(Unit)))
+    }
+
+    @Test
+    fun `no arrival is never owed, and honouring none changes nothing`() {
+        val gate = ArrivalGate()
+        val tap = Arrival(Unit)
+
+        assertFalse(gate.owes<Unit>(null))
+        gate.honour(null)
+        assertTrue(gate.owes(tap))
     }
 }

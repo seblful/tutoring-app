@@ -250,6 +250,17 @@ interface ClassDao {
     suspend fun getBetween(fromMillis: Long, toMillis: Long): List<ClassRow>
 
     /**
+     * The classes still running at [nowMillis] or starting before [toMillis] — [getBetween] widened back
+     * to every lesson that has not yet ended, which is what a reminder plan owes (a lesson in progress
+     * still owes the reminder an inexact alarm has not delivered yet).
+     */
+    @Query(
+        "$CLASS_ROWS WHERE l.startMillis < :toMillis AND l.startMillis + l.durationMinutes * 60000 > :nowMillis " +
+            "ORDER BY l.startMillis",
+    )
+    suspend fun notEndedBefore(nowMillis: Long, toMillis: Long): List<ClassRow>
+
+    /**
      * The classes that currently mirror a calendar event — the only ones turning sync off has
      * anything to undo. The alternative is reading the whole table and no-opping on most of it.
      */

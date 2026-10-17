@@ -136,9 +136,10 @@ fun ReportsScreen(
 
     val reportState by viewModel.state.collectAsState()
     // The period is its own flow, so the navigator is live while the report behind it is still being
-    // assembled — the frame is the thing the tutor steers this screen with, and it needs no data.
+    // assembled — the frame is the thing the tutor steers this screen with, and it needs no data. What is
+    // drawn and what may be sent differ for that frame or two: see [ReportView].
     val period by viewModel.period.collectAsState()
-    val report = reportState.forPeriod(period)
+    val (report, exportable) = reportState.viewFor(period)
     val messages = rememberMessages()
     val noPickerMsg = stringResource(R.string.student_contact_failed)
 
@@ -166,8 +167,8 @@ fun ReportsScreen(
     // Remembered: this walks every group, subject, student and debt row, and recomposition is not
     // a new report. Rebuilt only when the report itself changes.
     val csvHeadings = csvHeadings(period)
-    val csvLines = remember(report, csvHeadings) {
-        report?.let { ReportCsv.linesFor(it, csvHeadings) }.orEmpty()
+    val csvLines = remember(exportable, csvHeadings) {
+        exportable?.let { ReportCsv.linesFor(it, csvHeadings) }.orEmpty()
     }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument(CSV_MIME_TYPE),
@@ -191,15 +192,23 @@ fun ReportsScreen(
                 // actually doing with a month is sending it — to an accountant, or to their own mail so
                 // it is somewhere other than this phone. Both stay: a file kept and a file sent are
                 // different acts, and the share sheet cannot put one on the SD card.
+                // Kept on screen while a new period assembles, so they don't blink with every arrow tap;
+                // a tap inside that frame or two sends nothing rather than the previous period's file.
                 NamedIconButton(
                     Icons.Filled.Share,
                     stringResource(R.string.reports_share),
-                    onClick = { viewModel.share(shareFilename(period), shareSubject, csvHeader, csvLines) },
+                    onClick = {
+                        if (exportable != null) {
+                            viewModel.share(shareFilename(period), shareSubject, csvHeader, csvLines)
+                        }
+                    },
                 )
                 NamedIconButton(
                     Icons.Filled.FileDownload,
                     stringResource(R.string.reports_export),
-                    onClick = { exportLauncher.launchExternally(exportFilename, noPickerMsg, messages) },
+                    onClick = {
+                        if (exportable != null) exportLauncher.launchExternally(exportFilename, noPickerMsg, messages)
+                    },
                 )
             }
         },

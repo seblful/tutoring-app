@@ -1,5 +1,6 @@
 package com.seblful.klas.format
 
+import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.os.Looper
@@ -10,6 +11,7 @@ import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.common.state.days
 import com.seblful.klas.ui.schedule.ScheduleViewModel
+import com.seblful.klas.work.ClockChangeReceiver
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
@@ -89,7 +91,13 @@ class ZoneChangeFlowsTest {
 
     private fun changeToNewYork(context: Context) {
         TimeZone.setDefault(TimeZone.getTimeZone("America/New_York"))
-        context.sendBroadcast(Intent(Intent.ACTION_TIMEZONE_CHANGED))
+        // Delivered by hand rather than broadcast, to every receiver of the action but the manifest's
+        // `ClockChangeReceiver`: it is a Hilt component, which this suite's bare `Application` cannot inject,
+        // and only the flows' own runtime receiver is under test here.
+        val changed = Intent(Intent.ACTION_TIMEZONE_CHANGED)
+        shadowOf(context as Application).registeredReceivers
+            .filter { it.intentFilter.hasAction(changed.action) && it.broadcastReceiver !is ClockChangeReceiver }
+            .forEach { it.broadcastReceiver.onReceive(context, changed) }
         shadowOf(Looper.getMainLooper()).idle()
     }
 }

@@ -46,6 +46,9 @@ sealed interface LessonWrite<out T> {
     /** Refused: [clash] already holds the hour. Nothing was written. */
     data class HourTaken(val clash: ClassSession) : LessonWrite<Nothing>
 
+    /** The lesson was deleted before the write could take it. Nothing was written. */
+    data object Gone : LessonWrite<Nothing>
+
     /**
      * The written value, insisting the hour was free — for a caller that has already made a clash
      * impossible (a fixture booking into an empty hour), never for the app, which words the refusal.
@@ -53,6 +56,7 @@ sealed interface LessonWrite<out T> {
     fun written(): T = when (this) {
         is Written -> value
         is HourTaken -> error("The hour at ${clash.first.start} is already taken")
+        Gone -> error("The lesson was deleted")
     }
 }
 
@@ -169,16 +173,20 @@ class ClassRepository @Inject constructor(
         holdingHour(session, session.start, session.durationMinutes)
 
     /**
-     * The classes starting within [horizon] of [now] — what a reminder plan is derived from, rather
-     * than every class ever taught (see `work/Maintenance`).
+     * The classes still running at [now] or starting within [horizon] of it — what a reminder plan is
+     * derived from, rather than every class ever taught (see `work/Maintenance`).
      *
-     * The window runs a millisecond past [horizon] because the two bounds disagree by design:
-     * [ClassDao.getBetween] excludes its upper bound, while a reminder horizon includes it
-     * ([Reminders.plan] keeps a lesson starting exactly on it). Handing over a superset is the safe
-     * direction — `plan` applies the real filter — and this keeps the boundary lesson in it.
+     * **Running ones included.** [Reminders.plan] keeps a lesson in progress as owed, so its inexact
+     * alarm, held by Doze past the start, is left to fire rather than cancelled; a window starting at
+     * [now] handed it only lessons still to come, and the first pass after the start withdrew the alarm.
+     *
+     * The window runs a millisecond past [horizon] because the two bounds disagree by design: the query
+     * excludes its upper bound, while a reminder horizon includes it ([Reminders.plan] keeps a lesson
+     * starting exactly on it). Handing over a superset is the safe direction — `plan` applies the real
+     * filter — and this keeps the boundary lesson in it.
      */
-    suspend fun startingWithin(now: Instant, horizon: Duration): List<TutoringClass> =
-        getBetween(now, now.plus(horizon).plusMillis(1))
+    suspend fun notEndedWithin(now: Instant, horizon: Duration): List<TutoringClass> =
+        dao.notEndedBefore(now.toEpochMilli(), now.plus(horizon).plusMillis(1).toEpochMilli()).map { it.toDomain() }
 
     /** The classes starting in [[from], [to]) — the upper bound excluded, as [ClassDao.getBetween]'s. */
     suspend fun getBetween(from: Instant, to: Instant): List<TutoringClass> =
@@ -462,13 +470,13 @@ class ClassRepository @Inject constructor(
      * *here* — a caller has no way to hand over an already-resolved class, and so no way to persist a
      * charge that no longer matches the price and duration it was billed from.
      *
-     * **[session] has to be the lesson as it is now**, not the snapshot a form opened with: it is read as
-     * the state every class starts from, so a stale one writes a stale status, attendance and charge back
-     * over whatever has happened since — a lesson auto-completed (or marked taught by hand) underneath an
-     * open form would be un-completed and un-billed by a save that only meant to change its price. A
-     * caller that has been sitting on a snapshot re-reads it at the moment of writing; that read and this
-     * write are still two `now`s apart, and closing that would mean taking the whole session as a question
-     * rather than as an argument.
+     * **[session] names the lesson; its state is re-read inside the transaction** ([current]). The rules
+     * start every class from the state they are handed, so a snapshot read before the write — a form's,
+     * opened minutes ago — would put a stale status, attendance and charge back over whatever happened
+     * since: a lesson auto-completed (or marked taught by hand) underneath an open form would be
+     * un-completed and un-billed by a save that only meant to change its price. Read inside the write,
+     * nothing can land between the read and the rows it decides. A lesson deleted meanwhile is
+     * [LessonWrite.Gone].
      *
      * [roster] additionally says who the lesson is for afterwards: members outside it lose their
      * class, members in it without one get one ([GroupRules.rosterChange]). Null leaves the roster
@@ -494,9 +502,10 @@ class ClassRepository @Inject constructor(
         // Leavers are dropped inside the same transaction as the edit, which is what stops a member being
         // billed on their way out: the delete and the re-bill cannot half-happen.
         return write {
-            holdingHour(session, newStart, changes.durationMinutes)
+            val current = current(session) ?: return@write Committed(LessonWrite.Gone, changed = false)
+            holdingHour(current, newStart, changes.durationMinutes)
                 ?.let { return@write Committed(LessonWrite.HourTaken(it), changed = false) }
-            persistRows(SessionRules.lessonEdit(session, changes, newStart, now, roster))
+            persistRows(SessionRules.lessonEdit(current, changes, newStart, now, roster))
                 .mapValue { LessonWrite.Written(it) }
         }
     }
@@ -505,7 +514,8 @@ class ClassRepository @Inject constructor(
      * Reschedules a whole lesson, keeping its members together in one session, unless the hour is
      * another lesson's ([LessonWrite.HourTaken]) — the lesson's own classes never stand in their own
      * way. Moving it to the future re-plans each class (scheduled, charge voided); moving it to the
-     * past keeps each status. [now] is required for the reason [apply] gives.
+     * past keeps each status. [now] is required for the reason [apply] gives, and [session] is re-read
+     * inside the write for the same reason.
      */
     suspend fun move(
         session: ClassSession,
@@ -513,9 +523,10 @@ class ClassRepository @Inject constructor(
         now: Instant,
     ): LessonWrite<List<TutoringClass>> {
         return write {
-            holdingHour(session, newStart, session.durationMinutes)
+            val current = current(session) ?: return@write Committed(LessonWrite.Gone, changed = false)
+            holdingHour(current, newStart, current.durationMinutes)
                 ?.let { return@write Committed(LessonWrite.HourTaken(it), changed = false) }
-            val moved = session.classes.map { ClassRules.move(it, newStart, now) }
+            val moved = current.classes.map { ClassRules.move(it, newStart, now) }
             persistRows(LessonEdit(lesson = moved.first(), updated = moved)).mapValue { LessonWrite.Written(it) }
         }
     }
@@ -537,10 +548,14 @@ class ClassRepository @Inject constructor(
     suspend fun setStatus(session: ClassSession, to: LessonStatus): LessonWrite<List<TutoringClass>> {
         if (session.status == to) return LessonWrite.Written(emptyList())
         return write {
-            if (to.occupiesTime && !session.status.occupiesTime) {
-                holdingHour(session)?.let { return@write Committed(LessonWrite.HourTaken(it), changed = false) }
+            // The status it moves *from* is the database's, not the caller's: a lesson completed and
+            // billed since the caller read it must not be "completed" again from its old classes.
+            val current = current(session) ?: return@write Committed(LessonWrite.Gone, changed = false)
+            if (current.status == to) return@write Committed(LessonWrite.Written(emptyList()), changed = false)
+            if (to.occupiesTime && !current.status.occupiesTime) {
+                holdingHour(current)?.let { return@write Committed(LessonWrite.HourTaken(it), changed = false) }
             }
-            val resolved = session.classes.map { ClassRules.applyStatus(it, to) }
+            val resolved = current.classes.map { ClassRules.applyStatus(it, to) }
             persistRows(LessonEdit(lesson = resolved.first(), updated = resolved)).mapValue { LessonWrite.Written(it) }
         }
     }
@@ -638,17 +653,18 @@ class ClassRepository @Inject constructor(
      * the lesson goes ahead for everyone else.
      */
     suspend fun cancelScheduledFor(studentId: Long): List<TutoringClass> {
-        val theirs = dao.scheduledForStudent(studentId).map { it.toDomain() }
-        if (theirs.isEmpty()) return emptyList()
-        // Their own lessons are called off; a group's is not, because it goes ahead without them. That
-        // distinction is what the split makes expressible: before, both were "cancel their class", which
-        // left the group lesson holding a cancelled member and no status of its own.
-        val (mine, groups) = theirs.partition { it.groupId == null }
-        val cancelled = mine.map { ClassRules.applyStatus(it, LessonStatus.CANCELLED) }
-        val excused = groups.map { ClassRules.applyAttendance(it, Attended.ABSENT) }
+        if (dao.scheduledForStudent(studentId).isEmpty()) return emptyList()
         // One transaction for the lot: a half-archived student would have some lessons called off and
-        // others still due to bill, which is the state this exists to rule out.
+        // others still due to bill, which is the state this exists to rule out. Read inside it, so a
+        // lesson completed (or re-priced) in the meantime is not written back from a stale row.
         return write {
+            val theirs = dao.scheduledForStudent(studentId).map { it.toDomain() }
+            // Their own lessons are called off; a group's is not, because it goes ahead without them. That
+            // distinction is what the split makes expressible: before, both were "cancel their class",
+            // which left the group lesson holding a cancelled member and no status of its own.
+            val (mine, groups) = theirs.partition { it.groupId == null }
+            val cancelled = mine.map { ClassRules.applyStatus(it, LessonStatus.CANCELLED) }
+            val excused = groups.map { ClassRules.applyAttendance(it, Attended.ABSENT) }
             // An individual lesson is its one class, so each cancelled one states its own row.
             cancelled.forEach { rewrite(lesson = it, classes = listOf(it)) }
             rewrite(lesson = null, classes = excused)
@@ -685,18 +701,29 @@ class ClassRepository @Inject constructor(
     suspend fun autoCompleteDue(now: Instant): List<TutoringClass> {
         // Asked of the lessons, then read back as classes: a lesson is what finishes, and its members are
         // who it bills. `dueForCompletion` used to return a row per member of the same finished hour.
-        val dueLessons = lessons.dueForCompletion(now.toEpochMilli()).map { it.id }
-        val due = dueLessons
-            .flatMap { lessonId -> dao.getSession(lessonId).map { it.toDomain() } }
-            .filter { ClassRules.shouldAutoComplete(it, now) }
-            .map { ClassRules.applyStatus(it, LessonStatus.COMPLETED) }
-        if (due.isEmpty()) return emptyList()
+        // The cheap question first, outside a transaction, so a pass with nothing due opens none.
+        if (lessons.dueForCompletion(now.toEpochMilli()).isEmpty()) return emptyList()
         // One pass, one transaction: an upkeep run that recognized half of an evening's income and
-        // then failed would leave a group lesson billing some of its members and not the rest.
+        // then failed would leave a group lesson billing some of its members and not the rest. The rows
+        // are read inside it, so a lesson cancelled or re-priced since the question was asked is written
+        // from what it is now, not from what it was.
         return write(refreshesReminders = false) {
+            val due = lessons.dueForCompletion(now.toEpochMilli()).map { it.id }
+                .flatMap { lessonId -> dao.getSession(lessonId).map { it.toDomain() } }
+                .filter { ClassRules.shouldAutoComplete(it, now) }
+                .map { ClassRules.applyStatus(it, LessonStatus.COMPLETED) }
             SessionRules.sessions(due).forEach { rewrite(lesson = it.first, classes = it.classes) }
-            Committed(due)
+            Committed(due, changed = due.isNotEmpty())
         }
+    }
+
+    /**
+     * [session] as the database holds it now — for a write to start from inside its transaction, rather
+     * than from whatever its caller read earlier. Null when the lesson has since been deleted.
+     */
+    private suspend fun current(session: ClassSession): ClassSession? {
+        val members = dao.getSession(session.lessonId).map { it.toDomain() }
+        return members.firstOrNull()?.let { ClassSession(it.groupId, members) }
     }
 
     /**

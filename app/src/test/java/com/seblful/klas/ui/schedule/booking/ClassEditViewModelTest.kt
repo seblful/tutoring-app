@@ -1229,6 +1229,36 @@ class ClassEditViewModelTest {
             assertEquals("still one row, not a second booking", 1, env.classes().size)
         }
 
+    /**
+     * Deleted with the form still open on it — from a report, or by a restore. The save has nothing to
+     * write into: it must neither report success and close as though the edit landed, nor put the lesson
+     * back as a new one.
+     */
+    @Test
+    fun `a save over a lesson deleted underneath the form writes nothing and says it is gone`() =
+        runTest(mainRule.dispatcher) {
+            val (studentId, subjectId) = seedStudentWithPricedSubject()
+            val id = env.fixtures.storedClass(
+                studentId = studentId, subjectId = subjectId,
+                startMillis = Instant.parse("2026-06-15T07:00:00Z").toEpochMilli(),
+                durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED,
+            )
+            val vm = vm(id)
+            observing(vm.state)
+            advanceUntilIdle()
+
+            env.classRepo.delete(env.classRepo.getSessionFor(id)!!)
+
+            vm.change(BookingIntent.Edit { it.copy(price = MoneyField("45")) })
+            var closed = false
+            vm.save { closed = true }
+            advanceUntilIdle()
+
+            assertFalse("the form did not close as though it saved", closed)
+            assertTrue(vm.gone.value)
+            assertTrue("nothing was booked in its place", env.classRepo.getAll().isEmpty())
+        }
+
     // --- Group lessons ---
 
     /** The group's own hourly rate — deliberately unlike either member's individual price. */

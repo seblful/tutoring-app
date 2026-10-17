@@ -834,6 +834,8 @@ class ClassEditViewModel @Inject constructor(
             // the button was enabled, so a silent no-op looks like the app lost the lesson.
             is LessonWrite.HourTaken -> SaveOutcome.Refused(Event.SAVE_REFUSED_TIME_TAKEN)
             is LessonWrite.Written<*> -> SaveOutcome.Saved
+            // Deleted between the read above and the write's own — the same answer as the early return.
+            LessonWrite.Gone -> SaveOutcome.Gone.also { _gone.value = true }
         }
     }
 
