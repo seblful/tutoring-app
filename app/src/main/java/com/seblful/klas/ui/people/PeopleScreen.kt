@@ -21,7 +21,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.common.KlasScreen
@@ -34,6 +33,7 @@ import com.seblful.klas.ui.groups.GroupsViewModel
 import com.seblful.klas.ui.students.StudentSort
 import com.seblful.klas.ui.students.StudentsList
 import com.seblful.klas.ui.students.StudentsViewModel
+import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 /** The two ways of looking at the same people: one at a time, or taught together. */
 private enum class PeopleTab(val labelRes: Int) {
@@ -63,8 +63,8 @@ fun PeopleScreen(
     onAddStudent: () -> Unit,
     onGroupClick: (Long) -> Unit,
     onAddGroup: () -> Unit,
-    studentsViewModel: StudentsViewModel = hiltViewModel(),
-    groupsViewModel: GroupsViewModel = hiltViewModel(),
+    studentsViewModel: StudentsViewModel = metroViewModel(),
+    groupsViewModel: GroupsViewModel = metroViewModel(),
 ) {
     var tab by rememberSaveable { mutableStateOf(PeopleTab.STUDENTS) }
 

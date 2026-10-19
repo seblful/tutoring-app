@@ -7,7 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.hilt)
+    alias(libs.plugins.metro)
     alias(libs.plugins.roborazzi)
 }
 
@@ -33,7 +33,7 @@ android {
         versionCode = 14
         versionName = "0.4.6"
 
-        testInstrumentationRunner = "com.seblful.klas.HiltTestRunner"
+        testInstrumentationRunner = "com.seblful.klas.KlasTestRunner"
     }
 
     signingConfigs {
@@ -208,13 +208,8 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.sqlite.bundled)
 
-    // Hilt
-    implementation(libs.hilt.android)
-    ksp(libs.hilt.compiler)
-    implementation(libs.androidx.hilt.navigation.compose)
-    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.hilt.work)
-    ksp(libs.androidx.hilt.compiler)
+    // Metro (the compiler plugin brings its runtime)
+    implementation(libs.metrox.viewmodel.compose)
 
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
@@ -236,16 +231,16 @@ dependencies {
     // Robolectric supplies the Context Room asks for, the bundled driver the SQLite.
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.sqlite.bundled.jvm)
+    // KlasGraphTest builds each worker through the graph's WorkerFactory, as WorkManager would.
+    testImplementation(libs.androidx.work.testing)
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
     testImplementation(libs.roborazzi)
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.roborazzi.compose.preview.scanner.support)
     testImplementation(libs.composable.preview.scanner)
-    // The store screenshots run the whole app — MainActivity and its Hilt graph — under Robolectric.
-    testImplementation(libs.hilt.android.testing)
+    // The store screenshots run the whole app — MainActivity and its graph — under Robolectric.
     testImplementation(libs.androidx.espresso.core)
-    kspTest(libs.hilt.compiler)
 
     // Instrumented tests
     androidTestImplementation(libs.androidx.junit)
@@ -254,9 +249,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.work.testing)
-    androidTestImplementation(libs.hilt.android.testing)
     androidTestImplementation(libs.kotlinx.coroutines.test)
-    kspAndroidTest(libs.hilt.compiler)
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

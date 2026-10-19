@@ -16,11 +16,14 @@ import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.write
 import com.seblful.klas.ui.common.state.writeAwaited
-import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * Drives first-run setup: the tutor confirms the language and currency, adds at least one subject, then
@@ -36,7 +39,8 @@ import javax.inject.Inject
  * other screen's: they used to be bare `viewModelScope.launch`es, so a database error closed the app in
  * the middle of its first minute, and «Готово» followed by a quick back could cancel the flag's write.
  */
-@HiltViewModel
+@ViewModelKey
+@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class OnboardingViewModel @Inject constructor(
     private val subjectsRepo: SubjectRepository,
     private val settings: SettingsRepository,

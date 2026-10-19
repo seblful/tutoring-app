@@ -11,10 +11,11 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Price
 import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.domain.model.Student
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Owns the invariant that **a student's subjects are exactly their priced subjects** — the single
@@ -35,7 +36,7 @@ import javax.inject.Singleton
  * offers and which no completed class could ever be billed at. Being single-user does not help here —
  * the writes are sequential either way, and what a transaction rules out is stopping halfway.
  */
-@Singleton
+@SingleIn(AppScope::class)
 class EnrollmentRepository @Inject constructor(
     private val studentDao: StudentDao,
     private val priceDao: PriceDao,

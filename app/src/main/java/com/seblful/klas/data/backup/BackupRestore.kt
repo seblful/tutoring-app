@@ -3,8 +3,9 @@ package com.seblful.klas.data.backup
 import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.domain.reminders.ReminderScheduler
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
 /**
  * Everything restoring a backup entails beyond replacing the rows: re-planning reminders,
@@ -15,7 +16,7 @@ import javax.inject.Singleton
  * Both entry points (Ещё → Резервная копия and the first-run screen) go through here, so neither
  * can forget a step. The file reading itself stays in the view models, where the SAF `Uri` lives.
  */
-@Singleton
+@SingleIn(AppScope::class)
 class BackupRestore @Inject constructor(
     private val backup: BackupManager,
     private val settings: SettingsRepository,

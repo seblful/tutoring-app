@@ -1,8 +1,9 @@
 package com.seblful.klas.notifications
 
 import com.seblful.klas.domain.reminders.Reminders
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
 /**
  * Arms the app's lesson reminders as **alarms**, one per planned lesson.
@@ -44,7 +45,7 @@ import javax.inject.Singleton
  *
  * Alarms do **not** survive a reboot — [BootReceiver] re-derives the plan instead.
  */
-@Singleton
+@SingleIn(AppScope::class)
 class ReminderAlarms @Inject constructor(
     private val alarms: AlarmClock,
     private val armed: ArmedReminders,

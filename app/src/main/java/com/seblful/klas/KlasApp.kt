@@ -1,27 +1,22 @@
 package com.seblful.klas
 
 import android.app.Application
-import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import com.seblful.klas.diagnostics.CrashLogger
-import com.seblful.klas.domain.reminders.ReminderScheduler
-import com.seblful.klas.notifications.Notifier
-import dagger.hilt.android.HiltAndroidApp
-import javax.inject.Inject
+import com.seblful.klas.di.AppGraph
+import com.seblful.klas.di.KlasGraph
+import dev.zacsweers.metro.createGraphFactory
 
-@HiltAndroidApp
-class KlasApp : Application(), Configuration.Provider {
+class KlasApp : Application(), Configuration.Provider, AppGraph.Holder {
 
-    @Inject lateinit var workerFactory: HiltWorkerFactory
-    @Inject lateinit var notifier: Notifier
-    // The port, not the WorkManager adapter behind it: this was the one place in the app naming a `work/`
-    // class, and it did so only because `ensurePeriodicMaintenance` was missing from the interface.
-    @Inject lateinit var scheduler: ReminderScheduler
-    @Inject lateinit var crashLogger: CrashLogger
+    /**
+     * The process's one graph. Lazy, so the first thing to need it builds it — `onCreate`, or a receiver or
+     * worker the system starts first.
+     */
+    override val graph: AppGraph by lazy { createGraphFactory<KlasGraph.Factory>().create(this) }
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
-            .setWorkerFactory(workerFactory)
+            .setWorkerFactory(graph.workerFactory)
             .build()
 
     // **The application's base context is never wrapped, and must not be.**
@@ -52,8 +47,10 @@ class KlasApp : Application(), Configuration.Provider {
         super.onCreate()
         // Record crashes to a local file first, before any startup work can throw. The handler still
         // hands off to the platform default, so Google Play (Android Vitals) keeps reporting them.
-        crashLogger.install()
-        notifier.ensureChannels()
-        scheduler.ensurePeriodicMaintenance()
+        graph.crashLogger.install()
+        graph.notifier.ensureChannels()
+        // The port, not the WorkManager adapter behind it: this was the one place in the app naming a `work/`
+        // class, and it did so only because `ensurePeriodicMaintenance` was missing from the interface.
+        graph.scheduler.ensurePeriodicMaintenance()
     }
 }

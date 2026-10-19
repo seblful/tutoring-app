@@ -8,8 +8,9 @@ import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.domain.time.WallClock
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
@@ -23,7 +24,7 @@ import kotlin.time.Instant
  * Here it is ordinary code over the repositories and the [Notifier] port, so a JVM test drives all
  * of it and [com.seblful.klas.work.ReminderWorker] is left as WorkManager's adapter onto it.
  */
-@Singleton
+@SingleIn(AppScope::class)
 class DueReminder @Inject constructor(
     private val classes: ClassRepository,
     students: StudentRepository,

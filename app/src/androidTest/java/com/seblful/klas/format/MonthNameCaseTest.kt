@@ -1,7 +1,5 @@
 package com.seblful.klas.format
 
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
 import org.junit.After
@@ -19,11 +17,7 @@ import java.util.Locale
  * schedule read «Четверг, 24 сентябрь» while every unit test passed. Asserted here because this is where
  * the answer lives — the same argument as `WeekStartKeywordTest`.
  */
-@HiltAndroidTest
 class MonthNameCaseTest {
-
-    @get:Rule
-    val hilt = HiltAndroidRule(this)
 
     private var previous: Locale = Locale.ROOT
 

@@ -18,8 +18,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.text.input.KeyboardType
 import com.seblful.klas.ui.theme.KlasTheme
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -34,21 +32,10 @@ import org.junit.Test
  * than the focus flag alone.
  *
  * A device test because focus and the soft keyboard are the platform's, not Compose's.
- *
- * `@HiltAndroidTest` although nothing here is injected: instrumentation swaps the app class for
- * `HiltTestApplication`, and any of the app's own components starting in that process — `MainActivity`
- * if the phone's owner opens the app mid-run — asks it for a component. Without the rule there is none,
- * and the *whole run* dies reporting zero tests rather than a failure. The rule creates one, so a stray
- * wake-up injects and is harmless. (`BootReceiver`'s wake-up before the first test is the runner's: see
- * `HiltTestRunner`.)
  */
-@HiltAndroidTest
 class RevealedFocusTest {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val rule = createComposeRule()
 
     /** What has been typed into the revealed field. */

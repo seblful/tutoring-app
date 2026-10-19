@@ -61,7 +61,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.reports.ReportCsv
 import com.seblful.klas.domain.reports.ReportPeriod
@@ -92,6 +91,7 @@ import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.navigation.Arrival
+import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.flow.first
 
 /**
@@ -120,7 +120,7 @@ fun ReportsScreen(
     onStudentClick: (Long) -> Unit,
     /** The debt digest's latest tap, which scrolls to the debts once — see `AppRoot`. */
     debtsArrival: Arrival<Unit>? = null,
-    viewModel: ReportsViewModel = hiltViewModel(),
+    viewModel: ReportsViewModel = metroViewModel(),
 ) {
     val listState = rememberLazyListState()
     // The debts are the last card, below every breakdown — on a busy year, several screens down. There is

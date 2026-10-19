@@ -9,8 +9,6 @@ import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.ui.theme.KlasTheme
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Rule
 import org.junit.Test
 import kotlin.time.Instant
@@ -23,16 +21,11 @@ import kotlin.time.Instant
  *
  * Correcting one is the other way round: who is settled, and the text is the thing being corrected.
  *
- * A device test because focus and the soft keyboard are the platform's, not Compose's. `@HiltAndroidTest`
- * for the reason `RevealedFocusTest` gives.
+ * A device test because focus and the soft keyboard are the platform's, not Compose's.
  */
-@HiltAndroidTest
 class HomeworkDialogFocusTest {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val rule = createComposeRule()
 
     private val context = InstrumentationRegistry.getInstrumentation().targetContext

@@ -125,7 +125,7 @@
         </provider>
 
         <!--
-          We provide our own Hilt-aware WorkManager configuration from KlasApp
+          We provide our own WorkManager configuration (the graph's worker factory) from KlasApp
           (Configuration.Provider), so disable the default on-startup initializer.
         -->
         <provider

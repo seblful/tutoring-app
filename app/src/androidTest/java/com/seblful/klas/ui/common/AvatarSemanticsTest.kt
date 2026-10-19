@@ -10,8 +10,6 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.state.map
 import com.seblful.klas.ui.theme.KlasTheme
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Rule
 import org.junit.Test
 
@@ -36,13 +34,9 @@ import org.junit.Test
  * `useUnmergedTree = true` here would be asserting against a tree no accessibility service ever reads:
  * it fails on a correct implementation. (It did — that is why this note exists.)
  */
-@HiltAndroidTest
 class AvatarSemanticsTest {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val composeRule = createComposeRule()
 
     private val context = InstrumentationRegistry.getInstrumentation().targetContext

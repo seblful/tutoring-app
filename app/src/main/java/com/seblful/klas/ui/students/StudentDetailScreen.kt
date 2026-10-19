@@ -42,7 +42,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonFilter
 import com.seblful.klas.domain.model.Balance
@@ -84,6 +83,7 @@ import com.seblful.klas.ui.homework.CardHomeworkDialogs
 import com.seblful.klas.ui.homework.HomeworkRow
 import com.seblful.klas.ui.homework.homeworkItems
 import com.seblful.klas.ui.homework.homeworkUndo
+import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
 /**
  * The four things a student's card is *about*, each its own list — **one shown at a time**, picked from a
@@ -120,7 +120,7 @@ fun StudentDetailScreen(
     onBack: () -> Unit,
     /** Opens a lesson, as tapping it on the schedule — or on a group's card — does. */
     onLessonClick: (Long) -> Unit,
-    viewModel: StudentDetailViewModel = hiltViewModel(),
+    viewModel: StudentDetailViewModel = assistedMetroViewModel(),
 ) {
     when (val screenState = viewModel.state.collectAsState().value) {
         Loadable.Loading -> LoadingDetailScreen(onBack)

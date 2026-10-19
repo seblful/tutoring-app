@@ -10,12 +10,15 @@ import com.seblful.klas.format.localeFor
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.work.Maintenance
-import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.util.Locale
-import javax.inject.Inject
 
 /**
  * Which of the three things the app is showing at the very top.
@@ -40,7 +43,8 @@ enum class RootRoute {
  * Top-level app state: theme, currency, and whether onboarding is done. `null` means settings are
  * still loading (show a spinner under the default theme).
  */
-@HiltViewModel
+@ViewModelKey
+@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class RootViewModel @Inject constructor(
     settings: SettingsRepository,
     /** The phone's locales, for the half of [localeFor] that «follow the system» leaves open. */

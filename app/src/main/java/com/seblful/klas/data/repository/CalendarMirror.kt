@@ -13,8 +13,9 @@ import com.seblful.klas.data.toDomain
 import com.seblful.klas.domain.lesson.CalendarSyncPolicy
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.runCatchingCancellable
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
 /**
  * Everything the device calendar shows, and every table that decides it.
@@ -39,7 +40,7 @@ import javax.inject.Singleton
  * All of it is **best-effort**, like every other piece of calendar work: the adapter no-ops when the
  * permission or the calendar is absent, so the local database is never blocked by sync.
  */
-@Singleton
+@SingleIn(AppScope::class)
 class CalendarMirror @Inject constructor(
     private val classDao: ClassDao,
     /**

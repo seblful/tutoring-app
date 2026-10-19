@@ -7,8 +7,6 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.seblful.klas.ui.theme.KlasTheme
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -26,13 +24,9 @@ import org.junit.Test
  * setting, and inventing them is also what lets the count be the only thing that differs between the two
  * cases.
  */
-@HiltAndroidTest
 class ChoiceRowTest {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val rule = createComposeRule()
 
     private var picked: String? = null

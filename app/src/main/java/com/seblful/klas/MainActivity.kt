@@ -6,14 +6,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.seblful.klas.di.appGraph
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.format.deviceLocales
 import com.seblful.klas.format.inLanguage
 import com.seblful.klas.format.localeFor
 import com.seblful.klas.ui.AppRoot
 import com.seblful.klas.ui.RootViewModel
-import dagger.hilt.android.AndroidEntryPoint
+import dev.zacsweers.metrox.viewmodel.LocalMetroViewModelFactory
 
 /**
  * The one activity.
@@ -27,16 +29,15 @@ import dagger.hilt.android.AndroidEntryPoint
  * Reminders are asked for where reminders are, in **Ещё → Настройки** — see `SettingsScreen`, which also
  * shows the platform's answer rather than only the tutor's intent.
  */
-@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     /**
      * Held by the activity rather than obtained inside the composition, so the splash can be kept up
      * until it has an answer — see [onCreate]. `AppRoot` is called directly from `setContent`, so its
-     * `ViewModelStoreOwner` is this activity: `hiltViewModel()` there and `viewModels()` here resolve to
+     * `ViewModelStoreOwner` is this activity: `metroViewModel()` there and `viewModels()` here resolve to
      * the same instance, and the screen is not reading a second copy of the settings row.
      */
-    private val rootViewModel: RootViewModel by viewModels()
+    private val rootViewModel: RootViewModel by viewModels { appGraph.metroViewModelFactory }
 
     /**
      * The activity's base context comes from the device configuration rather than from the application's,
@@ -69,8 +70,11 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            // Theme is applied inside AppRoot, driven by the user's theme setting.
-            AppRoot(rootViewModel)
+            // Every `metroViewModel()` below finds the graph's factory here.
+            CompositionLocalProvider(LocalMetroViewModelFactory provides appGraph.metroViewModelFactory) {
+                // Theme is applied inside AppRoot, driven by the user's theme setting.
+                AppRoot(rootViewModel)
+            }
         }
     }
 }

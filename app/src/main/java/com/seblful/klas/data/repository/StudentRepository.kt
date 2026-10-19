@@ -6,12 +6,13 @@ import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.people.NameOrder
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
+@SingleIn(AppScope::class)
 class StudentRepository @Inject constructor(
     private val dao: StudentDao,
     /**

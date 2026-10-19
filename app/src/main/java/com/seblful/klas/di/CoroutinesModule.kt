@@ -1,17 +1,17 @@
 package com.seblful.klas.di
 
 import com.seblful.klas.diagnostics.CrashLogger
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.BindingContainer
+import dev.zacsweers.metro.ContributesTo
+import dev.zacsweers.metro.Provides
+import dev.zacsweers.metro.Qualifier
+import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import javax.inject.Qualifier
-import javax.inject.Singleton
 
 /**
  * A scope that lives as long as the process, for work that **must finish** once it has started.
@@ -59,8 +59,8 @@ annotation class ApplicationScope
 @Retention(AnnotationRetention.BINARY)
 annotation class Computation
 
-@Module
-@InstallIn(SingletonComponent::class)
+@ContributesTo(AppScope::class)
+@BindingContainer
 object CoroutinesModule {
 
     /** See [Computation] for why this is injected rather than written at each `flowOn`. */
@@ -89,7 +89,7 @@ object CoroutinesModule {
      * a failure must never become a second failure.
      */
     @Provides
-    @Singleton
+    @SingleIn(AppScope::class)
     @ApplicationScope
     fun provideApplicationScope(crashLogger: CrashLogger): CoroutineScope =
         CoroutineScope(

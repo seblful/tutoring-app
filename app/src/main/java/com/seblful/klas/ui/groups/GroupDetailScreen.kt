@@ -36,7 +36,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Attendance
 import com.seblful.klas.ui.common.ArchiveMenuItem
@@ -74,6 +73,7 @@ import com.seblful.klas.ui.homework.CardHomeworkDialogs
 import com.seblful.klas.ui.homework.HomeworkRow
 import com.seblful.klas.ui.homework.homeworkItems
 import com.seblful.klas.ui.homework.homeworkUndo
+import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
 /**
  * The three things a group's card is about, one shown at a time and picked from the same menu a
@@ -111,7 +111,7 @@ fun GroupDetailScreen(
     onEdit: () -> Unit,
     onMemberClick: (Long) -> Unit,
     onLessonClick: (Long) -> Unit,
-    viewModel: GroupDetailViewModel = hiltViewModel(),
+    viewModel: GroupDetailViewModel = assistedMetroViewModel(),
 ) {
     // As the student's card: `GroupDetailState()` is an empty group rather than an unread one, so the
     // wait is its own screen instead of a card claiming no members and no lessons. See [Loadable].

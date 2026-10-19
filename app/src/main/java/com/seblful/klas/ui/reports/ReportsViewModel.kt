@@ -32,7 +32,11 @@ import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.navigation.ArrivalGate
-import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -42,10 +46,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import javax.inject.Inject
 import kotlin.time.Duration.Companion.days
 
-@HiltViewModel
+@ViewModelKey
+@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class ReportsViewModel @Inject constructor(
     classes: ClassRepository,
     students: StudentRepository,

@@ -49,7 +49,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
@@ -77,6 +76,7 @@ import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.students.StudentFormContent
 import com.seblful.klas.ui.students.StudentFormViewModel
 import com.seblful.klas.ui.subjects.SubjectNameDialog
+import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 /**
  * The first run, as a sequence.
@@ -119,8 +119,8 @@ private enum class Step(val number: Int) {
 @Composable
 fun OnboardingScreen(
     onFinished: () -> Unit,
-    viewModel: OnboardingViewModel = hiltViewModel(),
-    backupViewModel: BackupViewModel = hiltViewModel(),
+    viewModel: OnboardingViewModel = metroViewModel(),
+    backupViewModel: BackupViewModel = metroViewModel(),
 ) {
     // Saveable, so turning the phone on step 3 does not throw the tutor back to the welcome screen.
     var step by rememberSaveable { mutableStateOf(Step.WELCOME) }
@@ -143,7 +143,7 @@ fun OnboardingScreen(
     val removeFailedMsg = stringResource(R.string.onboarding_subject_remove_failed)
     val nameTakenMsg = stringResource(R.string.subject_name_taken)
     val saveFailedMsg = stringResource(R.string.save_failed)
-    val studentVm: StudentFormViewModel = hiltViewModel()
+    val studentVm: StudentFormViewModel = metroViewModel()
     ShowMessagesFor(studentVm.events, messages) { saveFailedMsg }
     ShowMessagesFor(viewModel.events, messages) { event ->
         when (event) {

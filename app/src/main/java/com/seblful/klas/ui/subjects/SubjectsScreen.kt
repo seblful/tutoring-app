@@ -27,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.ui.common.ConfirmDialog
@@ -45,11 +44,12 @@ import com.seblful.klas.ui.common.TextFieldDialog
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
+import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
 fun SubjectsScreen(
     onBack: () -> Unit,
-    viewModel: SubjectsViewModel = hiltViewModel(),
+    viewModel: SubjectsViewModel = metroViewModel(),
 ) {
     val subjectsState by viewModel.subjects.collectAsState()
     val query by viewModel.query.collectAsState()

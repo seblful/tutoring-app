@@ -20,8 +20,6 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.ui.theme.KlasTheme
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -36,13 +34,9 @@ import kotlin.math.abs
  * screens the bar turned `surfaceContainer` above a strip of page-coloured segments, so the rows vanished
  * at an edge nobody had drawn; and «Группы» opened under a bar still tinted for the students list.
  */
-@HiltAndroidTest
 class ScreenHeaderTintTest {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val composeRule = createComposeRule()
 
     private val page = mutableIntStateOf(0)

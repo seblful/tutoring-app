@@ -13,22 +13,21 @@ import com.seblful.klas.data.local.Migrations
 import com.seblful.klas.data.local.PaymentDao
 import com.seblful.klas.data.local.PriceDao
 import com.seblful.klas.data.local.RateHistoryDao
+import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.SettingsDao
 import com.seblful.klas.data.local.SnapshotDao
 import com.seblful.klas.data.local.StudentDao
 import com.seblful.klas.data.local.SubjectDao
-import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.Transactor
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.BindingContainer
+import dev.zacsweers.metro.ContributesTo
+import dev.zacsweers.metro.Provides
+import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.Dispatchers
-import javax.inject.Singleton
 
-@Module
-@InstallIn(SingletonComponent::class)
+@ContributesTo(AppScope::class)
+@BindingContainer
 object DatabaseModule {
 
     /**
@@ -57,7 +56,7 @@ object DatabaseModule {
      * the `SQLiteConnection` overload of each migration (see `Migrations.kt`) and queries on [Dispatchers.IO].
      */
     @Provides
-    @Singleton
+    @SingleIn(AppScope::class)
     fun provideDatabase(
         @ApplicationContext context: Context,
         @DebugBuild debugBuild: Boolean,
@@ -83,6 +82,6 @@ object DatabaseModule {
     @Provides fun provideSnapshotDao(db: AppDatabase): SnapshotDao = db.snapshotDao()
 
     @Provides
-    @Singleton
+    @SingleIn(AppScope::class)
     fun provideTransactor(db: AppDatabase): Transactor = RoomTransactor(db)
 }

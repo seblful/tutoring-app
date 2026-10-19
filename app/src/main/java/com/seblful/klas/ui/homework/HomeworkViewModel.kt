@@ -21,14 +21,17 @@ import com.seblful.klas.ui.common.state.days
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.valueOrNull
-import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import javax.inject.Inject
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 
@@ -57,7 +60,8 @@ data class HomeworkState(
     val filterName: String? get() = filter?.let(captions::titleOf)
 }
 
-@HiltViewModel
+@ViewModelKey
+@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class HomeworkViewModel @Inject constructor(
     homework: HomeworkRepository,
     students: StudentRepository,

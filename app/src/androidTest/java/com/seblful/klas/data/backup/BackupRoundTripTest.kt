@@ -6,15 +6,15 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.klas.data.local.AppDatabase
-import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.AttendanceEntity
-import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.GroupMemberCrossRef
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.RateChangeEntity
+import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
@@ -22,8 +22,6 @@ import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import kotlinx.coroutines.test.runTest
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -32,11 +30,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-@HiltAndroidTest
 class BackupRoundTripTest {
-
-    @get:Rule
-    val hilt = HiltAndroidRule(this)
 
     private lateinit var db: AppDatabase
     private lateinit var manager: BackupManager

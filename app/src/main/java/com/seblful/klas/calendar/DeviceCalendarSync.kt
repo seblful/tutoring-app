@@ -4,15 +4,17 @@ import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.provider.CalendarContract
+import com.seblful.klas.di.ApplicationContext
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.format.inAppLanguage
 import com.seblful.klas.format.labelRes
-import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Writes class events to the device calendar via [CalendarContract]. Events land in the user's
@@ -21,7 +23,8 @@ import javax.inject.Singleton
  * READ_CALENDAR + WRITE_CALENDAR runtime permissions (READ to locate a writable calendar, WRITE
  * to add events). All operations are best-effort and never throw to callers.
  */
-@Singleton
+@ContributesBinding(AppScope::class)
+@SingleIn(AppScope::class)
 class DeviceCalendarSync @Inject constructor(
     @param:ApplicationContext private val context: Context,
     /**

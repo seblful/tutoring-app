@@ -3,12 +3,14 @@ package com.seblful.klas.storage
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
-import dagger.hilt.android.qualifiers.ApplicationContext
+import com.seblful.klas.di.ApplicationContext
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * [DocumentSharing] over `ACTION_SEND` and a [FileProvider] — the device adapter.
@@ -36,7 +38,8 @@ import javax.inject.Singleton
  * than a child of the report screen, which for a fire-and-forget handover is exactly right: dismissing
  * the sheet returns to the report with nothing changed.
  */
-@Singleton
+@ContributesBinding(AppScope::class)
+@SingleIn(AppScope::class)
 class AndroidDocumentSharing @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) : DocumentSharing {

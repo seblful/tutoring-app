@@ -24,7 +24,7 @@ Store presence → Main store listing (per language):
 ## How it works
 
 1. **Capture** — `app/src/test/.../store/StoreScreenshots` runs the real `MainActivity` under Robolectric
-   at 4× density, with the production Hilt graph and database. `DemoSeeder` fills the database through
+   at 4× density, with the production graph (`StoreGraph`, a few bindings swapped) and database. `DemoSeeder` fills the database through
    the repositories with `DemoTutor`: a tutor's term since July, one version per language. It then taps
    through the app and saves each screen to `store/build/raw/<locale>/`. Alongside the screens it writes
    `shots.json` (each screen's top and bottom edge colours, and where the rows and buttons the video

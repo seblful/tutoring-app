@@ -24,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.schedule.Recurrence
 import com.seblful.klas.domain.schedule.Repeat
@@ -56,12 +55,13 @@ import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.schedule.timeConflictText
+import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 import kotlinx.datetime.LocalDate
 
 @Composable
 fun ClassEditScreen(
     onBack: () -> Unit,
-    viewModel: ClassEditViewModel = hiltViewModel(),
+    viewModel: ClassEditViewModel = assistedMetroViewModel(),
 ) {
     val screenState by viewModel.state.collectAsState()
     val gone by viewModel.gone.collectAsState()

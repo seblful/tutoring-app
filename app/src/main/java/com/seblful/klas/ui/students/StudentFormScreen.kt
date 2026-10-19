@@ -28,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
@@ -46,13 +45,14 @@ import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.subjects.SubjectNameDialog
+import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 /** Full-screen "add student" with required subjects + prices. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudentFormScreen(
     onBack: () -> Unit,
-    viewModel: StudentFormViewModel = hiltViewModel(),
+    viewModel: StudentFormViewModel = metroViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
 

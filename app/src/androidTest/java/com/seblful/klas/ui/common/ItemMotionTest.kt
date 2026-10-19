@@ -16,8 +16,6 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -35,13 +33,9 @@ import org.junit.Test
  * Each page is one solid colour; one frame after the swap, the first row must be the new page's colour
  * exactly — not the old one fading over it.
  */
-@HiltAndroidTest
 class ItemMotionTest {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val rule = createComposeRule()
 
     private var page by mutableStateOf(listOf(OLD to 1, OLD to 2))

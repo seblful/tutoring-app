@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
+import com.seblful.klas.di.ApplicationContext
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
@@ -20,13 +21,15 @@ import com.seblful.klas.format.daySummaryText
 import com.seblful.klas.format.formatTime
 import com.seblful.klas.format.inAppLanguage
 import com.seblful.klas.format.money
-import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.datetime.LocalDate
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /** Creates the app's channels and posts every notification it sends through the platform. */
-@Singleton
+@ContributesBinding(AppScope::class)
+@SingleIn(AppScope::class)
 class AndroidNotifier @Inject constructor(
     @param:ApplicationContext private val context: Context,
     /**

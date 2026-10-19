@@ -1,12 +1,12 @@
 package com.seblful.klas.di
 
 import com.seblful.klas.format.deviceLocales
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.BindingContainer
+import dev.zacsweers.metro.ContributesTo
+import dev.zacsweers.metro.Provides
+import dev.zacsweers.metro.Qualifier
 import java.util.Locale
-import javax.inject.Qualifier
 
 /**
  * The locales the **phone** asks for, most-preferred first — the device half of two settings that start at
@@ -28,8 +28,8 @@ import javax.inject.Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class DeviceLocales
 
-@Module
-@InstallIn(SingletonComponent::class)
+@ContributesTo(AppScope::class)
+@BindingContainer
 object LocaleModule {
 
     @Provides

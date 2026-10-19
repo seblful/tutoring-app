@@ -78,7 +78,7 @@ jobs:
 
       # Animations stay on: TabReselectFadeTest and ItemMotionTest read fades frame by frame, and the suite
       # is otherwise run on a phone with its animations on. The package filter is a runner argument
-      # AndroidJUnitRunner reads; HiltTestRunner passes it through.
+      # AndroidJUnitRunner reads; KlasTestRunner passes it through.
       # profile: without one, avdmanager makes a 320dp-wide screen, and the text-fit tests that lay a
       # bar or a tile out at 360dp and 411dp were squeezed to 320 and failed (StatRowAutoSizeTest,
       # BottomBarLabelTest). A Pixel 6 is 411dp wide, the widest any of them asks for.

@@ -2,14 +2,15 @@ package com.seblful.klas.data.backup
 
 import com.seblful.klas.data.local.SnapshotDao
 import com.seblful.klas.data.local.Transactor
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.intOrNull
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Exports the whole database to a JSON string and restores it. Import is a full replace inside
@@ -20,7 +21,7 @@ import javax.inject.Singleton
  * lives with it ([SnapshotDao]). This used to hold seven DAOs and both foreign-key orderings itself,
  * which put a wipe of every table in reach of every repository that shared those DAOs.
  */
-@Singleton
+@SingleIn(AppScope::class)
 class BackupManager @Inject constructor(
     private val transactor: Transactor,
     private val snapshot: SnapshotDao,

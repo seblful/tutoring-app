@@ -3,12 +3,15 @@ package com.seblful.klas.notifications
 import android.app.AlarmManager
 import android.content.Context
 import android.os.Build
-import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
-import javax.inject.Singleton
+import com.seblful.klas.di.ApplicationContext
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
 /** Asks `AlarmManager` whether this app may still set an exact alarm. */
-@Singleton
+@ContributesBinding(AppScope::class)
+@SingleIn(AppScope::class)
 class AndroidExactAlarmPermission @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) : ExactAlarmPermission {

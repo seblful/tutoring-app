@@ -18,8 +18,6 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.testutil.RussianMinskPhone
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -33,11 +31,7 @@ import kotlin.time.Instant
 
 /** Verifies that class mutations mirror into the calendar (criterion 5: move updates the event). */
 @RunWith(AndroidJUnit4::class)
-@HiltAndroidTest
 class ClassCalendarSyncTest {
-
-    @get:Rule
-    val hilt = HiltAndroidRule(this)
 
     /** Records calendar operations; hands back a stable id so updates reuse the same event. */
     private class FakeCalendarSync : CalendarSync {

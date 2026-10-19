@@ -17,10 +17,11 @@ import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.domain.schedule.DayBounds
 import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.domain.time.WallClock
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.toLocalDateTime
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.time.Instant
 
 /**
@@ -38,7 +39,7 @@ import kotlin.time.Instant
  * agreeing. Checking here makes the switch authoritative at the moment of posting, which is the same
  * argument `Reminders.shouldPost` makes for a reminder whose lesson may have been cancelled since.
  */
-@Singleton
+@SingleIn(AppScope::class)
 class DueDigest @Inject constructor(
     private val classes: ClassRepository,
     private val students: StudentRepository,

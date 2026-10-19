@@ -20,10 +20,11 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.schedule.Scheduling
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
@@ -91,7 +92,7 @@ data class SeriesWrite(
     val wroteNothing: Boolean get() = lessons == 0
 }
 
-@Singleton
+@SingleIn(AppScope::class)
 class ClassRepository @Inject constructor(
     private val dao: ClassDao,
     private val lessons: LessonDao,

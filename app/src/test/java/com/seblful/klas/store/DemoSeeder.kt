@@ -15,11 +15,11 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.ThemeChoice
+import dev.zacsweers.metro.Inject
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
-import javax.inject.Inject
 import kotlin.time.Duration.Companion.minutes
 
 /**

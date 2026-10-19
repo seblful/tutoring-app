@@ -4,10 +4,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.seblful.klas.di.ApplicationScope
+import com.seblful.klas.di.appGraph
 import com.seblful.klas.launchAsync
-import dagger.hilt.android.AndroidEntryPoint
+import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.CoroutineScope
-import javax.inject.Inject
 
 /**
  * Where a due reminder arrives. `AlarmManager`'s adapter onto [DueReminder] — whether the reminder is
@@ -21,7 +21,6 @@ import javax.inject.Inject
  * The work itself goes to [ApplicationScope], which is where anything that must complete lives, and its
  * handler is what keeps a failed read out of the tutor's face — there is no screen here to report to.
  */
-@AndroidEntryPoint
 class ReminderReceiver : BroadcastReceiver() {
 
     @Inject lateinit var due: DueReminder
@@ -29,6 +28,7 @@ class ReminderReceiver : BroadcastReceiver() {
     @Inject @ApplicationScope lateinit var appScope: CoroutineScope
 
     override fun onReceive(context: Context, intent: Intent) {
+        context.appGraph.inject(this)
         if (intent.action != ACTION_REMIND) return
         // Which ids are real is `TrayNavigation`'s, not this receiver's — see [TrayNavigation.lessonIdOrNull].
         // This used to read a `-1L` default and refuse `< 0`, so lesson **zero** passed the guard here and

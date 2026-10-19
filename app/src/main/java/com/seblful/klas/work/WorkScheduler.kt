@@ -7,17 +7,20 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
+import com.seblful.klas.di.ApplicationContext
 import com.seblful.klas.domain.reminders.DigestScheduler
 import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.notifications.ReminderAlarms
-import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
+import dev.zacsweers.metro.binding
 import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
@@ -33,8 +36,14 @@ import kotlin.time.Instant
  * [schedule] is **not** deferrable, and used to be treated as though it were. It hands over the reminders
  * themselves, and a reminder is worthless late — so it goes to [ReminderAlarms] and the platform's alarm
  * clock instead of a batched worker. See that class for the whole argument.
+ *
+ * **One object behind both ports**, deliberately: this is where the app's time-driven work is arranged, and
+ * the two interfaces are how the callers stay ignorant of which mechanism — an alarm or a worker — each kind
+ * of thing rides on.
  */
-@Singleton
+@ContributesBinding(AppScope::class, binding = binding<ReminderScheduler>())
+@ContributesBinding(AppScope::class, binding = binding<DigestScheduler>())
+@SingleIn(AppScope::class)
 class WorkScheduler @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val alarms: ReminderAlarms,

@@ -1,11 +1,13 @@
 package com.seblful.klas.work
 
 import android.content.Context
-import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
+import dev.zacsweers.metro.ContributesIntoMap
 
 /**
  * Periodic upkeep. WorkManager's adapter onto [Maintenance] — what upkeep *does* is decided there,
@@ -16,7 +18,6 @@ import dagger.assisted.AssistedInject
  * in silence. Which pass announces itself is decided in `Maintenance` for the same reason everything else
  * here is — a worker cannot be driven without a device, and this one moves the tutor's income.
  */
-@HiltWorker
 class MaintenanceWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted params: WorkerParameters,
@@ -26,5 +27,12 @@ class MaintenanceWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         maintenance.runUnwatched()
         return Result.success()
+    }
+
+    @AssistedFactory
+    @WorkerKey(MaintenanceWorker::class)
+    @ContributesIntoMap(AppScope::class)
+    fun interface Factory : WorkerAssistedFactory {
+        override fun create(appContext: Context, params: WorkerParameters): MaintenanceWorker
     }
 }

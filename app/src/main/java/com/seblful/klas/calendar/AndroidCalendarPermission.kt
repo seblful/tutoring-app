@@ -4,16 +4,19 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
-import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
-import javax.inject.Singleton
+import com.seblful.klas.di.ApplicationContext
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
 /**
  * Asks the platform whether calendar access has been granted. Read *and* write are both required:
  * the mirror reads to find a writable calendar and to locate an existing event, and writes to keep
  * it in step.
  */
-@Singleton
+@ContributesBinding(AppScope::class)
+@SingleIn(AppScope::class)
 class AndroidCalendarPermission @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) : CalendarPermission {

@@ -13,7 +13,11 @@ import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.people.PeopleSide
-import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +25,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import javax.inject.Inject
 
 /**
  * A group as the list shows it: the group, who is in it, and what it is taught.
@@ -46,7 +49,8 @@ data class GroupRow(
  * detail screen that mutates).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-@HiltViewModel
+@ViewModelKey
+@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class GroupsViewModel @Inject constructor(
     groups: GroupRepository,
     students: StudentRepository,

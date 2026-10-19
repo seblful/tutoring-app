@@ -17,14 +17,17 @@ import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.write
 import com.seblful.klas.work.Maintenance
-import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * The settings screen.
@@ -38,7 +41,8 @@ import javax.inject.Inject
  * ask** — [setCalendarSyncEnabled] for the permission gate, [setAutoCompleteEnabled] for the
  * question — not for their tails.
  */
-@HiltViewModel
+@ViewModelKey
+@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class SettingsViewModel @Inject constructor(
     private val settings: SettingsRepository,
     private val calendar: CalendarMirror,

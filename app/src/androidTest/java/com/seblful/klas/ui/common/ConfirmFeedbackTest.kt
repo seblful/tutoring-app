@@ -11,8 +11,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.seblful.klas.ui.theme.KlasTheme
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -27,13 +25,9 @@ import org.junit.Test
  * a confirmation feels like a rejection). The two moments are named apart on purpose — «now» at a drag's
  * mark and «done» when the action lands — so a single gesture saying both says two different things.
  */
-@HiltAndroidTest
 class ConfirmFeedbackTest {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val rule = createComposeRule()
 
     private class Recorder : HapticFeedback {

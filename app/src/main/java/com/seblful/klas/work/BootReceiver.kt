@@ -4,10 +4,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.seblful.klas.di.ApplicationScope
+import com.seblful.klas.di.appGraph
 import com.seblful.klas.launchAsync
-import dagger.hilt.android.AndroidEntryPoint
+import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.CoroutineScope
-import javax.inject.Inject
 
 /**
  * Re-derives the reminder plan after a reboot.
@@ -26,7 +26,6 @@ import javax.inject.Inject
  * lessons ending, and settling them is what bills them. The tutor is told what it settled rather than
  * finding the number changed.
  */
-@AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
 
     @Inject lateinit var maintenance: Maintenance
@@ -34,6 +33,7 @@ class BootReceiver : BroadcastReceiver() {
     @Inject @ApplicationScope lateinit var appScope: CoroutineScope
 
     override fun onReceive(context: Context, intent: Intent) {
+        context.appGraph.inject(this)
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
         launchAsync(appScope) { maintenance.runUnwatched() }
     }

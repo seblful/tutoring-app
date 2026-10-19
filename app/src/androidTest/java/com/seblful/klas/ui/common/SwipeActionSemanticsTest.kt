@@ -14,8 +14,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.ui.common.state.map
 import com.seblful.klas.ui.theme.KlasTheme
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -27,13 +25,9 @@ import org.junit.Test
  * to come). [swipeAction] puts the gesture on the row's own node as a named action, and [SwipeToConfirmBox]
  * clears the panel from the tree.
  */
-@HiltAndroidTest
 class SwipeActionSemanticsTest {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val rule = createComposeRule()
 
     private var confirmed = 0

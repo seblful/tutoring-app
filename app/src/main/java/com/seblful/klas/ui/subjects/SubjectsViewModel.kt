@@ -11,16 +11,20 @@ import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.write
-import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import javax.inject.Inject
 
-@HiltViewModel
+@ViewModelKey
+@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class SubjectsViewModel @Inject constructor(
     private val repository: SubjectRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,

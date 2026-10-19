@@ -12,8 +12,6 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.seblful.klas.R
 import com.seblful.klas.format.inLanguage
 import com.seblful.klas.ui.theme.KlasTheme
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Rule
 import org.junit.Test
 import java.util.Locale
@@ -34,13 +32,9 @@ import java.util.Locale
  * is that the *provision* reaches the resource lookup, and hard-coding «Расписание» against "Schedule" would
  * fail the day either wording is improved for reasons having nothing to do with this.
  */
-@HiltAndroidTest
 class LocalizedResourcesTest {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val rule = createComposeRule()
 
     private val russian = Locale.forLanguageTag("ru")

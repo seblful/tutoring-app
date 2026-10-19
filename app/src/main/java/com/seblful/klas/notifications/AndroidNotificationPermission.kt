@@ -7,9 +7,11 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
-import javax.inject.Singleton
+import com.seblful.klas.di.ApplicationContext
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
 /**
  * Asks the platform whether a reminder would actually be shown.
@@ -19,7 +21,8 @@ import javax.inject.Singleton
  * with no `POST_NOTIFICATIONS` to grant. A tutor who turned them off there and then wondered why no
  * reminder arrived would get the same silence the missing permission used to produce, so both are asked.
  */
-@Singleton
+@ContributesBinding(AppScope::class)
+@SingleIn(AppScope::class)
 class AndroidNotificationPermission @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) : NotificationPermission {

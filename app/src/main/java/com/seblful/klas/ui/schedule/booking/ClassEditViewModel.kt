@@ -2,7 +2,9 @@ package com.seblful.klas.ui.schedule.booking
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.EnrollmentRepository
 import com.seblful.klas.data.repository.GroupRepository
@@ -34,7 +36,13 @@ import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.writeAwaited
-import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactory
+import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactoryKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -53,12 +61,10 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@HiltViewModel
-class ClassEditViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+class ClassEditViewModel @AssistedInject constructor(
+    @Assisted savedStateHandle: SavedStateHandle,
     private val classes: ClassRepository,
     private val studentsRepo: StudentRepository,
     private val groupsRepo: GroupRepository,
@@ -70,6 +76,16 @@ class ClassEditViewModel @Inject constructor(
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: WallClock,
 ) : ViewModel() {
+
+    /** Hands over the screen's navigation arguments as the [SavedStateHandle]; the rest is injected. */
+    @AssistedFactory
+    @ViewModelAssistedFactoryKey(ClassEditViewModel::class)
+    @ContributesIntoMap(AppScope::class)
+    fun interface Factory : ViewModelAssistedFactory {
+        override fun create(extras: CreationExtras): ClassEditViewModel = create(extras.createSavedStateHandle())
+
+        fun create(@Assisted savedStateHandle: SavedStateHandle): ClassEditViewModel
+    }
 
     private val zone: TimeZone get() = clock.zone
     private val classId: Long = savedStateHandle["id"] ?: 0L

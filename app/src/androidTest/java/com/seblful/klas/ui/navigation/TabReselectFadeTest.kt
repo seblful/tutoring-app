@@ -13,8 +13,6 @@ import androidx.compose.ui.test.onRoot
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -34,13 +32,9 @@ import org.junit.Test
  * lands after one frame and after two (a tap after four frames was always harmless, and one before any
  * frame has drawn is too), and the fade it draws must be the one a single tap draws.
  */
-@HiltAndroidTest
 class TabReselectFadeTest {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val rule = createComposeRule()
 
     private lateinit var navController: NavHostController

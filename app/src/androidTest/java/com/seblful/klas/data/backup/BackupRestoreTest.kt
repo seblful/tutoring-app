@@ -23,8 +23,6 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.testutil.RussianMinskPhone
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -41,11 +39,7 @@ import kotlin.time.Instant
  * fresh install isn't asked to set the app up again) and re-plans reminders.
  */
 @RunWith(AndroidJUnit4::class)
-@HiltAndroidTest
 class BackupRestoreTest {
-
-    @get:Rule
-    val hilt = HiltAndroidRule(this)
 
     private val noCalendar = object : CalendarSync {
         override suspend fun upsert(

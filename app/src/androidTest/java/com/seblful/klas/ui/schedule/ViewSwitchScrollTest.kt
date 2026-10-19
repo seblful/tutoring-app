@@ -18,8 +18,6 @@ import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Rule
 import org.junit.Test
 
@@ -41,13 +39,9 @@ import org.junit.Test
  * those two facts each assertion is about. `SwipeToConfirmBoxTest` makes the same trade for the same
  * reason — some rules are only true on a device, and the smallest thing that can be wrong is what to test.
  */
-@HiltAndroidTest
 class ViewSwitchScrollTest {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val rule = createComposeRule()
 
     /** Roughly the month grid: taller than the viewport's share of it, as the real one is. */

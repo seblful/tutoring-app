@@ -11,10 +11,11 @@ import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.domain.people.NameOrder
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Groups and their rosters. This is the **only writer of group membership**: a group is always saved
@@ -29,7 +30,7 @@ import javax.inject.Singleton
  * A group *does* own a **rate**, and [save] is the only place it changes, so this is also where a
  * group's rate history is logged (see [RateHistoryRepository]).
  */
-@Singleton
+@SingleIn(AppScope::class)
 class GroupRepository @Inject constructor(
     private val dao: GroupDao,
     /** Asked whether a group still has lessons — see `ClassRepository`'s referenced-by guards. */

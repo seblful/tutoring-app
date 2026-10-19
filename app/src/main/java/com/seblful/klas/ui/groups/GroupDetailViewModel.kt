@@ -2,7 +2,9 @@ package com.seblful.klas.ui.groups
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.HomeworkRepository
@@ -35,13 +37,18 @@ import com.seblful.klas.ui.common.state.writeAwaited
 import com.seblful.klas.ui.homework.AssigneeChoice
 import com.seblful.klas.ui.homework.HomeworkActions
 import com.seblful.klas.ui.homework.HomeworkLists
-import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactory
+import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactoryKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 import kotlin.time.Duration.Companion.days
 
 /**
@@ -110,9 +117,8 @@ data class GroupDetailState(
  * lessons, so any total here would describe neither the group nor the person; the member rows link
  * through to the student cards, which is where a balance means something.
  */
-@HiltViewModel
-class GroupDetailViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+class GroupDetailViewModel @AssistedInject constructor(
+    @Assisted savedStateHandle: SavedStateHandle,
     private val groups: GroupRepository,
     students: StudentRepository,
     subjects: SubjectRepository,
@@ -122,6 +128,16 @@ class GroupDetailViewModel @Inject constructor(
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: WallClock,
 ) : ViewModel() {
+
+    /** Hands over the screen's navigation arguments as the [SavedStateHandle]; the rest is injected. */
+    @AssistedFactory
+    @ViewModelAssistedFactoryKey(GroupDetailViewModel::class)
+    @ContributesIntoMap(AppScope::class)
+    fun interface Factory : ViewModelAssistedFactory {
+        override fun create(extras: CreationExtras): GroupDetailViewModel = create(extras.createSavedStateHandle())
+
+        fun create(@Assisted savedStateHandle: SavedStateHandle): GroupDetailViewModel
+    }
 
     /** One-shot signals: a deletion refused because the group already has lessons, or a failed write. */
     enum class Event {

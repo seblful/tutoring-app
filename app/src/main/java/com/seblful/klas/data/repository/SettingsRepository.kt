@@ -10,13 +10,14 @@ import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.format.AppLocale
 import com.seblful.klas.format.localeFor
 import com.seblful.klas.format.regionCurrencies
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.Locale
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.time.Instant
 
 /** App settings. A missing row maps to defaults. */
@@ -208,7 +209,7 @@ data class SettingsChange(val before: AppSettings, val after: AppSettings) {
  *
  * Settings are **device-local** — deliberately not part of the backup snapshot.
  */
-@Singleton
+@SingleIn(AppScope::class)
 class SettingsRepository @Inject constructor(
     private val dao: SettingsDao,
     /**

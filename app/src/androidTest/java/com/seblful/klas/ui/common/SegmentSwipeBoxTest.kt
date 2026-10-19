@@ -25,8 +25,6 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.ui.theme.KlasTheme
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -47,13 +45,9 @@ import org.junit.Test
  * Distances are said as multiples of the threshold, taken from the rule's own density, so the test asks
  * about the shape — *far enough*, *not far enough* — instead of restating 56dp in pixels.
  */
-@HiltAndroidTest
 class SegmentSwipeBoxTest {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val rule = createComposeRule()
 
     private class Recorder : HapticFeedback {

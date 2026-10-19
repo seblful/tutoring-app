@@ -43,7 +43,11 @@ import com.seblful.klas.ui.common.state.write
 import com.seblful.klas.ui.homework.HomeworkActions
 import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.navigation.ArrivalGate
-import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -70,7 +74,6 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import javax.inject.Inject
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
@@ -87,7 +90,8 @@ private fun List<TutoringClass>.shownFor(filter: StudentFilter?): List<TutoringC
     filter?.let { SessionRules.lessonsWith(this, it.studentId) } ?: this
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@HiltViewModel
+@ViewModelKey
+@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class ScheduleViewModel @Inject constructor(
     private val classes: ClassRepository,
     private val students: StudentRepository,

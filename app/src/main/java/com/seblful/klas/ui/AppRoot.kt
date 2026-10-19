@@ -19,7 +19,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -38,9 +37,10 @@ import com.seblful.klas.ui.navigation.owningTabRoute
 import com.seblful.klas.ui.onboarding.OnboardingScreen
 import com.seblful.klas.ui.schedule.ScheduleTarget
 import com.seblful.klas.ui.theme.KlasTheme
+import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
-fun AppRoot(rootViewModel: RootViewModel = hiltViewModel()) {
+fun AppRoot(rootViewModel: RootViewModel = metroViewModel()) {
     // The upkeep pass that the tutor's own arrival is worth: settle, in process, whatever the clock
     // passed while the app was closed, so the schedule and the reports they are about to look at are
     // current — and so the passes that run while nobody is here keep the report they are owed. See

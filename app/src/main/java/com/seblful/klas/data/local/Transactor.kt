@@ -2,8 +2,9 @@ package com.seblful.klas.data.local
 
 import androidx.room.immediateTransaction
 import androidx.room.useWriterConnection
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
 /**
  * Runs a block of writes as **one** database transaction: they all commit, or none of them does.
@@ -34,7 +35,7 @@ interface Transactor {
  * and the JVM tests with it (`testutil/TestDatabase`). `useWriterConnection` + `immediateTransaction` is
  * Room's driver-era form, the one that also compiles for iOS.
  */
-@Singleton
+@SingleIn(AppScope::class)
 class RoomTransactor @Inject constructor(
     private val db: AppDatabase,
 ) : Transactor {

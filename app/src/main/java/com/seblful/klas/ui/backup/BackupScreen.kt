@@ -28,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.toLocalDate
@@ -43,6 +42,7 @@ import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
+import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlin.time.Instant
 
 /**
@@ -55,7 +55,7 @@ internal val BACKUP_MIME_TYPES = arrayOf("application/json", "application/octet-
 @Composable
 fun BackupScreen(
     onBack: () -> Unit,
-    viewModel: BackupViewModel = hiltViewModel(),
+    viewModel: BackupViewModel = metroViewModel(),
 ) {
     val messages = rememberMessages()
     var confirmImportUri by remember { mutableStateOf<android.net.Uri?>(null) }

@@ -2,6 +2,8 @@ package com.seblful.klas.ui.students
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.viewmodel.CreationExtras
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.EnrollmentRepository
 import com.seblful.klas.data.repository.GroupRepository
@@ -42,14 +44,19 @@ import com.seblful.klas.ui.common.state.write
 import com.seblful.klas.ui.homework.AssigneeChoice
 import com.seblful.klas.ui.homework.HomeworkActions
 import com.seblful.klas.ui.homework.HomeworkLists
-import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactory
+import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactoryKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.datetime.LocalDate
-import javax.inject.Inject
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
@@ -209,9 +216,8 @@ sealed interface ArchiveIntent {
  * ninth copy of a tail; they were spelled out per mutator once, and none of the money path's had a
  * test.
  */
-@HiltViewModel
-class StudentDetailViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+class StudentDetailViewModel @AssistedInject constructor(
+    @Assisted savedStateHandle: SavedStateHandle,
     private val students: StudentRepository,
     subjects: SubjectRepository,
     private val classes: ClassRepository,
@@ -224,6 +230,16 @@ class StudentDetailViewModel @Inject constructor(
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: WallClock,
 ) : ViewModel() {
+
+    /** Hands over the screen's navigation arguments as the [SavedStateHandle]; the rest is injected. */
+    @AssistedFactory
+    @ViewModelAssistedFactoryKey(StudentDetailViewModel::class)
+    @ContributesIntoMap(AppScope::class)
+    fun interface Factory : ViewModelAssistedFactory {
+        override fun create(extras: CreationExtras): StudentDetailViewModel = create(extras.createSavedStateHandle())
+
+        fun create(@Assisted savedStateHandle: SavedStateHandle): StudentDetailViewModel
+    }
 
     private val studentId: Long = checkNotNull(savedStateHandle["id"])
 

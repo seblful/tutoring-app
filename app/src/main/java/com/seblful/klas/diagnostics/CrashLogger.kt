@@ -1,8 +1,9 @@
 package com.seblful.klas.diagnostics
 
 import com.seblful.klas.domain.time.WallClock
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlin.time.Instant
 
 /**
@@ -16,7 +17,7 @@ import kotlin.time.Instant
  * Both Android-bound halves are injected ([CrashLogStore] for the bytes, [DeviceInfo] for the header
  * facts), so the part that can actually be got wrong is ordinary code a JVM test can drive.
  */
-@Singleton
+@SingleIn(AppScope::class)
 class CrashLogger @Inject constructor(
     private val store: CrashLogStore,
     private val device: DeviceInfo,

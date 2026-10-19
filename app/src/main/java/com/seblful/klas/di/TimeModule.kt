@@ -4,13 +4,12 @@ import android.content.Context
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.DeviceClock
 import com.seblful.klas.format.deviceFirstDayOfWeek
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.BindingContainer
+import dev.zacsweers.metro.ContributesTo
+import dev.zacsweers.metro.Provides
+import dev.zacsweers.metro.Qualifier
 import kotlinx.datetime.DayOfWeek
-import javax.inject.Qualifier
 
 /*
  * Where the app reads the wall clock, the device's time zone, and which day its week starts on.
@@ -38,8 +37,8 @@ import javax.inject.Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class FirstDayOfWeek
 
-@Module
-@InstallIn(SingletonComponent::class)
+@ContributesTo(AppScope::class)
+@BindingContainer
 object TimeModule {
 
     @Provides

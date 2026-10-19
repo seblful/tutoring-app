@@ -19,7 +19,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -46,13 +45,14 @@ import com.seblful.klas.ui.common.rememberRejectFeedback
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.theme.dynamicColorAvailable
+import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
     onDiagnostics: () -> Unit,
-    viewModel: SettingsViewModel = hiltViewModel(),
+    viewModel: SettingsViewModel = metroViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val reminderDelivery by viewModel.reminderDelivery.collectAsState()

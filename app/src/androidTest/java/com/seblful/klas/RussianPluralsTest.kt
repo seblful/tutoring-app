@@ -2,8 +2,6 @@ package com.seblful.klas
 
 import androidx.test.platform.app.InstrumentationRegistry
 import com.seblful.klas.format.inLanguage
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -21,11 +19,7 @@ import org.junit.Test
  * rather than pinned once, the app having two. `EnglishPluralsTest` is the other side of the same coin:
  * the mistake is symmetric, and an English phone reading Russian rules is the same defect as the reverse.
  */
-@HiltAndroidTest
 class RussianPluralsTest {
-
-    @get:Rule
-    val hilt = HiltAndroidRule(this)
 
     private val resources = InstrumentationRegistry.getInstrumentation().targetContext
         .inLanguage(java.util.Locale.forLanguageTag("ru"))

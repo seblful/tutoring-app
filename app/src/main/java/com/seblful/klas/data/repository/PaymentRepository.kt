@@ -7,11 +7,12 @@ import com.seblful.klas.domain.billing.PaymentDate
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.time.WallClock
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * A payment, and **the instant one is recorded at**.
@@ -32,7 +33,7 @@ import javax.inject.Singleton
  * putting back a payment that was just deleted must reproduce it exactly, hour included, and re-deriving
  * the instant there would silently move an undone payment to the moment it was undone.
  */
-@Singleton
+@SingleIn(AppScope::class)
 class PaymentRepository @Inject constructor(
     private val dao: PaymentDao,
     private val clock: WallClock,

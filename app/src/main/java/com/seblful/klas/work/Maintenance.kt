@@ -10,10 +10,11 @@ import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.notifications.Notifier
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.toLocalDateTime
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
@@ -30,7 +31,7 @@ import kotlin.time.Instant
  * The order matters and is fixed here: auto-completion runs **first**, so a lesson that just ended
  * is completed before the plan is derived and therefore isn't given a reminder it no longer needs.
  */
-@Singleton
+@SingleIn(AppScope::class)
 class Maintenance @Inject constructor(
     private val classes: ClassRepository,
     private val settings: SettingsRepository,

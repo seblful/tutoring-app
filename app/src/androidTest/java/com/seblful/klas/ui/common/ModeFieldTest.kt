@@ -1,18 +1,16 @@
 package com.seblful.klas.ui.common
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.res.stringResource
 import androidx.test.platform.app.InstrumentationRegistry
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.ui.theme.KlasTheme
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -26,9 +24,6 @@ import org.junit.Test
  * [PickerField] until tapped, so one input had two appearances — the alternative is offered only once the
  * field is opened, and choosing it both reports the mode and closes the menu.
  *
- * `@HiltAndroidTest` for the reason `RevealedFocusTest` explains: it keeps an app component waking up
- * in the instrumentation process from killing the run.
- *
  * **The two words are read, not written.** They were the literals «Очно» and «Удалённо», which worked while
  * the app had one string folder: whatever locale the test device was in, there was only Russian to load. With
  * `values/` English and `values-ru/` Russian the words are now the *device's*, and hard-coding either
@@ -36,13 +31,9 @@ import org.junit.Test
  * the field's shape and not its vocabulary. Read through the same resources the composable draws from, so the
  * test and the screen cannot disagree.
  */
-@HiltAndroidTest
 class ModeFieldTest {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val rule = createComposeRule()
 
     private val resources = InstrumentationRegistry.getInstrumentation().targetContext.resources

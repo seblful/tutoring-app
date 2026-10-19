@@ -5,9 +5,11 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.edit
-import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
-import javax.inject.Singleton
+import com.seblful.klas.di.ApplicationContext
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
 /**
  * [AlarmClock] over `AlarmManager`. The bytes, as `FileCrashLogStore` is to `CrashLogger`.
@@ -16,7 +18,8 @@ import javax.inject.Singleton
  * `setAndAllowWhileIdle` on both paths because Doze otherwise defers a plain `set` indefinitely — it permits
  * one such wake-up per app per maintenance window, which is exactly the budget one reminder needs.
  */
-@Singleton
+@ContributesBinding(AppScope::class)
+@SingleIn(AppScope::class)
 class AndroidAlarmClock @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) : AlarmClock {
@@ -68,7 +71,8 @@ class AndroidAlarmClock @Inject constructor(
 }
 
 /** [ArmedReminders] in `SharedPreferences` — the one line of the old `ReminderAlarms` that needed a device. */
-@Singleton
+@ContributesBinding(AppScope::class)
+@SingleIn(AppScope::class)
 class PrefsArmedReminders @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) : ArmedReminders {

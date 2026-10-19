@@ -22,8 +22,6 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.testutil.RussianMinskPhone
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -36,11 +34,7 @@ import kotlin.time.Instant
 
 /** Criterion 1: a class whose end has passed auto-completes and adds its then-current price to debt. */
 @RunWith(AndroidJUnit4::class)
-@HiltAndroidTest
 class AutoCompleteTest {
-
-    @get:Rule
-    val hilt = HiltAndroidRule(this)
 
     private val noCalendar = object : CalendarSync {
         override suspend fun upsert(klass: TutoringClass, title: String, guest: Guest?, reminderLeadMinutes: Int): String? = null

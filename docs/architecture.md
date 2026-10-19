@@ -4,7 +4,8 @@ Where code goes in Klas, and which class owns each rule. The reasoning behind a 
 to the code.
 
 MVVM, pure unit-tested domain layer. Room is the single source of truth; calendar and notifications are
-best-effort mirrors of it, never the reverse. DI: Hilt.
+best-effort mirrors of it, never the reverse. DI: Metro (a compiler plugin, so it can run in shared
+code later), see [Dependency injection](#dependency-injection).
 
 Two Gradle modules, one package (`com.seblful.klas`): `:domain` holds `domain/` as Kotlin Multiplatform,
 and `:app` (Android) holds everything else and depends on it. The split exists so that "no platform in
@@ -45,17 +46,17 @@ flowchart TB
 | `data/backup/` | File format: export, transactional replace-all import, integrity/failure classification, restore. |
 | `calendar/` | `CalendarSync`/`CalendarPermission` ports, `CalendarContract` adapter, calendar/guest choice rules, and the permission prompt (`rememberCalendarPermissionRequest`). |
 | `notifications/` | `Notifier` + permission ports/adapters, the permission prompt (`rememberNotificationPermissionRequest`), reminder/digest content, tray actions/navigation, alarm scheduling. |
-| `work/` | Periodic maintenance worker, three digest workers, `WorkScheduler`, `BootReceiver`, `ClockChangeReceiver`, `Maintenance`. |
+| `work/` | Periodic maintenance worker, three digest workers, `AppWorkerFactory`, `WorkScheduler`, `BootReceiver`, `ClockChangeReceiver`, `Maintenance`. |
 | `diagnostics/` | `CrashLogger` over a capped local log file, and `Diagnostics` (what a crash entry says); viewed/exported from `ui/diagnostics`. No Crashlytics/Sentry — Play Vitals still receives the crash. |
 | `storage/` | `DocumentStore` (SAF) and `DocumentSharing` (`ACTION_SEND`) ports. |
 | `format/` | Date/time/money formatting, `AppLocale`, `MoneyField`, the lesson-mode word (`ClassMode.labelRes`, read by screens and the calendar alike), and what the device says: `Localization.kt` (`Context.inLanguage()`, `deviceLocales()`), `WeekStart.kt` (the phone's first day of the week). |
-| `ui/` | Compose screens + `@HiltViewModel`s, one package per feature, `onboarding/`, `RootViewModel`, `AppRoot` (theme, locale, the tabs' chrome). The «Задания» tab and the homework parts the student and group cards share in `ui/homework/`. Settings/About in `ui/more/`. Theme in `ui/theme/`. |
+| `ui/` | Compose screens + their view models (`metroViewModel()`), one package per feature, `onboarding/`, `RootViewModel`, `AppRoot` (theme, locale, the tabs' chrome). The «Задания» tab and the homework parts the student and group cards share in `ui/homework/`. Settings/About in `ui/more/`. Theme in `ui/theme/`. |
 | `ui/navigation/` | `Routes`, the graph (`KlasNavGraph.kt`: `klasGraph`, `navigateToTab`), the tabs, what a tray tap opens (`TrayArrivals.kt`), `Arrival`. |
 | `ui/common/` | Shared atoms (`KlasScreen`, `detailCard`, fields, dialogs, badges…) and, in `state/`, the view models' plumbing with no Compose in it: `Loadable`, `derive`/`hold`, `WallClock.days()`/`minutes()`, `UiEvents`, `write`/`writeAwaited`. A part only one feature uses lives in that feature. |
 | `ui/schedule/` | The schedule screen (split into the screen, `LessonCard`, `ScheduleHeaders`, `ClassActionsSheet`, `CalendarViews`) and its view model and models, with `SchedulePages` (the selected day and visible pages, pure); the booking form in `booking/` (`ClassForm`, `ClassFormState`, `BookingForm`, the edit screen and view model). |
 | `preview/` (debug only) | `@Preview`s of `ui/common/`. |
-| `di/` | DB module, scopes/dispatchers, `WallClock`, week-start, device locales. |
-| root | `KlasApp` (`@HiltAndroidApp`, WorkManager config, notification channels, the periodic upkeep pass; the catch-up as the UI opens is `RootViewModel.catchUp`), `MainActivity` → `AppRoot()`, `Coroutines.kt` (`runCatchingCancellable`, and `launchAsync` for every broadcast receiver). |
+| `di/` | `AppGraph` (the graph, `appGraph`, `@ApplicationContext`, the view-model factory), DB module, scopes/dispatchers, `WallClock`, week-start, device locales. |
+| root | `KlasApp` (owns the graph, WorkManager config, notification channels, the periodic upkeep pass; the catch-up as the UI opens is `RootViewModel.catchUp`), `MainActivity` → `AppRoot()`, `Coroutines.kt` (`runCatchingCancellable`, and `launchAsync` for every broadcast receiver). |
 
 ## Who owns each rule
 
@@ -77,6 +78,25 @@ flowchart TB
 **A write spanning tables is one transaction**, including any conflict reads that guard its writes;
 otherwise two saves can both reserve an apparently free hour. The phases are pure rules → rows inside
 `Transactor.transaction` → calendar/reminders after commit.
+
+## Dependency injection
+
+- **Metro**, a Kotlin compiler plugin: the graph is checked as `:app` compiles (a missing binding is a build
+  error), there is no KSP step for it, and the same annotations work in common code.
+- `KlasGraph` (`di/AppGraph.kt`) is everything contributed to `AppScope`. An implementation binds itself to its
+  port (`@ContributesBinding` + `@SingleIn(AppScope::class)`); providers live in `@ContributesTo`
+  `@BindingContainer` objects (`di/`, `DiagnosticsModule`). The application context enters through the
+  graph's factory as `@ApplicationContext Context`.
+- `KlasApp` holds the graph (`AppGraph.Holder`). What Android instantiates itself reaches it through
+  `context.appGraph`: a receiver calls `appGraph.inject(this)` first in `onReceive`, workers come from
+  `AppWorkerFactory` (each worker has a nested `@AssistedFactory` keyed by `@WorkerKey`), and `MainActivity`
+  provides the graph's view-model factory to the composition. metrox-android's `AppComponentFactory` would
+  construct activities and receivers itself, but it needs API 28 and minSdk is 24.
+- A view model is `@ViewModelKey` + `@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())` and is
+  obtained with `metroViewModel()`. One that reads its navigation arguments takes `@Assisted savedStateHandle`
+  and has a nested assisted `Factory`; its screen uses `assistedMetroViewModel()`.
+- A test needing other bindings declares its own graph with `excludes` (`StoreGraph`). What Android looks up by
+  name at runtime — view models, workers, receivers — is covered by `KlasGraphTest`.
 
 ## Data flow
 

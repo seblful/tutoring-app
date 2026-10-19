@@ -4,10 +4,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.seblful.klas.di.ApplicationScope
+import com.seblful.klas.di.appGraph
 import com.seblful.klas.launchAsync
-import dagger.hilt.android.AndroidEntryPoint
+import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.CoroutineScope
-import javax.inject.Inject
 
 /**
  * Re-plans after the device's timezone or wall clock is changed — travel, or a manual correction.
@@ -20,7 +20,6 @@ import javax.inject.Inject
  *
  * `runUnwatched` for [BootReceiver]'s reason: the app is usually closed when this arrives.
  */
-@AndroidEntryPoint
 class ClockChangeReceiver : BroadcastReceiver() {
 
     @Inject lateinit var maintenance: Maintenance
@@ -30,6 +29,7 @@ class ClockChangeReceiver : BroadcastReceiver() {
     lateinit var appScope: CoroutineScope
 
     override fun onReceive(context: Context, intent: Intent) {
+        context.appGraph.inject(this)
         if (!handles(intent.action)) return
         launchAsync(appScope) { maintenance.runUnwatched() }
     }

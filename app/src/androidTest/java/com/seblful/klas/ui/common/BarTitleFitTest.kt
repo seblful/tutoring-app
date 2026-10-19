@@ -14,8 +14,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.testutil.textLayoutOf
 import com.seblful.klas.ui.theme.KlasTheme
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -29,13 +27,9 @@ import org.junit.Test
  * first. Font scale is set by the test rather than read from the device, which would otherwise decide
  * whether it holds; it covers the default and 1.3×, where the shrink's floor being in sp cut it again.
  */
-@HiltAndroidTest
 class BarTitleFitTest {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val composeRule = createComposeRule()
 
     @Test

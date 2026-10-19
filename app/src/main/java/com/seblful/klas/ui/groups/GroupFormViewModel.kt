@@ -2,7 +2,9 @@ package com.seblful.klas.ui.groups
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import com.seblful.klas.data.repository.GroupRepository
 import com.seblful.klas.data.repository.RateHistoryRepository
 import com.seblful.klas.data.repository.SettingsRepository
@@ -24,7 +26,13 @@ import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.writeAwaited
-import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
+import dev.zacsweers.metro.ContributesIntoMap
+import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactory
+import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactoryKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -37,7 +45,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * Creating or editing a group: its **subject**, name, note, hourly rate, default lesson mode and roster.
@@ -56,9 +63,8 @@ import javax.inject.Inject
  * one, so the common case is one less thing to type.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-@HiltViewModel
-class GroupFormViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+class GroupFormViewModel @AssistedInject constructor(
+    @Assisted savedStateHandle: SavedStateHandle,
     private val groups: GroupRepository,
     private val settings: SettingsRepository,
     students: StudentRepository,
@@ -67,6 +73,16 @@ class GroupFormViewModel @Inject constructor(
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
+
+    /** Hands over the screen's navigation arguments as the [SavedStateHandle]; the rest is injected. */
+    @AssistedFactory
+    @ViewModelAssistedFactoryKey(GroupFormViewModel::class)
+    @ContributesIntoMap(AppScope::class)
+    fun interface Factory : ViewModelAssistedFactory {
+        override fun create(extras: CreationExtras): GroupFormViewModel = create(extras.createSavedStateHandle())
+
+        fun create(@Assisted savedStateHandle: SavedStateHandle): GroupFormViewModel
+    }
 
     /** 0 for a new group. */
     val groupId: Long = savedStateHandle["id"] ?: 0L

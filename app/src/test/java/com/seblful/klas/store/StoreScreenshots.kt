@@ -42,33 +42,13 @@ import com.github.takahirom.roborazzi.RoborazziTaskType
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
-import com.seblful.klas.calendar.CalendarModule
-import com.seblful.klas.calendar.CalendarPermission
-import com.seblful.klas.calendar.CalendarSync
-import com.seblful.klas.data.repository.ClassRepository
-import com.seblful.klas.data.repository.SettingsRepository
-import com.seblful.klas.di.DeviceLocales
-import com.seblful.klas.di.FirstDayOfWeek
-import com.seblful.klas.di.LocaleModule
-import com.seblful.klas.di.TimeModule
 import com.seblful.klas.domain.model.ThemeChoice
-import com.seblful.klas.domain.reminders.DigestScheduler
-import com.seblful.klas.domain.reminders.ReminderScheduler
-import com.seblful.klas.domain.time.WallClock
-import com.seblful.klas.notifications.DueDigest
-import com.seblful.klas.notifications.DueReminder
 import com.seblful.klas.testutil.FakeCalendarPermission
 import com.seblful.klas.testutil.FakeCalendarSync
 import com.seblful.klas.testutil.RecordingDigestScheduler
 import com.seblful.klas.testutil.RecordingReminderScheduler
-import com.seblful.klas.work.WorkModule
-import dagger.hilt.android.testing.BindValue
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
-import dagger.hilt.android.testing.HiltTestApplication
-import dagger.hilt.android.testing.UninstallModules
+import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toJavaLocalDateTime
@@ -92,15 +72,14 @@ import java.text.DecimalFormatSymbols
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.imageio.ImageIO
-import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
 /**
  * The raw phone screenshots for the Play listing: the real app, its real screens, on [DemoTutor]'s data.
  *
  * **Not a test of anything** — it is the camera, and it lives in the unit suite only because that is where
- * the app can be run without a phone: Robolectric draws `MainActivity` with native graphics, Hilt wires
- * the production graph over the production database, and only the clock, the phone's locale and the
+ * the app can be run without a phone: Robolectric draws `MainActivity` with native graphics, [StoreGraph]
+ * is the production graph over the production database, and only the clock, the phone's locale and the
  * WorkManager-backed schedulers are swapped (a stopped clock is what makes «on now» land on the same
  * lesson every run). Skipped unless asked for, so `testDebugUnitTest` and CI never pay for it:
  *
@@ -115,69 +94,26 @@ import kotlin.time.Duration.Companion.seconds
  * shot last ([filmTour]). See docs/store-listing.md.
  */
 @OptIn(ExperimentalRoborazziApi::class)
-@HiltAndroidTest
-@UninstallModules(TimeModule::class, LocaleModule::class, WorkModule::class, CalendarModule::class)
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(application = HiltTestApplication::class, qualifiers = StoreScreenshots.PHONE)
+@Config(application = StoreApp::class, qualifiers = StoreScreenshots.PHONE)
 class StoreScreenshots {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val compose = createEmptyComposeRule()
 
     private var tutor: DemoTutor = DemoTutor.english
 
-    @BindValue
-    @JvmField
-    val clock: WallClock = DemoTutor.CLOCK
+    /** Built per language in [shoot], once the tutor — and so the phone's locale and week — is known. */
+    private lateinit var graph: StoreGraph
 
-    @BindValue
-    @FirstDayOfWeek
-    @JvmField
-    var firstDayOfWeek: DayOfWeek = DayOfWeek.MONDAY
-
-    @BindValue
-    @DeviceLocales
-    @JvmField
-    var deviceLocales: List<Locale> = listOf(Locale.US)
-
-    @BindValue
-    @JvmField
-    val reminders: ReminderScheduler = RecordingReminderScheduler()
-
-    @BindValue
-    @JvmField
-    val digests: DigestScheduler = RecordingDigestScheduler()
-
-    /** The device calendar has nothing behind it under Robolectric; the settings only need it to answer. */
-    @BindValue
-    @JvmField
-    val calendar: CalendarSync = FakeCalendarSync()
-
-    @BindValue
-    @JvmField
-    val calendarPermission: CalendarPermission = FakeCalendarPermission(granted = true)
-
-    @Inject
-    internal lateinit var seeder: DemoSeeder
-
-    /** The tutor's book once [seeder] has written it, for the promo video's changes to it. */
+    /** The tutor's book once the seeder has written it, for the promo video's changes to it. */
     private lateinit var seeded: DemoSeeder.Seeded
 
-    @Inject
-    lateinit var settings: SettingsRepository
-
-    @Inject
-    lateinit var classes: ClassRepository
-
-    @Inject
-    lateinit var dueReminder: DueReminder
-
-    @Inject
-    lateinit var dueDigest: DueDigest
+    private val settings get() = graph.settings
+    private val classes get() = graph.classes
+    private val dueReminder get() = graph.dueReminder
+    private val dueDigest get() = graph.dueDigest
 
     private val shots = mutableListOf<Shot>()
     private lateinit var out: File
@@ -208,14 +144,23 @@ class StoreScreenshots {
         out = File(root!!, tutor.locale.toLanguageTag()).apply { deleteRecursively(); mkdirs() }
 
         this.tutor = tutor
-        firstDayOfWeek = tutor.firstDayOfWeek
-        deviceLocales = listOf(tutor.locale)
         // The whole phone speaks the language, not just the app's resources: `MainActivity` and the week's
         // first day read the phone's default locale, as they would on a Russian or an American phone.
         Locale.setDefault(tutor.locale)
         RuntimeEnvironment.setQualifiers("+$qualifier")
-        hilt.inject()
-        seeded = runBlocking { seeder.seed(tutor) }
+        graph = createGraphFactory<StoreGraph.Factory>().create(
+            context = ApplicationProvider.getApplicationContext(),
+            clock = DemoTutor.CLOCK,
+            firstDayOfWeek = tutor.firstDayOfWeek,
+            deviceLocales = listOf(tutor.locale),
+            reminders = RecordingReminderScheduler(),
+            digests = RecordingDigestScheduler(),
+            // The device calendar has nothing behind it under Robolectric; the settings only need it to answer.
+            calendar = FakeCalendarSync(),
+            calendarPermission = FakeCalendarPermission(granted = true),
+        )
+        ApplicationProvider.getApplicationContext<StoreApp>().graph = graph
+        seeded = runBlocking { graph.seeder.seed(tutor) }
 
         launchOnToday()
         writeManifest()
@@ -516,7 +461,7 @@ class StoreScreenshots {
         val reminderAt = runBlocking {
             val day = now.date.atStartOfDayIn(DemoTutor.ZONE)
             val group = classes.getBetween(day, day.plus(SECONDS_PER_DAY.seconds))
-                .first { it.groupId != null && it.start > clock.now() }
+                .first { it.groupId != null && it.start > DemoTutor.CLOCK.now() }
             val lead = settings.get().reminderLeadMinutes.toLong()
             val due = group.start.minus((lead * SECONDS_PER_MINUTE).seconds)
             check(dueReminder.post(group.id, due)) { "no reminder" }

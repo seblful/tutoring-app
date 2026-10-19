@@ -29,8 +29,6 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.testutil.RussianMinskPhone
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -51,11 +49,7 @@ import kotlin.time.Instant
  * own reason), and takes only its rate log with it. (Needs a device/emulator for Room.)
  */
 @RunWith(AndroidJUnit4::class)
-@HiltAndroidTest
 class SubjectDeletionCascadeTest {
-
-    @get:Rule
-    val hilt = HiltAndroidRule(this)
 
     private lateinit var db: AppDatabase
     private lateinit var subjects: SubjectRepository

@@ -18,8 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
 import com.seblful.klas.testutil.textLayoutOf
 import com.seblful.klas.ui.theme.KlasTheme
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -36,13 +34,9 @@ import org.junit.Test
  * Font scale is pinned to 1 except where a test is about it: these are assertions about the *layout*, and the device's own
  * font setting would otherwise decide whether they hold.
  */
-@HiltAndroidTest
 class BottomBarLabelTest {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val composeRule = createComposeRule()
 
     private val context = InstrumentationRegistry.getInstrumentation().targetContext

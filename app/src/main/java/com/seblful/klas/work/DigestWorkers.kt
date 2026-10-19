@@ -1,18 +1,19 @@
 package com.seblful.klas.work
 
 import android.content.Context
-import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.seblful.klas.notifications.DueDigest
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
+import dev.zacsweers.metro.ContributesIntoMap
 
 /**
  * The morning digest, when it comes due. WorkManager's adapter onto [DueDigest] — what the digest *says*,
  * and whether it is worth saying at all, is decided there, where a JVM test can reach it.
  */
-@HiltWorker
 class AgendaWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted params: WorkerParameters,
@@ -22,6 +23,13 @@ class AgendaWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         digest.postAgenda()
         return Result.success()
+    }
+
+    @AssistedFactory
+    @WorkerKey(AgendaWorker::class)
+    @ContributesIntoMap(AppScope::class)
+    fun interface Factory : WorkerAssistedFactory {
+        override fun create(appContext: Context, params: WorkerParameters): AgendaWorker
     }
 }
 
@@ -34,7 +42,6 @@ class AgendaWorker @AssistedInject constructor(
  * still need two requests, and the branch deciding which digest a run is would live inside a
  * `CoroutineWorker`, which is precisely where this package refuses to put decisions.
  */
-@HiltWorker
 class UnfinishedDigestWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted params: WorkerParameters,
@@ -45,10 +52,16 @@ class UnfinishedDigestWorker @AssistedInject constructor(
         digest.postUnfinished()
         return Result.success()
     }
+
+    @AssistedFactory
+    @WorkerKey(UnfinishedDigestWorker::class)
+    @ContributesIntoMap(AppScope::class)
+    fun interface Factory : WorkerAssistedFactory {
+        override fun create(appContext: Context, params: WorkerParameters): UnfinishedDigestWorker
+    }
 }
 
 /** The weekly debt digest, when it comes due. As [AgendaWorker]: an adapter and nothing more. */
-@HiltWorker
 class DebtDigestWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted params: WorkerParameters,
@@ -58,5 +71,12 @@ class DebtDigestWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         digest.postDebts()
         return Result.success()
+    }
+
+    @AssistedFactory
+    @WorkerKey(DebtDigestWorker::class)
+    @ContributesIntoMap(AppScope::class)
+    fun interface Factory : WorkerAssistedFactory {
+        override fun create(appContext: Context, params: WorkerParameters): DebtDigestWorker
     }
 }

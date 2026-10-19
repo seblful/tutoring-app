@@ -14,8 +14,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.testutil.textLayout
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Rule
@@ -41,13 +39,9 @@ import org.junit.Test
  * The sample is a pangram for the same reason it is long: the difference between two text faces is a
  * fraction of a pixel per glyph, and forty of them add up to something a device can measure.
  */
-@HiltAndroidTest
 class AppTypefaceTest {
 
-    @get:Rule(order = 0)
-    val hilt = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
+    @get:Rule
     val composeRule = createComposeRule()
 
     /**

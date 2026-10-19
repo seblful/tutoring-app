@@ -36,7 +36,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.DeleteWarning
 import com.seblful.klas.domain.model.LessonStatus
@@ -62,6 +61,7 @@ import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.navigation.Arrival
+import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 
@@ -82,7 +82,7 @@ fun ScheduleScreen(
      * [ScheduleViewModel.arrive]).
      */
     arrival: Arrival<ScheduleTarget>? = null,
-    viewModel: ScheduleViewModel = hiltViewModel(),
+    viewModel: ScheduleViewModel = metroViewModel(),
 ) {
     LaunchedEffect(arrival) { viewModel.arrive(arrival) }
 

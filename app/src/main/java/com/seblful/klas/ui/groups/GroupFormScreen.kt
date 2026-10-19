@@ -25,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
@@ -43,6 +42,7 @@ import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.supportingTextOf
+import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
 /**
  * Create or edit one group: **subject**, name, note, hourly rate, default mode and roster.
@@ -70,7 +70,7 @@ import com.seblful.klas.ui.common.supportingTextOf
 @Composable
 fun GroupFormScreen(
     onBack: () -> Unit,
-    viewModel: GroupFormViewModel = hiltViewModel(),
+    viewModel: GroupFormViewModel = assistedMetroViewModel(),
 ) {
     val screenState by viewModel.state.collectAsState()
     val title = stringResource(

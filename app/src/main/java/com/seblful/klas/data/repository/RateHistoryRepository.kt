@@ -9,10 +9,11 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.RateChange
 import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.domain.time.WallClock
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.time.Instant
 
 /**
@@ -27,7 +28,7 @@ import kotlin.time.Instant
  * Reads are per owner rather than "give me everything", because a rate history is only ever read
  * beside the rate it belongs to.
  */
-@Singleton
+@SingleIn(AppScope::class)
 class RateHistoryRepository @Inject constructor(
     private val dao: RateHistoryDao,
     /**

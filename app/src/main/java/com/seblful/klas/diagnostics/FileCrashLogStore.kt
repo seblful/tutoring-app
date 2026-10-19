@@ -1,16 +1,19 @@
 package com.seblful.klas.diagnostics
 
 import android.content.Context
-import dagger.hilt.android.qualifiers.ApplicationContext
+import com.seblful.klas.di.ApplicationContext
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import java.io.File
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * [CrashLogStore] over a single file in the app's private storage — the device adapter. No network
  * and no third-party SDK, in keeping with the app's local-only stance.
  */
-@Singleton
+@ContributesBinding(AppScope::class)
+@SingleIn(AppScope::class)
 class FileCrashLogStore @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) : CrashLogStore {

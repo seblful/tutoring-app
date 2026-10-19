@@ -10,12 +10,13 @@ import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.time.WallClock
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
@@ -32,7 +33,7 @@ import kotlin.time.Instant
  * on — a view model's own `Instant.now()` would be a second one.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-@Singleton
+@SingleIn(AppScope::class)
 class HomeworkRepository @Inject constructor(
     private val dao: HomeworkDao,
     private val classes: ClassRepository,

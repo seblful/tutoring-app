@@ -25,14 +25,14 @@ or **EUR**.
 ## Tech Stack
 
 - **Kotlin**, **Jetpack Compose** (Material 3), Navigation Compose
-- **Room** (single source of truth) · **Hilt** DI · **WorkManager** + `AlarmManager`
+- **Room** (single source of truth) · **Metro** DI · **WorkManager** + `AlarmManager`
 - **kotlinx-serialization** (backup) · **kotlinx-datetime** (`java.time` stays only in the Android formatters, desugared)
 - AGP (built-in Kotlin) · Gradle · **JDK 21** · **minSdk 24**
 - Two modules: `:app` (Android) and `:domain` (Kotlin Multiplatform — the compiler keeps Android and the JDK out of it)
 
 Versions live in `gradle/libs.versions.toml`, SDK levels in `app/build.gradle.kts`.
 
-Kotlin is capped by KSP's supported line (Room and Hilt codegen): stay on 2.3.x until a KSP 2.4.x
+Kotlin is capped by KSP's supported line (Room's codegen): stay on 2.3.x until a KSP 2.4.x
 exists — see `gradle/libs.versions.toml`.
 
 Architecture is MVVM over a pure, unit-tested domain layer — see **[docs/architecture.md](docs/architecture.md)**.

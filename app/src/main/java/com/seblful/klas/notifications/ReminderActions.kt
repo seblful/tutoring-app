@@ -4,8 +4,9 @@ import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.LessonWrite
 import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.LessonStatus
-import javax.inject.Inject
-import javax.inject.Singleton
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 
 /**
  * What a reminder's own buttons do — the half that acts without opening the app.
@@ -18,7 +19,7 @@ import javax.inject.Singleton
  * «Перенести» is not here. A new time has to be picked, which needs a screen, so that button opens the
  * lesson instead of doing anything — see [TrayNavigation].
  */
-@Singleton
+@SingleIn(AppScope::class)
 class ReminderActions @Inject constructor(
     private val classes: ClassRepository,
     private val notifier: Notifier,

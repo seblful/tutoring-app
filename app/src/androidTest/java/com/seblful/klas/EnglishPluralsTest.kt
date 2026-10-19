@@ -2,8 +2,6 @@ package com.seblful.klas
 
 import androidx.test.platform.app.InstrumentationRegistry
 import com.seblful.klas.format.inLanguage
-import dagger.hilt.android.testing.HiltAndroidRule
-import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -23,11 +21,7 @@ import java.util.Locale
  * So the assertions here are English's own two forms at the boundary that matters — one, and everything else
  * — read through the same [inLanguage] the app uses.
  */
-@HiltAndroidTest
 class EnglishPluralsTest {
-
-    @get:Rule
-    val hilt = HiltAndroidRule(this)
 
     private val resources = InstrumentationRegistry.getInstrumentation().targetContext
         .inLanguage(Locale.forLanguageTag("en"))
