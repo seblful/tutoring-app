@@ -15,8 +15,12 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.ThemeChoice
-import java.time.LocalDate
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Writes [DemoTutor] into the app's database **through the repositories**, the way the tutor would have
@@ -121,12 +125,12 @@ internal class DemoSeeder @Inject constructor(
     private suspend fun teach(courses: List<Course>): List<Charge> {
         val charges = mutableListOf<Charge>()
         var oneToOne = 0
-        for (day in DemoTutor.FIRST_DAY.datesUntil(DemoTutor.BOOKED_UNTIL.plusDays(1))) {
+        for (day in DemoTutor.FIRST_DAY..DemoTutor.BOOKED_UNTIL) {
             for (course in courses) {
                 for (slot in course.weekly.slotsOn(day)) {
                     val cancel = course.callsOff && oneToOne++ % CANCEL_EVERY == CANCEL_FIRST
                     val ids = book(course, day, slot)
-                    if (slot.endOn(day).isAfter(DemoTutor.CLOCK.instant())) continue
+                    if (slot.endOn(day) > DemoTutor.CLOCK.now()) continue
                     val status = if (cancel) LessonStatus.CANCELLED else LessonStatus.COMPLETED
                     classes.setStatus(classes.getSessionFor(ids.first())!!, status)
                     if (status == LessonStatus.COMPLETED) {
@@ -166,16 +170,16 @@ internal class DemoSeeder @Inject constructor(
      * missed the last fortnight.
      */
     private suspend fun pay(tutor: DemoTutor, roster: Roster, charges: List<Charge>) {
-        val monthStart = DemoTutor.TODAY.withDayOfMonth(1)
+        val monthStart = LocalDate(DemoTutor.TODAY.year, DemoTutor.TODAY.month, 1)
         val stopsPaying = buildMap {
             tutor.students.forEach { s -> s.paysUntil?.let { put(roster.studentId(s.name), it) } }
-            put(roster.memberIds.getValue(tutor.group.owing), DemoTutor.TODAY.minusWeeks(2))
+            put(roster.memberIds.getValue(tutor.group.owing), DemoTutor.TODAY.minus(2, DateTimeUnit.WEEK))
         }
         val prepaid = tutor.students.filter { it.prepaysLessons > 0 }.associateBy { roster.studentId(it.name) }
 
         charges
-            .filter { c -> stopsPaying[c.studentId]?.let { !c.day.isAfter(it) } ?: true }
-            .filter { c -> c.studentId !in prepaid || c.day.isBefore(monthStart) }
+            .filter { c -> stopsPaying[c.studentId]?.let { !(c.day > it) } ?: true }
+            .filter { c -> c.studentId !in prepaid || c.day < monthStart }
             .groupBy { it.studentId to it.day }
             .forEach { (key, dayCharges) ->
                 payments.record(key.first, Money(dayCharges.sumOf { it.amount.minor }), key.second)

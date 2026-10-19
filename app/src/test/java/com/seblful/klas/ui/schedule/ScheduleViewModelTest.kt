@@ -11,6 +11,7 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.schedule.CalendarLayout
 import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.domain.schedule.ScheduleEmpty
+import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.MutableClock
 import com.seblful.klas.testutil.TestEnv
@@ -27,6 +28,18 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.YearMonth
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.atTime
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -36,13 +49,13 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Clock
-import java.time.DayOfWeek
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.YearMonth
-import java.time.ZoneId
+import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -53,10 +66,10 @@ class ScheduleViewModelTest {
 
     @get:Rule
     val env = TestEnv()
-    private val zone: ZoneId = ZoneId.systemDefault()
+    private val zone: TimeZone = TimeZone.currentSystemDefault()
 
     private fun vm(
-        clock: Clock = Clock.systemDefaultZone(),
+        clock: WallClock = WallClock.system(),
         weekStart: DayOfWeek = DayOfWeek.MONDAY,
     ) =
         ScheduleViewModel(
@@ -65,7 +78,7 @@ class ScheduleViewModelTest {
         )
 
     private fun startMillisOn(date: LocalDate, time: LocalTime): Long =
-        date.atTime(time).atZone(zone).toInstant().toEpochMilli()
+        date.atTime(time).toInstant(zone).toEpochMilliseconds()
 
     /**
      * The day's content the screen would be drawing, insisted upon — `current`'s counterpart for a day
@@ -125,10 +138,10 @@ class ScheduleViewModelTest {
     fun `stepping into the next week goes straight from one day to the next`() = runTest(mainRule.dispatcher) {
         val sid = env.fixtures.student()
         val subj = env.fixtures.subject()
-        val sunday = LocalDate.of(2026, 7, 19)
-        val monday = sunday.plusDays(1)
+        val sunday = LocalDate(2026, 7, 19)
+        val monday = sunday.plus(1, DateTimeUnit.DAY)
         env.fixtures.storedClass(
-            studentId = sid, subjectId = subj, startMillis = startMillisOn(monday, LocalTime.of(9, 0)),
+            studentId = sid, subjectId = subj, startMillis = startMillisOn(monday, LocalTime(9, 0)),
             durationMinutes = 60, status = LessonStatus.SCHEDULED,
         )
         val vm = vm()
@@ -155,8 +168,8 @@ class ScheduleViewModelTest {
      */
     @Test
     fun `a week answers for the days it holds and no others`() {
-        val monday = LocalDate.of(2026, 7, 13)
-        val tuesday = monday.plusDays(1)
+        val monday = LocalDate(2026, 7, 13)
+        val tuesday = monday.plus(1, DateTimeUnit.DAY)
         val summary = DaySummary.of(emptyList())
         val week: Loadable<ScheduleContent.Week> = Loadable.Ready(
             ScheduleContent.Week(monday, listOf(WeekSection(tuesday, emptyList(), summary))),
@@ -168,11 +181,15 @@ class ScheduleViewModelTest {
         )
         assertEquals(
             "a day in the week with no section is free",
-            Loadable.Ready(ScheduleContent.Day(monday.plusDays(6), emptyList(), DaySummary.NONE)),
-            week.day(monday.plusDays(6)),
+            Loadable.Ready(ScheduleContent.Day(monday.plus(6, DateTimeUnit.DAY), emptyList(), DaySummary.NONE)),
+            week.day(monday.plus(6, DateTimeUnit.DAY)),
         )
-        assertEquals("the next week is not this week's to answer", Loadable.Loading, week.day(monday.plusDays(7)))
-        assertEquals(Loadable.Loading, week.day(monday.minusDays(1)))
+        assertEquals(
+            "the next week is not this week's to answer",
+            Loadable.Loading,
+            week.day(monday.plus(7, DateTimeUnit.DAY)),
+        )
+        assertEquals(Loadable.Loading, week.day(monday.minus(1, DateTimeUnit.DAY)))
     }
 
     /** A week that has not arrived answers for no day, so a cold open is not mistaken for a free one. */
@@ -180,12 +197,12 @@ class ScheduleViewModelTest {
     fun `a week that has not arrived answers for no day`() {
         val nothing: Loadable<ScheduleContent.Week> = Loadable.Loading
 
-        assertEquals(Loadable.Loading, nothing.day(LocalDate.of(2026, 7, 15)))
+        assertEquals(Loadable.Loading, nothing.day(LocalDate(2026, 7, 15)))
     }
 
     /** A fixed day at [hour], for tests that only need distinct lesson times. */
     private fun at(hour: Int): Instant =
-        LocalDate.of(2026, 5, 18).atTime(hour, 0).atZone(zone).toInstant()
+        LocalDate(2026, 5, 18).atTime(hour, 0).toInstant(zone)
 
     /**
      * The day carries what it adds up to, so the header can print it without doing arithmetic in a
@@ -196,15 +213,15 @@ class ScheduleViewModelTest {
     fun `the selected day carries its own summary`() = runTest(mainRule.dispatcher) {
         val subj = env.fixtures.subject("Математика")
         val sid = env.fixtures.pricedStudent("Аня", subj, rate = Money.ofMajor(30))
-        val today = LocalDate.now(zone)
+        val today = Clock.System.todayIn(zone)
         env.fixtures.lesson(
             subjectId = subj, students = listOf(sid),
-            start = today.atTime(9, 0).atZone(zone).toInstant(),
+            start = today.atTime(9, 0).toInstant(zone),
             minutes = 90, rate = Money.ofMajor(30),
         )
         env.fixtures.cancelledLesson(
             subjectId = subj, students = listOf(sid),
-            start = today.atTime(15, 0).atZone(zone).toInstant(),
+            start = today.atTime(15, 0).toInstant(zone),
             rate = Money.ofMajor(30),
         )
 
@@ -235,19 +252,19 @@ class ScheduleViewModelTest {
     fun `the now mark follows the clock past a lesson`() = runTest(mainRule.dispatcher) {
         val subj = env.fixtures.subject("Математика")
         val sid = env.fixtures.pricedStudent("Аня", subj)
-        val day = LocalDate.of(2026, 5, 18)
+        val day = LocalDate(2026, 5, 18)
         // 08:59, one minute before the day's only lesson.
-        val clock = MutableClock(day.atTime(8, 59).atZone(zone).toInstant(), zone)
+        val clock = MutableClock(day.atTime(8, 59).toInstant(zone), zone)
         env.fixtures.lesson(
             subjectId = subj,
             students = listOf(sid),
-            start = day.atTime(9, 0).atZone(zone).toInstant(),
+            start = day.atTime(9, 0).toInstant(zone),
         )
 
         val vm = vm(clock)
         observing(vm.content)
         observing(vm.nowMark)
-        val minute = java.time.Duration.ofMinutes(1).toMillis()
+        val minute = 1.minutes.inWholeMilliseconds
         advanceTimeBy(minute)
 
         assertEquals("before the lesson, the mark is above it", 0, vm.nowMark.value)
@@ -273,20 +290,20 @@ class ScheduleViewModelTest {
     fun `a lesson is marked as running only while it is running`() = runTest(mainRule.dispatcher) {
         val subj = env.fixtures.subject("Математика")
         val sid = env.fixtures.pricedStudent("Аня", subj)
-        val day = LocalDate.of(2026, 5, 18)
+        val day = LocalDate(2026, 5, 18)
         // 08:59, one minute before an hour-long lesson at nine.
-        val clock = MutableClock(day.atTime(8, 59).atZone(zone).toInstant(), zone)
+        val clock = MutableClock(day.atTime(8, 59).toInstant(zone), zone)
         env.fixtures.lesson(
             subjectId = subj,
             students = listOf(sid),
-            start = day.atTime(9, 0).atZone(zone).toInstant(),
+            start = day.atTime(9, 0).toInstant(zone),
             minutes = 60,
         )
 
         val vm = vm(clock)
         observing(vm.content)
         observing(vm.running)
-        val minute = java.time.Duration.ofMinutes(1).toMillis()
+        val minute = 1.minutes.inWholeMilliseconds
         advanceTimeBy(minute)
         assertEquals("not yet", emptySet<Long>(), vm.running.value)
 
@@ -304,8 +321,8 @@ class ScheduleViewModelTest {
     /** A day that is not today has no "now" in it, and must not have one drawn at either end. */
     @Test
     fun `another day gets no now mark`() = runTest(mainRule.dispatcher) {
-        val day = LocalDate.of(2026, 5, 18)
-        val clock = MutableClock(day.atTime(12, 0).atZone(zone).toInstant(), zone)
+        val day = LocalDate(2026, 5, 18)
+        val clock = MutableClock(day.atTime(12, 0).toInstant(zone), zone)
 
         val vm = vm(clock)
         observing(vm.content)
@@ -313,7 +330,7 @@ class ScheduleViewModelTest {
         advanceTimeBy(1)
         assertEquals(0, vm.nowMark.value)
 
-        vm.selectDate(day.plusDays(1))
+        vm.selectDate(day.plus(1, DateTimeUnit.DAY))
         advanceTimeBy(1)
 
         assertNull("tomorrow has no now", vm.nowMark.value)
@@ -340,11 +357,11 @@ class ScheduleViewModelTest {
     fun `rows show only the selected day's classes, time-sorted, with student and subject names`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val today = LocalDate.now(zone)
+        val today = Clock.System.todayIn(zone)
         // Two classes today (out of order) and one tomorrow.
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(15, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = startMillisOn(today.plusDays(1), LocalTime.of(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime(15, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
+        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = startMillisOn(today.plus(1, DateTimeUnit.DAY), LocalTime(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
 
         val vm = vm()
         observing(vm.content)
@@ -369,10 +386,10 @@ class ScheduleViewModelTest {
      */
     @Test
     fun `today rolls over at midnight`() = runTest(mainRule.dispatcher) {
-        val start = LocalDate.of(2026, 7, 15)
+        val start = LocalDate(2026, 7, 15)
         // 22:00 on the 15th, so midnight is two hours out.
-        val clock = MutableClock(start.atTime(22, 0).atZone(zone).toInstant(), zone)
-        val twoHours = java.time.Duration.ofHours(2).toMillis()
+        val clock = MutableClock(start.atTime(22, 0).toInstant(zone), zone)
+        val twoHours = 2.hours.inWholeMilliseconds
 
         val vm = vm(clock)
         observing(vm.today)
@@ -387,27 +404,27 @@ class ScheduleViewModelTest {
 
         clock.advanceBy(2)
         advanceTimeBy(2)
-        assertEquals("and then it is tomorrow", start.plusDays(1), vm.today.value)
+        assertEquals("and then it is tomorrow", start.plus(1, DateTimeUnit.DAY), vm.today.value)
     }
 
     /** A device that slept through more than one night wakes up on the right day, not the next one. */
     @Test
     fun `today catches up when the phone slept for days`() = runTest(mainRule.dispatcher) {
-        val start = LocalDate.of(2026, 7, 15)
-        val clock = MutableClock(start.atTime(22, 0).atZone(zone).toInstant(), zone)
+        val start = LocalDate(2026, 7, 15)
+        val clock = MutableClock(start.atTime(22, 0).toInstant(zone), zone)
 
         val vm = vm(clock)
         observing(vm.today)
         advanceTimeBy(1)
         assertEquals(start, vm.today.value)
 
-        val threeDays = java.time.Duration.ofDays(3).toMillis()
+        val threeDays = 3.days.inWholeMilliseconds
         clock.advanceBy(threeDays)
         advanceTimeBy(threeDays)
 
         assertEquals(
             "the date is re-read from the clock, not counted up one sleep at a time",
-            start.plusDays(3),
+            start.plus(3, DateTimeUnit.DAY),
             vm.today.value,
         )
     }
@@ -419,9 +436,9 @@ class ScheduleViewModelTest {
      */
     @Test
     fun `a selection left on today follows it past midnight, a browsed one stays`() = runTest(mainRule.dispatcher) {
-        val start = LocalDate.of(2026, 7, 15)
-        val clock = MutableClock(start.atTime(22, 0).atZone(zone).toInstant(), zone)
-        val tenHours = java.time.Duration.ofHours(10).toMillis()
+        val start = LocalDate(2026, 7, 15)
+        val clock = MutableClock(start.atTime(22, 0).toInstant(zone), zone)
+        val tenHours = 10.hours.inWholeMilliseconds
 
         val vm = vm(clock)
         observing(vm.today)
@@ -429,11 +446,11 @@ class ScheduleViewModelTest {
 
         clock.advanceBy(tenHours)
         advanceTimeBy(tenHours)
-        assertEquals("on today, it moves with today", start.plusDays(1), vm.selectedDate.value)
+        assertEquals("on today, it moves with today", start.plus(1, DateTimeUnit.DAY), vm.selectedDate.value)
 
-        val browsed = start.plusDays(5)
+        val browsed = start.plus(5, DateTimeUnit.DAY)
         vm.selectDate(browsed)
-        val day = java.time.Duration.ofDays(1).toMillis()
+        val day = 1.days.inWholeMilliseconds
         clock.advanceBy(day)
         advanceTimeBy(day)
         assertEquals("a day the tutor picked is not moved", browsed, vm.selectedDate.value)
@@ -447,30 +464,34 @@ class ScheduleViewModelTest {
     @Test
     fun `an arrival is honoured once, and a new one again`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        val today = LocalDate.now(zone)
+        val today = Clock.System.todayIn(zone)
         val tapped = Arrival<ScheduleTarget>(ScheduleTarget.Today)
 
-        vm.selectDate(today.plusDays(3))
+        vm.selectDate(today.plus(3, DateTimeUnit.DAY))
         vm.arrive(tapped)
         assertEquals(today, vm.selectedDate.value)
 
-        vm.selectDate(today.plusDays(3))
+        vm.selectDate(today.plus(3, DateTimeUnit.DAY))
         vm.arrive(tapped)
-        assertEquals("the same tap, handed over again on return", today.plusDays(3), vm.selectedDate.value)
+        assertEquals(
+            "the same tap, handed over again on return",
+            today.plus(3, DateTimeUnit.DAY),
+            vm.selectedDate.value,
+        )
 
         vm.arrive(Arrival(ScheduleTarget.Today))
         assertEquals("a second tap on the notification", today, vm.selectedDate.value)
 
-        vm.selectDate(today.plusDays(3))
+        vm.selectDate(today.plus(3, DateTimeUnit.DAY))
         vm.arrive(null)
-        assertEquals("no arrival is nobody asking", today.plusDays(3), vm.selectedDate.value)
+        assertEquals("no arrival is nobody asking", today.plus(3, DateTimeUnit.DAY), vm.selectedDate.value)
     }
 
     /** A digest tapped after midnight is still about its own day, not the one it is tapped on. */
     @Test
     fun `a day's arrival opens that day`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        val yesterday = LocalDate.now(zone).minusDays(1)
+        val yesterday = Clock.System.todayIn(zone).minus(1, DateTimeUnit.DAY)
 
         vm.arrive(Arrival(ScheduleTarget.Day(yesterday)))
 
@@ -485,9 +506,9 @@ class ScheduleViewModelTest {
     fun `a reminder's arrival opens its lesson's sheet on the day it is on`() = runTest(mainRule.dispatcher) {
         val subj = env.fixtures.subject("Математика")
         val ann = env.fixtures.pricedStudent("Аня", subj)
-        val day = LocalDate.now(zone).plusDays(2)
+        val day = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
         val id = env.fixtures.lesson(
-            subjectId = subj, students = listOf(ann), start = day.atTime(10, 0).atZone(zone).toInstant(),
+            subjectId = subj, students = listOf(ann), start = day.atTime(10, 0).toInstant(zone),
         ).single()
         val vm = vm()
         observing(vm.askedSheet)
@@ -507,11 +528,11 @@ class ScheduleViewModelTest {
     /** The sheet waits for a row, and a row the filter narrows away is never drawn — so the filter goes. */
     @Test
     fun `a reminder for somebody the schedule is not showing lifts the filter`() = runTest(mainRule.dispatcher) {
-        val today = LocalDate.now(zone)
+        val today = Clock.System.todayIn(zone)
         val (ann, bob) = seedTwoStudentsOn(today)
         val bobs = env.classRepo.observeBetween(
-            today.atStartOfDay(zone).toInstant(),
-            today.plusDays(1).atStartOfDay(zone).toInstant(),
+            today.atStartOfDayIn(zone),
+            today.plus(1, DateTimeUnit.DAY).atStartOfDayIn(zone),
         ).first().single { it.studentId == bob }.id
         val vm = vm()
         observing(vm.studentFilter)
@@ -542,13 +563,13 @@ class ScheduleViewModelTest {
     @Test
     fun `day navigation moves the selected date and today resets it`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        val today = LocalDate.now(zone)
+        val today = Clock.System.todayIn(zone)
 
         vm.goToNextDay()
-        assertEquals(today.plusDays(1), vm.selectedDate.value)
+        assertEquals(today.plus(1, DateTimeUnit.DAY), vm.selectedDate.value)
         vm.goToPreviousDay()
         vm.goToPreviousDay()
-        assertEquals(today.minusDays(1), vm.selectedDate.value)
+        assertEquals(today.minus(1, DateTimeUnit.DAY), vm.selectedDate.value)
         vm.goToToday()
         assertEquals(today, vm.selectedDate.value)
     }
@@ -556,81 +577,81 @@ class ScheduleViewModelTest {
     @Test
     fun `selecting a day repoints the list and brings the calendar page with it`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        val target = LocalDate.of(2026, 11, 20)
+        val target = LocalDate(2026, 11, 20)
 
         vm.selectDate(target)
 
         assertEquals(target, vm.selectedDate.value)
-        assertEquals(YearMonth.of(2026, 11), vm.visibleMonth.value)
+        assertEquals(YearMonth(2026, 11), vm.visibleMonth.value)
     }
 
     @Test
     fun `day navigation carries the calendar page across a month boundary`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        vm.selectDate(LocalDate.of(2026, 11, 30))
+        vm.selectDate(LocalDate(2026, 11, 30))
 
         vm.goToNextDay()
 
-        assertEquals(LocalDate.of(2026, 12, 1), vm.selectedDate.value)
-        assertEquals(YearMonth.of(2026, 12), vm.visibleMonth.value)
+        assertEquals(LocalDate(2026, 12, 1), vm.selectedDate.value)
+        assertEquals(YearMonth(2026, 12), vm.visibleMonth.value)
     }
 
     @Test
     fun `paging months browses without moving the selected day`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        vm.selectDate(LocalDate.of(2026, 11, 20))
+        vm.selectDate(LocalDate(2026, 11, 20))
 
         vm.goToNextMonth()
-        assertEquals(YearMonth.of(2026, 12), vm.visibleMonth.value)
+        assertEquals(YearMonth(2026, 12), vm.visibleMonth.value)
         vm.goToPreviousMonth()
         vm.goToPreviousMonth()
-        assertEquals(YearMonth.of(2026, 10), vm.visibleMonth.value)
-        assertEquals("browsing must not repoint the day list", LocalDate.of(2026, 11, 20), vm.selectedDate.value)
+        assertEquals(YearMonth(2026, 10), vm.visibleMonth.value)
+        assertEquals("browsing must not repoint the day list", LocalDate(2026, 11, 20), vm.selectedDate.value)
     }
 
     @Test
     fun `opening a calendar view snaps its page back to the selected day`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        vm.selectDate(LocalDate.of(2026, 11, 20))
+        vm.selectDate(LocalDate(2026, 11, 20))
         // Browse both pages away, then reopen each view.
         vm.goToNextMonth()
         vm.goToNextWeek()
 
         vm.setViewMode(ScheduleViewMode.MONTH)
         assertEquals(ScheduleViewMode.MONTH, vm.viewMode.value)
-        assertEquals(YearMonth.of(2026, 11), vm.visibleMonth.value)
+        assertEquals(YearMonth(2026, 11), vm.visibleMonth.value)
 
         vm.goToNextWeek()
         vm.setViewMode(ScheduleViewMode.WEEK)
         assertEquals(ScheduleViewMode.WEEK, vm.viewMode.value)
-        assertEquals("the week containing 20 Nov 2026", LocalDate.of(2026, 11, 16), vm.visibleWeek.value)
+        assertEquals("the week containing 20 Nov 2026", LocalDate(2026, 11, 16), vm.visibleWeek.value)
     }
 
     @Test
     fun `paging weeks browses without moving the selected day`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        vm.selectDate(LocalDate.of(2026, 7, 15)) // a Wednesday
-        assertEquals(LocalDate.of(2026, 7, 13), vm.visibleWeek.value)
+        vm.selectDate(LocalDate(2026, 7, 15)) // a Wednesday
+        assertEquals(LocalDate(2026, 7, 13), vm.visibleWeek.value)
 
         vm.goToNextWeek()
-        assertEquals(LocalDate.of(2026, 7, 20), vm.visibleWeek.value)
+        assertEquals(LocalDate(2026, 7, 20), vm.visibleWeek.value)
         vm.goToPreviousWeek()
         vm.goToPreviousWeek()
-        assertEquals(LocalDate.of(2026, 7, 6), vm.visibleWeek.value)
-        assertEquals("browsing must not repoint the selection", LocalDate.of(2026, 7, 15), vm.selectedDate.value)
+        assertEquals(LocalDate(2026, 7, 6), vm.visibleWeek.value)
+        assertEquals("browsing must not repoint the selection", LocalDate(2026, 7, 15), vm.selectedDate.value)
     }
 
     @Test
     fun `the week strip shows seven contiguous days from the visible Monday`() = runTest(mainRule.dispatcher) {
         val vm = vm()
         observing(vm.weekDays)
-        vm.selectDate(LocalDate.of(2026, 7, 15))
+        vm.selectDate(LocalDate(2026, 7, 15))
         advanceUntilIdle()
 
         val days = vm.weekDays.value
         assertEquals(7, days.size)
-        assertEquals(LocalDate.of(2026, 7, 13), days.first())
-        assertEquals(LocalDate.of(2026, 7, 19), days.last())
+        assertEquals(LocalDate(2026, 7, 13), days.first())
+        assertEquals(LocalDate(2026, 7, 19), days.last())
     }
 
     /**
@@ -643,12 +664,12 @@ class ScheduleViewModelTest {
         val vm = vm(weekStart = DayOfWeek.SUNDAY)
         observing(vm.weekDays)
         observing(vm.monthGrid)
-        vm.selectDate(LocalDate.of(2026, 7, 15)) // a Wednesday
+        vm.selectDate(LocalDate(2026, 7, 15)) // a Wednesday
         advanceUntilIdle()
 
-        assertEquals("the Sunday before, not the Monday", LocalDate.of(2026, 7, 12), vm.visibleWeek.value)
-        assertEquals(LocalDate.of(2026, 7, 12), vm.weekDays.value.first())
-        assertEquals(LocalDate.of(2026, 7, 18), vm.weekDays.value.last())
+        assertEquals("the Sunday before, not the Monday", LocalDate(2026, 7, 12), vm.visibleWeek.value)
+        assertEquals(LocalDate(2026, 7, 12), vm.weekDays.value.first())
+        assertEquals(LocalDate(2026, 7, 18), vm.weekDays.value.last())
         assertEquals(DayOfWeek.SUNDAY, vm.monthGrid.value.firstDate.dayOfWeek)
     }
 
@@ -657,15 +678,15 @@ class ScheduleViewModelTest {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val other = env.studentDao.upsert(StudentEntity(name = "Пётр"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val monday = LocalDate.of(2026, 7, 13)
-        val thursday = LocalDate.of(2026, 7, 16)
-        val nextWeek = LocalDate.of(2026, 7, 20)
+        val monday = LocalDate(2026, 7, 13)
+        val thursday = LocalDate(2026, 7, 16)
+        val nextWeek = LocalDate(2026, 7, 20)
         // Monday out of time order, so section rows must come back sorted.
         listOf(
-            Triple(monday, LocalTime.of(15, 0), sid),
-            Triple(monday, LocalTime.of(9, 0), other),
-            Triple(thursday, LocalTime.of(11, 0), sid),
-            Triple(nextWeek, LocalTime.of(9, 0), sid),
+            Triple(monday, LocalTime(15, 0), sid),
+            Triple(monday, LocalTime(9, 0), other),
+            Triple(thursday, LocalTime(11, 0), sid),
+            Triple(nextWeek, LocalTime(9, 0), sid),
         ).forEach { (day, time, student) ->
             env.fixtures.storedClass(
                     studentId = student, subjectId = subj, startMillis = startMillisOn(day, time),
@@ -676,7 +697,7 @@ class ScheduleViewModelTest {
         val vm = vm()
         observing(vm.content)
         vm.setViewMode(ScheduleViewMode.WEEK)
-        vm.selectDate(LocalDate.of(2026, 7, 15))
+        vm.selectDate(LocalDate(2026, 7, 15))
         advanceUntilIdle()
 
         val sections = vm.content.weekContent.sections
@@ -693,16 +714,16 @@ class ScheduleViewModelTest {
     fun `week sections follow the visible week, not the selected day`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val nextWeek = LocalDate.of(2026, 7, 20)
+        val nextWeek = LocalDate(2026, 7, 20)
         env.fixtures.storedClass(
-                studentId = sid, subjectId = subj, startMillis = startMillisOn(nextWeek, LocalTime.of(9, 0)),
+                studentId = sid, subjectId = subj, startMillis = startMillisOn(nextWeek, LocalTime(9, 0)),
                 durationMinutes = 60, status = LessonStatus.SCHEDULED,
             )
 
         val vm = vm()
         observing(vm.content)
         vm.setViewMode(ScheduleViewMode.WEEK)
-        vm.selectDate(LocalDate.of(2026, 7, 15))
+        vm.selectDate(LocalDate(2026, 7, 15))
         advanceUntilIdle()
         assertTrue(vm.content.weekContent.sections.isEmpty())
 
@@ -724,19 +745,19 @@ class ScheduleViewModelTest {
     fun `switching view inside the week reads nothing new`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val today = LocalDate.now(zone)
+        val today = Clock.System.todayIn(zone)
         // One class today, one on another day of the same week. Picked by excluding today rather
         // than as startOfWeek + 6: on the last day of the week that *is* today, and both lessons
         // would land on the selected day — failing for the calendar, not for the behaviour.
         val otherDay = CalendarLayout.week(CalendarLayout.startOfWeek(today)).first { it != today }
         env.fixtures.storedClass(
-                studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)),
+                studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime(9, 0)),
                 durationMinutes = 60, status = LessonStatus.SCHEDULED,
             )
         env.fixtures.storedClass(
                 studentId = sid,
                 subjectId = subj,
-                startMillis = startMillisOn(otherDay, LocalTime.of(9, 0)),
+                startMillis = startMillisOn(otherDay, LocalTime(9, 0)),
                 durationMinutes = 60,
                 status = LessonStatus.SCHEDULED,
             )
@@ -759,9 +780,9 @@ class ScheduleViewModelTest {
     fun `the day view loads no markers at all`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val day = LocalDate.of(2026, 7, 15)
+        val day = LocalDate(2026, 7, 15)
         env.fixtures.storedClass(
-                studentId = sid, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(9, 0)),
+                studentId = sid, subjectId = subj, startMillis = startMillisOn(day, LocalTime(9, 0)),
                 durationMinutes = 60, status = LessonStatus.SCHEDULED,
             )
 
@@ -791,11 +812,11 @@ class ScheduleViewModelTest {
     fun `the calendar grid follows the visible month`() = runTest(mainRule.dispatcher) {
         val vm = vm()
         observing(vm.monthGrid)
-        vm.selectDate(LocalDate.of(2026, 7, 15))
+        vm.selectDate(LocalDate(2026, 7, 15))
         advanceUntilIdle()
 
-        assertEquals(YearMonth.of(2026, 7), vm.monthGrid.value.month)
-        assertTrue(LocalDate.of(2026, 7, 15) in vm.monthGrid.value.weeks.flatten())
+        assertEquals(YearMonth(2026, 7), vm.monthGrid.value.month)
+        assertTrue(LocalDate(2026, 7, 15) in vm.monthGrid.value.weeks.flatten())
     }
 
     @Test
@@ -803,10 +824,10 @@ class ScheduleViewModelTest {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         // July 2026 starts on a Wednesday, so 30 June is a padding cell on the first row.
-        val padding = LocalDate.of(2026, 6, 30)
-        val inMonth = LocalDate.of(2026, 7, 15)
-        val otherMonth = LocalDate.of(2026, 9, 1)
-        listOf(padding to LocalTime.of(9, 0), inMonth to LocalTime.of(9, 0), inMonth to LocalTime.of(15, 0))
+        val padding = LocalDate(2026, 6, 30)
+        val inMonth = LocalDate(2026, 7, 15)
+        val otherMonth = LocalDate(2026, 9, 1)
+        listOf(padding to LocalTime(9, 0), inMonth to LocalTime(9, 0), inMonth to LocalTime(15, 0))
             .forEach { (day, time) ->
                 env.fixtures.storedClass(
                         studentId = sid, subjectId = subj, startMillis = startMillisOn(day, time),
@@ -814,14 +835,14 @@ class ScheduleViewModelTest {
                     )
             }
         env.fixtures.storedClass(
-                studentId = sid, subjectId = subj, startMillis = startMillisOn(otherMonth, LocalTime.of(9, 0)),
+                studentId = sid, subjectId = subj, startMillis = startMillisOn(otherMonth, LocalTime(9, 0)),
                 durationMinutes = 60, status = LessonStatus.CANCELLED,
             )
 
         val vm = vm()
         observing(vm.dayLoads)
         vm.setViewMode(ScheduleViewMode.MONTH)
-        vm.selectDate(LocalDate.of(2026, 7, 1))
+        vm.selectDate(LocalDate(2026, 7, 1))
         advanceUntilIdle()
 
         val loads = vm.dayLoads.current
@@ -834,16 +855,16 @@ class ScheduleViewModelTest {
     fun `paging to another month reloads its markers`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val august = LocalDate.of(2026, 8, 12)
+        val august = LocalDate(2026, 8, 12)
         env.fixtures.storedClass(
-                studentId = sid, subjectId = subj, startMillis = startMillisOn(august, LocalTime.of(9, 0)),
+                studentId = sid, subjectId = subj, startMillis = startMillisOn(august, LocalTime(9, 0)),
                 durationMinutes = 60, status = LessonStatus.COMPLETED,
             )
 
         val vm = vm()
         observing(vm.dayLoads)
         vm.setViewMode(ScheduleViewMode.MONTH)
-        vm.selectDate(LocalDate.of(2026, 7, 1))
+        vm.selectDate(LocalDate(2026, 7, 1))
         advanceUntilIdle()
         assertFalse(august in vm.dayLoads.current)
 
@@ -879,18 +900,18 @@ class ScheduleViewModelTest {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val day = LocalDate.of(2026, 7, 15)
-        val moving = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
-        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(15, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
+        val day = LocalDate(2026, 7, 15)
+        val moving = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(day, LocalTime(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
+        env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = startMillisOn(day, LocalTime(15, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
 
         val vm = vm()
-        vm.moveTo(env.classRepo.getSessionFor(moving)!!, day, LocalTime.of(15, 30))
+        vm.moveTo(env.classRepo.getSessionFor(moving)!!, day, LocalTime(15, 30))
         advanceUntilIdle()
 
         assertEquals("Борис", vm.timeConflict.value?.who)
         assertEquals(
             "the lesson stayed where it was",
-            startMillisOn(day, LocalTime.of(9, 0)),
+            startMillisOn(day, LocalTime(9, 0)),
             env.classes().single { it.id == moving }.startMillis,
         )
 
@@ -908,8 +929,8 @@ class ScheduleViewModelTest {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val day = LocalDate.of(2026, 7, 15)
-        val at = startMillisOn(day, LocalTime.of(10, 0))
+        val day = LocalDate(2026, 7, 15)
+        val at = startMillisOn(day, LocalTime(10, 0))
         val cancelled = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.CANCELLED)
         // The freed hour, re-booked for somebody else.
         env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED)
@@ -930,10 +951,10 @@ class ScheduleViewModelTest {
     fun `a cancelled lesson returns to a free hour`() = runTest(mainRule.dispatcher) {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val day = LocalDate.of(2026, 7, 15)
+        val day = LocalDate(2026, 7, 15)
         val cancelled = env.fixtures.storedClass(
                 studentId = ann, subjectId = subj,
-                startMillis = startMillisOn(day, LocalTime.of(10, 0)),
+                startMillis = startMillisOn(day, LocalTime(10, 0)),
                 durationMinutes = 60, status = LessonStatus.CANCELLED,
             )
 
@@ -961,12 +982,12 @@ class ScheduleViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val id = env.fixtures.storedClass(
                 studentId = ann, subjectId = subj,
-                startMillis = startMillisOn(LocalDate.of(2026, 7, 15), LocalTime.of(10, 0)),
+                startMillis = startMillisOn(LocalDate(2026, 7, 15), LocalTime(10, 0)),
                 durationMinutes = 60, status = LessonStatus.SCHEDULED,
             )
         val vm = ScheduleViewModel(
             env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, mainRule.appScope,
-            mainRule.dispatcher, Clock.systemDefaultZone(),
+            mainRule.dispatcher, WallClock.system(),
         )
         val seen = mutableListOf<ScheduleViewModel.Event>()
         backgroundScope.launch { vm.events.stream.collect { seen += it } }
@@ -985,12 +1006,12 @@ class ScheduleViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val id = env.fixtures.storedClass(
                 studentId = ann, subjectId = subj,
-                startMillis = startMillisOn(LocalDate.of(2026, 7, 15), LocalTime.of(10, 0)),
+                startMillis = startMillisOn(LocalDate(2026, 7, 15), LocalTime(10, 0)),
                 durationMinutes = 60, status = LessonStatus.SCHEDULED,
             )
         val vm = ScheduleViewModel(
             env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, mainRule.appScope,
-            mainRule.dispatcher, Clock.systemDefaultZone(),
+            mainRule.dispatcher, WallClock.system(),
         )
         val seen = mutableListOf<ScheduleViewModel.Event>()
         backgroundScope.launch { vm.events.stream.collect { seen += it } }
@@ -1008,7 +1029,7 @@ class ScheduleViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val id = env.fixtures.storedClass(
                 studentId = ann, subjectId = subj,
-                startMillis = startMillisOn(LocalDate.of(2026, 7, 15), LocalTime.of(10, 0)),
+                startMillis = startMillisOn(LocalDate(2026, 7, 15), LocalTime(10, 0)),
                 durationMinutes = 60, status = LessonStatus.SCHEDULED,
             )
         val vm = vm()
@@ -1028,7 +1049,7 @@ class ScheduleViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val id = env.fixtures.storedClass(
                 studentId = ann, subjectId = subj,
-                startMillis = startMillisOn(LocalDate.of(2026, 7, 15), LocalTime.of(10, 0)),
+                startMillis = startMillisOn(LocalDate(2026, 7, 15), LocalTime(10, 0)),
                 durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
             )
 
@@ -1044,17 +1065,17 @@ class ScheduleViewModelTest {
     fun `a lesson can be nudged within its own hour`() = runTest(mainRule.dispatcher) {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val day = LocalDate.of(2026, 7, 15)
-        val id = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(day, LocalTime.of(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
+        val day = LocalDate(2026, 7, 15)
+        val id = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(day, LocalTime(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
 
         val vm = vm()
         // Ten minutes later overlaps where it currently is — it must not block itself.
-        vm.moveTo(env.classRepo.getSessionFor(id)!!, day, LocalTime.of(9, 10))
+        vm.moveTo(env.classRepo.getSessionFor(id)!!, day, LocalTime(9, 10))
         advanceUntilIdle()
 
         assertNull(vm.timeConflict.value)
         assertEquals(
-            startMillisOn(day, LocalTime.of(9, 10)),
+            startMillisOn(day, LocalTime(9, 10)),
             env.classes().single().startMillis,
         )
     }
@@ -1065,17 +1086,17 @@ class ScheduleViewModelTest {
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
         val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
-        val day = LocalDate.of(2026, 7, 15)
-        val at = startMillisOn(day, LocalTime.of(12, 0))
+        val day = LocalDate(2026, 7, 15)
+        val at = startMillisOn(day, LocalTime(12, 0))
         val first = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED, groupId = groupId)
         env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED, groupId = groupId)
 
         val vm = vm()
-        vm.moveTo(env.classRepo.getSessionFor(first)!!, day, LocalTime.of(12, 30))
+        vm.moveTo(env.classRepo.getSessionFor(first)!!, day, LocalTime(12, 30))
         advanceUntilIdle()
 
         assertNull(vm.timeConflict.value)
-        val moved = startMillisOn(day, LocalTime.of(12, 30))
+        val moved = startMillisOn(day, LocalTime(12, 30))
         assertEquals(
             "both members moved together",
             listOf(moved, moved),
@@ -1089,8 +1110,8 @@ class ScheduleViewModelTest {
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
         val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
-        val wednesday = LocalDate.of(2026, 7, 15)
-        val at = startMillisOn(wednesday, LocalTime.of(12, 0))
+        val wednesday = LocalDate(2026, 7, 15)
+        val at = startMillisOn(wednesday, LocalTime(12, 0))
         env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED, groupId = groupId)
         env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED, groupId = groupId)
 
@@ -1114,12 +1135,12 @@ class ScheduleViewModelTest {
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
         val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
-        val today = LocalDate.now(zone)
-        val at = startMillisOn(today, LocalTime.of(12, 0))
+        val today = Clock.System.todayIn(zone)
+        val at = startMillisOn(today, LocalTime(12, 0))
         env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED, groupId = groupId)
         env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED, groupId = groupId)
         // Plus an unrelated individual class earlier the same day.
-        env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(today, LocalTime.of(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
+        env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(today, LocalTime(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
 
         val vm = vm()
         observing(vm.content)
@@ -1145,7 +1166,7 @@ class ScheduleViewModelTest {
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
         val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
-        val at = startMillisOn(LocalDate.now(zone), LocalTime.of(12, 0))
+        val at = startMillisOn(Clock.System.todayIn(zone), LocalTime(12, 0))
         env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED, groupId = groupId)
         env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, priceMinor = Money.ofMajor(20).minor, status = LessonStatus.SCHEDULED, groupId = groupId)
 
@@ -1342,18 +1363,18 @@ class ScheduleViewModelTest {
         val bob = env.fixtures.pricedStudent("Борис", subj)
         env.fixtures.lesson(
             subjectId = subj, students = listOf(ann),
-            start = day.atTime(9, 0).atZone(zone).toInstant(),
+            start = day.atTime(9, 0).toInstant(zone),
         )
         env.fixtures.lesson(
             subjectId = subj, students = listOf(bob),
-            start = day.atTime(11, 0).atZone(zone).toInstant(),
+            start = day.atTime(11, 0).toInstant(zone),
         )
         return ann to bob
     }
 
     @Test
     fun `the schedule shows everyone until it is narrowed`() = runTest(mainRule.dispatcher) {
-        val today = LocalDate.now(zone)
+        val today = Clock.System.todayIn(zone)
         seedTwoStudentsOn(today)
 
         val vm = vm()
@@ -1367,7 +1388,7 @@ class ScheduleViewModelTest {
     @Test
     fun `narrowing to a student leaves only their lessons, and names them`() =
         runTest(mainRule.dispatcher) {
-            val today = LocalDate.now(zone)
+            val today = Clock.System.todayIn(zone)
             val (ann, _) = seedTwoStudentsOn(today)
 
             val vm = vm()
@@ -1385,7 +1406,7 @@ class ScheduleViewModelTest {
 
     @Test
     fun `clearing the filter brings everyone back`() = runTest(mainRule.dispatcher) {
-        val today = LocalDate.now(zone)
+        val today = Clock.System.todayIn(zone)
         val (ann, _) = seedTwoStudentsOn(today)
 
         val vm = vm()
@@ -1410,7 +1431,7 @@ class ScheduleViewModelTest {
      */
     @Test
     fun `a group lesson the student is in stays a whole lesson`() = runTest(mainRule.dispatcher) {
-        val today = LocalDate.now(zone)
+        val today = Clock.System.todayIn(zone)
         val subj = env.fixtures.subject("Математика")
         val ann = env.fixtures.pricedStudent("Аня", subj)
         val bob = env.fixtures.pricedStudent("Борис", subj)
@@ -1418,7 +1439,7 @@ class ScheduleViewModelTest {
         val group = env.fixtures.group(subjectId = subj, members = setOf(ann, bob, cleo))
         env.fixtures.lesson(
             subjectId = subj, students = listOf(ann, bob, cleo), groupId = group,
-            start = today.atTime(9, 0).atZone(zone).toInstant(),
+            start = today.atTime(9, 0).toInstant(zone),
         )
 
         val vm = vm()
@@ -1435,14 +1456,14 @@ class ScheduleViewModelTest {
 
     @Test
     fun `a group lesson the student is not in is left out entirely`() = runTest(mainRule.dispatcher) {
-        val today = LocalDate.now(zone)
+        val today = Clock.System.todayIn(zone)
         val subj = env.fixtures.subject("Математика")
         val ann = env.fixtures.pricedStudent("Аня", subj)
         val bob = env.fixtures.pricedStudent("Борис", subj)
         val group = env.fixtures.group(subjectId = subj, members = setOf(bob))
         env.fixtures.lesson(
             subjectId = subj, students = listOf(bob), groupId = group,
-            start = today.atTime(9, 0).atZone(zone).toInstant(),
+            start = today.atTime(9, 0).toInstant(zone),
         )
 
         val vm = vm()
@@ -1460,7 +1481,7 @@ class ScheduleViewModelTest {
      */
     @Test
     fun `the month's markers are narrowed with the list`() = runTest(mainRule.dispatcher) {
-        val today = LocalDate.now(zone)
+        val today = Clock.System.todayIn(zone)
         val (ann, _) = seedTwoStudentsOn(today)
 
         val vm = vm()
@@ -1483,7 +1504,7 @@ class ScheduleViewModelTest {
      */
     @Test
     fun `a filter on a student who is not there shows everyone`() = runTest(mainRule.dispatcher) {
-        val today = LocalDate.now(zone)
+        val today = Clock.System.todayIn(zone)
         seedTwoStudentsOn(today)
 
         val vm = vm()
@@ -1503,7 +1524,7 @@ class ScheduleViewModelTest {
         runTest(mainRule.dispatcher) {
             // The menu only offers active students, but one already being looked at must not lose the
             // chip that says so — the chip is the only way back to everyone else.
-            val today = LocalDate.now(zone)
+            val today = Clock.System.todayIn(zone)
             val (ann, _) = seedTwoStudentsOn(today)
 
             val vm = vm()
@@ -1569,7 +1590,7 @@ class ScheduleViewModelTest {
 
     @Test
     fun `a narrowed schedule reports being narrowed, not quiet`() = runTest(mainRule.dispatcher) {
-        val today = LocalDate.now(zone)
+        val today = Clock.System.todayIn(zone)
         val (ann, _) = seedTwoStudentsOn(today)
 
         val vm = vm()
@@ -1600,7 +1621,7 @@ class ScheduleViewModelTest {
             maths, listOf(anya, boris), Instant.parse("2026-06-03T12:00:00Z"), groupId = group,
         ).first()
         env.fixtures.homework(Assignee.Group(group), text = "группы")
-        env.fixtures.homework(Assignee.Student(boris), text = "Бориса", at = env.clock.instant().plusSeconds(60))
+        env.fixtures.homework(Assignee.Student(boris), text = "Бориса", at = env.clock.now().plus(60.seconds))
         val vm = vm(clock = env.clock)
         val session = env.classRepo.getSessionFor(lesson)!!
 

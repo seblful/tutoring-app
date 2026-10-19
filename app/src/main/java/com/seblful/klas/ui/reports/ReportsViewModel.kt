@@ -18,6 +18,8 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.reports.ReportCsv
 import com.seblful.klas.domain.reports.ReportPeriod
 import com.seblful.klas.domain.reports.Reports
+import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.AppLocale
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.storage.DocumentRef
@@ -38,10 +40,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
-import java.time.ZoneId
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.days
 
 @HiltViewModel
 class ReportsViewModel @Inject constructor(
@@ -53,28 +55,28 @@ class ReportsViewModel @Inject constructor(
     private val documents: DocumentStore,
     private val sharing: DocumentSharing,
     @param:Computation private val computation: CoroutineDispatcher,
-    private val clock: Clock,
+    private val clock: WallClock,
 ) : ViewModel() {
 
     /**
-     * The zone the report's dates are read in — **the injected [Clock]'s**, like `ScheduleViewModel`'s and
+     * The zone the report's dates are read in — **the injected [WallClock]'s**, like `ScheduleViewModel`'s and
      * `ClassEditViewModel`'s.
      *
-     * It was `ZoneId.systemDefault()`, which made this the one view model outside the app's own clock seam
+     * It was `TimeZone.currentSystemDefault()`, which made this the one view model outside the app's own clock seam
      * — on the screen where a month boundary decides the money. `di/TimeModule` states the rule and
      * `domain/billing/PaymentDate` exists entirely because one surface broke it. The cost was visible in the test:
      * `ReportsViewModelTest` had to re-declare the zone, derive its fixtures from the real current year and
      * assert the opening period by **re-evaluating the production expression**, which is an assertion that
      * cannot fail. A report across a year boundary could not be written at all.
      */
-    private val zone: ZoneId get() = clock.zone
+    private val zone: TimeZone get() = clock.zone
 
     /**
      * The period on screen, opening on **the year in progress** — re-read from the clock rather than fixed
      * at construction, so a phone left on this screen over midnight on 31 December does not go on reporting
      * last year.
      */
-    private val _period = MutableStateFlow(ReportPeriod.currentYear(LocalDate.now(clock)))
+    private val _period = MutableStateFlow(ReportPeriod.currentYear(clock.today()))
     val period: StateFlow<ReportPeriod> = _period.asStateFlow()
 
     /** Everything a report is assembled from — five flows, so the period can be a sixth. */

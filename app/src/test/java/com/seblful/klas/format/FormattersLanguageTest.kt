@@ -3,13 +3,14 @@ package com.seblful.klas.format
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.AppLocaleRule
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.YearMonth
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.YearMonth
 import java.util.Locale
 
 /**
@@ -40,10 +41,10 @@ class FormattersLanguageTest {
     @Test
     fun `a month is named in the language the app is set to`() {
         inLanguage(AppLocaleRule.RUSSIAN) {
-            assertEquals("Июнь 2026", formatMonth(YearMonth.of(2026, 6)))
+            assertEquals("Июнь 2026", formatMonth(YearMonth(2026, 6)))
         }
         inLanguage(AppLocaleRule.ENGLISH) {
-            assertEquals("June 2026", formatMonth(YearMonth.of(2026, 6)))
+            assertEquals("June 2026", formatMonth(YearMonth(2026, 6)))
         }
     }
 
@@ -53,8 +54,8 @@ class FormattersLanguageTest {
         listOf(AppLocaleRule.RUSSIAN, AppLocaleRule.ENGLISH).forEach { locale ->
             inLanguage(locale) {
                 assertTrue(
-                    "«${formatMonth(YearMonth.of(2026, 6))}» does not start with a capital",
-                    formatMonth(YearMonth.of(2026, 6)).first().isUpperCase(),
+                    "«${formatMonth(YearMonth(2026, 6))}» does not start with a capital",
+                    formatMonth(YearMonth(2026, 6)).first().isUpperCase(),
                 )
                 assertTrue(formatMonthName(2026 * 12 + 5).first().isUpperCase())
             }
@@ -81,13 +82,13 @@ class FormattersLanguageTest {
     fun `a week range stays short enough for the navigator in English too`() {
         inLanguage(AppLocaleRule.ENGLISH) {
             listOf(
-                LocalDate.of(2026, 9, 28) to LocalDate.of(2026, 10, 4),
-                LocalDate.of(2026, 12, 28) to LocalDate.of(2027, 1, 3),
+                LocalDate(2026, 9, 28) to LocalDate(2026, 10, 4),
+                LocalDate(2026, 12, 28) to LocalDate(2027, 1, 3),
             ).forEach { (start, end) ->
                 val label = formatWeekRange(start, end)
                 assertTrue("«$label» is too long for the navigator", label.length <= 26)
             }
-            assertEquals("6 – 12 July", formatWeekRange(LocalDate.of(2026, 7, 6), LocalDate.of(2026, 7, 12)))
+            assertEquals("6 – 12 July", formatWeekRange(LocalDate(2026, 7, 6), LocalDate(2026, 7, 12)))
         }
     }
 
@@ -157,7 +158,7 @@ class FormattersLanguageTest {
     /** The clock is the phone's answer and **not** the language's — it must not move with this. */
     @Test
     fun `the 24-hour face is the same in both languages`() {
-        val nine = java.time.LocalTime.of(21, 0)
+        val nine = LocalTime(21, 0)
         val russian = inLanguageValue(AppLocaleRule.RUSSIAN) { nine.formatTime(hour12 = false) }
         val english = inLanguageValue(AppLocaleRule.ENGLISH) { nine.formatTime(hour12 = false) }
 
@@ -170,8 +171,8 @@ class FormattersLanguageTest {
     fun `the 12-hour marker is AM and PM in both languages`() {
         listOf(AppLocaleRule.RUSSIAN, AppLocaleRule.ENGLISH).forEach { locale ->
             inLanguage(locale) {
-                assertEquals("9:00 PM", java.time.LocalTime.of(21, 0).formatTime(hour12 = true))
-                assertEquals("12:00 AM", java.time.LocalTime.MIDNIGHT.formatTime(hour12 = true))
+                assertEquals("9:00 PM", LocalTime(21, 0).formatTime(hour12 = true))
+                assertEquals("12:00 AM", LocalTime(0, 0).formatTime(hour12 = true))
             }
         }
     }
@@ -182,9 +183,9 @@ class FormattersLanguageTest {
      */
     @Test
     fun `switching back gives the same answer as before`() {
-        val first = inLanguageValue(AppLocaleRule.RUSSIAN) { formatMonth(YearMonth.of(2026, 6)) }
-        val english = inLanguageValue(AppLocaleRule.ENGLISH) { formatMonth(YearMonth.of(2026, 6)) }
-        val again = inLanguageValue(AppLocaleRule.RUSSIAN) { formatMonth(YearMonth.of(2026, 6)) }
+        val first = inLanguageValue(AppLocaleRule.RUSSIAN) { formatMonth(YearMonth(2026, 6)) }
+        val english = inLanguageValue(AppLocaleRule.ENGLISH) { formatMonth(YearMonth(2026, 6)) }
+        val again = inLanguageValue(AppLocaleRule.RUSSIAN) { formatMonth(YearMonth(2026, 6)) }
 
         assertEquals(first, again)
         assertNotEquals(first, english)

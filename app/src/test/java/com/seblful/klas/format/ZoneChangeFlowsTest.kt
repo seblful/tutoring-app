@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
+import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
@@ -16,6 +17,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -23,12 +27,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
-import java.time.Clock
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneOffset
-import java.util.TimeZone
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
 
 @RunWith(RobolectricTestRunner::class)
 class ZoneChangeFlowsTest {
@@ -50,7 +51,7 @@ class ZoneChangeFlowsTest {
             changeToNewYork(context)
             runCurrent()
 
-            assertEquals(listOf(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 5, 31)), days)
+            assertEquals(listOf(LocalDate(2026, 6, 1), LocalDate(2026, 5, 31)), days)
         }
     }
 
@@ -72,25 +73,25 @@ class ZoneChangeFlowsTest {
             runCurrent()
 
             assertTrue("The lesson is now on Sunday, outside the selected week", vm.content.current.sections.isEmpty())
-            vm.moveTo(env.classRepo.getSessionFor(id)!!, LocalDate.of(2026, 6, 2), LocalTime.of(10, 0))
+            vm.moveTo(env.classRepo.getSessionFor(id)!!, LocalDate(2026, 6, 2), LocalTime(10, 0))
             runCurrent()
             assertEquals(Instant.parse("2026-06-02T14:00:00Z"), env.classRepo.getById(id)!!.start)
         }
     }
 
     private suspend fun inUtc(block: suspend (Context, DeviceClock) -> Unit) {
-        val previous = TimeZone.getDefault()
+        val previous = java.util.TimeZone.getDefault()
         try {
-            TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+            java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("UTC"))
             val context = ApplicationProvider.getApplicationContext<Context>()
-            block(context, DeviceClock(context, Clock.fixed(instant, ZoneOffset.UTC)))
+            block(context, DeviceClock(context, object : Clock { override fun now(): Instant = instant }))
         } finally {
-            TimeZone.setDefault(previous)
+            java.util.TimeZone.setDefault(previous)
         }
     }
 
     private fun changeToNewYork(context: Context) {
-        TimeZone.setDefault(TimeZone.getTimeZone("America/New_York"))
+        java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/New_York"))
         // Delivered by hand rather than broadcast, to every receiver of the action but the manifest's
         // `ClockChangeReceiver`: it is a Hilt component, which this suite's bare `Application` cannot inject,
         // and only the flows' own runtime receiver is under test here.

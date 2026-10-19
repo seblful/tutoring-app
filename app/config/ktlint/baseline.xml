@@ -4,9 +4,6 @@
         <error line="1" column="1" source="standard:import-ordering" />
         <error line="65" column="37" source="standard:trailing-comma-on-call-site" />
     </file>
-    <file name="src/androidTest/java/com/seblful/klas/data/backup/BackupRestoreTest.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
-    </file>
     <file name="src/androidTest/java/com/seblful/klas/data/backup/BackupRoundTripTest.kt">
         <error line="3" column="1" source="standard:import-ordering" />
         <error line="81" column="121" source="standard:max-line-length" />
@@ -31,15 +28,14 @@
         <error line="265" column="120" source="standard:max-line-length" />
     </file>
     <file name="src/androidTest/java/com/seblful/klas/data/repository/AutoCompleteTest.kt">
-        <error line="44" column="37" source="standard:parameter-list-wrapping" />
-        <error line="44" column="59" source="standard:parameter-list-wrapping" />
-        <error line="44" column="74" source="standard:parameter-list-wrapping" />
-        <error line="44" column="89" source="standard:parameter-list-wrapping" />
-        <error line="44" column="113" source="standard:parameter-list-wrapping" />
-        <error line="44" column="121" source="standard:max-line-length" />
+        <error line="45" column="37" source="standard:parameter-list-wrapping" />
+        <error line="45" column="59" source="standard:parameter-list-wrapping" />
+        <error line="45" column="74" source="standard:parameter-list-wrapping" />
+        <error line="45" column="89" source="standard:parameter-list-wrapping" />
+        <error line="45" column="113" source="standard:parameter-list-wrapping" />
+        <error line="45" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/androidTest/java/com/seblful/klas/data/repository/ClassCalendarSyncTest.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
         <error line="47" column="37" source="standard:parameter-list-wrapping" />
         <error line="47" column="59" source="standard:parameter-list-wrapping" />
         <error line="47" column="74" source="standard:parameter-list-wrapping" />
@@ -48,16 +44,12 @@
         <error line="47" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/androidTest/java/com/seblful/klas/data/repository/SubjectDeletionCascadeTest.kt">
-        <error line="95" column="26" source="standard:property-wrapping" />
-        <error line="95" column="121" source="standard:max-line-length" />
+        <error line="119" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/androidTest/java/com/seblful/klas/ui/common/ClassStatusColorTest.kt">
         <error line="1" column="1" source="standard:filename" />
     </file>
     <file name="src/androidTest/java/com/seblful/klas/ui/common/ModeFieldTest.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
-    </file>
-    <file name="src/androidTest/java/com/seblful/klas/ui/homework/HomeworkDialogFocusTest.kt">
         <error line="3" column="1" source="standard:import-ordering" />
     </file>
     <file name="src/debug/java/com/seblful/klas/preview/CommonPreviews.kt">
@@ -86,10 +78,10 @@
         <error line="3" column="1" source="standard:import-ordering" />
     </file>
     <file name="src/main/java/com/seblful/klas/format/Formatters.kt">
-        <error line="19" column="1" source="standard:kdoc" />
+        <error line="25" column="1" source="standard:kdoc" />
     </file>
     <file name="src/main/java/com/seblful/klas/format/Localization.kt">
-        <error line="10" column="1" source="standard:kdoc" />
+        <error line="12" column="1" source="standard:kdoc" />
     </file>
     <file name="src/main/java/com/seblful/klas/notifications/ReminderActionReceiver.kt">
         <error line="27" column="30" source="standard:annotation" />
@@ -104,7 +96,7 @@
         <error line="208" column="104" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/backup/BackupViewModel.kt">
-        <error line="52" column="5" source="standard:kdoc" />
+        <error line="53" column="5" source="standard:kdoc" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/common/Avatars.kt">
         <error line="32" column="1" source="standard:kdoc" />
@@ -170,7 +162,7 @@
         <error line="96" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/groups/GroupDetailViewModel.kt">
-        <error line="184" column="121" source="standard:max-line-length" />
+        <error line="185" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/groups/GroupFormScreen.kt">
         <error line="77" column="85" source="standard:trailing-comma-on-call-site" />
@@ -233,9 +225,8 @@
         <error line="34" column="30" source="standard:annotation" />
     </file>
     <file name="src/test/java/com/seblful/klas/data/MappersTest.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
-        <error line="231" column="16" source="standard:property-wrapping" />
-        <error line="231" column="121" source="standard:max-line-length" />
+        <error line="236" column="16" source="standard:property-wrapping" />
+        <error line="236" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/data/backup/BackupIntegrityTest.kt">
         <error line="244" column="121" source="standard:max-line-length" />
@@ -272,37 +263,31 @@
         <error line="140" column="18" source="standard:property-wrapping" />
         <error line="140" column="121" source="standard:max-line-length" />
     </file>
-    <file name="src/test/java/com/seblful/klas/data/repository/CalendarMirrorTest.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
-    </file>
     <file name="src/test/java/com/seblful/klas/data/repository/ClassRepositoryGroupTest.kt">
-        <error line="280" column="94" source="standard:function-literal" />
-        <error line="280" column="95" source="standard:wrapping" />
-        <error line="280" column="108" source="standard:binary-expression-wrapping" />
-        <error line="280" column="121" source="standard:max-line-length" />
-        <error line="280" column="132" source="standard:function-literal" />
-        <error line="315" column="121" source="standard:max-line-length" />
-        <error line="550" column="1" source="standard:indent" />
+        <error line="281" column="94" source="standard:function-literal" />
+        <error line="281" column="95" source="standard:wrapping" />
+        <error line="281" column="108" source="standard:binary-expression-wrapping" />
+        <error line="281" column="121" source="standard:max-line-length" />
+        <error line="281" column="132" source="standard:function-literal" />
+        <error line="316" column="121" source="standard:max-line-length" />
         <error line="551" column="1" source="standard:indent" />
         <error line="552" column="1" source="standard:indent" />
+        <error line="553" column="1" source="standard:indent" />
     </file>
     <file name="src/test/java/com/seblful/klas/data/repository/ClassRepositoryTest.kt">
-        <error line="288" column="48" source="standard:no-multi-spaces" />
-        <error line="289" column="50" source="standard:no-multi-spaces" />
-        <error line="301" column="25" source="standard:no-multi-spaces" />
-        <error line="302" column="77" source="standard:no-multi-spaces" />
-        <error line="303" column="61" source="standard:no-multi-spaces" />
-        <error line="304" column="66" source="standard:no-multi-spaces" />
-        <error line="305" column="34" source="standard:no-multi-spaces" />
-        <error line="375" column="1" source="standard:indent" />
+        <error line="289" column="49" source="standard:no-multi-spaces" />
+        <error line="290" column="51" source="standard:no-multi-spaces" />
+        <error line="302" column="25" source="standard:no-multi-spaces" />
+        <error line="303" column="77" source="standard:no-multi-spaces" />
+        <error line="304" column="61" source="standard:no-multi-spaces" />
+        <error line="305" column="67" source="standard:no-multi-spaces" />
+        <error line="306" column="34" source="standard:no-multi-spaces" />
         <error line="376" column="1" source="standard:indent" />
         <error line="377" column="1" source="standard:indent" />
         <error line="378" column="1" source="standard:indent" />
         <error line="379" column="1" source="standard:indent" />
         <error line="380" column="1" source="standard:indent" />
-    </file>
-    <file name="src/test/java/com/seblful/klas/data/repository/EnrollmentAtomicityTest.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
+        <error line="381" column="1" source="standard:indent" />
     </file>
     <file name="src/test/java/com/seblful/klas/data/repository/GroupRepositoryTest.kt">
         <error line="147" column="1" source="standard:indent" />
@@ -310,13 +295,9 @@
         <error line="149" column="1" source="standard:indent" />
     </file>
     <file name="src/test/java/com/seblful/klas/data/repository/RateHistoryTest.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
         <error line="201" column="1" source="standard:indent" />
         <error line="202" column="1" source="standard:indent" />
         <error line="203" column="1" source="standard:indent" />
-    </file>
-    <file name="src/test/java/com/seblful/klas/data/repository/SettingsRepositoryTest.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
     </file>
     <file name="src/test/java/com/seblful/klas/data/repository/SubjectRepositoryTest.kt">
         <error line="43" column="121" source="standard:max-line-length" />
@@ -327,24 +308,21 @@
         <error line="158" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/notifications/DueReminderTest.kt">
-        <error line="57" column="1" source="standard:indent" />
         <error line="58" column="1" source="standard:indent" />
         <error line="59" column="1" source="standard:indent" />
         <error line="60" column="1" source="standard:indent" />
         <error line="61" column="1" source="standard:indent" />
         <error line="62" column="1" source="standard:indent" />
         <error line="63" column="1" source="standard:indent" />
-    </file>
-    <file name="src/test/java/com/seblful/klas/testutil/Fixtures.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
+        <error line="64" column="1" source="standard:indent" />
     </file>
     <file name="src/test/java/com/seblful/klas/testutil/Observing.kt">
         <error line="45" column="50" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/RootViewModelTest.kt">
-        <error line="59" column="33" source="standard:function-literal" />
-        <error line="59" column="121" source="standard:max-line-length" />
-        <error line="59" column="125" source="standard:function-literal" />
+        <error line="60" column="33" source="standard:function-literal" />
+        <error line="60" column="121" source="standard:max-line-length" />
+        <error line="60" column="125" source="standard:function-literal" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/common/state/WritesTest.kt">
         <error line="43" column="77" source="standard:function-literal" />
@@ -358,176 +336,176 @@
         <error line="378" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/homework/HomeworkViewModelTest.kt">
-        <error line="255" column="121" source="standard:max-line-length" />
+        <error line="257" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/more/SettingsViewModelTest.kt">
-        <error line="66" column="5" source="standard:kdoc" />
-        <error line="211" column="121" source="standard:max-line-length" />
-        <error line="230" column="121" source="standard:max-line-length" />
-        <error line="247" column="121" source="standard:max-line-length" />
-        <error line="300" column="121" source="standard:max-line-length" />
-        <error line="314" column="121" source="standard:max-line-length" />
-        <error line="398" column="121" source="standard:max-line-length" />
-        <error line="415" column="121" source="standard:max-line-length" />
+        <error line="68" column="5" source="standard:kdoc" />
+        <error line="213" column="121" source="standard:max-line-length" />
+        <error line="232" column="121" source="standard:max-line-length" />
+        <error line="249" column="121" source="standard:max-line-length" />
+        <error line="302" column="121" source="standard:max-line-length" />
+        <error line="316" column="121" source="standard:max-line-length" />
+        <error line="400" column="121" source="standard:max-line-length" />
+        <error line="417" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/reports/ReportsViewModelTest.kt">
-        <error line="93" column="1" source="standard:indent" />
-        <error line="94" column="1" source="standard:indent" />
-        <error line="95" column="1" source="standard:indent" />
-        <error line="231" column="121" source="standard:max-line-length" />
-        <error line="342" column="121" source="standard:max-line-length" />
-        <error line="499" column="1" source="standard:no-consecutive-blank-lines" />
+        <error line="99" column="1" source="standard:indent" />
+        <error line="100" column="1" source="standard:indent" />
+        <error line="101" column="1" source="standard:indent" />
+        <error line="237" column="121" source="standard:max-line-length" />
+        <error line="348" column="121" source="standard:max-line-length" />
+        <error line="505" column="1" source="standard:no-consecutive-blank-lines" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/schedule/ScheduleViewModelTest.kt">
-        <error line="80" column="92" source="standard:trailing-comma-on-call-site" />
-        <error line="86" column="16" source="standard:string-template" />
-        <error line="86" column="94" source="standard:trailing-comma-on-call-site" />
-        <error line="340" column="121" source="standard:max-line-length" />
-        <error line="345" column="121" source="standard:max-line-length" />
-        <error line="346" column="121" source="standard:max-line-length" />
-        <error line="347" column="121" source="standard:max-line-length" />
-        <error line="671" column="1" source="standard:indent" />
-        <error line="672" column="1" source="standard:indent" />
-        <error line="673" column="1" source="standard:indent" />
-        <error line="687" column="57" source="standard:binary-expression-wrapping" />
-        <error line="687" column="90" source="standard:binary-expression-wrapping" />
-        <error line="687" column="121" source="standard:max-line-length" />
-        <error line="698" column="1" source="standard:indent" />
-        <error line="699" column="1" source="standard:indent" />
-        <error line="700" column="1" source="standard:indent" />
-        <error line="733" column="1" source="standard:indent" />
-        <error line="734" column="1" source="standard:indent" />
-        <error line="735" column="1" source="standard:indent" />
-        <error line="737" column="1" source="standard:indent" />
-        <error line="738" column="1" source="standard:indent" />
-        <error line="739" column="1" source="standard:indent" />
-        <error line="740" column="1" source="standard:indent" />
-        <error line="741" column="1" source="standard:indent" />
-        <error line="742" column="1" source="standard:indent" />
-        <error line="764" column="1" source="standard:indent" />
-        <error line="765" column="1" source="standard:indent" />
-        <error line="766" column="1" source="standard:indent" />
-        <error line="812" column="1" source="standard:indent" />
-        <error line="813" column="1" source="standard:indent" />
-        <error line="814" column="1" source="standard:indent" />
-        <error line="817" column="1" source="standard:indent" />
-        <error line="818" column="1" source="standard:indent" />
-        <error line="819" column="1" source="standard:indent" />
+        <error line="93" column="92" source="standard:trailing-comma-on-call-site" />
+        <error line="99" column="16" source="standard:string-template" />
+        <error line="99" column="94" source="standard:trailing-comma-on-call-site" />
+        <error line="357" column="121" source="standard:max-line-length" />
+        <error line="362" column="121" source="standard:max-line-length" />
+        <error line="363" column="121" source="standard:max-line-length" />
+        <error line="364" column="121" source="standard:max-line-length" />
+        <error line="692" column="1" source="standard:indent" />
+        <error line="693" column="1" source="standard:indent" />
+        <error line="694" column="1" source="standard:indent" />
+        <error line="708" column="57" source="standard:binary-expression-wrapping" />
+        <error line="708" column="90" source="standard:binary-expression-wrapping" />
+        <error line="708" column="121" source="standard:max-line-length" />
+        <error line="719" column="1" source="standard:indent" />
+        <error line="720" column="1" source="standard:indent" />
+        <error line="721" column="1" source="standard:indent" />
+        <error line="754" column="1" source="standard:indent" />
+        <error line="755" column="1" source="standard:indent" />
+        <error line="756" column="1" source="standard:indent" />
+        <error line="758" column="1" source="standard:indent" />
+        <error line="759" column="1" source="standard:indent" />
+        <error line="760" column="1" source="standard:indent" />
+        <error line="761" column="1" source="standard:indent" />
+        <error line="762" column="1" source="standard:indent" />
+        <error line="763" column="1" source="standard:indent" />
+        <error line="785" column="1" source="standard:indent" />
+        <error line="786" column="1" source="standard:indent" />
+        <error line="787" column="1" source="standard:indent" />
+        <error line="833" column="1" source="standard:indent" />
+        <error line="834" column="1" source="standard:indent" />
+        <error line="835" column="1" source="standard:indent" />
+        <error line="838" column="1" source="standard:indent" />
         <error line="839" column="1" source="standard:indent" />
         <error line="840" column="1" source="standard:indent" />
-        <error line="841" column="1" source="standard:indent" />
-        <error line="864" column="121" source="standard:max-line-length" />
-        <error line="883" column="121" source="standard:max-line-length" />
-        <error line="884" column="121" source="standard:max-line-length" />
-        <error line="913" column="121" source="standard:max-line-length" />
-        <error line="915" column="121" source="standard:max-line-length" />
-        <error line="935" column="1" source="standard:indent" />
-        <error line="936" column="1" source="standard:indent" />
-        <error line="937" column="1" source="standard:indent" />
-        <error line="938" column="1" source="standard:indent" />
-        <error line="963" column="1" source="standard:indent" />
-        <error line="964" column="1" source="standard:indent" />
-        <error line="965" column="1" source="standard:indent" />
-        <error line="966" column="1" source="standard:indent" />
+        <error line="860" column="1" source="standard:indent" />
+        <error line="861" column="1" source="standard:indent" />
+        <error line="862" column="1" source="standard:indent" />
+        <error line="885" column="121" source="standard:max-line-length" />
+        <error line="904" column="121" source="standard:max-line-length" />
+        <error line="905" column="121" source="standard:max-line-length" />
+        <error line="934" column="121" source="standard:max-line-length" />
+        <error line="936" column="121" source="standard:max-line-length" />
+        <error line="956" column="1" source="standard:indent" />
+        <error line="957" column="1" source="standard:indent" />
+        <error line="958" column="1" source="standard:indent" />
+        <error line="959" column="1" source="standard:indent" />
+        <error line="984" column="1" source="standard:indent" />
+        <error line="985" column="1" source="standard:indent" />
+        <error line="986" column="1" source="standard:indent" />
         <error line="987" column="1" source="standard:indent" />
-        <error line="988" column="1" source="standard:indent" />
-        <error line="989" column="1" source="standard:indent" />
-        <error line="990" column="1" source="standard:indent" />
+        <error line="1008" column="1" source="standard:indent" />
+        <error line="1009" column="1" source="standard:indent" />
         <error line="1010" column="1" source="standard:indent" />
         <error line="1011" column="1" source="standard:indent" />
-        <error line="1012" column="1" source="standard:indent" />
-        <error line="1013" column="1" source="standard:indent" />
-        <error line="1030" column="1" source="standard:indent" />
         <error line="1031" column="1" source="standard:indent" />
         <error line="1032" column="1" source="standard:indent" />
         <error line="1033" column="1" source="standard:indent" />
-        <error line="1048" column="121" source="standard:max-line-length" />
-        <error line="1070" column="121" source="standard:max-line-length" />
-        <error line="1071" column="121" source="standard:max-line-length" />
-        <error line="1094" column="121" source="standard:max-line-length" />
-        <error line="1095" column="121" source="standard:max-line-length" />
-        <error line="1119" column="121" source="standard:max-line-length" />
-        <error line="1120" column="121" source="standard:max-line-length" />
-        <error line="1122" column="121" source="standard:max-line-length" />
-        <error line="1149" column="121" source="standard:max-line-length" />
-        <error line="1150" column="121" source="standard:max-line-length" />
+        <error line="1034" column="1" source="standard:indent" />
+        <error line="1051" column="1" source="standard:indent" />
+        <error line="1052" column="1" source="standard:indent" />
+        <error line="1053" column="1" source="standard:indent" />
+        <error line="1054" column="1" source="standard:indent" />
+        <error line="1069" column="121" source="standard:max-line-length" />
+        <error line="1091" column="121" source="standard:max-line-length" />
+        <error line="1092" column="121" source="standard:max-line-length" />
+        <error line="1115" column="121" source="standard:max-line-length" />
+        <error line="1116" column="121" source="standard:max-line-length" />
+        <error line="1140" column="121" source="standard:max-line-length" />
+        <error line="1141" column="121" source="standard:max-line-length" />
+        <error line="1143" column="121" source="standard:max-line-length" />
+        <error line="1170" column="121" source="standard:max-line-length" />
         <error line="1171" column="121" source="standard:max-line-length" />
+        <error line="1192" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/schedule/booking/ClassEditViewModelTest.kt">
-        <error line="152" column="105" source="standard:function-literal" />
-        <error line="152" column="115" source="standard:binary-expression-wrapping" />
-        <error line="152" column="121" source="standard:max-line-length" />
-        <error line="152" column="126" source="standard:function-literal" />
-        <error line="189" column="121" source="standard:max-line-length" />
-        <error line="276" column="1" source="standard:indent" />
-        <error line="277" column="1" source="standard:indent" />
-        <error line="278" column="1" source="standard:indent" />
-        <error line="279" column="1" source="standard:indent" />
-        <error line="309" column="121" source="standard:max-line-length" />
-        <error line="544" column="1" source="standard:indent" />
-        <error line="545" column="1" source="standard:indent" />
-        <error line="546" column="1" source="standard:indent" />
-        <error line="587" column="19" source="standard:wrapping" />
-        <error line="593" column="9" source="standard:wrapping" />
-        <error line="624" column="19" source="standard:wrapping" />
-        <error line="629" column="9" source="standard:wrapping" />
-        <error line="994" column="19" source="standard:wrapping" />
-        <error line="996" column="9" source="standard:wrapping" />
-        <error line="1017" column="23" source="standard:wrapping" />
-        <error line="1019" column="13" source="standard:wrapping" />
-        <error line="1169" column="1" source="standard:indent" />
-        <error line="1170" column="1" source="standard:indent" />
-        <error line="1171" column="1" source="standard:indent" />
-        <error line="1183" column="121" source="standard:max-line-length" />
-        <error line="1189" column="1" source="standard:indent" />
-        <error line="1190" column="1" source="standard:indent" />
-        <error line="1191" column="1" source="standard:indent" />
-        <error line="1192" column="1" source="standard:indent" />
-        <error line="1308" column="121" source="standard:max-line-length" />
-        <error line="1544" column="121" source="standard:max-line-length" />
-        <error line="1703" column="121" source="standard:max-line-length" />
-        <error line="1710" column="1" source="standard:indent" />
-        <error line="1711" column="1" source="standard:indent" />
-        <error line="1712" column="1" source="standard:indent" />
-        <error line="1713" column="1" source="standard:indent" />
-        <error line="1721" column="19" source="standard:wrapping" />
-        <error line="1723" column="9" source="standard:wrapping" />
+        <error line="160" column="105" source="standard:function-literal" />
+        <error line="160" column="115" source="standard:binary-expression-wrapping" />
+        <error line="160" column="121" source="standard:max-line-length" />
+        <error line="160" column="126" source="standard:function-literal" />
+        <error line="197" column="121" source="standard:max-line-length" />
+        <error line="284" column="1" source="standard:indent" />
+        <error line="285" column="1" source="standard:indent" />
+        <error line="286" column="1" source="standard:indent" />
+        <error line="287" column="1" source="standard:indent" />
+        <error line="317" column="121" source="standard:max-line-length" />
+        <error line="552" column="1" source="standard:indent" />
+        <error line="553" column="1" source="standard:indent" />
+        <error line="554" column="1" source="standard:indent" />
+        <error line="595" column="19" source="standard:wrapping" />
+        <error line="601" column="9" source="standard:wrapping" />
+        <error line="632" column="19" source="standard:wrapping" />
+        <error line="638" column="9" source="standard:wrapping" />
+        <error line="1005" column="19" source="standard:wrapping" />
+        <error line="1011" column="9" source="standard:wrapping" />
+        <error line="1032" column="23" source="standard:wrapping" />
+        <error line="1034" column="13" source="standard:wrapping" />
+        <error line="1184" column="1" source="standard:indent" />
+        <error line="1185" column="1" source="standard:indent" />
+        <error line="1186" column="1" source="standard:indent" />
+        <error line="1198" column="121" source="standard:max-line-length" />
+        <error line="1204" column="1" source="standard:indent" />
+        <error line="1205" column="1" source="standard:indent" />
+        <error line="1206" column="1" source="standard:indent" />
+        <error line="1207" column="1" source="standard:indent" />
+        <error line="1323" column="121" source="standard:max-line-length" />
+        <error line="1559" column="121" source="standard:max-line-length" />
+        <error line="1718" column="121" source="standard:max-line-length" />
+        <error line="1725" column="1" source="standard:indent" />
+        <error line="1726" column="1" source="standard:indent" />
+        <error line="1727" column="1" source="standard:indent" />
+        <error line="1728" column="1" source="standard:indent" />
+        <error line="1736" column="19" source="standard:wrapping" />
+        <error line="1738" column="9" source="standard:wrapping" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/students/StudentDetailViewModelTest.kt">
-        <error line="100" column="121" source="standard:max-line-length" />
-        <error line="101" column="121" source="standard:max-line-length" />
-        <error line="102" column="121" source="standard:max-line-length" />
-        <error line="132" column="121" source="standard:max-line-length" />
-        <error line="133" column="121" source="standard:max-line-length" />
-        <error line="134" column="121" source="standard:max-line-length" />
-        <error line="157" column="121" source="standard:max-line-length" />
-        <error line="158" column="121" source="standard:max-line-length" />
-        <error line="176" column="121" source="standard:max-line-length" />
-        <error line="177" column="121" source="standard:max-line-length" />
-        <error line="187" column="121" source="standard:max-line-length" />
-        <error line="255" column="121" source="standard:max-line-length" />
-        <error line="260" column="121" source="standard:max-line-length" />
-        <error line="383" column="120" source="standard:max-line-length" />
-        <error line="444" column="121" source="standard:max-line-length" />
-        <error line="507" column="1" source="standard:indent" />
-        <error line="508" column="1" source="standard:indent" />
-        <error line="509" column="1" source="standard:indent" />
-        <error line="512" column="1" source="standard:indent" />
-        <error line="513" column="1" source="standard:indent" />
-        <error line="514" column="1" source="standard:indent" />
-        <error line="516" column="1" source="standard:indent" />
-        <error line="517" column="1" source="standard:indent" />
+        <error line="107" column="121" source="standard:max-line-length" />
+        <error line="108" column="121" source="standard:max-line-length" />
+        <error line="109" column="121" source="standard:max-line-length" />
+        <error line="110" column="121" source="standard:max-line-length" />
+        <error line="139" column="121" source="standard:max-line-length" />
+        <error line="140" column="121" source="standard:max-line-length" />
+        <error line="141" column="121" source="standard:max-line-length" />
+        <error line="164" column="121" source="standard:max-line-length" />
+        <error line="165" column="121" source="standard:max-line-length" />
+        <error line="183" column="121" source="standard:max-line-length" />
+        <error line="184" column="121" source="standard:max-line-length" />
+        <error line="194" column="121" source="standard:max-line-length" />
+        <error line="262" column="121" source="standard:max-line-length" />
+        <error line="267" column="121" source="standard:max-line-length" />
+        <error line="390" column="120" source="standard:max-line-length" />
         <error line="518" column="1" source="standard:indent" />
-        <error line="528" column="121" source="standard:max-line-length" />
-        <error line="539" column="1" source="standard:indent" />
-        <error line="540" column="1" source="standard:indent" />
-        <error line="541" column="1" source="standard:indent" />
-        <error line="576" column="1" source="standard:indent" />
-        <error line="577" column="1" source="standard:indent" />
-        <error line="578" column="1" source="standard:indent" />
-        <error line="599" column="1" source="standard:indent" />
-        <error line="600" column="1" source="standard:indent" />
-        <error line="601" column="1" source="standard:indent" />
+        <error line="519" column="1" source="standard:indent" />
+        <error line="520" column="1" source="standard:indent" />
+        <error line="523" column="1" source="standard:indent" />
+        <error line="524" column="1" source="standard:indent" />
+        <error line="525" column="1" source="standard:indent" />
+        <error line="527" column="1" source="standard:indent" />
+        <error line="528" column="1" source="standard:indent" />
+        <error line="529" column="1" source="standard:indent" />
+        <error line="539" column="121" source="standard:max-line-length" />
+        <error line="550" column="1" source="standard:indent" />
+        <error line="551" column="1" source="standard:indent" />
+        <error line="552" column="1" source="standard:indent" />
+        <error line="587" column="1" source="standard:indent" />
+        <error line="588" column="1" source="standard:indent" />
+        <error line="589" column="1" source="standard:indent" />
+        <error line="610" column="1" source="standard:indent" />
+        <error line="611" column="1" source="standard:indent" />
+        <error line="612" column="1" source="standard:indent" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/students/StudentFormViewModelTest.kt">
         <error line="117" column="121" source="standard:max-line-length" />

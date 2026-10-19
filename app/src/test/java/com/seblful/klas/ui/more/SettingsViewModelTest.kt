@@ -24,6 +24,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -268,7 +270,7 @@ class SettingsViewModelTest {
             val subj = env.fixtures.subject("Математика")
             val sid = env.fixtures.student("Аня", email = "anya@example.com")
             env.fixtures.withCalendarSync()
-            env.fixtures.lesson(subj, listOf(sid), start = java.time.Instant.parse("2026-03-02T09:00:00Z"))
+            env.fixtures.lesson(subj, listOf(sid), start = Instant.parse("2026-03-02T09:00:00Z"))
             env.calendar.calls.clear()
             val refreshesBefore = env.reminders.refreshCount
 
@@ -440,12 +442,12 @@ class SettingsViewModelTest {
     private suspend fun finishedLessons(count: Int): List<Long> {
         val subjectId = env.fixtures.subject("Математика")
         val studentId = env.fixtures.pricedStudent(subjectId = subjectId, rate = Money.ofMajor(30))
-        val ended = env.clock.instant().minusSeconds(30L * 24 * 3600)
+        val ended = env.clock.now().minus((30L * 24 * 3600).seconds)
         return (1..count).map { n ->
             env.fixtures.lesson(
                 subjectId = subjectId,
                 students = listOf(studentId),
-                start = ended.plusSeconds(n * 2L * 3600),
+                start = ended.plus((n * 2L * 3600).seconds),
             ).single()
         }
     }

@@ -55,7 +55,9 @@ import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberToggleFeedback
 import com.seblful.klas.ui.common.timeText
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlin.time.Instant
 
 /**
  * What can be done to the lesson that was tapped: change its status, tick off the homework attached to it,
@@ -257,15 +259,15 @@ private fun SheetAction(
 /**
  * Picks a new date, then a new time, and reports **the two the tutor chose**.
  *
- * It used to combine them here — `date.atTime(time).atZone(ZoneId.systemDefault()).toInstant()` — which put
+ * It used to combine them here — `date.atTime(time).toInstant(TimeZone.currentSystemDefault())` — which put
  * a wall-clock-to-instant conversion, and a third definition of the app's zone, inside a composable on the
  * path that changes when a lesson happens. `ScheduleViewModel.moveTo` does it now, against the injected
  * clock's zone; see `domain/billing/PaymentDate` for the same argument made about the path that records money.
  */
 @Composable
 internal fun MoveClassFlow(
-    start: java.time.Instant,
-    onMoved: (LocalDate, java.time.LocalTime) -> Unit,
+    start: Instant,
+    onMoved: (LocalDate, LocalTime) -> Unit,
     onDone: () -> Unit,
 ) {
     var pickedDate by remember { mutableStateOf<LocalDate?>(null) }

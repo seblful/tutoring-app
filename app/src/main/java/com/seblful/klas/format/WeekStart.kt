@@ -1,6 +1,6 @@
 package com.seblful.klas.format
 
-import java.time.DayOfWeek
+import kotlinx.datetime.DayOfWeek
 import java.util.Locale
 
 /**

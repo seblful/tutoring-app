@@ -32,6 +32,10 @@ hiltExt = "1.4.0"
 workManager = "2.11.2"
 coroutines = "1.11.0"
 serialization = "1.11.0"
+# Dates and times the domain can share with iOS: `LocalDate`, `YearMonth`, `TimeZone` and the calendar
+# arithmetic. `Instant`, `Clock` and `Duration` are the standard library's (`kotlin.time`). 0.7 is where
+# `YearMonth` arrived and `Instant` moved to the standard library.
+kotlinxDatetime = "0.8.0"
 desugar = "2.1.5"
 # JVM screenshot tests: Robolectric draws (native graphics), Roborazzi captures and compares, and
 # ComposablePreviewScanner finds every @Preview — so a new preview is a new screenshot with no test to
@@ -108,15 +112,16 @@ androidx-work-testing = { group = "androidx.work", name = "work-testing", versio
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
+kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDatetime" }
 
 desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugar" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-# The `:domain` module: plain Kotlin/JVM, so no Android plugin to compile it. Same `kotlin` as the
+# The `:domain` module: Kotlin Multiplatform, so no Android plugin to compile it. Same `kotlin` as the
 # app's built-in Kotlin — it is the one KGP pinned in the root build.gradle.kts.
-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

@@ -10,7 +10,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * The reminder's second line: the current homework attached to the lesson. Read as the reminder fires,
@@ -37,7 +38,7 @@ class DueReminderHomeworkTest {
 
     // The homework is given at the environment's clock, 2026-06-01; the lesson is the next one after it.
     private val now: Instant = Instant.parse("2026-07-25T10:00:00Z")
-    private val soon: Instant = now.plusSeconds(1800)
+    private val soon: Instant = now.plus(1800.seconds)
 
     @Test
     fun `the reminder says what homework the lesson is for`() = runTest {

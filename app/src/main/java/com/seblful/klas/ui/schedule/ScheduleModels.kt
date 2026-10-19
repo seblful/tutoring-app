@@ -12,7 +12,10 @@ import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.readyOrLoadingAfter
 import com.seblful.klas.ui.common.state.valueOrNull
-import java.time.LocalDate
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 
 /**
  * One row of the day's schedule: a lesson, which is either one student's class or a whole group
@@ -198,7 +201,7 @@ sealed interface ScheduleContent {
  */
 fun Loadable<ScheduleContent.Week>.day(date: LocalDate): Loadable<ScheduleContent.Day> {
     val week = valueOrNull() ?: return Loadable.Loading
-    if (date < week.start || date >= week.start.plusDays(CalendarLayout.DAYS_IN_WEEK.toLong())) {
+    if (date < week.start || date >= week.start.plus(CalendarLayout.DAYS_IN_WEEK.toLong(), DateTimeUnit.DAY)) {
         return Loadable.Loading
     }
     val section = week.sections.firstOrNull { it.date == date }

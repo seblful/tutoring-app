@@ -11,9 +11,9 @@ import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.ui.theme.KlasTheme
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
-import java.time.Instant
 import org.junit.Rule
 import org.junit.Test
+import kotlin.time.Instant
 
 /**
  * **A new piece of homework opens on nothing.** Who it is for comes first, so the dialog used to be
@@ -74,7 +74,11 @@ class HomeworkDialogFocusTest {
 
     @Test
     fun aCorrectionOpensInTheTask() {
-        open(editing = Homework(id = 7, assignee = ann.assignee, text = "§12", givenAt = Instant.EPOCH))
+        open(
+            editing = Homework(
+                id = 7, assignee = ann.assignee, text = "§12", givenAt = Instant.fromEpochMilliseconds(0),
+            ),
+        )
 
         task().assertIsFocused()
     }

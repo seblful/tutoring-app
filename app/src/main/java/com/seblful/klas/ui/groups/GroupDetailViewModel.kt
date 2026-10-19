@@ -23,6 +23,7 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.people.Captions
 import com.seblful.klas.domain.reports.Taught
+import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.days
@@ -40,8 +41,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import java.time.Clock
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.days
 
 /**
  * One member of the group, with how much of the group they have actually attended.
@@ -119,7 +120,7 @@ class GroupDetailViewModel @Inject constructor(
     homework: HomeworkRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
-    private val clock: Clock,
+    private val clock: WallClock,
 ) : ViewModel() {
 
     /** One-shot signals: a deletion refused because the group already has lessons, or a failed write. */
@@ -221,7 +222,7 @@ class GroupDetailViewModel @Inject constructor(
         val loaded = state.value.valueOrNull() ?: return null
         val group = loaded.group ?: return null
         val classes = loaded.lessons.flatMap { it.session.classes }
-        return AssigneeChoice.of(Assignee.Group(groupId), group.name, classes, clock.instant())
+        return AssigneeChoice.of(Assignee.Group(groupId), group.name, classes, clock.now())
     }
 
     /** Sets homework for the whole group — attached to its next lesson from now. */

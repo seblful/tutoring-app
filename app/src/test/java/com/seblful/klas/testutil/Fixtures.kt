@@ -8,12 +8,11 @@ import com.seblful.klas.data.local.upsertedId
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Homework
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
-import java.time.Duration
-import java.time.Instant
+import kotlin.time.Instant
 
 /**
  * Seeds a test's starting state in the vocabulary the app uses — a student, a lesson, a group with a
@@ -208,14 +207,14 @@ class Fixtures(private val env: TestEnv) {
     suspend fun homework(
         assignee: Assignee,
         text: String = "§ 12, упр. 4–7",
-        at: Instant = env.clock.instant(),
+        at: Instant = env.clock.now(),
         done: Boolean = false,
     ): Homework {
-        val now = env.clock.instant()
-        env.clock.advanceBy(Duration.between(now, at).toMillis())
+        val now = env.clock.now()
+        env.clock.advanceBy((at - now).inWholeMilliseconds)
         val given = env.homeworkRepo.give(assignee, text)
         if (done) env.homeworkRepo.setDone(given, done = true)
-        env.clock.advanceBy(Duration.between(at, now).toMillis())
+        env.clock.advanceBy((now - at).inWholeMilliseconds)
         return if (done) given.copy(doneAt = at) else given
     }
 

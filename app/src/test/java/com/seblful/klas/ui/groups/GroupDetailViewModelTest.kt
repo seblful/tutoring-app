@@ -24,8 +24,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Duration
-import java.time.Instant
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * **Never `advanceUntilIdle()` here**: the card's homework is due as of `Clock.days()`, which sleeps until
@@ -63,7 +65,7 @@ class GroupDetailViewModelTest {
      * seed through the repository — which holds one lesson at a time, so back-to-back keys must not
      * contest an hour.
      */
-    private fun at(key: Long): Instant = Instant.ofEpochMilli(key * 7_200)
+    private fun at(key: Long): Instant = Instant.fromEpochMilliseconds(key * 7_200)
 
     @Test
     fun `the card names the group's subject and rate`() = runTest(mainRule.dispatcher) {
@@ -329,7 +331,7 @@ class GroupDetailViewModelTest {
         val maths = fixtures.subject()
         val anya = fixtures.pricedStudent("Аня", maths)
         val group = fixtures.group(name = "9 «Б»", subjectId = maths, members = setOf(anya))
-        val tomorrow = env.clock.instant().plusSeconds(86_400)
+        val tomorrow = env.clock.now().plus((86_400).seconds)
         fixtures.lesson(maths, listOf(anya), tomorrow, groupId = group)
         val vm = vm(group)
         observing(vm.state)
@@ -350,7 +352,7 @@ class GroupDetailViewModelTest {
         val maths = fixtures.subject()
         val anya = fixtures.pricedStudent("Аня", maths)
         val group = fixtures.group(name = "9 «Б»", subjectId = maths, members = setOf(anya))
-        fixtures.lesson(maths, listOf(anya), env.clock.instant().plusSeconds(86_400), groupId = group)
+        fixtures.lesson(maths, listOf(anya), env.clock.now().plus((86_400).seconds), groupId = group)
         fixtures.homework(Assignee.Group(group))
         val vm = vm(group)
         observing(vm.state)
@@ -358,9 +360,9 @@ class GroupDetailViewModelTest {
         assertEquals(HomeworkRules.Due.LATER, vm.state.current.homework.current.single().due)
 
         // The environment's 15:00 in Minsk to a minute past midnight, on the clock and on the scheduler.
-        val untilMidnight = Duration.ofHours(9).plusMinutes(1)
-        env.clock.advanceBy(untilMidnight.toMillis())
-        advanceTimeBy(untilMidnight.toMillis())
+        val untilMidnight = 9.hours + 1.minutes
+        env.clock.advanceBy(untilMidnight.inWholeMilliseconds)
+        advanceTimeBy(untilMidnight.inWholeMilliseconds)
 
         assertEquals(HomeworkRules.Due.TODAY, vm.state.current.homework.current.single().due)
     }

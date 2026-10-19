@@ -26,6 +26,8 @@ import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.domain.schedule.NowMarker
 import com.seblful.klas.domain.schedule.ScheduleEmpty
 import com.seblful.klas.domain.schedule.TimeConflict
+import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.zones
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
@@ -57,15 +59,22 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.DayOfWeek
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.YearMonth
-import java.time.ZoneId
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.YearMonth
+import kotlinx.datetime.atTime
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 /**
  * These classes as the schedule shows them under [filter]: **whole lessons** the student is in, never
@@ -87,19 +96,19 @@ class ScheduleViewModel @Inject constructor(
     private val homework: HomeworkRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
-    private val clock: Clock,
+    private val clock: WallClock,
     /** The phone's own — see [FirstDayOfWeek]. Everything the calendar lays out is anchored on it. */
     @param:FirstDayOfWeek private val weekStart: DayOfWeek = DayOfWeek.MONDAY,
 ) : ViewModel() {
 
     // From the clock, so the one thing that watches the date can be moved in a test. See TimeModule.
-    private val zone: ZoneId get() = clock.zone
+    private val zone: TimeZone get() = clock.zone
 
     /**
      * Where the schedule is pointed — see [SchedulePages], which owns how it moves. Changed only through
      * [page], which publishes its fields as [selectedDate], [visibleMonth], [visibleWeek] and [viewMode].
      */
-    private var pages = SchedulePages.on(LocalDate.now(clock), weekStart)
+    private var pages = SchedulePages.on(clock.today(), weekStart)
 
     private val _selectedDate = MutableStateFlow(pages.selected)
     val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
@@ -124,7 +133,7 @@ class ScheduleViewModel @Inject constructor(
      */
     val today: StateFlow<LocalDate> = clock.days()
         .onEach { followToday(it) }
-        .hold(this, LocalDate.now(clock))
+        .hold(this, clock.today())
 
     /** The month the calendar page shows. Paging it only browses — see [SchedulePages]. */
     private val _visibleMonth = MutableStateFlow(pages.month)
@@ -255,7 +264,7 @@ class ScheduleViewModel @Inject constructor(
                 val zone = key.zone
                 val range = when (key.mode) {
                     ScheduleViewMode.DAY -> null
-                    ScheduleViewMode.WEEK -> key.week to key.week.plusDays(DAYS_IN_WEEK)
+                    ScheduleViewMode.WEEK -> key.week to key.week.plus(DAYS_IN_WEEK, DateTimeUnit.DAY)
                     ScheduleViewMode.MONTH ->
                         CalendarLayout.monthGrid(key.month, weekStart)
                             .let { it.firstDate to it.endExclusive }
@@ -291,7 +300,7 @@ class ScheduleViewModel @Inject constructor(
         val month: YearMonth,
         val week: LocalDate,
         val filter: StudentFilter?,
-        val zone: ZoneId,
+        val zone: TimeZone,
     ) {
         fun narrow(classes: List<TutoringClass>): List<TutoringClass> = classes.shownFor(filter)
     }
@@ -310,7 +319,7 @@ class ScheduleViewModel @Inject constructor(
     val content: StateFlow<Loadable<ScheduleContent.Week>> =
         combine(_visibleWeek, studentFilter, clock.zones(), ::Triple)
             .flatMapLatest { (week, filter, zone) ->
-                val bounds = DayBounds.of(week, week.plusDays(DAYS_IN_WEEK), zone)
+                val bounds = DayBounds.of(week, week.plus(DAYS_IN_WEEK, DateTimeUnit.DAY), zone)
                 combine(
                     classes.observeBetween(bounds.start, bounds.end),
                     students.observeAll(),
@@ -328,7 +337,7 @@ class ScheduleViewModel @Inject constructor(
                     ScheduleContent.Week(
                         start = week,
                         sections = visibleClasses
-                            .groupBy { it.start.atZone(zone).toLocalDate() }
+                            .groupBy { it.start.toLocalDateTime(zone).date }
                             .toSortedMap()
                             .map { (day, dayClasses) ->
                                 val rows = sessionRows(dayClasses, captions)
@@ -467,7 +476,7 @@ class ScheduleViewModel @Inject constructor(
         }
         val filter = filterStudentId.value
         if (filter != null && session.classes.none { it.studentId == filter }) setStudentFilter(null)
-        selectDate(session.start.atZone(zone).toLocalDate())
+        selectDate(session.start.toLocalDateTime(zone).date)
         askedLessonId.value = classId
     }
 
@@ -501,11 +510,11 @@ class ScheduleViewModel @Inject constructor(
         page { it.select(date) }
     }
 
-    fun goToPreviousDay() = selectDate(pages.selected.minusDays(1))
+    fun goToPreviousDay() = selectDate(pages.selected.minus(1, DateTimeUnit.DAY))
 
-    fun goToNextDay() = selectDate(pages.selected.plusDays(1))
+    fun goToNextDay() = selectDate(pages.selected.plus(1, DateTimeUnit.DAY))
 
-    fun goToToday() = selectDate(LocalDate.now(clock))
+    fun goToToday() = selectDate(clock.today())
 
     fun goToPreviousMonth() = page { it.previousMonth() }
 
@@ -551,16 +560,16 @@ class ScheduleViewModel @Inject constructor(
      *
      * **It takes a date and a wall-clock time, not an `Instant`.** «Перенести» asks the tutor for those
      * two, and an `Instant` parameter obliged the caller to turn them into one — which `MoveClassFlow` duly
-     * did, inside a composable, with `ZoneId.systemDefault()` of its own. That was a third definition of
+     * did, inside a composable, with `TimeZone.currentSystemDefault()` of its own. That was a third definition of
      * "which zone" (against `clock.zone` here and in `ClassEditViewModel`), on the path that changes *when*
      * a lesson happens, and it is exactly what `domain/billing/PaymentDate` was extracted to stop being possible on
      * the path that records money. The conversion crosses the seam as the values the tutor picked, and the
      * one statement of the zone is this class's.
      */
     fun moveTo(session: ClassSession, day: LocalDate, at: LocalTime) {
-        val newStart = day.atTime(at).atZone(zone).toInstant()
+        val newStart = day.atTime(at).toInstant(zone)
         write {
-            when (val moved = classes.move(session, newStart, now = clock.instant())) {
+            when (val moved = classes.move(session, newStart, now = clock.now())) {
                 is LessonWrite.HourTaken -> reportHourTaken(moved.clash)
                 is LessonWrite.Written, LessonWrite.Gone -> Unit
             }

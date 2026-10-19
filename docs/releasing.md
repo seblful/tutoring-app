@@ -179,7 +179,7 @@ hand. The config only takes effect once it is on `main`, GitHub's default branch
 ## Per-release checklist
 
 - [ ] Schema change? A migration is shipped, `MigrationChainTest` passes, and its migration test passes on a device
-- [ ] `./gradlew :domain:test :app:verifyRoborazziDebug :app:lintDebug ktlintCheck detekt` pass (CI runs the same)
+- [ ] `./gradlew :domain:jvmTest :app:verifyRoborazziDebug :app:lintDebug ktlintCheck detekt` pass (CI runs the same)
 - [ ] `./gradlew :app:connectedDebugAndroidTest` passes on a phone if the release touches notifications,
       calendar sync or gestures — the emulators in `device-tests` cover the rest
 - [ ] Backup round-trip verified on a release build (device)

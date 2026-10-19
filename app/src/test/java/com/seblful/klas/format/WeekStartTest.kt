@@ -1,9 +1,9 @@
 package com.seblful.klas.format
 
+import kotlinx.datetime.DayOfWeek
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import java.time.DayOfWeek
 import java.util.Locale
 
 /**

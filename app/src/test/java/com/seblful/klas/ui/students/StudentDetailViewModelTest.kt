@@ -29,6 +29,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.atTime
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -37,11 +45,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.temporal.ChronoUnit
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 /**
  * **Never `advanceUntilIdle()` here**: the card's homework is due as of `Clock.days()`, which sleeps until
@@ -58,9 +65,9 @@ class StudentDetailViewModelTest {
     // A pinned clock, because the hour a payment lands at is derived from "today" — see `PaymentDate`.
     // It goes into the environment rather than into the view model: the instant is derived by
     // `PaymentRepository`, which is the module that owns it, so this is the clock the write reads.
-    private val zone: ZoneId = ZoneId.of("Europe/Minsk")
-    private val today: LocalDate = LocalDate.of(2026, 5, 17)
-    private val clock = MutableClock(today.atTime(14, 30).atZone(zone).toInstant(), zone)
+    private val zone: TimeZone = TimeZone.of("Europe/Minsk")
+    private val today: LocalDate = LocalDate(2026, 5, 17)
+    private val clock = MutableClock(today.atTime(14, 30).toInstant(zone), zone)
 
     @get:Rule
     val env = TestEnv(clock = clock)
@@ -85,8 +92,8 @@ class StudentDetailViewModelTest {
 
     @Test
     fun `the last payment is the latest one, and there is none before the first`() {
-        val early = Payment(studentId = 1, date = Instant.ofEpochMilli(10), amount = Money.ofMajor(50))
-        val late = Payment(studentId = 1, date = Instant.ofEpochMilli(20), amount = Money.ofMajor(10))
+        val early = Payment(studentId = 1, date = Instant.fromEpochMilliseconds(10), amount = Money.ofMajor(50))
+        val late = Payment(studentId = 1, date = Instant.fromEpochMilliseconds(20), amount = Money.ofMajor(10))
 
         assertNull(StudentDetailState().lastPaymentAt)
         assertEquals(late.date, StudentDetailState(payments = listOf(late, early)).lastPaymentAt)
@@ -100,7 +107,7 @@ class StudentDetailViewModelTest {
         env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor)
         env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 90, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(45).minor)
         env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = LessonStatus.CANCELLED, chargeMinor = 0)
-        env.paymentRepo.restore(Payment(studentId = sid, date = Instant.ofEpochMilli(10), amount = Money.ofMajor(50)))
+        env.paymentRepo.restore(Payment(studentId = sid, date = Instant.fromEpochMilliseconds(10), amount = Money.ofMajor(50)))
 
         val vm = vm(sid)
         observing(vm.state)
@@ -300,13 +307,13 @@ class StudentDetailViewModelTest {
 
             // "She paid me last Tuesday", written up on Sunday. The amount was always recordable;
             // the date was not — every payment used to be stamped with the moment it was entered.
-            val lastTuesday = today.minusDays(5)
+            val lastTuesday = today.minus(5, DateTimeUnit.DAY)
             vm.addPayment(Money.ofMajor(40), lastTuesday)
             runCurrent()
 
             assertEquals(
                 "the start of that day: there is no hour the tutor could have supplied",
-                lastTuesday.atStartOfDay(zone).toInstant().toEpochMilli(),
+                lastTuesday.atStartOfDayIn(zone).toEpochMilliseconds(),
                 env.stored().payments.single().dateMillis,
             )
         }
@@ -336,7 +343,7 @@ class StudentDetailViewModelTest {
             assertTrue("the second is later", stamps[1] > stamps[0])
             assertEquals(
                 "and both are the moment they were entered, not the start of the day",
-                today.atTime(14, 30).atZone(zone).toInstant().toEpochMilli(),
+                today.atTime(14, 30).toInstant(zone).toEpochMilliseconds(),
                 stamps[0],
             )
         }
@@ -349,7 +356,7 @@ class StudentDetailViewModelTest {
             observing(vm.state)
             runCurrent()
 
-            val recordedOn = today.minusDays(3)
+            val recordedOn = today.minus(3, DateTimeUnit.DAY)
             vm.addPayment(Money.ofMajor(40), recordedOn)
             runCurrent()
             val original = env.stored().payments.single()
@@ -364,7 +371,7 @@ class StudentDetailViewModelTest {
             assertEquals(Money.ofMajor(45).minor, corrected.amountMinor)
             assertEquals(
                 "the date was left alone",
-                recordedOn.atStartOfDay(zone).toInstant().toEpochMilli(),
+                recordedOn.atStartOfDayIn(zone).toEpochMilliseconds(),
                 corrected.dateMillis,
             )
         }
@@ -441,8 +448,10 @@ class StudentDetailViewModelTest {
             val subject = env.fixtures.subject("Математика")
             val sid = env.fixtures.pricedStudent("Аня", subject, Money.ofMajor(30))
             // One lesson taught and unpaid — a debt — and one still to come.
-            env.fixtures.completedLesson(subject, listOf(sid), today.minusDays(2).atTime(10, 0).atZone(zone).toInstant())
-            env.fixtures.lesson(subject, listOf(sid), today.plusDays(2).atTime(10, 0).atZone(zone).toInstant())
+            env.fixtures.completedLesson(
+                subject, listOf(sid), today.minus(2, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone),
+            )
+            env.fixtures.lesson(subject, listOf(sid), today.plus(2, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone))
             val vm = vm(sid)
             observing(vm.state)
             runCurrent()
@@ -482,7 +491,9 @@ class StudentDetailViewModelTest {
     fun `restoring an archived student asks nothing even with a debt`() = runTest(mainRule.dispatcher) {
         val subject = env.fixtures.subject("Математика")
         val sid = env.fixtures.pricedStudent("Аня", subject, Money.ofMajor(30))
-        env.fixtures.completedLesson(subject, listOf(sid), today.minusDays(2).atTime(10, 0).atZone(zone).toInstant())
+        env.fixtures.completedLesson(
+            subject, listOf(sid), today.minus(2, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone),
+        )
         env.studentRepo.setArchived(env.studentRepo.getById(sid)!!, archived = true)
         val vm = vm(sid)
         observing(vm.state)
@@ -606,7 +617,7 @@ class StudentDetailViewModelTest {
         vm.setArchived(true)
         runCurrent()
 
-        val slot = Scheduling.Slot(Instant.ofEpochMilli(at), 60)
+        val slot = Scheduling.Slot(Instant.fromEpochMilliseconds(at), 60)
         assertTrue(
             "the cancelled lesson stands in nobody's way",
             env.classRepo.conflictsWith(slot).isEmpty(),
@@ -659,7 +670,7 @@ class StudentDetailViewModelTest {
     @Test
     fun `restoring a deleted payment is launched into the application scope`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent()
-        val payment = Payment(studentId = sid, date = Instant.ofEpochMilli(10), amount = Money.ofMajor(50))
+        val payment = Payment(studentId = sid, date = Instant.fromEpochMilliseconds(10), amount = Money.ofMajor(50))
         env.paymentRepo.restore(payment)
         val vm = vm(sid)
         observing(vm.state)
@@ -742,7 +753,7 @@ class StudentDetailViewModelTest {
             val anya = env.fixtures.pricedStudent("Аня", maths)
             val boris = env.fixtures.pricedStudent("Борис", maths)
             val group = env.fixtures.group(name = "9 «Б»", subjectId = maths, members = setOf(anya, boris))
-            val tomorrow = clock.instant().plus(1, ChronoUnit.DAYS)
+            val tomorrow = clock.now().plus(1.days)
             env.fixtures.lesson(maths, listOf(anya, boris), tomorrow, groupId = group)
             env.fixtures.homework(Assignee.Group(group), text = "группы")
             env.fixtures.homework(Assignee.Student(anya), text = "своё", done = true)
@@ -761,7 +772,7 @@ class StudentDetailViewModelTest {
     fun `homework set from the card is the student's, for their next lesson`() = runTest(mainRule.dispatcher) {
         val maths = env.fixtures.subject()
         val anya = env.fixtures.pricedStudent("Аня", maths)
-        val tomorrow = clock.instant().plus(1, ChronoUnit.DAYS)
+        val tomorrow = clock.now().plus(1.days)
         env.fixtures.lesson(maths, listOf(anya), tomorrow)
         val vm = vm(anya)
         observing(vm.state)
@@ -785,7 +796,7 @@ class StudentDetailViewModelTest {
     fun `at midnight the card's homework for tomorrow becomes today's`() = runTest(mainRule.dispatcher) {
         val maths = env.fixtures.subject()
         val anya = env.fixtures.pricedStudent("Аня", maths)
-        env.fixtures.lesson(maths, listOf(anya), clock.instant().plus(1, ChronoUnit.DAYS))
+        env.fixtures.lesson(maths, listOf(anya), clock.now().plus(1.days))
         env.fixtures.homework(Assignee.Student(anya))
         val vm = vm(anya)
         observing(vm.state)
@@ -793,9 +804,9 @@ class StudentDetailViewModelTest {
         assertEquals(HomeworkRules.Due.LATER, vm.state.current.homework.current.single().due)
 
         // 14:30 to a minute past midnight, on both the clock and the scheduler the flow sleeps on.
-        val untilMidnight = Duration.ofHours(9).plusMinutes(31)
-        clock.advanceBy(untilMidnight.toMillis())
-        advanceTimeBy(untilMidnight.toMillis())
+        val untilMidnight = 9.hours + 31.minutes
+        clock.advanceBy(untilMidnight.inWholeMilliseconds)
+        advanceTimeBy(untilMidnight.inWholeMilliseconds)
 
         assertEquals(HomeworkRules.Due.TODAY, vm.state.current.homework.current.single().due)
     }

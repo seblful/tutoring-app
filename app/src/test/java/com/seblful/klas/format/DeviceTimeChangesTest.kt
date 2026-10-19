@@ -3,26 +3,25 @@ package com.seblful.klas.format
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.seblful.klas.di.TimeModule
+import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.ZoneId
-import java.util.TimeZone
 
 @RunWith(RobolectricTestRunner::class)
 class DeviceTimeChangesTest {
     @Test
     fun `an injected clock follows a device zone change without being recreated`() {
-        val previous = TimeZone.getDefault()
+        val previous = java.util.TimeZone.getDefault()
         try {
-            TimeZone.setDefault(TimeZone.getTimeZone("Europe/Minsk"))
+            java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Europe/Minsk"))
             val clock = TimeModule.provideClock(ApplicationProvider.getApplicationContext<Context>())
-            TimeZone.setDefault(TimeZone.getTimeZone("America/New_York"))
+            java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/New_York"))
 
-            assertEquals(ZoneId.of("America/New_York"), clock.zone)
+            assertEquals(TimeZone.of("America/New_York"), clock.zone)
         } finally {
-            TimeZone.setDefault(previous)
+            java.util.TimeZone.setDefault(previous)
         }
     }
 }

@@ -4,7 +4,7 @@ import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.reminders.Digests
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /**
  * Everything the app posts to the notification tray. A port, so what the app *decides* to announce can be

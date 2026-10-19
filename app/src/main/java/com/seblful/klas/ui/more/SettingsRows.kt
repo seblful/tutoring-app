@@ -55,7 +55,8 @@ import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.rememberToggleFeedback
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.common.timeText
-import java.time.DayOfWeek
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.isoDayNumber
 
 /** A row that hands over to the phone's own settings. Decorative, like [OpensScreenMark]. */
 @Composable
@@ -215,7 +216,7 @@ internal fun WeekdayRow(
     val names = stringArrayResource(R.array.weekday_names)
     val selected = Digests.dayOfWeekOf(dayOfWeek)
 
-    ValueRow(title = title, value = names[selected.value - 1], enabled = enabled) { picking = true }
+    ValueRow(title = title, value = names[selected.isoDayNumber - 1], enabled = enabled) { picking = true }
     if (picking) {
         AlertDialog(
             onDismissRequest = { picking = false },
@@ -224,10 +225,10 @@ internal fun WeekdayRow(
                 Column {
                     DayOfWeek.entries.forEach { day ->
                         DialogRadioRow(
-                            label = names[day.value - 1],
+                            label = names[day.isoDayNumber - 1],
                             selected = day == selected,
                             onClick = {
-                                onSet(day.value)
+                                onSet(day.isoDayNumber)
                                 picking = false
                             },
                         )

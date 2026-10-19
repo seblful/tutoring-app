@@ -54,6 +54,7 @@ import com.seblful.klas.di.TimeModule
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.domain.reminders.DigestScheduler
 import com.seblful.klas.domain.reminders.ReminderScheduler
+import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.notifications.DueDigest
 import com.seblful.klas.notifications.DueReminder
 import com.seblful.klas.testutil.FakeCalendarPermission
@@ -67,6 +68,12 @@ import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
 import dagger.hilt.android.testing.UninstallModules
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.toJavaLocalDateTime
+import kotlinx.datetime.toJavaLocalTime
+import kotlinx.datetime.toLocalDateTime
 import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -82,13 +89,11 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowAlarmManager
 import java.io.File
 import java.text.DecimalFormatSymbols
-import java.time.Clock
-import java.time.DayOfWeek
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import java.util.TimeZone
 import javax.imageio.ImageIO
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * The raw phone screenshots for the Play listing: the real app, its real screens, on [DemoTutor]'s data.
@@ -127,7 +132,7 @@ class StoreScreenshots {
 
     @BindValue
     @JvmField
-    val clock: Clock = DemoTutor.CLOCK
+    val clock: WallClock = DemoTutor.CLOCK
 
     @BindValue
     @FirstDayOfWeek
@@ -176,18 +181,18 @@ class StoreScreenshots {
 
     private val shots = mutableListOf<Shot>()
     private lateinit var out: File
-    private val timeZone: TimeZone = TimeZone.getDefault()
+    private val timeZone: java.util.TimeZone = java.util.TimeZone.getDefault()
     private val locale: Locale = Locale.getDefault()
 
     @Before
     fun zone() {
-        TimeZone.setDefault(TimeZone.getTimeZone(DemoTutor.ZONE))
+        java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone(DemoTutor.ZONE.id))
     }
 
     /** Puts back the JVM-wide defaults [shoot] moved, so the next test class sees the machine's own. */
     @After
     fun restoreDefaults() {
-        TimeZone.setDefault(timeZone)
+        java.util.TimeZone.setDefault(timeZone)
         Locale.setDefault(locale)
     }
 
@@ -507,15 +512,15 @@ class StoreScreenshots {
      * app's own words rather than ones written for it.
      */
     private fun recordNotifications() {
-        val now = DemoTutor.NOW.atZone(DemoTutor.ZONE)
+        val now = DemoTutor.NOW
         val reminderAt = runBlocking {
-            val day = now.toLocalDate().atStartOfDay(DemoTutor.ZONE).toInstant()
-            val group = classes.getBetween(day, day.plusSeconds(SECONDS_PER_DAY))
-                .first { it.groupId != null && it.start.isAfter(clock.instant()) }
+            val day = now.date.atStartOfDayIn(DemoTutor.ZONE)
+            val group = classes.getBetween(day, day.plus(SECONDS_PER_DAY.seconds))
+                .first { it.groupId != null && it.start > clock.now() }
             val lead = settings.get().reminderLeadMinutes.toLong()
-            val due = group.start.minusSeconds(lead * SECONDS_PER_MINUTE)
+            val due = group.start.minus((lead * SECONDS_PER_MINUTE).seconds)
             check(dueReminder.post(group.id, due)) { "no reminder" }
-            check(dueDigest.postAgenda(day.plusSeconds(AGENDA_HOUR * SECONDS_PER_HOUR))) { "no agenda" }
+            check(dueDigest.postAgenda(day.plus((AGENDA_HOUR * SECONDS_PER_HOUR).seconds))) { "no agenda" }
             check(dueDigest.postDebts()) { "no debt summary" }
             due
         }
@@ -535,10 +540,10 @@ class StoreScreenshots {
                 """"actions": ${actions.joinToString(", ", "[", "]") { json(it) }} }"""
         }
         // The lock screen reads the moment the reminder arrives.
-        val lockTime = reminderAt.atZone(DemoTutor.ZONE).toLocalTime()
-        val date = now.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", tutor.locale))
+        val lockTime = reminderAt.toLocalDateTime(DemoTutor.ZONE).time
+        val date = now.toJavaLocalDateTime().format(DateTimeFormatter.ofPattern("EEEE, d MMMM", tutor.locale))
             .replaceFirstChar { it.titlecase(tutor.locale) }
-        val clockText = lockTime.format(
+        val clockText = lockTime.toJavaLocalTime().format(
             DateTimeFormatter.ofPattern(if (tutor.locale.language == "en") "h:mm" else "HH:mm", tutor.locale),
         )
         File(out, "notifications.json").writeText(

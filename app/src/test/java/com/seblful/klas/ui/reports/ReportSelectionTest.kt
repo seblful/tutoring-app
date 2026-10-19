@@ -4,13 +4,13 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.reports.ReportPeriod
 import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.ui.common.state.Loadable
+import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
-import java.time.LocalDate
 
 class ReportSelectionTest {
-    private val period = ReportPeriod.currentYear(LocalDate.of(2026, 6, 1))
+    private val period = ReportPeriod.currentYear(LocalDate(2026, 6, 1))
     private val report = Reports.Report(period = period, totalIncome = Money.ofMajor(30))
 
     @Test

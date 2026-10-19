@@ -1,14 +1,22 @@
 package com.seblful.klas.ui.common.state
 
+import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.zones
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
-import java.time.Clock
-import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.nanoseconds
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * Today by this clock — **re-emitted at every local midnight**, not read once.
@@ -25,14 +33,14 @@ import java.time.LocalDate
  * scheduler and "until idle" never arrives — it hangs rather than failing.
  */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-fun Clock.days(): Flow<LocalDate> = zones().flatMapLatest { zone ->
+fun WallClock.days(): Flow<LocalDate> = zones().flatMapLatest { zone ->
     flow {
         while (true) {
-            val today = instant().atZone(zone).toLocalDate()
+            val today = now().toLocalDateTime(zone).date
             emit(today)
-            val midnight = today.plusDays(1).atStartOfDay(zone).toInstant()
+            val midnight = today.plus(1, DateTimeUnit.DAY).atStartOfDayIn(zone)
             // At least a tick, so a clock already past midnight cannot spin on a zero-length sleep.
-            delay(Duration.between(instant(), midnight).toMillis().coerceAtLeast(1))
+            delay((midnight - now()).inWholeMilliseconds.coerceAtLeast(1))
         }
     }
 }
@@ -45,16 +53,16 @@ fun Clock.days(): Flow<LocalDate> = zones().flatMapLatest { zone ->
  * next midnight: the answer changes on a schedule, and it is knowable when. The same rule for tests holds:
  * advance time by a stated amount, never `advanceUntilIdle()`.
  */
-fun Clock.minutes(): Flow<Instant> = flow {
+fun WallClock.minutes(): Flow<Instant> = flow {
     while (true) {
-        val instant = instant()
+        val instant = now()
         emit(instant)
-        val nextMinute = instant.plusSeconds(SECONDS_PER_MINUTE)
-            .minusNanos(instant.nano.toLong())
-            .minusSeconds(instant.epochSecond.mod(SECONDS_PER_MINUTE))
+        val nextMinute = instant.plus(SECONDS_PER_MINUTE.seconds)
+            .minus(instant.nanosecondsOfSecond.nanoseconds)
+            .minus(instant.epochSeconds.mod(SECONDS_PER_MINUTE).seconds)
         // At least a tick: a clock less than a millisecond short of the boundary truncates to a
         // zero-length sleep, and this loop would spin on it.
-        delay(Duration.between(instant, nextMinute).toMillis().coerceAtLeast(1))
+        delay((nextMinute - instant).inWholeMilliseconds.coerceAtLeast(1))
     }
 }
 

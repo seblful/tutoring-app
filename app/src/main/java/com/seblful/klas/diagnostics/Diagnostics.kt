@@ -1,6 +1,6 @@
 package com.seblful.klas.diagnostics
 
-import java.time.Instant
+import kotlin.time.Instant
 
 /**
  * Pure formatting + size-bounding for the on-device crash log. No Android deps, so it's

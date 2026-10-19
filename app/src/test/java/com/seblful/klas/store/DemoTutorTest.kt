@@ -41,9 +41,9 @@ class DemoTutorTest {
     fun `the lesson called off is the day's last one-to-one, still to come`() {
         for (t in tutors) {
             val last = t.lastToday.slotsOn(DemoTutor.TODAY).single()
-            assertTrue(last.startOn(DemoTutor.TODAY).isAfter(DemoTutor.CLOCK.instant()))
+            assertTrue(last.startOn(DemoTutor.TODAY) > DemoTutor.CLOCK.now())
             for (s in t.students) {
-                for (slot in s.slotsOn(DemoTutor.TODAY)) assertFalse(slot.time.isAfter(last.time))
+                for (slot in s.slotsOn(DemoTutor.TODAY)) assertFalse(slot.time > last.time)
             }
         }
         assertEquals("Noah Bennett", DemoTutor.english.lastToday.name)
@@ -53,13 +53,13 @@ class DemoTutorTest {
     fun `the unmarked lesson is over and clashes with nothing that day`() {
         val unmarked = DemoTutor.UNMARKED
         assertEquals(DemoTutor.NOW.dayOfWeek, unmarked.day)
-        assertFalse(unmarked.endOn(DemoTutor.TODAY).isAfter(DemoTutor.CLOCK.instant()))
+        assertFalse(unmarked.endOn(DemoTutor.TODAY) > DemoTutor.CLOCK.now())
         for (t in tutors) {
             assertTrue(t.freeToday.slotsOn(DemoTutor.TODAY).isEmpty())
             val today = (t.students + t.group).flatMap { it.slotsOn(DemoTutor.TODAY) }
             for (slot in today) {
-                val apart = !slot.endOn(DemoTutor.TODAY).isAfter(unmarked.startOn(DemoTutor.TODAY)) ||
-                    !unmarked.endOn(DemoTutor.TODAY).isAfter(slot.startOn(DemoTutor.TODAY))
+                val apart = slot.endOn(DemoTutor.TODAY) <= unmarked.startOn(DemoTutor.TODAY) ||
+                    unmarked.endOn(DemoTutor.TODAY) <= slot.startOn(DemoTutor.TODAY)
                 assertTrue("$slot overlaps the unmarked lesson", apart)
             }
         }
@@ -68,7 +68,7 @@ class DemoTutorTest {
     @Test
     fun `one student owes and another is in credit`() {
         for (t in tutors) {
-            assertTrue(t.debtor.paysUntil!!.isBefore(DemoTutor.TODAY))
+            assertTrue(t.debtor.paysUntil!! < DemoTutor.TODAY)
             assertNotEquals(t.debtor, t.inCredit)
             assertEquals(null, t.inCredit.paysUntil)
         }

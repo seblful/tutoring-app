@@ -1,9 +1,9 @@
 package com.seblful.klas.notifications
 
+import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import java.time.LocalDate
 
 /**
  * Which intents send the tutor somewhere — the rule every tray entry rides in on, and one that has to be
@@ -41,10 +41,10 @@ class TrayNavigationTest {
     /** A digest tapped after midnight is still about the day it was posted for. */
     @Test
     fun `a day entry opens the day it carries`() {
-        val day = LocalDate.of(2026, 9, 24)
+        val day = LocalDate(2026, 9, 24)
         assertEquals(
             TrayNavigation.Destination.Day(day),
-            TrayNavigation.destinationFor(TrayNavigation.ACTION_OPEN_DAY, classId = 0, epochDay = day.toEpochDay()),
+            TrayNavigation.destinationFor(TrayNavigation.ACTION_OPEN_DAY, classId = 0, epochDay = day.toEpochDays()),
         )
     }
 

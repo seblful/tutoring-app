@@ -23,10 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import com.seblful.klas.R
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneOffset
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
 
 /*
  * All three modals in this file confirm with «Готово» (`action_done`), never «Сохранить». A picker
@@ -49,7 +51,7 @@ fun DatePickerModal(
     onDismiss: () -> Unit,
 ) {
     val state = rememberDatePickerState(
-        initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+        initialSelectedDateMillis = initial.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds(),
     )
     DatePickerDialog(
         onDismissRequest = onDismiss,
@@ -57,7 +59,7 @@ fun DatePickerModal(
             TextButton(
                 onClick = {
                     state.selectedDateMillis?.let {
-                        onConfirm(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate())
+                        onConfirm(Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.UTC).date)
                     }
                 },
                 // Clearing the typed date in the picker's text mode leaves nothing to hand back, and a
@@ -97,7 +99,7 @@ fun TimePickerModal(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(onClick = {
-                onConfirm(LocalTime.of(state.hour, state.minute))
+                onConfirm(LocalTime(state.hour, state.minute))
             }) { Text(stringResource(R.string.action_done)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },

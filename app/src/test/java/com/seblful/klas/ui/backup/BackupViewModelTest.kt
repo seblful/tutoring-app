@@ -4,6 +4,7 @@ import com.seblful.klas.data.backup.BackupData
 import com.seblful.klas.data.backup.BackupFailure
 import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.StudentEntity
+import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.testutil.FakeDocumentStore
 import com.seblful.klas.testutil.MainDispatcherRule
@@ -14,6 +15,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -21,9 +24,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Clock
-import java.time.Instant
-import java.time.ZoneId
+import kotlin.time.Instant
 
 /**
  * What the backup screen is told when an export or an import doesn't work.
@@ -55,7 +56,7 @@ class BackupViewModelTest {
         settings = env.settingsRepo,
         // The receipt is a database write, so it outlives the screen — see [BackupViewModel.export].
         appScope = mainRule.appScope,
-        clock = Clock.fixed(exportedAt, ZoneId.of("Europe/Minsk")),
+        clock = WallClock.fixed(exportedAt, TimeZone.of("Europe/Minsk")),
     )
 
     @Test
@@ -207,7 +208,7 @@ class BackupViewModelTest {
 
     @Test
     fun `an export is named for the day it was made`() {
-        assertEquals(java.time.LocalDate.of(2026, 6, 20), vm().exportDay())
+        assertEquals(LocalDate(2026, 6, 20), vm().exportDay())
     }
 
     @Test

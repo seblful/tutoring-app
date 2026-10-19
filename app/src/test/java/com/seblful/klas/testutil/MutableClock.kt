@@ -1,13 +1,14 @@
 package com.seblful.klas.testutil
 
-import java.time.Clock
-import java.time.Instant
-import java.time.ZoneId
+import com.seblful.klas.domain.time.WallClock
+import kotlinx.datetime.TimeZone
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Instant
 
 /**
  * A clock a test moves by hand, for the one piece of code whose job is to watch the date change.
  *
- * A test scheduler's `advanceTimeBy` moves *virtual* coroutine time, which `LocalDate.now()` knows
+ * A test scheduler's `advanceTimeBy` moves *virtual* coroutine time, which the system clock knows
  * nothing about — so a midnight rollover asserted against the system clock can only ever come back as
  * "still today". Moving both together is what makes the boundary an ordinary assertion:
  *
@@ -21,16 +22,12 @@ import java.time.ZoneId
  */
 class MutableClock(
     private var instant: Instant,
-    private val zone: ZoneId = ZoneId.systemDefault(),
-) : Clock() {
+    override val zone: TimeZone = TimeZone.currentSystemDefault(),
+) : WallClock {
 
-    override fun instant(): Instant = instant
-
-    override fun getZone(): ZoneId = zone
-
-    override fun withZone(zone: ZoneId): Clock = MutableClock(instant, zone)
+    override fun now(): Instant = instant
 
     fun advanceBy(millis: Long) {
-        instant = instant.plusMillis(millis)
+        instant = instant.plus(millis.milliseconds)
     }
 }

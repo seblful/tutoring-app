@@ -3,17 +3,18 @@ package com.seblful.klas.format
 import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.AppLocaleRule
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.YearMonth
+import kotlinx.datetime.number
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import java.time.DayOfWeek
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.YearMonth
+import kotlin.time.Instant
 
 /**
  * Covers the month-key encoding and the amount-input formatter not pinned elsewhere.
@@ -34,8 +35,8 @@ class FormattersTest {
     @Test
     fun `month key is decoded with the encoding used by Reports`() {
         // Reports encodes as year * 12 + (monthValue - 1); decoding must invert it.
-        val date = LocalDate.of(2026, 6, 1)
-        val key = date.year * 12 + (date.monthValue - 1)
+        val date = LocalDate(2026, 6, 1)
+        val key = date.year * 12 + (date.month.number - 1)
         assertEquals("Июнь", formatMonthName(key))
         assertEquals("Январь", formatMonthName(keyOf(2027, 1)))
         assertEquals("Декабрь", formatMonthName(keyOf(2026, 12)))
@@ -43,12 +44,12 @@ class FormattersTest {
 
     @Test
     fun `formatMonth labels a month with its year, capitalised`() {
-        val june = formatMonth(YearMonth.of(2026, 6))
+        val june = formatMonth(YearMonth(2026, 6))
 
         assertTrue("carries the year", june.contains("2026"))
         assertTrue("capitalised", june.first().isUpperCase())
-        assertNotEquals(june, formatMonth(YearMonth.of(2026, 7)))
-        assertNotEquals("the year is part of the label", june, formatMonth(YearMonth.of(2027, 6)))
+        assertNotEquals(june, formatMonth(YearMonth(2026, 7)))
+        assertNotEquals("the year is part of the label", june, formatMonth(YearMonth(2027, 6)))
     }
 
     @Test
@@ -62,21 +63,21 @@ class FormattersTest {
 
     @Test
     fun `a week inside one month names the month once`() {
-        val label = formatWeekRange(LocalDate.of(2026, 7, 6), LocalDate.of(2026, 7, 12))
+        val label = formatWeekRange(LocalDate(2026, 7, 6), LocalDate(2026, 7, 12))
 
         assertEquals("6 – 12 июля", label)
     }
 
     @Test
     fun `a week crossing a month names both months but no year`() {
-        val label = formatWeekRange(LocalDate.of(2026, 6, 29), LocalDate.of(2026, 7, 5))
+        val label = formatWeekRange(LocalDate(2026, 6, 29), LocalDate(2026, 7, 5))
 
         assertEquals("29 июня – 5 июля", label)
     }
 
     @Test
     fun `a week crossing a year carries both years`() {
-        val label = formatWeekRange(LocalDate.of(2026, 12, 28), LocalDate.of(2027, 1, 3))
+        val label = formatWeekRange(LocalDate(2026, 12, 28), LocalDate(2027, 1, 3))
 
         assertTrue("names the old year", label.contains("2026"))
         assertTrue("names the new year", label.contains("2027"))
@@ -86,8 +87,8 @@ class FormattersTest {
     fun `every week range stays short enough for the navigator`() {
         // Worst case is a week spanning the two longest month names, or a year boundary.
         val worst = listOf(
-            LocalDate.of(2026, 9, 28) to LocalDate.of(2026, 10, 4),
-            LocalDate.of(2026, 12, 28) to LocalDate.of(2027, 1, 3),
+            LocalDate(2026, 9, 28) to LocalDate(2026, 10, 4),
+            LocalDate(2026, 12, 28) to LocalDate(2027, 1, 3),
         )
         worst.forEach { (start, end) ->
             val label = formatWeekRange(start, end)
@@ -98,9 +99,9 @@ class FormattersTest {
     /** The face a 24-hour phone gets, and the one a report keeps: zero-padded, no marker. */
     @Test
     fun `the 24-hour clock is zero-padded and markerless`() {
-        assertEquals("21:00", LocalTime.of(21, 0).formatTime(hour12 = false))
-        assertEquals("09:05", LocalTime.of(9, 5).formatTime(hour12 = false))
-        assertEquals("00:30", LocalTime.of(0, 30).formatTime(hour12 = false))
+        assertEquals("21:00", LocalTime(21, 0).formatTime(hour12 = false))
+        assertEquals("09:05", LocalTime(9, 5).formatTime(hour12 = false))
+        assertEquals("00:30", LocalTime(0, 30).formatTime(hour12 = false))
     }
 
     /**
@@ -112,11 +113,11 @@ class FormattersTest {
      */
     @Test
     fun `the 12-hour clock names the half of the day, midnight and noon included`() {
-        assertEquals("9:00 PM", LocalTime.of(21, 0).formatTime(hour12 = true))
-        assertEquals("9:05 AM", LocalTime.of(9, 5).formatTime(hour12 = true))
-        assertEquals("12:00 AM", LocalTime.MIDNIGHT.formatTime(hour12 = true))
-        assertEquals("12:30 PM", LocalTime.of(12, 30).formatTime(hour12 = true))
-        assertEquals("11:59 PM", LocalTime.of(23, 59).formatTime(hour12 = true))
+        assertEquals("9:00 PM", LocalTime(21, 0).formatTime(hour12 = true))
+        assertEquals("9:05 AM", LocalTime(9, 5).formatTime(hour12 = true))
+        assertEquals("12:00 AM", LocalTime(0, 0).formatTime(hour12 = true))
+        assertEquals("12:30 PM", LocalTime(12, 30).formatTime(hour12 = true))
+        assertEquals("11:59 PM", LocalTime(23, 59).formatTime(hour12 = true))
     }
 
     /** The date-and-time label carries the marker through — a group's lesson list prints this one. */

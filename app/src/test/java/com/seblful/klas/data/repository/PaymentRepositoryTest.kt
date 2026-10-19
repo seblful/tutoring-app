@@ -2,19 +2,24 @@ package com.seblful.klas.data.repository
 
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.testutil.MutableClock
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.atTime
+import kotlinx.datetime.toInstant
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * That a payment's instant is derived by the module that writes it.
@@ -27,9 +32,9 @@ import java.time.ZoneId
 @RunWith(RobolectricTestRunner::class)
 class PaymentRepositoryTest {
 
-    private val zone: ZoneId = ZoneId.of("Europe/Minsk")
-    private val today: LocalDate = LocalDate.of(2026, 5, 17)
-    private val afternoon: Instant = today.atTime(14, 30).atZone(zone).toInstant()
+    private val zone: TimeZone = TimeZone.of("Europe/Minsk")
+    private val today: LocalDate = LocalDate(2026, 5, 17)
+    private val afternoon: Instant = today.atTime(14, 30).toInstant(zone)
     private val clock = MutableClock(afternoon, zone)
 
     @get:Rule
@@ -56,12 +61,12 @@ class PaymentRepositoryTest {
     @Test
     fun `a payment recorded for another day lands at the start of it`() = runTest {
         val sid = student()
-        val tuesday = LocalDate.of(2026, 5, 12)
+        val tuesday = LocalDate(2026, 5, 12)
 
         payments.record(sid, Money.ofMajor(40), tuesday)
 
         assertEquals(
-            tuesday.atStartOfDay(zone).toInstant(),
+            tuesday.atStartOfDayIn(zone),
             payments.observeForStudent(sid).first().single().date,
         )
     }
@@ -77,7 +82,7 @@ class PaymentRepositoryTest {
 
         payments.record(sid, Money.ofMajor(40), today)
 
-        assertEquals(afternoon.plusSeconds(3_600), payments.observeForStudent(sid).first().single().date)
+        assertEquals(afternoon.plus((3_600).seconds), payments.observeForStudent(sid).first().single().date)
     }
 
     @Test
@@ -85,14 +90,14 @@ class PaymentRepositoryTest {
         val sid = student()
         payments.record(sid, Money.ofMajor(40), today)
         val original = payments.observeForStudent(sid).first().single()
-        val tuesday = LocalDate.of(2026, 5, 12)
+        val tuesday = LocalDate(2026, 5, 12)
 
         payments.correct(original, Money.ofMajor(45), tuesday)
 
         val corrected = payments.observeForStudent(sid).first().single()
         assertEquals("the same money, not a new row", original.id, corrected.id)
         assertEquals(Money.ofMajor(45), corrected.amount)
-        assertEquals(tuesday.atStartOfDay(zone).toInstant(), corrected.date)
+        assertEquals(tuesday.atStartOfDayIn(zone), corrected.date)
     }
 
     /**

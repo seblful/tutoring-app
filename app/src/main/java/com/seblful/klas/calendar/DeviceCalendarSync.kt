@@ -10,7 +10,7 @@ import com.seblful.klas.format.labelRes
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.time.ZoneId
+import kotlinx.datetime.TimeZone
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -181,9 +181,9 @@ class DeviceCalendarSync @Inject constructor(
     private fun eventValues(klass: TutoringClass, title: String, calendarId: Long) = ContentValues().apply {
         put(CalendarContract.Events.CALENDAR_ID, calendarId)
         put(CalendarContract.Events.TITLE, title)
-        put(CalendarContract.Events.DTSTART, klass.start.toEpochMilli())
-        put(CalendarContract.Events.DTEND, klass.end.toEpochMilli())
-        put(CalendarContract.Events.EVENT_TIMEZONE, ZoneId.systemDefault().id)
+        put(CalendarContract.Events.DTSTART, klass.start.toEpochMilliseconds())
+        put(CalendarContract.Events.DTEND, klass.end.toEpochMilliseconds())
+        put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.currentSystemDefault().id)
         // **Written every time, although it is always empty** — see `CalendarEvent.DESCRIPTION`. Leaving
         // it out would leave the note or the homework an older build wrote standing on the event, in
         // front of an invited student, with nothing in the app to say it is there.

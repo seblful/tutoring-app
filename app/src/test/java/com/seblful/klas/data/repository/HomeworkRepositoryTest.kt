@@ -12,7 +12,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * [HomeworkRepository]: what a write stores and what it leaves alone, the reads that pair homework with
@@ -27,7 +28,7 @@ class HomeworkRepositoryTest {
     private val fixtures = env.fixtures
 
     // The environment's clock reads 2026-06-01T12:00Z.
-    private val now: Instant = env.clock.instant()
+    private val now: Instant = env.clock.now()
     private val tomorrow: Instant = Instant.parse("2026-06-02T12:00:00Z")
     private val nextWeek: Instant = Instant.parse("2026-06-08T12:00:00Z")
 
@@ -49,7 +50,7 @@ class HomeworkRepositoryTest {
     fun `homework given now is attached to the next lesson from now`() = runTest {
         val maths = fixtures.subject()
         val anya = fixtures.pricedStudent("Аня", maths)
-        fixtures.lesson(maths, listOf(anya), now.minusSeconds(86_400))
+        fixtures.lesson(maths, listOf(anya), now.minus((86_400).seconds))
         fixtures.lesson(maths, listOf(anya), nextWeek)
         val next = fixtures.lesson(maths, listOf(anya), tomorrow).single()
         repo.give(Assignee.Student(anya), "§ 12")
@@ -69,7 +70,7 @@ class HomeworkRepositoryTest {
         val maths = fixtures.subject()
         val anya = fixtures.pricedStudent("Аня", maths)
         val march = Instant.parse("2026-03-02T12:00:00Z")
-        val lessonInMarch = fixtures.lesson(maths, listOf(anya), march.plusSeconds(86_400)).single()
+        val lessonInMarch = fixtures.lesson(maths, listOf(anya), march.plus((86_400).seconds)).single()
         fixtures.homework(Assignee.Student(anya), at = march)
 
         val loaded = repo.observeWithLessons(since = now).first()
@@ -109,7 +110,7 @@ class HomeworkRepositoryTest {
     @Test
     fun `done is stamped now, and current again clears it`() = runTest {
         val anya = fixtures.student("Аня")
-        val given = fixtures.homework(Assignee.Student(anya), at = now.minusSeconds(86_400))
+        val given = fixtures.homework(Assignee.Student(anya), at = now.minus((86_400).seconds))
 
         repo.setDone(given, done = true)
         assertEquals(now, repo.observeAll().first().single().doneAt)
@@ -188,7 +189,7 @@ class HomeworkRepositoryTest {
     @Test
     fun `putting a swipe back restores when it was done`() = runTest {
         val anya = fixtures.student("Аня")
-        val lastWeek = now.minusSeconds(7 * 86_400)
+        val lastWeek = now.minus((7 * 86_400).seconds)
         val done = fixtures.homework(Assignee.Student(anya), at = lastWeek, done = true)
         repo.setDone(done, done = false)
 
@@ -224,7 +225,7 @@ class HomeworkRepositoryTest {
         val maths = fixtures.subject()
         val anya = fixtures.pricedStudent("Аня", maths)
         val march = Instant.parse("2026-03-02T12:00:00Z")
-        val inMarch = fixtures.lesson(maths, listOf(anya), march.plusSeconds(86_400)).single()
+        val inMarch = fixtures.lesson(maths, listOf(anya), march.plus((86_400).seconds)).single()
         fixtures.lesson(maths, listOf(anya), tomorrow)
         val old = fixtures.homework(Assignee.Student(anya), at = march, done = true)
         repo.observeWithLessons(since = now).first()

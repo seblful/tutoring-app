@@ -22,10 +22,11 @@ import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.schedule.Scheduling
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.time.Duration
-import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Instant
 
 /**
  * What a lesson write settled on: [Written], carrying what the caller asked for, or [HourTaken] —
@@ -114,7 +115,8 @@ class ClassRepository @Inject constructor(
         dao.observeForGroup(groupId).map { list -> list.map { it.toDomain() } }
 
     fun observeBetween(from: Instant, to: Instant): Flow<List<TutoringClass>> =
-        dao.observeBetween(from.toEpochMilli(), to.toEpochMilli()).map { list -> list.map { it.toDomain() } }
+        dao.observeBetween(from.toEpochMilliseconds(), to.toEpochMilliseconds())
+            .map { list -> list.map { it.toDomain() } }
 
     /**
      * The lessons already occupying [slot] — [Scheduling.conflicts] over the classes around it — so a
@@ -186,11 +188,12 @@ class ClassRepository @Inject constructor(
      * filter — and this keeps the boundary lesson in it.
      */
     suspend fun notEndedWithin(now: Instant, horizon: Duration): List<TutoringClass> =
-        dao.notEndedBefore(now.toEpochMilli(), now.plus(horizon).plusMillis(1).toEpochMilli()).map { it.toDomain() }
+        dao.notEndedBefore(now.toEpochMilliseconds(), (now + horizon + 1.milliseconds).toEpochMilliseconds())
+            .map { it.toDomain() }
 
     /** The classes starting in [[from], [to]) — the upper bound excluded, as [ClassDao.getBetween]'s. */
     suspend fun getBetween(from: Instant, to: Instant): List<TutoringClass> =
-        dao.getBetween(from.toEpochMilli(), to.toEpochMilli()).map { it.toDomain() }
+        dao.getBetween(from.toEpochMilliseconds(), to.toEpochMilliseconds()).map { it.toDomain() }
 
     suspend fun getById(id: Long): TutoringClass? = dao.getById(id)?.toDomain()
 
@@ -673,7 +676,7 @@ class ClassRepository @Inject constructor(
     }
 
     suspend fun nextScheduledAfter(now: Instant): TutoringClass? =
-        dao.nextScheduledAfter(now.toEpochMilli())?.toDomain()
+        dao.nextScheduledAfter(now.toEpochMilliseconds())?.toDomain()
 
     /**
      * How many **lessons** are waiting to be auto-completed at [now] — what [autoCompleteDue] would
@@ -686,7 +689,7 @@ class ClassRepository @Inject constructor(
      * Lessons, not classes: a group's finished hour is one lesson to confirm, not one per member.
      */
     suspend fun countDueForCompletion(now: Instant): Int =
-        lessons.dueForCompletion(now.toEpochMilli()).size
+        lessons.dueForCompletion(now.toEpochMilliseconds()).size
 
     /**
      * Auto-completes every scheduled class whose end time has passed, billing its booked price.
@@ -702,13 +705,13 @@ class ClassRepository @Inject constructor(
         // Asked of the lessons, then read back as classes: a lesson is what finishes, and its members are
         // who it bills. `dueForCompletion` used to return a row per member of the same finished hour.
         // The cheap question first, outside a transaction, so a pass with nothing due opens none.
-        if (lessons.dueForCompletion(now.toEpochMilli()).isEmpty()) return emptyList()
+        if (lessons.dueForCompletion(now.toEpochMilliseconds()).isEmpty()) return emptyList()
         // One pass, one transaction: an upkeep run that recognized half of an evening's income and
         // then failed would leave a group lesson billing some of its members and not the rest. The rows
         // are read inside it, so a lesson cancelled or re-priced since the question was asked is written
         // from what it is now, not from what it was.
         return write(refreshesReminders = false) {
-            val due = lessons.dueForCompletion(now.toEpochMilli()).map { it.id }
+            val due = lessons.dueForCompletion(now.toEpochMilliseconds()).map { it.id }
                 .flatMap { lessonId -> dao.getSession(lessonId).map { it.toDomain() } }
                 .filter { ClassRules.shouldAutoComplete(it, now) }
                 .map { ClassRules.applyStatus(it, LessonStatus.COMPLETED) }

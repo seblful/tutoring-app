@@ -30,7 +30,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /** Criterion 1: a class whose end has passed auto-completes and adds its then-current price to debt. */
 @RunWith(AndroidJUnit4::class)
@@ -77,12 +78,12 @@ class AutoCompleteTest {
         db.snapshotDao().insert(
             DatabaseSnapshot(
                 lessons = listOf(
-                    LessonEntity(1, 1, start.toEpochMilli(), 60, LessonStatus.SCHEDULED),
+                    LessonEntity(1, 1, start.toEpochMilliseconds(), 60, LessonStatus.SCHEDULED),
                 ),
                 attendance = listOf(AttendanceEntity(1, 1, 1, Attended.EXPECTED, priceMinor = 5000)),
             ),
         )
-        val now = start.plusSeconds(2 * 3600)
+        val now = start.plus((2 * 3600).seconds)
 
         val completed = repo.autoCompleteDue(now)
 

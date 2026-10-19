@@ -10,6 +10,8 @@ import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.reports.ReportCsv
 import com.seblful.klas.domain.reports.ReportPeriod
 import com.seblful.klas.domain.reports.Reports
+import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.AppLocale
 import com.seblful.klas.testutil.CountingDispatcher
 import com.seblful.klas.testutil.FakeDocumentStore
@@ -26,6 +28,11 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.number
+import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -33,14 +40,13 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Clock
-import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 /**
- * **Never `advanceUntilIdle()` here**: the report's "today" is `Clock.days()`, which sleeps until the next
+ * **Never `advanceUntilIdle()` here**: the report's "today" is `WallClock.days()`, which sleeps until the next
  * midnight in a loop, so the scheduler is never idle. `runCurrent()` settles the reads, and time is
  * advanced by stated amounts.
  */
@@ -53,19 +59,19 @@ class ReportsViewModelTest {
 
     @get:Rule
     val env = TestEnv()
-    private val zone: ZoneId = ZoneId.of("Europe/Minsk")
+    private val zone: TimeZone = TimeZone.of("Europe/Minsk")
 
     /**
-     * **The clock is pinned, not read.** The view model takes a [Clock] now, so the year the screen opens
-     * on is a fact of this test rather than of the day it runs. It used to read `ZoneId.systemDefault()`
+     * **The clock is pinned, not read.** The view model takes a [WallClock] now, so the year the screen opens
+     * on is a fact of this test rather than of the day it runs. It used to read `TimeZone.currentSystemDefault()`
      * and `LocalDate.now()` itself, which forced everything here to be relative to *today*: fixtures
      * anchored to the current year, a shift computed from the current month, and — worst — the opening
      * period asserted by re-evaluating the production expression, an assertion that could not fail.
      */
-    private val clock: Clock = Clock.fixed(Instant.parse("2026-06-15T09:00:00Z"), zone)
+    private val clock: WallClock = WallClock.fixed(Instant.parse("2026-06-15T09:00:00Z"), zone)
 
     /** The year the screen opens on, from the pinned clock. Mid-June, so there are months either side. */
-    private val thisYear = LocalDate.now(clock).year
+    private val thisYear = clock.today().year
 
     /** The report's CSV export writes here; the report assertions below never touch it. */
     private val documents = FakeDocumentStore()
@@ -81,7 +87,7 @@ class ReportsViewModelTest {
 
     /** Local midnight on a date, as the millis a class entity stores. */
     private fun at(year: Int, month: Int, day: Int = 10): Long =
-        LocalDate.of(year, month, day).atStartOfDay(zone).toInstant().toEpochMilli()
+        LocalDate(year, month, day).atStartOfDayIn(zone).toEpochMilliseconds()
 
     private suspend fun completed(
         studentId: Long,
@@ -118,7 +124,7 @@ class ReportsViewModelTest {
         runCurrent()
         assertEquals("1–15 June against 1–15 May", Reports.Change.Percent(0), vm.state.current.change)
 
-        val twoHours = Duration.ofHours(2).toMillis()
+        val twoHours = 2.hours.inWholeMilliseconds
         lateEvening.advanceBy(twoHours)
         advanceTimeBy(twoHours)
         runCurrent()
@@ -132,9 +138,9 @@ class ReportsViewModelTest {
         observing(vm.state)
         runCurrent()
 
-        // A literal, not `ReportPeriod.currentYear(LocalDate.now(zone))`: asserting the opening period by
+        // A literal, not `ReportPeriod.currentYear(Clock.System.todayIn(zone))`: asserting the opening period by
         // re-running the production expression is an assertion that holds whatever the expression says.
-        assertEquals(ReportPeriod.currentYear(LocalDate.of(2026, 6, 15)), vm.state.current.period)
+        assertEquals(ReportPeriod.currentYear(LocalDate(2026, 6, 15)), vm.state.current.period)
         assertEquals(2026, vm.state.current.period.anchor.year)
         assertEquals(ReportPeriod.Kind.YEAR, vm.period.value.kind)
     }
@@ -174,7 +180,7 @@ class ReportsViewModelTest {
      */
     @Test
     fun `a report opening in January does not count last December`() = runTest(mainRule.dispatcher) {
-        val newYear = Clock.fixed(Instant.parse("2027-01-05T09:00:00Z"), zone)
+        val newYear = WallClock.fixed(Instant.parse("2027-01-05T09:00:00Z"), zone)
         val subj = env.fixtures.subject("Математика")
         val sid = env.fixtures.pricedStudent("Аня", subj)
         completed(sid, subj, at(2026, 12, 28), 90)
@@ -195,7 +201,7 @@ class ReportsViewModelTest {
         vm.shift(-1)
         runCurrent()
 
-        assertEquals(12, vm.state.current.period.anchor.monthValue)
+        assertEquals(12, vm.state.current.period.anchor.month.number)
         assertEquals(2026, vm.state.current.period.anchor.year)
         assertEquals(Money.ofMajor(90), vm.state.current.totalIncome)
     }
@@ -217,7 +223,7 @@ class ReportsViewModelTest {
         vm.shift(-1)
         runCurrent()
 
-        assertEquals(5, vm.state.current.period.anchor.monthValue)
+        assertEquals(5, vm.state.current.period.anchor.month.number)
         assertEquals(Money.ofMajor(40), vm.state.current.totalIncome)
     }
 
@@ -228,7 +234,7 @@ class ReportsViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         completed(sid, subj, at(thisYear - 2, 4), 200) // billed long ago, never paid
         completed(sid, subj, at(thisYear, 4), 50)
-        env.paymentRepo.restore(Payment(studentId = sid, date = Instant.ofEpochMilli(at(thisYear, 4)), amount = Money.ofMajor(50)))
+        env.paymentRepo.restore(Payment(studentId = sid, date = Instant.fromEpochMilliseconds(at(thisYear, 4)), amount = Money.ofMajor(50)))
 
         val vm = vm()
         observing(vm.state)
@@ -339,7 +345,7 @@ class ReportsViewModelTest {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         completed(sid, subj, at(thisYear, 3), 30)
-        env.paymentRepo.restore(Payment(studentId = sid, date = Instant.ofEpochMilli(at(thisYear, 3)), amount = Money.ofMajor(30)))
+        env.paymentRepo.restore(Payment(studentId = sid, date = Instant.fromEpochMilliseconds(at(thisYear, 3)), amount = Money.ofMajor(30)))
 
         val vm = vm()
         observing(vm.state)

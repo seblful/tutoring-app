@@ -17,7 +17,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 @RunWith(RobolectricTestRunner::class)
 class CalendarWriteRaceTest {
@@ -57,7 +58,7 @@ class CalendarWriteRaceTest {
         }
         entered.await()
         try {
-            env.classRepo.autoCompleteDue(start.plusSeconds(7200))
+            env.classRepo.autoCompleteDue(start.plus(7200.seconds))
         } finally {
             release.complete(Unit)
         }

@@ -1,6 +1,6 @@
 package com.seblful.klas.notifications
 
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /**
  * Where a tap in the notification tray puts the tutor — **one rule for every notification the app posts.**
@@ -37,7 +37,7 @@ object TrayNavigation {
     const val ACTION_OPEN_DAY = "com.seblful.klas.action.OPEN_DAY"
     const val ACTION_SHOW_LESSON = "com.seblful.klas.action.SHOW_LESSON"
 
-    /** The day an [ACTION_OPEN_DAY] entry is about, as `LocalDate.toEpochDay()`. */
+    /** The day an [ACTION_OPEN_DAY] entry is about, as `LocalDate.toEpochDays()`. */
     const val EXTRA_DAY = "day"
 
     /**
@@ -125,8 +125,8 @@ object TrayNavigation {
         ACTION_OPEN_DEBTS -> Destination.Debts
         ACTION_OPEN_TODAY -> Destination.Today
         ACTION_OPEN_DAY -> epochDay
-            ?.takeIf { it in LocalDate.MIN.toEpochDay()..LocalDate.MAX.toEpochDay() }
-            ?.let { Destination.Day(LocalDate.ofEpochDay(it)) }
+            ?.let { runCatching { LocalDate.fromEpochDays(it) }.getOrNull() }
+            ?.let { Destination.Day(it) }
             ?: Destination.Today
         else -> null
     }

@@ -51,14 +51,15 @@ jobs:
 
       # No local.properties here (it is gitignored, holding a machine-specific SDK path); the runner
       # exports ANDROID_HOME, which Gradle falls back to.
-      # :domain is plain Kotlin/JVM, so its suite is `test`, not a per-variant `testDebugUnitTest`.
+      # :domain is Kotlin Multiplatform, so its suite is the JVM target's `jvmTest`, not a per-variant
+      # `testDebugUnitTest`; compiling it also checks its shared code against the common standard library.
       # verifyRoborazziDebug *is* testDebugUnitTest, run with screenshot comparison switched on: the
       # whole unit suite plus every @Preview compared with its golden in app/src/test/screenshots. One
       # run rather than two, since a plain testDebugUnitTest would draw the same previews and compare
       # nothing. Goldens are recorded on Windows and checked here on Linux, which is what the small
       # tolerance in KlasPreviewTester is for — see docs/testing.md.
       - name: Unit and screenshot tests
-        run: ./gradlew :domain:test :app:verifyRoborazziDebug --stacktrace
+        run: ./gradlew :domain:jvmTest :app:verifyRoborazziDebug --stacktrace
 
       # What a failed screenshot looks like: `*_compare.png` (golden | diff | new) and `*_actual.png`
       # beside it, plus Roborazzi's HTML report. The actual images are also how a golden that only

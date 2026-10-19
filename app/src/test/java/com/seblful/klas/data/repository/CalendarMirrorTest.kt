@@ -3,11 +3,11 @@ package com.seblful.klas.data.repository
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
-import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -17,7 +17,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
+import kotlin.time.Instant
 
 /**
  * What a mirrored event *shows*, and every table that decides it.

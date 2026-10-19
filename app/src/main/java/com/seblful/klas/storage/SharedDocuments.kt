@@ -1,16 +1,21 @@
 package com.seblful.klas.storage
 
+import com.seblful.klas.domain.time.WallClock
+import kotlinx.datetime.TimeZone
 import java.io.File
-import java.time.Clock
-import java.time.Duration
 import java.util.UUID
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 
 /** Files lent through FileProvider; kept separate so their lifetime can be tested without a provider. */
-internal class SharedDocuments(private val directory: File, private val clock: Clock = Clock.systemUTC()) {
+internal class SharedDocuments(
+    private val directory: File,
+    private val clock: WallClock = WallClock.system(TimeZone.UTC),
+) {
     fun write(filename: String, text: String): File {
         require(filename == File(filename).name) { "A share filename may not contain a path" }
         directory.mkdirs()
-        val expiredBefore = clock.millis() - RETENTION.toMillis()
+        val expiredBefore = clock.now().toEpochMilliseconds() - RETENTION.inWholeMilliseconds
         directory.listFiles()?.filter { it.lastModified() < expiredBefore }?.forEach { it.deleteRecursively() }
         // URI grants can outlive the chooser. Never reuse a path while an earlier recipient may read it.
         val share = File(directory, UUID.randomUUID().toString()).apply { check(mkdir()) }
@@ -18,6 +23,6 @@ internal class SharedDocuments(private val directory: File, private val clock: C
     }
 
     private companion object {
-        val RETENTION: Duration = Duration.ofDays(7)
+        val RETENTION: Duration = 7.days
     }
 }

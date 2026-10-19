@@ -2,8 +2,8 @@ package com.seblful.klas.data.repository
 
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
-import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.test.runTest
@@ -13,7 +13,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
+import kotlin.time.Instant
 
 /**
  * The other two invariant owners write in **one transaction** each, for the same reason

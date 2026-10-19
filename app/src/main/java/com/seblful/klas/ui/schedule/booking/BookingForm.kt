@@ -5,8 +5,8 @@ import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.format.MoneyField
-import java.time.LocalTime
-import java.time.temporal.ChronoUnit
+import kotlinx.datetime.LocalTime
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Matches `AppSettings.defaultLessonMinutes`, for the window before settings have loaded.
@@ -375,8 +375,7 @@ data class BookingForm(
      */
     fun startPickerDefault(now: LocalTime): LocalTime {
         form.timeFrom?.let { return it }
-        val onTheHour = now.truncatedTo(ChronoUnit.HOURS)
-        return if (now.minute == 0) onTheHour else onTheHour.plusHours(1)
+        return if (now.minute == 0) LocalTime(now.hour, 0) else LocalTime((now.hour + 1) % HOURS_IN_DAY, 0)
     }
 
     /**
@@ -395,3 +394,5 @@ data class BookingForm(
 
 /** [this], applied as setup rather than as the tutor's edit — see [BookingIntent.AsSetup]. */
 fun BookingIntent.asSetup(): BookingIntent = BookingIntent.AsSetup(this)
+
+private const val HOURS_IN_DAY = 24

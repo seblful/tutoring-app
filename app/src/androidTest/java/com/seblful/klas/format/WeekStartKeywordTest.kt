@@ -2,10 +2,11 @@ package com.seblful.klas.format
 
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.toKotlinDayOfWeek
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
-import java.time.DayOfWeek
 import java.time.temporal.WeekFields
 import java.util.Locale
 
@@ -38,7 +39,7 @@ class WeekStartKeywordTest {
     val hilt = HiltAndroidRule(this)
 
     private fun weekStartOf(tag: String): DayOfWeek =
-        WeekFields.of(Locale.forLanguageTag(tag)).firstDayOfWeek
+        WeekFields.of(Locale.forLanguageTag(tag)).firstDayOfWeek.toKotlinDayOfWeek()
 
     @Test
     fun weekFieldsIgnoresTheFirstDayOfWeekKeyword() {

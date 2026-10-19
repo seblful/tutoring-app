@@ -6,25 +6,25 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
-import com.seblful.klas.testutil.RussianMinskPhone
 import com.seblful.klas.data.local.AppDatabase
-import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.AttendanceEntity
-import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.DatabaseSnapshot
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.PriceEntity
+import com.seblful.klas.data.local.RoomTransactor
 import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.data.repository.CalendarMirror
 import com.seblful.klas.data.repository.ClassRepository
 import com.seblful.klas.data.repository.SettingsRepository
-import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
-import kotlinx.coroutines.test.runTest
+import com.seblful.klas.testutil.RecordingReminderScheduler
+import com.seblful.klas.testutil.RussianMinskPhone
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -33,7 +33,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.time.Instant
+import kotlin.time.Instant
 
 /**
  * The restore path as a whole: replacing the data also ends first run (so a tutor restoring onto a
@@ -103,7 +103,7 @@ class BackupRestoreTest {
                 prices = listOf(PriceEntity(1, 1, amountMinor = 5000)),
                 lessons = listOf(
                     LessonEntity(
-                        1, 1, Instant.parse("2026-06-18T10:00:00Z").toEpochMilli(), 60,
+                        1, 1, Instant.parse("2026-06-18T10:00:00Z").toEpochMilliseconds(), 60,
                         status = LessonStatus.SCHEDULED,
                     ),
                 ),

@@ -6,8 +6,6 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
-import com.seblful.klas.testutil.RussianMinskPhone
-import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.RoomTransactor
@@ -17,9 +15,11 @@ import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
-import kotlinx.coroutines.test.runTest
+import com.seblful.klas.testutil.RecordingReminderScheduler
+import com.seblful.klas.testutil.RussianMinskPhone
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -28,7 +28,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.time.Instant
+import kotlin.time.Instant
 
 /** Verifies that class mutations mirror into the calendar (criterion 5: move updates the event). */
 @RunWith(AndroidJUnit4::class)

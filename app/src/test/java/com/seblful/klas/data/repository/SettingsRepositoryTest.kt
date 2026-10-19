@@ -1,10 +1,10 @@
 package com.seblful.klas.data.repository
 
+import com.seblful.klas.data.local.SettingsDao
+import com.seblful.klas.data.local.SettingsEntity
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
-import com.seblful.klas.data.local.SettingsDao
-import com.seblful.klas.data.local.SettingsEntity
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.format.AppLocale
 import com.seblful.klas.testutil.AppLocaleRule
@@ -18,15 +18,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
 import java.util.Locale
+import kotlin.time.Instant
 
 /**
  * The settings row. Previously untested — its eleven setters were each too small to look worth it,

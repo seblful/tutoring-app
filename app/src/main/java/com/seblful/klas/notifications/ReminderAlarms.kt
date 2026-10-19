@@ -80,7 +80,7 @@ class ReminderAlarms @Inject constructor(
             // setting it a second time is the reminder arriving twice — or, the instant being behind us,
             // arriving on the spot.
             if (plan.due) return@forEach
-            val at = plan.fireAt.toEpochMilli()
+            val at = plan.fireAt.toEpochMilliseconds()
             // The one decision here, and it is read from the port rather than answered privately.
             if (exactAlarms.isGranted()) alarms.setExact(plan.classId, at) else alarms.setInexact(plan.classId, at)
         }

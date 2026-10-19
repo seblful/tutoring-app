@@ -8,14 +8,16 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.format.AppLocale
+import com.seblful.klas.format.localeFor
+import com.seblful.klas.format.regionCurrencies
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.time.Instant
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Instant
 
 /** App settings. A missing row maps to defaults. */
 data class AppSettings(
@@ -267,7 +269,7 @@ class SettingsRepository @Inject constructor(
         // chose the app's oldest currency: the phone names one, so that is what their money is captioned
         // with until they say otherwise, and the first settings write persists it. The `AppSettings`
         // defaults state the shape of the row; this states what an unwritten one means on *this* device.
-        if (this == null) AppSettings(currency = Currency.preferredFor(deviceLocales))
+        if (this == null) AppSettings(currency = Currency.preferredFor(deviceLocales.regionCurrencies()))
         else AppSettings(
             notificationsEnabled = notificationsEnabled,
             calendarSyncEnabled = calendarSyncEnabled,
@@ -290,7 +292,7 @@ class SettingsRepository @Inject constructor(
             defaultGroupPrice = Money(defaultGroupPriceMinor).takeIf { defaultGroupPriceMinor != 0L },
             currency = currency,
             language = language,
-            lastExportAt = lastExportMillis?.let(Instant::ofEpochMilli),
+            lastExportAt = lastExportMillis?.let { Instant.fromEpochMilliseconds(it) },
         ),
     )
 
@@ -324,6 +326,6 @@ class SettingsRepository @Inject constructor(
         defaultGroupPriceMinor = defaultGroupPrice?.minor ?: 0,
         currency = currency,
         language = language,
-        lastExportMillis = lastExportAt?.toEpochMilli(),
+        lastExportMillis = lastExportAt?.toEpochMilliseconds(),
     )
 }

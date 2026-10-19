@@ -8,7 +8,7 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.schedule.TimeConflict
 import com.seblful.klas.ui.common.LeavableForm
 import kotlinx.coroutines.flow.map
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /** What, if anything, to say under the subject picker. */
 enum class SubjectNotice {

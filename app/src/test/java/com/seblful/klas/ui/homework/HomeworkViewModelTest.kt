@@ -19,8 +19,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Duration
-import java.time.Instant
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * The «Задания» tab's state: its two lists captioned, the add dialog's choices, the writes, and "today"
@@ -131,7 +133,7 @@ class HomeworkViewModelTest {
             val boris = fixtures.pricedStudent("Борис", maths)
             val borisNext = Instant.parse("2026-06-08T12:00:00Z")
             fixtures.lesson(maths, listOf(anya), tomorrow)
-            fixtures.lesson(maths, listOf(boris), env.clock.instant().minusSeconds(3600))
+            fixtures.lesson(maths, listOf(boris), env.clock.now().minus(3600.seconds))
             fixtures.lesson(maths, listOf(boris), borisNext)
             val archived = fixtures.archivedStudent("Вера")
             val vm = vm()
@@ -185,7 +187,7 @@ class HomeworkViewModelTest {
 
         val stored = env.homeworkRepo.observeAll().first().single()
         assertEquals(Assignee.Student(anya), stored.assignee)
-        assertEquals(env.clock.instant(), stored.givenAt)
+        assertEquals(env.clock.now(), stored.givenAt)
     }
 
     /** Left open overnight, the tab calls tomorrow's lesson today's without anything else changing. */
@@ -200,9 +202,9 @@ class HomeworkViewModelTest {
         assertEquals(HomeworkRules.Due.LATER, vm.state.current.lists.current.single().due)
 
         // 15:00 to a minute past midnight, on both the clock and the scheduler the flow sleeps on.
-        val untilMidnight = Duration.ofHours(9).plusMinutes(1)
-        env.clock.advanceBy(untilMidnight.toMillis())
-        advanceTimeBy(untilMidnight.toMillis())
+        val untilMidnight = 9.hours + 1.minutes
+        env.clock.advanceBy(untilMidnight.inWholeMilliseconds)
+        advanceTimeBy(untilMidnight.inWholeMilliseconds)
 
         assertEquals(HomeworkRules.Due.TODAY, vm.state.current.lists.current.single().due)
     }

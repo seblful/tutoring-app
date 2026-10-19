@@ -67,10 +67,11 @@ object ProjectFiles {
     fun sources(): List<File> {
         val roots = listOf(
             moduleFileOrNull(SOURCE_ROOT),
-            siblingModuleFileOrNull(DOMAIN_MODULE, SOURCE_ROOT),
+            siblingModuleFileOrNull(DOMAIN_MODULE, DOMAIN_SOURCE_ROOT),
         )
         check(roots.all { it != null }) {
-            "Could not find `$SOURCE_ROOT` in both `app` and `$DOMAIN_MODULE` from ${System.getProperty("user.dir")}"
+            "Could not find `$SOURCE_ROOT` in `app` and `$DOMAIN_SOURCE_ROOT` in `$DOMAIN_MODULE` from " +
+                System.getProperty("user.dir")
         }
         return roots.filterNotNull().flatMap { root ->
             root.walkTopDown().filter { it.isFile && it.extension == "kt" }
@@ -79,6 +80,9 @@ object ProjectFiles {
 
     /** The pure-Kotlin module holding `com.seblful.klas.domain`, next to `app` in the repo root. */
     private const val DOMAIN_MODULE = "domain"
+
+    /** The domain is Kotlin Multiplatform: its rules are all in `commonMain`. */
+    private const val DOMAIN_SOURCE_ROOT = "src/commonMain/kotlin/com/seblful/klas"
 
     /**
      * A path relative to another module of the repo, or null when it does not exist. Only the

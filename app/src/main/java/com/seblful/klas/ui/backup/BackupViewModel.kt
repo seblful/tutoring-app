@@ -7,6 +7,8 @@ import com.seblful.klas.data.backup.BackupManager
 import com.seblful.klas.data.backup.BackupRestore
 import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
+import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentStore
@@ -21,10 +23,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.Instant
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 import javax.inject.Inject
+import kotlin.time.Instant
 
 /**
  * How an export or an import ended. A failure carries [BackupFailure] rather than being one flat
@@ -44,7 +45,7 @@ class BackupViewModel @Inject constructor(
     private val documents: DocumentStore,
     private val settings: SettingsRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
-    private val clock: Clock,
+    private val clock: WallClock,
 ) : ViewModel() {
 
     val events = UiEvents<BackupResult>()
@@ -104,7 +105,7 @@ class BackupViewModel @Inject constructor(
      * `appScope` carries a `CoroutineExceptionHandler` into the log, so *not* guarding is what reports it.
      */
     private fun recordExport() {
-        appScope.launch { settings.update { it.copy(lastExportAt = clock.instant()) } }
+        appScope.launch { settings.update { it.copy(lastExportAt = clock.now()) } }
     }
 
     private val _importing = MutableStateFlow(false)
@@ -140,7 +141,7 @@ class BackupViewModel @Inject constructor(
      * The day an export is named for — `klas-backup-2026-09-24.json` — by the injected clock. One fixed
      * name made every copy after the first «klas-backup (1).json», which says nothing about which is newest.
      */
-    fun exportDay(): LocalDate = LocalDate.now(clock)
+    fun exportDay(): LocalDate = clock.today()
 
     private fun failed(error: Throwable): BackupResult = BackupResult.Failed(BackupFailure.of(error))
 }

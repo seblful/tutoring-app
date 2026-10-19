@@ -6,6 +6,7 @@ import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.DeviceLocales
 import com.seblful.klas.domain.model.AppLanguage
+import com.seblful.klas.format.localeFor
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.work.Maintenance

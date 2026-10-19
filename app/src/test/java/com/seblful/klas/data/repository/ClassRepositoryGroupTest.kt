@@ -22,7 +22,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * Group lessons at the repository seam: one lesson is *n* per-student classes, billed individually,
@@ -334,7 +335,7 @@ class ClassRepositoryGroupTest {
         repo.apply(
             repo.getSessionFor(ids.first())!!,
             SessionEdit(algebra, 60, ClassMode.IN_PERSON, groupRate),
-            newStart = now.plusSeconds(86_400),
+            newStart = now.plus((86_400).seconds),
             now = now,
         )
 
@@ -484,14 +485,14 @@ class ClassRepositoryGroupTest {
         // Taught, so the charge below is a real one: this is the case where a wrong stored duration
         // becomes wrong income rather than a zero either way.
         repo.setStatus(repo.getSessionFor(ids.first())!!, LessonStatus.COMPLETED).written()
-        val moved = start.plusSeconds(3600)
+        val moved = start.plus(3600.seconds)
 
         val written = repo.apply(
             repo.getSessionFor(ids.first())!!,
             SessionEdit(algebra, 30, ClassMode.REMOTE, groupRate),
             newStart = moved,
             // After the new start, so the correction keeps the lesson taught instead of re-planning it.
-            now = moved.plusSeconds(3600),
+            now = moved.plus(3600.seconds),
             roster = setOf(bob),
         ).written()
 
@@ -547,7 +548,7 @@ class ClassRepositoryGroupTest {
     fun `an individual class loads as a one-member session, so the same actions apply`() = runTest {
         seed()
         val id = env.fixtures.storedClass(
-                studentId = ann, subjectId = algebra, startMillis = start.toEpochMilli(),
+                studentId = ann, subjectId = algebra, startMillis = start.toEpochMilliseconds(),
                 durationMinutes = 60, status = LessonStatus.SCHEDULED,
             )
 
@@ -562,7 +563,7 @@ class ClassRepositoryGroupTest {
     fun `two lessons of the same group at different times stay separate sessions`() = runTest {
         seed()
         val first = bookSession()
-        val later = bookSession(at = start.plusSeconds(7200))
+        val later = bookSession(at = start.plus(7200.seconds))
 
         assertEquals(setOf(start), repo.getSessionFor(first.first())!!.classes.map { it.start }.toSet())
         assertEquals(2, repo.getSessionFor(later.first())!!.size)

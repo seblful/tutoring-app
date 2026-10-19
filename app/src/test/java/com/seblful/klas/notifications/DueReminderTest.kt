@@ -14,7 +14,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * What a reminder does when it comes due. All of this used to sit inside `ReminderWorker`, where it
@@ -41,7 +42,7 @@ class DueReminderTest {
     private val now: Instant = Instant.parse("2026-07-25T10:00:00Z")
 
     /** A lesson starting half an hour from [now], so it is still ahead of us. */
-    private val soon = now.plusSeconds(1800)
+    private val soon = now.plus(1800.seconds)
 
     private suspend fun student(name: String = "Аня") = env.studentDao.upsert(StudentEntity(name = name))
     private suspend fun subject(name: String = "Математика") = env.subjectDao.upsert(SubjectEntity(name = name))
@@ -56,7 +57,7 @@ class DueReminderTest {
     ) = env.fixtures.storedClass(
             studentId = studentId,
             subjectId = subjectId,
-            startMillis = start.toEpochMilli(),
+            startMillis = start.toEpochMilliseconds(),
             durationMinutes = durationMinutes,
             status = status,
             groupId = groupId,
@@ -116,7 +117,7 @@ class DueReminderTest {
     @Test
     fun `a lesson that has already ended is not announced — the reminder fired too late`() = runTest {
         // Started two hours ago and ran for one, so it is over.
-        val id = scheduledClass(student(), subject(), start = now.minusSeconds(7200))
+        val id = scheduledClass(student(), subject(), start = now.minus(7200.seconds))
 
         assertFalse(due.post(id, now))
         assertTrue(notifier.posted.isEmpty())
@@ -125,7 +126,7 @@ class DueReminderTest {
     @Test
     fun `a lesson still running is announced — it is not over until it ends`() = runTest {
         // Started ten minutes ago, runs for an hour.
-        val id = scheduledClass(student(), subject(), start = now.minusSeconds(600))
+        val id = scheduledClass(student(), subject(), start = now.minus(600.seconds))
 
         assertTrue(due.post(id, now))
         assertEquals(1, notifier.posted.size)

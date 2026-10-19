@@ -5,24 +5,26 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import androidx.core.content.ContextCompat
+import com.seblful.klas.domain.time.WallClock
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOf
-import java.time.Clock
-import java.time.Instant
-import java.time.ZoneId
+import kotlinx.datetime.TimeZone
+import kotlin.time.Clock
+import kotlin.time.Instant
 
-/** The device's current zone, not the zone captured when a repository or form was constructed. */
-internal class DeviceClock(private val context: Context, private val time: Clock = Clock.systemUTC()) : Clock() {
-    override fun instant(): Instant = time.instant()
+/**
+ * The device's clock, read in the device's **current** zone — not the zone captured when a repository or
+ * form was constructed.
+ */
+internal class DeviceClock(private val context: Context, private val time: Clock = Clock.System) : WallClock {
+    override fun now(): Instant = time.now()
 
-    override fun getZone(): ZoneId = ZoneId.systemDefault()
+    override val zone: TimeZone get() = TimeZone.currentSystemDefault()
 
-    override fun withZone(zone: ZoneId): Clock = time.withZone(zone)
-
-    val zoneChanges: Flow<ZoneId> = callbackFlow {
+    val zoneChanges: Flow<TimeZone> = callbackFlow {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 trySend(zone)
@@ -37,4 +39,4 @@ internal class DeviceClock(private val context: Context, private val time: Clock
 }
 
 /** Fixed/injected test clocks keep their chosen zone; the device adapter also wakes readers on changes. */
-fun Clock.zones(): Flow<ZoneId> = if (this is DeviceClock) zoneChanges else flowOf(zone)
+fun WallClock.zones(): Flow<TimeZone> = if (this is DeviceClock) zoneChanges else flowOf(zone)

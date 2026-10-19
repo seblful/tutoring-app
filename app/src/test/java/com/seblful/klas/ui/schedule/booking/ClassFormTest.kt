@@ -9,22 +9,22 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.schedule.Scheduling
 import com.seblful.klas.domain.schedule.TimeConflict
 import com.seblful.klas.format.MoneyField
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneId
+import kotlin.time.Instant
 
 /**
  * The booking form's model and the answers derived from it — [ClassForm], [ClassFormState] and the
  * clash they report — without the view model around them, so without a dispatcher or a database.
  */
 class ClassFormTest {
-    private val zone = ZoneId.of("Europe/Minsk")
+    private val zone = TimeZone.of("Europe/Minsk")
 
     // --- ClassForm validation (pure) ---
 
@@ -36,13 +36,13 @@ class ClassFormTest {
 
         val full = ClassForm(
             studentId = 1, subjectId = 1,
-            date = LocalDate.of(2026, 6, 20),
-            timeFrom = LocalTime.of(10, 0),
+            date = LocalDate(2026, 6, 20),
+            timeFrom = LocalTime(10, 0),
             durationMinutes = 60,
             price = MoneyField("30"),
         )
         assertTrue(full.isValid)
-        assertEquals(LocalTime.of(11, 0), full.ends(zone)?.time)
+        assertEquals(LocalTime(11, 0), full.ends(zone)?.time)
     }
 
     /**
@@ -54,14 +54,14 @@ class ClassFormTest {
     fun `a lesson of no length is not a lesson`() {
         val empty = ClassForm(
             studentId = 1, subjectId = 1,
-            date = LocalDate.of(2026, 6, 20),
-            timeFrom = LocalTime.of(11, 0),
+            date = LocalDate(2026, 6, 20),
+            timeFrom = LocalTime(11, 0),
             durationMinutes = 0,
             price = MoneyField("30"),
         )
         assertFalse(empty.isValid)
         assertNull(empty.ends(zone))
-        assertNull(empty.slot(ZoneId.of("Europe/Minsk")))
+        assertNull(empty.slot(TimeZone.of("Europe/Minsk")))
     }
 
     /**
@@ -73,25 +73,25 @@ class ClassFormTest {
     fun `a lesson that runs past midnight ends the next day`() {
         val late = ClassForm(
             studentId = 1, subjectId = 1,
-            date = LocalDate.of(2026, 6, 20),
-            timeFrom = LocalTime.of(23, 0),
+            date = LocalDate(2026, 6, 20),
+            timeFrom = LocalTime(23, 0),
             durationMinutes = 90,
             price = MoneyField("30"),
         )
         assertTrue(late.isValid)
-        assertEquals(LocalTime.of(0, 30), late.ends(zone)?.time)
+        assertEquals(LocalTime(0, 30), late.ends(zone)?.time)
         assertEquals(true, late.ends(zone)?.nextDay)
     }
 
     /** The flag is about passing midnight, not about the clock reading less than the start. */
     @Test
     fun `a lesson ending exactly at midnight is the next day, one ending before it is not`() {
-        val toMidnight = ClassForm(timeFrom = LocalTime.of(23, 0), durationMinutes = 60)
-        assertEquals(LocalTime.MIDNIGHT, toMidnight.ends(zone)?.time)
+        val toMidnight = ClassForm(timeFrom = LocalTime(23, 0), durationMinutes = 60)
+        assertEquals(LocalTime(0, 0), toMidnight.ends(zone)?.time)
         assertEquals(true, toMidnight.ends(zone)?.nextDay)
 
-        val justBefore = ClassForm(timeFrom = LocalTime.of(23, 0), durationMinutes = 59)
-        assertEquals(LocalTime.of(23, 59), justBefore.ends(zone)?.time)
+        val justBefore = ClassForm(timeFrom = LocalTime(23, 0), durationMinutes = 59)
+        assertEquals(LocalTime(23, 59), justBefore.ends(zone)?.time)
         assertEquals(false, justBefore.ends(zone)?.nextDay)
     }
 
@@ -115,8 +115,8 @@ class ClassFormTest {
 
     private val validForm = ClassForm(
         studentId = 1, subjectId = 1,
-        date = LocalDate.of(2026, 6, 20),
-        timeFrom = LocalTime.of(10, 0),
+        date = LocalDate(2026, 6, 20),
+        timeFrom = LocalTime(10, 0),
         durationMinutes = 60,
         price = MoneyField("30"),
     )
@@ -164,7 +164,7 @@ class ClassFormTest {
     @Test
     fun `a half-filled time is incomplete rather than wrong`() {
         // Only a start picked: nothing to complain about, and nothing to save either.
-        val state = stateWith(form = ClassForm(timeFrom = LocalTime.of(10, 0)))
+        val state = stateWith(form = ClassForm(timeFrom = LocalTime(10, 0)))
 
         assertNull(state.conflict)
         assertFalse(state.canSave)

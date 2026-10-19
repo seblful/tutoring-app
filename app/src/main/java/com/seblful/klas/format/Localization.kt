@@ -5,6 +5,8 @@ import android.content.ContextWrapper
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.LocaleList
+import com.seblful.klas.domain.model.AppLanguage
+import com.seblful.klas.domain.model.Currency
 import java.util.Locale
 
 /**
@@ -48,6 +50,22 @@ fun Context.inLanguage(locale: Locale): Context = LocalizedContext(this, locale)
  * `createConfigurationContext` against posting a notification or writing a calendar event.
  */
 fun Context.inAppLanguage(): Context = inLanguage(AppLocale.current)
+
+/**
+ * The locale [AppLanguage.tagFor] resolves to against the phone's [preferred] locales — what a
+ * `Configuration` and a `DateTimeFormatter` both take. The domain speaks BCP 47 tags; this is where a tag
+ * becomes the platform's locale.
+ */
+fun AppLanguage.localeFor(preferred: List<Locale>): Locale =
+    Locale.forLanguageTag(tagFor(preferred.map(Locale::toLanguageTag)))
+
+/**
+ * The currency each of these locales' **region** uses, as an ISO 4217 code — null for a locale with no
+ * region, or one the platform has never heard of. `java.util.Currency` holds the mapping, so the eurozone
+ * does not have to be listed anywhere and cannot go stale; [Currency.preferredFor] picks among the answers.
+ */
+fun List<Locale>.regionCurrencies(): List<String?> =
+    map { locale -> runCatching { java.util.Currency.getInstance(locale).currencyCode }.getOrNull() }
 
 /**
  * The phone's locales, most-preferred first — what `AppLanguage.SYSTEM` and `Currency.preferredFor` are

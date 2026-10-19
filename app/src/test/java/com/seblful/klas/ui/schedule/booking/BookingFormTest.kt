@@ -5,12 +5,13 @@ import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.format.MoneyField
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalTime
 
 /**
  * The booking form's own rules, exercised without a dispatcher, a `SavedStateHandle` or six
@@ -23,7 +24,7 @@ import java.time.LocalTime
  * arriving after the target moved) were `if` guards inside a coroutine that nothing could reach at all.
  */
 class BookingFormTest {
-    private val zone = java.time.ZoneId.of("Europe/Minsk")
+    private val zone = TimeZone.of("Europe/Minsk")
 
     private val anya = Student(id = 1, name = "Аня", defaultMode = ClassMode.REMOTE)
     private val boris = Student(id = 2, name = "Борис")
@@ -259,24 +260,24 @@ class BookingFormTest {
     @Test
     fun `a start with no length yet takes the default lesson`() {
         val started = BookingForm().change(
-            BookingIntent.StartAt(LocalTime.of(10, 0)),
+            BookingIntent.StartAt(LocalTime(10, 0)),
             BookingContext(defaultLessonMinutes = 90),
         ).form
 
         assertEquals(90, started.form.durationMinutes)
-        assertEquals(LocalTime.of(11, 30), started.form.ends(zone)?.time)
+        assertEquals(LocalTime(11, 30), started.form.ends(zone)?.time)
     }
 
     @Test
     fun `moving the start keeps the length`() {
         val lesson = BookingForm().after(
-            BookingIntent.StartAt(LocalTime.of(10, 0)),
+            BookingIntent.StartAt(LocalTime(10, 0)),
             BookingIntent.LastsFor(90),
-            BookingIntent.StartAt(LocalTime.of(14, 0)),
+            BookingIntent.StartAt(LocalTime(14, 0)),
         )
 
         assertEquals(90, lesson.form.durationMinutes)
-        assertEquals(LocalTime.of(15, 30), lesson.form.ends(zone)?.time)
+        assertEquals(LocalTime(15, 30), lesson.form.ends(zone)?.time)
     }
 
     /**
@@ -294,9 +295,9 @@ class BookingFormTest {
 
         assertEquals(
             "either order, same lesson",
-            early.after(BookingIntent.StartAt(LocalTime.of(9, 0))).form,
+            early.after(BookingIntent.StartAt(LocalTime(9, 0))).form,
             BookingForm().after(
-                BookingIntent.StartAt(LocalTime.of(9, 0)),
+                BookingIntent.StartAt(LocalTime(9, 0)),
                 BookingIntent.LastsFor(90),
             ).form,
         )
@@ -306,12 +307,12 @@ class BookingFormTest {
     @Test
     fun `a length that runs past midnight is kept as a length`() {
         val late = BookingForm().after(
-            BookingIntent.StartAt(LocalTime.of(23, 0)),
+            BookingIntent.StartAt(LocalTime(23, 0)),
             BookingIntent.LastsFor(60),
         )
 
         assertEquals(60, late.form.durationMinutes)
-        assertEquals(LocalTime.MIDNIGHT, late.form.ends(zone)?.time)
+        assertEquals(LocalTime(0, 0), late.form.ends(zone)?.time)
         assertEquals(true, late.form.ends(zone)?.nextDay)
     }
 
@@ -320,7 +321,7 @@ class BookingFormTest {
     @Test
     fun `the tutor's choices make the form unsaved`() {
         assertTrue(BookingForm().after(BookingIntent.ChooseStudent(anya.id)).touched)
-        assertTrue(BookingForm().after(BookingIntent.StartAt(LocalTime.NOON)).touched)
+        assertTrue(BookingForm().after(BookingIntent.StartAt(LocalTime(12, 0))).touched)
         assertTrue(BookingForm().after(BookingIntent.IncludeMember(boris.id, false)).touched)
     }
 

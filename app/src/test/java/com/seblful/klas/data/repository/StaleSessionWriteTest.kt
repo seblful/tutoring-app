@@ -18,7 +18,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * A lesson write starts from the lesson as the database holds it **inside** its transaction, not from
@@ -31,7 +32,7 @@ class StaleSessionWriteTest {
     val env = TestEnv()
 
     private val start = Instant.parse("2026-06-02T10:00:00Z")
-    private val afterwards = start.plusSeconds(86_400)
+    private val afterwards = start.plus((86_400).seconds)
     private val rate = Money.ofMajor(30)
 
     @Test
@@ -40,7 +41,7 @@ class StaleSessionWriteTest {
         val id = env.fixtures.lesson(subject, listOf(student), start).single()
         val stale = env.classRepo.getSessionFor(id)!!
 
-        interleave({ it.move(stale, start.plusSeconds(1_800), now = afterwards) }) {
+        interleave({ it.move(stale, start.plus((1_800).seconds), now = afterwards) }) {
             env.fixtures.setStatus(id, LessonStatus.COMPLETED)
         }
 

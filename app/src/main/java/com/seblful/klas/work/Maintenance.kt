@@ -8,13 +8,14 @@ import com.seblful.klas.domain.reminders.DigestScheduler
 import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.reminders.Reminders
+import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.notifications.Notifier
-import java.time.Clock
-import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toLocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 /**
  * Everything the periodic upkeep does, except being periodic: auto-complete the classes whose end
@@ -36,7 +37,7 @@ class Maintenance @Inject constructor(
     private val scheduler: ReminderScheduler,
     private val digests: DigestScheduler,
     private val notifier: Notifier,
-    private val clock: Clock,
+    private val clock: WallClock,
 ) {
     /**
      * How many lessons a pass at [now] **would** auto-complete — the backlog, and deliberately
@@ -46,7 +47,7 @@ class Maintenance @Inject constructor(
      * Here rather than at the call site so it shares this class's clock with [run]. A backlog counted
      * against one instant and settled against another is a question answered about a different number.
      */
-    suspend fun dueForCompletion(now: Instant = clock.instant()): Int =
+    suspend fun dueForCompletion(now: Instant = clock.now()): Int =
         classes.countDueForCompletion(now)
 
     /**
@@ -62,7 +63,7 @@ class Maintenance @Inject constructor(
      * production takes, and a default a test cannot move makes the tested path and the shipped path
      * two different paths.
      */
-    suspend fun run(now: Instant = clock.instant()): Settled {
+    suspend fun run(now: Instant = clock.now()): Settled {
         val s = settings.get()
         // Auto-completion (and therefore auto-billing) is opt-in; when off, the tutor confirms each
         // lesson by marking it completed.
@@ -80,7 +81,7 @@ class Maintenance @Inject constructor(
                 // decide about the coming week. `plan` still applies the real filter — the window is
                 // deliberately a superset of it.
                 classes = classes.notEndedWithin(now, horizon),
-                lead = Duration.ofMinutes(s.reminderLeadMinutes.toLong()),
+                lead = (s.reminderLeadMinutes.toLong()).minutes,
                 horizon = horizon,
             ),
         )
@@ -105,7 +106,7 @@ class Maintenance @Inject constructor(
         return Settled(
             lessons = completed.distinctBy { it.lessonId }.size,
             billed = Billing.charged(completed),
-            lastDay = completed.maxOfOrNull { it.start }?.atZone(clock.zone)?.toLocalDate(),
+            lastDay = completed.maxOfOrNull { it.start }?.toLocalDateTime(clock.zone)?.date,
         )
     }
 
@@ -123,7 +124,7 @@ class Maintenance @Inject constructor(
      * Here rather than in [MaintenanceWorker] because a `CoroutineWorker` is reachable only from a device,
      * and "does an unwatched pass announce itself" is a decision about the tutor's money.
      */
-    suspend fun runUnwatched(now: Instant = clock.instant()): Settled {
+    suspend fun runUnwatched(now: Instant = clock.now()): Settled {
         val settled = run(now)
         // A day exactly when something was settled — see [Settled.lastDay].
         val day = settled.lastDay ?: return settled

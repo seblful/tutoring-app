@@ -44,8 +44,8 @@ import com.seblful.klas.ui.common.rememberPlaceholderShown
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.map
 import com.seblful.klas.ui.common.state.valueOrNull
-import java.time.DayOfWeek
-import java.time.LocalDate
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
 
 /** The tallest a cell needs: the day-number disc plus its tally row, six rows still fitting a phone. */
 private val CellHeight = 46.dp
@@ -249,7 +249,7 @@ private fun DayCell(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = date.dayOfMonth.toString(),
+                    text = date.day.toString(),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
                     color = numberColor,

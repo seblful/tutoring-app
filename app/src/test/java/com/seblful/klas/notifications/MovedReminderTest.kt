@@ -8,7 +8,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 @RunWith(RobolectricTestRunner::class)
 class MovedReminderTest {
@@ -25,8 +26,8 @@ class MovedReminderTest {
         val now = Instant.parse("2026-06-01T10:00:00Z")
         val subject = env.fixtures.subject()
         val student = env.fixtures.pricedStudent(subjectId = subject)
-        val id = env.fixtures.lesson(subject, listOf(student), now.plusSeconds(3600)).single()
-        env.classRepo.move(env.classRepo.getSessionFor(id)!!, now.plusSeconds(90000), now)
+        val id = env.fixtures.lesson(subject, listOf(student), now.plus(3600.seconds)).single()
+        env.classRepo.move(env.classRepo.getSessionFor(id)!!, now.plus(90000.seconds), now)
 
         assertFalse(due().post(id, now))
         assertTrue(env.notifier.posted.isEmpty())
@@ -37,10 +38,10 @@ class MovedReminderTest {
         val now = Instant.parse("2026-06-01T10:00:00Z")
         val subject = env.fixtures.subject()
         val student = env.fixtures.pricedStudent(subjectId = subject)
-        val id = env.fixtures.lesson(subject, listOf(student), now.plusSeconds(1800)).single()
+        val id = env.fixtures.lesson(subject, listOf(student), now.plus(1800.seconds)).single()
         env.settingsRepo.update { it.copy(reminderLeadMinutes = 10) }
 
         assertFalse(due().post(id, now))
-        assertTrue(due().post(id, now.plusSeconds(1200)))
+        assertTrue(due().post(id, now.plus(1200.seconds)))
     }
 }

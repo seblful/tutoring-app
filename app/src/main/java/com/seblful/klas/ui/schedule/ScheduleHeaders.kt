@@ -41,8 +41,8 @@ import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.PageStepper
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
-import java.time.LocalDate
-import java.time.YearMonth
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.YearMonth
 
 @Composable
 internal fun DayNavigator(

@@ -26,9 +26,9 @@ or **EUR**.
 
 - **Kotlin**, **Jetpack Compose** (Material 3), Navigation Compose
 - **Room** (single source of truth) · **Hilt** DI · **WorkManager** + `AlarmManager`
-- **kotlinx-serialization** (backup) · `java.time` with core-library desugaring
+- **kotlinx-serialization** (backup) · **kotlinx-datetime** (`java.time` stays only in the Android formatters, desugared)
 - AGP (built-in Kotlin) · Gradle · **JDK 21** · **minSdk 24**
-- Two modules: `:app` (Android) and `:domain` (pure Kotlin/JVM — the compiler keeps Android out of it)
+- Two modules: `:app` (Android) and `:domain` (Kotlin Multiplatform — the compiler keeps Android and the JDK out of it)
 
 Versions live in `gradle/libs.versions.toml`, SDK levels in `app/build.gradle.kts`.
 
@@ -52,7 +52,7 @@ Architecture is MVVM over a pure, unit-tested domain layer — see **[docs/archi
 
 ```bash
 ./gradlew :app:assembleDebug            # debug APK
-./gradlew :domain:test                  # domain unit tests (billing, scheduling, reminders, reports)
+./gradlew :domain:jvmTest               # domain unit tests (billing, scheduling, reminders, reports)
 ./gradlew :app:testDebugUnitTest        # app unit tests (view models, repositories, mappers, backup)
 ./gradlew :app:verifyRoborazziDebug     # the app's unit tests, plus every @Preview compared with its golden screenshot
 ./gradlew :app:recordRoborazziDebug     # re-record the goldens in app/src/test/screenshots after a deliberate UI change

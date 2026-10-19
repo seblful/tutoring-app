@@ -1,9 +1,13 @@
 package com.seblful.klas.ui.schedule
 
 import com.seblful.klas.domain.schedule.CalendarLayout
-import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.YearMonth
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.YearMonth
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.yearMonth
 
 /**
  * Where the schedule is pointed: the day picked, the month and week pages being browsed, and the view
@@ -36,18 +40,18 @@ data class SchedulePages(
 
     /** Picks [date], and points both calendar pages at it. */
     fun select(date: LocalDate): SchedulePages =
-        copy(selected = date, month = YearMonth.from(date), week = CalendarLayout.startOfWeek(date, weekStart))
+        copy(selected = date, month = date.yearMonth, week = CalendarLayout.startOfWeek(date, weekStart))
 
     /** Switches to [mode], on the pages that hold the selected day. */
     fun showing(mode: ScheduleViewMode): SchedulePages = copy(mode = mode).select(selected)
 
-    fun previousMonth(): SchedulePages = copy(month = month.minusMonths(1))
+    fun previousMonth(): SchedulePages = copy(month = month.minus(1, DateTimeUnit.MONTH))
 
-    fun nextMonth(): SchedulePages = copy(month = month.plusMonths(1))
+    fun nextMonth(): SchedulePages = copy(month = month.plus(1, DateTimeUnit.MONTH))
 
-    fun previousWeek(): SchedulePages = copy(week = week.minusDays(DAYS_IN_WEEK))
+    fun previousWeek(): SchedulePages = copy(week = week.minus(DAYS_IN_WEEK, DateTimeUnit.DAY))
 
-    fun nextWeek(): SchedulePages = copy(week = week.plusDays(DAYS_IN_WEEK))
+    fun nextWeek(): SchedulePages = copy(week = week.plus(DAYS_IN_WEEK, DateTimeUnit.DAY))
 
     /**
      * Today is now [date]. A selection still on the previous today follows it — without that, an app left
@@ -65,7 +69,7 @@ data class SchedulePages(
         /** The schedule as it opens: the day view on [today], weeks starting on [weekStart]. */
         fun on(today: LocalDate, weekStart: DayOfWeek): SchedulePages = SchedulePages(
             selected = today,
-            month = YearMonth.from(today),
+            month = today.yearMonth,
             week = CalendarLayout.startOfWeek(today, weekStart),
             mode = ScheduleViewMode.DAY,
             today = today,

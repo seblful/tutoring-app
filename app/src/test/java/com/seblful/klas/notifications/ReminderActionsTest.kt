@@ -12,7 +12,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
+import kotlin.time.Instant
 
 /**
  * What a reminder's «Проведено» does. All of it would otherwise live inside a `BroadcastReceiver`, which

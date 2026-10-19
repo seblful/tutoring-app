@@ -15,7 +15,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import java.time.Instant
+import kotlin.time.Instant
 
 /** An in-memory crash log, so the view model can be driven without a device. */
 private class FakeCrashLogStore : CrashLogStore {
@@ -41,7 +41,7 @@ class DiagnosticsViewModelTest {
     private val crashLogger = CrashLogger(
         store,
         DeviceInfo("1.0", 34, "Pixel"),
-        com.seblful.klas.testutil.MutableClock(java.time.Instant.parse("2026-01-01T00:00:00Z")),
+        com.seblful.klas.testutil.MutableClock(Instant.parse("2026-01-01T00:00:00Z")),
     )
     private val target = DocumentRef("content://downloads/crash.txt")
 

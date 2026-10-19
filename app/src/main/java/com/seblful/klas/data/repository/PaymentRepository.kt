@@ -6,10 +6,10 @@ import com.seblful.klas.data.toEntity
 import com.seblful.klas.domain.billing.PaymentDate
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.time.WallClock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.time.Clock
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,7 +35,7 @@ import javax.inject.Singleton
 @Singleton
 class PaymentRepository @Inject constructor(
     private val dao: PaymentDao,
-    private val clock: Clock,
+    private val clock: WallClock,
 ) {
     fun observeAll(): Flow<List<Payment>> =
         dao.observeAll().map { list -> list.map { it.toDomain() } }

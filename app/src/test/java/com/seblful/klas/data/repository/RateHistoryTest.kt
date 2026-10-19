@@ -1,14 +1,13 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.GroupEntity
+import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.testutil.TestEnv
-import java.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -19,6 +18,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlin.time.Instant
 
 /**
  * The rate log, through the two repositories that actually set a rate.
@@ -71,9 +71,9 @@ class RateHistoryTest {
     @Test
     fun `changes come back newest first`() = runTest {
         val owner = RateOwner.GroupRate(unloggedGroup())
-        history.record(owner, null, Money.ofMajor(20), at = Instant.ofEpochMilli(1_000))
-        history.record(owner, Money.ofMajor(20), Money.ofMajor(25), at = Instant.ofEpochMilli(2_000))
-        history.record(owner, Money.ofMajor(25), Money.ofMajor(30), at = Instant.ofEpochMilli(3_000))
+        history.record(owner, null, Money.ofMajor(20), at = Instant.fromEpochMilliseconds(1_000))
+        history.record(owner, Money.ofMajor(20), Money.ofMajor(25), at = Instant.fromEpochMilliseconds(2_000))
+        history.record(owner, Money.ofMajor(25), Money.ofMajor(30), at = Instant.fromEpochMilliseconds(3_000))
 
         assertEquals(
             listOf(Money.ofMajor(30), Money.ofMajor(25), Money.ofMajor(20)),
@@ -92,7 +92,7 @@ class RateHistoryTest {
         env.rateHistoryDao.insert(
             RateChangeEntity(groupId = owner.groupId, toMinor = 2000, atMillis = null),
         )
-        history.record(owner, Money.ofMajor(20), Money.ofMajor(25), at = Instant.ofEpochMilli(2_000))
+        history.record(owner, Money.ofMajor(20), Money.ofMajor(25), at = Instant.fromEpochMilliseconds(2_000))
 
         val changes = history.observeFor(owner).first()
         assertEquals(Money.ofMajor(25), changes.first().to)

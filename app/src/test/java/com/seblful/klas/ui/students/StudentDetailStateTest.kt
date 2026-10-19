@@ -8,7 +8,7 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import java.time.Instant
+import kotlin.time.Instant
 
 /** The rules the student card reads off its state rather than working out in a composable. */
 class StudentDetailStateTest {
@@ -18,7 +18,7 @@ class StudentDetailStateTest {
 
     private fun row(id: Long, groupId: Long? = null) = ClassRow(
         klass = TutoringClass(
-            id = id, studentId = 1, subjectId = 1, start = Instant.EPOCH, durationMinutes = 60,
+            id = id, studentId = 1, subjectId = 1, start = Instant.fromEpochMilliseconds(0), durationMinutes = 60,
             status = LessonStatus.SCHEDULED, groupId = groupId,
         ),
         subjectName = "Математика",

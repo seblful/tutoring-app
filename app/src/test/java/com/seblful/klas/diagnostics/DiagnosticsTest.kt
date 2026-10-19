@@ -3,7 +3,8 @@ package com.seblful.klas.diagnostics
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.Instant
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 class DiagnosticsTest {
 
@@ -47,7 +48,7 @@ class DiagnosticsTest {
 
     @Test
     fun `appendBounded keeps a single oversized entry whole rather than truncating`() {
-        val huge = Diagnostics.formatEntry(Instant.now(), "1.0", 30, "X", "x".repeat(500))
+        val huge = Diagnostics.formatEntry(Clock.System.now(), "1.0", 30, "X", "x".repeat(500))
         val log = Diagnostics.appendBounded(existing = "stale\n", entry = huge, max = 100)
         assertEquals(huge, log)
     }

@@ -18,7 +18,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * Exercises the side effects [ClassRepository] owns — calendar mirroring and reminder refresh —
@@ -53,7 +54,7 @@ class ClassRepositoryTest {
      * the default start is in the past.
      *
      * Pinned, and passed explicitly to every write whose rules consult the clock, rather than left to
-     * `Instant.now()`. A test that says `Instant.now().minusSeconds(3600)` decides on the hour the
+     * `Instant.now()`. A test that says `Instant.now().minus(3600.seconds)` decides on the hour the
      * suite happens to run at: it passes at 14:00 and can fail on a boundary, and when it does fail it
      * indicts the time of day rather than the behaviour it was written for.
      */
@@ -202,7 +203,7 @@ class ClassRepositoryTest {
         val id = book()
         repo.setStatus(session(id), LessonStatus.COMPLETED)
         env.calendar.refreshes.clear()
-        val corrected = defaultStart.plusSeconds(3600)
+        val corrected = defaultStart.plus(3600.seconds)
 
         repo.move(session(id), corrected, now).written()
 
@@ -226,10 +227,10 @@ class ClassRepositoryTest {
 
     @Test
     fun `moving a class to the future re-plans it back to scheduled with no charge`() = runTest {
-        val id = book(now.minusSeconds(3600))
+        val id = book(now.minus(3600.seconds))
         repo.setStatus(session(id), LessonStatus.COMPLETED)
 
-        val moved = repo.move(session(id), now.plusSeconds(86_400), now = now).written().single()
+        val moved = repo.move(session(id), now.plus((86_400).seconds), now = now).written().single()
 
         assertEquals(LessonStatus.SCHEDULED, moved.status)
         assertTrue(moved.charge.isZero)
@@ -237,7 +238,7 @@ class ClassRepositoryTest {
 
     @Test
     fun `an edit re-bills a completed class instead of keeping its old charge`() = runTest {
-        val past = now.minusSeconds(7200)
+        val past = now.minus(7200.seconds)
         val id = book(past)
         repo.setStatus(session(id), LessonStatus.COMPLETED)
         assertEquals(Money.ofMajor(30), repo.getById(id)!!.charge)
@@ -285,8 +286,8 @@ class ClassRepositoryTest {
 
     @Test
     fun `autoCompleteDue completes only scheduled classes whose end has passed`() = runTest {
-        val due = book(now.minusSeconds(7200))     // ended an hour ago
-        val future = book(now.plusSeconds(7200))   // not yet started
+        val due = book(now.minus(7200.seconds))     // ended an hour ago
+        val future = book(now.plus(7200.seconds))   // not yet started
 
         val completed = repo.autoCompleteDue(now)
 
@@ -301,7 +302,7 @@ class ClassRepositoryTest {
         val id = book()                                                       // 1
         repo.apply(session(id), edit(), newStart = defaultStart, now = now)    // 2
         repo.setStatus(session(id), LessonStatus.CANCELLED)                     // 3
-        repo.move(session(id), now.plusSeconds(3600), now = now)               // 4
+        repo.move(session(id), now.plus(3600.seconds), now = now)               // 4
         repo.delete(session(id))                                              // 5
         assertEquals(5, env.reminders.refreshCount)
     }
@@ -314,7 +315,7 @@ class ClassRepositoryTest {
 
         val outcome = repo.book(
             subjectId = 1,
-            start = defaultStart.plusSeconds(30 * 60),
+            start = defaultStart.plus((30 * 60).seconds),
             durationMinutes = 60,
             mode = ClassMode.IN_PERSON,
             studentIds = listOf(STUDENT),
@@ -333,34 +334,34 @@ class ClassRepositoryTest {
     @Test
     fun `moving a lesson onto an occupied hour is refused and moves nothing`() = runTest {
         val standing = book()
-        val moving = book(defaultStart.plusSeconds(2 * 3600))
+        val moving = book(defaultStart.plus((2 * 3600).seconds))
 
-        val outcome = repo.move(session(moving), defaultStart.plusSeconds(15 * 60), now = now)
+        val outcome = repo.move(session(moving), defaultStart.plus((15 * 60).seconds), now = now)
 
         assertTrue(outcome is LessonWrite.HourTaken)
         assertEquals(standing, (outcome as LessonWrite.HourTaken).clash.first.id)
-        assertEquals("the lesson stayed put", defaultStart.plusSeconds(2 * 3600), repo.getById(moving)?.start)
+        assertEquals("the lesson stayed put", defaultStart.plus((2 * 3600).seconds), repo.getById(moving)?.start)
     }
 
     @Test
     fun `an edit is refused when its new time is another lesson's`() = runTest {
         book() // holds 10:00–11:00
-        val edited = book(defaultStart.plusSeconds(2 * 3600))
+        val edited = book(defaultStart.plus((2 * 3600).seconds))
 
         val outcome = repo.apply(session(edited), edit(), newStart = defaultStart, now = now)
 
         assertTrue(outcome is LessonWrite.HourTaken)
-        assertEquals(defaultStart.plusSeconds(2 * 3600), repo.getById(edited)?.start)
+        assertEquals(defaultStart.plus((2 * 3600).seconds), repo.getById(edited)?.start)
     }
 
     @Test
     fun `a lesson never stands in its own way`() = runTest {
         val id = book()
 
-        val outcome = repo.move(session(id), defaultStart.plusSeconds(10 * 60), now = now)
+        val outcome = repo.move(session(id), defaultStart.plus((10 * 60).seconds), now = now)
 
         assertTrue("overlapping its own old span is not a clash", outcome is LessonWrite.Written<*>)
-        assertEquals(defaultStart.plusSeconds(10 * 60), repo.getById(id)?.start)
+        assertEquals(defaultStart.plus((10 * 60).seconds), repo.getById(id)?.start)
     }
 
     /**
@@ -374,7 +375,7 @@ class ClassRepositoryTest {
         val id = env.fixtures.storedClass(
                 studentId = STUDENT,
                 subjectId = 1,
-                startMillis = defaultStart.toEpochMilli(),
+                startMillis = defaultStart.toEpochMilliseconds(),
                 durationMinutes = 0,
                 status = LessonStatus.CANCELLED,
             )

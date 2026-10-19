@@ -56,7 +56,7 @@ import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.schedule.timeConflictText
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 @Composable
 fun ClassEditScreen(

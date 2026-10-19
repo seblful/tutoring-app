@@ -5,9 +5,9 @@ import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.people.Captions
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlin.time.Instant
 
 /**
  * One piece of homework as a list draws it: who it is for, the lesson it is attached to, and where that
@@ -32,7 +32,7 @@ data class HomeworkRow(
     val text: String get() = homework.text
 
     companion object {
-        fun current(current: HomeworkRules.Current, captions: Captions, today: LocalDate, zone: ZoneId) =
+        fun current(current: HomeworkRules.Current, captions: Captions, today: LocalDate, zone: TimeZone) =
             HomeworkRow(
                 homework = current.homework,
                 title = captions.titleOf(current.homework.assignee),
@@ -44,7 +44,7 @@ data class HomeworkRow(
             HomeworkRow(homework = homework, title = captions.titleOf(homework.assignee), lessonAt = null, due = null)
 
         /** Both halves of [lists], captioned. */
-        fun of(lists: HomeworkRules.Lists, captions: Captions, today: LocalDate, zone: ZoneId): HomeworkLists =
+        fun of(lists: HomeworkRules.Lists, captions: Captions, today: LocalDate, zone: TimeZone): HomeworkLists =
             HomeworkLists(
                 current = lists.current.map { current(it, captions, today, zone) },
                 archive = lists.archive.map { done(it, captions) },
@@ -68,7 +68,7 @@ data class HomeworkLists(val current: List<HomeworkRow>, val archive: List<Homew
             classes: List<TutoringClass>,
             captions: Captions,
             today: LocalDate,
-            zone: ZoneId,
+            zone: TimeZone,
         ): HomeworkLists = HomeworkRow.of(HomeworkRules.lists(homework, classes), captions, today, zone)
     }
 }

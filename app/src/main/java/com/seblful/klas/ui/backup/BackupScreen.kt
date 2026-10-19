@@ -43,7 +43,7 @@ import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
-import java.time.Instant
+import kotlin.time.Instant
 
 /**
  * The types a backup file can arrive as: plenty of file managers hand a `.json` over as

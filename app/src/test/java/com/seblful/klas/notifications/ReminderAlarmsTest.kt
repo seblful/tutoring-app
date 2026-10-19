@@ -7,7 +7,8 @@ import com.seblful.klas.testutil.RecordingAlarmClock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * The reminder **replacement discipline** — the whole reason `ReminderAlarms` exists, and until now the one
@@ -29,7 +30,7 @@ class ReminderAlarmsTest {
     private val t0: Instant = Instant.parse("2026-09-01T08:00:00Z")
 
     private fun plan(classId: Long, minutesFromT0: Long = 0, due: Boolean = false) =
-        Reminders.Plan(classId = classId, fireAt = t0.plusSeconds(minutesFromT0 * 60), due = due)
+        Reminders.Plan(classId = classId, fireAt = t0.plus((minutesFromT0 * 60).seconds), due = due)
 
     @Test
     fun `arming a plan sets one alarm per lesson, at the instant the plan carries`() {
@@ -37,8 +38,8 @@ class ReminderAlarmsTest {
 
         assertEquals(
             listOf(
-                RecordingAlarmClock.Armed(1, t0.toEpochMilli(), exact = true),
-                RecordingAlarmClock.Armed(2, t0.plusSeconds(1800).toEpochMilli(), exact = true),
+                RecordingAlarmClock.Armed(1, t0.toEpochMilliseconds(), exact = true),
+                RecordingAlarmClock.Armed(2, t0.plus(1800.seconds).toEpochMilliseconds(), exact = true),
             ),
             clockPort.armed,
         )
@@ -89,7 +90,7 @@ class ReminderAlarmsTest {
         alarms.set(listOf(plan(7, minutesFromT0 = 90)))
 
         assertEquals(listOf(7L), clockPort.cancelled)
-        assertEquals(t0.plusSeconds(90 * 60).toEpochMilli(), clockPort.armed.single().atMillis)
+        assertEquals(t0.plus((90 * 60).seconds).toEpochMilliseconds(), clockPort.armed.single().atMillis)
     }
 
     @Test

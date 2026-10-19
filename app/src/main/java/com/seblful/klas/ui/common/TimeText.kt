@@ -6,8 +6,8 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalContext
 import com.seblful.klas.format.formatDateTime
 import com.seblful.klas.format.formatTime
-import java.time.Instant
-import java.time.LocalTime
+import kotlinx.datetime.LocalTime
+import kotlin.time.Instant
 
 /**
  * A time as the **UI** prints it: 12- or 24-hour by the phone's own clock setting, so a lesson reads the

@@ -18,7 +18,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -59,7 +59,9 @@ class StudentsViewModelTest {
         env.studentDao.upsert(StudentEntity(name = "Старый", archived = true))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         env.fixtures.storedClass(studentId = active, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor)
-        env.paymentRepo.restore(Payment(studentId = active, date = Instant.ofEpochMilli(1), amount = Money.ofMajor(10)))
+        env.paymentRepo.restore(
+            Payment(studentId = active, date = Instant.fromEpochMilliseconds(1), amount = Money.ofMajor(10)),
+        )
 
         val vm = vm()
         observing(vm.rows)

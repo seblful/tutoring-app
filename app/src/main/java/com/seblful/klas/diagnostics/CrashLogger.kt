@@ -1,9 +1,9 @@
 package com.seblful.klas.diagnostics
 
-import java.time.Clock
-import java.time.Instant
+import com.seblful.klas.domain.time.WallClock
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Instant
 
 /**
  * On-device crash diagnostics — offline, no backend, in keeping with the app's local-only stance.
@@ -20,7 +20,7 @@ import javax.inject.Singleton
 class CrashLogger @Inject constructor(
     private val store: CrashLogStore,
     private val device: DeviceInfo,
-    private val clock: Clock,
+    private val clock: WallClock,
 ) {
     /**
      * Wraps any existing handler. Call once, early, from `Application.onCreate`.
@@ -41,7 +41,7 @@ class CrashLogger @Inject constructor(
 
     /** Appends one crash to the log, trimming the oldest entries past the cap. [now] is the injected clock's, so a test can pin the stamp. */
     @Synchronized
-    fun record(throwable: Throwable, now: Instant = clock.instant()) {
+    fun record(throwable: Throwable, now: Instant = clock.now()) {
         val entry = Diagnostics.formatEntry(
             time = now,
             appVersion = device.appVersion,

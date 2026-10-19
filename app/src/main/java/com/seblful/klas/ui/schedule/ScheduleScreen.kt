@@ -63,7 +63,7 @@ import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.navigation.Arrival
 import kotlinx.coroutines.launch
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

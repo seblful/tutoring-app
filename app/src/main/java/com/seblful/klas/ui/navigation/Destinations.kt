@@ -15,7 +15,7 @@ import androidx.compose.material.icons.outlined.People
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavBackStackEntry
 import com.seblful.klas.R
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /** Route constants for the whole app. */
 object Routes {

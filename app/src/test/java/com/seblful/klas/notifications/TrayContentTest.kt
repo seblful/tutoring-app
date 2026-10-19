@@ -3,10 +3,11 @@ package com.seblful.klas.notifications
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.domain.schedule.DaySummary
+import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import java.time.Instant
-import java.time.LocalDate
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * How much of a day's agenda actually reaches the tray.
@@ -20,11 +21,11 @@ class TrayContentTest {
     private val start = Instant.parse("2026-06-20T07:00:00Z")
 
     private fun agenda(lessons: Int) = Digests.Agenda(
-        day = LocalDate.of(2026, 6, 20),
+        day = LocalDate(2026, 6, 20),
         summary = DaySummary(lessons = lessons, minutes = lessons * 60, money = Money.ZERO, cancelled = 0),
         lessons = (0 until lessons).map { i ->
             Digests.Agenda.Entry(
-                start = start.plusSeconds(i * 3_600L),
+                start = start.plus((i * 3_600L).seconds),
                 subject = "Алгебра",
                 who = "Ученик $i",
             )

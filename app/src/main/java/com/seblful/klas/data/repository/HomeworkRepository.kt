@@ -9,14 +9,15 @@ import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.time.WallClock
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import java.time.Clock
-import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Instant
 
 /**
  * Homework and the lessons it is attached to — the only writer of the `homework` table.
@@ -35,7 +36,7 @@ import javax.inject.Singleton
 class HomeworkRepository @Inject constructor(
     private val dao: HomeworkDao,
     private val classes: ClassRepository,
-    private val clock: Clock,
+    private val clock: WallClock,
 ) {
 
     /** Every piece of homework, and the classes [HomeworkRules] attaches the current ones by. */
@@ -77,7 +78,7 @@ class HomeworkRepository @Inject constructor(
     fun observeAttachedTo(session: ClassSession): Flow<List<Homework>> =
         observeAll().flatMapLatest { all ->
             val candidates = candidatesFor(session, all)
-            classes.observeBetween(earliestGiven(candidates, session.start), session.start.plusMillis(1))
+            classes.observeBetween(earliestGiven(candidates, session.start), session.start.plus(1.milliseconds))
                 .map { lessons -> HomeworkRules.attachedToLesson(session, candidates, lessons) }
         }
 
@@ -87,7 +88,7 @@ class HomeworkRepository @Inject constructor(
     suspend fun currentAttachedTo(session: ClassSession): List<Homework> {
         val current = candidatesFor(session, dao.getAll().map { it.toDomain() }).filterNot { it.isDone }
         if (current.isEmpty()) return emptyList()
-        val lessons = classes.getBetween(earliestGiven(current, session.start), session.start.plusMillis(1))
+        val lessons = classes.getBetween(earliestGiven(current, session.start), session.start.plus(1.milliseconds))
         return HomeworkRules.attachedToLesson(session, current, lessons)
     }
 
@@ -107,11 +108,11 @@ class HomeworkRepository @Inject constructor(
      * to the first homework the app ever held.
      */
     private fun candidatesFor(session: ClassSession, homework: List<Homework>): List<Homework> =
-        homework.filter { hw -> hw.givenAt.isBefore(session.start) && session.classes.any { hw.assignee.takes(it) } }
+        homework.filter { hw -> hw.givenAt < session.start && session.classes.any { hw.assignee.takes(it) } }
 
     /** Sets [text] for [assignee], given now — so it is attached to their next lesson from this minute. */
     suspend fun give(assignee: Assignee, text: String): Homework {
-        val homework = Homework(assignee = assignee, text = text.trim(), givenAt = clock.instant())
+        val homework = Homework(assignee = assignee, text = text.trim(), givenAt = clock.now())
         return homework.copy(id = dao.insert(homework.toEntity()))
     }
 
@@ -127,7 +128,7 @@ class HomeworkRepository @Inject constructor(
 
     /** Marks [homework] done now — into the archive — or, with [done] false, current again. */
     suspend fun setDone(homework: Homework, done: Boolean) {
-        dao.setDone(homework.id, if (done) clock.instant().toEpochMilli() else null)
+        dao.setDone(homework.id, if (done) clock.now().toEpochMilliseconds() else null)
     }
 
     /**
@@ -136,7 +137,7 @@ class HomeworkRepository @Inject constructor(
      * the archive rather than to where it was.
      */
     suspend fun putBack(homework: Homework) {
-        dao.setDone(homework.id, homework.doneAt?.toEpochMilli())
+        dao.setDone(homework.id, homework.doneAt?.toEpochMilliseconds())
     }
 
     suspend fun delete(homework: Homework) {
@@ -157,6 +158,6 @@ class HomeworkRepository @Inject constructor(
 
     private companion object {
         /** The open end of a window forward — the next lesson can be booked however far ahead. */
-        val Forever: Instant = Instant.ofEpochMilli(Long.MAX_VALUE)
+        val Forever: Instant = Instant.fromEpochMilliseconds(Long.MAX_VALUE)
     }
 }

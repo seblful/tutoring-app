@@ -18,6 +18,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * What the app decides before it draws anything: theme, currency, and whether onboarding is owed.
@@ -123,7 +124,7 @@ class RootViewModelTest {
         val lesson = env.fixtures.lesson(
             subjectId = subjectId,
             students = listOf(studentId),
-            start = env.clock.instant().minusSeconds(7200), // ended an hour ago
+            start = env.clock.now().minus(7200.seconds), // ended an hour ago
         ).single()
         env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
 

@@ -24,6 +24,18 @@ import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.ui.schedule.booking.ClassForm
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.YearMonth
+import kotlinx.datetime.atTime
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -32,12 +44,9 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.YearMonth
-import java.time.ZoneId
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 /**
  * Edge cases that combinations of individually-legal data reach. Each one is a *combination*: no
@@ -60,7 +69,7 @@ class EdgeCaseCombinationsTest {
 
     @get:Rule
     val env = TestEnv()
-    private val zone: ZoneId = ZoneId.systemDefault()
+    private val zone: TimeZone = TimeZone.currentSystemDefault()
 
     // ---- Regressions ---------------------------------------------------------------------------
 
@@ -78,7 +87,7 @@ class EdgeCaseCombinationsTest {
             val ann = env.fixtures.student("Аня")
             val bob = env.fixtures.student("Борис")
             val subj = env.fixtures.subject("Математика")
-            val at = LocalDate.now(zone).plusDays(1).atTime(10, 0).atZone(zone).toInstant()
+            val at = Clock.System.todayIn(zone).plus(1, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone)
 
             val annIds = env.classRepo.book(
                 subjectId = subj, start = at, durationMinutes = 60,
@@ -169,20 +178,20 @@ class EdgeCaseCombinationsTest {
     fun `a lesson may cross midnight`() {
         val form = ClassForm(
             studentId = 1, subjectId = 1,
-            date = LocalDate.of(2026, 3, 2),
-            timeFrom = LocalTime.of(23, 30),
+            date = LocalDate(2026, 3, 2),
+            timeFrom = LocalTime(23, 30),
             durationMinutes = 60,
             price = MoneyField(text = "30"),
         )
         assertTrue(form.isValid)
-        assertEquals(LocalTime.of(0, 30), form.ends(ZoneId.of("Europe/Minsk"))?.time)
-        assertEquals(true, form.ends(ZoneId.of("Europe/Minsk"))?.nextDay)
+        assertEquals(LocalTime(0, 30), form.ends(TimeZone.of("Europe/Minsk"))?.time)
+        assertEquals(true, form.ends(TimeZone.of("Europe/Minsk"))?.nextDay)
 
-        val slot = form.slot(ZoneId.of("Europe/Minsk"))!!
+        val slot = form.slot(TimeZone.of("Europe/Minsk"))!!
         assertEquals(
             "the lesson ends on the 3rd, an hour after it started on the 2nd",
-            LocalDateTime.of(2026, 3, 3, 0, 30),
-            LocalDateTime.ofInstant(slot.end, ZoneId.of("Europe/Minsk")),
+            LocalDateTime(2026, 3, 3, 0, 30),
+            slot.end.toLocalDateTime(TimeZone.of("Europe/Minsk")),
         )
     }
 
@@ -220,11 +229,11 @@ class EdgeCaseCombinationsTest {
     @Test
     fun `an all-time trend spans as many years as the data does`() {
         val classes = listOf(
-            completed(id = 1, at = Instant.EPOCH),
+            completed(id = 1, at = Instant.fromEpochMilliseconds(0)),
             completed(id = 2, at = Instant.parse("2026-05-01T09:00:00Z")),
         )
 
-        val trend = Reports.trend(classes, ReportPeriod(ReportPeriod.Kind.ALL, YearMonth.of(2026, 5)), zone)
+        val trend = Reports.trend(classes, ReportPeriod(ReportPeriod.Kind.ALL, YearMonth(2026, 5)), zone)
         assertEquals(Reports.Trend.Bucket.YEARS, trend.bucket)
         assertTrue("a bar per year since 1970", trend.bars.size > 50)
     }

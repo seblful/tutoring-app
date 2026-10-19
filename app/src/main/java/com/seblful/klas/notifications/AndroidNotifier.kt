@@ -21,7 +21,7 @@ import com.seblful.klas.format.formatTime
 import com.seblful.klas.format.inAppLanguage
 import com.seblful.klas.format.money
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -342,7 +342,7 @@ class AndroidNotifier @Inject constructor(
     /** The schedule on [day] — see [TrayNavigation.Destination.Day]. */
     private fun openDay(requestCode: Int, day: LocalDate): PendingIntent =
         openApp(requestCode, TrayNavigation.ACTION_OPEN_DAY) {
-            putExtra(TrayNavigation.EXTRA_DAY, day.toEpochDay())
+            putExtra(TrayNavigation.EXTRA_DAY, day.toEpochDays())
         }
 
     /**

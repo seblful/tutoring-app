@@ -2,9 +2,9 @@ package com.seblful.klas.data
 
 import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.ClassRow
-import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.HomeworkEntity
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.RateChangeEntity
@@ -13,9 +13,9 @@ import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Homework
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Price
@@ -29,7 +29,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.Instant
+import kotlin.time.Instant
 
 /** Entity ⇄ domain mapping must be lossless — a wrong field here silently corrupts persisted data. */
 class MappersTest {
@@ -72,7 +72,7 @@ class MappersTest {
             owner = RateOwner.StudentSubject(studentId = 1, subjectId = 2),
             from = Money(2000),
             to = Money(2550),
-            at = Instant.ofEpochMilli(1_700_000_123_000),
+            at = Instant.fromEpochMilliseconds(1_700_000_123_000),
         )
         assertEquals(c, c.toEntity().toDomain())
         assertNull("a student's change names no group", c.toEntity().groupId)
@@ -85,7 +85,7 @@ class MappersTest {
             owner = RateOwner.GroupRate(groupId = 7),
             from = Money(2000),
             to = Money(2500),
-            at = Instant.ofEpochMilli(1_700_000_123_000),
+            at = Instant.fromEpochMilliseconds(1_700_000_123_000),
         )
         assertEquals(c, c.toEntity().toDomain())
         assertNull("a group's change names no student", c.toEntity().studentId)
@@ -125,7 +125,9 @@ class MappersTest {
 
     @Test
     fun `payment round-trips with millisecond instant precision`() {
-        val p = Payment(id = 4, studentId = 1, date = Instant.ofEpochMilli(1_700_000_123_000), amount = Money(150000))
+        val p = Payment(
+            id = 4, studentId = 1, date = Instant.fromEpochMilliseconds(1_700_000_123_000), amount = Money(150000),
+        )
         assertEquals(p, p.toEntity().toDomain())
     }
 
@@ -156,7 +158,7 @@ class MappersTest {
     fun `class round-trips all fields including status, attendance, charge, mode and event id`() {
         val c = TutoringClass(
             id = 9, lessonId = 4, studentId = 1, subjectId = 2,
-            start = Instant.ofEpochMilli(1_700_000_000_000),
+            start = Instant.fromEpochMilliseconds(1_700_000_000_000),
             durationMinutes = 90, price = Money.ofMajor(30),
             status = LessonStatus.COMPLETED, attended = Attended.ABSENT_BILLED,
             charge = Money.ofMajor(45),
@@ -170,7 +172,8 @@ class MappersTest {
     fun `one student's homework round-trips through its row`() {
         val h = Homework(
             id = 3, assignee = Assignee.Student(7), text = "§12, упр. 4–7",
-            givenAt = Instant.ofEpochMilli(1_700_000_000_000), doneAt = Instant.ofEpochMilli(1_700_086_400_000),
+            givenAt = Instant.fromEpochMilliseconds(1_700_000_000_000),
+            doneAt = Instant.fromEpochMilliseconds(1_700_086_400_000),
         )
 
         assertEquals(7L, h.toEntity().studentId)
@@ -180,7 +183,9 @@ class MappersTest {
 
     @Test
     fun `a group's homework round-trips through its row, current`() {
-        val h = Homework(id = 4, assignee = Assignee.Group(5), text = "Задачи", givenAt = Instant.ofEpochMilli(0))
+        val h = Homework(
+            id = 4, assignee = Assignee.Group(5), text = "Задачи", givenAt = Instant.fromEpochMilliseconds(0),
+        )
 
         assertNull(h.toEntity().studentId)
         assertEquals(5L, h.toEntity().groupId)
@@ -204,7 +209,7 @@ class MappersTest {
     fun `the lesson's facts go to the lesson's row and the student's to their own`() {
         val c = TutoringClass(
             id = 9, lessonId = 4, studentId = 1, subjectId = 2,
-            start = Instant.ofEpochMilli(1_700_000_000_000),
+            start = Instant.fromEpochMilliseconds(1_700_000_000_000),
             durationMinutes = 90, price = Money.ofMajor(30),
             status = LessonStatus.COMPLETED, attended = Attended.PRESENT,
             charge = Money.ofMajor(45), groupId = 5, mode = ClassMode.REMOTE,
@@ -229,7 +234,7 @@ class MappersTest {
     @Test
     fun `class start instant maps to and from epoch millis`() {
         val c = TutoringClass(studentId = 1, subjectId = 1, start = Instant.parse("2026-06-20T10:00:00Z"), durationMinutes = 60)
-        assertEquals(Instant.parse("2026-06-20T10:00:00Z").toEpochMilli(), c.toLessonEntity().startMillis)
+        assertEquals(Instant.parse("2026-06-20T10:00:00Z").toEpochMilliseconds(), c.toLessonEntity().startMillis)
         assertEquals(c.start, c.roundTrip().start)
     }
 
@@ -237,7 +242,7 @@ class MappersTest {
     fun `a group class keeps its group id`() {
         val c = TutoringClass(
             id = 11, lessonId = 3, studentId = 1, subjectId = 2,
-            start = Instant.ofEpochMilli(1_700_000_000_000),
+            start = Instant.fromEpochMilliseconds(1_700_000_000_000),
             durationMinutes = 60, price = Money.ofMajor(20), groupId = 5,
         )
         assertEquals(c, c.roundTrip())

@@ -10,7 +10,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 @RunWith(RobolectricTestRunner::class)
 class BackupRestoreCalendarTest {
@@ -54,7 +55,7 @@ class BackupRestoreCalendarTest {
         val start = Instant.parse("2026-06-20T10:00:00Z")
         val id = env.fixtures.lesson(subject, listOf(student), start).single()
         val backup = env.backupManager.exportJson()
-        env.classRepo.move(env.classRepo.getSessionFor(id)!!, start.plusSeconds(3_600), start)
+        env.classRepo.move(env.classRepo.getSessionFor(id)!!, start.plus((3_600).seconds), start)
         val movedEvent = env.classRepo.getById(id)!!.calendarEventId!!
 
         env.backupRestore.restore(backup)

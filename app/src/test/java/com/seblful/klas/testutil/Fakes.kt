@@ -35,8 +35,11 @@ import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentSharing
 import com.seblful.klas.storage.DocumentStore
 import com.seblful.klas.work.Maintenance
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import org.junit.rules.TestRule
 import java.io.Closeable
+import kotlin.time.Instant
 
 /** Records reminder-refresh requests and armed plans so tests can assert side effects fired. */
 class RecordingReminderScheduler : ReminderScheduler {
@@ -198,11 +201,11 @@ class RecordingNotifier : Notifier {
      * What each unattended upkeep pass reported billing. Empty is the assertion that matters most often:
      * a pass the tutor asked for reports through the screen instead, and must post nothing here.
      */
-    data class AutoCompleted(val lessons: Int, val billed: Money, val day: java.time.LocalDate)
+    data class AutoCompleted(val lessons: Int, val billed: Money, val day: LocalDate)
 
     val autoCompleted = mutableListOf<AutoCompleted>()
 
-    override fun showAutoCompleted(lessons: Int, billed: Money, day: java.time.LocalDate, currency: Currency) {
+    override fun showAutoCompleted(lessons: Int, billed: Money, day: LocalDate, currency: Currency) {
         autoCompleted += AutoCompleted(lessons, billed, day)
     }
 }
@@ -394,8 +397,8 @@ class TestEnv(
      * and leaving the writer on a different one.
      */
     val clock: MutableClock = MutableClock(
-        java.time.Instant.parse("2026-06-01T12:00:00Z"),
-        java.time.ZoneId.of("Europe/Minsk"),
+        Instant.parse("2026-06-01T12:00:00Z"),
+        TimeZone.of("Europe/Minsk"),
     ),
 ) : TestRule by database, Closeable by database {
     private val db = database.db

@@ -34,7 +34,7 @@ import com.seblful.klas.ui.common.RateHistory
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.text
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /** A dialog to edit a student's name, phone, email, optional note and default class mode. */
 @Composable

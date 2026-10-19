@@ -25,6 +25,7 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.testutil.RussianMinskPhone
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -37,7 +38,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.time.Instant
+import kotlin.time.Instant
 
 /**
  * What a subject's deletion is allowed to take with it, against the platform's own SQLite — the foreign
@@ -92,7 +93,7 @@ class SubjectDeletionCascadeTest {
         val classes = ClassRepository(
             db.classDao(), db.lessonDao(), db.attendanceDao(), mirror, RecordingReminderScheduler(), transactor,
         )
-        val rateHistory = RateHistoryRepository(db.rateHistoryDao(), db.groupDao(), db.priceDao(), java.time.Clock.systemDefaultZone())
+        val rateHistory = RateHistoryRepository(db.rateHistoryDao(), db.groupDao(), db.priceDao(), WallClock.system())
         val groups = GroupRepository(
             db.groupDao(), classes, db.studentDao(), rateHistory, transactor, mirror,
         )
@@ -107,7 +108,7 @@ class SubjectDeletionCascadeTest {
             DatabaseSnapshot(
                 lessons = listOf(
                     LessonEntity(
-                        1, 1, Instant.parse("2026-05-10T10:00:00Z").toEpochMilli(), 60,
+                        1, 1, Instant.parse("2026-05-10T10:00:00Z").toEpochMilliseconds(), 60,
                         LessonStatus.COMPLETED,
                     ),
                 ),
@@ -115,7 +116,7 @@ class SubjectDeletionCascadeTest {
                     AttendanceEntity(1, 1, 1, Attended.PRESENT, chargeMinor = 5000),
                 ),
                 payments = listOf(
-                    PaymentEntity(1, 1, Instant.parse("2026-05-10T12:00:00Z").toEpochMilli(), amountMinor = 2000),
+                    PaymentEntity(1, 1, Instant.parse("2026-05-10T12:00:00Z").toEpochMilliseconds(), amountMinor = 2000),
                 ),
             ),
         )
@@ -188,7 +189,7 @@ class SubjectDeletionCascadeTest {
         db.rateHistoryDao().insert(
             RateChangeEntity(
                 studentId = 1, subjectId = 2, fromMinor = 3000, toMinor = 4000,
-                atMillis = Instant.parse("2026-05-10T12:00:00Z").toEpochMilli(),
+                atMillis = Instant.parse("2026-05-10T12:00:00Z").toEpochMilliseconds(),
             ),
         )
 

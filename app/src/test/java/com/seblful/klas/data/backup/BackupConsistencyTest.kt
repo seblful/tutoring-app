@@ -11,7 +11,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
+import kotlin.time.Instant
 
 @RunWith(RobolectricTestRunner::class)
 class BackupConsistencyTest {

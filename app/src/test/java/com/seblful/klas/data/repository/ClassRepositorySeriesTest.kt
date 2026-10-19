@@ -9,6 +9,10 @@ import com.seblful.klas.domain.schedule.Repeat
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -16,10 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneId
+import kotlin.time.Instant
 
 /**
  * Booking a run of lessons — [ClassRepository.bookSeries].
@@ -37,9 +38,9 @@ class ClassRepositorySeriesTest {
     val env = TestEnv()
     private val repo = env.classRepo
 
-    private val zone: ZoneId = ZoneId.of("Europe/Minsk")
+    private val zone: TimeZone = TimeZone.of("Europe/Minsk")
     private val firstDay: LocalDate = LocalDate.parse("2026-09-07")
-    private val atFour: LocalTime = LocalTime.of(16, 0)
+    private val atFour: LocalTime = LocalTime(16, 0)
     private val rate = Money.ofMajor(30)
 
     /** The subject and the two students the writes below name by id — the database refuses phantoms. */
@@ -85,7 +86,7 @@ class ClassRepositorySeriesTest {
         bookSeries(starts)
 
         assertEquals(starts, repo.getAll().map { it.start }.sorted())
-        repo.getAll().forEach { assertEquals(atFour, it.start.atZone(zone).toLocalTime()) }
+        repo.getAll().forEach { assertEquals(atFour, it.start.toLocalDateTime(zone).time) }
     }
 
     @Test

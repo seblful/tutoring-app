@@ -14,6 +14,7 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.people.Captions
 import com.seblful.klas.domain.people.NameOrder
+import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.days
@@ -27,9 +28,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import java.time.Clock
-import java.time.Duration
 import javax.inject.Inject
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 
 /**
  * What the «Задания» tab shows: its two lists, what it is narrowed to, and what the add dialog is built
@@ -63,7 +64,7 @@ class HomeworkViewModel @Inject constructor(
     groups: GroupRepository,
     @param:ApplicationScope appScope: CoroutineScope,
     @Computation computation: CoroutineDispatcher,
-    private val clock: Clock,
+    private val clock: WallClock,
 ) : ViewModel() {
 
     private val zone get() = clock.zone
@@ -94,7 +95,7 @@ class HomeworkViewModel @Inject constructor(
      */
     val state: StateFlow<Loadable<HomeworkState>> =
         combine(
-            homework.observeWithLessons(since = clock.instant().minus(PICKER_LOOKBACK)),
+            homework.observeWithLessons(since = clock.now().minus(PICKER_LOOKBACK)),
             people,
             filter,
             clock.days(),
@@ -125,7 +126,7 @@ class HomeworkViewModel @Inject constructor(
      */
     fun choices(): List<AssigneeChoice>? {
         val loaded = state.value.valueOrNull() ?: return null
-        val now = clock.instant()
+        val now = clock.now()
         return HomeworkRules.byNearestLesson(loaded.assignees, loaded.classes, now).map { assignee ->
             AssigneeChoice.of(assignee, loaded.captions.titleOf(assignee), loaded.classes, now)
         }
@@ -171,7 +172,7 @@ class HomeworkViewModel @Inject constructor(
          * How far back lessons are read for the dialog's order — a fortnight, so the student taught
          * yesterday still ranks above one not seen since spring.
          */
-        val PICKER_LOOKBACK: Duration = Duration.ofDays(14)
+        val PICKER_LOOKBACK: Duration = 14.days
 
         /** Active students, then active groups, each in name order — `byNearestLesson` keeps that for ties. */
         fun assigneesOf(students: List<Student>, groups: List<Group>): List<Assignee> =

@@ -30,6 +30,8 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.people.Captions
 import com.seblful.klas.domain.people.NameOrder
 import com.seblful.klas.domain.reports.Taught
+import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.days
@@ -46,10 +48,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import java.time.Clock
-import java.time.Instant
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
 
 /**
  * A subject the student takes, with its per-class price and how that price got there.
@@ -220,7 +222,7 @@ class StudentDetailViewModel @Inject constructor(
     rateHistory: RateHistoryRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
-    private val clock: Clock,
+    private val clock: WallClock,
 ) : ViewModel() {
 
     private val studentId: Long = checkNotNull(savedStateHandle["id"])
@@ -439,7 +441,7 @@ class StudentDetailViewModel @Inject constructor(
         val loaded = state.value.valueOrNull() ?: return null
         val student = loaded.student ?: return null
         return AssigneeChoice.of(
-            Assignee.Student(studentId), student.name, loaded.classes.map { it.klass }, clock.instant(),
+            Assignee.Student(studentId), student.name, loaded.classes.map { it.klass }, clock.now(),
         )
     }
 

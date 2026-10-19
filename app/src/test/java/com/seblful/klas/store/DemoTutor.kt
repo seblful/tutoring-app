@@ -4,24 +4,30 @@ import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.ClassMode.IN_PERSON
 import com.seblful.klas.domain.model.Currency
+import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.store.DemoSubject.LANGUAGE
 import com.seblful.klas.store.DemoSubject.MATH
 import com.seblful.klas.store.DemoSubject.PHYSICS
-import java.time.Clock
-import java.time.DayOfWeek
-import java.time.DayOfWeek.FRIDAY
-import java.time.DayOfWeek.MONDAY
-import java.time.DayOfWeek.SATURDAY
-import java.time.DayOfWeek.SUNDAY
-import java.time.DayOfWeek.THURSDAY
-import java.time.DayOfWeek.TUESDAY
-import java.time.DayOfWeek.WEDNESDAY
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.ZoneId
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.DayOfWeek.FRIDAY
+import kotlinx.datetime.DayOfWeek.MONDAY
+import kotlinx.datetime.DayOfWeek.SATURDAY
+import kotlinx.datetime.DayOfWeek.SUNDAY
+import kotlinx.datetime.DayOfWeek.THURSDAY
+import kotlinx.datetime.DayOfWeek.TUESDAY
+import kotlinx.datetime.DayOfWeek.WEDNESDAY
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atTime
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
 import java.util.Locale
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * The tutor the store screenshots show: half a year of teaching, told once and spoken in either language.
@@ -77,12 +83,12 @@ internal data class DemoTutor(
     }
 
     companion object {
-        val ZONE: ZoneId = ZoneId.of("Europe/Minsk")
-        val NOW: LocalDateTime = LocalDateTime.of(2026, 10, 14, 15, 20)
-        val TODAY: LocalDate = NOW.toLocalDate()
+        val ZONE: TimeZone = TimeZone.of("Europe/Minsk")
+        val NOW: LocalDateTime = LocalDateTime(2026, 10, 14, 15, 20)
+        val TODAY: LocalDate = NOW.date
 
         /** The app's clock, stopped at [NOW]. */
-        val CLOCK: Clock = Clock.fixed(NOW.atZone(ZONE).toInstant(), ZONE)
+        val CLOCK: WallClock = WallClock.fixed(NOW.toInstant(ZONE), ZONE)
 
         /**
          * The first day taught: the summer before, with students joining through to late September — so
@@ -90,10 +96,10 @@ internal data class DemoTutor(
          * purpose — every amount on the screenshots, a student's lifetime earnings included, stays within
          * a thousand, which is what a private tutor's numbers look like rather than a business's.
          */
-        val FIRST_DAY: LocalDate = LocalDate.of(2026, 7, 1)
+        val FIRST_DAY: LocalDate = LocalDate(2026, 7, 1)
 
         /** How far ahead the schedule is booked, so next week's view is not empty. */
-        val BOOKED_UNTIL: LocalDate = TODAY.plusWeeks(3)
+        val BOOKED_UNTIL: LocalDate = TODAY.plus(3, DateTimeUnit.WEEK)
 
         /**
          * One more lesson today, booked with [freeToday] and never marked — as a tutor who has not got round
@@ -110,45 +116,45 @@ internal data class DemoTutor(
             subjects = Subjects(math = "Math", physics = "Physics", language = "Spanish"),
             students = listOf(
                 DemoStudent(
-                    name = "Emma Wilson", subject = MATH, rate = 30, from = LocalDate.of(2026, 7, 1),
+                    name = "Emma Wilson", subject = MATH, rate = 30, from = LocalDate(2026, 7, 1),
                     slots = listOf(Slot(MONDAY, 17, 0, 60), Slot(WEDNESDAY, 14, 0, 60)),
                     phone = "+1 202 555 0143", email = "emma.wilson@example.com",
                     homework = "Ch. 4, problems 12–20: quadratic equations",
                 ),
                 DemoStudent(
-                    name = "Liam Carter", subject = PHYSICS, rate = 25, from = LocalDate.of(2026, 7, 2),
+                    name = "Liam Carter", subject = PHYSICS, rate = 25, from = LocalDate(2026, 7, 2),
                     slots = listOf(Slot(TUESDAY, 16, 0, 90), Slot(FRIDAY, 16, 0, 60)),
                     phone = "+1 202 555 0178",
                     homework = "Newton's laws: problems 5.12–5.20",
-                    paysUntil = LocalDate.of(2026, 9, 20),
+                    paysUntil = LocalDate(2026, 9, 20),
                 ),
                 DemoStudent(
-                    name = "Olivia Brooks", subject = LANGUAGE, rate = 20, from = LocalDate.of(2026, 7, 15),
+                    name = "Olivia Brooks", subject = LANGUAGE, rate = 20, from = LocalDate(2026, 7, 15),
                     slots = listOf(Slot(WEDNESDAY, 15, 0, 60), Slot(SATURDAY, 11, 0, 60)),
                     email = "olivia.brooks@example.com",
                     homework = "Preterite vs imperfect: ex. 4–7, p. 52",
                 ),
                 DemoStudent(
-                    name = "Noah Bennett", subject = PHYSICS, rate = 25, from = LocalDate.of(2026, 8, 3),
+                    name = "Noah Bennett", subject = PHYSICS, rate = 25, from = LocalDate(2026, 8, 3),
                     slots = listOf(Slot(MONDAY, 19, 0, 60), Slot(WEDNESDAY, 18, 30, 60)),
                     mode = ClassMode.REMOTE,
                     homework = "Pendulum lab: write up the report",
                 ),
                 DemoStudent(
-                    name = "Ava Thompson", subject = MATH, rate = 30, from = LocalDate.of(2026, 9, 24),
+                    name = "Ava Thompson", subject = MATH, rate = 30, from = LocalDate(2026, 9, 24),
                     slots = listOf(Slot(THURSDAY, 17, 0, 90)),
                     phone = "+1 202 555 0119",
-                    paysUntil = LocalDate.of(2026, 9, 30),
+                    paysUntil = LocalDate(2026, 9, 30),
                 ),
                 DemoStudent(
-                    name = "Ethan Hughes", subject = LANGUAGE, rate = 20, from = LocalDate.of(2026, 9, 16),
+                    name = "Ethan Hughes", subject = LANGUAGE, rate = 20, from = LocalDate(2026, 9, 16),
                     slots = listOf(Slot(WEDNESDAY, 11, 0, 60), Slot(FRIDAY, 11, 0, 60)),
                     email = "ethan.hughes@example.com",
                     prepaysLessons = 8,
                 ),
             ),
             group = DemoGroup(
-                name = "SAT Math Prep", rate = 12, from = LocalDate.of(2026, 9, 16),
+                name = "SAT Math Prep", rate = 12, from = LocalDate(2026, 9, 16),
                 slots = listOf(Slot(WEDNESDAY, 16, 30, 90), Slot(SATURDAY, 13, 0, 90)),
                 members = listOf("Mia Foster", "Lucas Reed", "Chloe Adams", "Jack Morgan"),
                 subject = MATH,
@@ -171,45 +177,45 @@ internal data class DemoTutor(
             subjects = Subjects(math = "Математика", physics = "Физика", language = "Английский"),
             students = listOf(
                 DemoStudent(
-                    name = "Аня Смирнова", subject = MATH, rate = 30, from = LocalDate.of(2026, 7, 1),
+                    name = "Аня Смирнова", subject = MATH, rate = 30, from = LocalDate(2026, 7, 1),
                     slots = listOf(Slot(MONDAY, 17, 0, 60), Slot(WEDNESDAY, 14, 0, 60)),
                     phone = "+375 29 123-45-67", email = "anya.smirnova@example.com",
                     homework = "§ 14, № 312–318: квадратные уравнения",
                 ),
                 DemoStudent(
-                    name = "Максим Ковалёв", subject = PHYSICS, rate = 25, from = LocalDate.of(2026, 7, 2),
+                    name = "Максим Ковалёв", subject = PHYSICS, rate = 25, from = LocalDate(2026, 7, 2),
                     slots = listOf(Slot(TUESDAY, 16, 0, 90), Slot(FRIDAY, 16, 0, 60)),
                     phone = "+375 33 765-43-21",
                     homework = "Законы Ньютона: задачи 5.12–5.20",
-                    paysUntil = LocalDate.of(2026, 9, 20),
+                    paysUntil = LocalDate(2026, 9, 20),
                 ),
                 DemoStudent(
-                    name = "София Лебедева", subject = LANGUAGE, rate = 20, from = LocalDate.of(2026, 7, 15),
+                    name = "София Лебедева", subject = LANGUAGE, rate = 20, from = LocalDate(2026, 7, 15),
                     slots = listOf(Slot(WEDNESDAY, 15, 0, 60), Slot(SATURDAY, 11, 0, 60)),
                     email = "sofia.lebedeva@example.com",
                     homework = "Present Perfect: упр. 4–7, стр. 52",
                 ),
                 DemoStudent(
-                    name = "Артём Новиков", subject = PHYSICS, rate = 25, from = LocalDate.of(2026, 8, 3),
+                    name = "Артём Новиков", subject = PHYSICS, rate = 25, from = LocalDate(2026, 8, 3),
                     slots = listOf(Slot(MONDAY, 19, 0, 60), Slot(WEDNESDAY, 18, 30, 60)),
                     mode = ClassMode.REMOTE,
                     homework = "Лабораторная «Маятник»: оформить отчёт",
                 ),
                 DemoStudent(
-                    name = "Ева Морозова", subject = MATH, rate = 30, from = LocalDate.of(2026, 9, 24),
+                    name = "Ева Морозова", subject = MATH, rate = 30, from = LocalDate(2026, 9, 24),
                     slots = listOf(Slot(THURSDAY, 17, 0, 90)),
                     phone = "+375 44 555-01-19",
-                    paysUntil = LocalDate.of(2026, 9, 30),
+                    paysUntil = LocalDate(2026, 9, 30),
                 ),
                 DemoStudent(
-                    name = "Ольга Кузнецова", subject = LANGUAGE, rate = 20, from = LocalDate.of(2026, 9, 16),
+                    name = "Ольга Кузнецова", subject = LANGUAGE, rate = 20, from = LocalDate(2026, 9, 16),
                     slots = listOf(Slot(WEDNESDAY, 11, 0, 60), Slot(FRIDAY, 11, 0, 60)),
                     email = "olga.k@example.com",
                     prepaysLessons = 8,
                 ),
             ),
             group = DemoGroup(
-                name = "Подготовка к ЦТ", rate = 12, from = LocalDate.of(2026, 9, 16),
+                name = "Подготовка к ЦТ", rate = 12, from = LocalDate(2026, 9, 16),
                 slots = listOf(Slot(WEDNESDAY, 16, 30, 90), Slot(SATURDAY, 13, 0, 90)),
                 members = listOf("Даниил Волков", "Мила Соколова", "Тимур Орлов", "Полина Егорова"),
                 subject = MATH,
@@ -230,15 +236,15 @@ internal enum class DemoSubject { MATH, PHYSICS, LANGUAGE }
 
 /** A weekly lesson: the day, the start time and how long it runs. */
 internal data class Slot(val day: DayOfWeek, val hour: Int, val minute: Int, val minutes: Int) {
-    val time: LocalTime get() = LocalTime.of(hour, minute)
+    val time: LocalTime get() = LocalTime(hour, minute)
 
     /** When it starts on [date], which has to fall on [day]. */
-    fun startOn(date: LocalDate): Instant = date.atTime(time).atZone(DemoTutor.ZONE).toInstant()
-    fun endOn(date: LocalDate): Instant = startOn(date).plusSeconds(minutes * 60L)
+    fun startOn(date: LocalDate): Instant = date.atTime(time).toInstant(DemoTutor.ZONE)
+    fun endOn(date: LocalDate): Instant = startOn(date).plus((minutes * 60L).seconds)
 
     /** Whether it is under way at [at]. */
-    fun covers(at: LocalDateTime): Boolean = at.dayOfWeek == day && !at.toLocalTime().isBefore(time) &&
-        at.toLocalTime().isBefore(time.plusMinutes(minutes.toLong()))
+    fun covers(at: LocalDateTime): Boolean = at.dayOfWeek == day && at.time >= time &&
+        at.time.toSecondOfDay() < time.toSecondOfDay() + minutes * 60
 }
 
 /** What is taught every week from [from] on: the same lessons, on the same [slots], at the same [rate]. */
@@ -253,7 +259,7 @@ internal sealed interface Weekly {
 
     /** The lessons on [date]: none before [from]. */
     fun slotsOn(date: LocalDate): List<Slot> =
-        if (date.isBefore(from)) emptyList() else slots.filter { it.day == date.dayOfWeek }
+        if (date < from) emptyList() else slots.filter { it.day == date.dayOfWeek }
 }
 
 internal data class DemoStudent(

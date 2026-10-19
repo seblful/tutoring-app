@@ -7,6 +7,7 @@ import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -14,8 +15,9 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
-import java.time.LocalDate
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * What each digest says when it comes due — driven without WorkManager.
@@ -72,7 +74,7 @@ class DueDigestTest {
             agenda.lessons.map { it.start to it.subject },
         )
         assertEquals(listOf("Аня Петрова", "Боря Иванов"), agenda.lessons.map { it.who })
-        assertEquals("the day a tap on it opens", LocalDate.of(2026, 6, 15), agenda.day)
+        assertEquals("the day a tap on it opens", LocalDate(2026, 6, 15), agenda.day)
     }
 
     /**
@@ -218,7 +220,7 @@ class DueDigestTest {
             digest.lessons.map { it.start to it.who },
         )
         // Carried rather than read when tapped: a tap after midnight is still about Monday.
-        assertEquals(LocalDate.of(2026, 6, 15), digest.day)
+        assertEquals(LocalDate(2026, 6, 15), digest.day)
     }
 
     /** A lesson the tutor already marked is not something to be asked about at nine in the evening. */
@@ -301,7 +303,7 @@ class DueDigestTest {
         enableUnfinished()
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject)
-        env.fixtures.lesson(subject, listOf(anya), start = at(11).minusSeconds(24 * 60 * 60))
+        env.fixtures.lesson(subject, listOf(anya), start = at(11).minus((24 * 60 * 60).seconds))
 
         assertFalse(env.dueDigest.postUnfinished(evening))
     }

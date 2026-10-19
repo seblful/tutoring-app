@@ -7,7 +7,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /** An in-memory [CrashLogStore]; [failing] drives the "storage is broken" branch. */
 private class FakeCrashLogStore(var failing: Boolean = false) : CrashLogStore {
@@ -59,7 +60,7 @@ class CrashLoggerTest {
     @Test
     fun `crashes accumulate, newest last`() {
         logger.record(RuntimeException("first"), at)
-        logger.record(RuntimeException("second"), at.plusSeconds(60))
+        logger.record(RuntimeException("second"), at.plus(60.seconds))
 
         val log = store.content
         assertTrue(log.indexOf("first") < log.indexOf("second"))
@@ -68,7 +69,7 @@ class CrashLoggerTest {
 
     @Test
     fun `a crash loop cannot grow the log without bound`() {
-        repeat(200) { logger.record(RuntimeException("crash $it"), at.plusSeconds(it.toLong())) }
+        repeat(200) { logger.record(RuntimeException("crash $it"), at.plus((it.toLong()).seconds)) }
 
         assertTrue(
             "capped at ${Diagnostics.MAX_LOG_CHARS}, was ${store.content.length}",

@@ -21,6 +21,9 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.schedule.Scheduling
 import com.seblful.klas.domain.schedule.TimeConflict
+import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.domain.time.timeOfDay
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.zones
 import com.seblful.klas.notifications.NotificationPermission
@@ -46,10 +49,10 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneId
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -65,10 +68,10 @@ class ClassEditViewModel @Inject constructor(
     private val notificationPermission: NotificationPermission,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
-    private val clock: Clock,
+    private val clock: WallClock,
 ) : ViewModel() {
 
-    private val zone: ZoneId get() = clock.zone
+    private val zone: TimeZone get() = clock.zone
     private val classId: Long = savedStateHandle["id"] ?: 0L
 
     /** Non-zero when the form was opened from a group, to book that group straight away. */
@@ -451,8 +454,8 @@ class ClassEditViewModel @Inject constructor(
         }
         session.value = loaded
         val c = loaded.first
-        val local = c.start.atZone(zone)
-        val from = local.toLocalTime()
+        val local = c.start.toLocalDateTime(zone)
+        val from = local.time
         // The session's own group, taken once. `isGroup` *is* this being non-null, so branching on it
         // directly lets the roster lookup below use it without an assertion.
         val group = loaded.groupId
@@ -461,7 +464,7 @@ class ClassEditViewModel @Inject constructor(
             studentId = c.studentId.takeIf { group == null },
             groupId = c.groupId,
             subjectId = c.subjectId,
-            date = local.toLocalDate(),
+            date = local.date,
             timeFrom = from,
             // Straight across: the row keeps a length and so does the form. Reconstructing an end time
             // here is what made a lesson «Перенести» had put at 23:00 open as an error.
@@ -577,14 +580,14 @@ class ClassEditViewModel @Inject constructor(
      * today — by the injected clock, like the two time defaults below it. This was the one picker default
      * left reading the platform in a composable.
      */
-    fun datePickerDefault(today: LocalDate = LocalDate.now(clock)): LocalDate =
+    fun datePickerDefault(today: LocalDate = clock.today()): LocalDate =
         currentForm.date ?: openedOnDay ?: today
 
     /**
      * What the start-time picker opens on — [BookingForm.startPickerDefault], at the injected clock's
      * [now]. A parameter so a test can pick the time without depending on the wall clock.
      */
-    fun startPickerDefault(now: LocalTime = LocalTime.now(clock)): LocalTime = booking.value.startPickerDefault(now)
+    fun startPickerDefault(now: LocalTime = clock.timeOfDay()): LocalTime = booking.value.startPickerDefault(now)
 
     /**
      * What «Другая» opens on: the length already chosen, otherwise the tutor's default lesson — the same
@@ -798,7 +801,7 @@ class ClassEditViewModel @Inject constructor(
                     studentId = valid.studentId,
                 ),
                 newStart = valid.slot.start,
-                now = clock.instant(),
+                now = clock.now(),
                 roster = roster,
             )
         } else {
@@ -858,7 +861,7 @@ class ClassEditViewModel @Inject constructor(
                     booked = written.lessons,
                     // The dates, not a count: "one was skipped" leaves the tutor to find which Monday,
                     // which is the whole of what they now have to do about it.
-                    skipped = written.skipped.map { it.start.atZone(zone).toLocalDate() },
+                    skipped = written.skipped.map { it.start.toLocalDateTime(zone).date },
                 ),
             )
         }

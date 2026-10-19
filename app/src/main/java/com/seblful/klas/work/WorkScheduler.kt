@@ -11,15 +11,16 @@ import com.seblful.klas.domain.reminders.DigestScheduler
 import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.reminders.Reminders
+import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.notifications.ReminderAlarms
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
-import java.time.Clock
-import java.time.Duration
-import java.time.Instant
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
 
 /**
  * The app's time-driven scheduling, split by what each half actually needs.
@@ -37,7 +38,7 @@ import javax.inject.Singleton
 class WorkScheduler @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val alarms: ReminderAlarms,
-    private val clock: Clock,
+    private val clock: WallClock,
 ) : ReminderScheduler, DigestScheduler {
     private val workManager get() = WorkManager.getInstance(context)
 
@@ -93,9 +94,9 @@ class WorkScheduler @Inject constructor(
      * is stated and tested, and [nextDue], which is how this asks what is arranged.
      */
     override suspend fun schedule(plan: Digests.Plan) {
-        arrange<AgendaWorker>(AGENDA_DIGEST, plan.agendaAt, Duration.ofDays(1))
-        arrange<UnfinishedDigestWorker>(UNFINISHED_DIGEST, plan.unfinishedAt, Duration.ofDays(1))
-        arrange<DebtDigestWorker>(DEBT_DIGEST, plan.debtsAt, Duration.ofDays(7))
+        arrange<AgendaWorker>(AGENDA_DIGEST, plan.agendaAt, 1.days)
+        arrange<UnfinishedDigestWorker>(UNFINISHED_DIGEST, plan.unfinishedAt, 1.days)
+        arrange<DebtDigestWorker>(DEBT_DIGEST, plan.debtsAt, 7.days)
     }
 
     /**
@@ -109,7 +110,7 @@ class WorkScheduler @Inject constructor(
      * under this same claim, where no JVM test could reach them; two of them are the branches that had
      * already produced a defect.
      *
-     * The clock is read **once**, through the injected [Clock] every other defaulted `now` in the app
+     * The clock is read **once**, through the injected [WallClock] every other defaulted `now` in the app
      * reads, and handed to the decision.
      */
     private suspend inline fun <reified W : androidx.work.ListenableWorker> arrange(
@@ -124,7 +125,7 @@ class WorkScheduler @Inject constructor(
         val arrangement = Digests.arrangementFor(
             planned = at,
             arranged = arranged,
-            now = clock.instant(),
+            now = clock.now(),
             every = every,
         )
         when (arrangement) {
@@ -137,10 +138,10 @@ class WorkScheduler @Inject constructor(
                 // that are gated, which desugaring cannot help with. The plan is still decided in instants;
                 // only this last hand-off is in milliseconds.
                 val request = PeriodicWorkRequestBuilder<W>(
-                    arrangement.every.toMillis(),
+                    arrangement.every.inWholeMilliseconds,
                     TimeUnit.MILLISECONDS,
                 )
-                    .setInitialDelay(arrangement.delay.toMillis(), TimeUnit.MILLISECONDS)
+                    .setInitialDelay(arrangement.delay.inWholeMilliseconds, TimeUnit.MILLISECONDS)
                     .build()
                 workManager.enqueueUniquePeriodicWork(
                     name,
@@ -165,7 +166,7 @@ class WorkScheduler @Inject constructor(
             ?.nextScheduleTimeMillis
             // What WorkManager reports for work with nothing scheduled.
             ?.takeIf { it != Long.MAX_VALUE }
-            ?.let(Instant::ofEpochMilli)
+            ?.let { Instant.fromEpochMilliseconds(it) }
 
     companion object {
         const val PERIODIC_MAINTENANCE = "maintenance-periodic"

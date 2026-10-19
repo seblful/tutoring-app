@@ -19,7 +19,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * A lesson's rows are written as **one** transaction, and the calendar is mirrored only after it
@@ -137,7 +138,7 @@ class ClassRepositoryAtomicityTest {
         f.book(listOf(f.ann, f.bob, f.cleo))
         val before = f.env.transactor.count
 
-        val completed = f.env.classRepo.autoCompleteDue(start.plusSeconds(7200))
+        val completed = f.env.classRepo.autoCompleteDue(start.plus(7200.seconds))
 
         assertEquals(3, completed.size)
         assertEquals("one pass, one transaction", 1, f.env.transactor.count - before)

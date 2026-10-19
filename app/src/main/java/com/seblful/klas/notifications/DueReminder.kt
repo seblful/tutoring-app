@@ -7,10 +7,11 @@ import com.seblful.klas.data.repository.SettingsRepository
 import com.seblful.klas.data.repository.StudentRepository
 import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.reminders.Reminders
-import java.time.Clock
-import java.time.Instant
+import com.seblful.klas.domain.time.WallClock
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 /**
  * Everything a reminder does when it comes due, except the firing: decide whether it is still owed,
@@ -31,7 +32,7 @@ class DueReminder @Inject constructor(
     private val homework: HomeworkRepository,
     private val notifier: Notifier,
     private val settings: SettingsRepository,
-    private val clock: Clock,
+    private val clock: WallClock,
 ) {
     private val names = LessonNames(students, subjects, groups)
 
@@ -40,10 +41,10 @@ class DueReminder @Inject constructor(
      * A class that has since been deleted, cancelled, completed or moved is simply not announced.
      * [now] defaults to the injected clock, so the shipped path is the one a test can move.
      */
-    suspend fun post(classId: Long, now: Instant = clock.instant()): Boolean {
+    suspend fun post(classId: Long, now: Instant = clock.now()): Boolean {
         val klass = classes.getById(classId) ?: return false
         val settings = settings.get()
-        val lead = java.time.Duration.ofMinutes(settings.reminderLeadMinutes.toLong())
+        val lead = settings.reminderLeadMinutes.minutes
         if (!Reminders.shouldPost(klass, settings.notificationsEnabled, now, lead)) return false
 
         val who = names.who(klass)

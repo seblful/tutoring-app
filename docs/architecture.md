@@ -6,10 +6,13 @@ to the code.
 MVVM, pure unit-tested domain layer. Room is the single source of truth; calendar and notifications are
 best-effort mirrors of it, never the reverse. DI: Hilt.
 
-Two Gradle modules, one package (`com.seblful.klas`): `:domain` holds `domain/` as plain Kotlin/JVM,
-and `:app` (Android) holds everything else and depends on it. The split exists so that "no Android in
-the domain" is a compile error, not a convention — `:domain` has no `android.jar` and no libraries,
-only the JDK and the Kotlin standard library.
+Two Gradle modules, one package (`com.seblful.klas`): `:domain` holds `domain/` as Kotlin Multiplatform,
+and `:app` (Android) holds everything else and depends on it. The split exists so that "no platform in
+the domain" is a compile error, not a convention — `:domain`'s code is all in `commonMain`, compiled
+against the common standard library and kotlinx-datetime only, so neither `android.*` nor `java.*`
+resolves there. Dates are kotlinx-datetime's, instants and durations `kotlin.time`'s, and the clock is
+`domain/time/WallClock` (the instant plus the zone it is read in). Locales cross into the domain as BCP 47
+tags and region currency codes (`format/Localization` converts).
 
 ```mermaid
 flowchart TB
@@ -48,10 +51,10 @@ flowchart TB
 | `format/` | Date/time/money formatting, `AppLocale`, `MoneyField`, the lesson-mode word (`ClassMode.labelRes`, read by screens and the calendar alike), and what the device says: `Localization.kt` (`Context.inLanguage()`, `deviceLocales()`), `WeekStart.kt` (the phone's first day of the week). |
 | `ui/` | Compose screens + `@HiltViewModel`s, one package per feature, `onboarding/`, `RootViewModel`, `AppRoot` (theme, locale, the tabs' chrome). The «Задания» tab and the homework parts the student and group cards share in `ui/homework/`. Settings/About in `ui/more/`. Theme in `ui/theme/`. |
 | `ui/navigation/` | `Routes`, the graph (`KlasNavGraph.kt`: `klasGraph`, `navigateToTab`), the tabs, what a tray tap opens (`TrayArrivals.kt`), `Arrival`. |
-| `ui/common/` | Shared atoms (`KlasScreen`, `detailCard`, fields, dialogs, badges…) and, in `state/`, the view models' plumbing with no Compose in it: `Loadable`, `derive`/`hold`, `Clock.days()`/`minutes()`, `UiEvents`, `write`/`writeAwaited`. A part only one feature uses lives in that feature. |
+| `ui/common/` | Shared atoms (`KlasScreen`, `detailCard`, fields, dialogs, badges…) and, in `state/`, the view models' plumbing with no Compose in it: `Loadable`, `derive`/`hold`, `WallClock.days()`/`minutes()`, `UiEvents`, `write`/`writeAwaited`. A part only one feature uses lives in that feature. |
 | `ui/schedule/` | The schedule screen (split into the screen, `LessonCard`, `ScheduleHeaders`, `ClassActionsSheet`, `CalendarViews`) and its view model and models, with `SchedulePages` (the selected day and visible pages, pure); the booking form in `booking/` (`ClassForm`, `ClassFormState`, `BookingForm`, the edit screen and view model). |
 | `preview/` (debug only) | `@Preview`s of `ui/common/`. |
-| `di/` | DB module, scopes/dispatchers, `Clock`, week-start, device locales. |
+| `di/` | DB module, scopes/dispatchers, `WallClock`, week-start, device locales. |
 | root | `KlasApp` (`@HiltAndroidApp`, WorkManager config, notification channels, the periodic upkeep pass; the catch-up as the UI opens is `RootViewModel.catchUp`), `MainActivity` → `AppRoot()`, `Coroutines.kt` (`runCatchingCancellable`, and `launchAsync` for every broadcast receiver). |
 
 ## Who owns each rule

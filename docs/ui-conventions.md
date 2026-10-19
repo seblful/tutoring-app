@@ -8,8 +8,8 @@ it draws with.
 - **A screen draws, it does not decide**: every branch is a named value from the domain layer
   (`ArchiveIntent`, `DeleteWarning`, `ScheduleEmpty`, `Balance`, `Taught.Totals.hint`, etc.), never an
   `if` inside a composable. `ClassFormState`, `MoneyField`, `leaveIntent`, `Maintenance`, `CrashLogger`
-  hold the rules. Clock reads for money/scheduling go through the injected `Clock`, never
-  `Instant.now()`/`ZoneId.systemDefault()` in a composable.
+  hold the rules. Clock reads for money/scheduling go through the injected `WallClock`, never
+  `Clock.System.now()`/`TimeZone.currentSystemDefault()` in a composable.
 - The booking form's whole mutable surface is `BookingForm.change(intent, context)`
   (`ui/schedule/booking/BookingForm.kt`); reads it needs come back as data (`Lookup`) through the same `change`.
 - Every screen's loading/ready state is `Loadable<T>` (`Loading | Ready`), drawn as a skeleton, never a
@@ -38,9 +38,10 @@ it draws with.
   `ProvideLocalizedResources`, never `Locale.setDefault()`. `StringCoverageTest` pins parity between
   `values/`/`values-ru/` (strings, plurals, format args, array lengths). A language change re-syncs the
   calendar (mirrored text is baked in).
-- **Time**: `java.time` everywhere (desugared, minSdk 24); 12/24-hour and week-start both follow the
+- **Time**: kotlinx-datetime and `kotlin.time` everywhere, `java.time` only inside `format/`'s formatters
+  (desugared, minSdk 24); 12/24-hour and week-start both follow the
   *phone's* setting, not the app language (the clock is asked of the application context, so a bottom sheet
-  agrees with the screen under it); today rolls over at local midnight off the injected `Clock` (`Clock.days()`, `ui/common/state/Days.kt` —
+  agrees with the screen under it); today rolls over at local midnight off the injected `WallClock` (`WallClock.days()`, `ui/common/state/Days.kt` —
   never a "today" read once per emission); a day as instants is `domain/schedule/DayBounds`.
   The injected device clock follows timezone changes; open calendars re-query their bounds on the
   system broadcast, and form endings use the same elapsed-time slot as booking, including DST.

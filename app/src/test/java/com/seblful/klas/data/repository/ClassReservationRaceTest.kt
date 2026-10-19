@@ -15,7 +15,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Instant
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 @RunWith(RobolectricTestRunner::class)
 class ClassReservationRaceTest {
@@ -36,19 +37,19 @@ class ClassReservationRaceTest {
     fun `a competing move is checked after acquiring the transaction`() = runTest {
         val subject = env.fixtures.subject()
         val student = env.fixtures.pricedStudent(subjectId = subject)
-        val id = env.fixtures.lesson(subject, listOf(student), target.minusSeconds(7200)).single()
+        val id = env.fixtures.lesson(subject, listOf(student), target.minus(7200.seconds)).single()
         val session = env.classRepo.getSessionFor(id)!!
-        compete(subject, student) { it.move(session, target, target.minusSeconds(86400)) }
+        compete(subject, student) { it.move(session, target, target.minus(86400.seconds)) }
     }
 
     @Test
     fun `a competing edit is checked after acquiring the transaction`() = runTest {
         val subject = env.fixtures.subject()
         val student = env.fixtures.pricedStudent(subjectId = subject)
-        val id = env.fixtures.lesson(subject, listOf(student), target.minusSeconds(7200)).single()
+        val id = env.fixtures.lesson(subject, listOf(student), target.minus(7200.seconds)).single()
         val session = env.classRepo.getSessionFor(id)!!
         compete(subject, student) {
-            it.apply(session, SessionEdit(subject, 60, ClassMode.IN_PERSON, rate), target, target.minusSeconds(86400))
+            it.apply(session, SessionEdit(subject, 60, ClassMode.IN_PERSON, rate), target, target.minus(86400.seconds))
         }
     }
 

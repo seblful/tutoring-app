@@ -10,11 +10,14 @@ import com.seblful.klas.domain.schedule.Recurrence
 import com.seblful.klas.domain.schedule.Repeat
 import com.seblful.klas.domain.schedule.Scheduling
 import com.seblful.klas.format.MoneyField
-import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneId
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atTime
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /** Who a lesson is booked for: one student, or a whole group. */
 enum class ClassTarget { STUDENT, GROUP }
@@ -105,7 +108,7 @@ data class ClassForm(
      * place they become the single one — so what the tutor is shown («по 24 сентября») and what the
      * repository is handed are read off the same rule.
      */
-    fun starts(zone: ZoneId): List<Instant> {
+    fun starts(zone: TimeZone): List<Instant> {
         val day = date ?: return emptyList()
         val at = timeFrom ?: return emptyList()
         return Recurrence.startsFor(day, at, repeat, repeatCount, zone)
@@ -118,18 +121,20 @@ data class ClassForm(
      * Carries [Ending.nextDay] rather than only a clock time because "до 00:00" on its own is the one
      * end a tutor could misread as the start of the day they are booking.
      */
-    fun ends(zone: ZoneId): Ending? {
+    fun ends(zone: TimeZone): Ending? {
         val from = timeFrom
         val minutes = durationMinutes?.takeIf { it > 0 }
         if (from == null || minutes == null) return null
-        val end = slot(zone)?.end?.atZone(zone)
+        val end = slot(zone)?.end?.toLocalDateTime(zone)
         return if (end != null) {
-            Ending(time = end.toLocalTime(), nextDay = end.toLocalDate().isAfter(date))
+            Ending(time = end.time, nextDay = date?.let { end.date > it } ?: false)
         } else {
             // Before a date is selected there is no DST transition to resolve yet.
             Ending(
-                time = from.plusMinutes(minutes.toLong()),
-                nextDay = from.toSecondOfDay() + minutes * 60L >= Duration.ofDays(1).seconds,
+                time = LocalTime.fromSecondOfDay(
+                    (from.toSecondOfDay() + minutes * SECONDS_PER_MINUTE).mod(SECONDS_PER_DAY),
+                ),
+                nextDay = from.toSecondOfDay() + minutes * SECONDS_PER_MINUTE >= SECONDS_PER_DAY,
             )
         }
     }
@@ -158,11 +163,11 @@ data class ClassForm(
      * A length of zero or less is treated as unset rather than passed on: [Scheduling.Slot] would throw,
      * and "not filled in yet" is what it means from a form.
      */
-    fun slot(zone: ZoneId): Scheduling.Slot? {
+    fun slot(zone: TimeZone): Scheduling.Slot? {
         val day = date ?: return null
         val from = timeFrom ?: return null
         val minutes = durationMinutes?.takeIf { it > 0 } ?: return null
-        return Scheduling.Slot(day.atTime(from).atZone(zone).toInstant(), minutes)
+        return Scheduling.Slot(day.atTime(from).toInstant(zone), minutes)
     }
 }
 
@@ -211,7 +216,7 @@ internal data class ValidForm(
          * [ClassForm.isValid] — every check there is a `?: return null` here — so a form the screen
          * lets the tutor save is a form this accepts.
          */
-        fun of(form: ClassForm, zone: ZoneId): ValidForm? = ValidForm(
+        fun of(form: ClassForm, zone: TimeZone): ValidForm? = ValidForm(
             target = when (form.target) {
                 ClassTarget.STUDENT -> Target.Individual(form.studentId ?: return null)
                 ClassTarget.GROUP -> Target.Group(form.groupId ?: return null)
@@ -227,3 +232,6 @@ internal data class ValidForm(
         )
     }
 }
+
+private const val SECONDS_PER_MINUTE = 60
+private const val SECONDS_PER_DAY = 24 * 60 * SECONDS_PER_MINUTE

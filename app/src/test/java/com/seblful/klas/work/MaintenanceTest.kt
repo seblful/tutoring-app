@@ -12,15 +12,17 @@ import com.seblful.klas.testutil.RecordingNotifier
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * The upkeep pass, driven without WorkManager. Before [Maintenance] existed these decisions sat in
@@ -55,7 +57,7 @@ class MaintenanceTest {
 
     @Test
     fun `auto-completes a finished class when the setting is on`() = runTest(mainRule.dispatcher) {
-        val id = seedClass(now.minusSeconds(7200)) // ended an hour ago
+        val id = seedClass(now.minus(7200.seconds)) // ended an hour ago
         env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
 
         maintenance().run(now)
@@ -65,7 +67,7 @@ class MaintenanceTest {
 
     @Test
     fun `leaves a finished class alone when auto-complete is off`() = runTest(mainRule.dispatcher) {
-        val id = seedClass(now.minusSeconds(7200))
+        val id = seedClass(now.minus(7200.seconds))
         // Off is the default; state it anyway, since this is the whole point of the test.
         env.settingsRepo.update { it.copy(autoCompleteEnabled = false) }
 
@@ -76,7 +78,7 @@ class MaintenanceTest {
 
     @Test
     fun `arms a reminder for an upcoming class`() = runTest(mainRule.dispatcher) {
-        val id = seedClass(now.plusSeconds(4 * 3600)) // in four hours, well past the 60-min lead
+        val id = seedClass(now.plus((4 * 3600).seconds)) // in four hours, well past the 60-min lead
 
         maintenance().run(now)
 
@@ -86,7 +88,7 @@ class MaintenanceTest {
     @Test
     fun `re-planning replaces the previous set of reminders rather than adding to it`() =
         runTest(mainRule.dispatcher) {
-            seedClass(now.plusSeconds(4 * 3600))
+            seedClass(now.plus((4 * 3600).seconds))
 
             val maintenance = maintenance()
             maintenance.run(now)
@@ -101,7 +103,7 @@ class MaintenanceTest {
         runTest(mainRule.dispatcher) {
             // Ends in the past, so it auto-completes; a completed lesson is never announced. This
             // pins the ordering inside run(): complete first, then derive the plan.
-            seedClass(now.minusSeconds(7200))
+            seedClass(now.minus(7200.seconds))
             env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
 
             maintenance().run(now)
@@ -135,7 +137,7 @@ class MaintenanceTest {
      */
     @Test
     fun `a lesson in progress stays owed through a pass`() = runTest(mainRule.dispatcher) {
-        val id = seedClass(now.minusSeconds(600))
+        val id = seedClass(now.minus(600.seconds))
 
         maintenance().run(now)
 
@@ -144,7 +146,7 @@ class MaintenanceTest {
 
     @Test
     fun `a lesson past the horizon earns none`() = runTest(mainRule.dispatcher) {
-        seedClass(now.plus(Reminders.DEFAULT_HORIZON).plusMillis(1))
+        seedClass(now.plus(Reminders.DEFAULT_HORIZON).plus(1.milliseconds))
 
         maintenance().run(now)
 
@@ -159,9 +161,9 @@ class MaintenanceTest {
 
     @Test
     fun `a pass reports how many lessons it settled`() = runTest(mainRule.dispatcher) {
-        seedClass(now.minusSeconds(7200))
-        seedClass(now.minusSeconds(3600))
-        seedClass(now.plusSeconds(3600)) // still to come, so not settled by this pass
+        seedClass(now.minus(7200.seconds))
+        seedClass(now.minus(3600.seconds))
+        seedClass(now.plus(3600.seconds)) // still to come, so not settled by this pass
         env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
 
         assertEquals(2, maintenance().run(now).lessons)
@@ -177,7 +179,7 @@ class MaintenanceTest {
         val subjectId = env.fixtures.subject("Математика")
         val members = listOf("Аня", "Боря", "Вера").map { env.fixtures.student(it) }
         val groupId = env.fixtures.group(subjectId = subjectId, members = members.toSet())
-        val ids = env.fixtures.lesson(subjectId, members, start = now.minusSeconds(7200), groupId = groupId)
+        val ids = env.fixtures.lesson(subjectId, members, start = now.minus(7200.seconds), groupId = groupId)
         env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
 
         assertEquals("one finished hour", 1, maintenance().run(now).lessons)
@@ -194,7 +196,7 @@ class MaintenanceTest {
         val subjectId = env.fixtures.subject("Математика")
         val members = listOf("Аня", "Боря", "Вера").map { env.fixtures.student(it) }
         val groupId = env.fixtures.group(subjectId = subjectId, members = members.toSet())
-        val ids = env.fixtures.lesson(subjectId, members, start = now.minusSeconds(7200), groupId = groupId)
+        val ids = env.fixtures.lesson(subjectId, members, start = now.minus(7200.seconds), groupId = groupId)
         env.fixtures.setAttendance(ids.last(), Attended.ABSENT)
         env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
 
@@ -203,7 +205,7 @@ class MaintenanceTest {
 
     @Test
     fun `a pass that settles nothing reports nothing`() = runTest(mainRule.dispatcher) {
-        seedClass(now.minusSeconds(7200))
+        seedClass(now.minus(7200.seconds))
         // The setting is off, so the finished lesson is left for the tutor to confirm by hand.
         assertEquals(0, maintenance().run(now).lessons)
     }
@@ -215,9 +217,9 @@ class MaintenanceTest {
      */
     @Test
     fun `the backlog is countable while auto-completion is still off`() = runTest(mainRule.dispatcher) {
-        seedClass(now.minusSeconds(7200))
-        seedClass(now.minusSeconds(3600))
-        seedClass(now.plusSeconds(3600))
+        seedClass(now.minus(7200.seconds))
+        seedClass(now.minus(3600.seconds))
+        seedClass(now.plus(3600.seconds))
 
         assertEquals(2, maintenance().dueForCompletion(now))
         assertEquals("and counting it settled nothing", 0, maintenance().run(now).lessons)
@@ -232,15 +234,15 @@ class MaintenanceTest {
 
     @Test
     fun `an unwatched pass says what it billed`() = runTest(mainRule.dispatcher) {
-        seedClass(now.minusSeconds(7200))
-        seedClass(now.minusSeconds(3600))
+        seedClass(now.minus(7200.seconds))
+        seedClass(now.minus(3600.seconds))
         env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
 
         maintenance().runUnwatched(now)
 
         // Two hours at 30, and the count is in lessons; 12:00Z is 15:00 in Minsk, the same day.
         assertEquals(
-            listOf(RecordingNotifier.AutoCompleted(2, Money.ofMajor(60), LocalDate.of(2026, 6, 15))),
+            listOf(RecordingNotifier.AutoCompleted(2, Money.ofMajor(60), LocalDate(2026, 6, 15))),
             env.notifier.autoCompleted,
         )
     }
@@ -252,19 +254,19 @@ class MaintenanceTest {
      */
     @Test
     fun `an unwatched pass names the latest day it settled`() = runTest(mainRule.dispatcher) {
-        seedClass(now.minus(Duration.ofDays(3)))
-        seedClass(now.minus(Duration.ofDays(1)))
+        seedClass(now.minus(3.days))
+        seedClass(now.minus(1.days))
         env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
 
         maintenance().runUnwatched(now)
 
-        assertEquals(LocalDate.of(2026, 6, 14), env.notifier.autoCompleted.single().day)
+        assertEquals(LocalDate(2026, 6, 14), env.notifier.autoCompleted.single().day)
     }
 
     /** Nothing settled, nothing to announce — a notification whose content is "no news". */
     @Test
     fun `an unwatched pass that settles nothing stays quiet`() = runTest(mainRule.dispatcher) {
-        seedClass(now.minusSeconds(7200))
+        seedClass(now.minus(7200.seconds))
         // The setting is off, so nothing is completed and nothing was billed.
         maintenance().runUnwatched(now)
 
@@ -278,7 +280,7 @@ class MaintenanceTest {
      */
     @Test
     fun `a watched pass reports to the screen and not to the tray`() = runTest(mainRule.dispatcher) {
-        seedClass(now.minusSeconds(7200))
+        seedClass(now.minus(7200.seconds))
         env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
 
         val settled = maintenance().run(now)
@@ -330,7 +332,7 @@ class MaintenanceTest {
     fun `the lead time comes from settings`() = runTest(mainRule.dispatcher) {
         // 90 minutes ahead: inside a 120-minute lead (so it is already too late to announce) but
         // outside the default 60-minute one.
-        val id = seedClass(now.plusSeconds(90 * 60))
+        val id = seedClass(now.plus((90 * 60).seconds))
         env.settingsRepo.update { it.copy(reminderLeadMinutes = 120) }
 
         maintenance().run(now)

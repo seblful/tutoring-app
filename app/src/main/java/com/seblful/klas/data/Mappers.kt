@@ -21,7 +21,7 @@ import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
-import java.time.Instant
+import kotlin.time.Instant
 
 // The enum columns arrive typed: reading a stored name, and what an unreadable one becomes, is
 // `data/local/EnumConverters`'s, once, rather than each mapper's.
@@ -58,7 +58,7 @@ fun RateChangeEntity.toDomain() = RateChange(
     },
     from = fromMinor?.let { Money(it) },
     to = Money(toMinor),
-    at = atMillis?.let { Instant.ofEpochMilli(it) },
+    at = atMillis?.let { Instant.fromEpochMilliseconds(it) },
 )
 
 fun RateChange.toEntity() = RateChangeEntity(
@@ -68,21 +68,26 @@ fun RateChange.toEntity() = RateChangeEntity(
     groupId = (owner as? RateOwner.GroupRate)?.groupId,
     fromMinor = from?.minor,
     toMinor = to.minor,
-    atMillis = at?.toEpochMilli(),
+    atMillis = at?.toEpochMilliseconds(),
 )
 
 fun PaymentEntity.toDomain() =
-    Payment(id = id, studentId = studentId, date = Instant.ofEpochMilli(dateMillis), amount = Money(amountMinor))
+    Payment(
+        id = id,
+        studentId = studentId,
+        date = Instant.fromEpochMilliseconds(dateMillis),
+        amount = Money(amountMinor),
+    )
 
 fun Payment.toEntity() =
-    PaymentEntity(id = id, studentId = studentId, dateMillis = date.toEpochMilli(), amountMinor = amount.minor)
+    PaymentEntity(id = id, studentId = studentId, dateMillis = date.toEpochMilliseconds(), amountMinor = amount.minor)
 
 fun ClassRow.toDomain() = TutoringClass(
     id = id,
     lessonId = lessonId,
     studentId = studentId,
     subjectId = subjectId,
-    start = Instant.ofEpochMilli(startMillis),
+    start = Instant.fromEpochMilliseconds(startMillis),
     durationMinutes = durationMinutes,
     price = Money(priceMinor),
     status = status,
@@ -104,7 +109,7 @@ fun ClassRow.toDomain() = TutoringClass(
 fun TutoringClass.toLessonEntity() = LessonEntity(
     id = lessonId,
     subjectId = subjectId,
-    startMillis = start.toEpochMilli(),
+    startMillis = start.toEpochMilliseconds(),
     durationMinutes = durationMinutes,
     status = status,
     groupId = groupId,
@@ -133,8 +138,8 @@ fun HomeworkEntity.toDomain() = Homework(
         else -> error("Homework $id is for neither a student nor a group")
     },
     text = text,
-    givenAt = Instant.ofEpochMilli(givenAtMillis),
-    doneAt = doneAtMillis?.let { Instant.ofEpochMilli(it) },
+    givenAt = Instant.fromEpochMilliseconds(givenAtMillis),
+    doneAt = doneAtMillis?.let { Instant.fromEpochMilliseconds(it) },
 )
 
 fun Homework.toEntity() = HomeworkEntity(
@@ -142,6 +147,6 @@ fun Homework.toEntity() = HomeworkEntity(
     studentId = (assignee as? Assignee.Student)?.studentId,
     groupId = (assignee as? Assignee.Group)?.groupId,
     text = text,
-    givenAtMillis = givenAt.toEpochMilli(),
-    doneAtMillis = doneAt?.toEpochMilli(),
+    givenAtMillis = givenAt.toEpochMilliseconds(),
+    doneAtMillis = doneAt?.toEpochMilliseconds(),
 )

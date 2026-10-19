@@ -1,20 +1,26 @@
 package com.seblful.klas.format
 
 import com.seblful.klas.domain.model.Money
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.YearMonth
+import kotlinx.datetime.toJavaDayOfWeek
+import kotlinx.datetime.toJavaLocalDate
+import kotlinx.datetime.toJavaLocalTime
+import kotlinx.datetime.toJavaZoneId
+import kotlinx.datetime.toLocalDateTime
 import java.math.RoundingMode
 import java.text.DateFormatSymbols
-import java.time.DayOfWeek
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.Month
-import java.time.YearMonth
-import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 import java.time.format.TextStyle
 import java.time.temporal.ChronoField
 import java.util.Locale
+import kotlin.time.Instant
+import kotlin.time.toJavaInstant
 
 /**
  * Shared display formatting for dates, times and money in the language the app is set to. Lives in a
@@ -108,18 +114,21 @@ private val formats: Formats get() = cache.getOrPut(AppLocale.current) { Formats
  * [AppLocale], which is where that one is written down.
  *
  * It is also not the ambient read that mattered. `ScheduleViewModel.moveTo` and `ReportsViewModel` both used
- * to read `ZoneId.systemDefault()` themselves, and both are **write** paths — deciding which instant to
+ * to read `TimeZone.currentSystemDefault()` themselves, and both are **write** paths — deciding which instant to
  * store, deciding which period the money is counted in — where the shipped path has to be the tested one
  * and a fixture has to be able to pin it. Those read the injected `Clock`'s zone now. This is a projection
  * of an instant onto a screen, and there is nothing here for a test to pin that a `Clock` would help with.
  */
-private val zone: ZoneId get() = ZoneId.systemDefault()
+private val zone: TimeZone get() = TimeZone.currentSystemDefault()
 
-fun Instant.toLocalDate(): LocalDate = atZone(zone).toLocalDate()
-fun Instant.toLocalTime(): LocalTime = atZone(zone).toLocalTime()
+fun Instant.toLocalDate(): LocalDate = toLocalDateTime(zone).date
+fun Instant.toLocalTime(): LocalTime = toLocalDateTime(zone).time
 
-fun Instant.formatDate(): String = atZone(zone).format(formats.date)
-fun Instant.formatDay(): String = atZone(zone).format(formats.day).capitalizedForDisplay()
+/** The `java.time` formatters below read the phone's own zone, so the instant is handed over in it. */
+private fun Instant.javaZoned(): ZonedDateTime = toJavaInstant().atZone(zone.toJavaZoneId())
+
+fun Instant.formatDate(): String = javaZoned().format(formats.date)
+fun Instant.formatDay(): String = javaZoned().format(formats.day).capitalizedForDisplay()
 
 /**
  * A clock is the one format the *phone* has an opinion about, so these take it as an argument — and
@@ -132,18 +141,19 @@ fun Instant.formatDay(): String = atZone(zone).format(formats.day).capitalizedFo
  * somewhere else, so it keeps `HH:mm` whatever this phone is set to.
  */
 fun Instant.formatTime(hour12: Boolean): String =
-    atZone(zone).format(if (hour12) formats.time12 else formats.time)
+    javaZoned().format(if (hour12) formats.time12 else formats.time)
 
 fun Instant.formatDateTime(hour12: Boolean): String =
-    atZone(zone).format(if (hour12) formats.dateTime12 else formats.dateTime)
+    javaZoned().format(if (hour12) formats.dateTime12 else formats.dateTime)
 
 // The same formats for callers already holding a local date or time. Before these existed, five
 // screens spelled `atStartOfDay(ZoneId.systemDefault()).toInstant()` to reach the Instant overloads
 // — the zone convention this module owns, restated at every call — and the booking form grew its own
 // "%02d:%02d" for lesson times, a second spelling of the 24-hour face.
-fun LocalDate.formatDate(): String = format(formats.date)
-fun LocalDate.formatDay(): String = format(formats.day).capitalizedForDisplay()
-fun LocalTime.formatTime(hour12: Boolean): String = format(if (hour12) formats.time12 else formats.time)
+fun LocalDate.formatDate(): String = toJavaLocalDate().format(formats.date)
+fun LocalDate.formatDay(): String = toJavaLocalDate().format(formats.day).capitalizedForDisplay()
+fun LocalTime.formatTime(hour12: Boolean): String =
+    toJavaLocalTime().format(if (hour12) formats.time12 else formats.time)
 
 /**
  * Parses a user-entered amount (comma or dot decimals) into [Money], or null.
@@ -234,15 +244,15 @@ private const val BULLET = " · "
  * year it belongs to, where repeating "2026" on all twelve rows says nothing.
  */
 fun formatMonthName(key: Int): String =
-    Month.of(key % 12 + 1).getDisplayName(TextStyle.FULL_STANDALONE, formats.locale)
+    java.time.Month.of(key % 12 + 1).getDisplayName(TextStyle.FULL_STANDALONE, formats.locale)
         .capitalizedForDisplay()
 
 /** Formats a month as e.g. "Июнь 2026" — the schedule calendar's page title. */
 fun formatMonth(month: YearMonth): String =
-    month.atDay(1).format(formats.month).capitalizedForDisplay()
+    month.firstDay.toJavaLocalDate().format(formats.month).capitalizedForDisplay()
 
 /** Short weekday name for a calendar header, e.g. "пн" / "Mon". */
-fun DayOfWeek.shortName(): String = getDisplayName(TextStyle.SHORT_STANDALONE, formats.locale)
+fun DayOfWeek.shortName(): String = toJavaDayOfWeek().getDisplayName(TextStyle.SHORT_STANDALONE, formats.locale)
 
 /**
  * Formats a week as an inclusive range, dropping whatever the two ends share so the label stays
@@ -252,9 +262,10 @@ fun DayOfWeek.shortName(): String = getDisplayName(TextStyle.SHORT_STANDALONE, f
 fun formatWeekRange(start: LocalDate, end: LocalDate): String {
     val f = formats
     return when {
-        start.year != end.year -> "${start.format(f.date)} – ${end.format(f.date)}"
-        start.month != end.month -> "${start.format(f.dayMonth)} – ${end.format(f.dayMonth)}"
-        else -> "${start.dayOfMonth} – ${end.format(f.dayMonth)}"
+        start.year != end.year -> "${start.toJavaLocalDate().format(f.date)} – ${end.toJavaLocalDate().format(f.date)}"
+        start.month != end.month ->
+            "${start.toJavaLocalDate().format(f.dayMonth)} – ${end.toJavaLocalDate().format(f.dayMonth)}"
+        else -> "${start.day} – ${end.toJavaLocalDate().format(f.dayMonth)}"
     }
 }
 

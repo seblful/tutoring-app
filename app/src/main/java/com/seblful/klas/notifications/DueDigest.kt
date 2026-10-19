@@ -16,11 +16,12 @@ import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.domain.schedule.DayBounds
 import com.seblful.klas.domain.schedule.DaySummary
-import java.time.Clock
-import java.time.Instant
-import java.time.LocalDate
+import com.seblful.klas.domain.time.WallClock
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toLocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Instant
 
 /**
  * Everything the three digests do when they come due, except the firing: read what they are about, decide
@@ -46,7 +47,7 @@ class DueDigest @Inject constructor(
     private val payments: PaymentRepository,
     private val settings: SettingsRepository,
     private val notifier: Notifier,
-    private val clock: Clock,
+    private val clock: WallClock,
 ) {
     private val names = LessonNames(students, subjects, groups)
 
@@ -64,11 +65,11 @@ class DueDigest @Inject constructor(
      * summary line — it gave its hour back, and a row for it among the day's real work would read as one
      * more thing to do.
      */
-    suspend fun postAgenda(now: Instant = clock.instant()): Boolean {
+    suspend fun postAgenda(now: Instant = clock.now()): Boolean {
         val current = settings.get()
         if (!current.dailyAgendaEnabled) return false
 
-        val day = now.atZone(clock.zone).toLocalDate()
+        val day = now.toLocalDateTime(clock.zone).date
         val dayClasses = classesOn(day)
 
         // One entry per lesson, a group's included — `SessionRules.sessions` collapses its members' classes
@@ -104,11 +105,11 @@ class DueDigest @Inject constructor(
      * Posts nothing when there is nothing unmarked, by the rule every digest here follows — an evening
      * with no notification is the app saying the day is closed.
      */
-    suspend fun postUnfinished(now: Instant = clock.instant()): Boolean {
+    suspend fun postUnfinished(now: Instant = clock.now()): Boolean {
         val current = settings.get()
         if (!current.unfinishedDigestEnabled) return false
 
-        val day = now.atZone(clock.zone).toLocalDate()
+        val day = now.toLocalDateTime(clock.zone).date
         val dayClasses = classesOn(day)
 
         val digest = Digests.Unfinished(
