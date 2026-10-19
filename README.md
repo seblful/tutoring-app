@@ -32,8 +32,8 @@ or **EUR**.
 
 Versions live in `gradle/libs.versions.toml`, SDK levels in `app/build.gradle.kts`.
 
-Kotlin is capped by KSP's supported line (Room's codegen): stay on 2.3.x until a KSP 2.4.x
-exists — see `gradle/libs.versions.toml`.
+Before raising Kotlin, check that Metro supports the new version (a compiler plugin follows the
+compiler) — see `gradle/libs.versions.toml`.
 
 Architecture is MVVM over a pure, unit-tested domain layer — see **[docs/architecture.md](docs/architecture.md)**.
 

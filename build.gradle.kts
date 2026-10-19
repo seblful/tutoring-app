@@ -2,14 +2,14 @@
 
 // AGP 9 compiles Kotlin itself ("built-in Kotlin"), so the kotlin.android plugin is gone. AGP ships
 // with an older default KGP; pin it to our catalog Kotlin so AGP's Kotlin compiler, the
-// Compose/serialization compiler plugins, and KSP (which embeds the same version) all line up.
+// Compose/serialization compiler plugins and Metro all line up.
 //
 // The literal below has to be repeated rather than read from the catalog: `libs` accessors do not
 // exist yet while `buildscript {}` is being evaluated. The check after the `plugins` block is what
 // keeps the repetition honest — see there.
 buildscript {
     dependencies {
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.21")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21")
     }
 }
 
@@ -71,6 +71,6 @@ run {
     check(pinned == catalog) {
         "The Kotlin Gradle plugin pinned in build.gradle.kts ($pinned) and the version catalog's " +
             "`kotlin` ($catalog) disagree. Set both to the same version — the catalog is the one to " +
-            "follow, and it documents why Kotlin cannot move past KSP."
+            "follow."
     }
 }

@@ -1,16 +1,15 @@
 [versions]
 agp = "9.3.1"
-# Kotlin tracks KSP, not the other way round: KSP drives Room's codegen, and its version's
-# major.minor is the Kotlin line it supports (2.3.10 → Kotlin 2.3.x). So Kotlin may move freely
-# *within* 2.3 and not past it. Kotlin 2.4.x is out and lint offers it every build; there is still no
-# KSP 2.4.x, so taking it would leave the app with no Room DAOs. Re-check by listing
-# com/google/devtools/ksp/symbol-processing-gradle-plugin on Maven Central — the day a 2.4.x appears,
-# both lines move together (and `metro` with them: a compiler plugin supports a range of Kotlin versions).
+# Kotlin and KSP version independently: since 2.3.0 a KSP release is not tied to one Kotlin line (its
+# number no longer starts with Kotlin's), and 2.3.10 is the first to work with Kotlin 2.4. KSP still
+# drives Room's codegen, so a Kotlin bump is checked by building the DAOs, not by matching numbers.
+# `metro` is the one that does follow the compiler: a compiler plugin supports a range of Kotlin
+# versions, listed in Metro's docs/compatibility.md — check it before raising either.
 #
 # The pin in the root build.gradle.kts must stay equal to `kotlin` here; a check there fails the build
 # if it drifts.
-kotlin = "2.3.21"
-ksp = "2.3.10"
+kotlin = "2.4.21"
+ksp = "2.3.12"
 coreKtx = "1.19.0"
 # The launch window, backported to minSdk 24. Without it the splash exists only on API 31+, and the
 # window the system draws before the first Compose frame is whatever `windowBackground` happens to be.
@@ -50,7 +49,7 @@ composablePreviewScanner = "0.9.3"
 # detekt is on the 2.0 alpha line on purpose: 1.23.8 is the last 1.x and was built against Kotlin
 # 2.0.21 / AGP 8.8, and it predates AGP 9's built-in Kotlin. 2.0.0-alpha.6 is built against our exact
 # AGP (9.3.1) and Gradle (9.6.1). Its own Kotlin (2.4.10) runs in detekt's isolated classpath, not on
-# the build's, so it does not fight the 2.3 cap above. Move to 2.0.0 the day it is final; rule ids
+# the build's. Move to 2.0.0 the day it is final; rule ids
 # and config keys shifted between the 2.0 alphas, so re-run `detektBaseline` after any bump.
 detekt = "2.0.0-alpha.6"
 # ktlint-gradle supports AGP 9 built-in Kotlin from 14.1.0. The ktlint engine it runs is pinned
