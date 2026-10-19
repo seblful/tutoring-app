@@ -4,8 +4,8 @@ import com.seblful.klas.domain.time.WallClock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.time.Instant
 
 /**
@@ -69,9 +69,9 @@ class PaymentDateTest {
 
         assertEquals(LocalDate(2026, 5, 18), local)
         assertEquals(
-            "and the same day is therefore the one that keeps the current time",
             Instant.parse("2026-05-17T22:30:00Z"),
             PaymentDate.instantFor(local, lateEvening),
+            "and the same day is therefore the one that keeps the current time",
         )
     }
 }

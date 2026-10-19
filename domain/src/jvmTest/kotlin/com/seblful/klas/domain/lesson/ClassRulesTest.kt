@@ -3,11 +3,11 @@ package com.seblful.klas.domain.lesson
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 class ClassRulesTest {
@@ -132,7 +132,7 @@ class ClassRulesTest {
     @Test
     fun `applying an illegal transition is rejected`() {
         val cancelled = ClassRules.applyStatus(scheduled, LessonStatus.CANCELLED)
-        assertThrows(IllegalArgumentException::class.java) {
+        assertFailsWith<IllegalArgumentException> {
             ClassRules.applyStatus(cancelled, LessonStatus.COMPLETED)
         }
     }
@@ -144,8 +144,8 @@ class ClassRulesTest {
         // The actions menu must not offer the status the class is already in.
         LessonStatus.entries.forEach { status ->
             assertFalse(
-                "availableTransitions($status) must exclude $status",
                 status in ClassRules.availableTransitions(status),
+                "availableTransitions($status) must exclude $status",
             )
         }
     }
@@ -170,7 +170,7 @@ class ClassRulesTest {
     fun `every offered transition is actually allowed`() {
         LessonStatus.entries.forEach { from ->
             ClassRules.availableTransitions(from).forEach { to ->
-                assertTrue("$from -> $to should be allowed", ClassRules.canTransition(from, to))
+                assertTrue(ClassRules.canTransition(from, to), "$from -> $to should be allowed")
             }
         }
     }

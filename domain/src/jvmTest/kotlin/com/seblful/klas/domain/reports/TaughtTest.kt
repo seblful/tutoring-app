@@ -5,9 +5,9 @@ import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
@@ -74,7 +74,7 @@ class TaughtTest {
         assertEquals(2, totals.lessons)
         assertEquals(1, totals.upcoming)
         assertEquals(1, totals.cancelled)
-        assertEquals("only completed lessons count towards hours", 150, totals.minutes)
+        assertEquals(150, totals.minutes, "only completed lessons count towards hours")
         assertEquals(Money.ofMajor(75), totals.earned)
     }
 
@@ -102,7 +102,7 @@ class TaughtTest {
         )
         assertEquals(1, totals.lessons)
         assertEquals(60, totals.minutes)
-        assertEquals("each member owes their own share", Money.ofMajor(60), totals.earned)
+        assertEquals(Money.ofMajor(60), totals.earned, "each member owes their own share")
     }
 
     @Test
@@ -135,7 +135,7 @@ class TaughtTest {
         assertEquals(1, totals.lessons)
         assertEquals(0, totals.cancelled)
         assertEquals(60, totals.minutes)
-        assertEquals("the absentee is not billed", Money.ofMajor(20), totals.earned)
+        assertEquals(Money.ofMajor(20), totals.earned, "the absentee is not billed")
     }
 
     @Test
@@ -197,7 +197,7 @@ class TaughtTest {
             )
         )
 
-        assertEquals("two individual lessons plus one group lesson", 3, totals.lessons)
+        assertEquals(3, totals.lessons, "two individual lessons plus one group lesson")
         // The tutor's own hours: 60 + 45 + the group's single 90, not three times 90.
         assertEquals(195, totals.minutes)
         // Money is the other way round — every member owes their share, so all five charges count.

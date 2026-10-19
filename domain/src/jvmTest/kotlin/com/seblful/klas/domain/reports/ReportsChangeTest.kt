@@ -1,9 +1,9 @@
 package com.seblful.klas.domain.reports
 
 import com.seblful.klas.domain.model.Money
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /**
  * The period-on-period comparison — the line that turns the reports screen's headline number into an

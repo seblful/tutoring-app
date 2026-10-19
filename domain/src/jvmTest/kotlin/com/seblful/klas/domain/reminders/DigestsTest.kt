@@ -7,10 +7,10 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
@@ -77,9 +77,9 @@ class DigestsTest {
         val next = Digests.nextDaily(saturdayEvening, warsaw, nine)
 
         assertEquals(
-            "nine in the morning, whatever that costs in elapsed hours",
             LocalTime(9, 0),
             next.toLocalDateTime(warsaw).time,
+            "nine in the morning, whatever that costs in elapsed hours",
         )
         // CEST (+2) by then, so nine local is 07:00 UTC rather than 08:00.
         assertEquals(Instant.parse("2026-03-29T07:00:00Z"), next)
@@ -210,8 +210,8 @@ class DigestsTest {
         )
 
         assertEquals(Instant.parse("2026-06-15T06:00:00Z"), plan.agendaAt)
-        assertEquals("nothing arranged, which is what cancels it", null, plan.debtsAt)
-        assertEquals("and the same for the evening one", null, plan.unfinishedAt)
+        assertEquals(null, plan.debtsAt, "nothing arranged, which is what cancels it")
+        assertEquals(null, plan.unfinishedAt, "and the same for the evening one")
     }
 
     /**
@@ -235,8 +235,8 @@ class DigestsTest {
             debtMinuteOfDay = nine,
         )
 
-        assertEquals("tomorrow at nine", Instant.parse("2026-06-16T06:00:00Z"), plan.agendaAt)
-        assertEquals("tonight at nine", Instant.parse("2026-06-15T18:00:00Z"), plan.unfinishedAt)
+        assertEquals(Instant.parse("2026-06-16T06:00:00Z"), plan.agendaAt, "tomorrow at nine")
+        assertEquals(Instant.parse("2026-06-15T18:00:00Z"), plan.unfinishedAt, "tonight at nine")
     }
 
     // --- Whether a digest is worth sending ----------------------------------------------------------

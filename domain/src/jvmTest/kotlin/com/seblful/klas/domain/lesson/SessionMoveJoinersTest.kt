@@ -6,8 +6,8 @@ import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 

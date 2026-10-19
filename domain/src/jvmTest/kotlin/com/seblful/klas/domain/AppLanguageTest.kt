@@ -1,9 +1,9 @@
 package com.seblful.klas.domain
 
 import com.seblful.klas.domain.model.AppLanguage
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /**
  * What «follow the phone» means, and what a stored word reads back as.
@@ -34,7 +34,7 @@ class AppLanguageTest {
         assertEquals(AppLanguage.RUSSIAN, AppLanguage.of(locales("ru-BY")))
         assertEquals(AppLanguage.RUSSIAN, AppLanguage.of(locales("ru")))
         assertEquals(AppLanguage.ENGLISH, AppLanguage.of(locales("en-GB")))
-        assertEquals("a tag's case is not its language", AppLanguage.RUSSIAN, AppLanguage.of(locales("RU-by")))
+        assertEquals(AppLanguage.RUSSIAN, AppLanguage.of(locales("RU-by")), "a tag's case is not its language")
     }
 
     /**
@@ -46,7 +46,7 @@ class AppLanguageTest {
     fun `a phone speaking neither language falls back to English`() {
         assertEquals(AppLanguage.ENGLISH, AppLanguage.of(locales("fr-FR")))
         assertEquals(AppLanguage.ENGLISH, AppLanguage.of(locales("pl-PL", "de-DE")))
-        assertEquals("nothing to ask at all", AppLanguage.ENGLISH, AppLanguage.of(emptyList()))
+        assertEquals(AppLanguage.ENGLISH, AppLanguage.of(emptyList()), "nothing to ask at all")
         assertEquals(AppLanguage.ENGLISH, AppLanguage.FALLBACK)
     }
 
@@ -56,9 +56,9 @@ class AppLanguageTest {
         assertEquals(AppLanguage.ENGLISH, AppLanguage.of(locales("en-US", "ru-RU")))
         assertEquals(AppLanguage.RUSSIAN, AppLanguage.of(locales("ru-RU", "en-US")))
         assertEquals(
-            "a language the app lacks is skipped rather than answered",
             AppLanguage.RUSSIAN,
             AppLanguage.of(locales("be-BY", "ru-BY", "en-US")),
+            "a language the app lacks is skipped rather than answered",
         )
     }
 
@@ -92,8 +92,8 @@ class AppLanguageTest {
         assertEquals(AppLanguage.SYSTEM, AppLanguage.parse("SYSTEM"))
         assertEquals(AppLanguage.RUSSIAN, AppLanguage.parse("RUSSIAN"))
         assertEquals(AppLanguage.ENGLISH, AppLanguage.parse("ENGLISH"))
-        assertEquals("nothing loaded yet", AppLanguage.SYSTEM, AppLanguage.parse(null))
-        assertEquals("a value this build does not know", AppLanguage.SYSTEM, AppLanguage.parse("BELARUSIAN"))
-        assertEquals("a tag is not a name", AppLanguage.SYSTEM, AppLanguage.parse("ru"))
+        assertEquals(AppLanguage.SYSTEM, AppLanguage.parse(null), "nothing loaded yet")
+        assertEquals(AppLanguage.SYSTEM, AppLanguage.parse("BELARUSIAN"), "a value this build does not know")
+        assertEquals(AppLanguage.SYSTEM, AppLanguage.parse("ru"), "a tag is not a name")
     }
 }

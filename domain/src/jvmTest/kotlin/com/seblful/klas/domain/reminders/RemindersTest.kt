@@ -3,10 +3,10 @@ package com.seblful.klas.domain.reminders
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
@@ -190,7 +190,7 @@ class RemindersTest {
 
         assertTrue(Reminders.shouldPost(upcoming, notificationsEnabled = true, now = now))
         assertTrue(Reminders.shouldPost(running, notificationsEnabled = true, now = now))
-        assertFalse("its end is the boundary", Reminders.shouldPost(ended, notificationsEnabled = true, now = now))
+        assertFalse(Reminders.shouldPost(ended, notificationsEnabled = true, now = now), "its end is the boundary")
         val calledOff = upcoming.copy(status = LessonStatus.CANCELLED)
         assertFalse(Reminders.shouldPost(calledOff, notificationsEnabled = true, now = now))
         assertFalse(Reminders.shouldPost(upcoming, notificationsEnabled = false, now = now))

@@ -4,10 +4,10 @@ import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
@@ -89,9 +89,9 @@ class SchedulingTest {
             klass(4, "2026-09-01T08:00:00Z", minutes = 240),
         ).forEach { existing ->
             assertEquals(
-                "class ${existing.id} should clash",
                 listOf(existing.id),
                 Scheduling.conflicts(tenToEleven, listOf(existing)).map { it.first.id },
+                "class ${existing.id} should clash",
             )
         }
     }
@@ -168,7 +168,7 @@ class SchedulingTest {
         // to the rule directly — so only this one says it would ever be read from the database.
         val containing = klass(4, "2026-09-01T08:00:00Z", minutes = 240)
 
-        assertTrue("it must be read", containing.start >= window.from)
+        assertTrue(containing.start >= window.from, "it must be read")
         assertEquals(listOf(4L), Scheduling.conflicts(tenToEleven, listOf(containing)).map { it.first.id })
     }
 
@@ -182,7 +182,7 @@ class SchedulingTest {
         val window = Scheduling.windowFor(tenToEleven)
         val nearlyADay = klass(1, "2026-08-31T10:30:00Z", minutes = 24 * 60 - 1)
 
-        assertTrue("inside the window", nearlyADay.start >= window.from)
+        assertTrue(nearlyADay.start >= window.from, "inside the window")
         assertEquals(listOf(1L), Scheduling.conflicts(tenToEleven, listOf(nearlyADay)).map { it.first.id })
     }
 
@@ -192,7 +192,7 @@ class SchedulingTest {
         val after = klass(1, "2026-09-01T11:00:00Z") // starts as the slot closes
 
         assertEquals(tenToEleven.end, window.toExclusive)
-        assertTrue("not read, and not a clash either", after.start >= window.toExclusive)
+        assertTrue(after.start >= window.toExclusive, "not read, and not a clash either")
     }
 
     /**
@@ -216,7 +216,7 @@ class SchedulingTest {
         // And it is a superset of each occurrence's own window, which is what makes one read enough.
         term.forEach { slot ->
             val own = Scheduling.windowFor(slot)
-            assertTrue("covers ${slot.start}", window.from <= own.from && window.toExclusive >= own.toExclusive)
+            assertTrue(window.from <= own.from && window.toExclusive >= own.toExclusive, "covers ${slot.start}")
         }
     }
 
@@ -227,7 +227,7 @@ class SchedulingTest {
 
     @Test
     fun `a window over no slots is a caller's bug`() {
-        assertThrows(IllegalArgumentException::class.java) { Scheduling.windowFor(emptyList()) }
+        assertFailsWith<IllegalArgumentException> { Scheduling.windowFor(emptyList()) }
     }
 
     /**
@@ -244,10 +244,10 @@ class SchedulingTest {
     fun `a slot of no length cannot be built at all`() {
         val at = Instant.parse("2026-09-01T10:30:00Z")
 
-        assertThrows("zero is refused", IllegalArgumentException::class.java) {
+        assertFailsWith<IllegalArgumentException>("zero is refused") {
             Scheduling.Slot(at, 0)
         }
-        assertThrows("so is an inverted span", IllegalArgumentException::class.java) {
+        assertFailsWith<IllegalArgumentException>("so is an inverted span") {
             Scheduling.Slot(at, -30)
         }
     }

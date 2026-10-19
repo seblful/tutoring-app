@@ -1,7 +1,7 @@
 package com.seblful.klas.domain.model
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 /**
  * The three-way question every surface showing a balance used to ask for itself, inside a `@Composable`.
@@ -30,7 +30,7 @@ class BalanceTest {
         val credit = Balance.of(Money.ofMajor(-50))
 
         assertEquals(Balance.Credit(Money.ofMajor(50)), credit)
-        assertEquals("positive, ready to print", Money.ofMajor(50), credit.amount)
+        assertEquals(Money.ofMajor(50), credit.amount, "positive, ready to print")
     }
 
     /**

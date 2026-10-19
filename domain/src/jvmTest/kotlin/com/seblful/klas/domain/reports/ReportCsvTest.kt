@@ -2,9 +2,9 @@ package com.seblful.klas.domain.reports
 
 import com.seblful.klas.domain.model.Money
 import kotlinx.datetime.YearMonth
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class ReportCsvTest {
 
@@ -107,17 +107,17 @@ class ReportCsvTest {
             ReportCsv.Line("s", "zero", Money.ZERO),
         )
 
-        assertTrue(csv, csv.contains("s;round;30,00"))
-        assertTrue(csv, csv.contains("s;kopecks;1250,50"))
-        assertTrue(csv, csv.contains("s;small;0,05"))
-        assertTrue(csv, csv.contains("s;zero;0,00"))
+        assertTrue(csv.contains("s;round;30,00"), csv)
+        assertTrue(csv.contains("s;kopecks;1250,50"), csv)
+        assertTrue(csv.contains("s;small;0,05"), csv)
+        assertTrue(csv.contains("s;zero;0,00"), csv)
     }
 
     @Test
     fun `a negative amount keeps its sign`() {
         val csv = build(ReportCsv.Line("s", "credit", Money.ZERO - Money.ofMajor(20)))
 
-        assertTrue(csv, csv.contains("s;credit;-20,00"))
+        assertTrue(csv.contains("s;credit;-20,00"), csv)
     }
 
     /**
@@ -150,8 +150,8 @@ class ReportCsvTest {
             ReportCsv.Dialect.COMMA_DECIMAL,
         )
 
-        assertTrue(commas, commas.contains("\"Petrova, Anya\""))
-        assertTrue("a comma is an ordinary character here", semicolons.contains(";Petrova, Anya;"))
+        assertTrue(commas.contains("\"Petrova, Anya\""), commas)
+        assertTrue(semicolons.contains(";Petrova, Anya;"), "a comma is an ordinary character here")
     }
 
     @Test
@@ -159,9 +159,9 @@ class ReportCsvTest {
         assertEquals(ReportCsv.Dialect.DOT_DECIMAL, ReportCsv.Dialect.forDecimal('.'))
         assertEquals(ReportCsv.Dialect.COMMA_DECIMAL, ReportCsv.Dialect.forDecimal(','))
         assertEquals(
-            "anything else is a comma-decimal locale, which is the app's older half",
             ReportCsv.Dialect.COMMA_DECIMAL,
             ReportCsv.Dialect.forDecimal('٫'),
+            "anything else is a comma-decimal locale, which is the app's older half",
         )
     }
 
@@ -176,15 +176,15 @@ class ReportCsvTest {
             ReportCsv.Line("Доход", "5\"А\"", Money.ofMajor(10)),
         )
 
-        assertTrue(csv, csv.contains("\"Группа; вечерняя\""))
-        assertTrue(csv, csv.contains("\"5\"\"А\"\"\""))
+        assertTrue(csv.contains("\"Группа; вечерняя\""), csv)
+        assertTrue(csv.contains("\"5\"\"А\"\"\""), csv)
     }
 
     @Test
     fun `a field containing a newline is quoted rather than breaking the row`() {
         val csv = build(ReportCsv.Line("Доход", "Аня\nПетрова", Money.ofMajor(10)))
 
-        assertTrue(csv, csv.contains("\"Аня\nПетрова\""))
+        assertTrue(csv.contains("\"Аня\nПетрова\""), csv)
         // Header, one data row, and nothing else: the embedded newline did not start a second row.
         assertEquals(2, csv.trimEnd().split("\r\n").size)
     }

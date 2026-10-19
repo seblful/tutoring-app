@@ -1,9 +1,9 @@
 package com.seblful.klas.domain.people
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 class AvatarPaletteTest {
 
@@ -14,7 +14,7 @@ class AvatarPaletteTest {
         // The reported bug: the student added during onboarding (id 1) wore the same colour as the
         // second student (id 2). Sequential ids must never collide inside one palette's worth.
         val used = (1L..size).map { AvatarPalette.indexFor(it, size) }
-        assertEquals("every one of the first $size students is a distinct colour", size, used.toSet().size)
+        assertEquals(size, used.toSet().size, "every one of the first $size students is a distinct colour")
     }
 
     @Test
@@ -38,7 +38,7 @@ class AvatarPaletteTest {
         val ids = listOf(0L, -1L, -9L, -10L, -11L, 1L, 999_999L, Long.MAX_VALUE, Long.MIN_VALUE)
         ids.forEach { id ->
             val i = AvatarPalette.indexFor(id, size)
-            assertTrue("id $id gave out-of-range index $i", i in 0 until size)
+            assertTrue(i in 0 until size, "id $id gave out-of-range index $i")
         }
     }
 

@@ -4,10 +4,10 @@ import com.seblful.klas.domain.homework.takes
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
@@ -62,14 +62,14 @@ class LessonPhaseTest {
     fun `a marked lesson is settled whenever it is asked about`() {
         listOf("2026-06-15T15:00:00Z", "2026-06-15T16:30:00Z", "2026-06-15T18:00:00Z").forEach { now ->
             assertEquals(
-                "a completed lesson at $now",
                 LessonPhase.SETTLED,
                 phaseAt(now, LessonStatus.COMPLETED),
+                "a completed lesson at $now",
             )
             assertEquals(
-                "a cancelled lesson at $now",
                 LessonPhase.SETTLED,
                 phaseAt(now, LessonStatus.CANCELLED),
+                "a cancelled lesson at $now",
             )
         }
     }

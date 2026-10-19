@@ -14,10 +14,10 @@ import com.seblful.klas.domain.model.TutoringClass
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.YearMonth
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 class ReportsTest {
@@ -88,15 +88,15 @@ class ReportsTest {
         )
 
         assertEquals(
-            "a heading over one line saying what the total already says",
             emptyList<Reports.KindLine>(),
             reportOf(individualOnly, period).byKind,
+            "a heading over one line saying what the total already says",
         )
 
         val bothKinds = individualOnly + klass(3, 10, "2026-05-12T10:00:00Z", 2000, groupId = 7)
         val split = reportOf(bothKinds, period).byKind
-        assertEquals("both kinds earned, so the split is worth showing", 2, split.size)
-        assertEquals("largest first", LessonKind.INDIVIDUAL, split.first().kind)
+        assertEquals(2, split.size, "both kinds earned, so the split is worth showing")
+        assertEquals(LessonKind.INDIVIDUAL, split.first().kind, "largest first")
         assertEquals(Money(8000), split.first().amount)
         assertEquals(80, split.first().percent)
         assertEquals(20, split.last().percent)
@@ -153,9 +153,9 @@ class ReportsTest {
 
         assertEquals(LessonStatus.SCHEDULED, moved.status)
         assertEquals(
-            "neither May nor June recognizes a lesson that has not happened yet",
             emptyList<Reports.MonthlyIncome>(),
             Reports.incomeByMonth(listOf(moved), zone),
+            "neither May nor June recognizes a lesson that has not happened yet",
         )
     }
 
@@ -225,9 +225,9 @@ class ReportsTest {
         assertEquals(Money(4000), byGroup[GroupId(7)])
         assertEquals(Money(3000), byGroup[GroupId(8)])
         assertEquals(
-            "individual lessons have no group to be counted under",
             setOf(GroupId(7), GroupId(8)),
             byGroup.keys,
+            "individual lessons have no group to be counted under",
         )
     }
 
@@ -262,7 +262,7 @@ class ReportsTest {
         val trend = Reports.trend(classes, period, zone)
 
         assertEquals(Reports.Trend.Bucket.MONTHS, trend.bucket)
-        assertEquals("a year is drawn as all twelve of its months", 12, trend.bars.size)
+        assertEquals(12, trend.bars.size, "a year is drawn as all twelve of its months")
         assertEquals(keyOf(2026, 1), trend.bars.first().key)
         assertEquals(keyOf(2026, 12), trend.bars.last().key)
         assertEquals(Money(6000), trend.bars[1].total) // February
@@ -286,11 +286,11 @@ class ReportsTest {
 
         val trend = Reports.trend(classes, period, zone)
 
-        assertEquals("twelve bars in the chart", 12, trend.bars.size)
+        assertEquals(12, trend.bars.size, "twelve bars in the chart")
         assertEquals(
-            "two rows in the list, November before February",
             listOf(keyOf(2026, 11) to Money(3000), keyOf(2026, 2) to Money(5000)),
             trend.rows.map { it.key to it.total },
+            "two rows in the list, November before February",
         )
     }
 
@@ -315,7 +315,7 @@ class ReportsTest {
         val trend = Reports.trend(classes, ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 5)), zone)
 
         assertEquals(1, trend.bars.size)
-        assertTrue("one bar is already said by the total above it", trend.isEmpty)
+        assertTrue(trend.isEmpty, "one bar is already said by the total above it")
     }
 
     @Test
@@ -325,7 +325,7 @@ class ReportsTest {
 
         assertEquals(12, trend.bars.size)
         assertNull(trend.peak)
-        assertTrue("twelve empty bars are not a chart", trend.isEmpty)
+        assertTrue(trend.isEmpty, "twelve empty bars are not a chart")
         assertTrue(Reports.trend(emptyList(), ReportPeriod(ReportPeriod.Kind.ALL, YearMonth(2026, 5)), zone).isEmpty)
     }
 
@@ -400,8 +400,8 @@ class ReportsTest {
 
         assertEquals(1.0f, trend.shareOf(trend.bars[1]))
         assertEquals(0.5f, trend.shareOf(trend.bars[10]))
-        assertEquals("a quiet month is an empty track", 0f, trend.shareOf(trend.bars[2]))
-        assertEquals("the key's encoding is the module's to unpack", 1, trend.bars[1].monthIndex)
+        assertEquals(0f, trend.shareOf(trend.bars[2]), "a quiet month is an empty track")
+        assertEquals(1, trend.bars[1].monthIndex, "the key's encoding is the module's to unpack")
     }
 
     /**
@@ -421,7 +421,7 @@ class ReportsTest {
         val report = reportOf(classes, year, today = LocalDate(2026, 9, 24))
 
         assertEquals(Reports.Change.Percent(20), report.change)
-        assertTrue("and it says it measured the days so far", report.changeToDate)
+        assertTrue(report.changeToDate, "and it says it measured the days so far")
     }
 
     @Test
@@ -460,13 +460,13 @@ class ReportsTest {
 
         assertEquals(1L, year.daysElapsed(LocalDate(2026, 1, 1)))
         assertEquals(267L, year.daysElapsed(LocalDate(2026, 9, 24)))
-        assertNull("over", year.daysElapsed(LocalDate(2027, 1, 1)))
-        assertNull("not begun", year.daysElapsed(LocalDate(2025, 12, 31)))
-        assertNull("all time has no days", ReportPeriod(ReportPeriod.Kind.ALL, YearMonth(2026, 1)).daysElapsed(LocalDate(2026, 1, 1)))
+        assertNull(year.daysElapsed(LocalDate(2027, 1, 1)), "over")
+        assertNull(year.daysElapsed(LocalDate(2025, 12, 31)), "not begun")
+        assertNull(ReportPeriod(ReportPeriod.Kind.ALL, YearMonth(2026, 1)).daysElapsed(LocalDate(2026, 1, 1)), "all time has no days")
         assertEquals(
-            "a stretch longer than a short month stops at its end",
             LocalDate(2026, 3, 1),
             ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 2)).firstDays(31)?.untilExclusive,
+            "a stretch longer than a short month stops at its end",
         )
     }
 }

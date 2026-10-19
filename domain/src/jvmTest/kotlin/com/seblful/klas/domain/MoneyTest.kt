@@ -2,9 +2,9 @@ package com.seblful.klas.domain
 
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class MoneyTest {
 
@@ -35,7 +35,7 @@ class MoneyTest {
         assertEquals("1,500.50 USD", Money(150050).format(Currency.USD, '.', ','))
         assertEquals("1 500,50 USD", Money(150050).format(Currency.USD, ',', ' '))
         assertEquals("-0.50", Money(-50).amountText('.'))
-        assertEquals("a whole amount has no separator to write", "1500", Money.ofMajor(1500).amountText('.'))
+        assertEquals("1500", Money.ofMajor(1500).amountText('.'), "a whole amount has no separator to write")
     }
 
     /**

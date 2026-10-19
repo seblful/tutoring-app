@@ -1,9 +1,9 @@
 package com.seblful.klas.domain
 
 import com.seblful.klas.domain.model.Currency
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /**
  * Which currency a phone starts on, and what a stored word reads back as.
@@ -26,7 +26,7 @@ class CurrencyTest {
     fun `a code outside the four, or none, names nothing`() {
         assertNull(Currency.forCode("GBP"))
         assertNull(Currency.forCode("PLN"))
-        assertNull("a locale with no region has no currency", Currency.forCode(null))
+        assertNull(Currency.forCode(null), "a locale with no region has no currency")
     }
 
     /** The region's currency, not the language's: an English phone in Minsk is still paid in rubles. */
@@ -34,12 +34,12 @@ class CurrencyTest {
     fun `the first region the app recognises wins, and dollars are the last resort`() {
         assertEquals(Currency.BYN, Currency.preferredFor(listOf("BYN", "RUB")))
         assertEquals(
-            "a language-only locale is skipped rather than answered",
             Currency.RUB,
             Currency.preferredFor(listOf(null, "RUB")),
+            "a language-only locale is skipped rather than answered",
         )
         assertEquals(Currency.USD, Currency.preferredFor(listOf("GBP", "PLN")))
-        assertEquals("nothing to ask at all", Currency.USD, Currency.preferredFor(emptyList()))
+        assertEquals(Currency.USD, Currency.preferredFor(emptyList()), "nothing to ask at all")
         assertEquals(Currency.USD, Currency.FALLBACK)
     }
 
@@ -50,6 +50,6 @@ class CurrencyTest {
         assertEquals(Currency.EUR, Currency.parse("EUR"))
         assertEquals(Currency.BYN, Currency.parse("GBP"))
         assertEquals(Currency.BYN, Currency.parse(""))
-        assertEquals("a symbol is not a name", Currency.BYN, Currency.parse("$"))
+        assertEquals(Currency.BYN, Currency.parse("$"), "a symbol is not a name")
     }
 }

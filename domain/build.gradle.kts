@@ -29,10 +29,12 @@ kotlin {
             // `api`: its types are the domain's own vocabulary — every rule takes and returns them.
             api(libs.kotlinx.datetime)
         }
-        // JUnit 4 rather than kotlin.test for now: the suite predates the move, and its
-        // `assertEquals(message, expected, actual)` order is kotlin.test's reversed.
-        jvmTest.dependencies {
-            implementation(libs.junit)
+        // kotlin.test, so the suite can run on iOS too; on the JVM it runs on JUnit 4, which the
+        // Kotlin plugin picks for it. The tests still live in `jvmTest`: their backticked names carry
+        // punctuation Kotlin/Native may refuse in a name, so the move to `commonTest` waits for a Mac
+        // that can compile it.
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
     }
 }

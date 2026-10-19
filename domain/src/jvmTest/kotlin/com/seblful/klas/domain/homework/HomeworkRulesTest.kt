@@ -10,9 +10,9 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.TutoringClass
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 

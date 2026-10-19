@@ -3,8 +3,8 @@ package com.seblful.klas.domain.lesson
 import com.seblful.klas.domain.lesson.CalendarSyncPolicy.Action
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class CalendarSyncPolicyTest {
 

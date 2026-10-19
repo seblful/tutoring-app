@@ -15,10 +15,10 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
@@ -133,7 +133,7 @@ class DaySummaryTest {
 
         assertEquals(0, summary.lessons)
         assertEquals(1, summary.cancelled)
-        assertTrue("A day that had a lesson and lost it is not the same as a day with none", !summary.isEmpty)
+        assertTrue(!summary.isEmpty, "A day that had a lesson and lost it is not the same as a day with none")
     }
 
     @Test
@@ -144,8 +144,8 @@ class DaySummaryTest {
             klass(at = at(18), lessonId = 7, studentId = 3, minutes = 90, rate = Money.ofMajor(20), groupId = 5),
         )
 
-        assertEquals("Three in the room is one lesson", 1, summary.lessons)
-        assertEquals("And ninety minutes of the tutor's evening, not four and a half hours", 90, summary.minutes)
+        assertEquals(1, summary.lessons, "Three in the room is one lesson")
+        assertEquals(90, summary.minutes, "And ninety minutes of the tutor's evening, not four and a half hours")
         // 20/h for 90 minutes is 30 each.
         assertEquals(Money.ofMajor(90), summary.money)
     }
@@ -167,7 +167,7 @@ class DaySummaryTest {
             ),
         )
 
-        assertEquals("Still one lesson, whoever was in it", 1, summary.lessons)
+        assertEquals(1, summary.lessons, "Still one lesson, whoever was in it")
         // Two owe for it: the one who came, and the late cancellation. The plain absence does not.
         assertEquals(Money.ofMajor(60), summary.money)
     }

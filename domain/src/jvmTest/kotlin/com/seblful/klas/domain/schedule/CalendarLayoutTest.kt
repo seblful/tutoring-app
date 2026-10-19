@@ -9,10 +9,10 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.YearMonth
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 class CalendarLayoutTest {
@@ -191,7 +191,7 @@ class CalendarLayoutTest {
         val loads = CalendarLayout.dayLoads(groupLesson("2026-07-15T07:00:00Z", size = 2), zone)
         val load = loads.getValue(LocalDate(2026, 7, 15))
 
-        assertEquals("two students, one lesson taught", 1, load.total)
+        assertEquals(1, load.total, "two students, one lesson taught")
         assertEquals(listOf(CalendarLayout.Tally(LessonStatus.SCHEDULED, 1)), load.tallies)
     }
 
@@ -233,9 +233,9 @@ class CalendarLayoutTest {
 
         assertEquals(2, load.total)
         assertEquals(
-            "two lessons taught, one of them with somebody missing",
             listOf(CalendarLayout.Tally(LessonStatus.COMPLETED, 2)),
             load.tallies,
+            "two lessons taught, one of them with somebody missing",
         )
     }
 
@@ -257,7 +257,7 @@ class CalendarLayoutTest {
             loads.getValue(LocalDate(2026, 7, 15)).counts,
         )
         assertEquals(1, loads.getValue(LocalDate(2026, 7, 16)).total)
-        assertFalse("days without classes are absent", LocalDate(2026, 7, 17) in loads)
+        assertFalse(LocalDate(2026, 7, 17) in loads, "days without classes are absent")
     }
 
     @Test
@@ -307,12 +307,12 @@ class CalendarLayoutTest {
 
         assertEquals(10, load.total)
         assertEquals(
-            "however many lessons a day holds, its cell prints one number per status",
             listOf(
                 CalendarLayout.Tally(LessonStatus.SCHEDULED, 1),
                 CalendarLayout.Tally(LessonStatus.COMPLETED, 9),
             ),
             load.tallies,
+            "however many lessons a day holds, its cell prints one number per status",
         )
     }
 }

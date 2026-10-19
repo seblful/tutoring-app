@@ -4,10 +4,10 @@ import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
@@ -107,9 +107,9 @@ class LessonKindTest {
     fun `every kind has a filter that selects exactly it`() {
         LessonKind.entries.forEach { kind ->
             val filter = LessonFilter.of(kind)
-            assertTrue("$filter must accept $kind", filter.accepts(kind))
+            assertTrue(filter.accepts(kind), "$filter must accept $kind")
             LessonKind.entries.filter { it != kind }.forEach { other ->
-                assertFalse("$filter must reject $other", filter.accepts(other))
+                assertFalse(filter.accepts(other), "$filter must reject $other")
             }
         }
     }

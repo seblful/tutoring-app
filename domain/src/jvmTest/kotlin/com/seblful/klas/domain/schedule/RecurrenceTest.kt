@@ -6,8 +6,8 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
@@ -115,9 +115,9 @@ class RecurrenceTest {
 
         starts.forEach { assertEquals(atFour, it.toLocalDateTime(brussels).time) }
         assertEquals(
-            "the week spanning the change is an hour longer, and still ends at four",
             169.hours,
             ((starts[2]) - (starts[1])),
+            "the week spanning the change is an hour longer, and still ends at four",
         )
         assertEquals(168.hours, ((starts[3]) - (starts[2])))
     }

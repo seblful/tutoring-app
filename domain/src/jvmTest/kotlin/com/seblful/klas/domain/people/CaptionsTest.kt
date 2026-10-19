@@ -8,9 +8,9 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.reminders.Reminders
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.time.Instant
 
 /**
@@ -36,7 +36,7 @@ class CaptionsTest {
 
         assertEquals("Иван Петров", captions.titleOf(session))
         assertEquals("Алгебра", captions.subjectOf(session))
-        assertEquals("its one student is already the title", emptyList<String>(), captions.membersOf(session))
+        assertEquals(emptyList<String>(), captions.membersOf(session), "its one student is already the title")
     }
 
     @Test

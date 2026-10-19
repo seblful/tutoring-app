@@ -4,11 +4,11 @@ import com.seblful.klas.domain.model.TutoringClass
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.YearMonth
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 class ReportPeriodTest {
@@ -39,7 +39,7 @@ class ReportPeriodTest {
         val period = ReportPeriod(ReportPeriod.Kind.ALL, may2026)
         assertNull(period.from)
         assertNull(period.until)
-        assertFalse("all time has nowhere to step to", period.isNavigable)
+        assertFalse(period.isNavigable, "all time has nowhere to step to")
     }
 
     @Test

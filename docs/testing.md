@@ -5,8 +5,8 @@ Where a test goes in Klas, and what the test setup expects. Commands and what CI
 
 ## Unit tests (`src/test`)
 
-- **`domain/src/jvmTest`** (`:domain:jvmTest`, ~30 classes): a rule of `domain/` tested on its own — JUnit
-  only, no fixtures, fakes or project files. A test that needs any of those is not a domain test and
+- **`domain/src/jvmTest`** (`:domain:jvmTest`, ~30 classes): a rule of `domain/` tested on its own — `kotlin.test`
+  only (so the suite can later run on iOS from `commonTest`), no fixtures, fakes or project files. A test that needs any of those is not a domain test and
   goes in `app`.
 - **`app/src/test`** (`:app:testDebugUnitTest`, ~85 classes): backup format, view models, repository side
   effects, mappers, formatters. `isReturnDefaultValues` is off (a test needing Android has found a missing

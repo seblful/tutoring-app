@@ -1,7 +1,7 @@
 package com.seblful.klas.domain.people
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 /**
  * The order names are listed in. The cases that matter are Cyrillic: this app's UI is Russian, so

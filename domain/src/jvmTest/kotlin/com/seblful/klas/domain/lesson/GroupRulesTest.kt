@@ -9,12 +9,12 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.TutoringClass
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
@@ -178,11 +178,11 @@ class GroupRulesTest {
         )
 
         assertEquals(LessonStatus.COMPLETED, session.status)
-        assertEquals("one of the three was in the room", 1, session.present)
+        assertEquals(1, session.present, "one of the three was in the room")
         assertEquals(
-            "and two of the three owe for it — the absentee under a late-cancellation policy included",
             listOf(1L, 3L),
             session.classes.filter { it.isBillable }.map { it.id },
+            "and two of the three owe for it — the absentee under a late-cancellation policy included",
         )
     }
 
@@ -220,7 +220,7 @@ class GroupRulesTest {
                 klass(2, 2, groupId = 7, price = Money.ofMajor(30)),
             ),
         )
-        assertNull("differing rates cannot collapse into one", session.sharedPrice)
+        assertNull(session.sharedPrice, "differing rates cannot collapse into one")
     }
 
     // --- session status changes ---
@@ -253,9 +253,9 @@ class GroupRulesTest {
         )
 
         assertEquals(
-            "a taught lesson can be called off, and not un-taught",
             setOf(LessonStatus.CANCELLED),
             SessionRules.sessionTransitions(session),
+            "a taught lesson can be called off, and not un-taught",
         )
         assertFalse(ClassRules.canTransition(LessonStatus.COMPLETED, LessonStatus.SCHEDULED))
     }
@@ -357,9 +357,8 @@ class GroupRulesTest {
             studentId = 3,
         )
 
-        assertThrows(
+        assertFailsWith<IllegalArgumentException>(
             "who was in a lesson is changed by adding and removing classes",
-            IllegalArgumentException::class.java,
         ) { SessionRules.editsFor(session, changes) }
     }
 
@@ -387,7 +386,7 @@ class GroupRulesTest {
         val change = GroupRules.rosterChange(session, wanted = setOf(1, 3), lessonEdit, t0)
 
         assertEquals(listOf(2L), change.dropped.map { it.id })
-        assertTrue("nobody joined", change.joining.isEmpty())
+        assertTrue(change.joining.isEmpty(), "nobody joined")
         assertFalse(change.isEmpty)
     }
 
@@ -397,7 +396,7 @@ class GroupRulesTest {
 
         val change = GroupRules.rosterChange(session, wanted = setOf(1, 5), lessonEdit, t1)
 
-        assertTrue("nobody left", change.dropped.isEmpty())
+        assertTrue(change.dropped.isEmpty(), "nobody left")
         val joined = change.joining.single()
         assertEquals(5L, joined.studentId)
         // The lesson's terms, not the group's current ones: it is this lesson they are joining.
@@ -407,7 +406,7 @@ class GroupRulesTest {
         assertEquals(Money.ofMajor(20), joined.price)
         assertEquals(ClassMode.REMOTE, joined.mode)
         assertEquals(7L, joined.groupId)
-        assertEquals("no id yet — it has never been written", 0L, joined.id)
+        assertEquals(0L, joined.id, "no id yet — it has never been written")
     }
 
     /**
@@ -468,16 +467,15 @@ class GroupRulesTest {
         val change = GroupRules.rosterChange(session, wanted = setOf(3), lessonEdit, t0)
 
         assertEquals(listOf(1L, 2L), change.dropped.map { it.id })
-        assertEquals("only the completed one had earned", listOf(1L), change.billedDropped.map { it.id })
+        assertEquals(listOf(1L), change.billedDropped.map { it.id }, "only the completed one had earned")
     }
 
     @Test
     fun `a lesson cannot be emptied of everybody`() {
         val session = groupSession(1L to 1L)
 
-        assertThrows(
+        assertFailsWith<IllegalArgumentException>(
             "a lesson with nobody in it bills no one",
-            IllegalArgumentException::class.java,
         ) { GroupRules.rosterChange(session, wanted = emptySet(), lessonEdit, t0) }
     }
 
@@ -485,9 +483,8 @@ class GroupRulesTest {
     fun `an individual lesson has no roster to reconcile`() {
         val session = ClassSession.of(klass(1, studentId = 1))
 
-        assertThrows(
+        assertFailsWith<IllegalArgumentException>(
             "re-attributing an individual class is SessionEdit.studentId's job",
-            IllegalArgumentException::class.java,
         ) { GroupRules.rosterChange(session, wanted = setOf(2), lessonEdit, t0) }
     }
 
@@ -558,7 +555,7 @@ class GroupRulesTest {
 
         val edit = SessionRules.lessonEdit(session, edit90, newStart = t1, now = t0, roster = setOf(3L))
 
-        assertEquals("nobody stayed", emptyList<TutoringClass>(), edit.updated)
+        assertEquals(emptyList<TutoringClass>(), edit.updated, "nobody stayed")
         assertEquals(listOf(1L, 2L), edit.dropped.map { it.studentId })
         assertEquals(listOf(3L), edit.joining.map { it.studentId })
         // And the lesson still says what it now is.
@@ -595,7 +592,7 @@ class GroupRulesTest {
         assertEquals(listOf(1L, 2L), edit.updated.map { it.studentId })
         assertTrue(edit.dropped.isEmpty())
         assertTrue(edit.joining.isEmpty())
-        assertEquals("every class carries the edit", listOf(90, 90), edit.updated.map { it.durationMinutes })
+        assertEquals(listOf(90, 90), edit.updated.map { it.durationMinutes }, "every class carries the edit")
     }
 
     @Test
@@ -605,7 +602,7 @@ class GroupRulesTest {
         val session = groupSession(1L to 1L, 2L to 2L)
         val reattributed = edit90.copy(studentId = 3L)
 
-        assertThrows(IllegalArgumentException::class.java) {
+        assertFailsWith<IllegalArgumentException> {
             SessionRules.lessonEdit(session, reattributed, newStart = t0, now = t1)
         }
     }

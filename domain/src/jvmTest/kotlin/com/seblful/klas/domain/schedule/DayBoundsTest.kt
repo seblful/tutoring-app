@@ -2,8 +2,8 @@ package com.seblful.klas.domain.schedule
 
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
