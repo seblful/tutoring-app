@@ -1,8 +1,8 @@
 package com.seblful.klas.data.local
 
-import android.database.Cursor
 import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.SQLiteStatement
 import com.seblful.klas.testutil.ProjectFiles
 import com.seblful.klas.testutil.SourceText
 import kotlinx.serialization.json.Json
@@ -233,8 +233,8 @@ class MigrationChainTest {
      * with every one of its columns, its indices recreated once the old copy is gone — and the old copy
      * dropped only after every table that refers to it.
      *
-     * The last part is the one that loses data. SQLite has no `DROP COLUMN` below Android 12, so a column
-     * goes by renaming the table aside, creating it again and copying the rows across ([Migrations.MIGRATION_9_10]).
+     * The last part is the one that loses data. `DROP COLUMN` refuses an indexed or foreign-key column (and
+     * Android's own SQLite had none below Android 12), so a column goes by renaming the table aside, creating it again and copying the rows across ([Migrations.MIGRATION_9_10]).
      * With foreign keys on, `DROP TABLE` deletes every row first and fires `ON DELETE` actions: drop
      * the old `lessons` while a table still points at it and `attendance`'s `CASCADE` empties it. From
      * SQLite 3.26 a rename also re-points every foreign key that named the table at its new name — so a
@@ -296,45 +296,35 @@ class MigrationChainTest {
     }
 
     /**
-     * The SQL [migration] executes, recorded by a database that runs none of it. It answers `execSQL`, and
-     * `query` with no rows — the answer a check finding nothing gives — and nothing else, so a step that
-     * starts reading something new fails here rather than being half-recorded.
+     * The SQL [migration] runs, recorded by a connection that runs none of it. Every statement it prepares
+     * steps over no rows — the answer a check finding nothing gives — and may be closed, and nothing else,
+     * so a step that starts reading something new fails here rather than being half-recorded.
      */
     private fun executedSql(migration: Migration): List<String> {
         val statements = mutableListOf<String>()
-        val recorder = Proxy.newProxyInstance(
-            SupportSQLiteDatabase::class.java.classLoader,
-            arrayOf(SupportSQLiteDatabase::class.java),
-        ) { _, method, args ->
-            val statement = args?.singleOrNull() as? String
-            when {
-                method.name == "execSQL" && statement != null -> {
-                    statements += statement
-                    null
-                }
-                method.name == "query" && statement != null -> emptyCursor()
-                else -> error(
-                    "Migration ${migration.startVersion} -> ${migration.endVersion} calls " +
-                        "SupportSQLiteDatabase.${method.name}; teach executedSql() to answer it.",
-                )
+        val recorder = object : SQLiteConnection {
+            override fun prepare(sql: String): SQLiteStatement {
+                statements += sql
+                return noRows(sql)
             }
-        } as SupportSQLiteDatabase
+
+            override fun close() = Unit
+        }
         migration.migrate(recorder)
         return statements
     }
 
-    /** A cursor over no rows: every move fails, every count is 0, and closing it is fine. */
-    private fun emptyCursor(): Cursor = Proxy.newProxyInstance(
-        Cursor::class.java.classLoader,
-        arrayOf(Cursor::class.java),
+    /** A statement over no rows: every step finds none, and closing it is fine. */
+    private fun noRows(sql: String): SQLiteStatement = Proxy.newProxyInstance(
+        SQLiteStatement::class.java.classLoader,
+        arrayOf(SQLiteStatement::class.java),
     ) { _, method, _ ->
-        when (method.returnType) {
-            Boolean::class.javaPrimitiveType -> false
-            Int::class.javaPrimitiveType -> 0
-            Void.TYPE -> null
-            else -> error("The empty cursor was asked Cursor.${method.name}; teach emptyCursor() to answer it.")
+        when (method.name) {
+            "step" -> false
+            "close" -> null
+            else -> error("`$sql` was asked SQLiteStatement.${method.name}; teach noRows() to answer it.")
         }
-    } as Cursor
+    } as SQLiteStatement
 
     /** The `classes` view's `SELECT` as v[version]'s exported schema declares it, or null if it has none. */
     private fun classesViewSql(version: Int): String? =

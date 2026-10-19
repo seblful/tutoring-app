@@ -2,6 +2,7 @@ package com.seblful.klas.data.backup
 
 import android.content.Context
 import androidx.room.Room
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.klas.data.local.AppDatabase
@@ -44,7 +45,9 @@ class BackupRoundTripTest {
         Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext<Context>(),
             AppDatabase::class.java,
-        ).build()
+        )
+            .setDriver(BundledSQLiteDriver())
+            .build()
 
     private fun managerFor(db: AppDatabase) = BackupManager(RoomTransactor(db), db.snapshotDao())
 

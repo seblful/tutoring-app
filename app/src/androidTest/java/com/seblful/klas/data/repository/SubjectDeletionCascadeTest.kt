@@ -2,6 +2,7 @@ package com.seblful.klas.data.repository
 
 import android.content.Context
 import androidx.room.Room
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.klas.calendar.CalendarSync
@@ -73,7 +74,9 @@ class SubjectDeletionCascadeTest {
     @Before fun setUp() = runTest {
         db = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext<Context>(), AppDatabase::class.java,
-        ).build()
+        )
+            .setDriver(BundledSQLiteDriver())
+            .build()
         db.snapshotDao().insert(
             DatabaseSnapshot(
                 subjects = listOf(SubjectEntity(1, "Математика"), SubjectEntity(2, "Физика")),

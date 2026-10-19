@@ -7,9 +7,9 @@ name: Device tests
 #
 # Two emulators, in parallel:
 # - API 35, the whole suite — the platform the app's users are mostly on.
-# - API 24 (minSdk), the data layer only. Its SQLite is 3.9, which has no `ALTER TABLE … DROP COLUMN` or
-#   `RENAME COLUMN`; a migration that leans on either passes on every modern phone and breaks only here.
-#   The UI tests are left out: they measure text and frames, which an old image renders differently
+# - API 24 (minSdk), the data layer only. The database runs on the bundled SQLite, the same on every API
+#   level, so what this proves is that its native library loads and runs on the oldest Android the app
+#   supports. The UI tests are left out: they measure text and frames, which an old image renders differently
 #   from any device the goldens and tolerances were set on.
 #
 # Notification display and real calendar sync can still only be judged on a phone (docs/testing.md).

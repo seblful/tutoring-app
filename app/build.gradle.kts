@@ -206,6 +206,7 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.sqlite.bundled)
 
     // Hilt
     implementation(libs.hilt.android)
@@ -259,4 +260,11 @@ dependencies {
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+// The unit tests take their SQLite from `sqlite-bundled-jvm` (above). The Android artifact the app ships
+// holds the same classes with natives built for phones, so on the same classpath whichever came first would
+// load — and the phone's would fail to on the build machine.
+configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configureEach {
+    exclude(group = "androidx.sqlite", module = "sqlite-bundled-android")
 }

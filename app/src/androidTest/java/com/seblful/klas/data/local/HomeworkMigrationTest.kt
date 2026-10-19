@@ -1,10 +1,9 @@
 package com.seblful.klas.data.local
 
-import androidx.room.testing.MigrationTestHelper
+import androidx.sqlite.execSQL
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,10 +20,7 @@ import org.junit.runner.RunWith
 class HomeworkMigrationTest {
 
     @get:Rule
-    val helper = MigrationTestHelper(
-        InstrumentationRegistry.getInstrumentation(),
-        AppDatabase::class.java,
-    )
+    val helper = migrationTestHelper(TEST_DB)
 
     /**
      * A v7 lesson with a note and a student in it, migrated — the note untouched, no homework invented
@@ -32,7 +28,7 @@ class HomeworkMigrationTest {
      */
     @Test
     fun aLessonKeepsItsNoteAndGainsNoHomework() {
-        helper.createDatabase(TEST_DB, 7).use { db ->
+        helper.createDatabase(7).use { db ->
             db.execSQL("INSERT INTO subjects (id, name) VALUES (1, 'Алгебра')")
             db.execSQL(
                 "INSERT INTO students (id, name, phone, email, note, defaultMode, archived) " +
@@ -48,31 +44,33 @@ class HomeworkMigrationTest {
             )
         }
 
-        val migrated = helper.runMigrationsAndValidate(TEST_DB, 8, true, Migrations.MIGRATION_7_8)
+        val migrated = helper.runMigrationsAndValidate(8, listOf(Migrations.MIGRATION_7_8))
 
-        migrated.query("SELECT notes, homework FROM lessons WHERE id = 7").use { row ->
-            assertTrue("the lesson went missing — a migration must not recreate the table", row.moveToFirst())
-            assertEquals("the note is the tutor's and stays as written", "§12, упр. 4–7; устала", row.getString(0))
-            assertEquals(
-                "no homework is guessed out of the note — its private half would reach the student",
-                "",
-                row.getString(1),
-            )
-        }
+        val lesson = migrated.row(
+            "SELECT notes, homework FROM lessons WHERE id = 7",
+            missing = "the lesson went missing — a migration must not recreate the table",
+        )
+        assertEquals("the note is the tutor's and stays as written", "§12, упр. 4–7; устала", lesson["notes"])
+        assertEquals(
+            "no homework is guessed out of the note — its private half would reach the student",
+            "",
+            lesson["homework"],
+        )
 
-        migrated.query("SELECT homework, homeworkResult, chargeMinor, notes FROM classes WHERE lessonId = 7").use { row ->
-            assertTrue("the view came back without the lesson in it", row.moveToFirst())
-            assertEquals("", row.getString(0))
-            assertTrue("nobody's homework has been checked before the app could hold a verdict", row.isNull(1))
-            assertEquals("the student's half of the join is untouched", 4500L, row.getLong(2))
-            assertEquals("and the lesson's", "§12, упр. 4–7; устала", row.getString(3))
-        }
+        val viewed = migrated.row(
+            "SELECT homework, homeworkResult, chargeMinor, notes FROM classes WHERE lessonId = 7",
+            missing = "the view came back without the lesson in it",
+        )
+        assertEquals("", viewed["homework"])
+        assertNull("nobody's homework has been checked before the app could hold a verdict", viewed["homeworkResult"])
+        assertEquals("the student's half of the join is untouched", 4500L, viewed["chargeMinor"])
+        assertEquals("and the lesson's", "§12, упр. 4–7; устала", viewed["notes"])
     }
 
     /** A verdict written after the upgrade reads back through the view — the column is really projected. */
     @Test
     fun aVerdictWrittenAfterTheUpgradeReadsBack() {
-        helper.createDatabase(TEST_DB, 7).use { db ->
+        helper.createDatabase(7).use { db ->
             db.execSQL("INSERT INTO subjects (id, name) VALUES (1, 'Алгебра')")
             db.execSQL(
                 "INSERT INTO students (id, name, phone, email, note, defaultMode, archived) " +
@@ -88,28 +86,24 @@ class HomeworkMigrationTest {
             )
         }
 
-        val migrated = helper.runMigrationsAndValidate(TEST_DB, 8, true, Migrations.MIGRATION_7_8)
+        val migrated = helper.runMigrationsAndValidate(8, listOf(Migrations.MIGRATION_7_8))
         migrated.execSQL("UPDATE lessons SET homework = '§13' WHERE id = 7")
         migrated.execSQL("UPDATE attendance SET homeworkResult = 'DONE' WHERE id = 3")
 
-        migrated.query("SELECT homework, homeworkResult FROM classes WHERE id = 3").use { row ->
-            assertTrue(row.moveToFirst())
-            assertEquals("§13", row.getString(0))
-            assertEquals("DONE", row.getString(1))
-        }
+        assertEquals(
+            mapOf("homework" to "§13", "homeworkResult" to "DONE"),
+            migrated.row("SELECT homework, homeworkResult FROM classes WHERE id = 3"),
+        )
     }
 
     /** No lessons at all — where a wrong `DEFAULT` hides, having no row to be visible on. */
     @Test
     fun anEmptyDatabaseStillValidates() {
-        helper.createDatabase(TEST_DB, 7).close()
+        helper.createDatabase(7).close()
 
-        val migrated = helper.runMigrationsAndValidate(TEST_DB, 8, true, Migrations.MIGRATION_7_8)
+        val migrated = helper.runMigrationsAndValidate(8, listOf(Migrations.MIGRATION_7_8))
 
-        migrated.query("SELECT count(*) FROM classes").use { row ->
-            assertTrue(row.moveToFirst())
-            assertEquals("nothing was invented on the way", 0, row.getInt(0))
-        }
+        assertEquals("nothing was invented on the way", 0L, migrated.long("SELECT count(*) FROM classes"))
     }
 
     private companion object {

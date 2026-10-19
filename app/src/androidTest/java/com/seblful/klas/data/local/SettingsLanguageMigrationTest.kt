@@ -1,10 +1,8 @@
 package com.seblful.klas.data.local
 
-import androidx.room.testing.MigrationTestHelper
+import androidx.sqlite.execSQL
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -30,17 +28,14 @@ import org.junit.runner.RunWith
 class SettingsLanguageMigrationTest {
 
     @get:Rule
-    val helper = MigrationTestHelper(
-        InstrumentationRegistry.getInstrumentation(),
-        AppDatabase::class.java,
-    )
+    val helper = migrationTestHelper(TEST_DB)
 
     @Test
     fun aSettingsRowSurvivesTheUpgradeAndFollowsThePhone() {
         // A v5 row with settings a tutor would recognise as theirs: reminders an hour ahead, sync on, the
         // dark theme, rubles. Written as SQL because the v5 entity no longer exists to write it with — which
         // is the whole shape of a migration test.
-        helper.createDatabase(TEST_DB, 5).use { db ->
+        helper.createDatabase(5).use { db ->
             db.execSQL(
                 """
                 INSERT INTO settings (
@@ -55,27 +50,28 @@ class SettingsLanguageMigrationTest {
             )
         }
 
-        val migrated = helper.runMigrationsAndValidate(TEST_DB, 6, true, Migrations.MIGRATION_5_6)
+        val migrated = helper.runMigrationsAndValidate(6, listOf(Migrations.MIGRATION_5_6))
 
-        migrated.query("SELECT * FROM settings WHERE id = 0").use { row ->
-            assertTrue("the row went missing — a migration must not recreate the table", row.moveToFirst())
-            assertEquals(
-                "«follow the phone» is the honest backfill: the tutor never chose Russian, the app was " +
-                    "only ever written in it",
-                "SYSTEM",
-                row.getString(row.getColumnIndexOrThrow("language")),
-            )
-            // The columns beside it, which is what says the row was altered rather than replaced.
-            assertEquals("RUB", row.getString(row.getColumnIndexOrThrow("currency")))
-            assertEquals("DARK", row.getString(row.getColumnIndexOrThrow("themeMode")))
-            assertEquals(60, row.getInt(row.getColumnIndexOrThrow("reminderLeadMinutes")))
-            assertEquals(90, row.getInt(row.getColumnIndexOrThrow("defaultLessonMinutes")))
-            assertEquals(3000, row.getLong(row.getColumnIndexOrThrow("defaultGroupPriceMinor")))
-            assertEquals(1, row.getInt(row.getColumnIndexOrThrow("calendarSyncEnabled")))
-            assertEquals(1, row.getInt(row.getColumnIndexOrThrow("autoCompleteEnabled")))
-            assertEquals(480, row.getInt(row.getColumnIndexOrThrow("agendaMinuteOfDay")))
-            assertEquals(1750000000000L, row.getLong(row.getColumnIndexOrThrow("lastExportMillis")))
-        }
+        val row = migrated.row(
+            "SELECT * FROM settings WHERE id = 0",
+            missing = "the row went missing — a migration must not recreate the table",
+        )
+        assertEquals(
+            "«follow the phone» is the honest backfill: the tutor never chose Russian, the app was " +
+                "only ever written in it",
+            "SYSTEM",
+            row["language"],
+        )
+        // The columns beside it, which is what says the row was altered rather than replaced.
+        assertEquals("RUB", row["currency"])
+        assertEquals("DARK", row["themeMode"])
+        assertEquals(60L, row["reminderLeadMinutes"])
+        assertEquals(90L, row["defaultLessonMinutes"])
+        assertEquals(3000L, row["defaultGroupPriceMinor"])
+        assertEquals(1L, row["calendarSyncEnabled"])
+        assertEquals(1L, row["autoCompleteEnabled"])
+        assertEquals(480L, row["agendaMinuteOfDay"])
+        assertEquals(1750000000000L, row["lastExportMillis"])
     }
 
     /**
@@ -87,14 +83,11 @@ class SettingsLanguageMigrationTest {
      */
     @Test
     fun anEmptySettingsTableStillValidates() {
-        helper.createDatabase(TEST_DB, 5).close()
+        helper.createDatabase(5).close()
 
-        val migrated = helper.runMigrationsAndValidate(TEST_DB, 6, true, Migrations.MIGRATION_5_6)
+        val migrated = helper.runMigrationsAndValidate(6, listOf(Migrations.MIGRATION_5_6))
 
-        migrated.query("SELECT count(*) FROM settings").use { row ->
-            assertTrue(row.moveToFirst())
-            assertEquals("nothing was invented on the way", 0, row.getInt(0))
-        }
+        assertEquals("nothing was invented on the way", 0L, migrated.long("SELECT count(*) FROM settings"))
     }
 
     private companion object {

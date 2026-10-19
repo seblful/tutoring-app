@@ -25,7 +25,7 @@ activityCompose = "1.13.0"
 composeBom = "2026.06.01"
 navigationCompose = "2.9.8"
 room = "2.8.4"
-# The androidx.sqlite Room 2.8.4 is built against — read only by the JVM tests' bundled driver below.
+# The androidx.sqlite Room 2.8.4 is built against: the bundled driver the app opens its database with.
 sqlite = "2.6.2"
 hilt = "2.60.1"
 hiltExt = "1.4.0"
@@ -92,9 +92,13 @@ androidx-room-runtime = { group = "androidx.room", name = "room-runtime", versio
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
-# SQLite compiled into a JNI library, so a JVM test runs one known SQLite rather than whichever the
-# host or Robolectric carries. The `-jvm` artifact by name: the plain one resolves to the Android variant
-# in an Android module, whose natives are built for phones and do not load on the build machine.
+# SQLite compiled into a JNI library, so the app runs one known SQLite rather than whichever the phone
+# carries — the same one Room uses on iOS.
+androidx-sqlite-bundled = { group = "androidx.sqlite", name = "sqlite-bundled", version.ref = "sqlite" }
+# The same SQLite for a JVM test, rather than whichever the host or Robolectric carries. The `-jvm`
+# artifact by name: the plain one resolves to the Android variant in an Android module, whose natives
+# are built for phones and do not load on the build machine (`app/build.gradle.kts` keeps it off the
+# unit tests' classpath for that reason).
 androidx-sqlite-bundled-jvm = { group = "androidx.sqlite", name = "sqlite-bundled-jvm", version.ref = "sqlite" }
 androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }
 

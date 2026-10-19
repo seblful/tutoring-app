@@ -1,10 +1,8 @@
 package com.seblful.klas.data.local
 
-import androidx.room.testing.MigrationTestHelper
+import androidx.sqlite.execSQL
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,10 +25,7 @@ import org.junit.runner.RunWith
 class LessonNotesMigrationTest {
 
     @get:Rule
-    val helper = MigrationTestHelper(
-        InstrumentationRegistry.getInstrumentation(),
-        AppDatabase::class.java,
-    )
+    val helper = migrationTestHelper(TEST_DB)
 
     /**
      * A v6 lesson with a student in it, migrated — and still readable **through the view**, which is what
@@ -38,7 +33,7 @@ class LessonNotesMigrationTest {
      */
     @Test
     fun aLessonKeepsItsHourAndGainsAnEmptyNote() {
-        helper.createDatabase(TEST_DB, 6).use { db ->
+        helper.createDatabase(6).use { db ->
             db.execSQL("INSERT INTO subjects (id, name) VALUES (1, 'Алгебра')")
             db.execSQL(
                 "INSERT INTO students (id, name, phone, email, note, defaultMode, archived) " +
@@ -54,30 +49,32 @@ class LessonNotesMigrationTest {
             )
         }
 
-        val migrated = helper.runMigrationsAndValidate(TEST_DB, 7, true, Migrations.MIGRATION_6_7)
+        val migrated = helper.runMigrationsAndValidate(7, listOf(Migrations.MIGRATION_6_7))
 
-        migrated.query("SELECT * FROM lessons WHERE id = 7").use { row ->
-            assertTrue("the lesson went missing — a migration must not recreate the table", row.moveToFirst())
-            assertEquals(
-                "a lesson taught before the app could hold a note has none, rather than invented text",
-                "",
-                row.getString(row.getColumnIndexOrThrow("notes")),
-            )
-            // The columns beside it, which is what says the row was altered rather than replaced.
-            assertEquals(1750000000000L, row.getLong(row.getColumnIndexOrThrow("startMillis")))
-            assertEquals(90, row.getInt(row.getColumnIndexOrThrow("durationMinutes")))
-            assertEquals("COMPLETED", row.getString(row.getColumnIndexOrThrow("status")))
-            assertEquals("REMOTE", row.getString(row.getColumnIndexOrThrow("mode")))
-        }
+        val lesson = migrated.row(
+            "SELECT * FROM lessons WHERE id = 7",
+            missing = "the lesson went missing — a migration must not recreate the table",
+        )
+        assertEquals(
+            "a lesson taught before the app could hold a note has none, rather than invented text",
+            "",
+            lesson["notes"],
+        )
+        // The columns beside it, which is what says the row was altered rather than replaced.
+        assertEquals(1750000000000L, lesson["startMillis"])
+        assertEquals(90L, lesson["durationMinutes"])
+        assertEquals("COMPLETED", lesson["status"])
+        assertEquals("REMOTE", lesson["mode"])
 
         // The `classes` view is what every read above storage goes through, and it now projects
         // `lessons.notes`. Room recreates its views after the migrations; this is that actually happening.
-        migrated.query("SELECT notes, chargeMinor, status FROM classes WHERE lessonId = 7").use { row ->
-            assertTrue("the view came back without the lesson in it", row.moveToFirst())
-            assertEquals("", row.getString(0))
-            assertEquals("the student's half of the join is untouched", 4500L, row.getLong(1))
-            assertEquals("the lesson's half too", "COMPLETED", row.getString(2))
-        }
+        val viewed = migrated.row(
+            "SELECT notes, chargeMinor, status FROM classes WHERE lessonId = 7",
+            missing = "the view came back without the lesson in it",
+        )
+        assertEquals("", viewed["notes"])
+        assertEquals("the student's half of the join is untouched", 4500L, viewed["chargeMinor"])
+        assertEquals("the lesson's half too", "COMPLETED", viewed["status"])
     }
 
     /**
@@ -89,7 +86,7 @@ class LessonNotesMigrationTest {
      */
     @Test
     fun theSettingsRowGainsTheEveningDigestSwitchedOff() {
-        helper.createDatabase(TEST_DB, 6).use { db ->
+        helper.createDatabase(6).use { db ->
             db.execSQL(
                 """
                 INSERT INTO settings (
@@ -106,28 +103,22 @@ class LessonNotesMigrationTest {
             )
         }
 
-        val migrated = helper.runMigrationsAndValidate(TEST_DB, 7, true, Migrations.MIGRATION_6_7)
+        val migrated = helper.runMigrationsAndValidate(7, listOf(Migrations.MIGRATION_6_7))
 
-        migrated.query("SELECT * FROM settings WHERE id = 0").use { row ->
-            assertTrue(row.moveToFirst())
-            assertEquals(
-                "a notification nobody asked for does not arrive because the app was updated",
-                0,
-                row.getInt(row.getColumnIndexOrThrow("unfinishedDigestEnabled")),
-            )
-            assertEquals(
-                "21:00 as minutes past local midnight",
-                1260,
-                row.getInt(row.getColumnIndexOrThrow("unfinishedMinuteOfDay")),
-            )
-            // The answers the tutor did give, still theirs.
-            assertEquals("ENGLISH", row.getString(row.getColumnIndexOrThrow("language")))
-            assertEquals("RUB", row.getString(row.getColumnIndexOrThrow("currency")))
-            assertEquals("DARK", row.getString(row.getColumnIndexOrThrow("themeMode")))
-            assertEquals(480, row.getInt(row.getColumnIndexOrThrow("agendaMinuteOfDay")))
-            assertEquals(3, row.getInt(row.getColumnIndexOrThrow("debtDayOfWeek")))
-            assertEquals(600, row.getInt(row.getColumnIndexOrThrow("debtMinuteOfDay")))
-        }
+        val row = migrated.row("SELECT * FROM settings WHERE id = 0")
+        assertEquals(
+            "a notification nobody asked for does not arrive because the app was updated",
+            0L,
+            row["unfinishedDigestEnabled"],
+        )
+        assertEquals("21:00 as minutes past local midnight", 1260L, row["unfinishedMinuteOfDay"])
+        // The answers the tutor did give, still theirs.
+        assertEquals("ENGLISH", row["language"])
+        assertEquals("RUB", row["currency"])
+        assertEquals("DARK", row["themeMode"])
+        assertEquals(480L, row["agendaMinuteOfDay"])
+        assertEquals(3L, row["debtDayOfWeek"])
+        assertEquals(600L, row["debtMinuteOfDay"])
     }
 
     /**
@@ -138,14 +129,11 @@ class LessonNotesMigrationTest {
      */
     @Test
     fun anEmptyDatabaseStillValidates() {
-        helper.createDatabase(TEST_DB, 6).close()
+        helper.createDatabase(6).close()
 
-        val migrated = helper.runMigrationsAndValidate(TEST_DB, 7, true, Migrations.MIGRATION_6_7)
+        val migrated = helper.runMigrationsAndValidate(7, listOf(Migrations.MIGRATION_6_7))
 
-        migrated.query("SELECT count(*) FROM lessons").use { row ->
-            assertTrue(row.moveToFirst())
-            assertEquals("nothing was invented on the way", 0, row.getInt(0))
-        }
+        assertEquals("nothing was invented on the way", 0L, migrated.long("SELECT count(*) FROM lessons"))
     }
 
     private companion object {

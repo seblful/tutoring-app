@@ -1,11 +1,9 @@
 package com.seblful.klas.data.local
 
-import androidx.room.testing.MigrationTestHelper
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.execSQL
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,10 +20,7 @@ import org.junit.runner.RunWith
 class HomeworkTableMigrationTest {
 
     @get:Rule
-    val helper = MigrationTestHelper(
-        InstrumentationRegistry.getInstrumentation(),
-        AppDatabase::class.java,
-    )
+    val helper = migrationTestHelper(TEST_DB)
 
     /** One row of `homework`, as the assertions read it back. */
     private data class Row(
@@ -41,7 +36,7 @@ class HomeworkTableMigrationTest {
      * (everybody checked, and one member not), and Борис's lesson that was called off with homework on it
      * — plus the note on her first lesson.
      */
-    private fun SupportSQLiteDatabase.seedV8() {
+    private fun SQLiteConnection.seedV8() {
         execSQL("INSERT INTO subjects (id, name) VALUES (1, 'Алгебра')")
         execSQL(
             "INSERT INTO students (id, name, phone, email, note, defaultMode, archived) VALUES " +
@@ -76,31 +71,22 @@ class HomeworkTableMigrationTest {
         )
     }
 
-    private fun migrated(): SupportSQLiteDatabase {
-        helper.createDatabase(TEST_DB, 8).use { it.seedV8() }
-        return helper.runMigrationsAndValidate(TEST_DB, 9, true, Migrations.MIGRATION_8_9)
+    private fun migrated(): SQLiteConnection {
+        helper.createDatabase(8).use { it.seedV8() }
+        return helper.runMigrationsAndValidate(9, listOf(Migrations.MIGRATION_8_9))
     }
 
-    private fun SupportSQLiteDatabase.homework(): List<Row> =
-        query("SELECT studentId, groupId, text, givenAtMillis, doneAtMillis FROM homework ORDER BY givenAtMillis")
-            .use { c ->
-                buildList {
-                    while (c.moveToNext()) {
-                        add(
-                            Row(
-                                studentId = if (c.isNull(0)) null else c.getLong(0),
-                                groupId = if (c.isNull(1)) null else c.getLong(1),
-                                text = c.getString(2),
-                                givenAtMillis = c.getLong(3),
-                                doneAtMillis = if (c.isNull(4)) null else c.getLong(4),
-                            ),
-                        )
-                    }
-                }
+    private fun SQLiteConnection.homework(): List<Row> =
+        rows("SELECT studentId, groupId, text, givenAtMillis, doneAtMillis FROM homework ORDER BY givenAtMillis")
+            .map {
+                Row(
+                    studentId = it["studentId"] as Long?,
+                    groupId = it["groupId"] as Long?,
+                    text = it["text"] as String,
+                    givenAtMillis = it["givenAtMillis"] as Long,
+                    doneAtMillis = it["doneAtMillis"] as Long?,
+                )
             }
-
-    private fun SupportSQLiteDatabase.count(sql: String): Int =
-        query(sql).use { c -> c.moveToFirst(); c.getInt(0) }
 
     /**
      * One row per lesson that set homework: a student's for their own lesson, the group's for its lesson,
@@ -127,8 +113,8 @@ class HomeworkTableMigrationTest {
     fun theNoteAndTheOldHomeworkColumnsAreEmptied() {
         val db = migrated()
 
-        assertEquals(0, db.count("SELECT count(*) FROM lessons WHERE notes != '' OR homework != ''"))
-        assertEquals(0, db.count("SELECT count(*) FROM attendance WHERE homeworkResult IS NOT NULL"))
+        assertEquals(0L, db.long("SELECT count(*) FROM lessons WHERE notes != '' OR homework != ''"))
+        assertEquals(0L, db.long("SELECT count(*) FROM attendance WHERE homeworkResult IS NOT NULL"))
     }
 
     /** No lesson or class went anywhere, and the view — rebuilt without the three columns — reads them all. */
@@ -136,13 +122,11 @@ class HomeworkTableMigrationTest {
     fun theViewStillReadsEveryClass() {
         val db = migrated()
 
-        assertEquals(6, db.count("SELECT count(*) FROM lessons"))
-        assertEquals(8, db.count("SELECT count(*) FROM classes"))
-        db.query("SELECT chargeMinor, calendarEventId FROM classes WHERE id = 400").use { row ->
-            assertTrue(row.moveToFirst())
-            assertEquals("the student's half of the join is untouched", 0L, row.getLong(0))
-            assertEquals("evt-9", row.getString(1))
-        }
+        assertEquals(6L, db.long("SELECT count(*) FROM lessons"))
+        assertEquals(8L, db.long("SELECT count(*) FROM classes"))
+        val viewed = db.row("SELECT chargeMinor, calendarEventId FROM classes WHERE id = 400")
+        assertEquals("the student's half of the join is untouched", 0L, viewed["chargeMinor"])
+        assertEquals("evt-9", viewed["calendarEventId"])
     }
 
     /** New homework after the upgrade goes into the table Room declared, owners and all. */
@@ -161,7 +145,7 @@ class HomeworkTableMigrationTest {
      */
     @Test
     fun aReleasedV7DatabaseUpgradesThroughBothSteps() {
-        helper.createDatabase(TEST_DB, 7).use { db ->
+        helper.createDatabase(7).use { db ->
             db.execSQL("INSERT INTO subjects (id, name) VALUES (1, 'Алгебра')")
             db.execSQL(
                 "INSERT INTO students (id, name, phone, email, note, defaultMode, archived) " +
@@ -177,21 +161,21 @@ class HomeworkTableMigrationTest {
             )
         }
 
-        val db = helper.runMigrationsAndValidate(TEST_DB, 9, true, Migrations.MIGRATION_7_8, Migrations.MIGRATION_8_9)
+        val db = helper.runMigrationsAndValidate(9, listOf(Migrations.MIGRATION_7_8, Migrations.MIGRATION_8_9))
 
-        assertEquals(0, db.count("SELECT count(*) FROM homework"))
-        assertEquals(0, db.count("SELECT count(*) FROM lessons WHERE notes != ''"))
-        assertEquals(1, db.count("SELECT count(*) FROM classes"))
+        assertEquals(0L, db.long("SELECT count(*) FROM homework"))
+        assertEquals(0L, db.long("SELECT count(*) FROM lessons WHERE notes != ''"))
+        assertEquals(1L, db.long("SELECT count(*) FROM classes"))
     }
 
     /** No lessons at all — where a wrong `CREATE TABLE` hides, having no row to be visible on. */
     @Test
     fun anEmptyDatabaseStillValidates() {
-        helper.createDatabase(TEST_DB, 8).close()
+        helper.createDatabase(8).close()
 
-        val db = helper.runMigrationsAndValidate(TEST_DB, 9, true, Migrations.MIGRATION_8_9)
+        val db = helper.runMigrationsAndValidate(9, listOf(Migrations.MIGRATION_8_9))
 
-        assertEquals(0, db.count("SELECT count(*) FROM homework"))
+        assertEquals(0L, db.long("SELECT count(*) FROM homework"))
     }
 
     private companion object {

@@ -2,6 +2,7 @@ package com.seblful.klas.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.AttendanceDao
 import com.seblful.klas.data.local.ClassDao
@@ -23,6 +24,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Singleton
 
 @Module
@@ -47,6 +49,12 @@ object DatabaseModule {
      * A release build therefore **refuses to open** a database it cannot migrate. That throws where
      * every row is still on disk and the next build can still migrate it properly — a crash is
      * recoverable, a wipe is not.
+     *
+     * **SQLite is the bundled driver's**, compiled into the app, not the one Android ships. It is the one
+     * SQLite Room can use on iOS as well, so the database code an iOS build would share runs on the same
+     * engine here, whatever the phone's Android version carries; the JVM tests run it too
+     * (`testutil/TestDatabase`). The cost is the native library in the APK. With a driver set, Room runs
+     * the `SQLiteConnection` overload of each migration (see `Migrations.kt`) and queries on [Dispatchers.IO].
      */
     @Provides
     @Singleton
@@ -55,6 +63,8 @@ object DatabaseModule {
         @DebugBuild debugBuild: Boolean,
     ): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.NAME)
+            .setDriver(BundledSQLiteDriver())
+            .setQueryCoroutineContext(Dispatchers.IO)
             .addMigrations(*Migrations.ALL)
             .apply { if (debugBuild) fallbackToDestructiveMigration(dropAllTables = true) }
             .build()

@@ -2,6 +2,7 @@ package com.seblful.klas.data.backup
 
 import android.content.Context
 import androidx.room.Room
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seblful.klas.calendar.CalendarSync
@@ -67,7 +68,9 @@ class BackupRestoreTest {
 
     private fun newDb(): AppDatabase = Room.inMemoryDatabaseBuilder(
         ApplicationProvider.getApplicationContext<Context>(), AppDatabase::class.java,
-    ).build()
+    )
+        .setDriver(BundledSQLiteDriver())
+        .build()
 
     // The real RoomTransactor, not a fake: these tests run against real Room, so the import's
     // all-or-nothing transaction is one of the things being exercised.

@@ -109,8 +109,7 @@ Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`:
    publishing on, the [Play release notes](#play-release-notes) are filled in, fit, and are new.
 2. **`verify`** — the whole of `ci.yml` on the tagged commit.
 3. **`device-tests`** — `device-tests.yml`, alongside `verify`: the instrumented suite on an API 35
-   emulator, and the data-layer tests (migrations, backup, repositories) on an API 24 one, minSdk's old
-   SQLite. It can also be run by hand on any branch from the Actions tab.
+   emulator, and the data-layer tests (migrations, backup, repositories) on an API 24 one, minSdk. It can also be run by hand on any branch from the Actions tab.
 4. **`build`** — restores the upload key, builds the signed APK and AAB, checks both are signed
    (the log prints the APK's certificate), and attaches them to a GitHub release with generated notes.
    Rewrite the notes afterwards with `gh release edit vX.Y.Z --notes-file …`.

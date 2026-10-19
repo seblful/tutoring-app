@@ -1,9 +1,9 @@
 package com.seblful.klas.data.local
 
-import android.database.Cursor
 import androidx.room.Room
-import androidx.room.testing.MigrationTestHelper
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import androidx.sqlite.execSQL
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.seblful.klas.domain.model.AppLanguage
@@ -14,7 +14,6 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.ThemeChoice
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,10 +37,7 @@ import org.junit.runner.RunWith
 class SchemaCleanupMigrationTest {
 
     @get:Rule
-    val helper = MigrationTestHelper(
-        InstrumentationRegistry.getInstrumentation(),
-        AppDatabase::class.java,
-    )
+    val helper = migrationTestHelper(TEST_DB)
 
     /**
      * Аня (two subjects, a lesson taught, one missed but billed) and Борис (one called off, one coming
@@ -49,7 +45,7 @@ class SchemaCleanupMigrationTest {
      * Вера, archived, with a lesson from before. A lesson and a class that were booked and deleted, so
      * the autoincrement high-water marks sit above every id still there.
      */
-    private fun SupportSQLiteDatabase.seedV9() {
+    private fun SQLiteConnection.seedV9() {
         execSQL("INSERT INTO subjects (id, name) VALUES (1, 'Алгебра'), (2, 'Физика')")
         execSQL(
             "INSERT INTO students (id, name, phone, email, note, defaultMode, archived) VALUES " +
@@ -129,39 +125,17 @@ class SchemaCleanupMigrationTest {
     // ---- reading a database back whole ------------------------------------------------------------
 
     /** Every table the app owns — not SQLite's, Android's or Room's bookkeeping — by name. */
-    private fun SupportSQLiteDatabase.tables(): Set<String> =
-        query("SELECT name FROM sqlite_master WHERE type = 'table'").use { c ->
-            buildSet { while (c.moveToNext()) add(c.getString(0)) }
-        } - setOf("android_metadata", "sqlite_sequence", "room_master_table")
+    private fun SQLiteConnection.tables(): Set<String> =
+        rows("SELECT name FROM sqlite_master WHERE type = 'table'").mapTo(HashSet()) { it.getValue("name") as String } -
+            setOf("android_metadata", "sqlite_sequence", "room_master_table")
 
-    /** Every row of [table], each as column → value, in a stable order. */
-    private fun SupportSQLiteDatabase.rows(table: String): List<Map<String, Any?>> =
-        query("SELECT * FROM `$table`").use { c ->
-            buildList {
-                while (c.moveToNext()) add((0 until c.columnCount).associate { c.getColumnName(it) to c.value(it) })
-            }
-        }.sortedBy { it.toString() }
-
-    private fun Cursor.value(i: Int): Any? = when (getType(i)) {
-        Cursor.FIELD_TYPE_NULL -> null
-        Cursor.FIELD_TYPE_INTEGER -> getLong(i)
-        Cursor.FIELD_TYPE_FLOAT -> getDouble(i)
-        Cursor.FIELD_TYPE_BLOB -> getBlob(i).toList()
-        else -> getString(i)
-    }
-
-    /** The whole database: every table, every row, every value. */
-    private fun SupportSQLiteDatabase.everything(): Map<String, List<Map<String, Any?>>> =
-        tables().associateWith { rows(it) }
+    /** The whole database: every table, every row, every value, the rows in a stable order. */
+    private fun SQLiteConnection.everything(): Map<String, List<Map<String, Any?>>> =
+        tables().associateWith { table -> rows("SELECT * FROM `$table`").sortedBy { it.toString() } }
 
     /** What `PRAGMA foreign_key_check` finds: a row per reference to nothing. Empty is the only right answer. */
-    private fun SupportSQLiteDatabase.orphans(): List<String> =
-        query("PRAGMA foreign_key_check").use { c ->
-            buildList { while (c.moveToNext()) add("${c.getString(0)} row ${c.getLong(1)} -> ${c.getString(2)}") }
-        }
-
-    private fun SupportSQLiteDatabase.long(sql: String): Long =
-        query(sql).use { c -> assertTrue("no row for: $sql", c.moveToFirst()); c.getLong(0) }
+    private fun SQLiteConnection.orphans(): List<String> =
+        rows("PRAGMA foreign_key_check").map { "${it["table"]} row ${it["rowid"]} -> ${it["parent"]}" }
 
     /** The v9 database [everything] describes, less exactly the four columns v10 drops. */
     private fun Map<String, List<Map<String, Any?>>>.withoutDroppedColumns() = mapValues { (table, rows) ->
@@ -172,18 +146,18 @@ class SchemaCleanupMigrationTest {
 
     /**
      * **Nothing is lost**: every table, every row, every value is what it was, less the four dead columns —
-     * and the schema is v10's exactly (`runMigrationsAndValidate`, which also fails on a table left over,
-     * so the `_v9` copies are gone).
+     * and the schema is v10's exactly (`runMigrationsAndValidate`). The `_v9` copies are gone too: the
+     * comparison is of every table, so one left over is a table [before] did not have.
      */
     @Test
     fun everyRowAndValueSurvivesTheUpgrade() {
-        val before = helper.createDatabase(TEST_DB, 9).use { db ->
+        val before = helper.createDatabase(9).use { db ->
             db.seedV9()
             assertEquals("the seed itself is consistent", emptyList<String>(), db.orphans())
             db.everything()
         }
 
-        val migrated = helper.runMigrationsAndValidate(TEST_DB, 10, true, Migrations.MIGRATION_9_10)
+        val migrated = helper.runMigrationsAndValidate(10, listOf(Migrations.MIGRATION_9_10))
 
         assertEquals(before.withoutDroppedColumns(), migrated.everything())
         // Not vacuous: the database held what the seed put there.
@@ -195,12 +169,12 @@ class SchemaCleanupMigrationTest {
     /** The dropped columns are gone from the tables themselves, and so is the view. */
     @Test
     fun theDeadColumnsAndTheViewAreGone() {
-        helper.createDatabase(TEST_DB, 9).use { it.seedV9() }
+        helper.createDatabase(9).use { it.seedV9() }
 
-        val migrated = helper.runMigrationsAndValidate(TEST_DB, 10, true, Migrations.MIGRATION_9_10)
+        val migrated = helper.runMigrationsAndValidate(10, listOf(Migrations.MIGRATION_9_10))
 
         for ((table, dropped) in DROPPED) {
-            val columns = migrated.query("SELECT * FROM `$table` LIMIT 0").use { it.columnNames.toSet() }
+            val columns = migrated.prepare("SELECT * FROM `$table` LIMIT 0").use { it.getColumnNames().toSet() }
             assertEquals("`$table` still has ${columns intersect dropped}", emptySet<String>(), columns intersect dropped)
         }
         assertEquals(0L, migrated.long("SELECT count(*) FROM sqlite_master WHERE type = 'view'"))
@@ -209,9 +183,9 @@ class SchemaCleanupMigrationTest {
     /** The upgrade leaves no row pointing at nothing — `attendance` at `lessons` above all. */
     @Test
     fun noRowPointsAtNothingAfterTheUpgrade() {
-        helper.createDatabase(TEST_DB, 9).use { it.seedV9() }
+        helper.createDatabase(9).use { it.seedV9() }
 
-        val migrated = helper.runMigrationsAndValidate(TEST_DB, 10, true, Migrations.MIGRATION_9_10)
+        val migrated = helper.runMigrationsAndValidate(10, listOf(Migrations.MIGRATION_9_10))
 
         assertEquals(emptyList<String>(), migrated.orphans())
     }
@@ -225,19 +199,15 @@ class SchemaCleanupMigrationTest {
      */
     @Test
     fun withForeignKeysOnNothingCascades() {
-        helper.createDatabase(TEST_DB, 9).use { db ->
+        helper.createDatabase(9).use { db ->
             db.seedV9()
             val before = db.everything()
             db.execSQL("PRAGMA foreign_keys = ON")
             assertEquals("foreign keys are really on", 1L, db.long("PRAGMA foreign_keys"))
 
-            db.beginTransaction()
-            try {
-                Migrations.MIGRATION_9_10.migrate(db)
-                db.setTransactionSuccessful()
-            } finally {
-                db.endTransaction()
-            }
+            db.execSQL("BEGIN IMMEDIATE TRANSACTION")
+            Migrations.MIGRATION_9_10.migrate(db)
+            db.execSQL("COMMIT")
 
             assertEquals(before.withoutDroppedColumns(), db.everything())
             assertEquals(emptyList<String>(), db.orphans())
@@ -250,9 +220,9 @@ class SchemaCleanupMigrationTest {
      */
     @Test
     fun aDeletedIdIsNotReused() {
-        helper.createDatabase(TEST_DB, 9).use { it.seedV9() }
+        helper.createDatabase(9).use { it.seedV9() }
 
-        val migrated = helper.runMigrationsAndValidate(TEST_DB, 10, true, Migrations.MIGRATION_9_10)
+        val migrated = helper.runMigrationsAndValidate(10, listOf(Migrations.MIGRATION_9_10))
         migrated.execSQL(
             "INSERT INTO lessons (subjectId, startMillis, durationMinutes, status, groupId, mode) " +
                 "VALUES (1, 1770000000000, 60, 'SCHEDULED', NULL, 'IN_PERSON')",
@@ -269,9 +239,9 @@ class SchemaCleanupMigrationTest {
     /** No lessons, no settings row — the install that never got going. */
     @Test
     fun anEmptyDatabaseStillValidates() {
-        helper.createDatabase(TEST_DB, 9).close()
+        helper.createDatabase(9).close()
 
-        val migrated = helper.runMigrationsAndValidate(TEST_DB, 10, true, Migrations.MIGRATION_9_10)
+        val migrated = helper.runMigrationsAndValidate(10, listOf(Migrations.MIGRATION_9_10))
 
         assertEquals(0L, migrated.long("SELECT count(*) FROM lessons"))
         assertEquals(0L, migrated.long("SELECT count(*) FROM settings"))
@@ -284,9 +254,10 @@ class SchemaCleanupMigrationTest {
      */
     @Test
     fun roomOpensTheUpgradedDatabaseAndReadsItThroughTheDaos() = runTest {
-        helper.createDatabase(TEST_DB, 9).use { it.seedV9() }
+        helper.createDatabase(9).use { it.seedV9() }
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val db = Room.databaseBuilder(context, AppDatabase::class.java, TEST_DB)
+            .setDriver(BundledSQLiteDriver())
             .addMigrations(*Migrations.ALL)
             .build()
         try {

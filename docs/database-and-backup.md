@@ -20,6 +20,12 @@ schema change, see the checklist in [releasing.md](releasing.md#per-release-chec
 
 ## Schema and migrations
 
+- SQLite is the bundled driver's (`BundledSQLiteDriver`, SQLite 3.50 with androidx.sqlite 2.6.2), compiled
+  into the app rather than Android's: one engine on every API level, in the JVM tests, and on iOS when the
+  data layer moves there. With a driver set, Room calls only `migrate(SQLiteConnection)`, so every step
+  overrides that one, and transactions go through `useWriterConnection` (`RoomTransactor`), never
+  `withTransaction`. It has no ICU and no `LOCALIZED` collation, so text is ordered and matched in Kotlin,
+  not SQL (see `Daos.kt`).
 - `Migrations.kt` holds exactly the steps since the baseline (`AppDatabase.BASELINE_VERSION`): v5 → v10
   today. Every schema change past baseline bumps the version and ships a migration
   (`MigrationChainTest` enforces wiring; each migration also gets a device test against the exported schema).
@@ -27,8 +33,9 @@ schema change, see the checklist in [releasing.md](releasing.md#per-release-chec
   `CLASS_ROWS` constant, so a migration never has a view to rebuild. Don't add one back — Room validates
   views after a migration but never recreates them. The steps up to v9 still rebuild their own version's
   `classes` view from a frozen `SELECT`, and `MigrationChainTest` checks each against that version's schema.
-- A column is dropped by rebuilding its table, since there is no `DROP COLUMN` below API 31.
-  `MIGRATION_9_10` is the pattern: rename the old table aside, create the new one with Room's DDL from the
+- A column is dropped by rebuilding its table. The bundled SQLite has `DROP COLUMN` on every API level, but
+  it refuses an indexed, foreign-key or primary-key column, and v10 was written for Android's own SQLite,
+  which has none below API 31. `MIGRATION_9_10` is the pattern: rename the old table aside, create the new one with Room's DDL from the
   exported schema, copy every row by column name (ids included) and carry its `sqlite_sequence` row over,
   drop the old tables child before parent, then recreate the indices and run `PRAGMA foreign_key_check`.
   `PRAGMA foreign_keys = OFF` does nothing inside Room's migration transaction, and with keys on, dropping

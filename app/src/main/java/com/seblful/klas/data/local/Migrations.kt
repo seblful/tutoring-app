@@ -1,7 +1,8 @@
 package com.seblful.klas.data.local
 
 import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.execSQL
 
 /**
  * Every way **into** the current schema from a version some phone is still at.
@@ -22,14 +23,18 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *   update, which is the worst place to find out.
  * - The instrumented tests (`androidTest`) are what prove a step *works*, against the exported schema JSONs
  *   in `app/schemas/`. Those need a device; the unit test only proves the step is *there*.
- * - **A column is removed by rebuilding its table**, since `minSdk` is 24 and `ALTER TABLE … DROP COLUMN`
- *   does not exist below Android 12. [MIGRATION_9_10] is how: set the old table aside, create the new one
+ * - **A column is removed by rebuilding its table.** The bundled SQLite has `ALTER TABLE … DROP COLUMN`, but
+ *   it refuses an indexed, foreign-key or primary-key column, and v10 was written for Android's own SQLite,
+ *   which has none below Android 12. [MIGRATION_9_10] is how: set the old table aside, create the new one
  *   with Room's own DDL, copy every row by name, drop the old, recreate the indices, check the foreign keys.
  *   `MigrationChainTest` holds every table a step rebuilds to the exported schema of the version it ends at.
  * - **The schema has no views since v10**, and should not grow one: Room validates a view after a migration
  *   but never recreates it, so every step touching a column it projected had to rebuild it by hand, with
  *   that version's `SELECT` frozen here — [MIGRATION_6_7] is where that was learned, twice. The steps up to
  *   v9 still do it, and `MigrationChainTest` still holds the view each leaves to its version's schema.
+ * - **A step overrides `migrate(SQLiteConnection)`**, never `migrate(SupportSQLiteDatabase)`. The database
+ *   is opened through the bundled SQLite driver (`di/DatabaseModule`), and with a driver set Room calls only
+ *   the connection overload; one written against the other throws on the phone it was meant to upgrade.
  */
 object Migrations {
 
@@ -42,8 +47,8 @@ object Migrations {
      * their behalf would outlive them changing their phone.
      */
     val MIGRATION_5_6 = object : Migration(5, 6) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("ALTER TABLE settings ADD COLUMN language TEXT NOT NULL DEFAULT 'SYSTEM'")
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE settings ADD COLUMN language TEXT NOT NULL DEFAULT 'SYSTEM'")
         }
     }
 
@@ -77,12 +82,12 @@ object Migrations {
      * `LessonNotesMigrationTest` failed on the first phone it ran on.
      */
     val MIGRATION_6_7 = object : Migration(6, 7) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("ALTER TABLE lessons ADD COLUMN notes TEXT NOT NULL DEFAULT ''")
-            db.execSQL("ALTER TABLE settings ADD COLUMN unfinishedDigestEnabled INTEGER NOT NULL DEFAULT 0")
-            db.execSQL("ALTER TABLE settings ADD COLUMN unfinishedMinuteOfDay INTEGER NOT NULL DEFAULT 1260")
-            db.execSQL("DROP VIEW IF EXISTS `classes`")
-            db.execSQL("CREATE VIEW `classes` AS $CLASSES_VIEW_V7")
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE lessons ADD COLUMN notes TEXT NOT NULL DEFAULT ''")
+            connection.execSQL("ALTER TABLE settings ADD COLUMN unfinishedDigestEnabled INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL("ALTER TABLE settings ADD COLUMN unfinishedMinuteOfDay INTEGER NOT NULL DEFAULT 1260")
+            connection.execSQL("DROP VIEW IF EXISTS `classes`")
+            connection.execSQL("CREATE VIEW `classes` AS $CLASSES_VIEW_V7")
         }
     }
 
@@ -109,11 +114,11 @@ object Migrations {
      * view ([CLASSES_VIEW_V8]), frozen when v9 took the columns back out of the shared one.
      */
     val MIGRATION_7_8 = object : Migration(7, 8) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("ALTER TABLE lessons ADD COLUMN homework TEXT NOT NULL DEFAULT ''")
-            db.execSQL("ALTER TABLE attendance ADD COLUMN homeworkResult TEXT")
-            db.execSQL("DROP VIEW IF EXISTS `classes`")
-            db.execSQL("CREATE VIEW `classes` AS $CLASSES_VIEW_V8")
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE lessons ADD COLUMN homework TEXT NOT NULL DEFAULT ''")
+            connection.execSQL("ALTER TABLE attendance ADD COLUMN homeworkResult TEXT")
+            connection.execSQL("DROP VIEW IF EXISTS `classes`")
+            connection.execSQL("CREATE VIEW `classes` AS $CLASSES_VIEW_V8")
         }
     }
 
@@ -147,17 +152,17 @@ object Migrations {
      * - **The view is recreated**, since it stops projecting all three.
      */
     val MIGRATION_8_9 = object : Migration(8, 9) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL(
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL(
                 "CREATE TABLE IF NOT EXISTS `homework` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
                     "`studentId` INTEGER, `groupId` INTEGER, `text` TEXT NOT NULL, " +
                     "`givenAtMillis` INTEGER NOT NULL, `doneAtMillis` INTEGER, " +
                     "FOREIGN KEY(`studentId`) REFERENCES `students`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , " +
                     "FOREIGN KEY(`groupId`) REFERENCES `student_groups`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
             )
-            db.execSQL("CREATE INDEX IF NOT EXISTS `index_homework_studentId` ON `homework` (`studentId`)")
-            db.execSQL("CREATE INDEX IF NOT EXISTS `index_homework_groupId` ON `homework` (`groupId`)")
-            db.execSQL(
+            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_homework_studentId` ON `homework` (`studentId`)")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_homework_groupId` ON `homework` (`groupId`)")
+            connection.execSQL(
                 "INSERT INTO homework (studentId, groupId, text, givenAtMillis, doneAtMillis) " +
                     "SELECT a.studentId, NULL, l.homework, l.startMillis, " +
                     "CASE WHEN a.homeworkResult IS NULL THEN NULL ELSE l.startMillis END " +
@@ -165,7 +170,7 @@ object Migrations {
                     "WHERE l.groupId IS NULL AND l.homework != '' AND l.status != 'CANCELLED' " +
                     "ORDER BY l.startMillis",
             )
-            db.execSQL(
+            connection.execSQL(
                 "INSERT INTO homework (studentId, groupId, text, givenAtMillis, doneAtMillis) " +
                     "SELECT NULL, l.groupId, l.homework, l.startMillis, " +
                     "CASE WHEN EXISTS (SELECT 1 FROM attendance a WHERE a.lessonId = l.id " +
@@ -174,10 +179,10 @@ object Migrations {
                     "WHERE l.groupId IS NOT NULL AND l.homework != '' AND l.status != 'CANCELLED' " +
                     "ORDER BY l.startMillis",
             )
-            db.execSQL("UPDATE lessons SET notes = '', homework = '' WHERE notes != '' OR homework != ''")
-            db.execSQL("UPDATE attendance SET homeworkResult = NULL WHERE homeworkResult IS NOT NULL")
-            db.execSQL("DROP VIEW IF EXISTS `classes`")
-            db.execSQL("CREATE VIEW `classes` AS $CLASSES_VIEW_V9")
+            connection.execSQL("UPDATE lessons SET notes = '', homework = '' WHERE notes != '' OR homework != ''")
+            connection.execSQL("UPDATE attendance SET homeworkResult = NULL WHERE homeworkResult IS NOT NULL")
+            connection.execSQL("DROP VIEW IF EXISTS `classes`")
+            connection.execSQL("CREATE VIEW `classes` AS $CLASSES_VIEW_V9")
         }
     }
 
@@ -228,15 +233,15 @@ object Migrations {
      * `SchemaCleanupMigrationTest` runs it on a device against a populated v9 database.
      */
     val MIGRATION_9_10 = object : Migration(9, 10) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("PRAGMA defer_foreign_keys = ON")
-            db.execSQL("DROP VIEW IF EXISTS `classes`")
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("PRAGMA defer_foreign_keys = ON")
+            connection.execSQL("DROP VIEW IF EXISTS `classes`")
             // Parent before child: `attendance` is refilled into a table pointing at the new `lessons`.
-            V10_REBUILDS.forEach { rebuild(db, it) }
+            V10_REBUILDS.forEach { rebuild(connection, it) }
             // Child before parent: nothing may refer to `lessons_v9` by the time it is dropped.
-            V10_REBUILDS.asReversed().forEach { db.execSQL("DROP TABLE `${it.table}_v9`") }
-            V10_REBUILDS.forEach { table -> table.indices.forEach(db::execSQL) }
-            requireNoOrphans(db, "lessons", "attendance")
+            V10_REBUILDS.asReversed().forEach { connection.execSQL("DROP TABLE `${it.table}_v9`") }
+            V10_REBUILDS.forEach { table -> table.indices.forEach(connection::execSQL) }
+            requireNoOrphans(connection, "lessons", "attendance")
         }
     }
 
@@ -314,14 +319,14 @@ object Migrations {
      * indices for after that: an index keeps its name when its table is renamed, so creating it now would
      * find the name taken (by the old table's) and quietly do nothing.
      */
-    private fun rebuild(db: SupportSQLiteDatabase, table: Rebuilt) {
+    private fun rebuild(connection: SQLiteConnection, table: Rebuilt) {
         val old = "${table.table}_v9"
         val columns = table.columns.joinToString { "`$it`" }
-        db.execSQL("ALTER TABLE `${table.table}` RENAME TO `$old`")
-        db.execSQL(table.createSql)
-        db.execSQL("INSERT INTO `${table.table}` ($columns) SELECT $columns FROM `$old`")
-        db.execSQL("DELETE FROM sqlite_sequence WHERE name = '${table.table}'")
-        db.execSQL("UPDATE sqlite_sequence SET name = '${table.table}' WHERE name = '$old'")
+        connection.execSQL("ALTER TABLE `${table.table}` RENAME TO `$old`")
+        connection.execSQL(table.createSql)
+        connection.execSQL("INSERT INTO `${table.table}` ($columns) SELECT $columns FROM `$old`")
+        connection.execSQL("DELETE FROM sqlite_sequence WHERE name = '${table.table}'")
+        connection.execSQL("UPDATE sqlite_sequence SET name = '${table.table}' WHERE name = '$old'")
     }
 
     /**
@@ -330,11 +335,11 @@ object Migrations {
      * bare constraint error at commit (or, with foreign keys off, not at all). Thrown inside the migration,
      * it rolls the whole upgrade back.
      */
-    private fun requireNoOrphans(db: SupportSQLiteDatabase, vararg tables: String) {
+    private fun requireNoOrphans(connection: SQLiteConnection, vararg tables: String) {
         val orphans = tables.flatMap { table ->
-            db.query("PRAGMA foreign_key_check($table)").use { c ->
+            connection.prepare("PRAGMA foreign_key_check($table)").use { row ->
                 buildList {
-                    while (c.moveToNext()) add("${c.getString(0)} row ${c.getLong(1)} -> missing ${c.getString(2)}")
+                    while (row.step()) add("${row.getText(0)} row ${row.getLong(1)} -> missing ${row.getText(2)}")
                 }
             }
         }
