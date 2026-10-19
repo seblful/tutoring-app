@@ -173,9 +173,9 @@ class SchedulingTest {
     }
 
     /**
-     * The bound is tight, not generous: a lesson's times are wall-clock on one date, so its length is
-     * strictly under 24 hours, so anything still running at the slot's start began strictly after
-     * `start - LONGEST_LESSON`. A whole day is the smallest window that cannot miss one.
+     * The picker returns at most 1 439 minutes, so any such lesson still running when the slot
+     * opens began after `start - LONGEST_LESSON`. This checks that boundary; it does not cover
+     * longer durations accepted by backup validation.
      */
     @Test
     fun `the window covers even the longest lesson a single date could hold`() {

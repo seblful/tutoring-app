@@ -28,10 +28,10 @@ import kotlin.time.Instant
  * Everything the three digests do when they come due, except the firing: read what they are about, decide
  * whether they are still worth posting, and post them.
  *
- * Outside the worker for the reason [DueReminder] is: a `CoroutineWorker` can only be driven with a
- * `Context` and `WorkerParameters`, so anything inside one is reachable only from a device. Here it is
- * ordinary code over the repositories and the [Notifier] port, so a JVM test drives all of it and
- * `work/DigestWorker` is left as WorkManager's adapter onto it.
+ * Outside the platform adapters so a JVM test can drive the posting rules over the repositories
+ * and the [Notifier] port. WorkManager fires the three methods through `AgendaWorker`,
+ * `UnfinishedDigestWorker` and `DebtDigestWorker` in `work/DigestWorkers.kt`; the workers
+ * supply the trigger while this class decides what to post.
  *
  * **Each method re-reads its own switch.** The work is enqueued when the setting is turned on and
  * cancelled when it is turned off, so in principle neither can run while off — but the enqueued work

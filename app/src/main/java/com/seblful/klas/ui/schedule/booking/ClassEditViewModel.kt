@@ -267,10 +267,10 @@ class ClassEditViewModel @AssistedInject constructor(
     )
 
     /**
-     * The bookable subjects for one target, as a flow. Extracted so the shared [subjects] and the
-     * auto-selection in [autoSelectOnlySubject] read **one** derivation — the alternative was for the
-     * auto-selection to collect [subjects] for the view model's whole life, which would have kept its
-     * `WhileSubscribed` timeout from ever firing and quietly held the queries behind it open.
+     * The bookable subjects for one target, as a flow. The shared [subjects] and the one-shot
+     * subject lookup read **one** derivation. Collecting [subjects] for auto-selection throughout the
+     * view model's life would have kept its `WhileSubscribed` timeout from ever firing and quietly
+     * held the queries behind it open.
      */
     private fun subjectsFor(key: SubjectKey): Flow<SubjectChoice> = when {
         key.target == ClassTarget.STUDENT && key.studentId != null ->

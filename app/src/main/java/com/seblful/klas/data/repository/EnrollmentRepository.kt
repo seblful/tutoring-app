@@ -74,9 +74,9 @@ class EnrollmentRepository @Inject constructor(
      * A student and their enrollments are one act, not two. The add-student form used to write them as
      * two calls — `students.upsert(...)` then `setEnrollments(...)` — from `viewModelScope`, and then
      * navigate. Tapping «Сохранить» and going straight back could cancel between them, leaving a
-     * student with no priced subject: no subject can be booked for them, so the row is unusable, which
-     * is the very thing [UiState.isValid] refuses to let the form submit. The form was enforcing an
-     * invariant that its own save could then break.
+     * student with no priced subject: no subject can be booked for them. The form was enforcing
+     * that invariant through `StudentFormViewModel.UiState.canSave`, but its own save could then
+     * leave the student unusable.
      *
      * It lives here rather than in `StudentRepository` because the invariant at stake is this class's
      * one: a student's subjects **are** their priced subjects. A caller that has to remember to follow

@@ -25,6 +25,9 @@ interface ReminderScheduler {
      */
     fun ensurePeriodicMaintenance()
 
-    /** Replaces every armed reminder with exactly [plans]. An empty list disarms them all. */
+    /**
+     * Arms future entries in [plans] and preserves existing alarms for due entries.
+     * Reminders absent from the plan are cancelled. An empty list disarms them all.
+     */
     fun schedule(plans: List<Reminders.Plan>)
 }

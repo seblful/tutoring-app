@@ -68,13 +68,13 @@ class WorkScheduler @Inject constructor(
     }
 
     /**
-     * Replaces every armed reminder with exactly [plans] — as **alarms**, not as deferrable work.
+     * Applies [plans] through [ReminderAlarms], preserving due alarms and rearming future entries.
      *
      * These used to be `OneTimeWorkRequest`s with an initial delay, which WorkManager treats as a lower
      * bound and is free to batch or defer under Doze. «Занятие через час» delivered two hours late is
      * not a late reminder, it is a wrong one — and `Reminders.shouldPost` would still post it, because
-     * the lesson had not ended yet. Handing this to [ReminderAlarms] is what makes the promised time the
-     * actual one.
+     * the lesson had not ended yet. [ReminderAlarms] uses the platform's alarm scheduling and preserves
+     * reminders already owed, including inexact alarms that may still be waiting to fire.
      */
     override fun schedule(plans: List<Reminders.Plan>) {
         alarms.set(plans)

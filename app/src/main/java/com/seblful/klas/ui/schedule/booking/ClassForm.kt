@@ -55,7 +55,7 @@ data class SubjectKey(val target: ClassTarget, val studentId: Long?, val groupId
  *
  * The form covers both kinds of booking, and differs between them only in *who* the lesson is for:
  * one student, or a whole group. Everything else — subject, date, time, mode and the single
- * [priceText] — belongs to the lesson. That one rate is pre-filled from the student's price for the
+ * [price] — belongs to the lesson. That one rate is pre-filled from the student's price for the
  * subject, or from the **group's own rate**, and every class the lesson writes is booked at it.
  */
 data class ClassForm(

@@ -631,30 +631,30 @@ class ClassRepository @Inject constructor(
     }
 
     /**
-     * Cancels every class of [studentId]'s that is still [LessonStatus.SCHEDULED], and returns them.
+     * Settles [studentId]'s scheduled classes for archiving and returns the changed rows.
      *
-     * This is what archiving a student has to do to the schedule, and it lives here because every side
-     * effect of a class change does: the charges are voided, the slots are given back, the calendar
-     * events are withdrawn and the reminders are re-planned — once, after the commit, like every other
-     * write in this class.
+     * Individual lessons become [LessonStatus.CANCELLED] and give their slots back. Group lessons
+     * keep their status and this student's attendance row, marked [Attended.ABSENT] so it cannot
+     * bill them. Their calendar events are withdrawn and the reminder plan is refreshed once,
+     * after the commit, like every other write in this class.
      *
-     * **Why cancel rather than leave them.** Archiving is how a student leaves without erasing history,
+     * **Why settle rather than leave them.** Archiving is how a student leaves without erasing history,
      * and it removes them from every report (`ReportsViewModel` counts active students only). A
      * scheduled class left behind does not stop being live: the maintenance pass auto-completes it,
      * which bills it, and that income then exists in the database while appearing in no total on any
      * screen. The debt tile the archive dialog warns about would go on growing where nobody could see
-     * it. Their reminders would also still fire, and their calendar events still stand.
+     * it. Their individual reminders and calendar events would also still describe a live booking.
      *
-     * **Why cancel rather than delete.** A cancelled class records a lesson that was planned and did not
-     * happen, which is true. Deleting it would say it was never arranged.
+     * **Why keep the rows.** A cancelled lesson or an excused group attendance records an arrangement
+     * that was made. Deleting it would erase that history.
      *
      * **Why every scheduled class and not only the future ones.** A past class still marked scheduled is
      * exactly the one the auto-complete pass is about to bill. Archiving says the arrangement is over,
      * so a lesson nobody ever confirmed is not about to become income; a lesson that *did* happen was
      * marked completed, and completed classes are left alone here.
      *
-     * A group lesson loses only this student's class — a per-member correction (`ClassSession.of`), so
-     * the lesson goes ahead for everyone else.
+     * A group lesson keeps this student's attendance row as an unbilled absence, so its history stays
+     * readable and the lesson goes ahead for everyone else.
      */
     suspend fun cancelScheduledFor(studentId: Long): List<TutoringClass> {
         if (dao.scheduledForStudent(studentId).isEmpty()) return emptyList()

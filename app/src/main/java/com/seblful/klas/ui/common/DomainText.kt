@@ -28,7 +28,7 @@ import com.seblful.klas.ui.theme.klasColors
  *
  * The classification is `MoneyField`'s and is unit-tested; only the sentence is here. Returns null when
  * there is nothing wrong, which is exactly what an `OutlinedTextField`'s `supportingText` wants: use it
- * with [fieldSupport] so a field that is merely *required* still has something to say.
+ * with [supportingTextOf] so a field that is merely *required* still has something to say.
  */
 @Composable
 fun moneyErrorText(field: MoneyField): String? = field.error?.let { error ->

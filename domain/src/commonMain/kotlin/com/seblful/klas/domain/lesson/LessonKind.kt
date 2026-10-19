@@ -13,10 +13,10 @@ import com.seblful.klas.domain.model.TutoringClass
  * the kind gives the app one vocabulary for it, and makes "which kind is this" a value that can be
  * shown, filtered and summed rather than a condition re-derived per composable.
  *
- * It reads the **class**, never a [ClassSession], on purpose: `ClassSession.of` deliberately makes a
- * session of one out of a single member's class (that is how a per-member correction stays
- * expressible), and such a session carries no group id though the class plainly belongs to a group
- * lesson. The class's own `groupId` is the storage truth and cannot disagree with itself.
+ * Reads the class's own `groupId`, where the lesson kind is stored. [ClassSession.of] keeps
+ * that id when it wraps a group member in a session of one, but does not recover the other
+ * members. The class already carries everything needed to name its kind, so no session
+ * assembly is needed for a row in a student's lesson list.
  */
 enum class LessonKind {
 

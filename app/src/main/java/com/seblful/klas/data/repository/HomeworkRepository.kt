@@ -118,9 +118,9 @@ class HomeworkRepository @Inject constructor(
     }
 
     /**
-     * Corrects [homework]'s text or who it is for. When it was given stays, and so does the lesson it is
-     * attached to by that — correcting a typo does not move it to a later lesson. So does whether it is
-     * done: see `HomeworkDao` for why this is not a whole-row write.
+     * Corrects [homework]'s text or who it is for, preserving when it was given and whether it is done.
+     * Text edits leave its derived lesson unchanged; changing [assignee] finds their next lesson after
+     * the original given time. See `HomeworkDao` for why this is not a whole-row write.
      */
     suspend fun edit(homework: Homework, assignee: Assignee, text: String) {
         val row = homework.copy(assignee = assignee).toEntity()

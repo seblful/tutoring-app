@@ -30,9 +30,9 @@ import dev.zacsweers.metro.SingleIn
  * to read it, so the settings screen could not say that reminders had silently become approximate. Now
  * the arming and the reporting ask one object — see [com.seblful.klas.ui.more.ReminderDelivery].
  *
- * **Why the ids are remembered.** The plan is re-derived from scratch on every change, so arming it
- * means disarming whatever was armed before — and `AlarmManager` has no "cancel everything of mine".
- * An alarm can only be cancelled by rebuilding the `PendingIntent` that set it, which needs the class
+ * **Why the ids are remembered.** The plan is re-derived from scratch on every change, so applying it
+ * means replacing future alarms while preserving those already due. Cancellation uses each class id.
+ * The adapter cancels an alarm by rebuilding the `PendingIntent` that set it, which needs the class
  * id, so the ids currently armed are kept by [ArmedReminders]. They survive the process, which is the
  * point: an alarm set yesterday must be cancellable after a restart.
  *
@@ -52,16 +52,16 @@ class ReminderAlarms @Inject constructor(
     private val exactAlarms: ExactAlarmPermission,
 ) {
     /**
-     * Replaces every armed reminder with exactly [plans].
+     * Arms the future entries in [plans], preserving existing alarms for due entries.
      *
-     * Cancel-then-set rather than a diff: the plan is authoritative and small (one lesson a reminder,
-     * inside a week's horizon), and a diff would have to be right about *why* two plans differ — a
-     * lesson whose time moved by a minute is a different alarm at the same id.
+     * Future entries are cancelled then reset rather than diffed: the plan is authoritative and small
+     * (one lesson a reminder, inside a week's horizon), and a diff would have to account for why plans
+     * differ — a lesson whose time moved by a minute is a different alarm at the same id.
      *
-     * The **order** matters and is the whole of what this function is: everything previously recorded is
-     * cancelled first, then the new plan is armed, then the record is replaced. Writing the record before
-     * arming would lose the old ids on a failure partway and leave alarms nobody can reach; arming before
-     * cancelling would cancel an id the new plan had just re-armed.
+     * Among ids not already due, the **order** matters: cancel the previous alarms, arm the future
+     * entries, then replace the record. Writing the record before arming could lose old ids on a
+     * failure partway and leave alarms nobody can reach; arming before cancelling would cancel
+     * an id the new plan had just re-armed.
      *
      * **One exception to the cancel, and it is the one alarm that has to survive.** A plan entry that is
      * already [Reminders.Plan.due] cannot be armed — its instant has passed, and setting it would fire on
@@ -77,9 +77,9 @@ class ReminderAlarms @Inject constructor(
         armed.read().filterNot { it in owed }.forEach { alarms.cancel(it) }
         // The plan carries the firing instant itself — nothing here reads a clock.
         plans.forEach { plan ->
-            // Owed, not owed *again*: an alarm is already set for the instant this entry names, and
-            // setting it a second time is the reminder arriving twice — or, the instant being behind us,
-            // arriving on the spot.
+            // Owed entries retain any alarm already set for them. Re-arming one whose instant has
+            // passed could deliver it on the spot or post it twice, so a due entry never arms
+            // a new alarm.
             if (plan.due) return@forEach
             val at = plan.fireAt.toEpochMilliseconds()
             // The one decision here, and it is read from the port rather than answered privately.

@@ -10,9 +10,9 @@ import com.seblful.klas.domain.model.Money
  * ([prefilledWith]) — in six different spellings, three of them inside composables where no JVM
  * test could reach them. They differ in exactly one respect, which is [kind].
  *
- * Holding the raw [text] rather than a parsed amount is deliberate: half-typed input like `"1,"`
- * is not an amount but must still survive a recomposition, and re-formatting what someone is in the
- * middle of typing moves their cursor.
+ * Holding the raw [text] rather than a parsed amount is deliberate: input like `"1,"` already
+ * parses as one major unit, but the tutor may still be typing the fraction. Its spelling must
+ * survive recomposition because re-formatting it mid-typing moves the cursor.
  */
 data class MoneyField(
     val text: String = "",
@@ -89,8 +89,8 @@ data class MoneyField(
 
     /**
      * Seeds the field from [suggested], but **only while it is still empty** — an amount the tutor
-     * has already typed is never clobbered by a default arriving a moment later. A null or
-     * unset (zero, for [Kind.OPTIONAL_RATE] sources) suggestion leaves the field alone.
+     * has already typed is never clobbered by a default arriving a moment later. Null leaves it
+     * unchanged; zero is a valid suggestion. Callers represent an unset source default as null.
      */
     fun prefilledWith(suggested: Money?): MoneyField =
         if (text.isBlank() && suggested != null) copy(text = suggested.toAmountInput()) else this

@@ -63,11 +63,11 @@ object Scheduling {
     }
 
     /**
-     * The longest a single lesson can run, and therefore how far back [windowFor] has to reach.
+     * The lookback [windowFor] uses to find lessons already running when a slot starts.
      *
-     * A class's times are wall-clock on a single date, so none can span 24 hours (see the
-     * cross-midnight limitation in `ClassForm`). That is the whole argument for the figure: it is not a
-     * comfortable margin, it is the bound the data model already guarantees.
+     * The duration picker limits new lengths to 1 439 minutes, which this window covers even
+     * across midnight. [Slot] and backup validation only require a positive duration; a longer
+     * restored lesson can begin before this window and be missed by the conflict scan.
      */
     val LONGEST_LESSON: Duration = 1.days
 

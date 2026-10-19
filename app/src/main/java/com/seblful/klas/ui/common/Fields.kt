@@ -336,9 +336,9 @@ fun rememberRevealedFocus(): FocusRequester {
  * keyboard. The red outline used to be the whole message; [MoneyField] knows which rule failed and this
  * is it saying so, the same way on every form and dialog.
  *
- * Takes the typed text rather than the next [MoneyField], because the two kinds of owner turn a keystroke
- * into a field differently: a form's lives in its view model, a dialog's is `rememberSaveable` text with
- * the field derived from it — so a half-typed amount survives the dialog being recreated.
+ * Reports the typed text through [onValueChange] rather than constructing the next [MoneyField].
+ * The owners turn keystrokes into fields differently: a form's lives in its view model, a dialog's
+ * is `rememberSaveable` text with the field derived from it, so partially typed input survives recreation.
  *
  * @param hint the field's ordinary supporting line; an error wins over it ([supportingTextOf]).
  */

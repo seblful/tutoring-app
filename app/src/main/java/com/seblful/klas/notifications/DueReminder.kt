@@ -18,11 +18,11 @@ import kotlin.time.Instant
  * Everything a reminder does when it comes due, except the firing: decide whether it is still owed,
  * work out who it names, and post it.
  *
- * This lives outside the worker on purpose. A `CoroutineWorker` can only be driven with a `Context`
- * and `WorkerParameters`, so anything inside one is reachable only from a device — which is how the
- * "is this lesson still happening, and whose name goes on it" decision came to have no test at all.
- * Here it is ordinary code over the repositories and the [Notifier] port, so a JVM test drives all
- * of it and [com.seblful.klas.work.ReminderWorker] is left as WorkManager's adapter onto it.
+ * These decisions used to live in a `CoroutineWorker`, coupled to a `Context` and
+ * `WorkerParameters`, with no direct test of the posting rules. Here they are ordinary code
+ * over the repositories and the [Notifier] port, so a JVM test drives them.
+ *
+ * [ReminderReceiver] is the current adapter: it receives the alarm and calls [post].
  */
 @SingleIn(AppScope::class)
 class DueReminder @Inject constructor(

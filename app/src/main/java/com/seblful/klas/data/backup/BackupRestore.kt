@@ -14,7 +14,7 @@ import dev.zacsweers.metro.SingleIn
  * on a fresh install lands in the app instead of being asked to add a subject and a student.
  *
  * Both entry points (Ещё → Резервная копия and the first-run screen) go through here, so neither
- * can forget a step. The file reading itself stays in the view models, where the SAF `Uri` lives.
+ * can forget a step. View models read through `DocumentStore` using the picker's `DocumentRef`.
  */
 @SingleIn(AppScope::class)
 class BackupRestore @Inject constructor(

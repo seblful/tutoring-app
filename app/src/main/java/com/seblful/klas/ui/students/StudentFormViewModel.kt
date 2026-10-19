@@ -32,7 +32,7 @@ import kotlinx.coroutines.launch
 /**
  * Backs the "add student" screen. A new student must be created with at least one subject *and* a
  * valid price for each chosen subject — a class can only be booked for a priced subject, so a
- * student with none would be unusable. This is enforced here ([UiState.isValid]) and by the screen.
+ * student with none would be unusable. This is enforced here ([UiState.canSave]) and by the screen.
  */
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())

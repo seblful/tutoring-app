@@ -22,11 +22,11 @@ import kotlin.time.Instant
  * Everything the periodic upkeep does, except being periodic: auto-complete the classes whose end
  * time has passed, then re-derive the reminder plan for what is still upcoming.
  *
- * This lives outside [MaintenanceWorker] for the same reason `DueReminder` lives outside
- * `ReminderWorker`: a `CoroutineWorker` can only be driven with a `Context` and `WorkerParameters`,
- * so anything inside one is reachable only from a device — which is how the decisions here came to
- * have no test. As ordinary code over the repositories and the [ReminderScheduler] port, a JVM test
- * drives all of it and the worker is left as WorkManager's adapter onto it.
+ * This lives outside [MaintenanceWorker] so the upkeep decisions can be tested without
+ * constructing a `CoroutineWorker` with a `Context` and `WorkerParameters`. They used to
+ * sit inside that adapter with no test. As ordinary code over the repositories and the
+ * [ReminderScheduler] port, a JVM test drives the pass; the worker supplies its firing
+ * through WorkManager.
  *
  * The order matters and is fixed here: auto-completion runs **first**, so a lesson that just ended
  * is completed before the plan is derived and therefore isn't given a reminder it no longer needs.

@@ -91,11 +91,11 @@ object Taught {
     /**
      * Everything the tutor taught, both kinds at once — what the reports screen leads with.
      *
-     * Neither rule above covers a mixed set: counting every class would report a group evening as
-     * three lessons and nine hours, and counting every session would collapse two students' separate
-     * Tuesdays into one only because a session of one carries no group. So each half is counted by
-     * its own rule and the two are added — which is the whole reason [byStudent] and [byGroup] differ
-     * in the first place, applied to the one list that genuinely holds both.
+     * Individual teaching is counted per student's class; group teaching is counted per session,
+     * so a three-member group lesson contributes one lesson and its own duration, while income
+     * still sums each member's charge. Each half uses the same rule as its detail card, and the
+     * two totals are added here. [SessionRules.sessions] groups by lesson id and keeps separate
+     * individual lessons distinct.
      */
     fun overall(classes: List<TutoringClass>): Totals {
         val (group, individual) = classes.partition { it.groupId != null }

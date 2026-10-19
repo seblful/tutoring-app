@@ -82,13 +82,13 @@ data class ClassSession(
 
     companion object {
         /**
-         * Just [klass], as the lesson it is the only member of — an individual lesson, which is what
-         * every write takes.
+         * Wraps [klass] in a session of one, preserving its group id.
          *
-         * It used to double as the operand for a **per-member correction** inside a group lesson (cancel
-         * the absentee, leave the lesson completed), which is why it drops the group id: that was one
-         * person's class being changed while pretending to be a lesson. Attendance is that correction
-         * now (`ClassRepository.setAttendance`), so this is only ever a lesson of one.
+         * An individual lesson is complete in that one class. For a group's member the wrapper may be a
+         * partial session: it does not load the lesson's other members. Whole-lesson writes need
+         * the complete session read from the repository.
+         *
+         * Per-member attendance corrections use `ClassRepository.setAttendance`.
          */
         fun of(klass: TutoringClass): ClassSession = ClassSession(klass.groupId, listOf(klass))
     }
