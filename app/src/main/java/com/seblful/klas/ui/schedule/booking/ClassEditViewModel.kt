@@ -50,7 +50,6 @@ import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
-import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -582,27 +581,10 @@ class ClassEditViewModel @Inject constructor(
         currentForm.date ?: openedOnDay ?: today
 
     /**
-     * What the start-time picker opens on: the start already chosen, or — for a lesson whose time is
-     * still empty — **the next whole hour**. [now] is a parameter so the rule can be tested without
-     * depending on the wall clock.
-     *
-     * It used to offer the current time to the minute, on the reasoning that a booking is written down
-     * as it is arranged. But a lesson is *arranged* at 15:23 and *held* at 16:00: tutoring runs on the
-     * hour, so the minutes were a number the tutor had to spin away every single time, and a start of
-     * 15:23 is one already slightly in the past. Rounding up gives the common case nothing to do.
-     *
-     * Already on the hour stays there — 15:00 opens on 15:00, not 16:00 — because that time is neither
-     * past nor short of the hour. The test is the **minute**, not equality with the truncated time:
-     * seconds are below anything the picker can show, so 15:00:20 is still the 15:00 hour and must not
-     * be pushed an hour on. Late in the evening the next hour wraps to 00:00, which is the hour it is;
-     * the date is a separate field, so nothing is claimed about *which* midnight.
+     * What the start-time picker opens on — [BookingForm.startPickerDefault], at the injected clock's
+     * [now]. A parameter so a test can pick the time without depending on the wall clock.
      */
-    fun startPickerDefault(now: LocalTime = LocalTime.now(clock)): LocalTime {
-        val chosen = currentForm.timeFrom
-        if (chosen != null) return chosen
-        val onTheHour = now.truncatedTo(ChronoUnit.HOURS)
-        return if (now.minute == 0) onTheHour else onTheHour.plusHours(1)
-    }
+    fun startPickerDefault(now: LocalTime = LocalTime.now(clock)): LocalTime = booking.value.startPickerDefault(now)
 
     /**
      * What «Другая» opens on: the length already chosen, otherwise the tutor's default lesson — the same
@@ -683,22 +665,19 @@ class ClassEditViewModel @Inject constructor(
     }
 
     /**
-     * The permissions to ask for once the tutor's **first** lesson is in the database, or empty when
-     * there is nothing to ask — see [notificationsToAskFor].
-     *
-     * A one-shot event rather than state, and carrying the permission list rather than a bare signal, so
-     * the screen owns only the launcher: which permissions exist to be asked for is the port's answer, the
-     * same one `SettingsScreen` takes from `notificationPermissionsRequired`.
+     * Show the notification prompt, now that the tutor's **first** lesson is in the database — see
+     * [shouldAskForNotifications]. A one-shot event rather than state: the screen shows the prompt once
+     * and is leaving.
      */
-    val askForNotifications = UiEvents<List<String>>()
+    val askForNotifications = UiEvents<Unit>()
 
     /** Emits the request, or nothing at all when there is nothing to ask for. */
     private suspend fun askToBeAllowedToRemind() {
-        notificationsToAskFor().takeIf { it.isNotEmpty() }?.let { askForNotifications.send(it) }
+        if (shouldAskForNotifications()) askForNotifications.send(Unit)
     }
 
     /**
-     * What to request after a first booking: the notification permissions, or nothing.
+     * Whether a first booking owes the notification prompt.
      *
      * **Why here and not on first launch.** A reminder is the app's promise to warn the tutor before a
      * lesson, and until a lesson exists that promise is abstract — the permission dialog over an empty
@@ -714,12 +693,10 @@ class ClassEditViewModel @Inject constructor(
      * Silent when reminders are switched off: the tutor has said they do not want them, and a permission
      * for a feature nobody asked for is the dialog this whole rule exists to avoid.
      */
-    private suspend fun notificationsToAskFor(): List<String> =
-        if (settingsRepo.get().notificationsEnabled && !notificationPermission.isGranted()) {
-            notificationPermission.required
-        } else {
-            emptyList()
-        }
+    private suspend fun shouldAskForNotifications(): Boolean =
+        settingsRepo.get().notificationsEnabled &&
+            !notificationPermission.isGranted() &&
+            notificationPermission.canAsk
 
     /**
      * Saves the form as one lesson. Booking a student and booking a group differ only in **who** the

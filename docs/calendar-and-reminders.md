@@ -36,8 +36,11 @@ database, never a source (see [architecture.md](architecture.md)).
   the auto-completion report → the latest day it settled; the debt digest → Reports, scrolled to the debts.
   A tab acts on each tap once, however often it is returned to (`ui/navigation/Arrival`).
 - The notification permission is **asked for where reminders are**: the Settings row, and once at the
-  tutor's first booking (`ClassEditViewModel.notificationsToAskFor`) — never over first launch, when there
+  tutor's first booking (`ClassEditViewModel.shouldAskForNotifications`) — never over first launch, when there
   is no lesson to be reminded of.
+- The permission ports only answer *whether* — a grant is held, and for notifications whether there is a
+  prompt to show (`canAsk`). Showing the prompt needs a screen, so it is `rememberNotificationPermissionRequest`
+  / `rememberCalendarPermissionRequest` beside the adapters: no view model carries Android permission names.
 - `ReminderDelivery` (`OFF|ON_TIME|BLOCKED|LATE`) reports the two permission grants (post-notifications,
   exact-alarm) as one settings row with a link to the right system page. `CalendarDelivery`
   (`OFF|ON|BLOCKED`) does the same for the sync row: on, with the calendar permission revoked in system

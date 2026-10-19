@@ -31,6 +31,27 @@ import com.seblful.klas.domain.model.Money
 object ReportCsv {
 
     /**
+     * What a shared report is **called**: `klas-report-2026-06.csv`, `klas-report-2026.csv`,
+     * `klas-report-all.csv`.
+     *
+     * The period is in the name because the file leaves the app. Every share was `klas-report.csv`, so an
+     * accountant sent twelve months received twelve files with one name and no way to tell them apart — and
+     * the subject line that does name the period belongs to the message rather than to the attachment.
+     *
+     * Not localized: it is a filename, read by whatever the receiving app is, and `klas-report-2026-06`
+     * sorts and is typed the same everywhere. The screen's own «Выгрузить в CSV» dialog keeps its plain
+     * `reports_export_filename`, since the tutor is naming that one themselves.
+     */
+    fun fileName(period: ReportPeriod): String {
+        val suffix = when (period.kind) {
+            ReportPeriod.Kind.MONTH -> "%d-%02d".format(period.anchor.year, period.anchor.monthValue)
+            ReportPeriod.Kind.YEAR -> period.anchor.year.toString()
+            ReportPeriod.Kind.ALL -> "all"
+        }
+        return "klas-report-$suffix.csv"
+    }
+
+    /**
      * How a spreadsheet in one language expects the file punctuated — the decimal separator, and the field
      * delimiter that must go with it.
      *

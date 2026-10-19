@@ -10,15 +10,13 @@ package com.seblful.klas.calendar
  */
 interface CalendarPermission {
 
-    /** True when both read and write calendar access have been granted. */
-    fun isGranted(): Boolean
-
     /**
-     * The permissions a caller must request when [isGranted] is false.
+     * True when both read and write calendar access have been granted.
      *
-     * On the port rather than on the adapter so the settings screen can ask for them without
-     * importing `AndroidCalendarPermission` — the one thing that used to make the UI layer depend
-     * on which adapter is installed.
+     * The only question the port answers. **Asking** for the grant is not on it: only a screen can host the
+     * platform's prompt, so that is [rememberCalendarPermissionRequest]'s. The port used to hand out the
+     * Android permission names for the screen to launch, which put a list of `Manifest.permission`s into a
+     * view model — a shape no other platform has.
      */
-    val required: List<String>
+    fun isGranted(): Boolean
 }

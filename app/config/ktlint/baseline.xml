@@ -197,11 +197,11 @@
         <error line="3" column="1" source="standard:import-ordering" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/more/SettingsScreen.kt">
-        <error line="370" column="37" source="standard:function-literal" />
-        <error line="370" column="77" source="standard:function-literal" />
-        <error line="370" column="117" source="standard:function-literal" />
-        <error line="370" column="120" source="standard:function-literal" />
-        <error line="370" column="121" source="standard:max-line-length" />
+        <error line="365" column="37" source="standard:function-literal" />
+        <error line="365" column="77" source="standard:function-literal" />
+        <error line="365" column="117" source="standard:function-literal" />
+        <error line="365" column="120" source="standard:function-literal" />
+        <error line="365" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/onboarding/OnboardingScreen.kt">
         <error line="102" column="15" source="standard:trailing-comma-on-declaration-site" />
@@ -213,10 +213,10 @@
         <error line="244" column="26" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/schedule/booking/ClassEditScreen.kt">
-        <error line="361" column="46" source="standard:trailing-comma-on-call-site" />
-        <error line="446" column="1" source="standard:no-consecutive-blank-lines" />
-        <error line="463" column="18" source="standard:trailing-comma-on-call-site" />
-        <error line="561" column="22" source="standard:trailing-comma-on-call-site" />
+        <error line="356" column="46" source="standard:trailing-comma-on-call-site" />
+        <error line="441" column="1" source="standard:no-consecutive-blank-lines" />
+        <error line="458" column="18" source="standard:trailing-comma-on-call-site" />
+        <error line="556" column="22" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/students/StudentDetailScreen.kt">
         <error line="474" column="14" source="standard:trailing-comma-on-call-site" />
@@ -475,23 +475,23 @@
         <error line="996" column="9" source="standard:wrapping" />
         <error line="1017" column="23" source="standard:wrapping" />
         <error line="1019" column="13" source="standard:wrapping" />
-        <error line="1150" column="1" source="standard:indent" />
-        <error line="1151" column="1" source="standard:indent" />
-        <error line="1152" column="1" source="standard:indent" />
-        <error line="1164" column="121" source="standard:max-line-length" />
+        <error line="1169" column="1" source="standard:indent" />
         <error line="1170" column="1" source="standard:indent" />
         <error line="1171" column="1" source="standard:indent" />
-        <error line="1172" column="1" source="standard:indent" />
-        <error line="1173" column="1" source="standard:indent" />
-        <error line="1289" column="121" source="standard:max-line-length" />
-        <error line="1525" column="121" source="standard:max-line-length" />
-        <error line="1684" column="121" source="standard:max-line-length" />
-        <error line="1691" column="1" source="standard:indent" />
-        <error line="1692" column="1" source="standard:indent" />
-        <error line="1693" column="1" source="standard:indent" />
-        <error line="1694" column="1" source="standard:indent" />
-        <error line="1702" column="19" source="standard:wrapping" />
-        <error line="1704" column="9" source="standard:wrapping" />
+        <error line="1183" column="121" source="standard:max-line-length" />
+        <error line="1189" column="1" source="standard:indent" />
+        <error line="1190" column="1" source="standard:indent" />
+        <error line="1191" column="1" source="standard:indent" />
+        <error line="1192" column="1" source="standard:indent" />
+        <error line="1308" column="121" source="standard:max-line-length" />
+        <error line="1544" column="121" source="standard:max-line-length" />
+        <error line="1703" column="121" source="standard:max-line-length" />
+        <error line="1710" column="1" source="standard:indent" />
+        <error line="1711" column="1" source="standard:indent" />
+        <error line="1712" column="1" source="standard:indent" />
+        <error line="1713" column="1" source="standard:indent" />
+        <error line="1721" column="19" source="standard:wrapping" />
+        <error line="1723" column="9" source="standard:wrapping" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/students/StudentDetailViewModelTest.kt">
         <error line="100" column="121" source="standard:max-line-length" />

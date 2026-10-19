@@ -33,6 +33,7 @@ import com.seblful.klas.ui.common.state.days
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.common.state.map
+import com.seblful.klas.ui.common.state.minutes
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.readyOrLoadingAfter
 import com.seblful.klas.ui.common.state.valueOrNull
@@ -44,14 +45,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -60,7 +59,6 @@ import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.DayOfWeek
-import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -97,7 +95,13 @@ class ScheduleViewModel @Inject constructor(
     // From the clock, so the one thing that watches the date can be moved in a test. See TimeModule.
     private val zone: ZoneId get() = clock.zone
 
-    private val _selectedDate = MutableStateFlow(LocalDate.now(clock))
+    /**
+     * Where the schedule is pointed — see [SchedulePages], which owns how it moves. Changed only through
+     * [page], which publishes its fields as [selectedDate], [visibleMonth], [visibleWeek] and [viewMode].
+     */
+    private var pages = SchedulePages.on(LocalDate.now(clock), weekStart)
+
+    private val _selectedDate = MutableStateFlow(pages.selected)
     val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
 
     /**
@@ -122,21 +126,15 @@ class ScheduleViewModel @Inject constructor(
         .onEach { followToday(it) }
         .hold(this, LocalDate.now(clock))
 
-    /**
-     * The month the calendar page shows. Kept separate from [selectedDate] so paging through months
-     * only browses — it never silently re-points the day list at a day the user did not pick.
-     */
-    private val _visibleMonth = MutableStateFlow(YearMonth.from(_selectedDate.value))
+    /** The month the calendar page shows. Paging it only browses — see [SchedulePages]. */
+    private val _visibleMonth = MutableStateFlow(pages.month)
     val visibleMonth: StateFlow<YearMonth> = _visibleMonth.asStateFlow()
 
-    /**
-     * The first day of the week the agenda shows — [weekStart], not necessarily a Monday. Browses
-     * independently of [selectedDate], as above.
-     */
-    private val _visibleWeek = MutableStateFlow(CalendarLayout.startOfWeek(_selectedDate.value, weekStart))
+    /** The first day of the week the agenda shows — [weekStart], not necessarily a Monday. */
+    private val _visibleWeek = MutableStateFlow(pages.week)
     val visibleWeek: StateFlow<LocalDate> = _visibleWeek.asStateFlow()
 
-    private val _viewMode = MutableStateFlow(ScheduleViewMode.DAY)
+    private val _viewMode = MutableStateFlow(pages.mode)
     val viewMode: StateFlow<ScheduleViewMode> = _viewMode.asStateFlow()
 
     private val filterStudentId = MutableStateFlow<Long?>(null)
@@ -300,7 +298,7 @@ class ScheduleViewModel @Inject constructor(
 
     /**
      * The lessons of **the week that holds what is on screen** — the visible week, which in the day and
-     * month views is the selected day's (see [showPagesFor]).
+     * month views is the selected day's (see [SchedulePages.select]).
      *
      * One week rather than one query per view: the views used to each assemble their own — a day for
      * «День» and «Месяц», a week for «Неделя» — so every view switch and every day tap re-keyed the query,
@@ -368,25 +366,8 @@ class ScheduleViewModel @Inject constructor(
             }
             .derive(this, computation, Loadable.Loading)
 
-    /**
-     * The wall clock, once a minute, aligned to the minute — so the mark moves as the phone's clock
-     * changes rather than a stray number of seconds after this screen was opened.
-     *
-     * Sleeping to the next boundary rather than polling a second at a time, for the reason [today] sleeps
-     * to the next midnight: the answer changes on a schedule, and it is knowable when.
-     */
-    private val minutes: Flow<Instant> = flow {
-        while (true) {
-            val instant = clock.instant()
-            emit(instant)
-            val nextMinute = instant.plusSeconds(SECONDS_PER_MINUTE)
-                .minusNanos(instant.nano.toLong())
-                .minusSeconds(instant.epochSecond.mod(SECONDS_PER_MINUTE))
-            // At least a tick: a clock less than a millisecond short of the boundary truncates to a
-            // zero-length sleep, and this loop would spin on it.
-            delay(Duration.between(instant, nextMinute).toMillis().coerceAtLeast(1))
-        }
-    }
+    /** The wall clock once a minute, on the minute — what [nowMark] and [running] move with. */
+    private val minutes: Flow<Instant> = clock.minutes()
 
     /**
      * Where the **"you are here"** mark goes in the selected day's list: the index it sits before, or
@@ -444,30 +425,17 @@ class ScheduleViewModel @Inject constructor(
         }
             .derive(this, computation, emptySet())
 
-    /**
-     * Switches view. Opening a calendar view on a page that doesn't contain the selected day would
-     * read as nothing being selected, so the page snaps back to it.
-     */
-    fun setViewMode(mode: ScheduleViewMode) {
-        _viewMode.value = mode
-        showPagesFor(_selectedDate.value)
-    }
+    /** Switches view, on the pages holding the selected day — see [SchedulePages.showing]. */
+    fun setViewMode(mode: ScheduleViewMode) = page { it.showing(mode) }
 
     /**
-     * The today [followToday] last saw — a field rather than a local of the [today] flow, because that
-     * flow stops while the schedule is off screen, and a night spent on another tab is still a night.
-     */
-    private var lastToday: LocalDate = _selectedDate.value
-
-    /**
-     * A selection left on today moves on with it at midnight; one the tutor browsed to stays. Without it
-     * an app left open overnight opened the Day view on yesterday, with no «now» line — [today] rolled
-     * over and the selection, set once at construction, did not.
+     * Today rolled over: a selection left on it follows — see [SchedulePages.dayChanged]. A selection that
+     * moves gives up a waiting sheet, as [selectDate] does.
      */
     private fun followToday(date: LocalDate) {
-        if (date == lastToday) return
-        if (_selectedDate.value == lastToday) selectDate(date)
-        lastToday = date
+        val moved = pages.dayChanged(date)
+        if (moved.selected != pages.selected) askedLessonId.value = null
+        page { moved }
     }
 
     private val arrivals = ArrivalGate()
@@ -530,31 +498,22 @@ class ScheduleViewModel @Inject constructor(
      */
     fun selectDate(date: LocalDate) {
         askedLessonId.value = null
-        _selectedDate.value = date
-        showPagesFor(date)
+        page { it.select(date) }
     }
 
-    fun goToPreviousDay() = selectDate(_selectedDate.value.minusDays(1))
+    fun goToPreviousDay() = selectDate(pages.selected.minusDays(1))
 
-    fun goToNextDay() = selectDate(_selectedDate.value.plusDays(1))
+    fun goToNextDay() = selectDate(pages.selected.plusDays(1))
 
     fun goToToday() = selectDate(LocalDate.now(clock))
 
-    fun goToPreviousMonth() {
-        _visibleMonth.value = _visibleMonth.value.minusMonths(1)
-    }
+    fun goToPreviousMonth() = page { it.previousMonth() }
 
-    fun goToNextMonth() {
-        _visibleMonth.value = _visibleMonth.value.plusMonths(1)
-    }
+    fun goToNextMonth() = page { it.nextMonth() }
 
-    fun goToPreviousWeek() {
-        _visibleWeek.value = _visibleWeek.value.minusDays(DAYS_IN_WEEK)
-    }
+    fun goToPreviousWeek() = page { it.previousWeek() }
 
-    fun goToNextWeek() {
-        _visibleWeek.value = _visibleWeek.value.plusDays(DAYS_IN_WEEK)
-    }
+    fun goToNextWeek() = page { it.nextWeek() }
 
     // Every action below takes a session, so it reads the same whether the tutor tapped a lesson for
     // one student or a whole group; the repository applies it per class and refreshes reminders once.
@@ -657,10 +616,13 @@ class ScheduleViewModel @Inject constructor(
     /** One lesson write, a failure reported as [Event.ACTION_FAILED] — see `ui/common/state/Writes.kt`. */
     private fun write(block: suspend () -> Unit) = appScope.write(events, Event.ACTION_FAILED, block = block)
 
-    /** Points both calendar pages at [date], so whichever view opens next contains it. */
-    private fun showPagesFor(date: LocalDate) {
-        _visibleMonth.value = YearMonth.from(date)
-        _visibleWeek.value = CalendarLayout.startOfWeek(date, weekStart)
+    /** Moves [pages] by [change] and publishes the result. A field that did not move is not re-emitted. */
+    private fun page(change: (SchedulePages) -> SchedulePages) {
+        pages = change(pages)
+        _selectedDate.value = pages.selected
+        _visibleMonth.value = pages.month
+        _visibleWeek.value = pages.week
+        _viewMode.value = pages.mode
     }
 
     /**
@@ -676,7 +638,7 @@ class ScheduleViewModel @Inject constructor(
     private fun List<ScheduleRow>.summarised(): DaySummary = DaySummary.of(map { it.session })
 
     private companion object {
-        /** A week's span as a day count, for the date arithmetic that pages the agenda. */
+        /** A week's span as a day count, for the bounds of the week being read. */
         const val DAYS_IN_WEEK = CalendarLayout.DAYS_IN_WEEK.toLong()
 
         /**
@@ -684,8 +646,5 @@ class ScheduleViewModel @Inject constructor(
          * re-query on a slow phone, short enough that a stuck one is never mistaken for an answer.
          */
         val PAGE_TURN_GRACE = 250.milliseconds
-
-        /** For the minute the "now" mark is aligned to. */
-        const val SECONDS_PER_MINUTE = 60L
     }
 }

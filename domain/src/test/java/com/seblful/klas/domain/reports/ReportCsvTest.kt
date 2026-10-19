@@ -27,6 +27,14 @@ class ReportCsvTest {
 
     private fun line(amount: Long, label: String) = Reports.Line(label, Money(amount))
 
+    @Test
+    fun `a shared file is named after its period`() {
+        val june = YearMonth.of(2026, 6)
+        assertEquals("klas-report-2026-06.csv", ReportCsv.fileName(ReportPeriod(ReportPeriod.Kind.MONTH, june)))
+        assertEquals("klas-report-2026.csv", ReportCsv.fileName(ReportPeriod(ReportPeriod.Kind.YEAR, june)))
+        assertEquals("klas-report-all.csv", ReportCsv.fileName(ReportPeriod(ReportPeriod.Kind.ALL, june)))
+    }
+
     /**
      * Which rows the file contains. This used to be worked out in `ReportsScreen`, so the one thing
      * anybody actually checks about an export — that the sections are all there and in screen order —

@@ -1,7 +1,5 @@
 package com.seblful.klas.ui.schedule.booking
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -31,6 +29,7 @@ import com.seblful.klas.R
 import com.seblful.klas.domain.schedule.Recurrence
 import com.seblful.klas.domain.schedule.Repeat
 import com.seblful.klas.format.formatDate
+import com.seblful.klas.notifications.rememberNotificationPermissionRequest
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.CountPickerModal
 import com.seblful.klas.ui.common.DatePickerModal
@@ -128,19 +127,15 @@ private fun ClassEditForm(
     }
 
     // **Where the app asks to be allowed to remind at all**, once, after the tutor's first lesson is in
-    // the database — see [ClassEditViewModel.notificationsToAskFor] for why here and why only then.
+    // the database — see [ClassEditViewModel.shouldAskForNotifications] for why here and why only then.
     //
-    // The screen owns the launcher and nothing else: which permissions to ask for arrives with the event.
-    // The result is deliberately unhandled — a denial is not refused, corrected or explained here, because
-    // the tutor has just booked a lesson and is on their way out of this screen, and the place that reports
-    // reminders not working is the one row in Settings that can also do something about it.
-    val notificationPermission = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions(),
-    ) { }
+    // The screen shows the prompt and nothing else. The answer is deliberately unhandled — a denial is not
+    // refused, corrected or explained here, because the tutor has just booked a lesson and is on their way
+    // out of this screen, and the place that reports reminders not working is the one row in Settings that
+    // can also do something about it.
+    val requestNotifications = rememberNotificationPermissionRequest()
     LaunchedEffect(Unit) {
-        viewModel.askForNotifications.stream.collect { permissions ->
-            notificationPermission.launch(permissions.toTypedArray())
-        }
+        viewModel.askForNotifications.stream.collect { requestNotifications() }
     }
 
     // A repeating booking that got some of its dates and not others — see [SeriesOutcome]. State rather

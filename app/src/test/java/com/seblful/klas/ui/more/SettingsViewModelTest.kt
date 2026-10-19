@@ -78,7 +78,7 @@ class SettingsViewModelTest {
             env.notificationPermission.granted = false
 
             assertEquals(
-                NotificationsIntent.Request(listOf("POST_NOTIFICATIONS")),
+                NotificationsIntent.Request,
                 vm.setDigestEnabled(on = true) { it.copy(debtDigestEnabled = true) },
             )
             assertEquals(
@@ -111,13 +111,13 @@ class SettingsViewModelTest {
             vm.refreshPermissions()
             advanceUntilIdle()
             assertEquals(
-                NotificationsIntent.Request(listOf("POST_NOTIFICATIONS")),
+                NotificationsIntent.Request,
                 vm.setNotificationsEnabled(on = true),
             )
 
             // Notifications off for the whole app: there is no permission to request, so asking would
             // show a dialog that can never be granted. Say so instead.
-            env.notificationPermission.required = emptyList()
+            env.notificationPermission.canAsk = false
             assertEquals(NotificationsIntent.BlockedBySystem, vm.setNotificationsEnabled(on = true))
         }
 
@@ -141,7 +141,7 @@ class SettingsViewModelTest {
         val intent = vm.setNotificationsEnabled(on = true)
         advanceUntilIdle()
 
-        assertEquals(NotificationsIntent.Request(listOf("POST_NOTIFICATIONS")), intent)
+        assertEquals(NotificationsIntent.Request, intent)
         assertTrue("and the setting it asked about was stored", vm.state.current.notificationsEnabled)
         assertEquals(
             "so the row reports the state the app is actually in",
@@ -367,28 +367,28 @@ class SettingsViewModelTest {
 
         // What the dialog closing with «Разрешить» amounts to.
         env.calendarPermission.granted = true
-        val answer = vm.calendarPermissionAnswered(mapOf("read" to true, "write" to true))
+        val answer = vm.calendarPermissionAnswered()
         advanceUntilIdle()
 
         assertEquals(CalendarSyncToggle.APPLIED, answer)
         assertTrue(env.settingsRepo.get().calendarSyncEnabled)
     }
 
+    /**
+     * Refused, refused in part, or dismissed unseen — the platform is asked again rather than the dialog's
+     * answer read, and all three leave the permission not held.
+     */
     @Test
-    fun `a calendar request refused in part, or dismissed unseen, leaves sync off`() = runTest(mainRule.dispatcher) {
-        env.calendarPermission.granted = false
-        val vm = vm()
+    fun `a calendar request that leaves the permission not held leaves sync off`() =
+        runTest(mainRule.dispatcher) {
+            env.calendarPermission.granted = false
+            val vm = vm()
 
-        assertEquals(
-            CalendarSyncToggle.PERMISSION_NEEDED,
-            vm.calendarPermissionAnswered(mapOf("read" to true, "write" to false)),
-        )
-        // An empty answer is what the platform returns for a request it never showed.
-        assertEquals(CalendarSyncToggle.PERMISSION_NEEDED, vm.calendarPermissionAnswered(emptyMap()))
-        advanceUntilIdle()
+            assertEquals(CalendarSyncToggle.PERMISSION_NEEDED, vm.calendarPermissionAnswered())
+            advanceUntilIdle()
 
-        assertFalse(env.settingsRepo.get().calendarSyncEnabled)
-    }
+            assertFalse(env.settingsRepo.get().calendarSyncEnabled)
+        }
 
     @Test
     fun `disabling calendar sync never needs the permission — clearing up must always work`() =
@@ -668,7 +668,7 @@ class SettingsViewModelTest {
 
             assertEquals(
                 "and the row can ask for what the switch never could",
-                NotificationsIntent.Request(listOf("POST_NOTIFICATIONS")),
+                NotificationsIntent.Request,
                 vm.unblockNotifications(),
             )
         }
@@ -681,7 +681,7 @@ class SettingsViewModelTest {
     @Test
     fun `the blocked row says so when there is nothing left to ask`() = runTest(mainRule.dispatcher) {
         env.notificationPermission.granted = false
-        env.notificationPermission.required = emptyList()
+        env.notificationPermission.canAsk = false
         val vm = vm()
         observing(vm.reminderDelivery)
         advanceUntilIdle()

@@ -1,7 +1,5 @@
 package com.seblful.klas.ui.more
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
@@ -26,10 +24,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.seblful.klas.R
+import com.seblful.klas.calendar.rememberCalendarPermissionRequest
 import com.seblful.klas.data.repository.AppSettings
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.ThemeChoice
+import com.seblful.klas.notifications.rememberNotificationPermissionRequest
 import com.seblful.klas.ui.common.ChoiceRow
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DurationPickerModal
@@ -108,19 +108,15 @@ fun SettingsScreen(
         }
     }
 
-    val notificationPermission = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions(),
-    ) { grants ->
+    val requestNotifications = rememberNotificationPermissionRequest { granted ->
         viewModel.refreshPermissions()
-        if (grants.values.any { !it }) reportBlocked()
+        if (!granted) reportBlocked()
     }
 
     // Requesting the permission is all this screen does about it — whether sync may be enabled is
     // the view model's rule, so asking again after a grant simply goes back through it.
-    val calendarPermission = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions(),
-    ) { grants ->
-        if (viewModel.calendarPermissionAnswered(grants) != CalendarSyncToggle.APPLIED) {
+    val requestCalendar = rememberCalendarPermissionRequest {
+        if (viewModel.calendarPermissionAnswered() != CalendarSyncToggle.APPLIED) {
             // The one switch in this screen that can be **refused**, and the refusal is felt as well as
             // read: the tutor asked for sync, the permission was declined, and the switch springs back on
             // its own. `Reject` is what says that was an answer rather than a dropped tap.
@@ -154,7 +150,7 @@ fun SettingsScreen(
                 reminderDelivery = reminderDelivery,
                 calendarDelivery = calendarDelivery,
                 viewModel = viewModel,
-                onRequestNotifications = { permissions -> notificationPermission.launch(permissions.toTypedArray()) },
+                onRequestNotifications = requestNotifications,
                 onNotificationsBlocked = reportBlocked,
                 // The way out of «Уведомления запрещены», which for a long time was a sentence and nothing
                 // else. Which of the two things a tap owes is the view model's — ask the platform, or send
@@ -162,15 +158,14 @@ fun SettingsScreen(
                 // [reportBlocked]'s snackbar: this row *is* the tutor asking to fix it, and answering a tap
                 // with a message offering another tap is the dead end one layer further out.
                 onFixNotifications = {
-                    when (val intent = viewModel.unblockNotifications()) {
-                        is NotificationsIntent.Request ->
-                            notificationPermission.launch(intent.permissions.toTypedArray())
+                    when (viewModel.unblockNotifications()) {
+                        NotificationsIntent.Request -> requestNotifications()
                         NotificationsIntent.BlockedBySystem ->
                             launchExternally(context, appNotificationSettings(context), noSettingsPageMsg, messages)
                         NotificationsIntent.Nothing -> Unit
                     }
                 },
-                onRequestCalendar = { calendarPermission.launch(viewModel.calendarPermissionsRequired.toTypedArray()) },
+                onRequestCalendar = requestCalendar,
                 onFixExactAlarms = {
                     launchExternally(context, exactAlarmSettings(context), noSettingsPageMsg, messages)
                 },
@@ -219,7 +214,7 @@ private fun SettingsList(
     reminderDelivery: ReminderDelivery,
     calendarDelivery: CalendarDelivery,
     viewModel: SettingsViewModel,
-    onRequestNotifications: (List<String>) -> Unit,
+    onRequestNotifications: () -> Unit,
     onNotificationsBlocked: () -> Unit,
     onFixNotifications: () -> Unit,
     onRequestCalendar: () -> Unit,
@@ -257,7 +252,7 @@ private fun SettingsList(
     // What a switch that notifies owes the platform — reminders' and the three digests' alike.
     val askFor: (NotificationsIntent) -> Unit = { intent ->
         when (intent) {
-            is NotificationsIntent.Request -> onRequestNotifications(intent.permissions)
+            NotificationsIntent.Request -> onRequestNotifications()
             NotificationsIntent.BlockedBySystem -> onNotificationsBlocked()
             NotificationsIntent.Nothing -> Unit
         }

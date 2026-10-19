@@ -247,7 +247,6 @@ class RecordingTransactor(private val delegate: Transactor, var failAt: Int? = n
 /** Stands in for the device's calendar permission; flip [granted] to drive either branch. */
 class FakeCalendarPermission(var granted: Boolean = true) : CalendarPermission {
     override fun isGranted(): Boolean = granted
-    override val required: List<String> get() = listOf("READ_CALENDAR", "WRITE_CALENDAR")
 }
 
 /**
@@ -255,13 +254,13 @@ class FakeCalendarPermission(var granted: Boolean = true) : CalendarPermission {
  * install — the setting on, the permission never asked for — which is the case the settings row exists
  * to stop being silent about.
  *
- * @param required what the platform would let the app ask for. **Empty is a real state**, not a
- *   degenerate one: notifications switched off for the whole app in system settings leave nothing to
- *   request, and the app has to say so rather than show a dialog that closes itself.
+ * @param canAsk whether the platform has a prompt to show. **False is a real state**, not a degenerate
+ *   one: notifications switched off for the whole app in system settings leave nothing to request, and
+ *   the app has to say so rather than show a dialog that closes itself.
  */
 class FakeNotificationPermission(
     var granted: Boolean = true,
-    override var required: List<String> = listOf("POST_NOTIFICATIONS"),
+    override var canAsk: Boolean = true,
 ) : NotificationPermission {
     override fun isGranted(): Boolean = granted
 }

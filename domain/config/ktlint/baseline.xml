@@ -28,7 +28,7 @@
         <error line="18" column="11" source="standard:trailing-comma-on-declaration-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/domain/reports/ReportCsv.kt">
-        <error line="46" column="30" source="standard:trailing-comma-on-declaration-site" />
+        <error line="67" column="30" source="standard:trailing-comma-on-declaration-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/domain/schedule/Recurrence.kt">
         <error line="39" column="19" source="standard:trailing-comma-on-declaration-site" />

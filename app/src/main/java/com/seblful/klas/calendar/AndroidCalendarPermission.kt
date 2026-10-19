@@ -20,8 +20,6 @@ class AndroidCalendarPermission @Inject constructor(
 
     override fun isGranted(): Boolean = REQUIRED.all { granted(it) }
 
-    override val required: List<String> get() = REQUIRED
-
     private fun granted(permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 

@@ -26,18 +26,7 @@ class AndroidNotificationPermission @Inject constructor(
 
     override fun isGranted(): Boolean = hasRuntimePermission() && notificationsAllowed()
 
-    /**
-     * `@SuppressLint("InlinedApi")`: `POST_NOTIFICATIONS` is a compile-time `String` constant, so the
-     * reference is inlined and touching it on an older version is harmless — and it is only ever
-     * *returned* above Android 13, where it exists to be granted.
-     */
-    override val required: List<String>
-        @SuppressLint("InlinedApi")
-        get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            listOf(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            emptyList()
-        }
+    override val canAsk: Boolean get() = REQUIRED.isNotEmpty()
 
     private fun hasRuntimePermission(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -47,4 +36,21 @@ class AndroidNotificationPermission @Inject constructor(
     /** The app-wide switch in system settings, which no runtime permission covers. */
     private fun notificationsAllowed(): Boolean =
         NotificationManagerCompat.from(context).areNotificationsEnabled()
+
+    companion object {
+        /**
+         * What the prompt asks for — empty below Android 13, where there is nothing to grant.
+         *
+         * `@SuppressLint("InlinedApi")`: `POST_NOTIFICATIONS` is a compile-time `String` constant, so the
+         * reference is inlined and touching it on an older version is harmless — and it is only ever
+         * *returned* above Android 13, where it exists to be granted.
+         */
+        val REQUIRED: List<String>
+            @SuppressLint("InlinedApi")
+            get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                listOf(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                emptyList()
+            }
+    }
 }

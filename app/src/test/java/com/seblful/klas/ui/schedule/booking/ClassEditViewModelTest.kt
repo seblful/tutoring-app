@@ -1052,7 +1052,7 @@ class ClassEditViewModelTest {
         vm.save {}
         advanceUntilIdle()
 
-        assertEquals(listOf(listOf("POST_NOTIFICATIONS")), asked)
+        assertEquals(1, asked.size)
     }
 
     /**
@@ -1118,13 +1118,32 @@ class ClassEditViewModelTest {
         assertTrue(asked.isEmpty())
     }
 
+    /** Nothing to ask for when the platform has no prompt — notifications off for the whole app. */
+    @Test
+    fun `a first booking does not ask when the platform has no prompt to show`() =
+        runTest(mainRule.dispatcher) {
+            env.notificationPermission.granted = false
+            env.notificationPermission.canAsk = false
+            val (ann, subject) = seedStudentWithPricedSubject()
+            val vm = vm()
+            observing(vm.state)
+            advanceUntilIdle()
+
+            val asked = asksOf(vm)
+            vm.fillFor(ann, subject, LocalDate.now(zone).plusDays(3), LocalTime.of(10, 0), 60)
+            vm.save {}
+            advanceUntilIdle()
+
+            assertTrue(asked.isEmpty())
+        }
+
     /**
      * Every permission request the view model made, newest last — collected in the background because
      * `UiEvents.stream` is a channel flow, so `first()` on one that never emits waits for ever and the
      * three assertions below are all about nothing being emitted.
      */
-    private fun TestScope.asksOf(vm: ClassEditViewModel): List<List<String>> {
-        val asked = mutableListOf<List<String>>()
+    private fun TestScope.asksOf(vm: ClassEditViewModel): List<Unit> {
+        val asked = mutableListOf<Unit>()
         backgroundScope.launch { vm.askForNotifications.stream.collect { asked += it } }
         return asked
     }

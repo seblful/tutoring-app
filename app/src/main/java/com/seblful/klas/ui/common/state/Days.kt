@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import java.time.Clock
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 
 /**
@@ -35,3 +36,26 @@ fun Clock.days(): Flow<LocalDate> = zones().flatMapLatest { zone ->
         }
     }
 }
+
+/**
+ * The wall clock, once a minute, **aligned to the minute** — so whatever is drawn from it moves as the
+ * phone's clock changes rather than a stray number of seconds after the screen was opened.
+ *
+ * Sleeping to the next boundary rather than polling a second at a time, for the reason [days] sleeps to the
+ * next midnight: the answer changes on a schedule, and it is knowable when. The same rule for tests holds:
+ * advance time by a stated amount, never `advanceUntilIdle()`.
+ */
+fun Clock.minutes(): Flow<Instant> = flow {
+    while (true) {
+        val instant = instant()
+        emit(instant)
+        val nextMinute = instant.plusSeconds(SECONDS_PER_MINUTE)
+            .minusNanos(instant.nano.toLong())
+            .minusSeconds(instant.epochSecond.mod(SECONDS_PER_MINUTE))
+        // At least a tick: a clock less than a millisecond short of the boundary truncates to a
+        // zero-length sleep, and this loop would spin on it.
+        delay(Duration.between(instant, nextMinute).toMillis().coerceAtLeast(1))
+    }
+}
+
+private const val SECONDS_PER_MINUTE = 60L

@@ -21,8 +21,12 @@ interface NotificationPermission {
     fun isGranted(): Boolean
 
     /**
-     * What to request when [isGranted] is false — empty below Android 13, where there is nothing to
-     * ask for. On the port rather than the adapter so the settings screen needs no import from here.
+     * Whether the platform has a prompt to show when [isGranted] is false — false below Android 13, where
+     * there is no runtime permission and only the app-wide switch in system settings can be off.
+     *
+     * A yes or no rather than what to ask for: showing the prompt needs a screen, so that is
+     * [rememberNotificationPermissionRequest]'s. The port used to hand out the Android permission names
+     * for the screen to launch, which put `Manifest.permission`s into two view models.
      */
-    val required: List<String>
+    val canAsk: Boolean
 }

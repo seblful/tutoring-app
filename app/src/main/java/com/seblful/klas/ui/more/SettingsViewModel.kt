@@ -107,9 +107,6 @@ class SettingsViewModel @Inject constructor(
             )
         }.hold(this, ReminderDelivery.ON_TIME)
 
-    /** What to request when [notificationsPermitted] is false; empty where there is nothing to ask. */
-    val notificationPermissionsRequired: List<String> get() = notificationPermission.required
-
     /**
      * What is actually happening to the calendar mirror — the platform's answer, beside the tutor's intent
      * in [AppSettings.calendarSyncEnabled]. See [CalendarDelivery].
@@ -192,8 +189,7 @@ class SettingsViewModel @Inject constructor(
      */
     fun unblockNotifications(): NotificationsIntent = when {
         notificationPermission.isGranted() -> NotificationsIntent.Nothing
-        notificationPermissionsRequired.isNotEmpty() ->
-            NotificationsIntent.Request(notificationPermissionsRequired)
+        notificationPermission.canAsk -> NotificationsIntent.Request
         // Nothing left to ask: notifications are off for the whole app in system settings, or the
         // permission is denied for good. Both are undoable only by the tutor and only from that page,
         // so a dialog here would close itself and read as the app doing nothing.
@@ -206,21 +202,16 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * The calendar request came back with [grants]: with all of them, sync goes on through
-     * [setCalendarSyncEnabled] — the one place its refusal lives — and anything less leaves it off. An
-     * empty answer is a refusal too: the platform returns one when the request was dismissed unseen.
+     * The calendar prompt closed: sync goes on through [setCalendarSyncEnabled] — the one place its refusal
+     * lives — if the permission is now held, and stays off otherwise.
+     *
+     * The platform is asked again rather than the prompt's answer read: a partial grant and a request
+     * dismissed unseen are both "not held", and [setCalendarSyncEnabled] already asks exactly that.
      */
-    fun calendarPermissionAnswered(grants: Map<String, Boolean>): CalendarSyncToggle {
+    fun calendarPermissionAnswered(): CalendarSyncToggle {
         refreshPermissions()
-        val granted = grants.isNotEmpty() && grants.values.all { it }
-        return if (granted) setCalendarSyncEnabled(true) else CalendarSyncToggle.PERMISSION_NEEDED
+        return setCalendarSyncEnabled(true)
     }
-
-    /**
-     * The permissions the screen must request after a [CalendarSyncToggle.PERMISSION_NEEDED].
-     * Surfaced here so the screen needs no import from `calendar/` at all.
-     */
-    val calendarPermissionsRequired: List<String> get() = calendarPermission.required
 
     /**
      * Stores a changed setting, e.g. `update { it.copy(currency = Currency.RUB) }` — and discharges
@@ -424,15 +415,10 @@ sealed interface NotificationsIntent {
     data object Nothing : NotificationsIntent
 
     /**
-     * Ask the platform for these.
-     *
-     * A `List` and not an `Array`. The ports below hand out arrays because that is what
-     * `ActivityResultContracts.RequestMultiplePermissions` takes, and carrying one up here meant this
-     * `data class` had to hand-write `equals`/`hashCode` over `contentEquals` — the standard symptom of an
-     * array inside a value type, since array equality is identity and the generated one would have lied.
-     * The conversion is now one `toTypedArray()` at the single launcher call site.
+     * Show the platform's prompt — `rememberNotificationPermissionRequest`. What the prompt asks for is the
+     * platform's business, so it is not carried here.
      */
-    data class Request(val permissions: List<String>) : NotificationsIntent
+    data object Request : NotificationsIntent
 
     /**
      * There is nothing the app may ask for: notifications are off for the whole app in system settings,

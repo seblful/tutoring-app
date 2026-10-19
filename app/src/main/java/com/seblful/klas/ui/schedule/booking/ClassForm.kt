@@ -36,7 +36,7 @@ data class SubjectKey(val target: ClassTarget, val studentId: Long?, val groupId
 /**
  * The class-booking form. A new booking uses the schedule's selected day when opened from there;
  * otherwise the date starts empty. The start time is chosen by the user (the picker opens on the
- * next whole hour, see [ClassEditViewModel.startPickerDefault]).
+ * next whole hour, see [BookingForm.startPickerDefault]).
  *
  * **A lesson is a start and a length**, which is what the database row is ([TutoringClass.start] and
  * [TutoringClass.durationMinutes]) and what [Scheduling.Slot] is. The end is derived for display
