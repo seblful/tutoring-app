@@ -1,7 +1,5 @@
 package com.seblful.klas.ui.homework
 
-import android.content.Context
-import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +45,7 @@ import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.ChoiceField
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.ExternalTarget
 import com.seblful.klas.ui.common.KeepTypedInput
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.Messages
@@ -59,7 +57,7 @@ import com.seblful.klas.ui.common.SwipeToConfirmBox
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.insetRowPress
-import com.seblful.klas.ui.common.launchExternally
+import com.seblful.klas.ui.common.rememberExternalApps
 import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.swipeAction
 import com.seblful.klas.ui.common.timeText
@@ -473,14 +471,14 @@ private const val HomeworkDialogLines = 3
  */
 @Composable
 fun SendHomeworkButton(row: HomeworkRow, messages: Messages) {
-    val context = LocalContext.current
+    val externalApps = rememberExternalApps(messages)
     val text = homeworkShareText(row)
     val chooserTitle = stringResource(R.string.homework_send)
     val failed = stringResource(R.string.student_contact_failed)
     NamedIconButton(
         Icons.Filled.Share,
         chooserTitle,
-        onClick = { sendHomework(context, text, chooserTitle, failed, messages) },
+        onClick = { externalApps.open(ExternalTarget.ShareText(text, chooserTitle), failed) },
         tint = MaterialTheme.colorScheme.primary,
     )
 }
@@ -494,11 +492,3 @@ fun homeworkShareText(row: HomeworkRow): String =
     row.lessonAt
         ?.let { stringResource(R.string.homework_share_due, it.formatDate(), row.text) }
         ?: stringResource(R.string.homework_share, row.text)
-
-private fun sendHomework(context: Context, text: String, chooserTitle: String, failed: String, messages: Messages) {
-    val send = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(Intent.EXTRA_TEXT, text)
-    }
-    launchExternally(context, Intent.createChooser(send, chooserTitle), failed, messages)
-}

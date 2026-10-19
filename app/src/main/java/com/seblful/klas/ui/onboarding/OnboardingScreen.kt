@@ -1,9 +1,6 @@
 package com.seblful.klas.ui.onboarding
 
-import android.net.Uri
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -70,8 +67,8 @@ import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.currencyLabel
 import com.seblful.klas.ui.common.languageLabel
-import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.rememberOpenDocument
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.students.StudentFormContent
 import com.seblful.klas.ui.students.StudentFormViewModel
@@ -127,7 +124,7 @@ fun OnboardingScreen(
     val subjects by viewModel.subjects.collectAsState()
     val locale by viewModel.locale.collectAsState()
     var addingSubject by rememberSaveable { mutableStateOf(false) }
-    var confirmRestoreUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    var confirmRestore by rememberSaveable { mutableStateOf<String?>(null) }
     val messages = rememberMessages()
     val noPickerMsg = stringResource(R.string.student_contact_failed)
 
@@ -168,15 +165,12 @@ fun OnboardingScreen(
         }
     }
 
-    val restoreLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri ->
+    val restore = rememberOpenDocument(noPickerMsg, messages) { document ->
         // Whether a restore here would destroy anything is `restoreNeedsConfirming`'s — an import is a
         // full replace, and what that costs is a fact about the backup rather than about this screen.
-        if (uri != null) {
-            if (viewModel.restoreNeedsConfirming()) confirmRestoreUri = uri
-            else backupViewModel.import(DocumentRef(uri.toString()))
-        }
+        // The handle is kept as its string: it survives rotation in a saveable, which a value class does not.
+        if (viewModel.restoreNeedsConfirming()) confirmRestore = document.value
+        else backupViewModel.import(document)
     }
 
     // Every step but the first goes back one, so the welcome step's choices (restore, skip) stay
@@ -265,7 +259,7 @@ fun OnboardingScreen(
                         // above the buttons that has to describe all three at once.
                         Caption(stringResource(R.string.onboarding_welcome_desc))
                         OutlinedButton(
-                            onClick = { restoreLauncher.launchExternally(BACKUP_MIME_TYPES, noPickerMsg, messages) },
+                            onClick = { restore(BACKUP_MIME_TYPES) },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Icon(Icons.Filled.Download, null)
@@ -403,10 +397,10 @@ fun OnboardingScreen(
         SubjectNameDialog(onConfirm = { viewModel.addSubject(it) }, onDismiss = { addingSubject = false })
     }
 
-    confirmRestoreUri?.let { uri ->
+    confirmRestore?.let { document ->
         ConfirmRestoreDialog(
-            onConfirm = { backupViewModel.import(DocumentRef(uri.toString())) },
-            onDismiss = { confirmRestoreUri = null },
+            onConfirm = { backupViewModel.import(DocumentRef(document)) },
+            onDismiss = { confirmRestore = null },
         )
     }
 }

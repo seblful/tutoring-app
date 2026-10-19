@@ -22,6 +22,11 @@ it draws with.
   the guarded-write tail is `appScope.write(events, failure)` (application scope + `runCatchingCancellable`
   + failure event), and a write the screen waits on is `appScope.writeAwaited { }` — both in
   `ui/common/state/Writes.kt`. The homework writes the tab and both cards share are `ui/homework/HomeworkActions`.
+- **A screen names no `Intent` or `Uri`**: another app is opened with `rememberExternalApps(messages)` and an
+  `ExternalTarget` (dial, mail, Telegram, share text), a file with `rememberCreateDocument` /
+  `rememberOpenDocument`, which answer a `DocumentRef` (`ui/common/ExternalApp.kt`, `DocumentPickers.kt`).
+  Both say so in the snackbar when no app or picker can. Only the system's own settings pages
+  (`ui/more/SettingsRows.kt`) and the permission prompts stay Android-shaped.
 - One-shot outcomes report through one snackbar helper (`ui/common/Messages`) — no `Toast`. A message
   about a save that closes its screen is lost with the screen, so such a form asks *before* saving instead.
 - Turning the phone or resizing its window is handled in place (`configChanges` on `MainActivity`), so an

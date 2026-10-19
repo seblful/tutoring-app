@@ -1,7 +1,5 @@
 package com.seblful.klas.ui.backup
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,8 +37,9 @@ import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.SkeletonBlock
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.insetRowPress
-import com.seblful.klas.ui.common.launchExternally
+import com.seblful.klas.ui.common.rememberCreateDocument
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.rememberOpenDocument
 import com.seblful.klas.ui.common.state.Loadable
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlin.time.Instant
@@ -58,7 +57,7 @@ fun BackupScreen(
     viewModel: BackupViewModel = metroViewModel(),
 ) {
     val messages = rememberMessages()
-    var confirmImportUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    var confirmImport by remember { mutableStateOf<DocumentRef?>(null) }
     val lastExportAt by viewModel.lastExportAt.collectAsState()
     val importing by viewModel.importing.collectAsState()
 
@@ -77,13 +76,9 @@ fun BackupScreen(
         }
     }
 
-    val exportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json"),
-    ) { uri -> uri?.let { viewModel.export(DocumentRef(it.toString())) } }
-
-    val importLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri -> confirmImportUri = uri } // confirm before replacing everything
+    val saveBackup = rememberCreateDocument("application/json", noPickerMsg, messages) { viewModel.export(it) }
+    // Confirmed before it replaces everything.
+    val openBackup = rememberOpenDocument(noPickerMsg, messages) { confirmImport = it }
 
     KlasScreen(
         title = stringResource(R.string.backup_title),
@@ -116,7 +111,7 @@ fun BackupScreen(
                 supportingContent = { Text(stringResource(R.string.backup_export_desc)) },
                 modifier = Modifier.insetRowPress { source ->
                     Modifier.clickable(source, indication = null, enabled = !importing) {
-                        exportLauncher.launchExternally(backupFilename, noPickerMsg, messages)
+                        saveBackup(backupFilename)
                     }
                 },
             )
@@ -128,17 +123,17 @@ fun BackupScreen(
                 },
                 modifier = Modifier.insetRowPress { source ->
                     Modifier.clickable(source, indication = null, enabled = !importing) {
-                        importLauncher.launchExternally(BACKUP_MIME_TYPES, noPickerMsg, messages)
+                        openBackup(BACKUP_MIME_TYPES)
                     }
                 },
             )
         }
     }
 
-    confirmImportUri?.let { uri ->
+    confirmImport?.let { document ->
         ConfirmRestoreDialog(
-            onConfirm = { viewModel.import(DocumentRef(uri.toString())) },
-            onDismiss = { confirmImportUri = null },
+            onConfirm = { viewModel.import(document) },
+            onDismiss = { confirmImport = null },
         )
     }
 }

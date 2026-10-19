@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.students
 
-import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,7 +33,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Student
@@ -240,23 +238,4 @@ private fun ContactMenuItem(
         leadingIcon = { Icon(icon, contentDescription = null) },
         onClick = onClick,
     )
-}
-
-internal fun dialIntent(phone: String): Intent =
-    Intent(Intent.ACTION_DIAL, "tel:${phone.filterNot { it.isWhitespace() }}".toUri())
-
-internal fun mailIntent(email: String): Intent =
-    Intent(Intent.ACTION_SENDTO, "mailto:$email".toUri())
-
-/**
- * Telegram by phone number, through the public `t.me` deep link.
- *
- * `https://t.me/+<number>` opens the app when it is installed and the browser when it is not, which
- * is the right behaviour either way — the alternative, an app-specific `tg://` scheme, fails hard on
- * a phone without Telegram. The number is stripped to digits and a leading `+`: `t.me` takes it in
- * international form, and the tutor types it however they like (the form pre-fills «+375 »).
- */
-internal fun telegramIntent(phone: String): Intent {
-    val digits = phone.filter { it.isDigit() }
-    return Intent(Intent.ACTION_VIEW, "https://t.me/+$digits".toUri())
 }

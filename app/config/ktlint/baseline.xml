@@ -81,7 +81,7 @@
         <error line="127" column="26" source="standard:wrapping" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/backup/BackupScreen.kt">
-        <error line="208" column="104" source="standard:trailing-comma-on-call-site" />
+        <error line="203" column="104" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/backup/BackupViewModel.kt">
         <error line="57" column="5" source="standard:kdoc" />
@@ -143,11 +143,6 @@
     <file name="src/main/java/com/seblful/klas/ui/common/state/ScreenState.kt">
         <error line="12" column="1" source="standard:kdoc" />
     </file>
-    <file name="src/main/java/com/seblful/klas/ui/diagnostics/DiagnosticsScreen.kt">
-        <error line="96" column="46" source="standard:function-literal" />
-        <error line="96" column="119" source="standard:function-literal" />
-        <error line="96" column="121" source="standard:max-line-length" />
-    </file>
     <file name="src/main/java/com/seblful/klas/ui/groups/GroupDetailViewModel.kt">
         <error line="201" column="121" source="standard:max-line-length" />
     </file>
@@ -164,13 +159,13 @@
         <error line="378" column="1" source="standard:no-blank-line-before-rbrace" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/homework/HomeworkParts.kt">
-        <error line="337" column="55" source="standard:function-literal" />
-        <error line="337" column="73" source="standard:function-literal" />
-        <error line="337" column="90" source="standard:function-literal" />
-        <error line="337" column="92" source="standard:function-literal" />
-        <error line="337" column="121" source="standard:function-literal" />
-        <error line="337" column="121" source="standard:max-line-length" />
-        <error line="337" column="123" source="standard:function-literal" />
+        <error line="335" column="55" source="standard:function-literal" />
+        <error line="335" column="73" source="standard:function-literal" />
+        <error line="335" column="90" source="standard:function-literal" />
+        <error line="335" column="92" source="standard:function-literal" />
+        <error line="335" column="121" source="standard:function-literal" />
+        <error line="335" column="121" source="standard:max-line-length" />
+        <error line="335" column="123" source="standard:function-literal" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/more/AboutScreen.kt">
         <error line="3" column="1" source="standard:import-ordering" />
@@ -183,7 +178,7 @@
         <error line="365" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/onboarding/OnboardingScreen.kt">
-        <error line="102" column="15" source="standard:trailing-comma-on-declaration-site" />
+        <error line="99" column="15" source="standard:trailing-comma-on-declaration-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/people/PeopleScreen.kt">
         <error line="94" column="49" source="standard:trailing-comma-on-call-site" />
@@ -198,12 +193,12 @@
         <error line="556" column="22" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/students/StudentDetailScreen.kt">
-        <error line="474" column="14" source="standard:trailing-comma-on-call-site" />
-        <error line="615" column="47" source="standard:function-literal" />
-        <error line="615" column="91" source="standard:function-literal" />
-        <error line="615" column="121" source="standard:function-literal" />
-        <error line="615" column="121" source="standard:max-line-length" />
-        <error line="615" column="123" source="standard:function-literal" />
+        <error line="475" column="14" source="standard:trailing-comma-on-call-site" />
+        <error line="616" column="47" source="standard:function-literal" />
+        <error line="616" column="91" source="standard:function-literal" />
+        <error line="616" column="121" source="standard:function-literal" />
+        <error line="616" column="121" source="standard:max-line-length" />
+        <error line="616" column="123" source="standard:function-literal" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/theme/Theme.kt">
         <error line="150" column="36" source="standard:annotation" />

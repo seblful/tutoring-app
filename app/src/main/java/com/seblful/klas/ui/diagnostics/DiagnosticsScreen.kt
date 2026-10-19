@@ -1,7 +1,5 @@
 package com.seblful.klas.ui.diagnostics
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,14 +26,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import com.seblful.klas.R
-import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.launchExternally
+import com.seblful.klas.ui.common.rememberCreateDocument
 import com.seblful.klas.ui.common.rememberMessages
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
@@ -61,9 +58,7 @@ fun DiagnosticsScreen(
         }
     }
 
-    val exportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("text/plain"),
-    ) { uri -> uri?.let { viewModel.export(DocumentRef(it.toString())) } }
+    val export = rememberCreateDocument("text/plain", noPickerMsg, messages) { viewModel.export(it) }
 
     KlasScreen(
         title = stringResource(R.string.diagnostics_title),
@@ -93,7 +88,7 @@ fun DiagnosticsScreen(
                 Spacer(Modifier.weight(1f))
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-                    OutlinedButton(onClick = { exportLauncher.launchExternally(exportFilename, noPickerMsg, messages) }) {
+                    OutlinedButton(onClick = { export(exportFilename) }) {
                         Text(stringResource(R.string.diagnostics_export))
                     }
                     OutlinedButton(onClick = { confirmingClear = true }) {

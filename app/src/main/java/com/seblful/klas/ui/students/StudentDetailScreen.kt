@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.students
 
-import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -54,6 +53,7 @@ import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.ExternalTarget
 import com.seblful.klas.ui.common.HeroCard
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LessonKindIcon
@@ -72,8 +72,8 @@ import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.detailCard
 import com.seblful.klas.ui.common.earnedStat
 import com.seblful.klas.ui.common.insetRowPress
-import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.lessonsStat
+import com.seblful.klas.ui.common.rememberExternalApps
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRejectFeedback
 import com.seblful.klas.ui.common.state.Loadable
@@ -153,6 +153,7 @@ private fun StudentCard(
     var openedHomework by remember { mutableStateOf<HomeworkRow?>(null) }
 
     val messages = rememberMessages()
+    val externalApps = rememberExternalApps(messages)
     val context = LocalContext.current
     val noAppMsg = stringResource(R.string.student_contact_failed)
 
@@ -217,11 +218,11 @@ private fun StudentCard(
                     student = student,
                     // The same three launches the contact block makes, through the same guard: a tablet
                     // with no dialler must not crash the card.
-                    onCall = { phone -> launchExternally(context, dialIntent(phone), noAppMsg, messages) },
+                    onCall = { phone -> externalApps.open(ExternalTarget.Dial(phone), noAppMsg) },
                     onTelegram = { phone ->
-                        launchExternally(context, telegramIntent(phone), noAppMsg, messages)
+                        externalApps.open(ExternalTarget.Telegram(phone), noAppMsg)
                     },
-                    onEmail = { email -> launchExternally(context, mailIntent(email), noAppMsg, messages) },
+                    onEmail = { email -> externalApps.open(ExternalTarget.Email(email), noAppMsg) },
                     // Whether archiving is worth asking about, and what the question would have
                     // to say, are both `state.archiveIntent`'s — see [ArchiveIntent].
                     onArchive = {
@@ -250,13 +251,13 @@ private fun StudentCard(
                             ContactBlock(
                                 student = it,
                                 onCall = { phone ->
-                                    launchExternally(context, dialIntent(phone), noAppMsg, messages)
+                                    externalApps.open(ExternalTarget.Dial(phone), noAppMsg)
                                 },
                                 onEmail = { email ->
-                                    launchExternally(context, mailIntent(email), noAppMsg, messages)
+                                    externalApps.open(ExternalTarget.Email(email), noAppMsg)
                                 },
                                 onTelegram = { phone ->
-                                    launchExternally(context, telegramIntent(phone), noAppMsg, messages)
+                                    externalApps.open(ExternalTarget.Telegram(phone), noAppMsg)
                                 },
                                 modifier = Modifier.padding(
                                     horizontal = Spacing.gutter,

@@ -1,7 +1,5 @@
 package com.seblful.klas.ui.reports
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -67,7 +65,6 @@ import com.seblful.klas.domain.reports.ReportPeriod
 import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatMonthName
-import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.HeroCard
 import com.seblful.klas.ui.common.KlasScreen
@@ -82,11 +79,11 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.StatRow
 import com.seblful.klas.ui.common.TickedMenuItem
 import com.seblful.klas.ui.common.hoursStat
-import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.lessonKindFill
 import com.seblful.klas.ui.common.lessonKindLabel
 import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.outsetRowPress
+import com.seblful.klas.ui.common.rememberCreateDocument
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
@@ -170,10 +167,8 @@ fun ReportsScreen(
     val csvLines = remember(exportable, csvHeadings) {
         exportable?.let { ReportCsv.linesFor(it, csvHeadings) }.orEmpty()
     }
-    val exportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument(CSV_MIME_TYPE),
-    ) { uri ->
-        if (uri != null) viewModel.export(DocumentRef(uri.toString()), csvHeader, csvLines)
+    val export = rememberCreateDocument(CSV_MIME_TYPE, noPickerMsg, messages) { document ->
+        viewModel.export(document, csvHeader, csvLines)
     }
     val exportFilename = stringResource(R.string.reports_export_filename)
     // Names the period, so a report arriving in somebody's mail says which month it is.
@@ -207,7 +202,7 @@ fun ReportsScreen(
                     Icons.Filled.FileDownload,
                     stringResource(R.string.reports_export),
                     onClick = {
-                        if (exportable != null) exportLauncher.launchExternally(exportFilename, noPickerMsg, messages)
+                        if (exportable != null) export(exportFilename)
                     },
                 )
             }

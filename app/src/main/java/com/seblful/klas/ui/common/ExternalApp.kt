@@ -2,7 +2,73 @@ package com.seblful.klas.ui.common
 
 import android.content.Context
 import android.content.Intent
-import androidx.activity.result.ActivityResultLauncher
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
+
+/**
+ * Something the tutor tapped that another app does — said as *what*, not as an Android `Intent`, so the
+ * screens asking for it name nothing Android-only. Which app, and how it is asked, is `toIntent`'s.
+ */
+sealed interface ExternalTarget {
+
+    /** The dialler with [phone] filled in, not yet called. */
+    data class Dial(val phone: String) : ExternalTarget
+
+    /** A new mail to [address]. */
+    data class Email(val address: String) : ExternalTarget
+
+    /**
+     * Telegram by phone number, through the public `t.me` deep link.
+     *
+     * `https://t.me/+<number>` opens the app when it is installed and the browser when it is not, which
+     * is the right behaviour either way — the alternative, an app-specific `tg://` scheme, fails hard on
+     * a phone without Telegram. The number is stripped to digits and a leading `+`: `t.me` takes it in
+     * international form, and the tutor types it however they like (the form pre-fills «+375 »).
+     */
+    data class Telegram(val phone: String) : ExternalTarget
+
+    /** [text] into the phone's share sheet, titled [chooserTitle]. */
+    data class ShareText(val text: String, val chooserTitle: String) : ExternalTarget
+}
+
+/** The dialler's address for [phone]: spaces out, the rest as typed. */
+fun dialUri(phone: String): String = "tel:${phone.filterNot { it.isWhitespace() }}"
+
+fun mailUri(address: String): String = "mailto:$address"
+
+/** See [ExternalTarget.Telegram] for why `t.me` and why digits only. */
+fun telegramUri(phone: String): String = "https://t.me/+${phone.filter { it.isDigit() }}"
+
+/** How Android is asked for [this]: the dialler and a new mail by their own actions, not a generic view. */
+internal fun ExternalTarget.toIntent(): Intent = when (this) {
+    is ExternalTarget.Dial -> Intent(Intent.ACTION_DIAL, dialUri(phone).toUri())
+    is ExternalTarget.Email -> Intent(Intent.ACTION_SENDTO, mailUri(address).toUri())
+    is ExternalTarget.Telegram -> Intent(Intent.ACTION_VIEW, telegramUri(phone).toUri())
+    is ExternalTarget.ShareText -> Intent.createChooser(
+        Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+        },
+        chooserTitle,
+    )
+}
+
+/** Opens [ExternalTarget]s from a screen, saying the failure message in its snackbar when no app can. */
+fun interface ExternalApps {
+    fun open(target: ExternalTarget, failureMessage: String)
+}
+
+@Composable
+fun rememberExternalApps(messages: Messages): ExternalApps {
+    val context = LocalContext.current
+    return remember(context, messages) {
+        ExternalApps { target, failureMessage ->
+            launchExternally(context, target.toIntent(), failureMessage, messages)
+        }
+    }
+}
 
 /**
  * Hands something off to whichever app the platform says handles it — **guarded**, because on a real
@@ -13,13 +79,8 @@ import androidx.activity.result.ActivityResultLauncher
  * unhandled one is a crash in the middle of an ordinary tap. It says so in the screen's own snackbar
  * instead.
  *
- * Here in `ui/common/` rather than private to a screen because two screens now reach outside the app —
- * the student card's phone, email and Telegram actions, and the settings screen's way into the system
- * notification page. The same argument that moved `AddRow`: the second caller must not have to re-derive
- * the guard, since the whole point of it is the case nobody remembers to test.
- *
- * A screen-level function and not a view model's: it needs a `Context`, and a view model in this app
- * touches no `Context`, `Intent` or `Uri` (see `storage/`).
+ * Called directly only by the settings screen, for the system's own settings pages, which exist on Android
+ * alone; everything else goes through [rememberExternalApps].
  */
 fun launchExternally(
     context: Context,
@@ -28,13 +89,4 @@ fun launchExternally(
     messages: Messages,
 ) {
     runCatching { context.startActivity(intent) }.onFailure { messages.show(failureMessage) }
-}
-
-/**
- * [launchExternally] for a system picker reached through an `ActivityResultLauncher` — the file picker
- * behind «Экспорт», «Импорт» and the CSV and crash-log saves. An OEM build can ship without one, or the
- * tutor can switch it off, and `launch` then throws the same `ActivityNotFoundException` a tap would crash on.
- */
-fun <I> ActivityResultLauncher<I>.launchExternally(input: I, failureMessage: String, messages: Messages) {
-    runCatching { launch(input) }.onFailure { messages.show(failureMessage) }
 }
