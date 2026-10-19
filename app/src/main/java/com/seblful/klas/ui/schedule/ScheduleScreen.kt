@@ -13,10 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.EventBusy
-import androidx.compose.material.icons.outlined.PersonAddAlt
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -61,6 +57,7 @@ import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.navigation.Arrival
+import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -226,7 +223,7 @@ fun ScheduleScreen(
                     }
                 },
             ) {
-                Icon(Icons.Filled.Add, stringResource(R.string.schedule_add_class))
+                Icon(KlasIcons.Filled.Add, stringResource(R.string.schedule_add_class))
             }
         },
     ) { modifier ->
@@ -540,7 +537,7 @@ private fun ScheduleEmptyState(
         ScheduleEmpty.FILTERED -> EmptyState(
             title = stringResource(R.string.schedule_filter_empty),
             detail = stringResource(R.string.schedule_filter_empty_detail),
-            icon = Icons.Outlined.EventBusy,
+            icon = KlasIcons.Outlined.EventBusy,
             modifier = modifier,
         )
 
@@ -552,7 +549,7 @@ private fun ScheduleEmptyState(
                 },
             ),
             detail = stringResource(R.string.schedule_empty_detail),
-            icon = Icons.Outlined.EventBusy,
+            icon = KlasIcons.Outlined.EventBusy,
             actionLabel = stringResource(R.string.schedule_add_class),
             onAction = onAddClass,
             modifier = modifier,
@@ -561,7 +558,7 @@ private fun ScheduleEmptyState(
         ScheduleEmpty.NEEDS_STUDENT -> EmptyState(
             title = stringResource(R.string.schedule_empty_no_setup),
             detail = stringResource(R.string.schedule_empty_no_setup_detail),
-            icon = Icons.Outlined.PersonAddAlt,
+            icon = KlasIcons.Outlined.PersonAdd,
             actionLabel = stringResource(R.string.schedule_add_student),
             onAction = onAddStudent,
             modifier = modifier,

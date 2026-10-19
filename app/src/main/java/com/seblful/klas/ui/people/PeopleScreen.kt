@@ -2,10 +2,6 @@ package com.seblful.klas.ui.people
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -33,6 +29,7 @@ import com.seblful.klas.ui.groups.GroupsViewModel
 import com.seblful.klas.ui.students.StudentSort
 import com.seblful.klas.ui.students.StudentsList
 import com.seblful.klas.ui.students.StudentsViewModel
+import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 /** The two ways of looking at the same people: one at a time, or taught together. */
@@ -105,7 +102,7 @@ fun PeopleScreen(
             // archive was showing — «Показать архив» was read the same either way.
             HoldToName(stringResource(R.string.students_show_archived)) {
                 IconToggleButton(checked = archived, onCheckedChange = { side.toggleArchived() }) {
-                    Icon(Icons.Filled.Inventory2, stringResource(R.string.students_show_archived))
+                    Icon(KlasIcons.Filled.Inventory2, stringResource(R.string.students_show_archived))
                 }
             }
         },
@@ -115,7 +112,7 @@ fun PeopleScreen(
             ) {
                 // Named for what it adds, which the side decides: a bare «Добавить» said neither.
                 Icon(
-                    Icons.Filled.Add,
+                    KlasIcons.Filled.Add,
                     stringResource(if (tab == PeopleTab.STUDENTS) R.string.students_add else R.string.groups_add),
                 )
             }
@@ -166,7 +163,7 @@ private fun SortMenu(selected: StudentSort, onSelect: (StudentSort) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         NamedIconButton(
-            Icons.AutoMirrored.Filled.Sort,
+            KlasIcons.Filled.Sort,
             stringResource(R.string.students_sort),
             onClick = { expanded = true },
             // Tinted while the list is in a non-default order, so a surprising order has a visible cause

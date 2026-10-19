@@ -15,14 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Payments
-import androidx.compose.material.icons.outlined.PhonelinkLock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -73,6 +65,7 @@ import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.students.StudentFormContent
 import com.seblful.klas.ui.students.StudentFormViewModel
 import com.seblful.klas.ui.subjects.SubjectNameDialog
+import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 /**
@@ -240,9 +233,15 @@ fun OnboardingScreen(
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.padding(bottom = Spacing.inline),
                             )
-                            ValueLine(Icons.Outlined.CalendarMonth, stringResource(R.string.onboarding_value_schedule))
-                            ValueLine(Icons.Outlined.Payments, stringResource(R.string.onboarding_value_money))
-                            ValueLine(Icons.Outlined.PhonelinkLock, stringResource(R.string.onboarding_value_offline))
+                            ValueLine(
+                                KlasIcons.Outlined.CalendarMonth,
+                                stringResource(R.string.onboarding_value_schedule),
+                            )
+                            ValueLine(KlasIcons.Outlined.Payments, stringResource(R.string.onboarding_value_money))
+                            ValueLine(
+                                KlasIcons.Outlined.PhonelinkLock,
+                                stringResource(R.string.onboarding_value_offline),
+                            )
                         }
                     }
                     Column(
@@ -262,7 +261,7 @@ fun OnboardingScreen(
                             onClick = { restore(BACKUP_MIME_TYPES) },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Icon(Icons.Filled.Download, null)
+                            Icon(KlasIcons.Filled.Download, null)
                             Text(stringResource(R.string.onboarding_restore), Modifier.padding(start = Spacing.inline))
                         }
                         Caption(stringResource(R.string.onboarding_restore_desc))
@@ -327,7 +326,7 @@ fun OnboardingScreen(
                         onClick = { addingSubject = true },
                         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter),
                     ) {
-                        Icon(Icons.Filled.Add, null)
+                        Icon(KlasIcons.Filled.Add, null)
                         Text(stringResource(R.string.subjects_add), Modifier.padding(start = Spacing.inline))
                     }
                     // «Нет предметов» is usually the truth on this screen — it runs on a fresh install —
@@ -339,7 +338,7 @@ fun OnboardingScreen(
                     } else if (added.isEmpty()) {
                         EmptyState(
                             title = stringResource(R.string.subjects_empty),
-                            icon = Icons.AutoMirrored.Outlined.MenuBook,
+                            icon = KlasIcons.Outlined.MenuBook,
                             modifier = Modifier.weight(1f),
                         )
                     } else {
@@ -358,7 +357,7 @@ fun OnboardingScreen(
                                     trailingContent = {
                                         IconButton(onClick = { removeSubject(subject) }) {
                                             Icon(
-                                                Icons.Filled.Delete,
+                                                KlasIcons.Filled.Delete,
                                                 stringResource(R.string.action_delete),
                                             )
                                         }

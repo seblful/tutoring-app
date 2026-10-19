@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -55,13 +53,14 @@ import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.rememberToggleFeedback
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.isoDayNumber
 
 /** A row that hands over to the phone's own settings. Decorative, like [OpensScreenMark]. */
 @Composable
 internal fun LeavesAppMark() {
-    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)
+    Icon(KlasIcons.Filled.OpenInNew, contentDescription = null)
 }
 
 /**

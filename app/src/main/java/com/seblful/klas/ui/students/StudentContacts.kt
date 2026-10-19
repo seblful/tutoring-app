@@ -8,14 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.MailOutline
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.outlined.MailOutline
-import androidx.compose.material.icons.outlined.Phone
-import androidx.compose.material.icons.outlined.Place
-import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -44,6 +36,7 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * Who the student is and how to reach them.
@@ -71,14 +64,14 @@ internal fun ContactBlock(
         }
         Phone.contactOf(student.phone)?.let { phone ->
             ContactRow(
-                icon = Icons.Outlined.Phone,
+                icon = KlasIcons.Outlined.Call,
                 text = phone,
                 actionLabel = stringResource(R.string.student_call),
                 onClick = { onCall(phone) },
                 trailing = {
                     IconButton(onClick = { onTelegram(phone) }) {
                         Icon(
-                            Icons.AutoMirrored.Filled.Send,
+                            KlasIcons.Filled.Send,
                             stringResource(R.string.student_write_telegram),
                             tint = MaterialTheme.colorScheme.primary,
                         )
@@ -88,7 +81,7 @@ internal fun ContactBlock(
         }
         if (student.email.isNotBlank()) {
             ContactRow(
-                icon = Icons.Outlined.MailOutline,
+                icon = KlasIcons.Outlined.Mail,
                 text = student.email,
                 actionLabel = stringResource(R.string.student_write_email),
                 onClick = { onEmail(student.email) },
@@ -121,8 +114,8 @@ private fun ModeRow(mode: ClassMode) {
     ) {
         Icon(
             when (mode) {
-                ClassMode.IN_PERSON -> Icons.Outlined.Place
-                ClassMode.REMOTE -> Icons.Outlined.Videocam
+                ClassMode.IN_PERSON -> KlasIcons.Outlined.LocationOn
+                ClassMode.REMOTE -> KlasIcons.Outlined.Videocam
             },
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -203,19 +196,19 @@ internal fun StudentOverflowMenu(
         if (phone != null) {
             ContactMenuItem(
                 label = stringResource(R.string.student_call),
-                icon = Icons.Filled.Phone,
+                icon = KlasIcons.Filled.Call,
                 onClick = { close(); onCall(phone) },
             )
             ContactMenuItem(
                 label = stringResource(R.string.student_write_telegram),
-                icon = Icons.AutoMirrored.Filled.Send,
+                icon = KlasIcons.Filled.Send,
                 onClick = { close(); onTelegram(phone) },
             )
         }
         if (student.email.isNotBlank()) {
             ContactMenuItem(
                 label = stringResource(R.string.student_write_email),
-                icon = Icons.Filled.MailOutline,
+                icon = KlasIcons.Outlined.Mail,
                 onClick = { close(); onEmail(student.email) },
             )
         }

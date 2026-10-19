@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +26,7 @@ import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.semantics.Role
 import com.seblful.klas.format.bulletJoin
+import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * A header that **stays** while a list scrolls under it — and only looks like a band while it does.
@@ -103,7 +102,11 @@ fun <T> StickyViewMenu(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(start = Spacing.inline),
                 )
-                Icon(Icons.Filled.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Icon(
+                    KlasIcons.Filled.ArrowDropDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { option ->

@@ -69,7 +69,7 @@ class KlasScreenSurfaceTest {
     fun `only KlasScreen draws the back arrow`() {
         val offenders = uiSources()
             .filterNot { it.name == "KlasScreen.kt" }
-            .filter { code(it).contains("ArrowBack") }
+            .filter { code(it).contains("KlasIcons.Filled.ArrowBack") }
             .map { it.name }
 
         assertEquals(

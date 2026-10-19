@@ -6,10 +6,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Assignment
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -38,6 +34,7 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 /** The tab's two lists: what is set and not done yet, and what is done. */
@@ -109,7 +106,7 @@ fun HomeworkScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = ::add) {
-                Icon(Icons.Filled.Add, stringResource(R.string.homework_add))
+                Icon(KlasIcons.Filled.Add, stringResource(R.string.homework_add))
             }
         },
     ) { modifier ->
@@ -187,7 +184,7 @@ private fun HomeworkList(
         EmptyState(
             title = stringResource(R.string.homework_filter_empty, filterName),
             detail = stringResource(R.string.homework_filter_empty_detail),
-            icon = Icons.AutoMirrored.Outlined.Assignment,
+            icon = KlasIcons.Outlined.Assignment,
         )
         return
     }
@@ -196,14 +193,14 @@ private fun HomeworkList(
             HomeworkSide.CURRENT -> EmptyState(
                 title = stringResource(R.string.homework_empty_current),
                 detail = stringResource(R.string.homework_empty_current_detail),
-                icon = Icons.AutoMirrored.Outlined.Assignment,
+                icon = KlasIcons.Outlined.Assignment,
                 actionLabel = stringResource(R.string.homework_add),
                 onAction = onAdd,
             )
             HomeworkSide.ARCHIVE -> EmptyState(
                 title = stringResource(R.string.homework_empty_archive),
                 detail = stringResource(R.string.homework_empty_archive_detail),
-                icon = Icons.Outlined.Inventory2,
+                icon = KlasIcons.Outlined.Inventory2,
             )
         }
         return

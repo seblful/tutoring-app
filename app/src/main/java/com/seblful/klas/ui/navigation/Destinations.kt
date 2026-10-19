@@ -1,20 +1,10 @@
 package com.seblful.klas.ui.navigation
 
 import androidx.annotation.StringRes
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Assignment
-import androidx.compose.material.icons.automirrored.outlined.Assignment
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.outlined.BarChart
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.MoreHoriz
-import androidx.compose.material.icons.outlined.People
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavBackStackEntry
 import com.seblful.klas.R
+import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.LocalDate
 
 /** Route constants for the whole app. */
@@ -98,16 +88,16 @@ enum class TopDestination(
      */
     val iconOutlined: ImageVector,
 ) {
-    PEOPLE(Routes.PEOPLE, R.string.nav_people, Icons.Filled.People, Icons.Outlined.People),
+    PEOPLE(Routes.PEOPLE, R.string.nav_people, KlasIcons.Filled.Group, KlasIcons.Outlined.Group),
     HOMEWORK(
         Routes.HOMEWORK,
         R.string.nav_homework,
-        Icons.AutoMirrored.Filled.Assignment,
-        Icons.AutoMirrored.Outlined.Assignment,
+        KlasIcons.Filled.Assignment,
+        KlasIcons.Outlined.Assignment,
     ),
-    SCHEDULE(Routes.SCHEDULE, R.string.nav_schedule, Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
-    REPORTS(Routes.REPORTS, R.string.nav_reports, Icons.Filled.BarChart, Icons.Outlined.BarChart),
-    MORE(Routes.MORE, R.string.nav_more, Icons.Filled.MoreHoriz, Icons.Outlined.MoreHoriz),
+    SCHEDULE(Routes.SCHEDULE, R.string.nav_schedule, KlasIcons.Filled.CalendarMonth, KlasIcons.Outlined.CalendarMonth),
+    REPORTS(Routes.REPORTS, R.string.nav_reports, KlasIcons.Filled.BarChart, KlasIcons.Outlined.BarChart),
+    MORE(Routes.MORE, R.string.nav_more, KlasIcons.Filled.MoreHoriz, KlasIcons.Outlined.MoreHoriz),
     ;
 
     companion object {

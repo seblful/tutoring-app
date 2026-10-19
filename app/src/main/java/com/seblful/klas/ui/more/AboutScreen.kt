@@ -3,15 +3,13 @@ package com.seblful.klas.ui.more
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -30,13 +28,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
-import com.seblful.klas.ui.common.KlasScreen
-import com.seblful.klas.ui.common.NoticeDialog
 import com.seblful.klas.ui.common.KlasLogo
+import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.KlasWordmark
 import com.seblful.klas.ui.common.MinTouchTarget
+import com.seblful.klas.ui.common.NoticeDialog
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * What the app is and which build of it this is.
@@ -114,7 +113,7 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
                         // Filled: it is a button's glyph, and the app's rule is filled for actions,
                         // outlined for art. «Ещё»'s row uses the outlined one for the same screen,
                         // correctly — that is a leading picture, this is the thing being pressed.
-                        Icon(Icons.Filled.Save, contentDescription = null)
+                        Icon(KlasIcons.Filled.Save, contentDescription = null)
                         Text(
                             stringResource(R.string.more_backup),
                             Modifier.padding(start = Spacing.inline),

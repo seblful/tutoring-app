@@ -4,9 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -23,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
+import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * The app bar's way into narrowing a list to one of [options] — the schedule to a student, «Задания» to
@@ -55,7 +53,7 @@ fun <T> FilterMenuAction(
 ) {
     var open by remember { mutableStateOf(false) }
     Box {
-        NamedIconButton(Icons.Filled.FilterList, name, onClick = { open = true })
+        NamedIconButton(KlasIcons.Filled.FilterList, name, onClick = { open = true })
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             TickedMenuItem(
                 text = allLabel,
@@ -95,7 +93,7 @@ fun FilterChipRow(name: String, onClear: () -> Unit) {
             label = { Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
             trailingIcon = {
                 Icon(
-                    Icons.Filled.Close,
+                    KlasIcons.Filled.Close,
                     stringResource(R.string.schedule_filter_clear),
                     Modifier.size(InputChipDefaults.IconSize),
                 )

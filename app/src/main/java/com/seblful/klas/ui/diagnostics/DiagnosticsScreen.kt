@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +32,7 @@ import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.rememberCreateDocument
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,7 +79,7 @@ fun DiagnosticsScreen(
                 // description above it.
                 EmptyState(
                     title = stringResource(R.string.diagnostics_empty),
-                    icon = Icons.Outlined.CheckCircle,
+                    icon = KlasIcons.Outlined.CheckCircle,
                     compact = true,
                 )
                 // Nothing claims the leftover height, so this is what keeps the debug button at the

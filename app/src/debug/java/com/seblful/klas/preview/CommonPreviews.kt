@@ -2,8 +2,6 @@ package com.seblful.klas.preview
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +19,7 @@ import com.seblful.klas.ui.common.StatRow
 import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
+import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * The shared vocabulary of `ui/common`, drawn so it can be looked at.
@@ -134,7 +133,7 @@ private fun EmptyStatePreview() = PreviewSurface {
     EmptyState(
         title = "Пока нет учеников",
         detail = "Добавьте первого ученика, чтобы начать вести занятия",
-        icon = Icons.Outlined.Groups,
+        icon = KlasIcons.Outlined.Groups,
         actionLabel = "Добавить ученика",
         onAction = {},
         compact = true,
@@ -142,7 +141,7 @@ private fun EmptyStatePreview() = PreviewSurface {
     EmptyState(
         title = "На этот день занятий нет",
         detail = "Выберите другой день или запишите занятие",
-        icon = Icons.Outlined.Groups,
+        icon = KlasIcons.Outlined.Groups,
     )
 }
 

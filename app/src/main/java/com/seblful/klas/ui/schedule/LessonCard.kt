@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyItemScope
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +34,7 @@ import com.seblful.klas.ui.common.lessonBadgeLabel
 import com.seblful.klas.ui.common.popsOnChange
 import com.seblful.klas.ui.common.swipeAction
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasColors
 
 /**
@@ -78,7 +77,7 @@ internal fun LazyItemScope.SwipeToCompleteCard(
         // (see `classStatusColor`).
         reveal = { armed ->
             SwipeReveal(
-                icon = Icons.Filled.CheckCircle,
+                icon = KlasIcons.Filled.CheckCircle,
                 label = classStatusLabel(LessonStatus.COMPLETED),
                 container = klasColors.successContainer,
                 content = klasColors.onSuccessContainer,

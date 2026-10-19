@@ -5,11 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Download
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Upload
-import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
@@ -41,6 +36,7 @@ import com.seblful.klas.ui.common.rememberCreateDocument
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberOpenDocument
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlin.time.Instant
 
@@ -106,7 +102,7 @@ fun BackupScreen(
                 is Loadable.Ready -> LastExportCard(loaded.value)
             }
             ListItem(
-                leadingContent = { Icon(Icons.Outlined.Upload, null) },
+                leadingContent = { Icon(KlasIcons.Outlined.Upload, null) },
                 headlineContent = { Text(stringResource(R.string.backup_export)) },
                 supportingContent = { Text(stringResource(R.string.backup_export_desc)) },
                 modifier = Modifier.insetRowPress { source ->
@@ -116,7 +112,7 @@ fun BackupScreen(
                 },
             )
             ListItem(
-                leadingContent = { Icon(Icons.Outlined.Download, null) },
+                leadingContent = { Icon(KlasIcons.Outlined.Download, null) },
                 headlineContent = { Text(stringResource(R.string.backup_import)) },
                 supportingContent = {
                     Text(stringResource(if (importing) R.string.backup_importing else R.string.backup_import_desc))
@@ -181,7 +177,7 @@ private fun LastExportCard(at: Instant?) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                if (never) Icons.Outlined.WarningAmber else Icons.Outlined.Schedule,
+                if (never) KlasIcons.Outlined.Warning else KlasIcons.Outlined.Schedule,
                 contentDescription = null,
                 tint = if (never) {
                     MaterialTheme.colorScheme.tertiary

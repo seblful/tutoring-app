@@ -10,10 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -55,6 +51,7 @@ import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberToggleFeedback
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.time.Instant
@@ -125,17 +122,17 @@ internal fun ClassActionsSheet(
             // Editing details (student/subject/price) is allowed in any status; saving a completed
             // class re-bills it so its recognized income tracks the edit (see ClassRules.rebill).
             // A group lesson edits as a whole — every member's class moves and re-bills together.
-            SheetAction(stringResource(R.string.action_edit), Icons.Filled.Edit, onClick = onEdit)
+            SheetAction(stringResource(R.string.action_edit), KlasIcons.Filled.Edit, onClick = onEdit)
             // Move (reschedule) is offered for any status: moving a lesson to the future re-plans it,
             // moving it to the past just corrects its recorded time. A group lesson moves as one.
-            SheetAction(stringResource(R.string.class_move), Icons.Filled.EditCalendar, onClick = onMove)
+            SheetAction(stringResource(R.string.class_move), KlasIcons.Filled.EditCalendar, onClick = onMove)
             // Delete is offered for any status. Deleting a completed class removes its recognized
             // income (the confirm dialog warns about this); the repository deletes the calendar
             // event and refreshes reminders regardless of status.
             HorizontalDivider(Modifier.padding(vertical = Spacing.inline))
             SheetAction(
                 stringResource(R.string.action_delete),
-                Icons.Filled.Delete,
+                KlasIcons.Filled.Delete,
                 onClick = onDelete,
                 destructive = true,
             )

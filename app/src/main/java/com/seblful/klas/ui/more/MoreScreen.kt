@@ -5,11 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Save
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Text
@@ -22,6 +17,7 @@ import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.OpensScreenMark
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.insetRowPress
+import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * The overflow section: everything that doesn't earn a tab.
@@ -47,10 +43,10 @@ fun MoreScreen(
         // the first row pushed the four things a tutor came here for halfway down the page. The brand has
         // its place in «О приложении», one row below.
         Column(modifier.verticalScroll(rememberScrollState()).padding(top = Spacing.inline)) {
-            NavigationRow(Icons.AutoMirrored.Outlined.MenuBook, stringResource(R.string.more_subjects), onSubjects)
-            NavigationRow(Icons.Outlined.Settings, stringResource(R.string.settings_title), onSettings)
-            NavigationRow(Icons.Outlined.Save, stringResource(R.string.more_backup), onBackup)
-            NavigationRow(Icons.Outlined.Info, stringResource(R.string.about_title), onAbout)
+            NavigationRow(KlasIcons.Outlined.MenuBook, stringResource(R.string.more_subjects), onSubjects)
+            NavigationRow(KlasIcons.Outlined.Settings, stringResource(R.string.settings_title), onSettings)
+            NavigationRow(KlasIcons.Outlined.Save, stringResource(R.string.more_backup), onBackup)
+            NavigationRow(KlasIcons.Outlined.Info, stringResource(R.string.about_title), onAbout)
         }
     }
 }

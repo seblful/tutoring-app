@@ -3,6 +3,7 @@ package com.seblful.klas.ui.common
 import com.seblful.klas.testutil.ProjectFiles
 import com.seblful.klas.testutil.SourceText
 import com.seblful.klas.ui.common.state.map
+import com.seblful.klas.ui.theme.KlasIcons
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -12,7 +13,7 @@ import org.junit.Test
  *
  * Four menus ticked the entry in force and two of them stopped at the picture: «Сортировка» and the
  * report's period read every entry the same way to a screen reader. [TickedMenuItem] carries both halves,
- * so a menu entry that draws the tick itself — `Icons.Filled.Check` handed to a `DropdownMenuItem` — is the
+ * so a menu entry that draws the tick itself — `KlasIcons.Filled.Check` handed to a `DropdownMenuItem` — is the
  * one that can leave the second half out.
  */
 class TickedMenuSurfaceTest {
@@ -25,7 +26,7 @@ class TickedMenuSurfaceTest {
             .filterNot { it.name == "Menus.kt" }
             .filter { file ->
                 SourceText.argumentLists(SourceText.code(file.readText()), "DropdownMenuItem(").any { args ->
-                    "Icons.Filled.Check" in args
+                    "KlasIcons.Filled.Check" in args
                 }
             }
             .map { it.name }

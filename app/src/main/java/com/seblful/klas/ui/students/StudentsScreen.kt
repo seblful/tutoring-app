@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +25,7 @@ import com.seblful.klas.ui.common.NoSearchResults
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * The students list — a **body**, without a scaffold of its own.
@@ -71,7 +70,7 @@ fun StudentsList(
             EmptyState(
                 title = stringResource(R.string.students_empty),
                 detail = stringResource(R.string.students_empty_detail),
-                icon = Icons.Outlined.Person,
+                icon = KlasIcons.Outlined.Person,
                 actionLabel = stringResource(R.string.students_add),
                 onAction = onAddStudent,
                 modifier = modifier,

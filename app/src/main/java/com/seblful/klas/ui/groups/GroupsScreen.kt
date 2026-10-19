@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +31,7 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * The groups list — a **body**, sharing a scaffold with the students list (see
@@ -65,7 +64,7 @@ fun GroupsList(
             EmptyState(
                 title = stringResource(R.string.groups_empty),
                 detail = stringResource(R.string.groups_empty_detail),
-                icon = Icons.Outlined.Groups,
+                icon = KlasIcons.Outlined.Groups,
                 actionLabel = stringResource(R.string.groups_add),
                 onAction = onAddGroup,
                 modifier = modifier,
@@ -85,7 +84,7 @@ fun GroupsList(
                 modifier = animateInPlace(),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconAvatar(Icons.Outlined.Groups)
+                    IconAvatar(KlasIcons.Outlined.Groups)
                     Spacer(Modifier.width(Spacing.leading))
                     Column(Modifier.weight(1f)) {
                         Text(row.group.name, style = MaterialTheme.typography.titleMedium)

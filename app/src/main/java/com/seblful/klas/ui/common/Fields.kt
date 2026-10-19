@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -52,6 +50,7 @@ import com.seblful.klas.R
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.format.MoneyField
+import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * The inline form fields: picking one of a few things, and the search box.
@@ -471,7 +470,7 @@ fun SearchField(
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Filled.Close, stringResource(R.string.search_clear))
+                    Icon(KlasIcons.Filled.Close, stringResource(R.string.search_clear))
                 }
             }
         },

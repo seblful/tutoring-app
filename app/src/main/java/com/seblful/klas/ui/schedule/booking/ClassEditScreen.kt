@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -55,6 +53,7 @@ import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.schedule.timeConflictText
+import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 import kotlinx.datetime.LocalDate
 
@@ -73,7 +72,7 @@ fun ClassEditScreen(
             EmptyState(
                 title = stringResource(R.string.class_gone),
                 detail = stringResource(R.string.class_gone_detail),
-                icon = Icons.Outlined.EventBusy,
+                icon = KlasIcons.Outlined.EventBusy,
                 modifier = modifier,
             )
         }

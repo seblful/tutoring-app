@@ -7,9 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -26,6 +23,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
+import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * What a list says when it has nothing in it — and, where there is one obvious thing to do, that action as a
@@ -117,12 +115,12 @@ fun EmptyState(
             // list has a row. The add button is the screen's primary; this points at the same door.
             if (compact) {
                 OutlinedButton(onClick = onAction) {
-                    Icon(Icons.Filled.Add, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
+                    Icon(KlasIcons.Filled.Add, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
                     Text(actionLabel, Modifier.padding(start = Spacing.inline))
                 }
             } else {
                 FilledTonalButton(onClick = onAction, modifier = Modifier.padding(top = Spacing.tight)) {
-                    Icon(Icons.Filled.Add, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
+                    Icon(KlasIcons.Filled.Add, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
                     Text(actionLabel, Modifier.padding(start = Spacing.inline))
                 }
             }
@@ -139,7 +137,7 @@ fun NoSearchResults(modifier: Modifier = Modifier) {
     EmptyState(
         title = stringResource(R.string.search_no_results),
         detail = stringResource(R.string.search_no_results_detail),
-        icon = Icons.Outlined.SearchOff,
+        icon = KlasIcons.Outlined.SearchOff,
         modifier = modifier,
     )
 }
@@ -164,7 +162,7 @@ fun AddRow(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
         // below it. An extra step here drew it a column to the right of every row it adds to.
         modifier = modifier.heightIn(min = MinTouchTarget),
     ) {
-        Icon(Icons.Filled.Add, contentDescription = null)
+        Icon(KlasIcons.Filled.Add, contentDescription = null)
         Text(label, Modifier.padding(start = Spacing.inline))
     }
 }

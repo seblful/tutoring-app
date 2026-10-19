@@ -2,9 +2,6 @@ package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -17,6 +14,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonKind
+import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * How the two kinds of lesson are told apart on screen — one icon, one word, one chip row, shared by
@@ -49,8 +47,8 @@ private fun lessonKindDescription(kind: LessonKind): String = stringResource(
  * lesson looks like a lesson with a missing icon rather than an individual one.
  */
 private fun lessonKindIcon(kind: LessonKind): ImageVector = when (kind) {
-    LessonKind.INDIVIDUAL -> Icons.Filled.Person
-    LessonKind.GROUP -> Icons.Filled.Groups
+    LessonKind.INDIVIDUAL -> KlasIcons.Filled.Person
+    LessonKind.GROUP -> KlasIcons.Filled.Groups
 }
 
 /**

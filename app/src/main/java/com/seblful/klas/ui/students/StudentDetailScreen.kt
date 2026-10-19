@@ -9,16 +9,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Assignment
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.EventBusy
-import androidx.compose.material.icons.outlined.Payments
-import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -83,6 +73,7 @@ import com.seblful.klas.ui.homework.CardHomeworkDialogs
 import com.seblful.klas.ui.homework.HomeworkRow
 import com.seblful.klas.ui.homework.homeworkItems
 import com.seblful.klas.ui.homework.homeworkUndo
+import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
 /**
@@ -97,15 +88,15 @@ import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
  * the homework, and the subjects and rates, which are set once and rarely looked at again.
  */
 private enum class StudentTab(val labelRes: Int, val icon: ImageVector) {
-    CLASSES(R.string.student_classes_title, Icons.Outlined.CalendarMonth),
-    PAYMENTS(R.string.student_payments_title, Icons.Outlined.Payments),
+    CLASSES(R.string.student_classes_title, KlasIcons.Outlined.CalendarMonth),
+    PAYMENTS(R.string.student_payments_title, KlasIcons.Outlined.Payments),
 
     /**
      * Their homework and their groups', current and done — the one place an archived student's is still
      * listed, and where homework is set for this student without picking them first.
      */
-    HOMEWORK(R.string.student_homework_title, Icons.AutoMirrored.Outlined.Assignment),
-    SUBJECTS(R.string.student_subjects_title, Icons.AutoMirrored.Outlined.MenuBook),
+    HOMEWORK(R.string.student_homework_title, KlasIcons.Outlined.Assignment),
+    SUBJECTS(R.string.student_subjects_title, KlasIcons.Outlined.MenuBook),
 }
 
 /**
@@ -208,7 +199,7 @@ private fun StudentCard(
         titleSize = TitleSize.Large,
         messages = messages,
         actions = {
-            NamedIconButton(Icons.Filled.Edit, stringResource(R.string.action_edit), onClick = { editing = true })
+            NamedIconButton(KlasIcons.Filled.Edit, stringResource(R.string.action_edit), onClick = { editing = true })
             // Archiving is behind the overflow now. It used to be a bare text button in the
             // bar — «Имя [✎] [В архив]» — which put the most consequential thing on the
             // screen beside the pencil, at the width of a word, next to a name that has to
@@ -508,7 +499,7 @@ private fun LazyListScope.subjectsTab(
         item(key = StudentDetailKeys.SUBJECTS_EMPTY) {
             EmptyState(
                 title = stringResource(R.string.student_no_subjects),
-                icon = Icons.AutoMirrored.Outlined.MenuBook,
+                icon = KlasIcons.Outlined.MenuBook,
                 actionLabel = stringResource(R.string.student_add_subject),
                 onAction = onAdd,
                 compact = true,
@@ -529,10 +520,10 @@ private fun LazyListScope.subjectsTab(
             trailingContent = {
                 Row {
                     IconButton(onClick = { onReprice(sp.subject.id) }) {
-                        Icon(Icons.Filled.Edit, stringResource(R.string.price_edit_title))
+                        Icon(KlasIcons.Filled.Edit, stringResource(R.string.price_edit_title))
                     }
                     IconButton(onClick = { onRemove(sp.subject.id) }) {
-                        Icon(Icons.Filled.Delete, stringResource(R.string.student_subject_remove, sp.subject.name))
+                        Icon(KlasIcons.Filled.Delete, stringResource(R.string.student_subject_remove, sp.subject.name))
                     }
                 }
             },
@@ -572,7 +563,7 @@ private fun LazyListScope.classesTab(
             // the hour holds. See the card's KDoc.
             EmptyState(
                 title = stringResource(R.string.student_lessons_empty),
-                icon = Icons.Outlined.EventBusy,
+                icon = KlasIcons.Outlined.EventBusy,
                 compact = true,
             )
         }
@@ -632,7 +623,7 @@ private fun LazyListScope.paymentsTab(
         item(key = StudentDetailKeys.PAYMENTS_EMPTY) {
             EmptyState(
                 title = stringResource(R.string.payments_empty),
-                icon = Icons.Outlined.Payments,
+                icon = KlasIcons.Outlined.Payments,
                 actionLabel = stringResource(R.string.add_payment),
                 onAction = onAdd,
                 compact = true,
@@ -647,7 +638,7 @@ private fun LazyListScope.paymentsTab(
             supportingContent = { Text(payment.date.formatDate()) },
             trailingContent = {
                 IconButton(onClick = { onDelete(payment) }) {
-                    Icon(Icons.Filled.Delete, stringResource(R.string.payment_delete))
+                    Icon(KlasIcons.Filled.Delete, stringResource(R.string.payment_delete))
                 }
             },
             // Tapping the row corrects it; the bin still removes it. Editing is the commoner of the

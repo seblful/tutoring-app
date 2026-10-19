@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +39,7 @@ import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.PageStepper
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
 
@@ -133,7 +132,7 @@ internal fun PageNavigator(
             ),
         )
         IconButton(onClick = onToday) {
-            Icon(Icons.Filled.Today, stringResource(R.string.schedule_today))
+            Icon(KlasIcons.Filled.Today, stringResource(R.string.schedule_today))
         }
     }
 }

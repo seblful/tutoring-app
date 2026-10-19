@@ -44,7 +44,7 @@
         <error line="1" column="1" source="standard:filename" />
     </file>
     <file name="src/debug/java/com/seblful/klas/preview/CommonPreviews.kt">
-        <error line="25" column="1" source="standard:kdoc" />
+        <error line="24" column="1" source="standard:kdoc" />
     </file>
     <file name="src/debug/java/com/seblful/klas/preview/FormPreviews.kt">
         <error line="12" column="1" source="standard:kdoc" />
@@ -81,7 +81,7 @@
         <error line="127" column="26" source="standard:wrapping" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/backup/BackupScreen.kt">
-        <error line="203" column="104" source="standard:trailing-comma-on-call-site" />
+        <error line="199" column="104" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/backup/BackupViewModel.kt">
         <error line="57" column="5" source="standard:kdoc" />
@@ -98,29 +98,22 @@
         <error line="59" column="6" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/common/EmptyStates.kt">
-        <error line="30" column="1" source="standard:kdoc" />
+        <error line="28" column="1" source="standard:kdoc" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/common/Fields.kt">
-        <error line="56" column="1" source="standard:kdoc" />
-        <error line="432" column="39" source="standard:trailing-comma-on-call-site" />
-        <error line="434" column="87" source="standard:function-literal" />
-        <error line="434" column="121" source="standard:max-line-length" />
-        <error line="434" column="122" source="standard:function-literal" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/ui/common/KlasScreen.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
-        <error line="168" column="104" source="standard:function-literal" />
-        <error line="168" column="117" source="standard:binary-expression-wrapping" />
-        <error line="168" column="121" source="standard:max-line-length" />
-        <error line="168" column="123" source="standard:function-literal" />
+        <error line="55" column="1" source="standard:kdoc" />
+        <error line="431" column="39" source="standard:trailing-comma-on-call-site" />
+        <error line="433" column="87" source="standard:function-literal" />
+        <error line="433" column="121" source="standard:max-line-length" />
+        <error line="433" column="122" source="standard:function-literal" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/common/LessonKindUi.kt">
-        <error line="21" column="1" source="standard:kdoc" />
-        <error line="32" column="6" source="standard:trailing-comma-on-call-site" />
-        <error line="41" column="6" source="standard:trailing-comma-on-call-site" />
+        <error line="19" column="1" source="standard:kdoc" />
+        <error line="30" column="6" source="standard:trailing-comma-on-call-site" />
+        <error line="39" column="6" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/common/Menus.kt">
-        <error line="25" column="1" source="standard:kdoc" />
+        <error line="22" column="1" source="standard:kdoc" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/common/Metrics.kt">
         <error line="16" column="1" source="standard:kdoc" />
@@ -129,7 +122,7 @@
         <error line="16" column="1" source="standard:kdoc" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/common/Surfaces.kt">
-        <error line="27" column="1" source="standard:kdoc" />
+        <error line="26" column="1" source="standard:kdoc" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/common/SwipeToConfirm.kt">
         <error line="3" column="1" source="standard:import-ordering" />
@@ -159,16 +152,13 @@
         <error line="378" column="1" source="standard:no-blank-line-before-rbrace" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/homework/HomeworkParts.kt">
-        <error line="335" column="55" source="standard:function-literal" />
-        <error line="335" column="73" source="standard:function-literal" />
-        <error line="335" column="90" source="standard:function-literal" />
-        <error line="335" column="92" source="standard:function-literal" />
-        <error line="335" column="121" source="standard:function-literal" />
-        <error line="335" column="121" source="standard:max-line-length" />
-        <error line="335" column="123" source="standard:function-literal" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/ui/more/AboutScreen.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
+        <error line="331" column="55" source="standard:function-literal" />
+        <error line="331" column="73" source="standard:function-literal" />
+        <error line="331" column="90" source="standard:function-literal" />
+        <error line="331" column="92" source="standard:function-literal" />
+        <error line="331" column="121" source="standard:function-literal" />
+        <error line="331" column="121" source="standard:max-line-length" />
+        <error line="331" column="123" source="standard:function-literal" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/more/SettingsScreen.kt">
         <error line="365" column="37" source="standard:function-literal" />
@@ -178,27 +168,27 @@
         <error line="365" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/onboarding/OnboardingScreen.kt">
-        <error line="99" column="15" source="standard:trailing-comma-on-declaration-site" />
+        <error line="92" column="15" source="standard:trailing-comma-on-declaration-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/people/PeopleScreen.kt">
-        <error line="94" column="49" source="standard:trailing-comma-on-call-site" />
+        <error line="91" column="49" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/schedule/CalendarViews.kt">
         <error line="244" column="26" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/schedule/booking/ClassEditScreen.kt">
-        <error line="356" column="46" source="standard:trailing-comma-on-call-site" />
-        <error line="441" column="1" source="standard:no-consecutive-blank-lines" />
-        <error line="458" column="18" source="standard:trailing-comma-on-call-site" />
-        <error line="556" column="22" source="standard:trailing-comma-on-call-site" />
+        <error line="355" column="46" source="standard:trailing-comma-on-call-site" />
+        <error line="440" column="1" source="standard:no-consecutive-blank-lines" />
+        <error line="457" column="18" source="standard:trailing-comma-on-call-site" />
+        <error line="555" column="22" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/students/StudentDetailScreen.kt">
-        <error line="475" column="14" source="standard:trailing-comma-on-call-site" />
-        <error line="616" column="47" source="standard:function-literal" />
-        <error line="616" column="91" source="standard:function-literal" />
-        <error line="616" column="121" source="standard:function-literal" />
-        <error line="616" column="121" source="standard:max-line-length" />
-        <error line="616" column="123" source="standard:function-literal" />
+        <error line="466" column="14" source="standard:trailing-comma-on-call-site" />
+        <error line="607" column="47" source="standard:function-literal" />
+        <error line="607" column="91" source="standard:function-literal" />
+        <error line="607" column="121" source="standard:function-literal" />
+        <error line="607" column="121" source="standard:max-line-length" />
+        <error line="607" column="123" source="standard:function-literal" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/theme/Theme.kt">
         <error line="150" column="36" source="standard:annotation" />

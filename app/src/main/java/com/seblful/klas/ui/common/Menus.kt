@@ -2,10 +2,6 @@ package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -21,6 +17,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
+import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * The parts the app's dropdown menus share: an entry that marks the one in force, and the «⋮» a card keeps
@@ -51,7 +48,7 @@ fun TickedMenuItem(
         text = { Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         onClick = onClick,
         leadingIcon = leadingIcon,
-        trailingIcon = { if (selected) Icon(Icons.Filled.Check, contentDescription = null) },
+        trailingIcon = { if (selected) Icon(KlasIcons.Filled.Check, contentDescription = null) },
         modifier = Modifier.semantics { this.selected = selected },
     )
 }
@@ -67,7 +64,7 @@ fun TickedMenuItem(
 fun OverflowMenu(items: @Composable ColumnScope.(close: () -> Unit) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        NamedIconButton(Icons.Filled.MoreVert, stringResource(R.string.action_more), onClick = { expanded = true })
+        NamedIconButton(KlasIcons.Filled.MoreVert, stringResource(R.string.action_more), onClick = { expanded = true })
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             items { expanded = false }
         }
@@ -79,7 +76,7 @@ fun OverflowMenu(items: @Composable ColumnScope.(close: () -> Unit) -> Unit) {
 fun ArchiveMenuItem(archived: Boolean, onClick: () -> Unit) {
     DropdownMenuItem(
         text = { Text(stringResource(if (archived) R.string.action_unarchive else R.string.action_archive)) },
-        leadingIcon = { Icon(Icons.Filled.Inventory2, contentDescription = null) },
+        leadingIcon = { Icon(KlasIcons.Filled.Inventory2, contentDescription = null) },
         onClick = onClick,
     )
 }

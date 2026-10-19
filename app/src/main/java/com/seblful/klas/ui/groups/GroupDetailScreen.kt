@@ -10,13 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Assignment
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.EventBusy
-import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -73,6 +66,7 @@ import com.seblful.klas.ui.homework.CardHomeworkDialogs
 import com.seblful.klas.ui.homework.HomeworkRow
 import com.seblful.klas.ui.homework.homeworkItems
 import com.seblful.klas.ui.homework.homeworkUndo
+import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
 /**
@@ -84,11 +78,11 @@ import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
  * is read on the student's card — which is exactly where a member row leads.
  */
 private enum class GroupTab(val labelRes: Int, val icon: ImageVector) {
-    LESSONS(R.string.group_lessons_title, Icons.Outlined.CalendarMonth),
+    LESSONS(R.string.group_lessons_title, KlasIcons.Outlined.CalendarMonth),
 
     /** The group's own homework, current and done — where it is set for the whole group. */
-    HOMEWORK(R.string.student_homework_title, Icons.AutoMirrored.Outlined.Assignment),
-    STUDENTS(R.string.group_students_title, Icons.Outlined.Groups),
+    HOMEWORK(R.string.student_homework_title, KlasIcons.Outlined.Assignment),
+    STUDENTS(R.string.group_students_title, KlasIcons.Outlined.Groups),
 }
 
 /**
@@ -165,7 +159,7 @@ private fun GroupCard(
         titleSize = TitleSize.Large,
         messages = messages,
         actions = {
-            NamedIconButton(Icons.Filled.Edit, stringResource(R.string.action_edit), onClick = onEdit)
+            NamedIconButton(KlasIcons.Filled.Edit, stringResource(R.string.action_edit), onClick = onEdit)
             // Retiring and removing the group, behind the overflow — where a student's already were.
             // They used to be a pair of outlined buttons under a «danger zone» heading at the foot of
             // the group's *form*, so the same lifecycle verb lived on the card for one entity and on
@@ -305,7 +299,7 @@ private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete
                 },
                 leadingIcon = {
                     Icon(
-                        Icons.Filled.Delete,
+                        KlasIcons.Filled.Delete,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.error,
                     )
@@ -344,7 +338,7 @@ private fun LazyListScope.studentsTab(
             // where this leads.
             EmptyState(
                 title = stringResource(R.string.group_no_members),
-                icon = Icons.Outlined.Groups,
+                icon = KlasIcons.Outlined.Groups,
                 actionLabel = stringResource(R.string.group_edit_members),
                 onAction = onEditMembers,
                 compact = true,
@@ -394,7 +388,7 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
             // booked from the schedule.
             EmptyState(
                 title = stringResource(R.string.group_lessons_empty),
-                icon = Icons.Outlined.EventBusy,
+                icon = KlasIcons.Outlined.EventBusy,
                 compact = true,
             )
         }

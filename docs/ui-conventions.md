@@ -115,8 +115,9 @@ it draws with.
 - **Design system**: curated indigo+teal Material 3 palette, dynamic color off by default. Amber = "on
   now"; green = "taught" (`KlasColors`, app-owned, unaffected by dynamic color). Golos Text typeface
   (Cyrillic-first, full Latin). Avatar colors key off id, not name.
-- **Icons**: filled for actions and selected states, outlined for art and inactive glyphs. Empty-state
-  pictures and decorative glyphs beside a line of text are `Icons.Outlined`; buttons, menu items,
+- **Icons**: Material Symbols, copied into `ui/theme/KlasIcons` (no icon library; its KDoc says where a new
+  one comes from). Filled for actions and selected states, outlined for art and inactive glyphs. Empty-state
+  pictures and decorative glyphs beside a line of text are `KlasIcons.Outlined`; buttons, menu items,
   chevrons and the selected tab stay filled. Settings rows carry no leading icon (every title on one
   edge); a row that goes somewhere says so at its trailing edge — a chevron in the app (`OpensScreenMark`, decorative —
   the click's `onClickLabel` says where it leads), «open in new» out of it. The two lesson-kind icons are exempt —

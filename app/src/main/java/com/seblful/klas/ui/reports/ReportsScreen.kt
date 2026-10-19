@@ -24,14 +24,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.outlined.QueryStats
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -88,6 +80,7 @@ import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.navigation.Arrival
+import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.flow.first
 
@@ -190,7 +183,7 @@ fun ReportsScreen(
                 // Kept on screen while a new period assembles, so they don't blink with every arrow tap;
                 // a tap inside that frame or two sends nothing rather than the previous period's file.
                 NamedIconButton(
-                    Icons.Filled.Share,
+                    KlasIcons.Filled.Share,
                     stringResource(R.string.reports_share),
                     onClick = {
                         if (exportable != null) {
@@ -199,7 +192,7 @@ fun ReportsScreen(
                     },
                 )
                 NamedIconButton(
-                    Icons.Filled.FileDownload,
+                    KlasIcons.Filled.Download,
                     stringResource(R.string.reports_export),
                     onClick = {
                         if (exportable != null) export(exportFilename)
@@ -219,7 +212,7 @@ fun ReportsScreen(
             EmptyState(
                 title = stringResource(R.string.reports_empty),
                 detail = stringResource(R.string.reports_empty_detail),
-                icon = Icons.Outlined.QueryStats,
+                icon = KlasIcons.Outlined.QueryStats,
                 modifier = modifier,
             )
             return@KlasScreen
@@ -361,7 +354,7 @@ private fun PeriodNavigator(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Icon(Icons.Filled.ArrowDropDown, stringResource(R.string.reports_period))
+                Icon(KlasIcons.Filled.ArrowDropDown, stringResource(R.string.reports_period))
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 ReportPeriod.Kind.entries.forEach { kind ->
@@ -440,9 +433,9 @@ private fun ColumnScope.ComparisonLine(state: Reports.Report) {
                 // AutoMirrored: a trend arrow points *forward in time*, so it flips with the layout
                 // direction. The non-mirrored pair is deprecated for exactly this reason.
                 if (change.value > 0) {
-                    Icons.AutoMirrored.Filled.TrendingUp
+                    KlasIcons.Filled.TrendingUp
                 } else {
-                    Icons.AutoMirrored.Filled.TrendingDown
+                    KlasIcons.Filled.TrendingDown
                 },
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
@@ -767,7 +760,7 @@ private fun AmountRow(
         )
         if (onClick != null) {
             Icon(
-                Icons.Filled.ChevronRight,
+                KlasIcons.Filled.ChevronRight,
                 contentDescription = stringResource(R.string.reports_open_student),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(ChevronSize),

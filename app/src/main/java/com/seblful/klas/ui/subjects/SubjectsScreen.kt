@@ -7,10 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,6 +40,7 @@ import com.seblful.klas.ui.common.TextFieldDialog
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
@@ -84,7 +81,7 @@ fun SubjectsScreen(
         ),
         floatingActionButton = {
             FloatingActionButton(onClick = { adding = true }) {
-                Icon(Icons.Filled.Add, stringResource(R.string.subjects_add))
+                Icon(KlasIcons.Filled.Add, stringResource(R.string.subjects_add))
             }
         },
     ) { modifier ->
@@ -102,7 +99,7 @@ fun SubjectsScreen(
                         subjects.isEmpty() -> EmptyState(
                             title = stringResource(R.string.subjects_empty),
                             detail = stringResource(R.string.subjects_empty_detail),
-                            icon = Icons.AutoMirrored.Outlined.MenuBook,
+                            icon = KlasIcons.Outlined.MenuBook,
                             actionLabel = stringResource(R.string.subjects_add),
                             onAction = { adding = true },
                         )
@@ -124,7 +121,7 @@ fun SubjectsScreen(
                                     modifier = animateInPlace(),
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        IconAvatar(Icons.AutoMirrored.Outlined.MenuBook)
+                                        IconAvatar(KlasIcons.Outlined.MenuBook)
                                         Text(
                                             subject.name,
                                             style = MaterialTheme.typography.titleMedium,
@@ -137,7 +134,7 @@ fun SubjectsScreen(
                                         // the card's tap, so the pencil is gone.
                                         IconButton(onClick = { deleting = subject }) {
                                             Icon(
-                                                Icons.Filled.Delete,
+                                                KlasIcons.Filled.Delete,
                                                 // Named, so a screen reader says which one it deletes.
                                                 stringResource(R.string.subject_delete_named, subject.name),
                                                 // A row's own controls are a rung quieter than its name,

@@ -9,11 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.automirrored.outlined.Assignment
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -61,6 +56,7 @@ import com.seblful.klas.ui.common.rememberExternalApps
 import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.swipeAction
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasColors
 
 /**
@@ -81,7 +77,7 @@ fun LazyListScope.homeworkItems(
         item(key = HomeworkItemKeys.EMPTY) {
             EmptyState(
                 title = stringResource(R.string.student_homework_empty),
-                icon = Icons.AutoMirrored.Outlined.Assignment,
+                icon = KlasIcons.Outlined.Assignment,
                 actionLabel = stringResource(R.string.homework_add),
                 onAction = onAdd,
                 compact = true,
@@ -183,7 +179,7 @@ private fun HomeworkReveal(done: Boolean, armed: Boolean, shape: Shape) {
         MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
     }
     SwipeReveal(
-        icon = if (done) Icons.Filled.CheckCircle else Icons.AutoMirrored.Filled.Undo,
+        icon = if (done) KlasIcons.Filled.CheckCircle else KlasIcons.Filled.Undo,
         label = stringResource(if (done) R.string.homework_done else R.string.homework_restore),
         container = fill,
         content = ink,
@@ -476,7 +472,7 @@ fun SendHomeworkButton(row: HomeworkRow, messages: Messages) {
     val chooserTitle = stringResource(R.string.homework_send)
     val failed = stringResource(R.string.student_contact_failed)
     NamedIconButton(
-        Icons.Filled.Share,
+        KlasIcons.Filled.Share,
         chooserTitle,
         onClick = { externalApps.open(ExternalTarget.ShareText(text, chooserTitle), failed) },
         tint = MaterialTheme.colorScheme.primary,
