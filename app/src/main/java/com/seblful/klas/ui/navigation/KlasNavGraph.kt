@@ -2,10 +2,10 @@ package com.seblful.klas.ui.navigation
 
 import android.annotation.SuppressLint
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
+import androidx.navigation.toRoute
 import com.seblful.klas.ui.backup.BackupScreen
 import com.seblful.klas.ui.diagnostics.DiagnosticsScreen
 import com.seblful.klas.ui.groups.GroupDetailScreen
@@ -37,14 +37,7 @@ fun NavGraphBuilder.klasGraph(
     tabs(navController, scheduleArrival, debtsArrival)
     peopleCards(navController)
     moreScreens(navController)
-    screen(
-        Routes.CLASS_EDIT,
-        arguments = listOf(
-            IdArgument,
-            navArgument("group") { type = NavType.LongType; defaultValue = 0L },
-            navArgument("day") { type = NavType.StringType; nullable = true; defaultValue = null },
-        ),
-    ) {
+    screen<Routes.ClassEdit> {
         ClassEditScreen(onBack = { navController.popBackStack() })
     }
 }
@@ -55,115 +48,105 @@ private fun NavGraphBuilder.tabs(
     scheduleArrival: () -> Arrival<ScheduleTarget>?,
     debtsArrival: () -> Arrival<Unit>?,
 ) {
-    screen(Routes.SCHEDULE) {
+    screen<Routes.Schedule> {
         ScheduleScreen(
             arrival = scheduleArrival(),
             onAddClass = { day -> navController.navigate(Routes.classEdit(0, day = day)) },
             onEditClass = { navController.navigate(Routes.classEdit(it)) },
             // The way out of "nothing can be booked yet": the schedule's empty state offers
             // the missing step rather than only naming it.
-            onAddStudent = { navController.navigate(Routes.STUDENT_ADD) },
+            onAddStudent = { navController.navigate(Routes.StudentAdd) },
         )
     }
-    screen(Routes.REPORTS) {
+    screen<Routes.Reports> {
         ReportsScreen(
-            onStudentClick = { navController.navigate(Routes.studentDetail(it)) },
+            onStudentClick = { navController.navigate(Routes.StudentDetail(it)) },
             debtsArrival = debtsArrival(),
         )
     }
-    screen(Routes.MORE) {
+    screen<Routes.More> {
         MoreScreen(
-            onSubjects = { navController.navigate(Routes.SUBJECTS) },
-            onBackup = { navController.navigate(Routes.BACKUP) },
-            onSettings = { navController.navigate(Routes.SETTINGS) },
-            onAbout = { navController.navigate(Routes.ABOUT) },
+            onSubjects = { navController.navigate(Routes.Subjects) },
+            onBackup = { navController.navigate(Routes.Backup) },
+            onSettings = { navController.navigate(Routes.Settings) },
+            onAbout = { navController.navigate(Routes.About) },
         )
     }
-    screen(Routes.PEOPLE) {
+    screen<Routes.People> {
         PeopleScreen(
-            onStudentClick = { navController.navigate(Routes.studentDetail(it)) },
-            onAddStudent = { navController.navigate(Routes.STUDENT_ADD) },
-            onGroupClick = { navController.navigate(Routes.groupDetail(it)) },
-            onAddGroup = { navController.navigate(Routes.GROUP_ADD) },
+            onStudentClick = { navController.navigate(Routes.StudentDetail(it)) },
+            onAddStudent = { navController.navigate(Routes.StudentAdd) },
+            onGroupClick = { navController.navigate(Routes.GroupDetail(it)) },
+            onAddGroup = { navController.navigate(Routes.GroupAdd) },
         )
     }
-    screen(Routes.HOMEWORK) {
-        HomeworkScreen(onAddStudent = { navController.navigate(Routes.STUDENT_ADD) })
+    screen<Routes.Homework> {
+        HomeworkScreen(onAddStudent = { navController.navigate(Routes.StudentAdd) })
     }
 }
 
 /** A student's and a group's card and form. */
 private fun NavGraphBuilder.peopleCards(navController: NavHostController) {
-    screen(Routes.STUDENT_ADD) {
+    screen<Routes.StudentAdd> {
         StudentFormScreen(onBack = { navController.popBackStack() })
     }
-    screen(
-        Routes.STUDENT_DETAIL,
-        arguments = listOf(IdArgument),
-    ) {
+    screen<Routes.StudentDetail> {
         StudentDetailScreen(
             onBack = { navController.popBackStack() },
             onLessonClick = { navController.navigate(Routes.classEdit(it)) },
         )
     }
 
-    // Declared before the `group/{id}` card so the literal route can never be read as an id.
-    screen(Routes.GROUP_ADD) {
+    screen<Routes.GroupAdd> {
         GroupFormScreen(onBack = { navController.popBackStack() })
     }
-    screen(
-        Routes.GROUP_DETAIL,
-        arguments = listOf(IdArgument),
-    ) { entry ->
-        val id = entry.arguments?.getLong("id") ?: 0L
+    screen<Routes.GroupDetail> { entry ->
+        val id = entry.toRoute<Routes.GroupDetail>().id
         GroupDetailScreen(
             onBack = { navController.popBackStack() },
-            onEdit = { navController.navigate(Routes.groupEdit(id)) },
-            onMemberClick = { navController.navigate(Routes.studentDetail(it)) },
+            onEdit = { navController.navigate(Routes.GroupEdit(id)) },
+            onMemberClick = { navController.navigate(Routes.StudentDetail(it)) },
             onLessonClick = { navController.navigate(Routes.classEdit(it)) },
         )
     }
     // Adding and editing are the same form; it tells them apart by the id it is given.
-    screen(
-        Routes.GROUP_EDIT,
-        arguments = listOf(IdArgument),
-    ) {
+    screen<Routes.GroupEdit> {
         GroupFormScreen(onBack = { navController.popBackStack() })
     }
 }
 
 /** What «Ещё» opens: subjects, backup, settings and what settings opens, about. */
 private fun NavGraphBuilder.moreScreens(navController: NavHostController) {
-    screen(Routes.SUBJECTS) {
+    screen<Routes.Subjects> {
         SubjectsScreen(onBack = { navController.popBackStack() })
     }
-    screen(Routes.BACKUP) {
+    screen<Routes.Backup> {
         BackupScreen(onBack = { navController.popBackStack() })
     }
-    screen(Routes.SETTINGS) {
+    screen<Routes.Settings> {
         SettingsScreen(
             onBack = { navController.popBackStack() },
             // Diagnostics is developer furniture and used to sit as a peer of «Настройки» in
             // «Ещё». It is reached from the foot of Settings now, where service tools belong.
-            onDiagnostics = { navController.navigate(Routes.DIAGNOSTICS) },
+            onDiagnostics = { navController.navigate(Routes.Diagnostics) },
         )
     }
-    screen(Routes.DIAGNOSTICS) {
+    screen<Routes.Diagnostics> {
         DiagnosticsScreen(onBack = { navController.popBackStack() })
     }
-    screen(Routes.ABOUT) {
+    screen<Routes.About> {
         AboutScreen(
             onBack = { navController.popBackStack() },
             // About is where the app makes the "your data is on this device and nowhere else"
             // promise, which is also where its one obligation is stated — so the way to act on
             // it is here rather than back in the menu.
-            onBackup = { navController.navigate(Routes.BACKUP) },
+            onBackup = { navController.navigate(Routes.Backup) },
         )
     }
 }
 
 /**
- * Switches to the tab at [route] the way the bar does — back to the start destination with the state
+ * Switches to [tab] the way the bar does — back to the start destination with the state
  * saved, so each tab keeps where the tutor was in it rather than stacking one tab on another. The bar and
  * a tray tap that names a tab both switch this way; they used to spell it out once each.
  *
@@ -179,10 +162,10 @@ private fun NavGraphBuilder.moreScreens(navController: NavHostController) {
  */
 // `currentBackStack` is `@RestrictedApi`, for the reason `AppRoot` gives where it reads the same list.
 @SuppressLint("RestrictedApi")
-fun NavController.navigateToTab(route: String) {
-    if (currentDestination?.route == route) return
-    if (owningTabRoute(currentBackStack.value) == route && popBackStack(route, inclusive = false)) return
-    navigate(route) {
+fun NavController.navigateToTab(tab: TopDestination) {
+    if (currentDestination?.let(TopDestination::of) == tab) return
+    if (owningTab(currentBackStack.value) == tab && popBackStack(tab.route, inclusive = false)) return
+    navigate(tab.route) {
         popUpTo(graph.startDestinationId) { saveState = true }
         launchSingleTop = true
         restoreState = true
@@ -200,9 +183,7 @@ fun NavController.navigateToTab(route: String) {
  */
 fun NavController.openLessonForm(classId: Long) {
     val top = currentBackStackEntry
-    val alreadyOpen = top?.destination?.route == Routes.CLASS_EDIT && top.arguments?.getLong("id") == classId
+    val alreadyOpen = top?.destination?.hasRoute(Routes.ClassEdit::class) == true &&
+        top.toRoute<Routes.ClassEdit>().id == classId
     if (!alreadyOpen) navigate(Routes.classEdit(classId))
 }
-
-/** The `{id}` every card and form route carries. */
-private val IdArgument = navArgument("id") { type = NavType.LongType }

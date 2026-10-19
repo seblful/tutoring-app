@@ -19,7 +19,7 @@ import com.seblful.klas.ui.common.OneLineLabel
  * place a tab is defined, and which chrome renders it is no longer this file's business.
  *
  * @param tabs the tabs to show, in order (see [TopDestination]).
- * @param selectedRoute the tab that is **marked**, which is not the same question as which route is
+ * @param selected the tab that is **marked**, which is not the same question as which route is
  *   showing — see `AppRoot`, which reads it off the back stack. This took the *current* route once, and
  *   so answered "none of them" the moment anything was pushed: opening a form dropped every glyph to its
  *   outline and took the pill away, so the bar visibly went dead on its way out. A pushed screen belongs
@@ -27,15 +27,15 @@ import com.seblful.klas.ui.common.OneLineLabel
  */
 fun NavigationSuiteScope.klasTabs(
     tabs: List<TopDestination>,
-    selectedRoute: String?,
+    selected: TopDestination?,
     onSelect: (TopDestination) -> Unit,
 ) {
     tabs.forEach { dest ->
-        val selected = selectedRoute == dest.route
+        val isSelected = selected == dest
         item(
-            selected = selected,
+            selected = isSelected,
             onClick = { onSelect(dest) },
-            icon = { TabIcon(dest, selected = selected) },
+            icon = { TabIcon(dest, selected = isSelected) },
             label = { TabLabel(dest) },
         )
     }

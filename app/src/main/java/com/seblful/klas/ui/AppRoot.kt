@@ -33,7 +33,7 @@ import com.seblful.klas.ui.navigation.TopDestination
 import com.seblful.klas.ui.navigation.klasGraph
 import com.seblful.klas.ui.navigation.klasTabs
 import com.seblful.klas.ui.navigation.navigateToTab
-import com.seblful.klas.ui.navigation.owningTabRoute
+import com.seblful.klas.ui.navigation.owningTab
 import com.seblful.klas.ui.onboarding.OnboardingScreen
 import com.seblful.klas.ui.schedule.ScheduleTarget
 import com.seblful.klas.ui.theme.KlasTheme
@@ -118,8 +118,7 @@ fun AppRoot(rootViewModel: RootViewModel = metroViewModel()) {
 private fun MainApp() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
-    val onTab = currentRoute in TopDestination.routes
+    val onTab = backStackEntry?.destination?.let(TopDestination::of) != null
 
     // **Which tab is marked is not "which route is showing".** Asked the second way, the answer while
     // anything is pushed is *none of them* — so the instant a form opened, every glyph in the bar fell
@@ -132,14 +131,14 @@ private fun MainApp() {
     // — a remembered "last tab seen" would be a guess restored from nothing on any arrival that did not
     // start at a tab.
     val backStack by navController.currentBackStack.collectAsState()
-    val selectedTabRoute = owningTabRoute(backStack)
+    val selectedTab = owningTab(backStack)
 
     /**
      * The latest tray tap that asked a tab for something more than itself — the schedule for a day or a
      * lesson's sheet, the reports for their debts. See [Arrival], and why each tap is its own instance.
      *
      * Hoisted here because the navigation it accompanies is hoisted here, and not a route argument
-     * because [Routes.SCHEDULE] is the graph's start destination: giving it a parameter would mean every
+     * because [Routes.Schedule] is the graph's start destination: giving it a parameter would mean every
      * arrival, including the launcher's, having to state a day. Plain `remember`, not saveable: an
      * arrival cannot be restored as the *same* one, and a rebuilt activity has no new tap to hand over.
      */
@@ -173,8 +172,8 @@ private fun MainApp() {
 
     NavigationSuiteScaffold(
         navigationSuiteItems = {
-            klasTabs(tabs = TopDestination.entries, selectedRoute = selectedTabRoute) { dest ->
-                navController.navigateToTab(dest.route)
+            klasTabs(tabs = TopDestination.entries, selected = selectedTab) { dest ->
+                navController.navigateToTab(dest)
             }
         },
         // Hidden on a pushed screen, which owns the whole window: a card or a form is not somewhere the
@@ -185,7 +184,7 @@ private fun MainApp() {
     ) {
         NavHost(
             navController = navController,
-            startDestination = Routes.SCHEDULE,
+            startDestination = Routes.Schedule,
             modifier = Modifier.fillMaxSize(),
         ) {
             klasGraph(navController, scheduleArrival = { scheduleArrival }, debtsArrival = { debtsArrival })

@@ -157,7 +157,7 @@ class BottomBarLabelTest {
                         NavigationSuiteScaffold(
                             layoutType = NavigationSuiteType.NavigationBar,
                             navigationSuiteItems = {
-                                klasTabs(tabs = tabs, selectedRoute = Routes.SCHEDULE, onSelect = {})
+                                klasTabs(tabs = tabs, selected = TopDestination.SCHEDULE, onSelect = {})
                             },
                             content = {},
                         )

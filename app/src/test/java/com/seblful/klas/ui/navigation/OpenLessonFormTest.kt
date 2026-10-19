@@ -1,11 +1,11 @@
 package com.seblful.klas.ui.navigation
 
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import androidx.navigation.toRoute
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -30,17 +30,10 @@ class OpenLessonFormTest {
     private fun showGraph() {
         compose.setContent {
             navController = rememberNavController()
-            NavHost(navController, startDestination = Routes.SCHEDULE) {
-                TopDestination.entries.forEach { tab -> screen(tab.route) {} }
-                screen(Routes.SETTINGS) {}
-                screen(
-                    Routes.CLASS_EDIT,
-                    arguments = listOf(
-                        navArgument("id") { type = NavType.LongType },
-                        navArgument("group") { type = NavType.LongType; defaultValue = 0L },
-                        navArgument("day") { type = NavType.StringType; nullable = true; defaultValue = null },
-                    ),
-                ) {}
+            NavHost(navController, startDestination = Routes.Schedule) {
+                TopDestination.entries.forEach { tab -> screen(tab.route::class) {} }
+                screen<Routes.Settings> {}
+                screen<Routes.ClassEdit> {}
             }
         }
         compose.waitForIdle()
@@ -55,8 +48,11 @@ class OpenLessonFormTest {
 
     /** The forms open, bottom first, as the lesson each is for — everything else by its route. */
     private fun stack(): List<String> = navController.currentBackStack.value.mapNotNull { entry ->
-        val route = entry.destination.route?.substringBefore('?') ?: return@mapNotNull null
-        if (route == "class/{id}") "form ${entry.arguments?.getLong("id")}" else route
+        if (entry.destination.hasRoute(Routes.ClassEdit::class)) {
+            "form ${entry.toRoute<Routes.ClassEdit>().id}"
+        } else {
+            entry.destination.routeName()
+        }
     }
 
     @Test
@@ -65,7 +61,7 @@ class OpenLessonFormTest {
 
         open(5)
 
-        assertEquals(listOf(Routes.SCHEDULE, "form 5"), stack())
+        assertEquals(listOf("Schedule", "form 5"), stack())
     }
 
     @Test
@@ -75,7 +71,7 @@ class OpenLessonFormTest {
         open(5)
         open(5)
 
-        assertEquals(listOf(Routes.SCHEDULE, "form 5"), stack())
+        assertEquals(listOf("Schedule", "form 5"), stack())
     }
 
     @Test
@@ -85,19 +81,19 @@ class OpenLessonFormTest {
 
         open(7)
 
-        assertEquals(listOf(Routes.SCHEDULE, "form 5", "form 7"), stack())
+        assertEquals(listOf("Schedule", "form 5", "form 7"), stack())
         onUiThread { navController.popBackStack() }
-        assertEquals(listOf(Routes.SCHEDULE, "form 5"), stack())
+        assertEquals(listOf("Schedule", "form 5"), stack())
     }
 
     @Test
     fun `a tap opens the form over a screen that is already pushed`() {
         showGraph()
-        onUiThread { navController.navigateToTab(Routes.MORE) }
-        onUiThread { navController.navigate(Routes.SETTINGS) }
+        onUiThread { navController.navigateToTab(TopDestination.MORE) }
+        onUiThread { navController.navigate(Routes.Settings) }
 
         open(7)
 
-        assertEquals(listOf(Routes.SCHEDULE, Routes.MORE, Routes.SETTINGS, "form 7"), stack())
+        assertEquals(listOf("Schedule", "More", "Settings", "form 7"), stack())
     }
 }

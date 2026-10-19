@@ -45,7 +45,7 @@ internal fun OpensWhatTheTrayNames(
     // alone would land the tutor on whatever day they were last browsing, which for a notification saying
     // «3 занятия не отмечены» would show a week with none of them in it.
     fun toSchedule(target: ScheduleTarget) {
-        navController.navigateToTab(Routes.SCHEDULE)
+        navController.navigateToTab(TopDestination.SCHEDULE)
         onSchedule(target)
     }
 
@@ -64,7 +64,7 @@ internal fun OpensWhatTheTrayNames(
             // top of wherever the tutor was would leave the reports sitting above the schedule with a
             // back arrow and no tab selected.
             TrayNavigation.Destination.Debts -> {
-                navController.navigateToTab(Routes.REPORTS)
+                navController.navigateToTab(TopDestination.REPORTS)
                 onDebts()
             }
             TrayNavigation.Destination.Today -> toSchedule(ScheduleTarget.Today)

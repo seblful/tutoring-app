@@ -3,60 +3,90 @@ package com.seblful.klas.ui.navigation
 import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hasRoute
 import com.seblful.klas.R
 import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.Serializable
 
-/** Route constants for the whole app. */
+/**
+ * Every destination in the app, as a type: navigating to one takes an instance, and its arguments are its
+ * properties. Their names (`id`, `group`, `day`) are also the keys a view model reads them under from its
+ * `SavedStateHandle`.
+ */
 object Routes {
-    const val SCHEDULE = "schedule"
+    @Serializable
+    data object Schedule
 
     /** Students and groups, as one tab with two views inside it. */
-    const val PEOPLE = "people"
+    @Serializable
+    data object People
 
     /** Every student's and group's homework: what is current, and the archive of what is done. */
-    const val HOMEWORK = "homework"
-    const val REPORTS = "reports"
-    const val MORE = "more"
+    @Serializable
+    data object Homework
 
-    const val SUBJECTS = "subjects"
-    const val BACKUP = "backup"
-    const val SETTINGS = "settings"
-    const val DIAGNOSTICS = "diagnostics"
-    const val ABOUT = "about"
-    const val STUDENT_ADD = "student/new"
+    @Serializable
+    data object Reports
 
-    const val STUDENT_DETAIL = "student/{id}"
-    fun studentDetail(id: Long) = "student/$id"
+    @Serializable
+    data object More
 
-    const val GROUP_ADD = "group/new"
+    @Serializable
+    data object Subjects
+
+    @Serializable
+    data object Backup
+
+    @Serializable
+    data object Settings
+
+    @Serializable
+    data object Diagnostics
+
+    @Serializable
+    data object About
+
+    @Serializable
+    data object StudentAdd
+
+    @Serializable
+    data class StudentDetail(val id: Long)
+
+    @Serializable
+    data object GroupAdd
 
     /**
      * A group's **card** — who is in it, what it has been taught, what its rate has been. Editing it
-     * is [GROUP_EDIT], reached from the card's pencil: tapping a group used to open the form directly,
+     * is [GroupEdit], reached from the card's pencil: tapping a group used to open the form directly,
      * which answered how to change a group and nothing about how one is going.
      */
-    const val GROUP_DETAIL = "group/{id}"
-    fun groupDetail(id: Long) = "group/$id"
+    @Serializable
+    data class GroupDetail(val id: Long)
 
     /** The group form for an existing group — the only place its roster, subject or rate changes. */
-    const val GROUP_EDIT = "group/{id}/edit"
-    fun groupEdit(id: Long) = "group/$id/edit"
-
-    const val CLASS_EDIT = "class/{id}?group={group}&day={day}"
+    @Serializable
+    data class GroupEdit(val id: Long)
 
     /**
-     * id = 0 means "new class". [groupId] (non-zero) opens the form already booking for that group —
+     * id = 0 means "new class". [group] (non-zero) opens the form already booking for that group —
      * an entry point the form still honours, though **no screen passes it today**: booking lives on
      * the schedule, which is the one place that knows what else the hour holds.
      *
-     * [day] is the day the schedule is on, and it is only where the date **picker** opens: the booking
-     * form still starts with an empty date on purpose (see [com.seblful.klas.ui.schedule.booking.ClassForm]).
-     * A date argument used to be declared here, passed by the schedule and read by nobody, so paging to
-     * next Thursday and tapping + opened the picker on today.
+     * [day] is the day the schedule is on, ISO-8601 (see [classEdit]), and it is only where the date
+     * **picker** opens: the booking form still starts with an empty date on purpose (see
+     * [com.seblful.klas.ui.schedule.booking.ClassForm]). A date argument used to be declared here, passed by
+     * the schedule and read by nobody, so paging to next Thursday and tapping + opened the picker on today.
      */
-    fun classEdit(id: Long, groupId: Long = 0, day: LocalDate? = null): String =
-        "class/$id?group=$groupId" + day?.let { "&day=$it" }.orEmpty()
+    @Serializable
+    data class ClassEdit(val id: Long, val group: Long = 0, val day: String? = null)
+
+    /**
+     * [ClassEdit] with its day as a date. A string in the route because navigation carries a string with
+     * no help, where a `LocalDate` would need its own `NavType` on every graph and test that declares it.
+     */
+    fun classEdit(id: Long, groupId: Long = 0, day: LocalDate? = null) = ClassEdit(id, groupId, day?.toString())
 }
 
 /**
@@ -78,7 +108,7 @@ object Routes {
  * segmented control inside it, and the list is simply [entries].
  */
 enum class TopDestination(
-    val route: String,
+    val route: Any,
     @param:StringRes val labelRes: Int,
     /** Drawn while this is the current tab. */
     val icon: ImageVector,
@@ -88,21 +118,22 @@ enum class TopDestination(
      */
     val iconOutlined: ImageVector,
 ) {
-    PEOPLE(Routes.PEOPLE, R.string.nav_people, KlasIcons.Filled.Group, KlasIcons.Outlined.Group),
+    PEOPLE(Routes.People, R.string.nav_people, KlasIcons.Filled.Group, KlasIcons.Outlined.Group),
     HOMEWORK(
-        Routes.HOMEWORK,
+        Routes.Homework,
         R.string.nav_homework,
         KlasIcons.Filled.Assignment,
         KlasIcons.Outlined.Assignment,
     ),
-    SCHEDULE(Routes.SCHEDULE, R.string.nav_schedule, KlasIcons.Filled.CalendarMonth, KlasIcons.Outlined.CalendarMonth),
-    REPORTS(Routes.REPORTS, R.string.nav_reports, KlasIcons.Filled.BarChart, KlasIcons.Outlined.BarChart),
-    MORE(Routes.MORE, R.string.nav_more, KlasIcons.Filled.MoreHoriz, KlasIcons.Outlined.MoreHoriz),
+    SCHEDULE(Routes.Schedule, R.string.nav_schedule, KlasIcons.Filled.CalendarMonth, KlasIcons.Outlined.CalendarMonth),
+    REPORTS(Routes.Reports, R.string.nav_reports, KlasIcons.Filled.BarChart, KlasIcons.Outlined.BarChart),
+    MORE(Routes.More, R.string.nav_more, KlasIcons.Filled.MoreHoriz, KlasIcons.Outlined.MoreHoriz),
     ;
 
     companion object {
-        /** The routes that are tabs — what the bottom bar is shown for. */
-        val routes: Set<String> = entries.map { it.route }.toSet()
+        /** The tab [destination] is, or null for a screen pushed over one. */
+        fun of(destination: NavDestination): TopDestination? =
+            entries.firstOrNull { destination.hasRoute(it.route::class) }
     }
 }
 
@@ -113,5 +144,5 @@ enum class TopDestination(
  * One answer for the bar, which marks that tab, and for `navigateToTab`, which has to know whether the tab it
  * is asked for is the one a pushed screen is sitting on.
  */
-fun owningTabRoute(backStack: List<NavBackStackEntry>): String? =
-    backStack.lastOrNull { it.destination.route in TopDestination.routes }?.destination?.route
+fun owningTab(backStack: List<NavBackStackEntry>): TopDestination? =
+    backStack.asReversed().firstNotNullOfOrNull { TopDestination.of(it.destination) }

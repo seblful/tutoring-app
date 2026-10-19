@@ -45,9 +45,9 @@ class TabReselectFadeTest {
             navController = rememberNavController()
             // Red behind both screens: a frame where neither covers it would show.
             Box(Modifier.fillMaxSize().background(Color.Red)) {
-                NavHost(navController, startDestination = Routes.SCHEDULE) {
-                    screen(Routes.SCHEDULE) { Box(Modifier.fillMaxSize().background(Color.White)) }
-                    screen(Routes.HOMEWORK) { Box(Modifier.fillMaxSize().background(Color.Black)) }
+                NavHost(navController, startDestination = Routes.Schedule) {
+                    screen<Routes.Schedule> { Box(Modifier.fillMaxSize().background(Color.White)) }
+                    screen<Routes.Homework> { Box(Modifier.fillMaxSize().background(Color.Black)) }
                 }
             }
         }
@@ -71,13 +71,15 @@ class TabReselectFadeTest {
     private fun fadeToHomework(secondTapAfterFrames: Int?): List<Float> {
         // Back to the schedule on a running clock, so every fade starts from the same place.
         rule.mainClock.autoAdvance = true
-        rule.runOnUiThread { navController.navigateToTab(Routes.SCHEDULE) }
+        rule.runOnUiThread { navController.navigateToTab(TopDestination.SCHEDULE) }
         rule.waitForIdle()
 
         rule.mainClock.autoAdvance = false
-        rule.runOnUiThread { navController.navigateToTab(Routes.HOMEWORK) }
+        rule.runOnUiThread { navController.navigateToTab(TopDestination.HOMEWORK) }
         return List(Frames) { frame ->
-            if (frame == secondTapAfterFrames) rule.runOnUiThread { navController.navigateToTab(Routes.HOMEWORK) }
+            if (frame == secondTapAfterFrames) {
+                rule.runOnUiThread { navController.navigateToTab(TopDestination.HOMEWORK) }
+            }
             rule.mainClock.advanceTimeByFrame()
             val pixels = rule.onRoot().captureToImage().toPixelMap()
             pixels[pixels.width / 2, pixels.height / 2].luminance()

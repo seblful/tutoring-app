@@ -4,10 +4,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -43,27 +41,21 @@ class NavigateToTabTest {
                 navController.addOnDestinationChangedListener(listener)
                 onDispose { navController.removeOnDestinationChangedListener(listener) }
             }
-            NavHost(navController, startDestination = Routes.SCHEDULE) {
-                TopDestination.entries.forEach { tab -> screen(tab.route) {} }
-                screen(Routes.STUDENT_DETAIL, arguments = listOf(navArgument("id") { type = NavType.LongType })) {}
-                screen(
-                    Routes.CLASS_EDIT,
-                    arguments = listOf(
-                        navArgument("id") { type = NavType.LongType },
-                        navArgument("group") { type = NavType.LongType; defaultValue = 0L },
-                        navArgument("day") { type = NavType.StringType; nullable = true; defaultValue = null },
-                    ),
-                ) {}
+            NavHost(navController, startDestination = Routes.Schedule) {
+                TopDestination.entries.forEach { tab -> screen(tab.route::class) {} }
+                screen<Routes.StudentDetail> {}
+                screen<Routes.ClassEdit> {}
             }
         }
     }
 
     /** What is on the back stack, bottom first, by route — the screens pushed over a tab by what they are. */
-    private fun stack(): List<String> = navController.currentBackStack.value.mapNotNull { entry ->
-        entry.destination.route?.substringBefore('?')?.replace("/{id}", "")
-    }
+    private fun stack(): List<String> = navController.currentBackStack.value.mapNotNull { it.destination.routeName() }
 
-    private fun tap(tab: TopDestination) = onUiThread { navController.navigateToTab(tab.route) }
+    /** The tab showing, or null for a screen pushed over one. */
+    private fun showing(): TopDestination? = navController.currentDestination?.let(TopDestination::of)
+
+    private fun tap(tab: TopDestination) = onUiThread { navController.navigateToTab(tab) }
 
     private fun onUiThread(action: () -> Unit) {
         compose.runOnUiThread(action)
@@ -80,7 +72,7 @@ class NavigateToTabTest {
         tap(TopDestination.HOMEWORK)
 
         assertEquals(arrived, arrivals.size)
-        assertEquals(Routes.HOMEWORK, navController.currentDestination?.route)
+        assertEquals(TopDestination.HOMEWORK, showing())
     }
 
     @Test
@@ -98,11 +90,11 @@ class NavigateToTabTest {
         showTabs()
 
         tap(TopDestination.HOMEWORK)
-        assertEquals(Routes.HOMEWORK, navController.currentDestination?.route)
+        assertEquals(TopDestination.HOMEWORK, showing())
         tap(TopDestination.PEOPLE)
-        assertEquals(Routes.PEOPLE, navController.currentDestination?.route)
+        assertEquals(TopDestination.PEOPLE, showing())
         tap(TopDestination.HOMEWORK)
-        assertEquals(Routes.HOMEWORK, navController.currentDestination?.route)
+        assertEquals(TopDestination.HOMEWORK, showing())
     }
 
     /** The tray's case: «Сегодня» tapped while a booking form, opened from the schedule, is on top of it. */
@@ -113,7 +105,7 @@ class NavigateToTabTest {
 
         tap(TopDestination.SCHEDULE)
 
-        assertEquals(listOf(Routes.SCHEDULE), stack())
+        assertEquals(listOf("Schedule"), stack())
     }
 
     /** The debt digest, tapped while a student's card, opened from the reports, is on top of them. */
@@ -121,12 +113,12 @@ class NavigateToTabTest {
     fun `a tap on the reports closes a card opened from them`() {
         showTabs()
         tap(TopDestination.REPORTS)
-        onUiThread { navController.navigate(Routes.studentDetail(1)) }
+        onUiThread { navController.navigate(Routes.StudentDetail(1)) }
 
         tap(TopDestination.REPORTS)
 
-        assertEquals(listOf(Routes.SCHEDULE, Routes.REPORTS), stack())
-        assertEquals(Routes.REPORTS, navController.currentDestination?.route)
+        assertEquals(listOf("Schedule", "Reports"), stack())
+        assertEquals(TopDestination.REPORTS, showing())
     }
 
     /** What did not need fixing, kept as it was: a screen over *another* tab waits with that tab. */
@@ -134,12 +126,12 @@ class NavigateToTabTest {
     fun `a screen pushed over another tab waits with it and comes back with it`() {
         showTabs()
         tap(TopDestination.PEOPLE)
-        onUiThread { navController.navigate(Routes.studentDetail(1)) }
+        onUiThread { navController.navigate(Routes.StudentDetail(1)) }
 
         tap(TopDestination.SCHEDULE)
-        assertEquals(listOf(Routes.SCHEDULE), stack())
+        assertEquals(listOf("Schedule"), stack())
 
         tap(TopDestination.PEOPLE)
-        assertEquals(listOf(Routes.SCHEDULE, Routes.PEOPLE, "student"), stack())
+        assertEquals(listOf("Schedule", "People", "StudentDetail"), stack())
     }
 }

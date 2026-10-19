@@ -14,7 +14,7 @@ class TopDestinationTest {
     @Test
     fun `the tabs read who, then what they were set, then when, then the money`() {
         assertEquals(
-            listOf(Routes.PEOPLE, Routes.HOMEWORK, Routes.SCHEDULE, Routes.REPORTS, Routes.MORE),
+            listOf(Routes.People, Routes.Homework, Routes.Schedule, Routes.Reports, Routes.More),
             TopDestination.entries.map { it.route },
         )
     }
@@ -26,12 +26,11 @@ class TopDestinationTest {
     }
 
     @Test
-    fun `every tab's route is a tab route, and nothing else is`() {
-        assertEquals(TopDestination.entries.map { it.route }.toSet(), TopDestination.routes)
-        // The sub-screens reached from a tab are not tabs: the bar hides for them, which is what
-        // gives them a back arrow instead of a selected tab.
-        listOf(Routes.SUBJECTS, Routes.SETTINGS, Routes.BACKUP, Routes.DIAGNOSTICS, Routes.ABOUT)
-            .forEach { assertFalse(it, it in TopDestination.routes) }
+    fun `the screens reached from a tab are not tabs`() {
+        // The bar hides for them, which is what gives them a back arrow instead of a selected tab.
+        val tabRoutes = TopDestination.entries.map { it.route }
+        listOf(Routes.Subjects, Routes.Settings, Routes.Backup, Routes.Diagnostics, Routes.About)
+            .forEach { assertFalse("$it", it in tabRoutes) }
     }
 
     /**
@@ -42,6 +41,6 @@ class TopDestinationTest {
      */
     @Test
     fun `groups is not a top-level destination`() {
-        assertTrue(TopDestination.entries.none { it.route.contains("group") })
+        assertTrue(TopDestination.entries.none { it.route::class.simpleName.orEmpty().contains("Group") })
     }
 }
