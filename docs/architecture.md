@@ -41,7 +41,7 @@ Paths below are inside `com.seblful.klas`; follow the linked sources for individ
 | `CalendarMirror` | Event content, sync backfill/withdrawal and restore reconciliation. |
 | `EnrollmentRepository` / `RateHistoryRepository` | Subjects and prices stay paired; rate changes share one log. |
 | `GroupRepository` | Only writer of group membership. |
-| `HomeworkRepository` | Only writer of homework; no mirror/refresh phase because reminders read homework when firing. |
+| `HomeworkRepository` | Only writer of homework; refreshes affected calendar descriptions after saving. Phone reminders read homework when firing. |
 | `PaymentRepository` | Payment dates, corrections and derived instants. |
 | `SettingsRepository` | Serialized `update {}` returns required side effects and publishes portable language state. Device currency defaults arrive through `DevicePreferences`. |
 | `SettingsWorkflow` | Applies a settings update, calendar changes and maintenance; returns the number of lessons settled. Permission prompts and confirmation remain with the host UI. |

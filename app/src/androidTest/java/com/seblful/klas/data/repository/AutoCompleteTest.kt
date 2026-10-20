@@ -45,8 +45,9 @@ class AutoCompleteTest {
             title: String,
             guest: Guest?,
             reminderLeadMinutes: Int,
+            description: String,
         ): String? = null
-        override suspend fun refresh(klass: TutoringClass, title: String) = Unit
+        override suspend fun refresh(klass: TutoringClass, title: String, description: String) = Unit
         override suspend fun delete(eventId: String) = Unit
     }
 
@@ -69,6 +70,7 @@ class AutoCompleteTest {
         val settings = SettingsRepository(db.settingsDao(), RussianMinskPhone.toDevicePreferences())
         val mirror = CalendarMirror(
             db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(), noCalendar, settings,
+            db.homeworkDao(),
         )
         repo = ClassRepository(
             db.classDao(), db.lessonDao(), db.attendanceDao(), mirror, RecordingReminderScheduler(), RoomTransactor(db),

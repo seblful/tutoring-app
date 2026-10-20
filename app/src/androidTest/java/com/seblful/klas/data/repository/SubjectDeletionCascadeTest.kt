@@ -58,8 +58,9 @@ class SubjectDeletionCascadeTest {
             title: String,
             guest: Guest?,
             reminderLeadMinutes: Int,
+            description: String,
         ): String? = null
-        override suspend fun refresh(klass: TutoringClass, title: String) = Unit
+        override suspend fun refresh(klass: TutoringClass, title: String, description: String) = Unit
         override suspend fun delete(eventId: String) = Unit
     }
 
@@ -79,6 +80,7 @@ class SubjectDeletionCascadeTest {
         val mirror = CalendarMirror(
             db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(),
             noCalendar, SettingsRepository(db.settingsDao(), RussianMinskPhone.toDevicePreferences()),
+            db.homeworkDao(),
         )
         val transactor = RoomTransactor(db)
         val classes = ClassRepository(

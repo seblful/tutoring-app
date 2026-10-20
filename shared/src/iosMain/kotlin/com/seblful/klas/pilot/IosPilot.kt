@@ -88,8 +88,9 @@ private object PilotHost : HostServices {
             title: String,
             guest: Guest?,
             reminderLeadMinutes: Int,
+            description: String,
         ): String? = null
-        override suspend fun refresh(klass: TutoringClass, title: String) = Unit
+        override suspend fun refresh(klass: TutoringClass, title: String, description: String) = Unit
         override suspend fun delete(eventId: String) = Unit
     }
     override val reminders = object : ReminderScheduler {

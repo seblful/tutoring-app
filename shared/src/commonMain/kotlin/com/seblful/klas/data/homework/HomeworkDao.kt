@@ -28,6 +28,9 @@ interface HomeworkDao {
     @Query("SELECT * FROM homework")
     suspend fun getAll(): List<HomeworkEntity>
 
+    @Query("SELECT * FROM homework WHERE id = :id")
+    suspend fun getById(id: Long): HomeworkEntity?
+
     /** A student's own homework and their groups' — what their card lists. */
     @Query(
         "SELECT * FROM homework WHERE studentId = :studentId " +

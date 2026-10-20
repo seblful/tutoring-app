@@ -59,9 +59,10 @@ class FakeCalendarSync(var available: Boolean = true) : CalendarSync {
         val title: String,
         val guest: Guest?,
         val reminderLeadMinutes: Int,
+        val description: String,
     )
 
-    data class Refresh(val klass: TutoringClass, val title: String)
+    data class Refresh(val klass: TutoringClass, val title: String, val description: String)
 
     val calls = mutableListOf<Upsert>()
     val refreshes = mutableListOf<Refresh>()
@@ -79,9 +80,10 @@ class FakeCalendarSync(var available: Boolean = true) : CalendarSync {
         title: String,
         guest: Guest?,
         reminderLeadMinutes: Int,
+        description: String,
     ): String? {
         if (!available) return null
-        calls += Upsert(klass, title, guest, reminderLeadMinutes)
+        calls += Upsert(klass, title, guest, reminderLeadMinutes, description)
         return klass.calendarEventId ?: "evt-${nextEventId++}"
     }
 
@@ -91,10 +93,10 @@ class FakeCalendarSync(var available: Boolean = true) : CalendarSync {
      * if it happened to be there. A test asserting "booking mirrored once" must not be satisfied by a
      * completed lesson's refresh, and vice versa.
      */
-    override suspend fun refresh(klass: TutoringClass, title: String) {
+    override suspend fun refresh(klass: TutoringClass, title: String, description: String) {
         if (!available) return
         if (klass.calendarEventId == null) return
-        refreshes += Refresh(klass, title)
+        refreshes += Refresh(klass, title, description)
     }
 
     override suspend fun delete(eventId: String) {

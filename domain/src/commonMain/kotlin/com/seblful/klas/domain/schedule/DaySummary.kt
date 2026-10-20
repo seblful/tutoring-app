@@ -69,7 +69,7 @@ data class DaySummary(
         val NONE = DaySummary(lessons = 0, minutes = 0, money = Money.ZERO, cancelled = 0)
 
         /**
-     * Summarizes one day's lessons, already collapsed by [SessionRules.sessions].
+         * Summarizes one day's lessons, already collapsed by [SessionRules.sessions].
          */
         fun of(sessions: List<ClassSession>): DaySummary {
             val (off, on) = sessions.partition { it.status == LessonStatus.CANCELLED }

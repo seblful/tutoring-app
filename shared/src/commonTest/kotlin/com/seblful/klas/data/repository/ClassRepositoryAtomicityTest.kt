@@ -206,12 +206,13 @@ class ClassRepositoryAtomicityTest {
                 title: String,
                 guest: Guest?,
                 reminderLeadMinutes: Int,
+                description: String,
             ): String? {
                 depths += env.transactor.depth
                 return "event-${depths.size}"
             }
 
-            override suspend fun refresh(klass: TutoringClass, title: String) {
+            override suspend fun refresh(klass: TutoringClass, title: String, description: String) {
                 depths += env.transactor.depth
             }
 
@@ -221,7 +222,7 @@ class ClassRepositoryAtomicityTest {
         }
         val mirror = CalendarMirror(
             env.classDao, env.attendanceDao, env.studentDao, env.subjectDao, env.groupDao, spying,
-            env.settingsRepo,
+            env.settingsRepo, env.homeworkDao,
         )
         val repo = ClassRepository(
             env.classDao, env.lessonDao, env.attendanceDao, mirror, env.reminders, env.transactor,

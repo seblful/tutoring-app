@@ -46,12 +46,13 @@ class ClassCalendarSyncTest {
             title: String,
             guest: Guest?,
             reminderLeadMinutes: Int,
+            description: String,
         ): String {
             upserts += klass
             return klass.calendarEventId ?: (nextId++).toString()
         }
         /** Only ever an update in place, so a refreshed lesson is recorded apart from an upserted one. */
-        override suspend fun refresh(klass: TutoringClass, title: String) {
+        override suspend fun refresh(klass: TutoringClass, title: String, description: String) {
             if (klass.calendarEventId != null) refreshes += klass
         }
         override suspend fun delete(eventId: String) { deletes += eventId }
@@ -78,6 +79,7 @@ class ClassCalendarSyncTest {
         settings.update { it.copy(calendarSyncEnabled = true) } // calendar mirroring is off unless enabled
         val mirror = CalendarMirror(
             db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(), calendar, settings,
+            db.homeworkDao(),
         )
         repo = ClassRepository(
             db.classDao(), db.lessonDao(), db.attendanceDao(), mirror, RecordingReminderScheduler(), RoomTransactor(db),

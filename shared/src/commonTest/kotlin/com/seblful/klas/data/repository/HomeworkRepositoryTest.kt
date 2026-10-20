@@ -152,9 +152,8 @@ class HomeworkRepositoryTest {
         assertEquals(setOf(groups, anyas), current.toSet())
     }
 
-    /** Homework is on no event and in no plan, so its writes owe the calendar and the reminders nothing. */
     @Test
-    fun `homework writes touch neither the calendar nor the reminders`() = runTest {
+    fun `homework writes update the calendar without rearming phone reminders`() = runTest {
         fixtures.withCalendarSync()
         val maths = fixtures.subject()
         val anya = fixtures.pricedStudent("Аня", maths)
@@ -163,12 +162,18 @@ class HomeworkRepositoryTest {
         val refreshes = env.reminders.refreshCount
 
         val given = repo.give(Assignee.Student(anya), "§ 12")
+        assertEquals("§ 12", env.calendar.calls.last().description)
         repo.edit(given, given.assignee, "§ 13")
+        assertEquals("§ 13", env.calendar.calls.last().description)
         repo.setDone(given, done = true)
+        assertEquals("", env.calendar.calls.last().description)
+        repo.putBack(given)
+        assertEquals("§ 13", env.calendar.calls.last().description)
         repo.delete(given)
+        assertEquals("", env.calendar.calls.last().description)
         repo.restore(given)
+        assertEquals("§ 12", env.calendar.calls.last().description)
 
-        assertTrue(env.calendar.calls.isEmpty())
         assertEquals(refreshes, env.reminders.refreshCount)
     }
 

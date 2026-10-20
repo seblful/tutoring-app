@@ -8,10 +8,15 @@ The database drives both mirrors; neither writes changes back into Klas.
   Calendar REST API, Cloud project or OAuth flow is needed.
 - `ClassRepository.write` mirrors after commit; `CalendarMirror` owns backfill and withdrawal.
 - Completed events are refreshed but never created/re-created (`CalendarSyncPolicy.Action.REFRESH`).
-  Descriptions are always overwritten with empty text, clearing notes/homework from older versions.
+- Event descriptions include current homework attached to that lesson: the student's own assignments
+  and homework for that group lesson, oldest first. Other students' individual assignments are excluded.
+  Homework changes refresh existing events; lesson changes also refresh events whose assignments move.
+  Empty descriptions clear homework that was completed, removed or attached to a different lesson.
 - An absent member of a scheduled lesson has no event, billed or not. Marking them present re-creates
   it; attendance no longer affects this policy once the lesson is completed.
 - Email invitations are a separate, off-by-default setting; disabling it and re-syncing withdraws them.
+  Invitations carry the event description, including homework when present; delivery and update emails
+  are handled by the calendar account.
 - Settings → Calendar & invitations reports revoked access with a direct link to restore it. Reminder
   timing is shared with phone lesson reminders and stays editable while either feature is enabled;
   changing it refreshes existing calendar email reminders. Invitations are handled by the calendar account.

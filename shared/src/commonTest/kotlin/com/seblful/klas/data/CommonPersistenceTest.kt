@@ -119,13 +119,15 @@ class CommonPersistenceTest {
                 title: String,
                 guest: Guest?,
                 reminderLeadMinutes: Int,
+                description: String,
             ): String { mirrored++; return "event-${klass.id}" }
 
-            override suspend fun refresh(klass: TutoringClass, title: String) = Unit
+            override suspend fun refresh(klass: TutoringClass, title: String, description: String) = Unit
             override suspend fun delete(eventId: String) = Unit
         }
         private val mirror = CalendarMirror(
-            db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(), calendar, settings,
+            db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(),
+            calendar, settings, db.homeworkDao(),
         )
         private val classes = ClassRepository(
             db.classDao(), db.lessonDao(), db.attendanceDao(), mirror, reminders, transactor,

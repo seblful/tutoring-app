@@ -34,11 +34,17 @@ class DeviceCalendarSync @Inject constructor(
     private val displayLocale: DisplayLocale,
 ) : CalendarSync {
 
-    override suspend fun upsert(klass: TutoringClass, title: String, guest: Guest?, reminderLeadMinutes: Int): String? =
+    override suspend fun upsert(
+        klass: TutoringClass,
+        title: String,
+        guest: Guest?,
+        reminderLeadMinutes: Int,
+        description: String,
+    ): String? =
         withContext(Dispatchers.IO) {
             if (!hasPermission()) return@withContext null
             val calendarId = writableCalendarId() ?: return@withContext null
-            val values = eventValues(klass, title, calendarId)
+            val values = eventValues(klass, title, description, calendarId)
 
             val existingId = klass.calendarEventId?.toLongOrNull()
             // The user may have deleted the event from their calendar — recreate it if so. A lesson still
@@ -126,12 +132,12 @@ class DeviceCalendarSync @Inject constructor(
     }
 
     /** The event, brought in line with the lesson — or nothing, if there is no event. */
-    override suspend fun refresh(klass: TutoringClass, title: String) {
+    override suspend fun refresh(klass: TutoringClass, title: String, description: String) {
         withContext(Dispatchers.IO) {
             if (!hasPermission()) return@withContext
             val eventId = klass.calendarEventId?.toLongOrNull() ?: return@withContext
             val calendarId = writableCalendarId() ?: return@withContext
-            write(eventId, eventValues(klass, title, calendarId))
+            write(eventId, eventValues(klass, title, description, calendarId))
         }
     }
 
@@ -155,16 +161,19 @@ class DeviceCalendarSync @Inject constructor(
         return uri.lastPathSegment
     }
 
-    private fun eventValues(klass: TutoringClass, title: String, calendarId: Long) = ContentValues().apply {
+    private fun eventValues(
+        klass: TutoringClass,
+        title: String,
+        description: String,
+        calendarId: Long,
+    ) = ContentValues().apply {
         put(CalendarContract.Events.CALENDAR_ID, calendarId)
         put(CalendarContract.Events.TITLE, title)
         put(CalendarContract.Events.DTSTART, klass.start.toEpochMilliseconds())
         put(CalendarContract.Events.DTEND, klass.end.toEpochMilliseconds())
         put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.currentSystemDefault().id)
-        // **Written every time, although it is always empty** — see `CalendarEvent.DESCRIPTION`. Leaving
-        // it out would leave the note or the homework an older build wrote standing on the event, in
-        // front of an invited student, with nothing in the app to say it is there.
-        put(CalendarContract.Events.DESCRIPTION, CalendarEvent.DESCRIPTION)
+        // Write even an empty description to clear homework that was removed or marked done.
+        put(CalendarContract.Events.DESCRIPTION, description)
         // The one **word** this class writes, so it is the one thing read in the tutor's chosen language
         // rather than off the application context (which is pinned to the phone's — see `KlasApp`). An event
         // keeps the language it was mirrored in until something re-mirrors it, which is why changing the

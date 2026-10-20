@@ -1,7 +1,9 @@
 package com.seblful.klas.calendar
 
+import com.seblful.klas.domain.model.TutoringClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Instant
 
 class CalendarEventTest {
 
@@ -31,7 +33,10 @@ class CalendarEventTest {
     }
 
     @Test
-    fun `the description is always empty`() {
-        assertEquals("", CalendarEvent.DESCRIPTION)
+    fun `a lesson without homework has an empty description`() {
+        val klass = TutoringClass(
+            studentId = 1, subjectId = 1, start = Instant.parse("2026-06-01T10:00:00Z"), durationMinutes = 60,
+        )
+        assertEquals("", CalendarEvent.description(klass, emptyList()))
     }
 }

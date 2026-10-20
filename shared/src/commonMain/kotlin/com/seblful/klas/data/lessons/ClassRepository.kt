@@ -225,8 +225,8 @@ class ClassRepository @Inject constructor(
         if (!written.changed) return written.value
         // Leavers' events go before the survivors are mirrored, mirroring the row order inside (2).
         written.drop.forEach { calendar.drop(it) }
-        // An empty list is how a write says it has nothing to mirror; the mirror returns immediately.
-        calendar.mirror(written.mirror)
+        // Deleted lessons can move homework onto a surviving lesson's invitation.
+        calendar.mirror(written.mirror, removed = written.drop)
         if (refreshesReminders) reminderScheduler.refreshNow()
         return written.value
     }

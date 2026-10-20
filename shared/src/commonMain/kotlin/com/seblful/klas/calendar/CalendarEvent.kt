@@ -1,5 +1,9 @@
 package com.seblful.klas.calendar
 
+import com.seblful.klas.domain.homework.takes
+import com.seblful.klas.domain.model.Homework
+import com.seblful.klas.domain.model.TutoringClass
+
 /** How a class is rendered as a calendar event. Owns the event's display shape. */
 object CalendarEvent {
 
@@ -9,11 +13,12 @@ object CalendarEvent {
         return if (groupName.isNullOrBlank()) base else "$base ($groupName)"
     }
 
-    /**
-     * The event's description: **always empty.** A lesson carries no text of the tutor's any more — the
-     * note is gone, and homework is attached to a lesson by rule rather than stored on one (`domain/
-     * HomeworkRules`). v7 wrote the note here and v8 the homework, so an event mirrored by either still
-     * holds it until its lesson is next mirrored, and writing this is what clears it.
-     */
-    const val DESCRIPTION: String = ""
+    /** This student's current assignments from the lesson's attached [homework], oldest first. */
+    fun description(klass: TutoringClass, homework: List<Homework>): String =
+        homework
+            .filter { !it.isDone && it.assignee.takes(klass) }
+            .sortedBy { it.givenAt }
+            .map { it.text.trim() }
+            .filter { it.isNotBlank() }
+            .joinToString("\n\n")
 }

@@ -70,7 +70,7 @@ class TestEnv(
 
     val settingsRepo = SettingsRepository(settingsDao, DevicePreferences(listOf("ru-BY"), listOf("BYN")))
     val calendarMirror =
-        CalendarMirror(classDao, attendanceDao, studentDao, subjectDao, groupDao, calendar, settingsRepo)
+        CalendarMirror(classDao, attendanceDao, studentDao, subjectDao, groupDao, calendar, settingsRepo, homeworkDao)
 
     val rateHistoryRepo = RateHistoryRepository(rateHistoryDao, groupDao, priceDao, clock)
     val paymentRepo = PaymentRepository(paymentDao, clock)
@@ -90,7 +90,7 @@ class TestEnv(
 
     val studentRepo = StudentRepository(studentDao, classRepo, calendarMirror)
 
-    val homeworkRepo = HomeworkRepository(homeworkDao, classRepo, clock)
+    val homeworkRepo = HomeworkRepository(homeworkDao, classRepo, clock, calendarMirror)
 
     /**
      * The real backup manager and restore, on the same database — so an import is the real

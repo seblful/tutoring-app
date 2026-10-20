@@ -44,9 +44,10 @@ class BackupRestoreTest {
             title: String,
             guest: Guest?,
             reminderLeadMinutes: Int,
+            description: String,
         ): String? = null
 
-        override suspend fun refresh(klass: TutoringClass, title: String) = Unit
+        override suspend fun refresh(klass: TutoringClass, title: String, description: String) = Unit
 
         override suspend fun delete(eventId: String) = Unit
     }
@@ -71,7 +72,7 @@ class BackupRestoreTest {
         settings = SettingsRepository(target.settingsDao(), RussianMinskPhone.toDevicePreferences())
         val mirror = CalendarMirror(
             target.classDao(), target.attendanceDao(), target.studentDao(), target.subjectDao(), target.groupDao(),
-            noCalendar, settings,
+            noCalendar, settings, target.homeworkDao(),
         )
         restore = BackupRestore(
             backup = managerFor(target),

@@ -24,19 +24,21 @@ interface CalendarSync {
      * an attendee so the calendar account emails them, an uninvited one is removed from the event
      * if the app had added them. Null when the student has no email, leaving attendees untouched.
      * @param reminderLeadMinutes how long before the class the email reminder fires.
+     * @param description homework for this student's lesson, included in the calendar invitation.
      */
     suspend fun upsert(
         klass: TutoringClass,
         title: String,
         guest: Guest? = null,
         reminderLeadMinutes: Int = Reminders.DEFAULT_LEAD_MINUTES,
+        description: String = "",
     ): String?
 
     /**
      * Writes [klass]'s current fields to the event it is already mirrored by — and does **nothing at
      * all** if there is no such event.
      */
-    suspend fun refresh(klass: TutoringClass, title: String)
+    suspend fun refresh(klass: TutoringClass, title: String, description: String = "")
 
     /** Removes the mirrored event if it still exists. */
     suspend fun delete(eventId: String)

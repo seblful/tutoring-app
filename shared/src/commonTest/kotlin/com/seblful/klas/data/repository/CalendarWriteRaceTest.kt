@@ -31,7 +31,8 @@ class CalendarWriteRaceTest {
     private val start = Instant.parse("2026-06-01T10:00:00Z")
 
     private fun mirror(calendar: CalendarSync) = CalendarMirror(
-        env.classDao, env.attendanceDao, env.studentDao, env.subjectDao, env.groupDao, calendar, env.settingsRepo,
+        env.classDao, env.attendanceDao, env.studentDao, env.subjectDao, env.groupDao,
+        calendar, env.settingsRepo, env.homeworkDao,
     )
 
     @Test
@@ -47,6 +48,7 @@ class CalendarWriteRaceTest {
                 title: String,
                 guest: Guest?,
                 reminderLeadMinutes: Int,
+                description: String,
             ): String {
                 entered.complete(Unit)
                 release.await()
