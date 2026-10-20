@@ -173,7 +173,11 @@ class GroupDetailViewModel @AssistedInject constructor(
         homework.observeForGroup(groupId),
         clock.days(),
     ) { base, homeworkList, today ->
-        val captions = Captions.of(students = emptyList(), subjects = emptyList(), groups = listOfNotNull(base.state.group))
+        val captions = Captions.of(
+            students = emptyList(),
+            subjects = emptyList(),
+            groups = listOfNotNull(base.state.group),
+        )
         base.state.copy(
             homework = HomeworkLists.of(homeworkList, base.classes, captions, today, clock.zone),
         )

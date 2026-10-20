@@ -29,7 +29,7 @@ import com.seblful.klas.R
 import com.seblful.klas.domain.people.AvatarPalette
 import com.seblful.klas.ui.theme.klasColors
 
-/**
+/*
  * Monograms: one student's, and a whole roster's.
  *
  * The colour keys off the student's **id** rather than their name (`domain/people/AvatarPalette`), so a rename does

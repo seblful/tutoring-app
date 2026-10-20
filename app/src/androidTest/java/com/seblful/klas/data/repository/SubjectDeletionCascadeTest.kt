@@ -99,7 +99,12 @@ class SubjectDeletionCascadeTest {
                     AttendanceEntity(1, 1, 1, Attended.PRESENT, chargeMinor = 5000),
                 ),
                 payments = listOf(
-                    PaymentEntity(1, 1, Instant.parse("2026-05-10T12:00:00Z").toEpochMilliseconds(), amountMinor = 2000),
+                    PaymentEntity(
+                        1,
+                        1,
+                        Instant.parse("2026-05-10T12:00:00Z").toEpochMilliseconds(),
+                        amountMinor = 2000,
+                    ),
                 ),
             ),
         )

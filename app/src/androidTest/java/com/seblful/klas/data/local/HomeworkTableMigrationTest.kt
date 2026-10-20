@@ -34,7 +34,8 @@ class HomeworkTableMigrationTest {
         )
         execSQL("INSERT INTO group_members (groupId, studentId) VALUES (7, 1), (7, 2)")
         execSQL(
-            "INSERT INTO lessons (id, subjectId, startMillis, durationMinutes, status, groupId, mode, notes, homework) " +
+            "INSERT INTO lessons (id, subjectId, startMillis, durationMinutes, status, " +
+                "groupId, mode, notes, homework) " +
                 "VALUES " +
                 "(10, 1, 1000, 60, 'COMPLETED', NULL, 'IN_PERSON', 'устала к концу', '§12'), " +
                 "(11, 1, 2000, 60, 'SCHEDULED', NULL, 'IN_PERSON', '', '§13'), " +
@@ -112,7 +113,10 @@ class HomeworkTableMigrationTest {
     fun homeworkWrittenAfterTheUpgradeReadsBack() {
         val db = migrated()
 
-        db.execSQL("INSERT INTO homework (studentId, groupId, text, givenAtMillis, doneAtMillis) VALUES (2, NULL, '§14', 7000, NULL)")
+        db.execSQL(
+            "INSERT INTO homework (studentId, groupId, text, givenAtMillis, doneAtMillis) " +
+                "VALUES (2, NULL, '§14', 7000, NULL)",
+        )
 
         assertEquals(Row(2, null, "§14", 7000, null), db.homework().last())
     }

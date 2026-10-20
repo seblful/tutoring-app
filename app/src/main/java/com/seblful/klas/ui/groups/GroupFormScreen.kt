@@ -90,7 +90,11 @@ private fun GroupForm(
 
     if (confirmingDrops) {
         ConfirmDialog(
-            text = pluralStringResource(R.plurals.group_members_leaving_confirm, state.leavingOnSave, state.leavingOnSave),
+            text = pluralStringResource(
+                R.plurals.group_members_leaving_confirm,
+                state.leavingOnSave,
+                state.leavingOnSave,
+            ),
             confirmLabel = stringResource(R.string.action_save),
             onConfirm = { viewModel.save { onBack() } },
             onDismiss = { confirmingDrops = false },

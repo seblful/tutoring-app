@@ -226,7 +226,10 @@ class HomeworkRulesTest {
         val justTaught = klass(1, Instant.parse("2026-09-23T15:00:00Z")) // 15:00–16:00, over 5 minutes ago
         val bookedNext = klass(2, Instant.parse("2026-09-23T16:30:00Z")) // in 25 minutes
 
-        assertEquals(listOf(anya, boris), HomeworkRules.byNearestLesson(listOf(boris, anya), listOf(bookedNext, justTaught), now))
+        assertEquals(
+            listOf(anya, boris),
+            HomeworkRules.byNearestLesson(listOf(boris, anya), listOf(bookedNext, justTaught), now),
+        )
     }
 
     @Test

@@ -10,8 +10,6 @@
     <ID>CyclomaticComplexMethod:StudentDetailScreen.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable private fun StudentCard</ID>
     <ID>CyclomaticComplexMethod:SubjectsScreen.kt:@Composable fun SubjectsScreen</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:MigrationChainTest.kt:MigrationChainTest$val (_, _, into, selected, source) = copied!!.groupValues</ID>
-    <ID>LargeClass:ClassEditViewModelTest.kt:ClassEditViewModelTest</ID>
-    <ID>LargeClass:ScheduleViewModelTest.kt:ScheduleViewModelTest</ID>
     <ID>LongMethod:AboutScreen.kt:@Composable fun AboutScreen</ID>
     <ID>LongMethod:BackupScreen.kt:@Composable fun BackupScreen</ID>
     <ID>LongMethod:CalendarViews.kt:@Composable private fun DayCell</ID>
@@ -45,7 +43,6 @@
     <ID>MagicNumber:SettingsRepository.kt:AppSettings$60</ID>
     <ID>MagicNumber:SettingsRepository.kt:AppSettings$9</ID>
     <ID>MagicNumber:WorkScheduler.kt:WorkScheduler$7</ID>
-    <ID>MatchingDeclarationName:ClassStatusColorTest.kt:LessonStatusColorTest</ID>
     <ID>MatchingDeclarationName:Stats.kt:Stat</ID>
     <ID>ReturnCount:BookingForm.kt:BookingForm$private fun chooseTarget: Applied</ID>
     <ID>ReturnCount:BookingForm.kt:BookingForm$private fun onlySubject: Applied</ID>

@@ -59,7 +59,13 @@ class SubjectsViewModelTest {
     @Test
     fun `deleting a subject that still has classes is blocked and emits an event`() = runTest(mainRule.dispatcher) {
         val id = env.fixtures.subject("Математика")
-        env.fixtures.storedClass(studentId = env.fixtures.student(), subjectId = id, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED)
+        env.fixtures.storedClass(
+            studentId = env.fixtures.student(),
+            subjectId = id,
+            startMillis = 1,
+            durationMinutes = 60,
+            status = LessonStatus.COMPLETED,
+        )
         val vm = vm()
         val events = mutableListOf<SubjectsViewModel.Event>()
         observing(vm.subjects)

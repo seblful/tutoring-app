@@ -226,7 +226,12 @@ class MappersTest {
     @Test
     fun `class start instant maps to and from epoch millis`() {
         val c =
-            TutoringClass(studentId = 1, subjectId = 1, start = Instant.parse("2026-06-20T10:00:00Z"), durationMinutes = 60)
+            TutoringClass(
+                studentId = 1,
+                subjectId = 1,
+                start = Instant.parse("2026-06-20T10:00:00Z"),
+                durationMinutes = 60,
+            )
         assertEquals(Instant.parse("2026-06-20T10:00:00Z").toEpochMilliseconds(), c.toLessonEntity().startMillis)
         assertEquals(c.start, c.roundTrip().start)
     }

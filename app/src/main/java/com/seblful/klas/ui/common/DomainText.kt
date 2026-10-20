@@ -14,7 +14,7 @@ import com.seblful.klas.format.labelRes
 import com.seblful.klas.ui.students.balanceColor
 import com.seblful.klas.ui.theme.klasColors
 
-/**
+/*
  * The app's domain vocabulary in words and colours — the one place a `LessonStatus`, a `ClassMode`, a balance
  * or a `MoneyField.Error` becomes something a screen can print.
  *

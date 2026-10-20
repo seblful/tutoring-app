@@ -234,7 +234,13 @@ class ClassRulesTest {
         val pastStart = Instant.parse("2026-06-25T10:00:00Z")
         val resolved = ClassRules.edit(
             completed,
-            ClassEdit(studentId = 2, subjectId = 99, durationMinutes = 90, price = Money.ofMajor(30), mode = completed.mode),
+            ClassEdit(
+                studentId = 2,
+                subjectId = 99,
+                durationMinutes = 90,
+                price = Money.ofMajor(30),
+                mode = completed.mode,
+            ),
             pastStart, now,
         )
         assertEquals(LessonStatus.COMPLETED, resolved.status)
@@ -251,7 +257,13 @@ class ClassRulesTest {
         val futureStart = Instant.parse("2026-06-25T10:00:00Z")
         val resolved = ClassRules.edit(
             completed,
-            ClassEdit(studentId = 1, subjectId = 1, durationMinutes = 60, price = Money.ofMajor(30), mode = completed.mode),
+            ClassEdit(
+                studentId = 1,
+                subjectId = 1,
+                durationMinutes = 60,
+                price = Money.ofMajor(30),
+                mode = completed.mode,
+            ),
             futureStart, now,
         )
         assertEquals(LessonStatus.SCHEDULED, resolved.status)

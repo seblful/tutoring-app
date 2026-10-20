@@ -13,7 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 
-/**
+/*
  * **A moment the tutor feels should also be a moment they see.** The two pops here are the visible halves
  * of the two things a swipe-to-complete says (`ui/common/SwipeToConfirm`, `ui/common/Haptics`): *the promise
  * stands* while a drag is past its mark, and *it happened* when the status flips.

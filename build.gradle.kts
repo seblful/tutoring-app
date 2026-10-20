@@ -17,7 +17,7 @@ plugins {
     alias(libs.plugins.ktlint) apply false
 }
 
-// Lint every module; each module's baseline records existing findings.
+// Lint every module; detekt baselines record existing findings.
 val detektVersion = libs.versions.detekt.get()
 val ktlintVersion = libs.versions.ktlint.get()
 val detektConfig = rootProject.file("config/detekt/detekt.yml")
@@ -25,8 +25,6 @@ subprojects {
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
     configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
         version = ktlintVersion
-        // Share formatting rules with the IDE through .editorconfig.
-        baseline = file("config/ktlint/baseline.xml")
     }
 
     apply(plugin = "dev.detekt")

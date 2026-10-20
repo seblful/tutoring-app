@@ -12,8 +12,23 @@ import org.junit.Test
 
 class BackupLegacyHomeworkTest {
 
-    private fun lesson(id: Long, start: Long, homework: String, groupId: Long? = null, status: LessonStatus = LessonStatus.COMPLETED) =
-        BackupLesson(id, subjectId = 1, startMillis = start, durationMinutes = 60, status = status, groupId = groupId, homework = homework)
+    private fun lesson(
+        id: Long,
+        start: Long,
+        homework: String,
+        groupId: Long? = null,
+        status: LessonStatus =
+            LessonStatus.COMPLETED,
+    ) =
+        BackupLesson(
+            id,
+            subjectId = 1,
+            startMillis = start,
+            durationMinutes = 60,
+            status = status,
+            groupId = groupId,
+            homework = homework,
+        )
 
     private fun member(id: Long, lessonId: Long, studentId: Long, verdict: String? = null) =
         BackupAttendance(id, lessonId, studentId, state = Attended.PRESENT, homeworkResult = verdict)
@@ -91,7 +106,10 @@ class BackupLegacyHomeworkTest {
             LessonEntity(4, subjectId = 1, startMillis = 1000, durationMinutes = 60, status = LessonStatus.COMPLETED),
             snapshot.lessons.single(),
         )
-        assertEquals(AttendanceEntity(9, lessonId = 4, studentId = 1, state = Attended.PRESENT), snapshot.attendance.single())
+        assertEquals(
+            AttendanceEntity(9, lessonId = 4, studentId = 1, state = Attended.PRESENT),
+            snapshot.attendance.single(),
+        )
     }
 
     /** A v9 file keeps homework in its own list, and its lessons' are blank — nothing is added twice. */

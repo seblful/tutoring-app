@@ -33,7 +33,10 @@ class SchemaCleanupMigrationTest {
                 "(3, 'Вера', '', '', 'выпустилась', 'IN_PERSON', 1)",
         )
         execSQL("INSERT INTO student_subjects (studentId, subjectId) VALUES (1, 1), (1, 2), (2, 1), (3, 1)")
-        execSQL("INSERT INTO prices (studentId, subjectId, amountMinor) VALUES (1, 1, 3000), (1, 2, 3500), (2, 1, 2800), (3, 1, 2500)")
+        execSQL(
+            "INSERT INTO prices (studentId, subjectId, amountMinor) VALUES (1, 1, 3000), (1, " +
+                "2, 3500), (2, 1, 2800), (3, 1, 2500)",
+        )
         execSQL(
             "INSERT INTO student_groups (id, name, note, subjectId, priceMinor, defaultMode, archived) " +
                 "VALUES (7, '9 «Б»', 'вечер', 1, 2000, 'IN_PERSON', 0)",
@@ -46,7 +49,8 @@ class SchemaCleanupMigrationTest {
                 "(3, NULL, NULL, 7, NULL, 2000, 1700100000000)",
         )
         execSQL(
-            "INSERT INTO lessons (id, subjectId, startMillis, durationMinutes, status, groupId, mode, notes, homework) " +
+            "INSERT INTO lessons (id, subjectId, startMillis, durationMinutes, status, " +
+                "groupId, mode, notes, homework) " +
                 "VALUES " +
                 "(10, 1, 1750000000000, 60, 'COMPLETED', NULL, 'REMOTE', '', ''), " +
                 "(11, 2, 1750100000000, 90, 'COMPLETED', NULL, 'IN_PERSON', '', ''), " +
@@ -185,7 +189,11 @@ class SchemaCleanupMigrationTest {
                 "VALUES (100, 1, 'EXPECTED', 3000, 0, NULL)",
         )
 
-        assertEquals("the next lesson id is past 99, which was used", 100L, migrated.long("SELECT max(id) FROM lessons"))
+        assertEquals(
+            "the next lesson id is past 99, which was used",
+            100L,
+            migrated.long("SELECT max(id) FROM lessons"),
+        )
         assertEquals("and the next class id past 999", 1000L, migrated.long("SELECT max(id) FROM attendance"))
     }
 

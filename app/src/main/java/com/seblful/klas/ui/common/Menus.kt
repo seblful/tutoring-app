@@ -19,7 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
 import com.seblful.klas.ui.theme.KlasIcons
 
-/**
+/*
  * The parts the app's dropdown menus share: an entry that marks the one in force, and the «⋮» a card keeps
  * its lifecycle actions behind.
  */

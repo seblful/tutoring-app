@@ -54,27 +54,13 @@ class BackupViewModel @Inject constructor(
 
     val events = UiEvents<BackupResult>()
 
-    /**
-     * When a backup was last exported, or null if one never has been — what the screen leads with.
-     *
-     * The screen used to state nothing at all: two rows describing what export and import *are*, on the
-     * one screen of an app whose whole promise is that the data is on this device and nowhere else. When
-     * the last copy was made is the single most valuable fact in that promise, and the app knew it and
-     * threw it away.
-     */
-    /**
-     * ...and [Loadable], because **null is the answer that matters here.** «Копий ещё не было» is the
-     * sentence this screen exists to make, tinted so it is the one thing on it worth acting on today — and
-     * an initial `null` said it to every tutor for the frame or two before the row was read, including the
-     * ones who exported yesterday. Loading and never-exported are the same value without this, and only
-     * one of them is a warning.
-     */
+    /** Last successful export time; [Loadable.Loading] distinguishes unread settings from no export. */
     val lastExportAt: StateFlow<Loadable<Instant?>> = settings.observe()
         .map { it.lastExportAt }
         .ready()
         .hold(this, Loadable.Loading)
 
-    /** rites the snapshot, then **records that it happened** — in that order, and only if it did. */
+    /** Writes the snapshot, then **records that it happened** — in that order, and only if it did. */
     fun export(ref: DocumentRef) {
         viewModelScope.launch {
             val written = runCatchingCancellable { documents.write(ref, backup.exportJson()) }

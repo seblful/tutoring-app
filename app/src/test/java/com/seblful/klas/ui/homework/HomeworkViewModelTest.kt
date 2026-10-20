@@ -237,7 +237,11 @@ class HomeworkViewModelTest {
 
             vm.setFilter(Assignee.Student(anya))
             runCurrent()
-            assertEquals("narrowing the list keeps the other filter options", expected, vm.state.current.filterAssignees)
+            assertEquals(
+                "narrowing the list keeps the other filter options",
+                expected,
+                vm.state.current.filterAssignees,
+            )
         }
 
     @Test

@@ -125,7 +125,13 @@ class LessonKindTest {
     @Test
     fun `the class-list form agrees with it`() {
         val individual =
-            TutoringClass(id = 1, studentId = 1, subjectId = 1, start = Instant.fromEpochMilliseconds(0), durationMinutes = 60)
+            TutoringClass(
+                id = 1,
+                studentId = 1,
+                subjectId = 1,
+                start = Instant.fromEpochMilliseconds(0),
+                durationMinutes = 60,
+            )
         val group = individual.copy(id = 2, groupId = 7)
         val classes = listOf(individual, group)
 

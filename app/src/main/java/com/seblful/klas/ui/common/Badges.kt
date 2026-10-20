@@ -14,7 +14,7 @@ import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 import com.seblful.klas.ui.theme.klasColors
 
-/**
+/*
  * How the app says what state a thing is in: a pill, never a font style.
  *
  * «в архиве» used to be an italic grey word — the one place a state was said in emphasis rather than in the

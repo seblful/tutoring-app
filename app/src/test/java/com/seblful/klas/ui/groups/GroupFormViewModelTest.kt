@@ -343,7 +343,10 @@ class GroupFormViewModelTest {
         val (ann, _) = seedStudents()
         val chem = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
         env.enrollmentRepo.enroll(ann, chem, Money.ofMajor(25))
-        val id = env.groupRepo.save(Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)), setOf(ann)).id
+        val id = env.groupRepo.save(
+            Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)),
+            setOf(ann),
+        ).id
 
         val vm = vm(id)
         observing(vm.state)

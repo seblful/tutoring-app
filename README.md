@@ -59,17 +59,15 @@ Architecture is MVVM over a pure, unit-tested domain layer — see **[docs/archi
 ./gradlew :app:lintDebug                # lint (release lint is off: an AGP file-locking bug on Windows, see app/build.gradle.kts)
 ./gradlew :app:assembleDebugAndroidTest # build instrumented tests (Room, calendar, backup round-trip)
 
-./gradlew ktlintCheck detekt                     # formatting (ktlint) and static analysis (detekt), every module
-./gradlew ktlintFormat                           # auto-format: rewrites every file it can fix, baselined ones too
-./gradlew ktlintGenerateBaseline detektBaseline  # regenerate both baselines from the code as it stands
+./gradlew ktlintCheck detekt # formatting (ktlint) and static analysis (detekt), every module
+./gradlew ktlintFormat       # auto-format every file it can fix
+./gradlew detektBaseline     # refresh detekt baselines after reviewing the findings
 ```
 
 ktlint's rules are in `.editorconfig` (the IDE formatter reads the same file), detekt's departures from
-its defaults in `config/detekt/detekt.yml`. Findings that predate the linters are recorded per module in
-`config/ktlint/baseline.xml` and `config/detekt/baseline.xml` and are not reported; anything new fails.
-ktlint's baseline is keyed by line and column, so editing above a recorded finding resurfaces it: fix it,
-or regenerate the baselines after a refactor that moves a lot of code. `ktlintFormat` touches the whole
-tree, so review its diff before keeping it.
+its defaults in `config/detekt/detekt.yml`. ktlint checks every file without a baseline. Existing detekt
+findings are recorded per module in `config/detekt/baseline.xml`; new findings fail the build.
+`ktlintFormat` touches the whole tree, so review its diff before keeping it.
 
 The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk` and installs without any signing
 setup. It carries a `.debug` application id, so it sits beside a release install with its own database.

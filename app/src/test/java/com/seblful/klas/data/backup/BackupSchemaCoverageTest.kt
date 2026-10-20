@@ -74,7 +74,13 @@ class BackupSchemaCoverageTest {
             BackupData.serializer(),
             DatabaseSnapshot(
                 lessons = listOf(
-                    LessonEntity(4, subjectId = 1, startMillis = 1L, durationMinutes = 60, status = LessonStatus.COMPLETED),
+                    LessonEntity(
+                        4,
+                        subjectId = 1,
+                        startMillis = 1L,
+                        durationMinutes = 60,
+                        status = LessonStatus.COMPLETED,
+                    ),
                 ),
                 attendance = listOf(AttendanceEntity(9, lessonId = 4, studentId = 1, state = Attended.PRESENT)),
             ).toBackupData(),

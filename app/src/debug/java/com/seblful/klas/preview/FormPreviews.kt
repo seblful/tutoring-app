@@ -9,7 +9,7 @@ import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.FilterChipRow
 import com.seblful.klas.ui.common.MoneyTextField
 
-/**
+/*
  * The controls a tutor answers with — a money field, a choice, a narrowing filter — and the dialog
  * that asks before something is lost. Same rules as `CommonPreviews.kt`: Russian text, plausible
  * numbers, every preview a screenshot test.

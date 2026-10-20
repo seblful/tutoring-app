@@ -35,7 +35,13 @@ class SubjectRepositoryTest {
     fun `a subject with classes is refused`() = runTest {
         val student = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
-        env.fixtures.storedClass(studentId = student, subjectId = id, startMillis = 0, durationMinutes = 60, status = LessonStatus.COMPLETED)
+        env.fixtures.storedClass(
+            studentId = student,
+            subjectId = id,
+            startMillis = 0,
+            durationMinutes = 60,
+            status = LessonStatus.COMPLETED,
+        )
 
         assertEquals(SubjectRepository.Delete.HasClasses, env.subjectRepo.delete(Subject(id = id, name = "Химия")))
         assertEquals("the subject is still there", 1, env.stored().subjects.size)
@@ -71,7 +77,13 @@ class SubjectRepositoryTest {
     fun `classes are named ahead of a group when both block`() = runTest {
         val student = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
-        env.fixtures.storedClass(studentId = student, subjectId = id, startMillis = 0, durationMinutes = 60, status = LessonStatus.COMPLETED)
+        env.fixtures.storedClass(
+            studentId = student,
+            subjectId = id,
+            startMillis = 0,
+            durationMinutes = 60,
+            status = LessonStatus.COMPLETED,
+        )
         env.groupRepo.save(Group(name = "Химия, 11 класс", subjectId = id, price = Money.ofMajor(20)), emptySet())
 
         assertEquals(

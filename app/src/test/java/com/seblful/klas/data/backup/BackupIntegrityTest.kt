@@ -189,7 +189,14 @@ class BackupIntegrityTest {
     }
 
     private val taughtLesson =
-        BackupLesson(4, subjectId = 1, startMillis = 1L, durationMinutes = 60, status = LessonStatus.COMPLETED, homework = "§12")
+        BackupLesson(
+            4,
+            subjectId = 1,
+            startMillis = 1L,
+            durationMinutes = 60,
+            status = LessonStatus.COMPLETED,
+            homework = "§12",
+        )
 
     @Test
     fun `a v8 verdict passes whatever it says`() {

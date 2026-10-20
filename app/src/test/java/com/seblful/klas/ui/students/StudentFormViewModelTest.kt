@@ -105,28 +105,29 @@ class StudentFormViewModelTest {
     }
 
     @Test
-    fun `save persists a trimmed student with linked, priced subjects and signals done`() = runTest(mainRule.dispatcher) {
-        val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val vm = vm()
-        observing(vm.state)
+    fun `save persists a trimmed student with linked, priced subjects and signals done`() =
+        runTest(mainRule.dispatcher) {
+            val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+            val vm = vm()
+            observing(vm.state)
 
-        vm.update { it.copy(name = "  Аня  ", email = " a@b.co ", phone = "  +375 29  ", note = "  hi ") }
-        vm.toggleSubject(mathId, on = true)
-        vm.setPriceText(mathId, "30,50")
+            vm.update { it.copy(name = "  Аня  ", email = " a@b.co ", phone = "  +375 29  ", note = "  hi ") }
+            vm.toggleSubject(mathId, on = true)
+            vm.setPriceText(mathId, "30,50")
 
-        var done = false
-        vm.save { done = true }
+            var done = false
+            vm.save { done = true }
 
-        assertTrue(done)
-        val student = env.stored().students.single()
-        assertEquals("Аня", student.name)
-        assertEquals("a@b.co", student.email)
-        assertEquals("+375 29", student.phone)
-        assertEquals("hi", student.note)
-        // Subject is linked AND priced — the two must stay in lock-step.
-        assertEquals(listOf(mathId), env.studentDao.getSubjectIds(student.id))
-        assertEquals(Money(3050), env.enrollmentRepo.priceFor(student.id, mathId)?.amount)
-    }
+            assertTrue(done)
+            val student = env.stored().students.single()
+            assertEquals("Аня", student.name)
+            assertEquals("a@b.co", student.email)
+            assertEquals("+375 29", student.phone)
+            assertEquals("hi", student.note)
+            // Subject is linked AND priced — the two must stay in lock-step.
+            assertEquals(listOf(mathId), env.studentDao.getSubjectIds(student.id))
+            assertEquals(Money(3050), env.enrollmentRepo.priceFor(student.id, mathId)?.amount)
+        }
 
     /**
      * A tutor with no subjects reached this form from the schedule's «Добавить ученика» and met a refusal

@@ -21,7 +21,7 @@ import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.theme.KlasIcons
 
-/**
+/*
  * The shared vocabulary of `ui/common`, drawn so it can be looked at.
  *
  * These are the components every screen is assembled from, which is why they are the ones worth a

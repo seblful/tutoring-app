@@ -281,7 +281,10 @@ class ClassRepositoryGroupTest {
                 priceMinor = Money.ofMajor(25).minor,
             ),
         )
-        assertNull("members on differing rates have no single lesson rate", repo.getSessionFor(ids.first())!!.sharedPrice)
+        assertNull(
+            "members on differing rates have no single lesson rate",
+            repo.getSessionFor(ids.first())!!.sharedPrice,
+        )
 
         repo.apply(
             repo.getSessionFor(ids.first())!!,

@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
+/*
  * The app's non-negotiable measurements: how wide content may get, how small a target may be, and how far a
  * disabled thing fades.
  *

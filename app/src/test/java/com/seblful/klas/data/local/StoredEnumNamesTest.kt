@@ -82,7 +82,13 @@ class StoredEnumNamesTest {
         val lesson = LessonEntity(subjectId = 1, startMillis = 0, durationMinutes = 60, status = LessonStatus.SCHEDULED)
         assertTrue(converters.fromMode(lesson.mode) in storedModes)
         val row =
-            ClassRow(studentId = 1, subjectId = 1, startMillis = 0, durationMinutes = 60, status = LessonStatus.SCHEDULED)
+            ClassRow(
+                studentId = 1,
+                subjectId = 1,
+                startMillis = 0,
+                durationMinutes = 60,
+                status = LessonStatus.SCHEDULED,
+            )
         assertTrue(converters.fromAttended(row.state) in storedAttendance)
         assertTrue(converters.fromMode(row.mode) in storedModes)
         val settings = SettingsEntity()

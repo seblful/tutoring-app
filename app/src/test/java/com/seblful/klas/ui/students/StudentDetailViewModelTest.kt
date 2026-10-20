@@ -1,9 +1,7 @@
 package com.seblful.klas.ui.students
 
-import androidx.lifecycle.SavedStateHandle
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.PriceEntity
-import com.seblful.klas.data.local.StudentEntity
 import com.seblful.klas.data.local.StudentSubjectCrossRef
 import com.seblful.klas.data.local.SubjectEntity
 import com.seblful.klas.data.toDomain
@@ -16,10 +14,6 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.people.Phone
-import com.seblful.klas.domain.schedule.Scheduling
-import com.seblful.klas.testutil.MainDispatcherRule
-import com.seblful.klas.testutil.MutableClock
-import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.homework.AssigneeChoice
@@ -31,7 +25,6 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.atTime
 import kotlinx.datetime.minus
@@ -41,7 +34,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -52,35 +44,7 @@ import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-class StudentDetailViewModelTest {
-
-    @get:Rule
-    val mainRule = MainDispatcherRule()
-
-    private val zone: TimeZone = TimeZone.of("Europe/Minsk")
-    private val today: LocalDate = LocalDate(2026, 5, 17)
-    private val clock = MutableClock(today.atTime(14, 30).toInstant(zone), zone)
-
-    @get:Rule
-    val env = TestEnv(clock = clock)
-
-    private fun vm(id: Long) = StudentDetailViewModel(
-        savedStateHandle = SavedStateHandle(mapOf("id" to id)),
-        students = env.studentRepo,
-        subjects = env.subjectRepo,
-        classes = env.classRepo,
-        groups = env.groupRepo,
-        homework = env.homeworkRepo,
-        payments = env.paymentRepo,
-        enrollment = env.enrollmentRepo,
-        rateHistory = env.rateHistoryRepo,
-        appScope = mainRule.appScope,
-        computation = mainRule.dispatcher,
-        clock = env.clock,
-    )
-
-    private suspend fun seedStudent(name: String = "Аня"): Long =
-        env.studentDao.upsert(StudentEntity(name = name))
+class StudentDetailViewModelTest : StudentDetailTestFixture() {
 
     @Test
     fun `the last payment is the latest one, and there is none before the first`() {
@@ -95,10 +59,21 @@ class StudentDetailViewModelTest {
     fun `balance is completed charges minus payments`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent()
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor)
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 90, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(45).minor)
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = LessonStatus.CANCELLED, chargeMinor = 0)
-        env.paymentRepo.restore(Payment(studentId = sid, date = Instant.fromEpochMilliseconds(10), amount = Money.ofMajor(50)))
+        env.fixtures.storedClass(
+            studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60,
+            status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor,
+        )
+        env.fixtures.storedClass(
+            studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 90,
+            status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(45).minor,
+        )
+        env.fixtures.storedClass(
+            studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60,
+            status = LessonStatus.CANCELLED, chargeMinor = 0,
+        )
+        env.paymentRepo.restore(
+            Payment(studentId = sid, date = Instant.fromEpochMilliseconds(10), amount = Money.ofMajor(50)),
+        )
 
         val vm = vm(sid)
         observing(vm.state)
@@ -127,9 +102,18 @@ class StudentDetailViewModelTest {
     fun `the stat row counts completed lessons, their hours and their income`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent()
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor)
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 90, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(45).minor)
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = LessonStatus.SCHEDULED, chargeMinor = 0)
+        env.fixtures.storedClass(
+            studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60,
+            status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor,
+        )
+        env.fixtures.storedClass(
+            studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 90,
+            status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(45).minor,
+        )
+        env.fixtures.storedClass(
+            studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60,
+            status = LessonStatus.SCHEDULED, chargeMinor = 0,
+        )
 
         val vm = vm(sid)
         observing(vm.state)
@@ -147,8 +131,14 @@ class StudentDetailViewModelTest {
         val sid = seedStudent()
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Биология"))
         val groupId = env.groupDao.upsert(GroupEntity(name = "11 «А»", subjectId = subj))
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor)
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 60, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(20).minor, groupId = groupId)
+        env.fixtures.storedClass(
+            studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60,
+            status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor,
+        )
+        env.fixtures.storedClass(
+            studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 60,
+            status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(20).minor, groupId = groupId,
+        )
 
         val vm = vm(sid)
         observing(vm.state)
@@ -165,8 +155,14 @@ class StudentDetailViewModelTest {
     fun `the kind tally counts both kinds, and one kind alone offers no narrowing`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent()
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Биология"))
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor)
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 60, status = LessonStatus.SCHEDULED, chargeMinor = 0)
+        env.fixtures.storedClass(
+            studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60,
+            status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor,
+        )
+        env.fixtures.storedClass(
+            studentId = sid, subjectId = subj, startMillis = 2, durationMinutes = 60,
+            status = LessonStatus.SCHEDULED, chargeMinor = 0,
+        )
 
         val vm = vm(sid)
         observing(vm.state)
@@ -176,7 +172,10 @@ class StudentDetailViewModelTest {
         assertFalse("nothing to narrow", vm.state.current.hasBothKinds)
 
         val groupId = env.groupDao.upsert(GroupEntity(name = "11 «А»", subjectId = subj))
-        env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60, status = LessonStatus.SCHEDULED, chargeMinor = 0, groupId = groupId)
+        env.fixtures.storedClass(
+            studentId = sid, subjectId = subj, startMillis = 3, durationMinutes = 60,
+            status = LessonStatus.SCHEDULED, chargeMinor = 0, groupId = groupId,
+        )
         runCurrent()
 
         assertEquals(
@@ -240,26 +239,30 @@ class StudentDetailViewModelTest {
     }
 
     @Test
-    fun `removing a subject the student has classes for is blocked and emits an event`() = runTest(mainRule.dispatcher) {
-        val sid = seedStudent()
-        val math = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        env.studentDao.addSubjectLink(StudentSubjectCrossRef(sid, math))
-        env.priceDao.upsert(PriceEntity(sid, math, Money.ofMajor(30).minor))
-        env.fixtures.storedClass(studentId = sid, subjectId = math, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor)
+    fun `removing a subject the student has classes for is blocked and emits an event`() =
+        runTest(mainRule.dispatcher) {
+            val sid = seedStudent()
+            val math = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+            env.studentDao.addSubjectLink(StudentSubjectCrossRef(sid, math))
+            env.priceDao.upsert(PriceEntity(sid, math, Money.ofMajor(30).minor))
+            env.fixtures.storedClass(
+                studentId = sid, subjectId = math, startMillis = 1, durationMinutes = 60,
+                status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor,
+            )
 
-        val vm = vm(sid)
-        val events = mutableListOf<StudentDetailViewModel.Event>()
-        observing(vm.state)
-        backgroundScope.launch { vm.events.stream.collect { events += it } }
-        runCurrent()
+            val vm = vm(sid)
+            val events = mutableListOf<StudentDetailViewModel.Event>()
+            observing(vm.state)
+            backgroundScope.launch { vm.events.stream.collect { events += it } }
+            runCurrent()
 
-        vm.removeSubject(math)
-        runCurrent()
+            vm.removeSubject(math)
+            runCurrent()
 
-        assertEquals(listOf(StudentDetailViewModel.Event.RemoveBlockedHasClasses), events)
-        assertEquals(listOf(math), env.studentDao.getSubjectIds(sid))
-        assertEquals(Money.ofMajor(30), env.enrollmentRepo.priceFor(sid, math)?.amount)
-    }
+            assertEquals(listOf(StudentDetailViewModel.Event.RemoveBlockedHasClasses), events)
+            assertEquals(listOf(math), env.studentDao.getSubjectIds(sid))
+            assertEquals(Money.ofMajor(30), env.enrollmentRepo.priceFor(sid, math)?.amount)
+        }
 
     @Test
     fun `addPayment ignores a zero amount`() = runTest(mainRule.dispatcher) {
@@ -357,7 +360,13 @@ class StudentDetailViewModelTest {
         runCurrent()
         assertEquals("Аня", env.studentDao.getById(sid)?.name) // blank name rejected
 
-        vm.editStudent(name = "  Борис  ", phone = " +375 29 1234567 ", email = " e@x.co ", note = " n ", mode = ClassMode.REMOTE)
+        vm.editStudent(
+            name = "  Борис  ",
+            phone = " +375 29 1234567 ",
+            email = " e@x.co ",
+            note = " n ",
+            mode = ClassMode.REMOTE,
+        )
         runCurrent()
         val updated = env.studentDao.getById(sid)!!
         assertEquals("Борис", updated.name)
@@ -378,203 +387,6 @@ class StudentDetailViewModelTest {
 
         assertEquals("", env.studentDao.getById(sid)!!.phone)
     }
-
-    @Test
-    fun `archiving and restoring a student is reflected in the entity`() = runTest(mainRule.dispatcher) {
-        val sid = seedStudent()
-        val vm = vm(sid)
-        observing(vm.state)
-        runCurrent()
-
-        vm.setArchived(true)
-        runCurrent()
-        assertTrue(env.studentDao.getById(sid)!!.archived)
-
-        vm.setArchived(false)
-        runCurrent()
-        assertFalse(env.studentDao.getById(sid)!!.archived)
-    }
-
-    @Test
-    fun `archiving a student who owes nothing and has no lessons booked asks nothing`() =
-        runTest(mainRule.dispatcher) {
-            val sid = seedStudent()
-            val vm = vm(sid)
-            observing(vm.state)
-            runCurrent()
-
-            assertEquals(ArchiveIntent.Archive, vm.state.current.archiveIntent)
-        }
-
-    @Test
-    fun `the archive question names the balance, the planned lessons, or both`() =
-        runTest(mainRule.dispatcher) {
-            val subject = env.fixtures.subject("Математика")
-            val sid = env.fixtures.pricedStudent("Аня", subject, Money.ofMajor(30))
-            env.fixtures.completedLesson(
-                subject, listOf(sid), today.minus(2, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone),
-            )
-            env.fixtures.lesson(subject, listOf(sid), today.plus(2, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone))
-            val vm = vm(sid)
-            observing(vm.state)
-            runCurrent()
-
-            val both = vm.state.current.archiveIntent as ArchiveIntent.Confirm
-            assertEquals(Balance.Owed(Money.ofMajor(30)), both.openBalance)
-            assertEquals(1, both.upcomingLessons)
-
-            vm.addPayment(Money.ofMajor(30), today)
-            runCurrent()
-            val lessonsOnly = vm.state.current.archiveIntent as ArchiveIntent.Confirm
-            assertNull("nothing outstanding to mention", lessonsOnly.openBalance)
-            assertEquals(1, lessonsOnly.upcomingLessons)
-        }
-
-    @Test
-    fun `an over-payment is worth asking about too`() = runTest(mainRule.dispatcher) {
-        val sid = seedStudent()
-        val vm = vm(sid)
-        observing(vm.state)
-        runCurrent()
-
-        vm.addPayment(Money.ofMajor(25), today)
-        runCurrent()
-
-        val confirm = vm.state.current.archiveIntent as ArchiveIntent.Confirm
-        assertEquals(Balance.Credit(Money.ofMajor(25)), confirm.openBalance)
-        assertEquals(0, confirm.upcomingLessons)
-    }
-
-    @Test
-    fun `restoring an archived student asks nothing even with a debt`() = runTest(mainRule.dispatcher) {
-        val subject = env.fixtures.subject("Математика")
-        val sid = env.fixtures.pricedStudent("Аня", subject, Money.ofMajor(30))
-        env.fixtures.completedLesson(
-            subject, listOf(sid), today.minus(2, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone),
-        )
-        env.studentRepo.setArchived(env.studentRepo.getById(sid)!!, archived = true)
-        val vm = vm(sid)
-        observing(vm.state)
-        runCurrent()
-
-        assertEquals(ArchiveIntent.Restore, vm.state.current.archiveIntent)
-    }
-
-    @Test
-    fun `archiving calls off the student's planned lessons`() = runTest(mainRule.dispatcher) {
-        val sid = seedStudent()
-        val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val future = env.fixtures.storedClass(
-            studentId = sid, subjectId = subject, startMillis = 4_000_000_000_000,
-            durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
-        )
-        // A past lesson still merely planned is the one auto-complete is about to bill.
-        val pastPlanned = env.fixtures.storedClass(
-            studentId = sid, subjectId = subject, startMillis = 1_000,
-            durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
-        )
-        val done = env.fixtures.storedClass(
-            studentId = sid, subjectId = subject, startMillis = 2_000,
-            durationMinutes = 60, status = LessonStatus.COMPLETED, priceMinor = 3000, chargeMinor = 3000,
-        )
-        val vm = vm(sid)
-        observing(vm.state)
-        runCurrent()
-
-        vm.setArchived(true)
-        runCurrent()
-
-        val byId = env.classes().associateBy { it.id }
-        assertEquals(LessonStatus.CANCELLED, byId.getValue(future).status)
-        assertEquals("a past lesson nobody confirmed is not about to become income", LessonStatus.CANCELLED, byId.getValue(pastPlanned).status)
-        assertEquals("what actually happened is history and stays", LessonStatus.COMPLETED, byId.getValue(done).status)
-        assertEquals("its income stays too", 3000, byId.getValue(done).chargeMinor)
-        assertTrue(env.studentDao.getById(sid)!!.archived)
-    }
-
-    @Test
-    fun `archiving says how many lessons it called off`() = runTest(mainRule.dispatcher) {
-        val sid = seedStudent()
-        val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        env.fixtures.storedClass(
-            studentId = sid, subjectId = subject, startMillis = 4_000_000_000_000,
-            durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
-        )
-        val vm = vm(sid)
-        observing(vm.state)
-        runCurrent()
-        val events = mutableListOf<StudentDetailViewModel.Event>()
-        backgroundScope.launch { vm.events.stream.collect { events += it } }
-
-        vm.setArchived(true)
-        runCurrent()
-
-        assertEquals(listOf(StudentDetailViewModel.Event.ArchiveCancelledLessons(count = 1)), events)
-    }
-
-    @Test
-    fun `archiving a student with nothing planned announces nothing`() = runTest(mainRule.dispatcher) {
-        val sid = seedStudent()
-        val vm = vm(sid)
-        observing(vm.state)
-        runCurrent()
-        val events = mutableListOf<StudentDetailViewModel.Event>()
-        backgroundScope.launch { vm.events.stream.collect { events += it } }
-
-        vm.setArchived(true)
-        runCurrent()
-
-        assertTrue(events.isEmpty())
-        assertTrue(env.studentDao.getById(sid)!!.archived)
-    }
-
-    /** Restoring is not an undo: a lesson that was called off is a fact the tutor can re-book by hand. */
-    @Test
-    fun `restoring does not put the called-off lessons back`() = runTest(mainRule.dispatcher) {
-        val sid = seedStudent()
-        val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        env.fixtures.storedClass(
-            studentId = sid, subjectId = subject, startMillis = 4_000_000_000_000,
-            durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
-        )
-        val vm = vm(sid)
-        observing(vm.state)
-        runCurrent()
-
-        vm.setArchived(true)
-        runCurrent()
-        vm.setArchived(false)
-        runCurrent()
-
-        assertFalse(env.studentDao.getById(sid)!!.archived)
-        assertEquals(LessonStatus.CANCELLED, env.classes().single().status)
-    }
-
-    /** The freed hour really is free: a cancelled class gives its slot back. */
-    @Test
-    fun `the hours of a called-off lesson become bookable again`() = runTest(mainRule.dispatcher) {
-        val sid = seedStudent()
-        val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val at = 4_000_000_000_000
-        env.fixtures.storedClass(
-            studentId = sid, subjectId = subject, startMillis = at,
-            durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
-        )
-        val vm = vm(sid)
-        observing(vm.state)
-        runCurrent()
-
-        vm.setArchived(true)
-        runCurrent()
-
-        val slot = Scheduling.Slot(Instant.fromEpochMilliseconds(at), 60)
-        assertTrue(
-            "the cancelled lesson stands in nobody's way",
-            env.classRepo.conflictsWith(slot).isEmpty(),
-        )
-    }
-
-    // --- Writes outlive the screen ---
 
     /**
      * Every mutator on this card launches into the injected application scope, not `viewModelScope`.
@@ -638,8 +450,6 @@ class StudentDetailViewModelTest {
         assertTrue("and the undo needed that scope to be alive", env.stored().payments.isEmpty())
     }
 
-    // --- The write tail: one failure report for every mutator -----------------------------------
-
     /**
      * Every mutator on the card shares one tail ([StudentDetailViewModel.write]), so a commit that
      * fails comes back as [StudentDetailViewModel.Event.WriteFailed] — a price or payment that
@@ -692,8 +502,6 @@ class StudentDetailViewModelTest {
 
         assertEquals(today, vm(sid).paymentDay())
     }
-
-    // --- Homework -----------------------------------------------------------------------------------
 
     /** Their own homework and their group's, the current apart from the done — and nobody else's. */
     @Test

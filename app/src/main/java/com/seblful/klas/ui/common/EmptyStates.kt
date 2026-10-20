@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.ui.theme.KlasIcons
 
-/**
+/*
  * What a list says when it has nothing in it — and, where there is one obvious thing to do, that action as a
  * real button.
  *

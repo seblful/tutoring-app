@@ -31,28 +31,29 @@ class DeviceCalendarSync @Inject constructor(
     private val permission: CalendarPermission,
 ) : CalendarSync {
 
-    override suspend fun upsert(klass: TutoringClass, title: String, guest: Guest?, reminderLeadMinutes: Int): String? = withContext(Dispatchers.IO) {
-        if (!hasPermission()) return@withContext null
-        val calendarId = writableCalendarId() ?: return@withContext null
-        val values = eventValues(klass, title, calendarId)
+    override suspend fun upsert(klass: TutoringClass, title: String, guest: Guest?, reminderLeadMinutes: Int): String? =
+        withContext(Dispatchers.IO) {
+            if (!hasPermission()) return@withContext null
+            val calendarId = writableCalendarId() ?: return@withContext null
+            val values = eventValues(klass, title, calendarId)
 
-        val existingId = klass.calendarEventId?.toLongOrNull()
-        // The user may have deleted the event from their calendar — recreate it if so. A lesson still
-        // to come is the only kind this happens for; `refresh` is the arm that must not recreate.
-        val eventId = (existingId?.takeIf { write(it, values) } ?: insert(values)?.toLongOrNull())
-            ?: return@withContext null
+            val existingId = klass.calendarEventId?.toLongOrNull()
+            // The user may have deleted the event from their calendar — recreate it if so. A lesson still
+            // to come is the only kind this happens for; `refresh` is the arm that must not recreate.
+            val eventId = (existingId?.takeIf { write(it, values) } ?: insert(values)?.toLongOrNull())
+                ?: return@withContext null
 
-        // Email reminder before the class, sent by the calendar account. Idempotent: drop and
-        // re-add so an updated time/lead doesn't accumulate stale reminders.
-        upsertEmailReminder(eventId, reminderLeadMinutes)
-        // Invite the student so the account emails them about the class (and its reminder) — or
-        // withdraw that invitation if the tutor has since turned invites off. The guard is a read
-        // optimisation and not the rule: `guestAction` answers `None` for a missing address anyway, so
-        // this only decides whether the provider is worth asking.
-        guest?.takeIf { it.email.isNotBlank() }?.let { syncGuest(eventId, it) }
+            // Email reminder before the class, sent by the calendar account. Idempotent: drop and
+            // re-add so an updated time/lead doesn't accumulate stale reminders.
+            upsertEmailReminder(eventId, reminderLeadMinutes)
+            // Invite the student so the account emails them about the class (and its reminder) — or
+            // withdraw that invitation if the tutor has since turned invites off. The guard is a read
+            // optimisation and not the rule: `guestAction` answers `None` for a missing address anyway, so
+            // this only decides whether the provider is worth asking.
+            guest?.takeIf { it.email.isNotBlank() }?.let { syncGuest(eventId, it) }
 
-        eventId.toString()
-    }
+            eventId.toString()
+        }
 
     private fun upsertEmailReminder(eventId: Long, leadMinutes: Int) {
         runCatching {

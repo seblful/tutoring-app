@@ -32,7 +32,14 @@ class BackupSerializationTest {
     private val sample = BackupData(
         subjects = listOf(SubjectEntity(1, "Математика"), SubjectEntity(2, "Физика")),
         students = listOf(
-            StudentEntity(1, "Иван", phone = "+375291112233", note = "ОГЭ", defaultMode = ClassMode.REMOTE, archived = false),
+            StudentEntity(
+                1,
+                "Иван",
+                phone = "+375291112233",
+                note = "ОГЭ",
+                defaultMode = ClassMode.REMOTE,
+                archived = false,
+            ),
             StudentEntity(2, "Мария", note = "", archived = true),
         ),
         studentSubjects = listOf(
@@ -41,7 +48,14 @@ class BackupSerializationTest {
             StudentSubjectCrossRef(2, 1),
         ),
         groups = listOf(
-            GroupEntity(7, "11 «А»", note = "вечер", priceMinor = 2050, defaultMode = ClassMode.REMOTE, archived = false),
+            GroupEntity(
+                7,
+                "11 «А»",
+                note = "вечер",
+                priceMinor = 2050,
+                defaultMode = ClassMode.REMOTE,
+                archived = false,
+            ),
             GroupEntity(8, "Выпускники", archived = true),
         ),
         groupMembers = listOf(
@@ -55,7 +69,14 @@ class BackupSerializationTest {
         ),
         rateHistory = listOf(
             RateChangeEntity(1, studentId = 1, subjectId = 1, toMinor = 4000, atMillis = 1_890_000_000_000),
-            RateChangeEntity(2, studentId = 1, subjectId = 1, fromMinor = 4000, toMinor = 5000, atMillis = 1_895_000_000_000),
+            RateChangeEntity(
+                2,
+                studentId = 1,
+                subjectId = 1,
+                fromMinor = 4000,
+                toMinor = 5000,
+                atMillis = 1_895_000_000_000,
+            ),
             RateChangeEntity(3, groupId = 7, fromMinor = 1800, toMinor = 2050, atMillis = 1_896_000_000_000),
             RateChangeEntity(4, groupId = 8, toMinor = 0, atMillis = null),
         ),
@@ -232,7 +253,14 @@ class BackupSerializationTest {
         val snapshot = json.decodeFromString<BackupData>(v9).toSnapshot()
 
         assertEquals(
-            LessonEntity(4, 1, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED, mode = ClassMode.REMOTE),
+            LessonEntity(
+                4,
+                1,
+                startMillis = 1,
+                durationMinutes = 60,
+                status = LessonStatus.COMPLETED,
+                mode = ClassMode.REMOTE,
+            ),
             snapshot.lessons.single(),
         )
         assertEquals(

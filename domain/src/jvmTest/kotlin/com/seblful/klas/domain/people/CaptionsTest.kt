@@ -64,7 +64,10 @@ class CaptionsTest {
         )
 
         assertEquals("Аня Смирнова", captions.titleOf(unknownGroup))
-        assertEquals("Аня Смирнова", blankGroup.titleOf(ClassSession(7, listOf(klass(id = 1, studentId = 2, groupId = 7)))))
+        assertEquals(
+            "Аня Смирнова",
+            blankGroup.titleOf(ClassSession(7, listOf(klass(id = 1, studentId = 2, groupId = 7)))),
+        )
         assertEquals("Аня Смирнова", Reminders.announcedBy(groupName = " ", studentName = "Аня Смирнова"))
         assertEquals("11 «А»", Reminders.announcedBy(groupName = "11 «А»", studentName = "Аня Смирнова"))
         assertEquals("", Captions.title(groupName = null, studentName = null))

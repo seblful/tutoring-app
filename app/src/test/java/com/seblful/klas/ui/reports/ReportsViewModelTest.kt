@@ -210,7 +210,9 @@ class ReportsViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         completed(sid, subj, at(thisYear - 2, 4), 200) // billed long ago, never paid
         completed(sid, subj, at(thisYear, 4), 50)
-        env.paymentRepo.restore(Payment(studentId = sid, date = Instant.fromEpochMilliseconds(at(thisYear, 4)), amount = Money.ofMajor(50)))
+        env.paymentRepo.restore(
+            Payment(studentId = sid, date = Instant.fromEpochMilliseconds(at(thisYear, 4)), amount = Money.ofMajor(50)),
+        )
 
         val vm = vm()
         observing(vm.state)
@@ -321,7 +323,9 @@ class ReportsViewModelTest {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         completed(sid, subj, at(thisYear, 3), 30)
-        env.paymentRepo.restore(Payment(studentId = sid, date = Instant.fromEpochMilliseconds(at(thisYear, 3)), amount = Money.ofMajor(30)))
+        env.paymentRepo.restore(
+            Payment(studentId = sid, date = Instant.fromEpochMilliseconds(at(thisYear, 3)), amount = Money.ofMajor(30)),
+        )
 
         val vm = vm()
         observing(vm.state)

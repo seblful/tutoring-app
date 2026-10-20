@@ -9,7 +9,7 @@ import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import java.util.Locale
 
-/**
+/*
  * How a chosen language reaches the resources — the Android half of
  * [com.seblful.klas.domain.model.AppLanguage].
  *

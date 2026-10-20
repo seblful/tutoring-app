@@ -70,15 +70,22 @@ class BackupRoundTripTest {
                 prices = listOf(PriceEntity(1, 1, 5000), PriceEntity(2, 1, 4550)),
                 rateHistory = listOf(
                     RateChangeEntity(1, studentId = 1, subjectId = 1, toMinor = 4000, atMillis = 1_890_000_000_000),
-                    RateChangeEntity(2, studentId = 1, subjectId = 1, fromMinor = 4000, toMinor = 5000, atMillis = 1_895_000_000_000),
+                    RateChangeEntity(
+                        2, studentId = 1, subjectId = 1, fromMinor = 4000, toMinor = 5000,
+                        atMillis = 1_895_000_000_000,
+                    ),
                     RateChangeEntity(3, groupId = 7, toMinor = 2000, atMillis = null),
                 ),
                 lessons = listOf(
-                    LessonEntity(1, 1, 1_900_000_000_000, 90, LessonStatus.COMPLETED, groupId = 7, mode = ClassMode.REMOTE),
+                    LessonEntity(
+                        1, 1, 1_900_000_000_000, 90, LessonStatus.COMPLETED, groupId = 7, mode = ClassMode.REMOTE,
+                    ),
                     LessonEntity(2, 1, 1_900_100_000_000, 60, LessonStatus.SCHEDULED),
                 ),
                 attendance = listOf(
-                    AttendanceEntity(1, 1, 1, Attended.PRESENT, priceMinor = 5000, chargeMinor = 5000, calendarEventId = "evt-1"),
+                    AttendanceEntity(
+                        1, 1, 1, Attended.PRESENT, priceMinor = 5000, chargeMinor = 5000, calendarEventId = "evt-1",
+                    ),
                     AttendanceEntity(2, 1, 2, Attended.ABSENT, priceMinor = 5000),
                     AttendanceEntity(3, 2, 2, Attended.EXPECTED),
                 ),

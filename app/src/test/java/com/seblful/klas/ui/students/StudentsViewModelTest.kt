@@ -49,7 +49,14 @@ class StudentsViewModelTest {
         val active = env.studentDao.upsert(StudentEntity(name = "Аня"))
         env.studentDao.upsert(StudentEntity(name = "Старый", archived = true))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        env.fixtures.storedClass(studentId = active, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor)
+        env.fixtures.storedClass(
+            studentId = active,
+            subjectId = subj,
+            startMillis = 1,
+            durationMinutes = 60,
+            status = LessonStatus.COMPLETED,
+            chargeMinor = Money.ofMajor(30).minor,
+        )
         env.paymentRepo.restore(
             Payment(studentId = active, date = Instant.fromEpochMilliseconds(1), amount = Money.ofMajor(10)),
         )

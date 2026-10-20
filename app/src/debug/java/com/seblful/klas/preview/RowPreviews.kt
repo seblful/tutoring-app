@@ -25,7 +25,7 @@ import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.lessonBadgeColor
 import com.seblful.klas.ui.common.lessonBadgeLabel
 
-/**
+/*
  * The small parts a row is made of — the status pill, the section title, the amount at a row's end —
  * and the nested row they make together. Same rules as `CommonPreviews.kt`: Russian text, plausible
  * numbers, every preview a screenshot test.

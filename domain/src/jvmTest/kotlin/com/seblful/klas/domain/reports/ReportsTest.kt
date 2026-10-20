@@ -419,7 +419,10 @@ class ReportsTest {
         assertEquals(267L, year.daysElapsed(LocalDate(2026, 9, 24)))
         assertNull(year.daysElapsed(LocalDate(2027, 1, 1)), "over")
         assertNull(year.daysElapsed(LocalDate(2025, 12, 31)), "not begun")
-        assertNull(ReportPeriod(ReportPeriod.Kind.ALL, YearMonth(2026, 1)).daysElapsed(LocalDate(2026, 1, 1)), "all time has no days")
+        assertNull(
+            ReportPeriod(ReportPeriod.Kind.ALL, YearMonth(2026, 1)).daysElapsed(LocalDate(2026, 1, 1)),
+            "all time has no days",
+        )
         assertEquals(
             LocalDate(2026, 3, 1),
             ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 2)).firstDays(31)?.untilExclusive,

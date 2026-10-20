@@ -52,7 +52,7 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.ui.theme.KlasIcons
 
-/**
+/*
  * The inline form fields: picking one of a few things, and the search box.
  *
  * Distinct from `Pickers.kt`, which holds the **modals** — a date, a time, a duration, a count. These are

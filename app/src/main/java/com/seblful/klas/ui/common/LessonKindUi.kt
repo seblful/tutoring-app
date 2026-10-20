@@ -16,7 +16,7 @@ import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.ui.theme.KlasIcons
 
-/**
+/*
  * How the two kinds of lesson are told apart on screen — one icon, one word, one chip row, shared by
  * every list that shows lessons, so a group lesson looks the same wherever it turns up.
  */

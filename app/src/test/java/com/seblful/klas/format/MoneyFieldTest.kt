@@ -125,7 +125,16 @@ class MoneyFieldTest {
     @Test
     fun `the outline and the message are the same answer`() {
         val fields =
-            listOf(rate(""), rate("0"), rate("abc"), payment(""), payment("0"), payment("25"), optional(""), optional("x"))
+            listOf(
+                rate(""),
+                rate("0"),
+                rate("abc"),
+                payment(""),
+                payment("0"),
+                payment("25"),
+                optional(""),
+                optional("x"),
+            )
 
         fields.forEach { field ->
             assertEquals(
