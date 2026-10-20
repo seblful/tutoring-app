@@ -34,13 +34,9 @@ abstract class ClassEditTestFixture {
         groupId: Long = 0L,
         day: LocalDate? = null,
         studentId: Long = 0L,
-        draft: String? = null,
     ) = ClassEditViewModel(
         savedStateHandle = SavedStateHandle(
-            mapOf(
-                "id" to id, "group" to groupId, "day" to day?.toString(), "student" to studentId,
-                "draft" to draft,
-            ),
+            mapOf("id" to id, "group" to groupId, "day" to day?.toString(), "student" to studentId),
         ),
         classes = env.classRepo,
         studentsRepo = env.studentRepo,

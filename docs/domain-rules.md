@@ -12,10 +12,6 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
 - Each class books an editable hourly rate, initially the student's/group's. Later rate changes leave
   existing classes untouched. A new individual booking follows subject price suggestions until the
   tutor overrides the amount; changing subjects never replaces a typed or historical booked rate.
-- A new booking starts from the chosen person's last lesson before its day, cancelled ones aside
-  (`BookingForm.filledFrom`): a student's individual lesson gives start, length, place and subject; a
-  group's gives only start and length, its subject and place being the group's. Only what is still
-  empty is filled, and the rate is never copied — it is the current one. Edits never fill.
 - Balance = completed-lesson charges − payments; balances/income are derived. Lists, reports and the
   debt digest read them summed by SQLite (`BalanceDao`, held to `Billing` by `BalanceRepositoryTest`); a
   report reads only its period and the one before (`Reports.window`). Partial payments and

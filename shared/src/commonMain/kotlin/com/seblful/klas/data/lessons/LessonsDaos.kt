@@ -175,38 +175,6 @@ interface ClassDao {
     @Query("$CLASS_ROWS WHERE l.status = 'SCHEDULED' AND l.startMillis > :nowMillis ORDER BY l.startMillis LIMIT 1")
     suspend fun nextScheduledAfter(nowMillis: Long): ClassRow?
 
-    /**
-     * [studentId]'s latest **individual** class starting before [beforeMillis], cancelled lessons aside —
-     * what a new booking for them starts from. Their group lessons are the group's habits, not theirs.
-     */
-    @Query(
-        "$CLASS_ROWS WHERE a.studentId = :studentId AND l.groupId IS NULL AND l.status != 'CANCELLED' " +
-            "AND l.startMillis < :beforeMillis ORDER BY l.startMillis DESC LIMIT 1",
-    )
-    suspend fun lastIndividualBefore(studentId: Long, beforeMillis: Long): ClassRow?
-
-    /** [groupId]'s latest lesson starting before [beforeMillis] — one member's class of it — as above. */
-    @Query(
-        "$CLASS_ROWS WHERE l.groupId = :groupId AND l.status != 'CANCELLED' " +
-            "AND l.startMillis < :beforeMillis ORDER BY l.startMillis DESC, a.id LIMIT 1",
-    )
-    suspend fun lastForGroupBefore(groupId: Long, beforeMillis: Long): ClassRow?
-
-    /**
-     * Who was taught last, most recent first, up to [limit]: each student's last individual lesson over
-     * by [nowMillis] and each group's, cancelled ones aside. Exactly one of a row's two ids is set.
-     */
-    @Query(
-        "SELECT a.studentId AS studentId, NULL AS groupId, MAX(l.startMillis) AS lastMillis " +
-            "FROM attendance a JOIN lessons l ON l.id = a.lessonId WHERE l.groupId IS NULL AND $TAUGHT " +
-            "GROUP BY a.studentId " +
-            "UNION ALL " +
-            "SELECT NULL AS studentId, l.groupId AS groupId, MAX(l.startMillis) AS lastMillis " +
-            "FROM lessons l WHERE l.groupId IS NOT NULL AND $TAUGHT GROUP BY l.groupId " +
-            "ORDER BY lastMillis DESC LIMIT :limit",
-    )
-    fun observeRecentlyTaught(nowMillis: Long, limit: Int): Flow<List<RecentlyTaught>>
-
     @Query(CLASS_ROWS)
     suspend fun getAll(): List<ClassRow>
 }
@@ -309,13 +277,6 @@ interface AttendanceDao {
  * already over. Cancelled lessons count for neither; a lesson under way is the next one, not the last.
  */
 data class LessonSpan(val ownerId: Long, val nextMillis: Long?, val lastMillis: Long?)
-
-/** A student's or a group's last lesson — see [ClassDao.observeRecentlyTaught]. */
-data class RecentlyTaught(val studentId: Long?, val groupId: Long?, val lastMillis: Long)
-
-/** A lesson that happened, or was due to: not cancelled, and over by `:nowMillis`. */
-private const val TAUGHT: String =
-    "l.status != 'CANCELLED' AND l.startMillis + l.durationMinutes * 60000 <= :nowMillis"
 
 private const val SPAN: String =
     "MIN(CASE WHEN l.status != 'CANCELLED' AND l.startMillis + l.durationMinutes * 60000 > :nowMillis " +

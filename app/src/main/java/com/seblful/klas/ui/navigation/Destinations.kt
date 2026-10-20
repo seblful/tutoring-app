@@ -88,16 +88,9 @@ object Routes {
     /**
      * id = 0 means "new class". [group] (non-zero) opens the form already booking for that group —
      * [student] preselects an individual. Profile entry uses the same conflict-checked form as Schedule.
-     * [draft] is the schedule's quick-book sheet handing over what it had filled in (`BookingDraft`).
      */
     @Serializable
-    data class ClassEdit(
-        val id: Long,
-        val group: Long = 0,
-        val day: String? = null,
-        val student: Long = 0,
-        val draft: String? = null,
-    )
+    data class ClassEdit(val id: Long, val group: Long = 0, val day: String? = null, val student: Long = 0)
 
     /**
      * [ClassEdit] with its day as a date. A string in the route because navigation carries a string with

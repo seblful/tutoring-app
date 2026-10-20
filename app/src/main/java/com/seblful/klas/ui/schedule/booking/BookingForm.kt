@@ -6,7 +6,6 @@ import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.format.MoneyField
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.time.Duration.Companion.minutes
 
@@ -104,23 +103,7 @@ sealed interface BookingIntent {
      *   one's subject land on it.
      */
     data class OnlySubject(val askedFor: SubjectKey, val subjectId: Long) : Answer
-
-    /** The last lesson [askedFor] had, for a new booking to start from — see [BookingForm.filledFrom]. */
-    data class PreviousLoaded(val askedFor: SubjectKey, val previous: PreviousLesson) : Answer
 }
-
-/**
- * What a new booking takes from the lesson before it: the hour it is usually at, how long it runs, where,
- * and — for a student — the subject, which stays priced while they have lessons in it. Not the price: that
- * is the current rate, which may have changed since.
- */
-data class PreviousLesson(
-    val date: LocalDate,
-    val start: LocalTime,
-    val minutes: Int,
-    val subjectId: Long,
-    val mode: ClassMode,
-)
 
 /** omething the form needs from the database because of a change just made to it. */
 sealed interface Lookup {
@@ -136,12 +119,6 @@ sealed interface Lookup {
      * [BookingIntent.OnlySubject], or with nothing at all when there is more than one.
      */
     data class OnlySubjectFor(val askedFor: SubjectKey) : Lookup
-
-    /**
-     * Find [askedFor]'s last lesson before the booking's day — answered with [BookingIntent.PreviousLoaded],
-     * or with nothing when they have none. Only a new booking asks; an edit already has its lesson.
-     */
-    data class PreviousOf(val askedFor: SubjectKey) : Lookup
 }
 
 /** The form after one transition, and what the transition left to be looked up. */
@@ -159,8 +136,6 @@ data class BookingForm(
     val touched: Boolean = false,
     /** Suggestions follow the subject; typed and already-booked amounts belong to this lesson. */
     val automaticPrice: Boolean = true,
-    /** The day of the lesson this booking was filled in from, or null while it was filled from nothing. */
-    val filledFrom: LocalDate? = null,
 ) {
     /** The form after [intent], and anything it now needs looked up. */
     fun change(intent: BookingIntent, context: BookingContext): Applied {
@@ -200,7 +175,6 @@ data class BookingForm(
         is BookingIntent.GroupLoaded -> groupLoaded(answer.group)
         is BookingIntent.PriceLoaded -> priceLoaded(answer.studentId, answer.subjectId, answer.amount)
         is BookingIntent.OnlySubject -> onlySubject(answer.askedFor, answer.subjectId)
-        is BookingIntent.PreviousLoaded -> previousLoaded(answer.askedFor, answer.previous)
     }
 
     private fun settled(form: ClassForm) = Applied(copy(form = form))
@@ -217,12 +191,12 @@ data class BookingForm(
         // Auto-select the only group there is, mirroring the single-student case.
         val onlyGroup = context.groups.singleOrNull()
         if (target == ClassTarget.GROUP && onlyGroup != null) {
-            return copy(form = cleared, automaticPrice = true, filledFrom = null).chooseGroup(onlyGroup.id)
+            return copy(form = cleared, automaticPrice = true).chooseGroup(onlyGroup.id)
         }
         // The subject was just cleared, so whatever the new target offers may be a single choice that
         // needs no picking.
         return Applied(
-            copy(form = cleared, automaticPrice = true, filledFrom = null),
+            copy(form = cleared, automaticPrice = true),
             listOf(Lookup.OnlySubjectFor(SubjectKey.of(cleared))),
         )
     }
@@ -236,13 +210,8 @@ data class BookingForm(
             price = MoneyField(kind = MoneyField.Kind.RATE),
             mode = student?.defaultMode ?: ClassMode.IN_PERSON,
         )
-        // A different student prices different subjects; theirs may be a single one. Their last lesson
-        // says what the rest of this one probably is.
-        val key = SubjectKey.of(next)
-        return Applied(
-            copy(form = next, automaticPrice = true, filledFrom = null),
-            listOf(Lookup.OnlySubjectFor(key), Lookup.PreviousOf(key)),
-        )
+        // A different student prices different subjects; theirs may be a single one.
+        return Applied(copy(form = next, automaticPrice = true), listOf(Lookup.OnlySubjectFor(SubjectKey.of(next))))
     }
 
     private fun chooseGroup(groupId: Long): Applied {
@@ -253,10 +222,7 @@ data class BookingForm(
             price = MoneyField(kind = MoneyField.Kind.RATE),
             excludedMemberIds = emptySet(),
         )
-        return Applied(
-            copy(form = next, automaticPrice = true, filledFrom = null),
-            listOf(Lookup.GroupOf(groupId), Lookup.PreviousOf(SubjectKey.of(next))),
-        )
+        return Applied(copy(form = next, automaticPrice = true), listOf(Lookup.GroupOf(groupId)))
     }
 
     private fun groupLoaded(group: Group): Applied {
@@ -310,29 +276,6 @@ data class BookingForm(
         if (SubjectKey.of(form) != askedFor) return Applied(this)
         if (!form.hasTarget || form.subjectId != null) return Applied(this)
         return chooseSubject(subjectId)
-    }
-
-    /**
-     * Fills what is still open from the lesson before. A start already picked keeps its length too: the
-     * two are one choice. A group's subject and place are the group's ([groupLoaded]), so only its hour
-     * comes from here — the two answers arrive in either order and must not overwrite each other.
-     */
-    private fun previousLoaded(askedFor: SubjectKey, previous: PreviousLesson): Applied {
-        if (SubjectKey.of(form) != askedFor) return Applied(this)
-        val forStudent = form.target == ClassTarget.STUDENT
-        val timed = if (form.timeFrom == null) {
-            form.copy(timeFrom = previous.start, durationMinutes = previous.minutes)
-        } else {
-            form
-        }
-        val placed = if (forStudent) timed.copy(mode = previous.mode) else timed
-        val subjectId = previous.subjectId.takeIf { forStudent && form.subjectId == null }
-        val filled = copy(form = placed, filledFrom = previous.date)
-        return when {
-            subjectId != null -> filled.chooseSubject(subjectId)
-            placed != form -> Applied(filled)
-            else -> Applied(this)
-        }
     }
 
     private fun includeMember(studentId: Long, included: Boolean): Applied {

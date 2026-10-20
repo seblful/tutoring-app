@@ -583,7 +583,7 @@ private fun RepeatPicker(
 }
 
 @Composable
-internal fun seriesOutcomeText(outcome: SeriesOutcome): String {
+private fun seriesOutcomeText(outcome: SeriesOutcome): String {
     val booked = pluralStringResource(R.plurals.class_series_booked, outcome.booked, outcome.booked)
     val skipped = pluralStringResource(
         R.plurals.class_series_skipped,
@@ -594,7 +594,7 @@ internal fun seriesOutcomeText(outcome: SeriesOutcome): String {
 }
 
 @Composable
-internal fun endsAtText(ends: ClassForm.Ending): String {
+private fun endsAtText(ends: ClassForm.Ending): String {
     val time = ends.time.timeText()
     return if (ends.nextDay) {
         stringResource(R.string.class_duration_ends_next_day, time)

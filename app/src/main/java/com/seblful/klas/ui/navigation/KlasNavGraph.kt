@@ -79,7 +79,7 @@ private fun NavGraphBuilder.tabs(
     screen<Routes.Schedule> { entry ->
         ScheduleScreen(
             arrival = scheduleArrival(entry.id),
-            onOpenBookingForm = { draft -> navController.navigate(Routes.ClassEdit(0, draft = draft)) },
+            onAddClass = { day -> navController.navigate(Routes.classEdit(0, day = day)) },
             onEditClass = { navController.navigate(Routes.classEdit(it)) },
             // The way out of "nothing can be booked yet": the schedule's empty state offers
             // the missing step rather than only naming it.

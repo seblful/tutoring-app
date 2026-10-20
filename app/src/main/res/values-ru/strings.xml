@@ -174,20 +174,6 @@
         <item quantity="other">%1$d занятия</item>
     </plurals>
     <string name="class_add_title">Новое занятие</string>
-    <!-- The schedule's quick-book sheet: a short booking, filled in from the chosen person's last lesson. -->
-    <string name="class_quick_everyone">Все…</string>
-    <string name="class_quick_not_set">Не выбрано</string>
-    <!-- %1$s: the date of the lesson the booking was filled in from. -->
-    <string name="class_quick_filled_from">Заполнено по занятию %1$s</string>
-    <string name="class_quick_all_fields">Все поля</string>
-    <string name="class_quick_book">Записать</string>
-    <string name="class_quick_change">Изменить</string>
-    <plurals name="class_quick_lessons">
-        <item quantity="one">%1$d занятие</item>
-        <item quantity="few">%1$d занятия</item>
-        <item quantity="many">%1$d занятий</item>
-        <item quantity="other">%1$d занятия</item>
-    </plurals>
     <string name="class_edit_title">Изменить занятие</string>
     <string name="class_student_label">Ученик</string>
     <string name="class_subject_label">Предмет</string>

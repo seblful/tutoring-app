@@ -3,7 +3,6 @@ package com.seblful.klas.ui.navigation
 import android.content.Intent
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -50,7 +49,6 @@ import org.robolectric.annotation.Config
 import org.robolectric.util.ReflectionHelpers
 import org.robolectric.util.ReflectionHelpers.ClassParameter
 import java.util.Locale
-import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 
 /**
@@ -66,7 +64,6 @@ class TutorWorkflowTest {
     val compose = createEmptyComposeRule()
 
     private lateinit var graph: StoreGraph
-    private var subjectId = 0L
     private var studentId = 0L
     private var lessonId = 0L
 
@@ -85,11 +82,11 @@ class TutorWorkflowTest {
         )
         app.graph = graph
         graph.settings.update { it.copy(onboardingComplete = true, language = AppLanguage.ENGLISH) }
-        subjectId = graph.subjects.upsert(Subject(name = "Maths"))
+        val subject = graph.subjects.upsert(Subject(name = "Maths"))
         studentId =
-            graph.enrollment.createStudent(Student(name = "Workflow student"), mapOf(subjectId to Money.ofMajor(30)))
+            graph.enrollment.createStudent(Student(name = "Workflow student"), mapOf(subject to Money.ofMajor(30)))
         lessonId = graph.classes.book(
-            subjectId, DemoTutor.CLOCK.now().minus(2.hours), 60, ClassMode.IN_PERSON,
+            subject, DemoTutor.CLOCK.now().minus(2.hours), 60, ClassMode.IN_PERSON,
             listOf(studentId), Money.ofMajor(30),
         ).written().single()
     }
@@ -107,40 +104,6 @@ class TutorWorkflowTest {
     private fun click(res: Int) = compose.onNodeWithText(text(res)).performClick()
 
     private fun sheetClick(res: Int) = compose.onNodeWithText(text(res)).performScrollTo().performClick()
-
-    /** The add button opens the quick-book sheet; «All fields» carries its booking on to the full form. */
-    private fun openFullBookingForm() {
-        compose.onNodeWithContentDescription(text(R.string.schedule_add_class)).performClick()
-        waitFor(R.string.class_quick_all_fields)
-        sheetClick(R.string.class_quick_all_fields)
-        val target = hasText(text(R.string.class_target_student)) and isSelectable()
-        compose.waitUntil(10_000) { compose.onAllNodes(target).fetchSemanticsNodes().isNotEmpty() }
-    }
-
-    @Test
-    fun `the add button books a regular from the sheet, at the hour of their last lesson`() {
-        val lastWeek = DemoTutor.CLOCK.now().minus(7.days).minus(5.hours)
-        runBlocking {
-            graph.classes.book(subjectId, lastWeek, 60, ClassMode.REMOTE, listOf(studentId), Money.ofMajor(30))
-        }
-        ActivityScenario.launch(MainActivity::class.java).use {
-            waitForText("Workflow student")
-            compose.onNodeWithContentDescription(text(R.string.schedule_add_class)).performClick()
-            // The only student is chosen for the tutor, and their last lesson fills in the rest.
-            compose.waitUntil(10_000) {
-                compose.onAllNodes(hasText(text(R.string.class_quick_book)) and isEnabled())
-                    .fetchSemanticsNodes().isNotEmpty()
-            }
-            sheetClick(R.string.class_quick_book)
-            // The save resumes on the main looper, which Robolectric only runs while the test idles.
-            compose.waitForIdle()
-            compose.waitUntil(10_000) { runBlocking { graph.classes.getAll().size == 3 } }
-            val booked = runBlocking { graph.classes.getAll().maxBy { it.id } }
-            assertEquals(ClassMode.REMOTE, booked.mode)
-            assertEquals(Money.ofMajor(30), booked.price)
-            assertEquals(lastWeek.plus(7.days), booked.start)
-        }
-    }
 
     @Test
     fun `lesson actions undo a completion and carry the student into the next booking`() {
@@ -173,7 +136,8 @@ class TutorWorkflowTest {
         runBlocking { graph.subjects.upsert(Subject(name = "Science")) }
         ActivityScenario.launch(MainActivity::class.java).use {
             waitForText("Workflow student")
-            openFullBookingForm()
+            compose.onNodeWithContentDescription(text(R.string.schedule_add_class)).performClick()
+            waitFor(R.string.class_add_title)
             // The title is drawn while the form still loads; the target choice comes with the loaded form.
             val group = hasText(text(R.string.class_target_group)) and isSelectable()
             compose.waitUntil(10_000) { compose.onAllNodes(group).fetchSemanticsNodes().isNotEmpty() }
@@ -206,7 +170,8 @@ class TutorWorkflowTest {
     fun `notification arrivals preserve the typed booking until Back returns to it`() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText("Workflow student")
-            openFullBookingForm()
+            compose.onNodeWithContentDescription(text(R.string.schedule_add_class)).performClick()
+            waitFor(R.string.class_add_title)
             compose.onNodeWithText(text(R.string.price_label)).performScrollTo().performTextReplacement("35")
             for (action in listOf(TrayNavigation.ACTION_OPEN_TODAY, TrayNavigation.ACTION_OPEN_DEBTS)) {
                 scenario.onActivity { activity ->

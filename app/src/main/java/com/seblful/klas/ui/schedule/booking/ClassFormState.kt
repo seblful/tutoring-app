@@ -55,8 +55,6 @@ data class ClassFormState(
     val conflict: TimeConflict? = null,
     /** Free dates in the whole proposed run; a repeating booking skips the occupied ones. */
     val availableOccurrences: Int = 1,
-    /** The day of the lesson the booking was filled in from — see [BookingForm.filledFrom]. */
-    val filledFrom: LocalDate? = null,
     /** hether the tutor has changed anything — what leaving without saving would throw away. */
     override val isDirty: Boolean = false,
 ) : LeavableForm {
