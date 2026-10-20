@@ -9,7 +9,7 @@ import platform.Foundation.NSUserDomainMask
 
 /** Application Support persists independently of the user's document picker. */
 @OptIn(ExperimentalForeignApi::class)
-fun databaseBuilder(): RoomDatabase.Builder<AppDatabase> {
+internal fun databaseBuilder(): RoomDatabase.Builder<AppDatabase> {
     val directory = NSFileManager.defaultManager.URLForDirectory(
         directory = NSApplicationSupportDirectory,
         inDomain = NSUserDomainMask,
@@ -20,3 +20,6 @@ fun databaseBuilder(): RoomDatabase.Builder<AppDatabase> {
     val path = requireNotNull(directory?.path) { "Application Support directory is unavailable" }
     return Room.databaseBuilder<AppDatabase>(name = "$path/${AppDatabase.NAME}")
 }
+
+/** Opens the shared database; the host owns the returned lifetime. */
+fun openDatabase(): KlasDatabase = KlasDatabase(buildDatabase(databaseBuilder()))

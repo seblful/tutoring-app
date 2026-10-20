@@ -1,19 +1,27 @@
 # Testing
 
 Choose tests by the behavior they prove. Quick build commands are in the [README](../README.md#build--test).
+`./gradlew verify` runs the JVM suites, screenshot comparisons, Android lint, ktlint, detekt and debug
+app/test builds used by the main CI job. Device and iOS simulator execution are separate checks.
 
 ## Unit tests
 
 | Location | Use for |
 |---|---|
 | `domain/src/commonTest` | Pure rules with `kotlin.test`; the same tests run on JVM and iOS. |
-| `shared/src/commonTest` | Portable parsing, clock events and persistence contracts over real Room databases. Platform test source sets provide in-memory database creation. |
-| `app/src/test` | Backup format, view models, repositories, mappers, formatters and source/artifact tripwires. Unmocked Android calls fail (`isReturnDefaultValues` is off). |
+| `shared/src/commonTest` | Repository atomicity and race cases, backup contracts, feature queries, parsing and clock events over real Room databases. Platform test source sets provide database creation. |
+| `app/src/test` | Android locale/graph behavior, view models, mappers, formatters and source/artifact tripwires. Unmocked Android calls fail (`isReturnDefaultValues` is off). |
 
 - Seed through `testutil/Fixtures`, never DAOs (`DirectSeedingRatchetTest` guards exceptions).
-- Repository/backup/view-model tests use `TestEnv` as a JUnit rule over the real in-memory `AppDatabase`
-  and bundled SQLite under Robolectric. Schema, converters, FKs and cascades are production code;
-  only device ports, permissions, schedulers and clock are doubles. No fake DAOs.
+- Shared repository/backup tests use a portable `TestEnv` and close it with `@AfterTest`. Android
+  view-model tests keep their JUnit-rule `TestEnv` under Robolectric. Both use real Room and bundled
+  SQLite: schema, converters, FKs and cascades are production code; only host behavior is doubled.
+  No fake DAOs. Store/query and pilot tests use the production shared graph as well.
+- Portable port doubles, seeding helpers and `MutableClock` live in `shared/src/testFixtures/kotlin`.
+  Both shared and Android unit suites compile those sources against their own `TestEnv`; fixture
+  behavior has one implementation without adding test code to the app or library artifacts.
+- `PilotWorkflowTest` closes and reopens a temporary file database to prove persistence; each platform
+  supplies file creation and cleanup. In-memory tests cannot prove this contract.
 - `RecordingTransactor` counts real transactions and `failAt` forces rollback. Queries use
   `Dispatchers.Unconfined`, so writes/invalidated flows settle together; `advanceUntilIdle()` remains
   the test clock. Referenced rows must exist before booking or saving.
@@ -26,7 +34,9 @@ Choose tests by the behavior they prove. Quick build commands are in the [README
   parameters or plain `assert`. Keep commas out of backtick function names; Kotlin/Native rejects them.
 - On an Apple Silicon Mac, run `./gradlew :domain:iosSimulatorArm64Test :shared:iosSimulatorArm64Test`.
   Set `KMP_IOS_SIMULATOR_ID` to an available simulator UDID to select a device. CI selects an available
-  iPhone, runs both suites and compiles shared iOS device code. Windows cannot run these iOS tasks.
+  iPhone, runs both suites and compiles shared iOS device code. Windows can compile native Kotlin
+  libraries but cannot link or run the simulator tests. CI also builds the [SwiftUI host](ios.md)
+  and runs its create/book/terminate/relaunch test.
 
 ## Screenshot tests
 

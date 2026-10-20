@@ -71,7 +71,7 @@ class MigrationChainTest {
         assertEquals(
             "Android must use the shared database configuration",
             true,
-            databaseModuleSource.contains("buildDatabase("),
+            databaseModuleSource.contains("openDatabase("),
         )
         assertEquals(
             "Migrations.kt is not what Room reads — the shared database builder is. A chain that exists " +

@@ -5,12 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
-import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
-import com.seblful.klas.ui.common.state.days
 import com.seblful.klas.ui.schedule.ScheduleViewModel
 import com.seblful.klas.work.ClockChangeReceiver
 import kotlinx.coroutines.launch

@@ -5,6 +5,7 @@ buildscript {
     }
 }
 
+
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.multiplatform.library) apply false
@@ -53,5 +54,17 @@ run {
         "The Kotlin Gradle plugin pinned in build.gradle.kts ($pinned) and the version catalog's " +
             "`kotlin` ($catalog) disagree. Set both to the same version — the catalog is the one to " +
             "follow."
+    }
+}
+
+tasks.register("verify") {
+    group = "verification"
+    description = "Run JVM tests, screenshots, Android lint, formatting, static analysis and debug builds."
+    dependsOn(
+        ":domain:jvmTest", ":shared:jvmTest", ":app:verifyRoborazziDebug", ":app:lintDebug",
+        ":app:assembleDebug", ":app:assembleDebugAndroidTest",
+    )
+    listOf(":app", ":domain", ":shared").forEach { module ->
+        dependsOn("$module:ktlintCheck", "$module:detekt")
     }
 }

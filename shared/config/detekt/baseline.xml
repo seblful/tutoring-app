@@ -26,5 +26,6 @@
     <ID>TooManyFunctions:PeopleDaos.kt:GroupDao</ID>
     <ID>TooManyFunctions:SnapshotDao.kt:SnapshotDao</ID>
     <ID>UnusedParameter:ClassRepository.kt:ClassRepository$notes: String = ""</ID>
+    <ID>TooManyFunctions:PersistenceBindings.kt:PersistenceBindings</ID>
   </CurrentIssues>
 </SmellBaseline>

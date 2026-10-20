@@ -52,7 +52,6 @@
     <ID>TooManyFunctions:AndroidNotifier.kt:AndroidNotifier : Notifier</ID>
     <ID>TooManyFunctions:BookingForm.kt:BookingForm</ID>
     <ID>TooManyFunctions:ClassEditViewModel.kt:ClassEditViewModel : ViewModel</ID>
-    <ID>TooManyFunctions:DatabaseModule.kt:DatabaseModule</ID>
     <ID>TooManyFunctions:DeviceCalendarSync.kt:DeviceCalendarSync : CalendarSync</ID>
     <ID>TooManyFunctions:Formatters.kt:com.seblful.klas.format.Formatters.kt</ID>
     <ID>TooManyFunctions:HomeworkParts.kt:com.seblful.klas.ui.homework.HomeworkParts.kt</ID>

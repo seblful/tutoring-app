@@ -9,6 +9,7 @@ Device preferences cross as BCP 47 tags and ISO currency codes.
 ```mermaid
 flowchart TB
     App["app: Android UI, workers and adapters"] --> Shared["shared: repositories and workflows"]
+    Ios["iOS pilot: SwiftUI host"] --> Shared
     Shared --> Domain["domain: models and pure rules"]
     Shared --> Room[(Room DB)]
     Shared --> Ports[Calendar, notifications and documents]
@@ -24,6 +25,7 @@ Paths below are inside `com.seblful.klas`; follow the linked sources for individ
 | [Domain](../domain/src/commonMain/kotlin/com/seblful/klas/domain/) | Models and pure lesson, scheduling, billing, report, homework, people and reminder rules. |
 | [Shared data](../shared/src/commonMain/kotlin/com/seblful/klas/data/) | Room types and repositories grouped by people, lessons, billing, homework and settings. Backup format lives in `backup/`; `local/` owns the database, migrations and transactional snapshots. |
 | [Shared settings](../shared/src/commonMain/kotlin/com/seblful/klas/settings/) / [maintenance](../shared/src/commonMain/kotlin/com/seblful/klas/maintenance/) | Settings side effects and upkeep, independent of screens and background scheduling. |
+| [Shared queries](../shared/src/commonMain/kotlin/com/seblful/klas/queries/) | Student details and reports join repository flows into portable results; homework rows and date changes are shared too. Hosts own loading state, collection lifetime, events and navigation. |
 | [Shared calendar](../shared/src/commonMain/kotlin/com/seblful/klas/calendar/) / [notifications](../shared/src/commonMain/kotlin/com/seblful/klas/notifications/) / [storage](../shared/src/commonMain/kotlin/com/seblful/klas/storage/) | Calendar mirroring, reminder/digest posting decisions and device interfaces. |
 | [Android calendar](../app/src/main/java/com/seblful/klas/calendar/) / [notifications](../app/src/main/java/com/seblful/klas/notifications/) / [work](../app/src/main/java/com/seblful/klas/work/) | Device adapters, permission prompts, tray navigation, receivers and WorkManager scheduling. |
 | [Android storage](../app/src/main/java/com/seblful/klas/storage/) / [diagnostics](../app/src/main/java/com/seblful/klas/diagnostics/) | Document picker/sharing adapters and a capped local crash log. |
@@ -52,6 +54,12 @@ Order: pure rules → transactional rows → calendar/reminders after commit.
 builders; only the Android debug host opts into destructive migration. Keep exported schemas under
 `shared/schemas/` and preserve the existing database name and backup keys when moving code.
 
+Hosts open a `KlasDatabase` and consume the [KlasStore](../shared/src/commonMain/kotlin/com/seblful/klas/KlasStore.kt)
+interface. `PersistenceBindings` supplies DAOs and transactions within the shared module; the Android
+database module supplies only the database lifetime. Room is an implementation dependency of `:shared`.
+Low-level Room types remain accessible for migration and schema tests; hosts do not need to wire them.
+Close collectors and finish store work before closing `KlasDatabase`.
+
 Android `RootViewModel` publishes the foreground `AppLocale` before its settings reach screens.
 Background calendar and notification adapters resolve `DisplayLocale` directly from shared language
 state, so formatting does not depend on a screen collecting settings. `ObservableWallClock` supplies
@@ -68,9 +76,11 @@ coroutine cancellation. See [UI conventions](ui-conventions.md) for screen plumb
 Metro checks bindings at compile time. Before upgrading Kotlin, check Metro's compiler compatibility
 in [the version catalog](../gradle/libs.versions.toml).
 
-- [AppGraph.kt](../app/src/main/java/com/seblful/klas/di/AppGraph.kt) defines `KlasGraph` and `AppScope`.
+- [AppGraph.kt](../app/src/main/java/com/seblful/klas/di/AppGraph.kt) defines `KlasGraph` in Metro's `AppScope`.
   Bind adapters with `@ContributesBinding`/`@SingleIn`; providers use `@ContributesTo`/`@BindingContainer`.
   The graph factory receives `@ApplicationContext Context`.
+- `KlasGraph` also exposes `KlasStore`. Other hosts call `createKlasStore(database, host)` with
+  `HostServices`; the shared Metro graph constructs the same repositories, queries and workflows.
 - Android-created objects use `context.appGraph`: receivers inject first in `onReceive`, workers use
   `AppWorkerFactory` with nested `@AssistedFactory`/`@WorkerKey`, and the activity provides the view-model
   factory. metrox's `AppComponentFactory` needs API 28; minSdk is 24.
@@ -79,6 +89,6 @@ in [the version catalog](../gradle/libs.versions.toml).
 - Test graphs replace bindings with `excludes` (`StoreGraph`). `KlasGraphTest` checks runtime discovery
   of view models, workers and manifest receivers.
 
-To add another host, provide `DevicePreferences`, device-interface implementations and a platform
-database builder. Keep shared constructors independent of Android graph types. Shared UI is a separate
-choice; the Android feature packages can keep evolving while persistence and workflows are reused.
+To add another host, open its database and provide `HostServices`. Keep shared constructors independent
+of Android graph types. The [iOS pilot](ios.md) supplies local-only adapters and a callback interface
+for SwiftUI, while reusing production repository wiring. Shared UI is a separate choice.

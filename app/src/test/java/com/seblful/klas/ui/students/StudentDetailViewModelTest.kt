@@ -14,9 +14,10 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.people.Phone
+import com.seblful.klas.queries.homework.AssigneeChoice
+import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
-import com.seblful.klas.ui.homework.AssigneeChoice
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -51,8 +52,8 @@ class StudentDetailViewModelTest : StudentDetailTestFixture() {
         val early = Payment(studentId = 1, date = Instant.fromEpochMilliseconds(10), amount = Money.ofMajor(50))
         val late = Payment(studentId = 1, date = Instant.fromEpochMilliseconds(20), amount = Money.ofMajor(10))
 
-        assertNull(StudentDetailState().lastPaymentAt)
-        assertEquals(late.date, StudentDetailState(payments = listOf(late, early)).lastPaymentAt)
+        assertNull(StudentDetails().lastPaymentAt)
+        assertEquals(late.date, StudentDetails(payments = listOf(late, early)).lastPaymentAt)
     }
 
     @Test

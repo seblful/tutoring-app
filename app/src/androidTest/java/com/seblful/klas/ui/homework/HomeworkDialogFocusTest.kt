@@ -8,6 +8,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
+import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Rule
 import org.junit.Test

@@ -5,45 +5,29 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.seblful.klas.data.billing.PaymentRepository
-import com.seblful.klas.data.billing.RateHistoryRepository
 import com.seblful.klas.data.homework.HomeworkRepository
-import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.people.EnrollmentRepository
-import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
-import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
-import com.seblful.klas.domain.billing.Billing
-import com.seblful.klas.domain.homework.HomeworkRules
-import com.seblful.klas.domain.lesson.LessonFilter
-import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Assignee
-import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
-import com.seblful.klas.domain.model.RateChange
-import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.domain.model.Student
-import com.seblful.klas.domain.model.Subject
-import com.seblful.klas.domain.model.TutoringClass
-import com.seblful.klas.domain.people.Captions
-import com.seblful.klas.domain.people.NameOrder
-import com.seblful.klas.domain.reports.Taught
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
+import com.seblful.klas.queries.homework.AssigneeChoice
+import com.seblful.klas.queries.students.StudentDetails
+import com.seblful.klas.queries.students.StudentDetailsQuery
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
-import com.seblful.klas.ui.common.state.days
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.write
-import com.seblful.klas.ui.homework.AssigneeChoice
 import com.seblful.klas.ui.homework.HomeworkActions
-import com.seblful.klas.ui.homework.HomeworkLists
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
@@ -53,143 +37,17 @@ import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactory
 import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactoryKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.datetime.LocalDate
-import kotlin.time.Duration.Companion.days
-import kotlin.time.Instant
-
-/**
- * A subject the student takes, with its per-class price and how that price got there.
- *
- * @param history every recorded change to [price], newest first. Empty means the rate has never
- * moved, which the card says out loud rather than leaving blank.
- */
-data class SubjectPrice(
-    val subject: Subject,
-    val price: Money,
-    val history: List<RateChange> = emptyList(),
-)
-
-/**
- * A class plus what it takes to read it on its own: the subject's name, and — for a group lesson —
- * the group it was one of.
- *
- * @param groupName the group whose lesson this was, or null for an individual one. It is the *name*
- * rather than a flag because "which group" is the useful half of "not individual": a student in two
- * groups is billed a different rate by each.
- */
-data class ClassRow(
-    val klass: TutoringClass,
-    val subjectName: String,
-    val groupName: String? = null,
-) {
-    /** Read off the class, so a group lesson whose group row can't be found still reads as one. */
-    val kind: LessonKind get() = LessonKind.of(klass)
-
-    /** The amount at the row's trailing edge, or null where the lesson billed them nothing. See [Billing.billedOrNull]. */
-    val shownCharge: Money? get() = Billing.billedOrNull(listOf(klass))
-}
-
-data class StudentDetailState(
-    val student: Student? = null,
-    /** Where the student stands — the case, not the signed amount. See [Balance]. */
-    val balance: Balance = Balance.Settled,
-    /** How much has been taught and earned — the card's stat row. */
-    val totals: Taught.Totals = Taught.Totals.NONE,
-    val subjects: List<SubjectPrice> = emptyList(),
-    val allSubjects: List<Subject> = emptyList(),
-    val classes: List<ClassRow> = emptyList(),
-    val payments: List<Payment> = emptyList(),
-    /** How many lessons of each kind, for the lessons tab's chips. A kind with none is absent. */
-    val lessonKinds: Map<LessonKind, Int> = emptyMap(),
-    /**
-     * Their homework and their groups', current and done — the card's homework view, and the one place an
-     * archived student's is still listed (the «Задания» tab leaves them out). See [HomeworkRules.lists].
-     */
-    val homework: HomeworkLists = HomeworkLists(current = emptyList(), archive = emptyList()),
-) {
-    /**
-     * Whether narrowing the lesson list by kind means anything here. A student taught only one way
-     * gets no chips: every chip but one would be empty, and «Все» would filter nothing.
-     */
-    val hasBothKinds: Boolean get() = lessonKinds.size > 1
-
-    /** The subjects that can still be added: every subject not already priced for them. */
-    val addableSubjects: List<Subject>
-        get() {
-            val priced = subjects.mapTo(mutableSetOf()) { it.subject.id }
-            return allSubjects.filter { it.id !in priced }
-        }
-
-    /** he lessons tab's rows under [filter]. */
-    fun lessonsShown(filter: LessonFilter): List<ClassRow> =
-        if (hasBothKinds) filter.accepted(classes) { it.kind } else classes
-
-    /**
-     * When they last paid, or null if they never have — the line under the balance. It used to repeat the
-     * balance in words («Долг 45 BYN» under «Долг / 45 BYN»); when the money last came in is the thing the
-     * number does not say, and what a tutor deciding whether to chase it wants next.
-     */
-    val lastPaymentAt: Instant? get() = payments.maxOfOrNull { it.date }
-
-    /** hat the archive action should do, given what this student is carrying. */
-    val archiveIntent: ArchiveIntent
-        get() = when {
-            student == null -> ArchiveIntent.Nothing
-            // Restoring costs nothing: the lessons are not coming back and the debt was never gone.
-            student.archived -> ArchiveIntent.Restore
-            else -> ArchiveIntent.of(balance, totals.upcoming)
-        }
-}
-
-/**
- * What tapping archive/restore means here — and, when it means asking first, what the question has to
- * account for.
- */
-sealed interface ArchiveIntent {
-
-    /** No student loaded yet, so there is nothing to offer. */
-    data object Nothing : ArchiveIntent
-
-    /** Archive without asking: nothing is lost that the tutor has not already seen. */
-    data object Archive : ArchiveIntent
-
-    /** Un-archive. Never asks — restoring takes nothing away. */
-    data object Restore : ArchiveIntent
-
-    /**
-     * Ask first, and say what it costs.
-     *
-     * @param openBalance the balance that would leave the reports, or null when it is [Balance.Settled].
-     * Either case counts: an over-payment is credit the tutor owes back, and it disappears from the
-     * reports just as a debt does — which is why this is "not settled" rather than "owes".
-     * @param upcomingLessons how many planned lessons would be called off; 0 when none would.
-     */
-    data class Confirm(val openBalance: Balance?, val upcomingLessons: Int) : ArchiveIntent
-
-    companion object {
-        /** [Archive] when archiving costs nothing worth naming, [Confirm] with the parts that apply. */
-        fun of(balance: Balance, upcoming: Int): ArchiveIntent {
-            val open = balance.takeIf { it != Balance.Settled }
-            return if (open == null && upcoming <= 0) Archive
-            else Confirm(openBalance = open, upcomingLessons = upcoming.coerceAtLeast(0))
-        }
-    }
-}
 
 /** he student's card. */
 class StudentDetailViewModel @AssistedInject constructor(
     @Assisted savedStateHandle: SavedStateHandle,
     private val students: StudentRepository,
-    subjects: SubjectRepository,
-    private val classes: ClassRepository,
-    groups: GroupRepository,
+    details: StudentDetailsQuery,
     homework: HomeworkRepository,
     private val payments: PaymentRepository,
     private val enrollment: EnrollmentRepository,
-    rateHistory: RateHistoryRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: WallClock,
@@ -227,82 +85,9 @@ class StudentDetailViewModel @AssistedInject constructor(
 
     private val homeworkActions = HomeworkActions(homework, appScope, events, Event.WriteFailed)
 
-    private val partial: Flow<Partial> = combine(
-        students.observeById(studentId),
-        subjects.observeAll(),
-        enrollment.observePricesFor(studentId),
-        classes.observeForStudent(studentId),
-        // The whole student's log in one query, split per subject below — the card shows every
-        // subject at once, so a query per subject would be n queries for one screen.
-        rateHistory.observeForStudent(studentId),
-    ) { student, allSubjects, priceList, classList, changes ->
-        val subjectsById = allSubjects.associateBy { it.id }
-        // `as?`, not `as`: `price_history` is **one table for two kinds of rate** discriminated by
-        // `RateOwner`, and `observeForStudent` selects on `studentId` alone. A hard cast therefore rested
-        // on no row of a student's ever carrying a group id — a property of the queries as they stand
-        // today rather than of the schema, and a `ClassCastException` inside a `Flow` on the card that
-        // shows a student's money if it ever stopped holding. A row that is not a student's price is not
-        // this card's history, so it is skipped.
-        val historyBySubject = changes
-            .mapNotNull { change -> (change.owner as? RateOwner.StudentSubject)?.subjectId?.to(change) }
-            .groupBy({ it.first }, { it.second })
-        Partial(
-            student = student,
-            allSubjects = allSubjects,
-            // A student's subjects ARE their priced subjects — one source of truth, so the list here
-            // is exactly what can be booked. No "price not set" rows, no bookable-but-hidden subjects.
-            subjects = NameOrder.sorted(
-                priceList.mapNotNull { p ->
-                    subjectsById[p.subjectId]?.let {
-                        SubjectPrice(it, p.amount, historyBySubject[p.subjectId].orEmpty())
-                    }
-                },
-            ) { it.subject.name },
-            classes = classList,
-        )
-    }
-
-    /** he card, in two stages only because `combine` takes at most five typed sources. */
-    val state: StateFlow<Loadable<StudentDetailState>> = combine(
-        partial,
-        payments.observeForStudent(studentId),
-        groups.observeAll(),
-        homework.observeForStudentWithLessons(studentId),
-        clock.days(),
-    ) { partial, paymentList, groupList, withLessons, today ->
-        // The one student is here only to title their homework; a lesson row never names them. See [Captions].
-        val captions = Captions.of(
-            students = listOfNotNull(partial.student),
-            subjects = partial.allSubjects,
-            groups = groupList,
-        )
-        StudentDetailState(
-            student = partial.student,
-            balance = Billing.balanceOf(studentId, partial.classes, paymentList).state,
-            totals = Taught.byStudent(partial.classes),
-            subjects = partial.subjects,
-            allSubjects = partial.allSubjects,
-            classes = partial.classes.map { c ->
-                ClassRow(klass = c, subjectName = captions.subjectOf(c), groupName = captions.groupOf(c))
-            },
-            payments = paymentList,
-            lessonKinds = LessonKind.tally(partial.classes),
-            // Attached by everybody's lessons, not theirs: a member left out of a group lesson has no class
-            // in it, and the group's homework is still that lesson's — see `observeForStudentWithLessons`.
-            homework = HomeworkLists.of(withLessons.homework, withLessons.classes, captions, today, clock.zone),
-        )
-    }
+    val state: StateFlow<Loadable<StudentDetails>> = details.observe(studentId)
         .ready()
-        // `StudentDetailState()` used to stand in, which is a student with no name, no debt and no
-        // lessons — so the card opened stating zeroes about somebody before reading them. See [Loadable].
         .derive(this, computation, Loadable.Loading)
-
-    private data class Partial(
-        val student: Student?,
-        val allSubjects: List<Subject>,
-        val subjects: List<SubjectPrice>,
-        val classes: List<TutoringClass>,
-    )
 
     private fun <T> write(onWritten: suspend (T) -> Unit = {}, block: suspend () -> T) =
         appScope.write(events, Event.WriteFailed, onWritten, block)

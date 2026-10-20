@@ -28,14 +28,14 @@ import com.seblful.klas.domain.schedule.ScheduleEmpty
 import com.seblful.klas.domain.schedule.TimeConflict
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
+import com.seblful.klas.format.days
+import com.seblful.klas.format.minutes
 import com.seblful.klas.format.zones
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
-import com.seblful.klas.ui.common.state.days
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.common.state.map
-import com.seblful.klas.ui.common.state.minutes
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.readyOrLoadingAfter
 import com.seblful.klas.ui.common.state.valueOrNull

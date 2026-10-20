@@ -15,9 +15,12 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.people.Captions
 import com.seblful.klas.domain.people.NameOrder
 import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.format.days
+import com.seblful.klas.queries.homework.AssigneeChoice
+import com.seblful.klas.queries.homework.HomeworkLists
+import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
-import com.seblful.klas.ui.common.state.days
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.valueOrNull

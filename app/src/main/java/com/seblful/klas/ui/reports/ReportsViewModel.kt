@@ -2,32 +2,20 @@ package com.seblful.klas.ui.reports
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.seblful.klas.data.billing.PaymentRepository
-import com.seblful.klas.data.lessons.ClassRepository
-import com.seblful.klas.data.people.GroupRepository
-import com.seblful.klas.data.people.StudentRepository
-import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.di.Computation
-import com.seblful.klas.domain.model.Group
-import com.seblful.klas.domain.model.GroupId
-import com.seblful.klas.domain.model.Payment
-import com.seblful.klas.domain.model.Student
-import com.seblful.klas.domain.model.Subject
-import com.seblful.klas.domain.model.SubjectId
-import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.reports.ReportCsv
 import com.seblful.klas.domain.reports.ReportPeriod
 import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.AppLocale
+import com.seblful.klas.queries.reports.ReportsQuery
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentSharing
 import com.seblful.klas.storage.DocumentStore
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
-import com.seblful.klas.ui.common.state.days
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.navigation.Arrival
@@ -41,56 +29,28 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlin.time.Duration.Companion.days
 
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class ReportsViewModel @Inject constructor(
-    classes: ClassRepository,
-    students: StudentRepository,
-    subjects: SubjectRepository,
-    groups: GroupRepository,
-    payments: PaymentRepository,
+    reports: ReportsQuery,
     private val documents: DocumentStore,
     private val sharing: DocumentSharing,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: WallClock,
 ) : ViewModel() {
 
-    private val zone: TimeZone get() = clock.zone
-
     private val _period = MutableStateFlow(ReportPeriod.currentYear(clock.today()))
     val period: StateFlow<ReportPeriod> = _period.asStateFlow()
-
-    private data class Sources(
-        val classes: List<TutoringClass>,
-        val students: List<Student>,
-        val subjects: List<Subject>,
-        val groups: List<Group>,
-        val payments: List<Payment>,
-    )
 
     /**
      * [Loadable] because an empty report and an unread one look identical and mean opposite things:
      * `Reports.Report(period)` as an initial value made every cold open of this screen state «Нет
      * данных» — that the tutor has earned nothing — before the first read came back.
      */
-    val state: StateFlow<Loadable<Reports.Report>> = combine(
-        classes.observeAll(),
-        students.observeAll(),
-        subjects.observeAll(),
-        groups.observeAll(),
-        payments.observeAll(),
-        ::Sources,
-    ).combine(_period, ::Pair)
-        // Today re-read at midnight ([days]), not once per emission: the current period's per-day
-        // figures count the days gone, and the tab stays alive behind the bar overnight.
-        .combine(clock.days()) { (sources, period), today -> sources.report(period, today) }
+    val state: StateFlow<Loadable<Reports.Report>> = reports.observe(_period)
         .ready()
         // The heaviest derivation in the app — every class against every payment and every student,
         // re-run on each write anywhere — and it used to run on the main thread. See [Computation].
@@ -153,22 +113,6 @@ class ReportsViewModel @Inject constructor(
             events.send(if (ok) ExportEvent.SHARED else ExportEvent.ERROR)
         }
     }
-
-    private fun Sources.report(period: ReportPeriod, today: LocalDate): Reports.Report = Reports.of(
-        period = period,
-        classes = classes,
-        students = students,
-        payments = payments,
-        // Keyed by typed ids, so each table can only be handed to the breakdown it names. The two are
-        // otherwise interchangeable, and a mismatch drew a real amount against a blank label rather
-        // than failing — see `model/Ids.kt`.
-        subjectNames = subjects.associate { SubjectId(it.id) to it.name },
-        // Archived groups included: income a group already earned stays the tutor's, and a line
-        // labelled by an id would be the only unreadable row on the screen.
-        groupNames = groups.associate { GroupId(it.id) to it.name },
-        zone = zone,
-        today = today,
-    )
 
     private companion object {
         /**

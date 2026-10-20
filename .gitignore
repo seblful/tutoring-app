@@ -47,3 +47,8 @@ output.json
 
 # Claude Code worktree checkouts. Everything else under .claude/ stays tracked.
 .claude/worktrees/
+
+# Generated from iosApp/project.yml.
+iosApp/*.xcodeproj/
+iosApp/DerivedData/
+*.xcresult/

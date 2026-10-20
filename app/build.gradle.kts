@@ -82,6 +82,7 @@ android {
     // Robolectric gets merged resources. Device migration tests need Room’s exported schemas.
     sourceSets {
         getByName("androidTest").assets.directories.add("${project(":shared").projectDir}/schemas")
+        getByName("test").kotlin.srcDir(rootProject.file("shared/src/testFixtures/kotlin"))
     }
     testOptions {
         unitTests.isIncludeAndroidResources = true

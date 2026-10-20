@@ -31,6 +31,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Attendance
+import com.seblful.klas.queries.homework.AssigneeChoice
+import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.ui.common.ArchiveMenuItem
 import com.seblful.klas.ui.common.ArchivedBadge
 import com.seblful.klas.ui.common.Avatar
@@ -46,7 +48,6 @@ import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatusBadge
-import com.seblful.klas.ui.common.StickyViewMenu
 import com.seblful.klas.ui.common.TitleSize
 import com.seblful.klas.ui.common.TrailingAmount
 import com.seblful.klas.ui.common.animateInPlace
@@ -61,9 +62,7 @@ import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
-import com.seblful.klas.ui.homework.AssigneeChoice
 import com.seblful.klas.ui.homework.CardHomeworkDialogs
-import com.seblful.klas.ui.homework.HomeworkRow
 import com.seblful.klas.ui.homework.homeworkItems
 import com.seblful.klas.ui.homework.homeworkUndo
 import com.seblful.klas.ui.theme.KlasIcons

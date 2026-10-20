@@ -13,6 +13,7 @@ import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.AppLocale
+import com.seblful.klas.queries.reports.ReportsQuery
 import com.seblful.klas.testutil.CountingDispatcher
 import com.seblful.klas.testutil.FakeDocumentStore
 import com.seblful.klas.testutil.MainDispatcherRule
@@ -32,7 +33,6 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.number
-import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -40,7 +40,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
@@ -66,7 +65,7 @@ class ReportsViewModelTest {
 
     private fun vm() =
         ReportsViewModel(
-            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo,
+            ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo, clock),
             documents, sharing, mainRule.dispatcher, clock,
         )
 
@@ -94,7 +93,7 @@ class ReportsViewModelTest {
         completed(sid, subj, at(2026, 6, 1), 50)
 
         val vm = ReportsViewModel(
-            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo,
+            ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo, lateEvening),
             documents, sharing, mainRule.dispatcher, lateEvening,
         )
         vm.setKind(ReportPeriod.Kind.MONTH)
@@ -163,7 +162,7 @@ class ReportsViewModelTest {
         completed(sid, subj, at(2027, 1, 3), 40)
 
         val vm = ReportsViewModel(
-            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo,
+            ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo, newYear),
             documents, sharing, mainRule.dispatcher, newYear,
         )
         observing(vm.state)
@@ -469,7 +468,7 @@ class ReportsViewModelTest {
             completed(ann, subject, at(thisYear, 5), major = 30)
 
             val vm = ReportsViewModel(
-                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo,
+                ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo, clock),
                 documents, sharing, counting, clock,
             )
             observing(vm.state)

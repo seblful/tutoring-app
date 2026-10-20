@@ -36,6 +36,9 @@ import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatDate
+import com.seblful.klas.queries.homework.AssigneeChoice
+import com.seblful.klas.queries.homework.HomeworkLists
+import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.ChoiceField
 import com.seblful.klas.ui.common.ContentCard

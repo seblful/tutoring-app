@@ -19,20 +19,28 @@ kotlin {
     jvm {
         compilerOptions { jvmTarget = JvmTarget.JVM_11 }
     }
-    iosArm64()
-    iosSimulatorArm64()
+    listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
+        target.binaries.framework {
+            baseName = "KlasShared"
+            isStatic = true
+            export(project(":domain"))
+        }
+    }
 
     sourceSets {
         commonMain.dependencies {
             api(project(":domain"))
-            api(libs.androidx.room.runtime)
+            implementation(libs.androidx.room.runtime)
             api(libs.kotlinx.coroutines.core)
             implementation(libs.androidx.sqlite.bundled)
             implementation(libs.kotlinx.serialization.json)
         }
-        commonTest.dependencies {
-            implementation(kotlin("test"))
-            implementation(libs.kotlinx.coroutines.test)
+        commonTest {
+            kotlin.srcDir("src/testFixtures/kotlin")
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.kotlinx.coroutines.test)
+            }
         }
     }
 }

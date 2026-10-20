@@ -122,6 +122,7 @@ object ProjectFiles {
             siblingModuleFileOrNull("shared", "src/commonTest/kotlin/com/seblful/klas"),
             siblingModuleFileOrNull("shared", "src/jvmTest/kotlin/com/seblful/klas"),
             siblingModuleFileOrNull("shared", "src/iosTest/kotlin/com/seblful/klas"),
+            siblingModuleFileOrNull("shared", "src/testFixtures/kotlin/com/seblful/klas"),
         )
         check(roots.all { it != null }) { "Could not find every module's test sources" }
         return roots.filterNotNull().flatMap { root ->

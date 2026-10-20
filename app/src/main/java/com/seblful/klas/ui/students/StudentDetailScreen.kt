@@ -40,6 +40,10 @@ import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.formatHours
 import com.seblful.klas.format.toLocalDate
+import com.seblful.klas.queries.homework.AssigneeChoice
+import com.seblful.klas.queries.homework.HomeworkRow
+import com.seblful.klas.queries.students.ArchiveIntent
+import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
@@ -52,7 +56,6 @@ import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.Stat
 import com.seblful.klas.ui.common.StatusBadge
-import com.seblful.klas.ui.common.StickyViewMenu
 import com.seblful.klas.ui.common.TitleSize
 import com.seblful.klas.ui.common.TrailingAmount
 import com.seblful.klas.ui.common.animateInPlace
@@ -68,9 +71,7 @@ import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRejectFeedback
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
-import com.seblful.klas.ui.homework.AssigneeChoice
 import com.seblful.klas.ui.homework.CardHomeworkDialogs
-import com.seblful.klas.ui.homework.HomeworkRow
 import com.seblful.klas.ui.homework.homeworkItems
 import com.seblful.klas.ui.homework.homeworkUndo
 import com.seblful.klas.ui.theme.KlasIcons
@@ -105,7 +106,7 @@ fun StudentDetailScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StudentCard(
-    state: StudentDetailState,
+    state: StudentDetails,
     viewModel: StudentDetailViewModel,
     onBack: () -> Unit,
     onLessonClick: (Long) -> Unit,
@@ -393,7 +394,7 @@ private fun StudentCard(
 }
 
 @Composable
-private fun studentStats(state: StudentDetailState): List<Stat> {
+private fun studentStats(state: StudentDetails): List<Stat> {
     val totals = state.totals
     return listOfNotNull(
         // Hours as the hint, in place of the tile they used to have. `lessonsStat` prefers «впереди N»
@@ -406,7 +407,7 @@ private fun studentStats(state: StudentDetailState): List<Stat> {
 }
 
 @Composable
-private fun BalanceHero(state: StudentDetailState, modifier: Modifier = Modifier) {
+private fun BalanceHero(state: StudentDetails, modifier: Modifier = Modifier) {
     val balance = state.balance
     HeroCard(
         label = stringResource(
@@ -430,7 +431,7 @@ private fun BalanceHero(state: StudentDetailState, modifier: Modifier = Modifier
 }
 
 private fun LazyListScope.subjectsTab(
-    state: StudentDetailState,
+    state: StudentDetails,
     onAdd: () -> Unit,
     onReprice: (Long) -> Unit,
     onRemove: (Long) -> Unit,
@@ -473,7 +474,7 @@ private fun LazyListScope.subjectsTab(
 }
 
 private fun LazyListScope.classesTab(
-    state: StudentDetailState,
+    state: StudentDetails,
     filter: LessonFilter,
     onFilter: (LessonFilter) -> Unit,
     onLessonClick: (Long) -> Unit,
@@ -544,7 +545,7 @@ private fun LazyListScope.classesTab(
 }
 
 private fun LazyListScope.paymentsTab(
-    state: StudentDetailState,
+    state: StudentDetails,
     onAdd: () -> Unit,
     onEdit: (Payment) -> Unit,
     onDelete: (Payment) -> Unit,

@@ -20,6 +20,9 @@ import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.queries.homework.AssigneeChoice
+import com.seblful.klas.queries.homework.HomeworkLists
+import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabClearance
 import com.seblful.klas.ui.common.FilterChipRow

@@ -45,6 +45,7 @@ and pure rules in `:domain`.
 ## Build & Test
 
 ```bash
+./gradlew verify                       # the same JVM/Android checks as CI; no device required
 ./gradlew :app:assembleDebug            # debug APK
 ./gradlew :domain:jvmTest               # domain unit tests (billing, scheduling, reminders, reports)
 ./gradlew :shared:jvmTest               # shared parsing, clock and real-database contracts
@@ -60,6 +61,9 @@ from release. On Windows, use `gradlew.bat` in place of `./gradlew`.
 separately. See [Testing](docs/testing.md) for test setup, screenshot updates and static analysis,
 and [Releasing](docs/releasing.md) for signed builds and tag-driven publishing.
 
+The [iOS pilot](docs/ios.md) exercises student creation, booking and persistence after relaunch through
+the shared store. It is a small SwiftUI validation host, with its own database and simulator test.
+
 ## Docs
 
 - [Architecture](docs/architecture.md) — where code goes, and which class owns each rule
@@ -68,6 +72,7 @@ and [Releasing](docs/releasing.md) for signed builds and tag-driven publishing.
 - [Database and backup](docs/database-and-backup.md) — changing the schema or the backup file without losing data
 - [UI conventions](docs/ui-conventions.md) — how a screen is built
 - [Testing](docs/testing.md) — where a test goes, and what the test setup expects
+- [iOS pilot](docs/ios.md) — run the SwiftUI host and its persistence test on a Mac
 - [Releasing](docs/releasing.md) — a signed release APK, sideloading it, and the tag-driven release to GitHub and Google Play
 - [Store listing](docs/store-listing.md) — regenerating the Play screenshots, feature graphic, icon, text and promo video from the real app
 

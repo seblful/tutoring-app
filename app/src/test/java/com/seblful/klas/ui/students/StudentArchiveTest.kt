@@ -5,6 +5,7 @@ import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.schedule.Scheduling
+import com.seblful.klas.queries.students.ArchiveIntent
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi

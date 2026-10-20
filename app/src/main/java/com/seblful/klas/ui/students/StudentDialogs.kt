@@ -25,6 +25,7 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.toAmountInput
+import com.seblful.klas.queries.students.SubjectPrice
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.DialogRadioRow
 import com.seblful.klas.ui.common.KeepTypedInput

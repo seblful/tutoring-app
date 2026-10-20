@@ -4,7 +4,7 @@ import androidx.room.RoomDatabase
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 
 /** All hosts share the same driver, schema and migration chain. */
-fun buildDatabase(
+internal fun buildDatabase(
     builder: RoomDatabase.Builder<AppDatabase>,
     allowDestructiveMigration: Boolean = false,
 ): AppDatabase = builder

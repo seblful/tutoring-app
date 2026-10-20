@@ -3,6 +3,7 @@ package com.seblful.klas.di
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.work.WorkerFactory
+import com.seblful.klas.KlasStore
 import com.seblful.klas.diagnostics.CrashLogger
 import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.notifications.Notifier
@@ -51,7 +52,7 @@ interface AppGraph : ViewModelGraph {
  * on an implementation, `@ContributesTo` on a binding container in `di/` — plus the application context.
  */
 @DependencyGraph(AppScope::class)
-interface KlasGraph : AppGraph {
+interface KlasGraph : AppGraph, KlasStore {
 
     @DependencyGraph.Factory
     fun interface Factory {
