@@ -510,4 +510,26 @@ class ScheduleWriteTest : ScheduleTestFixture() {
 
         assertEquals(listOf(true, false), vm.homeworkAt(session).first().map { it.homework.isDone })
     }
+
+    @Test
+    fun `attendance corrections refresh lesson data without removing members`() = runTest(mainRule.dispatcher) {
+        val subject = env.fixtures.subject()
+        val first = env.fixtures.pricedStudent("First", subject)
+        val second = env.fixtures.pricedStudent("Second", subject)
+        val group = env.fixtures.group(subjectId = subject, members = setOf(first, second))
+        val ids = env.fixtures.completedLesson(subject, listOf(first, second), at(12), groupId = group)
+        val vm = vm()
+        vm.selectDate(LocalDate(2026, 5, 18))
+        observing(vm.content)
+        advanceUntilIdle()
+
+        vm.setAttendance(vm.dayContent.rows.single().classes.last(), Attended.ABSENT)
+        advanceUntilIdle()
+
+        val row = vm.dayContent.rows.single()
+        assertEquals(ids.toSet(), row.session.ids)
+        assertEquals(1, row.session.present)
+        assertEquals(Money.ZERO, row.classes.last().charge)
+        assertEquals(Money.ofMajor(30), row.classes.first().charge)
+    }
 }

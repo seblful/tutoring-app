@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -33,8 +35,10 @@ import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.lesson.SessionRules
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.format.toLocalTime
@@ -66,6 +70,7 @@ internal fun ClassActionsSheet(
     onHomeworkDone: (Homework, Boolean) -> Unit,
     onEdit: () -> Unit,
     onStatus: (LessonStatus) -> Unit,
+    onAttendance: (TutoringClass, Attended) -> Unit,
     onMove: () -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
@@ -75,7 +80,7 @@ internal fun ClassActionsSheet(
     // so even a plain pill lit grey when held. The pill is the sheet's first row instead — see
     // [SheetHandle]; the whole sheet drags, not only the handle.
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
-        Column(Modifier.fillMaxWidth().padding(bottom = SheetGutter)) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = SheetGutter)) {
             SheetHandle(Modifier.align(Alignment.CenterHorizontally))
             // Header: which lesson these actions apply to.
             Row(
@@ -98,6 +103,8 @@ internal fun ClassActionsSheet(
             // selected. Offering only the transitions (as a list of actions did) meant the sheet never
             // said what the lesson *is* — the tutor had to infer it from which verbs were absent.
             StatusSelector(row = row, onStatus = onStatus)
+
+            LessonAttendance(row, onAttendance)
 
             // What was set for this lesson, **with its ticks on the sheet**: the start of a lesson is when
             // the tutor asks for it, and this is the screen they are on.

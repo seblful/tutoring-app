@@ -49,6 +49,8 @@ Preserve on-device data and existing backup files when changing storage. Before 
   `legacyHomework`; old lesson notes are not restored. Dropping always-blank columns need not bump the
   file version. `BackupData.version` is independent of schema version and also supports transfer from
   the old `com.seblful.repetit` app ID, which cannot upgrade in place.
+- JSON must explicitly contain `version`, `subjects` and `students`, including empty arrays in an empty
+  backup. Missing envelope fields are malformed; defaults for later tables preserve older exports.
 - Discard imported calendar event IDs: they belong to the exporting device. `remirrorAfter` reuses this
   device's IDs only for matching restored classes (row ID, lesson, student, start), withdraws unclaimed
   events and re-mirrors. This preserves past events and avoids re-inviting upcoming students when

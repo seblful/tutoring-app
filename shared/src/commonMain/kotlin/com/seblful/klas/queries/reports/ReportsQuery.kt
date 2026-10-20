@@ -87,7 +87,7 @@ class ReportsQuery @Inject constructor(
         students = students,
         balances = balances.values.toList(),
         // Every student with a class or payment has a balance row, billed or not.
-        hasData = students.any { !it.archived && it.id in balances },
+        hasData = students.any { it.id in balances },
         // Keyed by typed ids, so each table can only be handed to the breakdown it names. The two are
         // otherwise interchangeable, and a mismatch drew a real amount against a blank label rather
         // than failing — see `model/Ids.kt`.

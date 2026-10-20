@@ -45,8 +45,8 @@ class BackupManager @Inject constructor(
      * is right for a file of this build's version or older (it is malformed: no build ever wrote that name),
      * and wrong for a newer one: a later build that adds a status writes it into its files, and those have
      * to be refused as *newer*, telling the tutor to update the app, rather than as a broken file. So the
-     * version is read off the bare JSON before the rows are; a version that is missing or not a number is
-     * left to the decode, which defaults the one and refuses the other.
+     * version is read before the rows. The full decode requires the version, subjects and students
+     * envelope shared by every supported export, rejecting unrelated JSON before any replacement.
      */
     fun parse(text: String): BackupData {
         // Decoded straight from the text both times: a whole `JsonElement` tree of a large backup was its

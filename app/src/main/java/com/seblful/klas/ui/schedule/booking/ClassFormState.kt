@@ -53,6 +53,8 @@ data class ClassFormState(
      * about a chosen time: a start and a length cannot describe an impossible one.
      */
     val conflict: TimeConflict? = null,
+    /** Free dates in the whole proposed run; a repeating booking skips the occupied ones. */
+    val availableOccurrences: Int = 1,
     /** hether the tutor has changed anything — what leaving without saving would throw away. */
     override val isDirty: Boolean = false,
 ) : LeavableForm {
@@ -97,13 +99,12 @@ data class ClassFormState(
     val groupHasNoMembers: Boolean
         get() = form.target == ClassTarget.GROUP && form.groupId != null && members.isEmpty()
 
-    /**
-     * Whether saving may be attempted. A taken slot is as disqualifying as a missing field: the
-     * lesson could not happen. The save re-checks against the database regardless, since the slot
-     * can be taken between here and there.
-     */
+    val conflictBlocksSave: Boolean get() = conflict != null && (!form.repeat.repeats || availableOccurrences == 0)
+
+    /** Single bookings need their slot; a repeating run needs at least one free date. */
     override val canSave: Boolean
-        get() = form.isValid && conflict == null && !allMembersExcluded && !groupHasNoMembers
+        get() = form.isValid && availableOccurrences > 0 && !conflictBlocksSave &&
+            !allMembersExcluded && !groupHasNoMembers
 
     /** What tapping save should do: save, or ask about the income it would destroy first. */
     val saveIntent: SaveIntent

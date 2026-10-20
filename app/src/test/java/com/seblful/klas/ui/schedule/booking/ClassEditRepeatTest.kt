@@ -69,6 +69,39 @@ class ClassEditRepeatTest : ClassEditTestFixture() {
     }
 
     @Test
+    fun `a first-date clash still allows booking the free dates`() = runTest(mainRule.dispatcher) {
+        val first = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+        seedLesson(first, LocalTime(10, 0))
+        val (student, subject) = seedStudentWithPricedSubject(studentName = "Anna", subjectName = "Physics")
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+        vm.fillRepeating(student, subject, first, LocalTime(10, 0), Repeat.WEEKLY, count = 4)
+        advanceUntilIdle()
+
+        assertTrue("the actual Save button must be enabled", vm.state.current.canSave)
+        vm.save { }
+        advanceUntilIdle()
+
+        assertEquals(3, vm.seriesOutcome.value!!.booked)
+        assertEquals(listOf(first), vm.seriesOutcome.value!!.skipped)
+    }
+
+    @Test
+    fun `an entirely occupied run disables Save`() = runTest(mainRule.dispatcher) {
+        val first = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+        for (week in 0..2) seedLesson(first.plus(week, DateTimeUnit.WEEK), LocalTime(10, 0))
+        val (student, subject) = seedStudentWithPricedSubject(studentName = "Anna", subjectName = "Physics")
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+        vm.fillRepeating(student, subject, first, LocalTime(10, 0), Repeat.WEEKLY, count = 3)
+        advanceUntilIdle()
+
+        assertFalse(vm.state.current.canSave)
+    }
+
+    @Test
     fun `a weekly run books a lesson a week and navigates back`() = runTest(mainRule.dispatcher) {
         val (ann, subject) = seedStudentWithPricedSubject()
         val vm = vm()

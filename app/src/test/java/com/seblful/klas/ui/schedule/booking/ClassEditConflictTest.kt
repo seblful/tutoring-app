@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.atTime
+import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.todayIn
@@ -31,6 +32,29 @@ import kotlin.time.Clock
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class ClassEditConflictTest : ClassEditTestFixture() {
+
+    @Test
+    fun `a cancelled past lesson remains editable after its slot is reused`() = runTest(mainRule.dispatcher) {
+        val date = Clock.System.todayIn(zone).minus(2, DateTimeUnit.DAY)
+        val (_, id) = seedLesson(date, LocalTime(10, 0))
+        env.classRepo.setStatus(env.classRepo.getSessionFor(id)!!, LessonStatus.CANCELLED)
+        seedLesson(date, LocalTime(10, 0), studentName = "Replacement")
+        val vm = vm(id)
+        observing(vm.state)
+        advanceUntilIdle()
+        vm.change(BookingIntent.Edit { it.copy(mode = ClassMode.REMOTE) })
+        advanceUntilIdle()
+
+        assertNull(vm.state.current.conflict)
+        assertTrue(vm.state.current.canSave)
+        var saved = false
+        vm.save { saved = true }
+        advanceUntilIdle()
+
+        assertTrue(saved)
+        assertEquals(ClassMode.REMOTE, env.classRepo.getById(id)!!.mode)
+        assertEquals(LessonStatus.CANCELLED, env.classRepo.getById(id)!!.status)
+    }
 
     private fun TestScope.clashesDrawnBy(vm: ClassEditViewModel): List<TimeConflict> {
         val drawn = mutableListOf<TimeConflict>()

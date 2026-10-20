@@ -281,11 +281,11 @@ class ReportsViewModelTest {
     }
 
     @Test
-    fun `archived students are excluded from income, breakdowns and debts`() = runTest(mainRule.dispatcher) {
+    fun `archived students retain their income breakdowns and debts`() = runTest(mainRule.dispatcher) {
         val active = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val archived = env.studentDao.upsert(StudentEntity(name = "Старый", archived = true))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        // Active student: completed 30. Archived student: completed 100 (must be ignored everywhere).
+        // Archiving ends teaching, not the financial history of work already done.
         completed(active, subj, at(thisYear, 3), 30)
         completed(archived, subj, at(thisYear, 3), 100)
 
@@ -294,12 +294,25 @@ class ReportsViewModelTest {
         runCurrent()
 
         val state = vm.state.current
-        assertEquals(Money.ofMajor(30), state.totalIncome)
-        assertEquals(1, state.byStudent.size)
-        assertEquals("Аня", state.byStudent.single().label)
-        // Active student owes 30 (no payment), archived one's debt never appears.
-        assertEquals(Money.ofMajor(30), state.totalOutstanding)
-        assertEquals(listOf("Аня"), state.debts.map { it.label })
+        assertEquals(Money.ofMajor(130), state.totalIncome)
+        assertEquals(listOf("Старый", "Аня"), state.byStudent.map { it.label })
+        assertEquals(Money.ofMajor(130), state.totalOutstanding)
+        assertEquals(listOf("Старый", "Аня"), state.debts.map { it.label })
+    }
+
+    @Test
+    fun `reports remain available when the only student with history is archived`() = runTest(mainRule.dispatcher) {
+        val subject = env.fixtures.subject()
+        val student = env.fixtures.pricedStudent(subjectId = subject)
+        completed(student, subject, at(thisYear, 3), 30)
+        env.studentRepo.setArchived(env.studentRepo.getById(student)!!, archived = true)
+        val vm = vm()
+        observing(vm.state)
+        runCurrent()
+
+        assertTrue(vm.state.current.hasData)
+        assertEquals(Money.ofMajor(30), vm.state.current.totalIncome)
+        assertEquals(Money.ofMajor(30), vm.state.current.totalOutstanding)
     }
 
     @Test

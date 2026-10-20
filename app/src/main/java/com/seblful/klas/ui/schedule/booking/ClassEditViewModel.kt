@@ -14,6 +14,7 @@ import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
+import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.lesson.GroupRules
 import com.seblful.klas.domain.lesson.SessionEdit
 import com.seblful.klas.domain.model.ClassSession
@@ -197,31 +198,39 @@ class ClassEditViewModel @AssistedInject constructor(
         else -> flowOf(SubjectChoice())
     }
 
-    private val conflict: StateFlow<TimeConflict?> =
-        saving.flatMapLatest { underWay -> if (underWay) flowOf(null) else liveConflict() }
-            .derive(this, computation, null)
+    private data class Conflicts(val first: TimeConflict? = null, val available: Int = 1)
 
-    private fun liveConflict(): Flow<TimeConflict?> =
-        combine(
-            form.combine(clock.zones()) { f, zone -> f.slot(zone) }.distinctUntilChanged(),
-            // The lesson itself, not its class ids: which of them a clash scan has to skip is
-            // `ClassSession.ids`' to derive, and this was the fourth place deriving it by hand.
-            // Already a `StateFlow`, so it conflates equal values itself.
-            session,
-        ) { slot, editing -> slot to editing }
-            .flatMapLatest { (slot, editing) ->
-                if (slot == null) {
-                    flowOf(null)
-                } else {
-                    combine(
-                        classes.observeConflicts(slot, editing),
-                        allStudents,
-                        allGroups,
-                    ) { clashing, studentList, groupList ->
-                        clashing.firstOrNull()?.let { describe(it, studentList, groupList) }
-                    }
+    private val conflict: StateFlow<Conflicts> =
+        saving.flatMapLatest { underWay -> if (underWay) flowOf(Conflicts()) else liveConflicts() }
+            .derive(this, computation, Conflicts())
+
+    private fun liveConflicts(): Flow<Conflicts> =
+        combine(form, session, clock.zones()) { f, editing, zone ->
+            val slot = f.slot(zone) ?: return@combine null
+            // A correction that leaves a past lesson cancelled reserves no time.
+            if (editing != null && !ClassRules.move(editing.first, slot.start, clock.now()).status.occupiesTime) {
+                return@combine null
+            }
+            f.starts(zone).map { Scheduling.Slot(it, slot.durationMinutes) } to editing
+        }.distinctUntilChanged().flatMapLatest { check ->
+            if (check == null) {
+                flowOf(Conflicts())
+            } else {
+                val (slots, editing) = check
+                val window = Scheduling.windowFor(slots)
+                combine(
+                    classes.observeBetween(window.from, window.toExclusive),
+                    allStudents,
+                    allGroups,
+                ) { existing, studentList, groupList ->
+                    val clashes = slots.map { Scheduling.conflicts(it, existing, editing?.ids.orEmpty()).firstOrNull() }
+                    Conflicts(
+                        first = clashes.firstNotNullOfOrNull { it }?.let { describe(it, studentList, groupList) },
+                        available = clashes.count { it == null },
+                    )
                 }
             }
+        }
 
     private data class Pickers(
         val students: List<Student>,
@@ -274,7 +283,8 @@ class ClassEditViewModel @AssistedInject constructor(
                     subjects = pickers.subject.subjects,
                     subjectFixedByGroup = pickers.subject.fixedByGroup,
                     booked = booked?.classes.orEmpty(),
-                    conflict = clash,
+                    conflict = clash.first,
+                    availableOccurrences = clash.available,
                     isDirty = isTouched,
                 ),
             )

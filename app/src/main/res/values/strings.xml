@@ -207,7 +207,7 @@
     <string name="class_group_no_active_members">Nobody in this group can be booked: its members are archived</string>
     <string name="class_group_no_members_left">Pick at least one member</string>
     <!-- Hint under the member ticks of a lesson that is already booked, where they change history. -->
-    <string name="class_group_members_editable">Tick who was at the lesson</string>
+    <string name="class_group_members_editable">Select who is booked for this lesson. Record absences in the lesson sheet.</string>
     <!-- %1$d: how many unticked members had already been billed for this lesson -->
     <plurals name="class_member_drop_billed_confirm">
         <item quantity="one">%1$d student is being removed from a lesson that was taught. Their lesson will be deleted along with its charge. Save?</item>
@@ -220,6 +220,13 @@
 
     <!-- Class status -->
     <string name="class_status_label">Status</string>
+    <string name="class_series_availability">Free dates: %1$d. Taken dates will be skipped.</string>
+    <string name="class_attendance_label">Attendance</string>
+    <string name="class_attendance_hint">Attendance changes billing when the lesson is marked taught.</string>
+    <string name="class_attendance_expected">Expected</string>
+    <string name="class_attendance_present">Present</string>
+    <string name="class_attendance_absent">Absent, no charge</string>
+    <string name="class_attendance_absent_billed">Absent, charged</string>
     <!-- Short on purpose: this word is a badge on a lesson card and a segment in a three-way control. -->
     <string name="class_status_scheduled">Planned</string>
     <string name="class_status_completed">Taught</string>
@@ -266,7 +273,7 @@
       Archiving is assembled from the parts that actually apply, because it can cost two different
       things at once: a balance leaving the reports, and planned lessons being called off.
     -->
-    <string name="student_archive_balance_part">This student\'s balance is not settled (%1$s). Once archived, they will not appear in reports.</string>
+    <string name="student_archive_balance_part">This student\'s balance is not settled (%1$s). Their history stays in reports, but weekly debt reminders will exclude them.</string>
     <string name="student_archive_question">Archive anyway?</string>
     <!-- %1$d: how many of the student's lessons are still merely planned, and so will be cancelled -->
     <plurals name="student_archive_lessons_part">

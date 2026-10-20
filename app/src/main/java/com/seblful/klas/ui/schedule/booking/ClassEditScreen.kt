@@ -256,14 +256,22 @@ private fun ClassEditForm(
                     placeholder = stringResource(R.string.class_pick_time),
                     onClick = { showFromPicker = true },
                     modifier = Modifier.weight(1f),
-                    isError = state.conflict != null,
+                    isError = state.conflictBlocksSave,
                 )
             }
             state.conflict?.let { conflict ->
                 Text(
-                    timeConflictText(conflict),
+                    if (form.repeat.repeats) {
+                        stringResource(
+                            R.string.class_series_availability,
+                            state.availableOccurrences,
+                        )
+                    } else {
+                        timeConflictText(conflict)
+                    },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    color = if (state.conflictBlocksSave) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -293,10 +301,7 @@ private fun ClassEditForm(
             }
 
             if (form.target == ClassTarget.GROUP) {
-                // Who the lesson covers — ticked one by one, and the same list whether it is being
-                // booked or corrected afterwards. Someone away this week is not off the roster, so
-                // the tick lives on the lesson and the group is untouched. This is the one place a
-                // lesson's attendance is set: the schedule's action menu changes the whole lesson.
+                // These ticks correct the booked roster. Absences are recorded separately in the lesson sheet.
                 if (state.groupHasNoMembers) {
                     Text(
                         stringResource(R.string.class_group_no_active_members),
@@ -306,8 +311,7 @@ private fun ClassEditForm(
                 }
                 if (members.isNotEmpty()) {
                     SectionTitle(stringResource(R.string.class_group_members_title))
-                    // On a booked lesson the ticks read as a record rather than a plan, so they say
-                    // which question they are answering.
+                    // Distinguish correcting the booked roster from recording an absence.
                     if (!viewModel.isNew) {
                         Text(
                             stringResource(R.string.class_group_members_editable),
@@ -315,10 +319,7 @@ private fun ClassEditForm(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    // The same row the group form's roster picker uses (see [MemberPickRow]) —
-                    // avatar, tinted while selected, one tap target. The two lists used to disagree:
-                    // picking who is in a group looked one way, picking who was at a lesson looked
-                    // like a bare name and a checkbox, and they are the same act.
+                    // The same roster picker as the group form, applied to this lesson's membership.
                     members.forEach { student ->
                         MemberPickRow(
                             student = student,

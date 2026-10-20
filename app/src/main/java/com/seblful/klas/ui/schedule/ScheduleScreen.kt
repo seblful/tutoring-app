@@ -406,7 +406,9 @@ fun ScheduleScreen(
         }
     }
 
-    sheetFor?.let { row ->
+    sheetFor?.let { opened ->
+        val row = contentState.valueOrNull()?.rowsShown
+            ?.firstOrNull { it.session.lessonId == opened.session.lessonId } ?: opened
         // Keyed on the lesson, so it is one read per sheet and not one per recomposition of it.
         val homework by remember(row.session.lessonId) { viewModel.homeworkAt(row.session) }
             .collectAsStateWithLifecycle(initialValue = emptyList())
@@ -426,6 +428,7 @@ fun ScheduleScreen(
             // A tick leaves the sheet open, unlike every other action on it: a group lesson can have
             // several pieces attached, and the sheet closing after the first would be a reopening each.
             onHomeworkDone = viewModel::setHomeworkDone,
+            onAttendance = viewModel::setAttendance,
             onEdit = { onEditClass(row.klass.id); sheetFor = null },
             // **The same «done» the swipe gives**, because it is the same act. Marking a lesson taught by
             // dragging its row both buzzed and popped; doing it from this sheet only popped, so the app felt

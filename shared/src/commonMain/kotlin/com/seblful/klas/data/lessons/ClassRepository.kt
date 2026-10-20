@@ -359,9 +359,12 @@ class ClassRepository @Inject constructor(
         // billed on their way out: the delete and the re-bill cannot half-happen.
         return write {
             val current = current(session) ?: return@write Committed(LessonWrite.Gone, changed = false)
-            holdingHour(current, newStart, changes.durationMinutes)
-                ?.let { return@write Committed(LessonWrite.HourTaken(it), changed = false) }
-            persistRows(SessionRules.lessonEdit(current, changes, newStart, now, roster))
+            val edit = SessionRules.lessonEdit(current, changes, newStart, now, roster)
+            if (edit.lesson.status.occupiesTime) {
+                holdingHour(current, newStart, changes.durationMinutes)
+                    ?.let { return@write Committed(LessonWrite.HourTaken(it), changed = false) }
+            }
+            persistRows(edit)
                 .mapValue { LessonWrite.Written(it) }
         }
     }
@@ -379,9 +382,11 @@ class ClassRepository @Inject constructor(
     ): LessonWrite<List<TutoringClass>> {
         return write {
             val current = current(session) ?: return@write Committed(LessonWrite.Gone, changed = false)
-            holdingHour(current, newStart, current.durationMinutes)
-                ?.let { return@write Committed(LessonWrite.HourTaken(it), changed = false) }
             val moved = current.classes.map { ClassRules.move(it, newStart, now) }
+            if (moved.first().status.occupiesTime) {
+                holdingHour(current, newStart, current.durationMinutes)
+                    ?.let { return@write Committed(LessonWrite.HourTaken(it), changed = false) }
+            }
             persistRows(LessonEdit(lesson = moved.first(), updated = moved)).mapValue { LessonWrite.Written(it) }
         }
     }
@@ -406,8 +411,15 @@ class ClassRepository @Inject constructor(
      * Records whether one student was in one lesson — the per-member correction, and the only write that
      * touches a single row of a lesson rather than the lesson.
      */
-    suspend fun setAttendance(klass: TutoringClass, attended: Attended): List<TutoringClass> =
-        persist(listOf(ClassRules.applyAttendance(klass, attended)))
+    suspend fun setAttendance(klass: TutoringClass, attended: Attended): List<TutoringClass> = write {
+        val current = dao.getById(klass.id)?.toDomain()
+            ?: return@write Committed(emptyList(), changed = false)
+        val resolved = ClassRules.applyAttendance(current, attended)
+        if (resolved == current) return@write Committed(listOf(current), changed = false)
+        // Attendance is one student's correction, never a rewrite of the shared lesson from a stale sheet.
+        attendance.update(resolved.toAttendanceEntity())
+        Committed(listOf(resolved), mirror = listOf(resolved))
+    }
 
     /**
      * Deletes every class of a lesson, with its calendar events. Deleting a completed lesson removes
@@ -436,11 +448,6 @@ class ClassRepository @Inject constructor(
         if (edit.dropped.isNotEmpty()) lessons.deleteEmpty()
         val touched = edit.updated + joined
         return Committed(touched, mirror = touched, drop = edit.dropped)
-    }
-
-    private suspend fun persist(resolved: List<TutoringClass>): List<TutoringClass> {
-        require(resolved.isNotEmpty()) { "A write touches at least one class of the lesson" }
-        return write { persistRows(LessonEdit(lesson = resolved.first(), updated = resolved)) }
     }
 
     /** ettles [studentId]'s scheduled classes for archiving and returns the changed rows. */
