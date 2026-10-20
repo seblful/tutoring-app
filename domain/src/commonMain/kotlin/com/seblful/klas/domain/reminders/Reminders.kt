@@ -40,6 +40,9 @@ object Reminders {
     val DEFAULT_LEAD: Duration = (DEFAULT_LEAD_MINUTES.toLong()).minutes
     val DEFAULT_HORIZON: Duration = 7.days
 
+    /** Read far enough ahead to arm a week's reminders even when the lead itself spans several days. */
+    fun planningHorizon(lead: Duration): Duration = DEFAULT_HORIZON + lead
+
     /**
      * Plans a reminder for every lesson still worth hearing about at [now] that starts within
      * [horizon] — one that is [LessonPhase.UPCOMING], and one that is [LessonPhase.IN_PROGRESS], since
@@ -77,7 +80,7 @@ object Reminders {
         now: Instant,
         classes: List<TutoringClass>,
         lead: Duration = DEFAULT_LEAD,
-        horizon: Duration = DEFAULT_HORIZON,
+        horizon: Duration = planningHorizon(lead),
     ): List<Plan> {
         val horizonEnd = now.plus(horizon)
         val owed = classes.filter { klass ->

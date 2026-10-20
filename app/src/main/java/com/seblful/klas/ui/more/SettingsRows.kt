@@ -63,7 +63,7 @@ internal fun LeavesAppMark() {
 }
 
 /**
- * A duration setting as **a few presets and a way out of them** — the reminder lead and the lesson length.
+ * The default lesson length as a few presets and a custom value.
  *
  * @param customWord the way out's name while a preset is in force.
  */
@@ -85,8 +85,6 @@ internal fun DurationPresetRow(
         onReselect = { picked -> if (picked == CustomMinutes) onCustom() },
     )
 }
-
-internal val LeadPresets = listOf(30, 60, 120)
 
 internal val LessonPresets = listOf(45, 60, 90)
 

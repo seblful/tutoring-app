@@ -209,20 +209,6 @@ private fun SettingsList(
     onDiagnostics: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Whether the custom-lead picker is up. Held here rather than hoisted: nothing outside this list
-    // needs to know, and the value it writes goes straight to the settings row.
-    var showLeadPicker by remember { mutableStateOf(false) }
-    if (showLeadPicker) {
-        DurationPickerModal(
-            initialMinutes = settings.reminderLeadMinutes,
-            title = stringResource(R.string.settings_reminder_lead),
-            onConfirm = { minutes ->
-                viewModel.update { it.copy(reminderLeadMinutes = minutes) }
-                showLeadPicker = false
-            },
-            onDismiss = { showLeadPicker = false },
-        )
-    }
     var showLessonPicker by remember { mutableStateOf(false) }
     if (showLessonPicker) {
         DurationPickerModal(
@@ -309,15 +295,10 @@ private fun SettingsList(
                 modifier = Modifier.insetRowPress { Modifier.clickable(it, indication = null, onClick = fix) },
             )
         }
-        // Three presets and a way out of them. A tutor who wants twenty minutes, or three hours to cross
-        // town, had no way to say so — see [DurationPresetRow].
-        DurationPresetRow(
-            title = stringResource(R.string.settings_reminder_lead),
-            presets = LeadPresets,
+        ReminderLeadRow(
             minutes = settings.reminderLeadMinutes,
-            customWord = stringResource(R.string.settings_reminder_lead_custom),
+            enabled = settings.notificationsEnabled,
             onSelect = { minutes -> viewModel.update { it.copy(reminderLeadMinutes = minutes) } },
-            onCustom = { showLeadPicker = true },
         )
 
         // Its own section, not more rows under «Напоминания»: a reminder is about one lesson and

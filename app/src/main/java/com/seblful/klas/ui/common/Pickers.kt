@@ -106,8 +106,7 @@ fun DurationPickerModal(
     initialMinutes: Int,
     onConfirm: (Int) -> Unit,
     onDismiss: () -> Unit,
-    // What length is being asked about. Defaulted to the lesson's, which is what this was written for;
-    // Settings asks the same hours-and-minutes question about how far ahead a reminder should arrive.
+    // Settings uses the same hours-and-minutes picker for the default lesson length.
     title: String? = null,
 ) {
     var hours by rememberSaveable { mutableStateOf((initialMinutes / 60).toString()) }

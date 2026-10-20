@@ -51,18 +51,19 @@ class Maintenance @Inject constructor(
         val completed = if (s.autoCompleteEnabled) classes.autoCompleteDue(now) else emptyList()
         // The horizon is named once and used twice — to fetch the window and to filter it — because a
         // plan derived over a shorter window than it filters on would quietly drop reminders.
-        val horizon = Reminders.DEFAULT_HORIZON
+        val lead = s.reminderLeadMinutes.toLong().minutes
+        val horizon = Reminders.planningHorizon(lead)
         scheduler.schedule(
             Reminders.plan(
                 now = now,
-                // Only the classes the plan could keep — the coming week's and the one in progress —
+                // Only the classes the plan could keep, including the reminder's lead time,
                 // not every class ever taught. This runs at
                 // every app start, on every periodic tick and behind every class write, and it used to
                 // read (and map, and parse the status text of) the tutor's whole history each time to
                 // decide about the coming week. `plan` still applies the real filter — the window is
                 // deliberately a superset of it.
                 classes = classes.notEndedWithin(now, horizon),
-                lead = (s.reminderLeadMinutes.toLong()).minutes,
+                lead = lead,
                 horizon = horizon,
             ),
         )

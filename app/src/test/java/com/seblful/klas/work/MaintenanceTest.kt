@@ -100,7 +100,7 @@ class MaintenanceTest {
 
     @Test
     fun `a lesson exactly on the horizon still earns a reminder`() = runTest(mainRule.dispatcher) {
-        val id = seedClass(now.plus(Reminders.DEFAULT_HORIZON))
+        val id = seedClass(now.plus(Reminders.planningHorizon(Reminders.DEFAULT_LEAD)))
 
         maintenance().run(now)
 
@@ -118,7 +118,7 @@ class MaintenanceTest {
 
     @Test
     fun `a lesson past the horizon earns none`() = runTest(mainRule.dispatcher) {
-        seedClass(now.plus(Reminders.DEFAULT_HORIZON).plus(1.milliseconds))
+        seedClass(now.plus(Reminders.planningHorizon(Reminders.DEFAULT_LEAD)).plus(1.milliseconds))
 
         maintenance().run(now)
 
@@ -259,5 +259,26 @@ class MaintenanceTest {
         val planned = env.reminders.armed.single()
         assertEquals(id, planned.classId)
         assertTrue("its lead moment has already passed", planned.due)
+    }
+
+    @Test
+    fun `a day ahead reminder is armed exactly 24 hours before the lesson`() = runTest(mainRule.dispatcher) {
+        val start = now + 2.days
+        val id = seedClass(start)
+        env.settingsRepo.update { it.copy(reminderLeadMinutes = 24 * 60) }
+
+        maintenance().run(now)
+
+        assertEquals(Reminders.Plan(id, start - 1.days), env.reminders.armed.single())
+    }
+
+    @Test
+    fun `a custom lead longer than a week is armed before it comes due`() = runTest(mainRule.dispatcher) {
+        val id = seedClass(now + 11.days)
+        env.settingsRepo.update { it.copy(reminderLeadMinutes = 10 * 24 * 60) }
+
+        maintenance().run(now)
+
+        assertEquals(Reminders.Plan(id, now + 1.days), env.reminders.armed.single())
     }
 }

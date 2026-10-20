@@ -566,10 +566,31 @@
     <string name="settings_calendar_sync_blocked">Доступ к календарю отозван — занятия не копируются</string>
     <string name="settings_email_invites">Приглашать учеников по email</string>
     <string name="settings_email_invites_desc">Добавлять ученика с email в событие занятия — приглашение и напоминание придут ему на почту</string>
-    <string name="settings_reminder_lead">За сколько напоминать</string>
-    <!-- The fourth segment of settings_reminder_lead: opens the hours-and-minutes picker.
-         Replaced by the lead itself whenever the stored one is not a preset. -->
-    <string name="settings_reminder_lead_custom">Другое</string>
+    <string name="settings_reminder_lead">Напоминать</string>
+    <string name="settings_reminder_lead_custom">Другое…</string>
+    <string name="settings_reminder_amount">Количество</string>
+    <string name="settings_reminder_unit">Единица</string>
+    <string name="settings_reminder_days">Дни</string>
+    <string name="settings_reminder_amount_range">Введите число от 1 до %1$d</string>
+    <string name="settings_reminder_day_explanation">До начала занятия. 1 день = 24 часа.</string>
+    <plurals name="settings_reminder_minutes_before">
+        <item quantity="one">За %1$d минуту</item>
+        <item quantity="few">За %1$d минуты</item>
+        <item quantity="many">За %1$d минут</item>
+        <item quantity="other">За %1$d минуты</item>
+    </plurals>
+    <plurals name="settings_reminder_hours_before">
+        <item quantity="one">За %1$d час</item>
+        <item quantity="few">За %1$d часа</item>
+        <item quantity="many">За %1$d часов</item>
+        <item quantity="other">За %1$d часа</item>
+    </plurals>
+    <plurals name="settings_reminder_days_before">
+        <item quantity="one">За %1$d день</item>
+        <item quantity="few">За %1$d дня</item>
+        <item quantity="many">За %1$d дней</item>
+        <item quantity="other">За %1$d дня</item>
+    </plurals>
 
     <!--
       Digests: summaries sent at an hour the tutor picked, as opposed to a reminder, which arrives because
