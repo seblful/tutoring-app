@@ -1,4 +1,4 @@
-package com.seblful.klas.ui.more
+package com.seblful.klas.ui.settings
 
 import com.seblful.klas.calendar.Guest
 import com.seblful.klas.data.people.StudentEntity
@@ -54,8 +54,8 @@ class SettingsViewModelTest {
             observing(vm.state)
             advanceUntilIdle()
 
-            assertFalse("the tutor's own answer, not the default", vm.state.current.notificationsEnabled)
-            assertEquals(Currency.RUB, vm.state.current.currency)
+            assertFalse("the tutor's own answer, not the default", vm.state.current.settings.notificationsEnabled)
+            assertEquals(Currency.RUB, vm.state.current.settings.currency)
         }
 
     /**
@@ -87,7 +87,7 @@ class SettingsViewModelTest {
     fun `turning reminders on asks for the permission only when there is one to ask for`() =
         runTest(mainRule.dispatcher) {
             val vm = vm()
-            observing(vm.reminderDelivery)
+            observing(vm.state)
             advanceUntilIdle()
 
             assertEquals(
@@ -117,7 +117,6 @@ class SettingsViewModelTest {
     fun `asking for the permission and storing the setting are one act`() = runTest(mainRule.dispatcher) {
         val vm = vm()
         observing(vm.state)
-        observing(vm.reminderDelivery)
         env.notificationPermission.granted = false
         advanceUntilIdle()
 
@@ -125,16 +124,16 @@ class SettingsViewModelTest {
         advanceUntilIdle()
 
         assertEquals(NotificationsIntent.Request, intent)
-        assertTrue("and the setting it asked about was stored", vm.state.current.notificationsEnabled)
+        assertTrue("and the setting it asked about was stored", vm.state.current.settings.notificationsEnabled)
         assertEquals(
             "so the row reports the state the app is actually in",
             ReminderDelivery.BLOCKED,
-            vm.reminderDelivery.value,
+            vm.state.current.reminders,
         )
 
         assertEquals(NotificationsIntent.Nothing, vm.setNotificationsEnabled(on = false))
         advanceUntilIdle()
-        assertFalse(vm.state.current.notificationsEnabled)
+        assertFalse(vm.state.current.settings.notificationsEnabled)
     }
 
     @Test
@@ -168,7 +167,7 @@ class SettingsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        assertNull(vm.state.current.defaultGroupPrice)
+        assertNull(vm.state.current.settings.defaultGroupPrice)
 
         vm.update { it.copy(defaultGroupPrice = Money(2000)) }
         advanceUntilIdle()
@@ -347,15 +346,15 @@ class SettingsViewModelTest {
     fun `revoking the calendar permission while away turns the sync row blocked`() = runTest(mainRule.dispatcher) {
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         val vm = vm()
-        observing(vm.calendarDelivery)
+        observing(vm.state)
         advanceUntilIdle()
-        assertEquals(CalendarDelivery.ON, vm.calendarDelivery.value)
+        assertEquals(CalendarDelivery.ON, vm.state.current.calendar)
 
         env.calendarPermission.granted = false
         vm.refreshPermissions()
         advanceUntilIdle()
 
-        assertEquals(CalendarDelivery.BLOCKED, vm.calendarDelivery.value)
+        assertEquals(CalendarDelivery.BLOCKED, vm.state.current.calendar)
     }
 
     @Test
@@ -550,14 +549,14 @@ class SettingsViewModelTest {
     fun `the platform's answer is reported apart from the tutor's intent`() = runTest(mainRule.dispatcher) {
         env.notificationPermission.granted = false
         val vm = vm()
-        observing(vm.state, vm.reminderDelivery)
+        observing(vm.state)
         advanceUntilIdle()
 
-        assertTrue("the tutor asked for reminders", vm.state.current.notificationsEnabled)
+        assertTrue("the tutor asked for reminders", vm.state.current.settings.notificationsEnabled)
         assertEquals(
             "but the platform will not show them",
             ReminderDelivery.BLOCKED,
-            vm.reminderDelivery.value,
+            vm.state.current.reminders,
         )
     }
 
@@ -566,10 +565,10 @@ class SettingsViewModelTest {
         runTest(mainRule.dispatcher) {
             env.exactAlarmPermission.granted = false
             val vm = vm()
-            observing(vm.reminderDelivery)
+            observing(vm.state)
             advanceUntilIdle()
 
-            assertEquals(ReminderDelivery.LATE, vm.reminderDelivery.value)
+            assertEquals(ReminderDelivery.LATE, vm.state.current.reminders)
         }
 
     @Test
@@ -577,25 +576,25 @@ class SettingsViewModelTest {
         env.notificationPermission.granted = false
         env.exactAlarmPermission.granted = false
         val vm = vm()
-        observing(vm.reminderDelivery)
+        observing(vm.state)
         advanceUntilIdle()
 
-        assertEquals(ReminderDelivery.BLOCKED, vm.reminderDelivery.value)
+        assertEquals(ReminderDelivery.BLOCKED, vm.state.current.reminders)
     }
 
     @Test
     fun `granting the permission is picked up on the next check`() = runTest(mainRule.dispatcher) {
         env.notificationPermission.granted = false
         val vm = vm()
-        observing(vm.reminderDelivery)
+        observing(vm.state)
         advanceUntilIdle()
-        assertEquals(ReminderDelivery.BLOCKED, vm.reminderDelivery.value)
+        assertEquals(ReminderDelivery.BLOCKED, vm.state.current.reminders)
 
         env.notificationPermission.granted = true
         vm.refreshPermissions()
         advanceUntilIdle()
 
-        assertEquals(ReminderDelivery.ON_TIME, vm.reminderDelivery.value)
+        assertEquals(ReminderDelivery.ON_TIME, vm.state.current.reminders)
     }
 
     @Test
@@ -603,11 +602,11 @@ class SettingsViewModelTest {
         runTest(mainRule.dispatcher) {
             env.notificationPermission.granted = false
             val vm = vm()
-            observing(vm.state, vm.reminderDelivery)
+            observing(vm.state)
             advanceUntilIdle()
 
-            assertTrue("reminders are on by default", vm.state.current.notificationsEnabled)
-            assertEquals(ReminderDelivery.BLOCKED, vm.reminderDelivery.value)
+            assertTrue("reminders are on by default", vm.state.current.settings.notificationsEnabled)
+            assertEquals(ReminderDelivery.BLOCKED, vm.state.current.reminders)
 
             assertEquals(
                 "and the row can ask for what the switch never could",
@@ -621,7 +620,7 @@ class SettingsViewModelTest {
         env.notificationPermission.granted = false
         env.notificationPermission.canAsk = false
         val vm = vm()
-        observing(vm.reminderDelivery)
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(NotificationsIntent.BlockedBySystem, vm.unblockNotifications())
@@ -644,7 +643,7 @@ class SettingsViewModelTest {
     @Test
     fun `a granted permission has nothing to unblock`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        observing(vm.reminderDelivery)
+        observing(vm.state)
         advanceUntilIdle()
 
         assertEquals(NotificationsIntent.Nothing, vm.unblockNotifications())
@@ -653,15 +652,15 @@ class SettingsViewModelTest {
     @Test
     fun `revoking the permission is picked up too`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        observing(vm.reminderDelivery)
+        observing(vm.state)
         advanceUntilIdle()
-        assertEquals(ReminderDelivery.ON_TIME, vm.reminderDelivery.value)
+        assertEquals(ReminderDelivery.ON_TIME, vm.state.current.reminders)
 
         env.notificationPermission.granted = false
         vm.refreshPermissions()
         advanceUntilIdle()
 
-        assertEquals(ReminderDelivery.BLOCKED, vm.reminderDelivery.value)
+        assertEquals(ReminderDelivery.BLOCKED, vm.state.current.reminders)
     }
 
     @Test
@@ -669,12 +668,12 @@ class SettingsViewModelTest {
         env.notificationPermission.granted = false
         env.exactAlarmPermission.granted = false
         val vm = vm()
-        observing(vm.reminderDelivery)
+        observing(vm.state)
 
         vm.update { it.copy(notificationsEnabled = false) }
         advanceUntilIdle()
 
-        assertEquals(ReminderDelivery.OFF, vm.reminderDelivery.value)
+        assertEquals(ReminderDelivery.OFF, vm.state.current.reminders)
     }
 
     @Test

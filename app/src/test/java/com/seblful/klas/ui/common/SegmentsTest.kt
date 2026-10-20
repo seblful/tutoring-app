@@ -23,9 +23,8 @@ class SegmentsTest {
     }
 
     @Test
-    fun `the app's two growing choices are where they are, and neither is over the bound by accident`() {
-        assertEquals("BYN, RUB, USD, EUR — exactly the bound", MaxSegments, Currency.entries.size)
-        assertTrue("a currency row is still segments", fitsInSegments(Currency.entries.size))
+    fun `currencies need a dropdown while the language choice fits in segments`() {
+        assertFalse("currencies use a dropdown", fitsInSegments(Currency.entries.size))
         assertTrue(
             "«follow the system» plus two translations",
             fitsInSegments(AppLanguage.entries.size),

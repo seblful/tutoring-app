@@ -43,6 +43,18 @@ object Routes {
     data object Settings
 
     @Serializable
+    data object LessonSettings
+
+    @Serializable
+    data object NotificationSettings
+
+    @Serializable
+    data object CalendarSettings
+
+    @Serializable
+    data object AppearanceSettings
+
+    @Serializable
     data object Diagnostics
 
     @Serializable

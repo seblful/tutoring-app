@@ -26,7 +26,8 @@ class LocalizationTest {
     @Test
     fun `an English phone in Minsk is still paid in rubles`() {
         assertEquals(Currency.BYN, Currency.preferredFor(locales("en-BY").regionCurrencies()))
-        assertEquals(Currency.USD, Currency.preferredFor(locales("en-GB", "pl-PL").regionCurrencies()))
+        assertEquals(Currency.GBP, Currency.preferredFor(locales("en-GB", "pl-PL").regionCurrencies()))
+        assertEquals(Currency.JPY, Currency.preferredFor(locales("en-JP").regionCurrencies()))
     }
 
     @Test

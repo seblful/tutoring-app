@@ -39,8 +39,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
-import com.seblful.klas.domain.model.AppLanguage
-import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.backup.BACKUP_MIME_TYPES
@@ -49,15 +47,16 @@ import com.seblful.klas.ui.backup.BackupViewModel
 import com.seblful.klas.ui.backup.ConfirmRestoreDialog
 import com.seblful.klas.ui.backup.messageIn
 import com.seblful.klas.ui.common.ChoiceRow
+import com.seblful.klas.ui.common.CurrencyPicker
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KlasLogo
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.KlasWordmark
+import com.seblful.klas.ui.common.LanguageChoices
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.currencyLabel
 import com.seblful.klas.ui.common.languageLabel
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberOpenDocument
@@ -271,7 +270,7 @@ fun OnboardingScreen(
                         modifier = Modifier.padding(Spacing.gutter),
                     )
                     // The two rows wait for the row that holds them, like every other screen that is *about*
-                    // a record: the defaults are somebody else's answers, and a segmented control that shows
+                    // a record: the defaults are somebody else's answers, and a currency field that shows
                     // BYN and then jumps to USD reads as the app changing its mind. See [Loadable].
                     val chosen = locale.valueOrNull()
                     Column(Modifier.weight(1f)) {
@@ -280,18 +279,14 @@ fun OnboardingScreen(
                         } else {
                             ChoiceRow(
                                 title = stringResource(R.string.settings_language),
-                                options = AppLanguage.entries.map { it to languageLabel(it) },
+                                options = LanguageChoices.map { it to languageLabel(it) },
                                 selected = chosen.language,
                                 onSelect = viewModel::setLanguage,
                             )
-                            ChoiceRow(
-                                title = stringResource(R.string.settings_currency),
-                                // Said here and not in Settings: there the tutor is *changing* a currency and
-                                // the dialog makes the same point at the moment it costs something. Here
-                                // nothing has been recorded, so it is a fact about the app rather than a
-                                // warning — and the one thing a tutor might otherwise assume it does.
+                            CurrencyPicker(
+                                // Setup applies immediately; Settings confirms a change because it also
+                                // relabels existing records. Both explain that no amounts are converted.
                                 description = stringResource(R.string.onboarding_locale_currency_desc),
-                                options = Currency.entries.map { it to currencyLabel(it) },
                                 selected = chosen.currency,
                                 onSelect = viewModel::setCurrency,
                             )

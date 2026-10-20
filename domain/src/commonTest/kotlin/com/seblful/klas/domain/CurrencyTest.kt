@@ -9,16 +9,16 @@ class CurrencyTest {
 
     @Test
     fun `a code the app knows names its currency`() {
-        assertEquals(Currency.BYN, Currency.forCode("BYN"))
-        assertEquals(Currency.RUB, Currency.forCode("RUB"))
-        assertEquals(Currency.USD, Currency.forCode("USD"))
-        assertEquals(Currency.EUR, Currency.forCode("EUR"))
+        Currency.entries.forEach { currency ->
+            assertEquals(currency, Currency.forCode(currency.name))
+            assertEquals(currency, Currency.parse(currency.name))
+        }
     }
 
     @Test
-    fun `a code outside the four - or none - names nothing`() {
-        assertNull(Currency.forCode("GBP"))
-        assertNull(Currency.forCode("PLN"))
+    fun `an unsupported code or none names nothing`() {
+        assertNull(Currency.forCode("XYZ"))
+        assertNull(Currency.forCode("BTC"))
         assertNull(Currency.forCode(null), "a locale with no region has no currency")
     }
 
@@ -30,7 +30,9 @@ class CurrencyTest {
             Currency.preferredFor(listOf(null, "RUB")),
             "a language-only locale is skipped rather than answered",
         )
-        assertEquals(Currency.USD, Currency.preferredFor(listOf("GBP", "PLN")))
+        assertEquals(Currency.GBP, Currency.preferredFor(listOf("GBP", "PLN")))
+        assertEquals(Currency.JPY, Currency.preferredFor(listOf(null, "JPY", "USD")))
+        assertEquals(Currency.USD, Currency.preferredFor(listOf("XYZ", null)))
         assertEquals(Currency.USD, Currency.preferredFor(emptyList()), "nothing to ask at all")
         assertEquals(Currency.USD, Currency.FALLBACK)
     }
@@ -40,7 +42,7 @@ class CurrencyTest {
         assertEquals(Currency.BYN, Currency.parse("BYN"))
         assertEquals(Currency.USD, Currency.parse("USD"))
         assertEquals(Currency.EUR, Currency.parse("EUR"))
-        assertEquals(Currency.BYN, Currency.parse("GBP"))
+        assertEquals(Currency.BYN, Currency.parse("XYZ"))
         assertEquals(Currency.BYN, Currency.parse(""))
         assertEquals(Currency.BYN, Currency.parse("$"), "a symbol is not a name")
     }

@@ -1,4 +1,4 @@
-package com.seblful.klas.ui.more
+package com.seblful.klas.ui.settings
 
 import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
@@ -88,6 +88,38 @@ internal fun ReminderLeadRow(minutes: Int, enabled: Boolean, onSelect: (Int) -> 
                 onSelect(it)
             },
             onDismiss = { custom = false },
+        )
+    }
+}
+
+/** The calendar reference opens the same custom editor and writes the same preference. */
+@Composable
+internal fun SharedReminderTimingRow(minutes: Int, enabled: Boolean, onSelect: (Int) -> Unit) {
+    var editing by rememberSaveable { mutableStateOf(false) }
+    val description =
+        stringResource(if (enabled) R.string.settings_reminder_shared else R.string.settings_reminder_enable)
+    ListItem(
+        headlineContent = { Text(reminderLeadLabel(minutes)) },
+        supportingContent = { Text(description) },
+        trailingContent = { Icon(KlasIcons.Filled.ArrowDropDown, contentDescription = null) },
+        colors = if (enabled) {
+            ListItemDefaults.colors()
+        } else {
+            ListItemDefaults.colors(
+                headlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledAlpha),
+                supportingColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
+                trailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
+            )
+        },
+        modifier = Modifier.insetRowPress {
+            Modifier.clickable(it, indication = null, enabled = enabled, onClick = { editing = true })
+        },
+    )
+    if (editing && enabled) {
+        ReminderLeadPickerModal(
+            initialMinutes = minutes,
+            onConfirm = { onSelect(it); editing = false },
+            onDismiss = { editing = false },
         )
     }
 }

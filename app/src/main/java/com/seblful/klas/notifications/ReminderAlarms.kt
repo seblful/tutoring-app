@@ -28,7 +28,7 @@ import dev.zacsweers.metro.SingleIn
  * it with a private `canBeExact()`, which is the same mistake `AndroidNotifier` made about the
  * notification permission: the answer decided how the app behaved and there was no way for anything else
  * to read it, so the settings screen could not say that reminders had silently become approximate. Now
- * the arming and the reporting ask one object — see [com.seblful.klas.ui.more.ReminderDelivery].
+ * the arming and the reporting ask one object — see [com.seblful.klas.ui.settings.ReminderDelivery].
  *
  * **Why the ids are remembered.** The plan is re-derived from scratch on every change, so applying it
  * means replacing future alarms while preserving those already due. Cancellation uses each class id.

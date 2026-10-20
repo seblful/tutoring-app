@@ -12,6 +12,9 @@ The database drives both mirrors; neither writes changes back into Klas.
 - An absent member of a scheduled lesson has no event, billed or not. Marking them present re-creates
   it; attendance no longer affects this policy once the lesson is completed.
 - Email invitations are a separate, off-by-default setting; disabling it and re-syncing withdraws them.
+- Settings → Calendar & invitations reports revoked access with a direct link to restore it. Reminder
+  timing is shared with phone lesson reminders and stays editable while either feature is enabled;
+  changing it refreshes existing calendar email reminders. Invitations are handled by the calendar account.
 
 ## Lesson reminders
 
@@ -36,8 +39,11 @@ The database drives both mirrors; neither writes changes back into Klas.
 - Ask for notifications in Settings and once at first booking (`shouldAskForNotifications`), never at
   first launch. Permission ports report grants/`canAsk`; Compose permission-request helpers show prompts.
   View models carry no Android permission names.
-- `ReminderDelivery` combines notification/exact-alarm grants (`OFF|ON_TIME|BLOCKED|LATE`);
-  `CalendarDelivery` reports sync permission (`OFF|ON|BLOCKED`). Settings links to the relevant system page.
+- Settings → Notifications groups lesson reminders and the three summaries. `NotificationDelivery`
+  reports global notification permission for every enabled type, including auto-completion reports,
+  even when lesson reminders are off. `ReminderDelivery` adds exact-alarm status only for lesson reminders
+  (`OFF|ON_TIME|BLOCKED|LATE`); `CalendarDelivery` reports sync permission (`OFF|ON|BLOCKED`). Recovery
+  links open the relevant system page or request a grant, and status refreshes on return.
 - Morning agenda, evening unmarked lessons and weekly debts are opt-in workers: lateness is acceptable.
   Upkeep schedules them, leaves due runs alone and sends nothing for an empty digest.
 - Digest times follow the device's wall clock/zone. `ClockChangeReceiver` runs upkeep immediately on a

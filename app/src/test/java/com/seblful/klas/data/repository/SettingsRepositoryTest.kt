@@ -63,10 +63,14 @@ class SettingsRepositoryTest {
     fun `a phone with no row is captioned in its own currency`() = runTest {
         val american = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-US")).toDevicePreferences())
         val german = SettingsRepository(dao, listOf(Locale.forLanguageTag("de-DE")).toDevicePreferences())
-        val unknown = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-GB")).toDevicePreferences())
+        val british = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-GB")).toDevicePreferences())
+        val japanese = SettingsRepository(dao, listOf(Locale.forLanguageTag("ja-JP")).toDevicePreferences())
+        val unknown = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-IS")).toDevicePreferences())
 
         assertEquals(Currency.USD, american.get().currency)
         assertEquals(Currency.EUR, german.get().currency)
+        assertEquals(Currency.GBP, british.get().currency)
+        assertEquals(Currency.JPY, japanese.get().currency)
         assertEquals("nothing the app offers, so the fallback", Currency.USD, unknown.get().currency)
     }
 

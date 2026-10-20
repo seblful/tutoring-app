@@ -1,9 +1,9 @@
 package com.seblful.klas.preview
 
 import androidx.compose.runtime.Composable
-import com.seblful.klas.ui.more.ReminderLeadFields
-import com.seblful.klas.ui.more.ReminderLeadRow
-import com.seblful.klas.ui.more.ReminderUnit
+import com.seblful.klas.ui.settings.ReminderLeadFields
+import com.seblful.klas.ui.settings.ReminderLeadRow
+import com.seblful.klas.ui.settings.ReminderUnit
 
 @KlasPreview
 @Composable

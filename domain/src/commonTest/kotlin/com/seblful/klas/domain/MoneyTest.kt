@@ -57,10 +57,9 @@ class MoneyTest {
     @Test
     fun `a currency only labels the amount`() {
         val amount = Money(150050)
-        assertEquals(
-            listOf("1 500,50 \u20C5", "1 500,50 ₽", "1 500,50 $", "1 500,50 €"),
-            Currency.entries.map { amount.format(it, ',', ' ') },
-        )
+        Currency.entries.forEach { currency ->
+            assertEquals("1 500,50 ${currency.symbol}", amount.format(currency, ',', ' '))
+        }
     }
 
     @Test

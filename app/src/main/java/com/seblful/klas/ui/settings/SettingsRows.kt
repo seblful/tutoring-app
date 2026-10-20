@@ -1,11 +1,5 @@
-package com.seblful.klas.ui.more
+package com.seblful.klas.ui.settings
 
-import android.annotation.SuppressLint
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
-import android.provider.Settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,14 +35,11 @@ import com.seblful.klas.ui.common.DialogRadioRow
 import com.seblful.klas.ui.common.DisabledAlpha
 import com.seblful.klas.ui.common.KeepTypedInput
 import com.seblful.klas.ui.common.MoneyTextField
-import com.seblful.klas.ui.common.OpensScreenMark
 import com.seblful.klas.ui.common.SectionTitle
-import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.durationLabel
 import com.seblful.klas.ui.common.insetRowPress
-import com.seblful.klas.ui.common.rememberRejectFeedback
 import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.rememberToggleFeedback
 import com.seblful.klas.ui.common.text
@@ -56,11 +47,6 @@ import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.isoDayNumber
-
-@Composable
-internal fun LeavesAppMark() {
-    Icon(KlasIcons.Filled.OpenInNew, contentDescription = null)
-}
 
 /**
  * The default lesson length as a few presets and a custom value.
@@ -136,10 +122,11 @@ internal fun TimeRow(
     minuteOfDay: Int,
     enabled: Boolean,
     onSet: (Int) -> Unit,
+    description: String? = null,
 ) {
     var picking by remember { mutableStateOf(false) }
     val time = Digests.timeOf(minuteOfDay)
-    ValueRow(title = title, value = time.timeText(), enabled = enabled) { picking = true }
+    ValueRow(title = title, value = time.timeText(), enabled = enabled, description = description) { picking = true }
     if (picking) {
         TimePickerModal(
             initial = time,
@@ -158,12 +145,15 @@ internal fun WeekdayRow(
     dayOfWeek: Int,
     enabled: Boolean,
     onSet: (Int) -> Unit,
+    description: String? = null,
 ) {
     var picking by remember { mutableStateOf(false) }
     val names = stringArrayResource(R.array.weekday_names)
     val selected = Digests.dayOfWeekOf(dayOfWeek)
 
-    ValueRow(title = title, value = names[selected.isoDayNumber - 1], enabled = enabled) { picking = true }
+    ValueRow(title = title, value = names[selected.isoDayNumber - 1], enabled = enabled, description = description) {
+        picking = true
+    }
     if (picking) {
         AlertDialog(
             onDismissRequest = { picking = false },
@@ -199,10 +189,12 @@ private fun ValueRow(
     title: String,
     value: String,
     enabled: Boolean,
+    description: String? = null,
     onClick: () -> Unit,
 ) {
     ListItem(
         headlineContent = { Text(title) },
+        supportingContent = description?.let { text -> { Text(text) } },
         trailingContent = {
             Text(
                 value,
@@ -224,6 +216,29 @@ private fun ValueRow(
         modifier = Modifier.insetRowPress {
             Modifier.clickable(it, indication = null, enabled = enabled, onClick = onClick)
         },
+    )
+}
+
+@Composable
+internal fun SystemSettingsRow(title: String, description: String, onClick: () -> Unit) {
+    val openLabel = stringResource(R.string.action_open_settings)
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = { Text(description) },
+        trailingContent = { Icon(KlasIcons.Filled.OpenInNew, contentDescription = null) },
+        modifier = Modifier.insetRowPress {
+            Modifier.clickable(it, indication = null, onClickLabel = openLabel, onClick = onClick)
+        },
+    )
+}
+
+@Composable
+internal fun SettingsHint(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
     )
 }
 
@@ -290,24 +305,6 @@ internal fun MoneyRow(
         )
     }
 }
-
-internal fun appNotificationSettings(context: Context): Intent =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-    } else {
-        appDetailsSettings(context)
-    }
-
-internal fun appDetailsSettings(context: Context): Intent =
-    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
-
-@SuppressLint("InlinedApi")
-internal fun exactAlarmSettings(context: Context): Intent =
-    Intent(
-        Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
-        Uri.fromParts("package", context.packageName, null),
-    )
 
 @Composable
 internal fun SectionHeader(title: String) {

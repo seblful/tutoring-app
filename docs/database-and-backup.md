@@ -40,7 +40,8 @@ Preserve on-device data and existing backup files when changing storage. Before 
 
 - Settings are a device-local Room row, written under a `Mutex` and excluded from backup. Android
   automatic backup is disabled; manual JSON export through SAF moves tutoring data between devices.
-  SAF supports cloud destinations such as Drive without app-held cloud credentials.
+  SAF supports cloud destinations such as Drive without app-held cloud credentials. The export screen
+  states that app preferences remain on the current phone.
 - Export reads one transactional snapshot. Import **replaces the database, never merges**, preserves
   IDs and commits in one transaction. `BackupIntegrity` checks readability before writes;
   `BackupFailure` classifies refusals; `BackupRestore` owns rows, first-run state and mirror refresh.

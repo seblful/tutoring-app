@@ -26,6 +26,9 @@ and `DemoTutor` data. Device clock/locale/calendar/schedulers are replaced; time
 content (`notifications.json`) to `store/build/raw/<locale>/`. Film-only captures run last because they
 change data. Without `-PstoreScreenshots`, capture is skipped by ordinary tests/CI.
 
+Settings captures open the index, then Calendar & invitations for `settings-calendar` and Language &
+appearance for the theme transition. Navigate back through the index before returning to More.
+
 `render.mjs` uses headless Chrome to frame captures with Golos Text and captions, render at higher
 resolution and downsample. Lock-screen entries use recorded notifications; descriptions copy from
 `store/text/<locale>/`.

@@ -1,4 +1,4 @@
-package com.seblful.klas.ui.more
+package com.seblful.klas.ui.settings
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,14 +37,14 @@ class ReminderLeadRowTest {
     }
 
     private fun custom() {
-        compose.onNodeWithText("Remind me").performClick()
+        compose.onNodeWithText("Before lesson").performClick()
         compose.onNodeWithText("Custom…").performClick()
     }
 
     @Test
     fun `a day before can be selected and changed to a custom number of days`() {
         open()
-        compose.onNodeWithText("Remind me").performClick()
+        compose.onNodeWithText("Before lesson").performClick()
         compose.onNodeWithText("1 day before").performClick()
         assertEquals(1440, selected)
         compose.onNodeWithText("1 day before").assertExists()
@@ -102,10 +102,10 @@ class ReminderLeadRowTest {
     }
 
     @Test
-    fun `turning reminders off disables the timing row`() {
+    fun `the timing row is disabled when neither reminders nor calendar sync uses it`() {
         open(enabled = false)
-        compose.onNodeWithText("Remind me").assertIsNotEnabled()
-        compose.onNodeWithText("Remind me").performClick()
+        compose.onNodeWithText("Before lesson").assertIsNotEnabled()
+        compose.onNodeWithText("Before lesson").performClick()
         compose.onNodeWithText("Custom…").assertDoesNotExist()
         assertEquals(60, selected)
     }

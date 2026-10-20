@@ -36,6 +36,11 @@ class NavigateToTabTest {
                 TopDestination.entries.forEach { tab -> screen(tab.route::class) {} }
                 screen<Routes.StudentDetail> {}
                 screen<Routes.ClassEdit> {}
+                screen<Routes.Settings> {}
+                screen<Routes.LessonSettings> {}
+                screen<Routes.NotificationSettings> {}
+                screen<Routes.CalendarSettings> {}
+                screen<Routes.AppearanceSettings> {}
             }
         }
     }
@@ -49,6 +54,27 @@ class NavigateToTabTest {
     private fun onUiThread(action: () -> Unit) {
         compose.runOnUiThread(action)
         compose.waitForIdle()
+    }
+
+    @Test
+    fun `settings categories return through the index and retain More tab ownership`() {
+        showTabs()
+        tap(TopDestination.MORE)
+        onUiThread { navController.navigate(Routes.Settings) }
+        for (category in listOf(
+            Routes.LessonSettings, Routes.NotificationSettings, Routes.CalendarSettings, Routes.AppearanceSettings,
+        )) {
+            onUiThread { navController.navigate(category) }
+            assertEquals(TopDestination.MORE, owningTab(navController.currentBackStack.value))
+            onUiThread { navController.popBackStack() }
+            assertEquals(listOf("Schedule", "More", "Settings"), stack())
+        }
+        onUiThread { navController.navigate(Routes.CalendarSettings) }
+        tap(TopDestination.SCHEDULE)
+        tap(TopDestination.MORE)
+        assertEquals(listOf("Schedule", "More", "Settings", "CalendarSettings"), stack())
+        tap(TopDestination.MORE)
+        assertEquals(listOf("Schedule", "More"), stack())
     }
 
     @Test

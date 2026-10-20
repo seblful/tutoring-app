@@ -501,14 +501,47 @@
 
     <!-- Settings -->
     <string name="settings_title">Настройки</string>
+    <string name="settings_lessons_title">Занятия и оплата</string>
+    <string name="settings_notifications_title">Уведомления</string>
+    <string name="settings_calendar_title">Календарь и приглашения</string>
+    <string name="settings_appearance_title">Язык и оформление</string>
+    <string name="settings_section_defaults">Для новых занятий и групп</string>
+    <string name="settings_section_billing">Оплата</string>
+    <string name="settings_section_daily">Ежедневные сводки</string>
+    <string name="settings_section_weekly">Еженедельная сводка</string>
+    <string name="settings_pair_summary">%1$s · %2$s</string>
+    <string name="currency_choice_label">%1$s — %2$s (%3$s)</string>
+    <string name="settings_system_language">Язык системы</string>
+    <string name="settings_theme_summary">%1$s тема</string>
+    <string name="settings_diagnostics_summary">Отчёты о сбоях</string>
+    <string name="settings_notifications_delayed">Напоминания о занятиях могут опаздывать</string>
+    <string name="settings_off">Выключено</string>
+    <string name="settings_calendar_invites_on">Синхронизация вкл. · Приглашения вкл.</string>
+    <string name="settings_calendar_invites_off">Синхронизация вкл. · Приглашения выкл.</string>
+    <string name="settings_all_notifications_blocked">Телефон блокирует уведомления</string>
+    <string name="settings_notifications_fix">Разрешить уведомления</string>
+    <string name="settings_completion_notifications_blocked">Автозавершение работает, но телефон блокирует отчёты о нём</string>
+    <string name="settings_system_notifications">Уведомления в настройках телефона</string>
+    <string name="settings_system_notifications_desc">Звук, вибрация и виды уведомлений</string>
+    <string name="settings_calendar_fix">Вернуть доступ к календарю</string>
+    <string name="settings_calendar_fix_desc">Разрешите доступ к календарю в настройках телефона</string>
+    <string name="settings_email_invites_disabled">Включите синхронизацию с календарём для приглашений</string>
+    <string name="settings_reminder_timing">Общее время напоминаний</string>
+    <string name="settings_reminder_shared">Для напоминаний на телефоне и по почте через календарь. Изменение обновит существующие события.</string>
+    <string name="settings_reminder_enable">Включите напоминания о занятиях или синхронизацию с календарём, чтобы изменить время</string>
+    <string name="settings_summary_enable">Включите эту сводку, чтобы изменить расписание</string>
+    <string name="settings_unfinished_autocomplete">Список прошедших занятий без отметки. Автозавершение включено, поэтому обычно таких занятий не останется.</string>
+    <string name="settings_default_lesson_desc">Подставляется в новые записи; длительность существующих занятий не меняется</string>
+    <string name="settings_currency_desc">Меняет обозначение валюты у всех сумм, включая историю. Суммы не пересчитываются.</string>
+    <plurals name="settings_notification_types">
+        <item quantity="one">Включён %1$d вид уведомлений</item>
+        <item quantity="few">Включены %1$d вида уведомлений</item>
+        <item quantity="many">Включено %1$d видов уведомлений</item>
+        <item quantity="other">Включено %1$d вида уведомлений</item>
+    </plurals>
     <string name="settings_section_reminders">Напоминания</string>
-    <string name="settings_section_classes">Занятия</string>
-    <string name="settings_section_money">Деньги</string>
     <string name="settings_section_appearance">Оформление</string>
-    <!-- Developer furniture, folded into the foot of Settings rather than sitting beside «Настройки». -->
-    <string name="settings_section_service">Обслуживание</string>
-    <string name="settings_section_calendar">Календарь</string>
-    <string name="settings_notifications">Напоминания</string>
+    <string name="settings_notifications">Напоминания о занятиях</string>
     <string name="settings_notifications_desc">Уведомлять перед занятием</string>
     <!--
       Shown in place of the description when the setting is on but the platform will not show anything.
@@ -519,7 +552,7 @@
       The other way the platform can differ from the switch, and the one the app was silent about: the
       reminder will be shown, but not necessarily on time. Without SCHEDULE_EXACT_ALARM — absent by
       default on Android 14+ — the alarm is inexact and Doze may hold it until its next window, so an
-      hour's warning can arrive during the lesson. See ui/more/ReminderDelivery.
+      hour's warning can arrive during the lesson. See ui/settings/ReminderDelivery.
 
       Says nothing about *alarms*. «Будильник» is an alarm clock — the thing that wakes you at seven —
       and a tutor reading it in a tutoring app has no way to connect it to a lesson reminder; it reads as
@@ -535,25 +568,12 @@
       «запрещены в настройках» wrong for a fresh denial and right an hour later. It carries
       action_open_settings, because a refusal the tutor cannot act on is worse than silence.
     -->
-    <string name="settings_notifications_denied">Без разрешения напоминания не придут</string>
+    <string name="settings_notifications_denied">Без разрешения уведомления не придут</string>
     <string name="action_open_settings">Открыть настройки</string>
     <!-- No activity behind a system settings action — rare, but real on some OEM builds. -->
     <string name="settings_page_missing">Не удалось открыть настройки</string>
-    <!--
-      The one row that fixes whichever grant is missing, shown only while one is. Its title never changes:
-      a reminder needs two permissions, but that is a fact about Android and not about the tutor's morning,
-      and a control whose words changed with the diagnosis read as two controls. Only the line underneath
-      says which problem it is. It is also the only path in Settings that ever asks for POST_NOTIFICATIONS,
-      since the setting is on by default and a switch already on cannot be turned on. See SettingsScreen's
-      reminderProblem.
-    -->
+    <!-- Exact-alarm recovery; notification permission has a shared recovery row. -->
     <string name="settings_reminders_fix">Настроить напоминания</string>
-    <!--
-      Blocked: the tap requests the permission where there is one to request and opens the app's
-      notification page where there is not, so this cannot promise either — see
-      SettingsViewModel.unblockNotifications.
-    -->
-    <string name="settings_reminders_fix_blocked">Телефон их не пропускает</string>
     <!-- Late: this one always leaves for the system page, so it can say so. -->
     <string name="settings_reminders_fix_late">Откроются настройки телефона</string>
     <string name="settings_calendar_sync">Синхронизация с календарём</string>
@@ -565,8 +585,8 @@
     -->
     <string name="settings_calendar_sync_blocked">Доступ к календарю отозван — занятия не копируются</string>
     <string name="settings_email_invites">Приглашать учеников по email</string>
-    <string name="settings_email_invites_desc">Добавлять ученика с email в событие занятия — приглашение и напоминание придут ему на почту</string>
-    <string name="settings_reminder_lead">Напоминать</string>
+    <string name="settings_email_invites_desc">Добавлять учеников с email в события календаря. Приглашения отправляет аккаунт календаря; уже созданные события обновятся.</string>
+    <string name="settings_reminder_lead">До начала занятия</string>
     <string name="settings_reminder_lead_custom">Другое…</string>
     <string name="settings_reminder_amount">Количество</string>
     <string name="settings_reminder_unit">Единица</string>
@@ -594,18 +614,17 @@
 
     <!--
       Digests: summaries sent at an hour the tutor picked, as opposed to a reminder, which arrives because
-      a lesson is about to start. Both are off by default — the app sends nothing unasked.
+      a lesson is about to start. All three summaries are off by default — the app sends nothing unasked.
     -->
-    <string name="settings_section_digests">Сводки</string>
     <string name="settings_agenda">Расписание на день</string>
-    <string name="settings_agenda_desc">Утром присылать список занятий на сегодня</string>
+    <string name="settings_agenda_desc">Ежедневно присылать занятия на сегодня в выбранное время</string>
     <string name="settings_agenda_time">Когда присылать</string>
     <!--
       Вечерняя пара к автозавершению: когда оно включено, к этому часу неотмеченных занятий уже нет —
       поэтому описание говорит, зачем это, а не только что оно делает.
     -->
     <string name="settings_unfinished_digest">Неотмеченные занятия</string>
-    <string name="settings_unfinished_digest_desc">Вечером присылать занятия, которые не отмечены как проведённые или отменённые</string>
+    <string name="settings_unfinished_digest_desc">В выбранное время присылать прошедшие занятия за сегодня без отметки о проведении или отмене</string>
     <string name="settings_unfinished_digest_time">Когда присылать</string>
     <string name="settings_debt_digest">Сводка по долгам</string>
     <string name="settings_debt_digest_desc">Раз в неделю присылать, кто сколько должен</string>
@@ -626,14 +645,8 @@
         <item>Воскресенье</item>
     </string-array>
     <string name="settings_autocomplete">Автозавершение занятий</string>
-    <string name="settings_autocomplete_desc">Отмечать прошедшие занятия проведёнными автоматически</string>
-    <!--
-      Asked before switching auto-completion on, whenever doing so would complete a past lesson — however
-      few, since the tutor cannot see the backlog before they flip the switch. Turning it on completes
-      every lesson that has already finished, however long ago, and completing a lesson bills it. The
-      question names the number and says what will happen to the money, because that is the part the
-      setting's own description does not.
-    -->
+    <string name="settings_autocomplete_desc">Автоматически отмечать прошедшие занятия проведёнными и начислять ученикам оплату за них</string>
+    <!-- Confirm backlog completion and billing before enabling automatic completion. -->
     <plurals name="settings_autocomplete_sweep_confirm">
         <item quantity="one">%1$d прошедшее занятие будет отмечено проведённым, и доход по нему начислится. Включить автозавершение?</item>
         <item quantity="few">%1$d прошедших занятия будут отмечены проведёнными, и доход по ним начислится. Включить автозавершение?</item>
@@ -648,9 +661,9 @@
         <item quantity="many">Завершено %1$d занятий</item>
         <item quantity="other">Завершено %1$d занятия</item>
     </plurals>
-    <string name="settings_default_lesson">Длительность по умолчанию</string>
+    <string name="settings_default_lesson">Длительность занятия по умолчанию</string>
     <string name="settings_currency">Валюта</string>
-    <string name="settings_default_group_price">Цена группы по умолчанию</string>
+    <string name="settings_default_group_price">Цена часа в группе по умолчанию</string>
     <string name="settings_default_group_price_desc">Подставляется в новую группу: цена за час с ученика</string>
     <string name="settings_not_set">Не задана</string>
     <string name="settings_theme">Тема</string>
@@ -671,13 +684,9 @@
          суметь найти дорогу назад. -->
     <string name="language_russian">Русский</string>
     <string name="language_english">English</string>
-    <!-- Все четыре — коды ISO, а не символы; почему именно так, сказано в перечислении `Currency`. -->
-    <string name="currency_byn">\u20C5</string>
-    <string name="currency_rub">₽</string>
-    <string name="currency_usd">$</string>
-    <string name="currency_eur">€</string>
+    <!-- Symbols label currency choices; their stored names remain ISO codes. -->
     <string name="settings_currency_change">Сменить</string>
-    <string name="settings_currency_change_confirm">Суммы не пересчитываются по курсу: цены, платежи и отчёты просто начнут отображаться в %1$s. Сами числа останутся прежними.</string>
+    <string name="settings_currency_change_confirm">Суммы не пересчитываются по курсу. Цены, платежи и отчёты получат обозначение «%1$s». Сами числа останутся прежними.</string>
     <string name="minutes_short">%1$d&#160;мин</string>
     <string name="hours_one">1&#160;ч</string>
     <string name="hours_one_and_half">1,5&#160;ч</string>
@@ -880,7 +889,7 @@
       the one moment students' contact details leave it, in clear text, to storage of the tutor's
       choosing — a cloud folder included.
     -->
-    <string name="backup_export_desc">Сохранить все данные в файл. В файле — имена, телефоны и почта учеников, без шифрования.</string>
+    <string name="backup_export_desc">Сохранить данные о занятиях в файл. Настройки приложения останутся на телефоне. В файле — имена, телефоны и почта учеников, без шифрования.</string>
     <!--
       The backup screen leads with when the last copy was made. Two states, and the second is the one
       worth having: an app that has never been backed up should say so plainly.

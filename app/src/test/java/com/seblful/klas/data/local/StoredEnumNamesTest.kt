@@ -29,7 +29,10 @@ class StoredEnumNamesTest {
     private val storedStatuses = setOf("SCHEDULED", "COMPLETED", "CANCELLED")
     private val storedAttendance = setOf("EXPECTED", "PRESENT", "ABSENT", "ABSENT_BILLED")
     private val storedModes = setOf("IN_PERSON", "REMOTE")
-    private val storedCurrencies = setOf("BYN", "RUB", "USD", "EUR")
+    private val storedCurrencies = setOf(
+        "BYN", "RUB", "USD", "EUR", "AED", "AUD", "BRL", "CAD", "CHF", "CNY", "CZK", "DKK", "GBP", "HKD",
+        "INR", "JPY", "KRW", "KZT", "MXN", "NOK", "NZD", "PLN", "SAR", "SEK", "SGD", "TRY", "UAH", "ZAR",
+    )
     private val storedLanguages = setOf("SYSTEM", "RUSSIAN", "ENGLISH")
     private val storedThemes = setOf("LIGHT", "DARK", "SYSTEM")
 
@@ -62,9 +65,9 @@ class StoredEnumNamesTest {
 
     @Test
     fun `the stored currency names are the ones the settings row holds`() {
-        val message = "A Currency constant was renamed, added or removed. The `settings.currency` column " +
+        val message = "The supported currency names changed. The `settings.currency` column " +
             "stores these names — devices holding the old text will silently fall back to BYN. " +
-            "Migrate the column (or accept the fallback deliberately), then update this list."
+            "Renames and removals need a migration; additions only need this list updated."
         assertEquals(message, storedCurrencies, Currency.entries.map { it.name }.toSet())
         assertEquals(message, storedCurrencies, Currency.entries.map(converters::fromCurrency).toSet())
     }

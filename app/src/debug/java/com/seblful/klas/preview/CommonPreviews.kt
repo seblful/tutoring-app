@@ -6,12 +6,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.AvatarStack
 import com.seblful.klas.ui.common.ContentCard
+import com.seblful.klas.ui.common.CurrencyPicker
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.HeroCard
 import com.seblful.klas.ui.common.SegmentedChoice
@@ -66,11 +68,21 @@ private fun StatRowPreview() = PreviewSurface {
 
 @KlasPreview
 @Composable
+private fun CurrencyPickerPreview() = PreviewSurface {
+    CurrencyPicker(Currency.BYN, onSelect = {})
+}
+
+@KlasPreview
+@Composable
 private fun CurrencySymbolsPreview() = PreviewSurface {
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.gutter)) {
+        listOf(FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold, FontWeight.Bold).forEach { weight ->
+            Text(Currency.BYN.symbol, style = MaterialTheme.typography.headlineLarge, fontWeight = weight)
+        }
+    }
     Currency.entries.forEach { currency ->
         val amount = Money(150050).format(currency, ',', ' ')
-        Text(amount, style = MaterialTheme.typography.bodyLarge)
-        Text(amount, style = MaterialTheme.typography.titleLarge)
+        Text("${currency.name}: $amount", style = MaterialTheme.typography.bodyLarge)
     }
 }
 

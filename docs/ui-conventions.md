@@ -50,16 +50,23 @@ Build screens from shared state and controls. Feature rules belong in the domain
   `amount()` because `parseMoneyOrNull` treats a comma as decimal. CSV uses ungrouped amounts.
 - BYN uses the official vector sign at provisional [U+20C5](https://www.unicode.org/alloc/Pipeline.html),
   embedded in all Golos Text weights. After replacing fonts or editing `art/belarusian_ruble.svg`, run
-  `uv run --with fonttools art/add_byn_glyph.py`. System notifications fall back to `BYN`.
+  `uv run art/add_byn_glyph.py`. Its outline gains stroke weight with the font, using Golos's own
+  hyphen thickness as the reference. System notifications fall back to `BYN`.
+- Currency pickers in setup and Settings share a dropdown of 28 currencies. Sort by the localized
+  name and show the name, symbol and ISO code (`Belarusian ruble — ⃅ (BYN)`); codes distinguish shared
+  symbols. Use the same label in change confirmation. Currency remains a label on stored amounts,
+  without conversion or precision changes.
 - Apply `AppLanguage` with `ProvideLocalizedResources`, never `Locale.setDefault()`. `StringCoverageTest`
-  checks resource parity; language changes re-sync baked calendar text.
+  checks resource parity; language changes re-sync baked calendar text. Setup and Settings share
+  `LanguageChoices`: System first, followed by English and Русский in autonym order.
 - Phone settings govern 12/24-hour time and week start, independent of app language; ask the application
   context. Use `WallClock.days()` for midnight rollover, `DayBounds` for day boundaries. Timezone changes
   re-query open calendars; form endings and booking use the same elapsed-time slots across DST.
 - Indigo/teal Material 3, dynamic color off by default; app-owned amber means “on now”, green “taught”.
   Golos Text supports Cyrillic/Latin; avatar colors depend on ID.
 - Material Symbols live in `KlasIcons`: filled for actions/selection, outlined for decoration/inactive
-  art. Its KDoc explains adding icons. Settings rows have no leading icon; trailing `OpensScreenMark`
+  art. Its KDoc explains adding icons. Settings categories lead with a decorative `IconAvatar`;
+  preference controls have no leading icon. Trailing `OpensScreenMark`
   names in-app navigation through `onClickLabel`, “open in new” marks external links. Lesson-kind icons
   are a matched pair tested on ink height.
 - Haptics use the five moments in `Haptics`, wired through shared atoms/`ShowMessagesFor(refused = …)`;
@@ -78,6 +85,14 @@ Build screens from shared state and controls. Feature rules belong in the domain
 
 ## Feature conventions
 
+- Settings opens an index with current values, ordered Language & appearance, Notifications,
+  Lessons & billing, Calendar & invitations, then secondary Diagnostics. Backup, About and Subjects stay in
+  More. Each settings destination owns its view model, dialogs and permission launchers. Its loaded
+  state joins preferences and permission status so the index never shows invented delivery defaults.
+- Notification status covers lesson reminders, all summaries and auto-completion reports. A blocked
+  feature keeps its chosen switch state and offers system recovery; exact-alarm access concerns only
+  lesson reminders. Dependent controls stay visible and explain how to enable them. Shared reminder
+  timing is editable when lesson reminders **or** calendar sync is enabled, from either category.
 - Schedule Day/Week/Month share `ScheduleViewModel.content`'s week assembly, avoiding reads for switches
   inside the week. Summaries are count·hours·money (`DaySummary`); show “now” only today. Completion is
   an undoable green swipe; cancelled lessons recede with a red badge. Book by duration, starting on the

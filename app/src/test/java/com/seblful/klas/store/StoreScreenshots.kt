@@ -226,9 +226,10 @@ class StoreScreenshots {
 
         switchOnReminders()
         click(string(R.string.settings_title))
-        waitFor(string(R.string.settings_notifications_desc))
+        waitFor(string(R.string.settings_lessons_title))
         capture("settings")
-        scrollToTop(string(R.string.settings_section_calendar))
+        click(string(R.string.settings_calendar_title))
+        waitFor(string(R.string.settings_calendar_sync_desc))
         capture(
             "settings-calendar",
             marks = mapOf(
@@ -236,6 +237,7 @@ class StoreScreenshots {
                 "invites" to row(string(R.string.settings_email_invites)),
             ),
         )
+        back()
         back()
         recordNotifications()
 
@@ -252,7 +254,7 @@ class StoreScreenshots {
         click(string(R.string.reports_period_month))
         settle()
         val list = hasScrollAction()
-        val total = hasAnySibling(hasText(label)) and hasText(tutor.currency.name, substring = true)
+        val total = hasAnySibling(hasText(label)) and hasText(tutor.currency.symbol, substring = true)
         capture(
             "reports",
             marks = mapOf("income" to hasText(label), "list" to list, "anchor" to hasText(byStudent)),
@@ -268,14 +270,16 @@ class StoreScreenshots {
         val dark = hasText(string(R.string.theme_dark)) and isSelectable()
         tab(R.string.nav_more)
         click(string(R.string.settings_title))
-        waitFor(string(R.string.settings_notifications_desc))
+        waitFor(string(R.string.settings_appearance_title))
+        click(string(R.string.settings_appearance_title))
+        waitFor(string(R.string.settings_language))
         compose.onNode(dark).performScrollTo()
-        scrollToTop(string(R.string.settings_section_appearance))
         capture("film-theme", marks = mapOf("dark" to dark))
         compose.onNode(dark).performClick()
         compose.waitUntil(TIMEOUT_MS) { compose.onAllNodes(dark and isSelected()).fetchSemanticsNodes().isNotEmpty() }
         settle()
         capture("film-theme-dark", dark = true, marks = mapOf("dark" to dark))
+        back()
         back()
 
         runBlocking { settings.update { it.copy(themeMode = ThemeChoice.DARK) } }
@@ -481,7 +485,8 @@ class StoreScreenshots {
         val symbols = DecimalFormatSymbols.getInstance(tutor.locale)
         val group = "\\" + symbols.groupingSeparator
         val decimal = "\\" + symbols.decimalSeparator
-        val amount = Regex("""(-?\d[\d\s$group]*(?:$decimal\d+)?)\s${tutor.currency.name}""")
+        val currency = Regex.escape(tutor.currency.symbol)
+        val amount = Regex("""(-?\d[\d\s$group]*(?:$decimal\d+)?)\s$currency""")
         val texts = compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Text), useUnmergedTree = true)
             .fetchSemanticsNodes()
             .flatMap { node -> node.config[SemanticsProperties.Text].map { it.text } }

@@ -6,7 +6,10 @@ import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.AppLanguage
 
-/** he human name of [language] — words only; the legal set is [AppLanguage]'s. */
+/** System first, then languages alphabetized by their autonyms in both pickers. */
+val LanguageChoices = listOf(AppLanguage.SYSTEM, AppLanguage.ENGLISH, AppLanguage.RUSSIAN)
+
+/** The human name of [language] — words only; the legal set is [AppLanguage]'s. */
 @Composable
 @ReadOnlyComposable
 fun languageLabel(language: AppLanguage): String = stringResource(

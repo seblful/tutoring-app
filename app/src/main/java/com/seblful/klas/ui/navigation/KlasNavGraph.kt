@@ -13,12 +13,17 @@ import com.seblful.klas.ui.groups.GroupFormScreen
 import com.seblful.klas.ui.homework.HomeworkScreen
 import com.seblful.klas.ui.more.AboutScreen
 import com.seblful.klas.ui.more.MoreScreen
-import com.seblful.klas.ui.more.SettingsScreen
 import com.seblful.klas.ui.people.PeopleScreen
 import com.seblful.klas.ui.reports.ReportsScreen
 import com.seblful.klas.ui.schedule.ScheduleScreen
 import com.seblful.klas.ui.schedule.ScheduleTarget
 import com.seblful.klas.ui.schedule.booking.ClassEditScreen
+import com.seblful.klas.ui.settings.AppearanceSettingsScreen
+import com.seblful.klas.ui.settings.CalendarSettingsScreen
+import com.seblful.klas.ui.settings.LessonSettingsScreen
+import com.seblful.klas.ui.settings.NotificationSettingsScreen
+import com.seblful.klas.ui.settings.SettingsNavigation
+import com.seblful.klas.ui.settings.SettingsScreen
 import com.seblful.klas.ui.students.StudentDetailScreen
 import com.seblful.klas.ui.students.StudentFormScreen
 import com.seblful.klas.ui.subjects.SubjectsScreen
@@ -123,10 +128,26 @@ private fun NavGraphBuilder.moreScreens(navController: NavHostController) {
     screen<Routes.Settings> {
         SettingsScreen(
             onBack = { navController.popBackStack() },
-            // Diagnostics is developer furniture and used to sit as a peer of «Настройки» in
-            // «Ещё». It is reached from the foot of Settings now, where service tools belong.
-            onDiagnostics = { navController.navigate(Routes.Diagnostics) },
+            navigation = SettingsNavigation(
+                lessons = { navController.navigate(Routes.LessonSettings) },
+                notifications = { navController.navigate(Routes.NotificationSettings) },
+                calendar = { navController.navigate(Routes.CalendarSettings) },
+                appearance = { navController.navigate(Routes.AppearanceSettings) },
+                diagnostics = { navController.navigate(Routes.Diagnostics) },
+            ),
         )
+    }
+    screen<Routes.LessonSettings> {
+        LessonSettingsScreen(onBack = { navController.popBackStack() })
+    }
+    screen<Routes.NotificationSettings> {
+        NotificationSettingsScreen(onBack = { navController.popBackStack() })
+    }
+    screen<Routes.CalendarSettings> {
+        CalendarSettingsScreen(onBack = { navController.popBackStack() })
+    }
+    screen<Routes.AppearanceSettings> {
+        AppearanceSettingsScreen(onBack = { navController.popBackStack() })
     }
     screen<Routes.Diagnostics> {
         DiagnosticsScreen(onBack = { navController.popBackStack() })

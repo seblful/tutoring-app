@@ -416,21 +416,52 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
+    <string name="settings_lessons_title">Lessons &amp; billing</string>
+    <string name="settings_notifications_title">Notifications</string>
+    <string name="settings_calendar_title">Calendar &amp; invitations</string>
+    <string name="settings_appearance_title">Language &amp; appearance</string>
+    <string name="settings_section_defaults">New-item defaults</string>
+    <string name="settings_section_billing">Billing</string>
+    <string name="settings_section_daily">Daily summaries</string>
+    <string name="settings_section_weekly">Weekly summary</string>
+    <string name="settings_pair_summary">%1$s · %2$s</string>
+    <string name="currency_choice_label">%1$s — %2$s (%3$s)</string>
+    <string name="settings_system_language">System language</string>
+    <string name="settings_theme_summary">%1$s theme</string>
+    <string name="settings_diagnostics_summary">Crash reports</string>
+    <string name="settings_notifications_delayed">Lesson reminders may be delayed</string>
+    <string name="settings_off">Off</string>
+    <string name="settings_calendar_invites_on">Sync on · Invitations on</string>
+    <string name="settings_calendar_invites_off">Sync on · Invitations off</string>
+    <string name="settings_all_notifications_blocked">Your phone is blocking notifications</string>
+    <string name="settings_notifications_fix">Allow notifications</string>
+    <string name="settings_completion_notifications_blocked">Automatic completion still runs, but your phone is blocking its reports</string>
+    <string name="settings_system_notifications">Phone notification settings</string>
+    <string name="settings_system_notifications_desc">Sounds, vibration and notification types</string>
+    <string name="settings_calendar_fix">Restore calendar access</string>
+    <string name="settings_calendar_fix_desc">Allow calendar access in your phone\'s settings</string>
+    <string name="settings_email_invites_disabled">Turn on calendar sync to invite students</string>
+    <string name="settings_reminder_timing">Shared reminder timing</string>
+    <string name="settings_reminder_shared">Used for phone and calendar email reminders. Changing it updates existing calendar events.</string>
+    <string name="settings_reminder_enable">Turn on lesson reminders or calendar sync to change this time</string>
+    <string name="settings_summary_enable">Turn on this summary to change its schedule</string>
+    <string name="settings_unfinished_autocomplete">List ended lessons awaiting a status. Automatic completion is on, so there will usually be nothing to report.</string>
+    <string name="settings_default_lesson_desc">Pre-fills new bookings; existing lessons keep their duration</string>
+    <string name="settings_currency_desc">Changes the currency label on all amounts, including history. Amounts are not converted.</string>
+    <plurals name="settings_notification_types">
+        <item quantity="one">%1$d notification type enabled</item>
+        <item quantity="other">%1$d notification types enabled</item>
+    </plurals>
     <string name="settings_section_reminders">Reminders</string>
-    <string name="settings_section_classes">Lessons</string>
-    <string name="settings_section_money">Money</string>
     <string name="settings_section_appearance">Appearance</string>
-    <!-- Developer furniture, folded into the foot of Settings rather than sitting beside "Settings". -->
-    <string name="settings_section_service">Maintenance</string>
-    <string name="settings_section_calendar">Calendar</string>
-    <string name="settings_notifications">Reminders</string>
+    <string name="settings_notifications">Lesson reminders</string>
     <string name="settings_notifications_desc">Notify me before a lesson</string>
     <!-- Shown in place of the description when the setting is on but the platform will not show
          anything. The switch used to read on while no reminder could ever appear. States the outcome
          rather than the cause — the cause is on the row below, which is the thing that can act on it. -->
     <string name="settings_notifications_blocked">Reminders are not arriving right now</string>
     <!-- The other way the platform can differ from the switch: the reminder will be shown, but not
-         necessarily on time. See ui/more/ReminderDelivery.
+         necessarily on time. See ui/settings/ReminderDelivery.
 
          Says nothing about *alarms*. That is Android's word for the timer behind the notification, and
          the tutor never meets one — they asked for a reminder an hour before the lesson and the only
@@ -439,19 +470,12 @@
     <string name="settings_notifications_inexact">A reminder can arrive later than asked</string>
     <!-- Said in a snackbar, not in the row: the tutor has just asked for reminders and the platform
          has refused. It carries action_open_settings. -->
-    <string name="settings_notifications_denied">Without permission, no reminder will arrive</string>
+    <string name="settings_notifications_denied">Without permission, notifications cannot arrive</string>
     <string name="action_open_settings">Open settings</string>
     <!-- No activity behind a system settings action — rare, but real on some OEM builds. -->
     <string name="settings_page_missing">Could not open settings</string>
-    <!-- The one row that fixes whichever grant is missing, shown only while one is. Its title never
-         changes: a reminder needs two permissions, but that is a fact about Android and not about the
-         tutor's morning, and a control whose words changed with the diagnosis read as two controls. Only
-         the line underneath says which problem it is. See SettingsScreen's reminderProblem. -->
+    <!-- Exact-alarm recovery; notification permission has a shared recovery row. -->
     <string name="settings_reminders_fix">Set up reminders</string>
-    <!-- Blocked: the tap requests the permission where there is one to request and opens the app's
-         notification page where there is not, so this cannot promise either — see
-         SettingsViewModel.unblockNotifications. -->
-    <string name="settings_reminders_fix_blocked">Your phone is blocking them</string>
     <!-- Late: this one always leaves for the system page, so it can say so. -->
     <string name="settings_reminders_fix_late">Opens your phone\'s settings</string>
     <string name="settings_calendar_sync">Calendar sync</string>
@@ -459,8 +483,8 @@
     <!-- Sync is on and the permission has since been revoked, so nothing is being mirrored. -->
     <string name="settings_calendar_sync_blocked">Calendar access was revoked — lessons are not being copied</string>
     <string name="settings_email_invites">Invite students by email</string>
-    <string name="settings_email_invites_desc">Add a student with an email to the lesson\'s event — the invitation and a reminder go to their inbox</string>
-    <string name="settings_reminder_lead">Remind me</string>
+    <string name="settings_email_invites_desc">Add students with email addresses to calendar events. Your calendar account handles invitations; existing synced events are updated.</string>
+    <string name="settings_reminder_lead">Before lesson</string>
     <string name="settings_reminder_lead_custom">Custom…</string>
     <string name="settings_reminder_amount">Amount</string>
     <string name="settings_reminder_unit">Unit</string>
@@ -482,18 +506,17 @@
 
     <!--
       Digests: summaries sent at an hour the tutor picked, as opposed to a reminder, which arrives
-      because a lesson is about to start. Both are off by default — the app sends nothing unasked.
+      because a lesson is about to start. All three summaries are off by default — the app sends nothing unasked.
     -->
-    <string name="settings_section_digests">Summaries</string>
-    <string name="settings_agenda">Today\'s schedule</string>
-    <string name="settings_agenda_desc">Every morning, send the list of today\'s lessons</string>
+    <string name="settings_agenda">Daily lesson agenda</string>
+    <string name="settings_agenda_desc">Send today\'s lessons daily at the selected time</string>
     <string name="settings_agenda_time">When to send</string>
     <!--
       The evening counterpart of auto-completion: with that on nothing is left unmarked for this to
       name, so the description says what it is for rather than only what it does.
     -->
     <string name="settings_unfinished_digest">Unmarked lessons</string>
-    <string name="settings_unfinished_digest_desc">In the evening, list the lessons still not marked as taught or cancelled</string>
+    <string name="settings_unfinished_digest_desc">List today\'s ended lessons still not marked as taught or cancelled, at the selected time</string>
     <string name="settings_unfinished_digest_time">When to send</string>
     <string name="settings_debt_digest">Debt summary</string>
     <string name="settings_debt_digest_desc">Once a week, send who owes what</string>
@@ -513,12 +536,8 @@
         <item>Sunday</item>
     </string-array>
     <string name="settings_autocomplete">Complete lessons automatically</string>
-    <string name="settings_autocomplete_desc">Mark finished lessons as taught without asking</string>
-    <!--
-      Asked before switching auto-completion on, whenever doing so would complete a past lesson —
-      however few, since the tutor cannot see the backlog before they flip the switch. Completing a
-      lesson bills it, which is the part the setting's own description does not say.
-    -->
+    <string name="settings_autocomplete_desc">Mark ended lessons as taught and charge them to student balances automatically</string>
+    <!-- Confirm backlog completion and billing before enabling automatic completion. -->
     <plurals name="settings_autocomplete_sweep_confirm">
         <item quantity="one">%1$d past lesson will be marked as taught and billed. Turn on auto-completion?</item>
         <item quantity="other">%1$d past lessons will be marked as taught and billed. Turn on auto-completion?</item>
@@ -529,9 +548,9 @@
         <item quantity="one">%1$d lesson completed</item>
         <item quantity="other">%1$d lessons completed</item>
     </plurals>
-    <string name="settings_default_lesson">Default length</string>
+    <string name="settings_default_lesson">Default lesson duration</string>
     <string name="settings_currency">Currency</string>
-    <string name="settings_default_group_price">Default group price</string>
+    <string name="settings_default_group_price">Default group hourly rate</string>
     <string name="settings_default_group_price_desc">Pre-fills a new group: price per hour, per student</string>
     <string name="settings_not_set">Not set</string>
     <string name="settings_theme">Theme</string>
@@ -551,13 +570,8 @@
     <!-- Material You. Worded as what it does rather than as what Google calls it. -->
     <string name="settings_dynamic_color">Colours from wallpaper</string>
     <string name="settings_dynamic_color_desc">Take the shades from your phone\'s wallpaper instead of the app\'s own colours</string>
-    <!-- All four are ISO codes rather than symbols — see the `Currency` enum for why. -->
-    <string name="currency_byn">\u20C5</string>
-    <string name="currency_rub">₽</string>
-    <string name="currency_usd">$</string>
-    <string name="currency_eur">€</string>
     <string name="settings_currency_change">Change</string>
-    <string name="settings_currency_change_confirm">Amounts are not converted at any exchange rate: prices, payments and reports will simply start showing in %1$s. The numbers themselves stay as they are.</string>
+    <string name="settings_currency_change_confirm">Amounts are not converted at any exchange rate. Prices, payments and reports will use %1$s as their currency label. The numbers stay the same.</string>
     <string name="minutes_short">%1$d&#160;min</string>
     <string name="hours_one">1&#160;h</string>
     <string name="hours_one_and_half">1.5&#160;h</string>
@@ -741,7 +755,7 @@
       the one moment students' contact details leave it, in clear text, to storage of the tutor's
       choosing — a cloud folder included.
     -->
-    <string name="backup_export_desc">Save everything to a file. The file holds students\' names, phone numbers and email addresses, unencrypted.</string>
+    <string name="backup_export_desc">Save tutoring data to a file. App settings stay on this phone. The file holds students\' names, phone numbers and email addresses, unencrypted.</string>
     <!--
       The backup screen leads with when the last copy was made. Two states, and the second is the one
       worth having: an app that has never been backed up should say so plainly.
