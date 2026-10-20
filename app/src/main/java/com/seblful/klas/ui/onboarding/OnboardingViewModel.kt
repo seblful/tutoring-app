@@ -38,7 +38,7 @@ class OnboardingViewModel @Inject constructor(
     @param:ApplicationScope private val appScope: CoroutineScope,
 ) : ViewModel() {
 
-    /** he language and the currency the app is about to be read in — step 1's two answers. */
+    /** Current language and currency choices. */
     val locale: StateFlow<Loadable<AppSettings>> = settings.observe()
         .ready()
         .hold(this, Loadable.Loading)
@@ -52,7 +52,7 @@ class OnboardingViewModel @Inject constructor(
     /** Stores the currency. Asks nothing: nothing has been recorded yet for a re-label to touch. */
     fun setCurrency(currency: Currency) = store { it.copy(currency = currency) }
 
-    /** he subjects added so far, for step 2's list. */
+    /** Subjects added during setup. */
     val subjects: StateFlow<Loadable<List<Subject>>> = subjectsRepo.observeAll()
         .ready()
         .hold(this, Loadable.Loading)
@@ -60,14 +60,9 @@ class OnboardingViewModel @Inject constructor(
     /**
      * Whether restoring a backup here would destroy something, and so has to be confirmed.
      *
-     * On a fresh install there is nothing to replace, and a confirmation between the file picker and the
-     * import would be a question with one sensible answer. But the tutor can add subjects in step 1 and
-     * come back — an import is a **full replace**, so those subjects would go without being mentioned.
-     * The gate was an `if (subjects.isEmpty())` in the picker's result callback, which is both a rule
-     * about the backup format and a place no test reaches.
+     * Restoring replaces the database, so confirm when subjects have already been added during setup.
      */
-    // A list not yet read is nothing to destroy: the question is asked only about subjects known to be
-    // there, and an unread list makes the restore the unguarded one it is on a fresh install.
+    // Until subjects load, use the same first-run behavior as an empty list.
     fun restoreNeedsConfirming(): Boolean = subjects.value.valueOrNull().orEmpty().isNotEmpty()
 
     /**
@@ -83,7 +78,7 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    /** emoves a subject added in step 1 — the way out of a typo. */
+    /** Removes a subject added during setup. */
     fun removeSubject(subject: Subject, onRemoved: () -> Unit) {
         viewModelScope.launch {
             appScope.writeAwaited { subjectsRepo.delete(subject) }

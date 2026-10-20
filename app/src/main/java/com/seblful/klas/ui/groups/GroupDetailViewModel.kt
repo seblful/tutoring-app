@@ -51,7 +51,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.days
 
-/** ne member of the group, with how much of the group they have actually attended. */
+/** One member of the group, with how much of the group they have actually attended. */
 data class GroupMemberRow(val student: Student, val attended: Int)
 
 /**

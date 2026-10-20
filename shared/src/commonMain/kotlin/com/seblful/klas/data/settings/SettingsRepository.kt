@@ -30,7 +30,7 @@ data class AppSettings(
      * this for, a message every morning is one they have to want.
      */
     val dailyAgendaEnabled: Boolean = false,
-    /** hat time of day the agenda is posted, as **minutes since local midnight** — 540 is 09:00. */
+    /** What time of day the agenda is posted, as **minutes since local midnight** — 540 is 09:00. */
     val agendaMinuteOfDay: Int = 9 * 60,
     /** Whether the weekly summary of who owes money is posted. Off by default, as [dailyAgendaEnabled]. */
     val debtDigestEnabled: Boolean = false,
@@ -74,7 +74,7 @@ data class AppSettings(
      * happens where it is displayed, and keeps happening if the tutor changes their phone.
      */
     val language: AppLanguage = AppLanguage.SYSTEM,
-    /** hen a backup was last exported — **null when one never has been.** */
+    /** When a backup was last exported — **null when one never has been.** */
     val lastExportAt: Instant? = null,
 )
 
@@ -135,7 +135,7 @@ data class SettingsChange(val before: AppSettings, val after: AppSettings) {
     private fun <T> moved(field: (AppSettings) -> T): Boolean = field(before) != field(after)
 }
 
-/** he single settings row. */
+/** The single settings row. */
 @SingleIn(AppScope::class)
 class SettingsRepository @Inject constructor(
     private val dao: SettingsDao,

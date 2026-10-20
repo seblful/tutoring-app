@@ -26,7 +26,7 @@ object CalendarChoice {
      */
     const val MIN_ACCESS_LEVEL = 500
 
-    /** he calendar to write to, or null when none of [rows] may be written to at all. */
+    /** The calendar to write to, or null when none of [rows] may be written to at all. */
     fun preferred(rows: List<CalendarRow>): Long? = rows
         .filter { it.accessLevel >= MIN_ACCESS_LEVEL }
         .minWithOrNull(
@@ -55,7 +55,7 @@ sealed interface GuestAction {
     data class Remove(val email: String) : GuestAction
 }
 
-/** hat this event's attendees owe [guest], given the addresses [current] already on it. */
+/** What this event's attendees owe [guest], given the addresses [current] already on it. */
 fun guestAction(current: List<String>, guest: Guest?): GuestAction {
     val email = guest?.email?.takeIf { it.isNotBlank() } ?: return GuestAction.None
     val present = email in current

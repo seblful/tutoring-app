@@ -94,7 +94,7 @@ class GroupFormViewModel @AssistedInject constructor(
         val candidates: List<Student> = emptyList(),
         /** Everything the tutor could teach this group, for the subject picker. */
         val subjects: List<Subject> = emptyList(),
-        /** very recorded change to this group's hourly rate, newest first. */
+        /** Every recorded change to this group's hourly rate, newest first. */
         val rateHistory: List<RateChange> = emptyList(),
         /**
          * Whether the group is retired. Read-only now: archiving and deleting a group moved to its

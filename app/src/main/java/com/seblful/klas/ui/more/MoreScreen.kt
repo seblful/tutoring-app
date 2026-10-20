@@ -19,7 +19,7 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.theme.KlasIcons
 
-/** he overflow section: everything that doesn't earn a tab. */
+/** The overflow section: everything that doesn't earn a tab. */
 @Composable
 fun MoreScreen(
     onSubjects: () -> Unit,

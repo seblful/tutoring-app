@@ -15,7 +15,7 @@ private val AppFontFamily = FontFamily(
     Font(R.font.golos_text_bold, FontWeight.Bold),
 )
 
-/** he type scale: **every** style stated, none left to the M3 baseline. */
+/** The type scale: **every** style stated, none left to the M3 baseline. */
 val Typography = Typography(
     displayLarge = TextStyle(
         fontFamily = AppFontFamily,

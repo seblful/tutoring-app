@@ -125,7 +125,7 @@ class DeviceCalendarSync @Inject constructor(
         )
     }
 
-    /** he event, brought in line with the lesson — or nothing, if there is no event. */
+    /** The event, brought in line with the lesson — or nothing, if there is no event. */
     override suspend fun refresh(klass: TutoringClass, title: String) {
         withContext(Dispatchers.IO) {
             if (!hasPermission()) return@withContext

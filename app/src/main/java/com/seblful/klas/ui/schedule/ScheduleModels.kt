@@ -115,13 +115,13 @@ sealed interface ScheduleTarget {
     data class Lesson(val classId: Long) : ScheduleTarget
 }
 
-/** he schedule narrowed to one student — who, and the name the chip saying so is drawn from. */
+/** The schedule narrowed to one student — who, and the name the chip saying so is drawn from. */
 data class StudentFilter(val studentId: Long, val name: String)
 
-/** he lessons the schedule body shows — the [Week] the view model assembles, and the [Day] read off it. */
+/** The lessons the schedule body shows — the [Week] the view model assembles, and the [Day] read off it. */
 sealed interface ScheduleContent {
 
-    /** he selected day's rows and what they add up to — what the day and month views both show. */
+    /** The selected day's rows and what they add up to — what the day and month views both show. */
     data class Day(
         val date: LocalDate,
         val rows: List<ScheduleRow>,

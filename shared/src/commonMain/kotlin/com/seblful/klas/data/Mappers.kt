@@ -74,7 +74,7 @@ fun Group.toEntity() =
 fun PriceEntity.toDomain() = Price(studentId = studentId, subjectId = subjectId, amount = Money(amountMinor))
 fun Price.toEntity() = PriceEntity(studentId = studentId, subjectId = subjectId, amountMinor = amount.minor)
 
-/** he one place `price_history`'s nullable owner columns are turned back into a [RateOwner]. */
+/** The one place `price_history`'s nullable owner columns are turned back into a [RateOwner]. */
 fun RateChangeEntity.toDomain() = RateChange(
     id = id,
     owner = when {

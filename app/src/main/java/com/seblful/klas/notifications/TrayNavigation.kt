@@ -82,23 +82,7 @@ object TrayNavigation {
          */
         data object Debts : Destination
 
-        /**
-         * The schedule, **on today** — where the evening digest's unmarked lessons are, and where the
-         * swipe that marks one taught already lives.
-         *
-         * Today rather than "wherever the schedule was left": the digest is about this day, and landing
-         * on last Tuesday because that is the page the tutor last browsed would be an answer to a
-         * different question. It is the tab rather than a pushed screen, for [Debts]'s reason — a
-         * notification that pushed a screen on top of wherever they were would leave a back arrow and no
-         * tab selected.
-         *
-         * Deliberately **not a lesson**: there are several, and «Проведено» from the tray is a reminder's
-         * button about one lesson. Billing a whole evening's lessons from a tray entry that may be hours
-         * stale is the one thing this digest must not offer.
-         *
-         * What the evening digest said before it carried its day, and what the reminders' summary still
-         * says — several reminders, all of them about the next hour or so.
-         */
+        /** The schedule on today, opened by the lesson-reminder summary. */
         data object Today : Destination
 
         /**

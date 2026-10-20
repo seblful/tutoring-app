@@ -100,7 +100,7 @@ fun TimePickerModal(
     )
 }
 
-/** ow long something lasts, in hours and minutes — the booking form's «Другая» length. */
+/** How long something lasts, in hours and minutes — the booking form's «Другая» length. */
 @Composable
 fun DurationPickerModal(
     initialMinutes: Int,
@@ -145,7 +145,7 @@ fun DurationPickerModal(
     )
 }
 
-/** ow many lessons a repeating booking writes — the booking form's «Другое». */
+/** How many lessons a repeating booking writes — the booking form's «Другое». */
 @Composable
 fun CountPickerModal(
     title: String,

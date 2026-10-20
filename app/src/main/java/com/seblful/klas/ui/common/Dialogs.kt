@@ -28,7 +28,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.window.DialogProperties
 import com.seblful.klas.R
 
-/** he app's dialogs, and the one rule they share. */
+/** The app's dialogs, and the one rule they share. */
 
 @Composable
 fun ConfirmDialog(
@@ -124,7 +124,7 @@ fun NoticeDialog(
 fun NoticeDialog(text: String, onDismiss: () -> Unit, title: String? = null) {
     NoticeDialog(onDismiss = onDismiss, title = title) { Text(text) }
 }
-/** ne option of a one-of-many choice inside a dialog — a weekday, a subject to add. */
+/** One option of a one-of-many choice inside a dialog — a weekday, a subject to add. */
 @Composable
 fun DialogRadioRow(label: String, selected: Boolean, onClick: () -> Unit) {
     Row(

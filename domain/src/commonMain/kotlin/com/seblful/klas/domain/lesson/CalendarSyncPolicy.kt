@@ -36,27 +36,9 @@ object CalendarSyncPolicy {
     }
 
     /**
-     * A completed lesson used to answer "leave it alone entirely", and that was wrong in the one way
-     * that matters most: **a note is usually written after the lesson**, not before it. The tutor walks
-     * out of the room, opens the lesson — which auto-completion has very likely already marked as taught
-     * — and writes down what was set for home. Under the old rule that note, and any correction to the
-     * hour or the title beside it, reached the database and stopped there, so the calendar went on
-     * showing a lesson the app no longer described.
-     *
-     * What [Action.REFRESH] keeps of the old rule is the half that was right: **no event is created for
-     * a lesson that has already happened.** Turning sync on does not backfill the tutor's past into
-     * their calendar, and an event they deleted from it themselves is not resurrected by an edit.
-     *
-     * **Attendance is read here too, not only the status.** A group lesson goes ahead without a member
-     * who is not coming: that is a per-member correction and the lesson's own status stays [SCHEDULED],
-     * so a rule that read only the status went on inviting them — their event stayed in the calendar, and
-     * a re-sync (`CalendarMirror.resyncAll`) put it back after they had deleted it. Archiving a student
-     * is where that was found (`ClassRepository.cancelScheduledFor`), but it is the same answer for a
-     * member marked away from a lesson that has not happened yet, however they got there.
-     *
-     * Once the lesson has been **taught**, an absence stops making that call: the hour happened, the
-     * calendar is the record of the tutor's day rather than a bill, and the event is treated like any
-     * other member's — kept true, never created.
+     * Completed lessons refresh existing events but never create them. Cancelled lessons and absent
+     * members of scheduled lessons have no event; other scheduled lessons are upserted. Attendance does
+     * not affect a completed lesson's event.
      */
     fun actionFor(status: LessonStatus, attended: Attended): Action = when {
         status == LessonStatus.COMPLETED -> Action.REFRESH

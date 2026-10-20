@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlin.time.Instant
 
-/** he rate log: what an hourly rate used to be, and when it changed. */
 @SingleIn(AppScope::class)
 class RateHistoryRepository @Inject constructor(
     private val dao: RateHistoryDao,
@@ -57,7 +56,7 @@ class RateHistoryRepository @Inject constructor(
         return true
     }
 
-    /** rops a (student, subject) rate's history, because the student no longer takes that subject. */
+    /** Drops a (student, subject) rate's history, because the student no longer takes that subject. */
     suspend fun forget(owner: RateOwner.StudentSubject) {
         dao.deleteForStudentSubject(owner.studentId, owner.subjectId)
     }

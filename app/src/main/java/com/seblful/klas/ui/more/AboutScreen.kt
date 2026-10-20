@@ -37,7 +37,7 @@ import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.theme.KlasIcons
 
-/** hat the app is and which build of it this is. */
+/** What the app is and which build of it this is. */
 @Composable
 fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
     val context = LocalContext.current

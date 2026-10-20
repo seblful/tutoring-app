@@ -13,7 +13,7 @@ import com.seblful.klas.ui.common.state.UiEvents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-/** ow a screen says something to the tutor in passing. */
+/** How a screen says something to the tutor in passing. */
 class Messages(
     val hostState: SnackbarHostState,
     private val scope: CoroutineScope,

@@ -84,7 +84,7 @@ import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.flow.first
 
-/** he money screen: what the chosen period earned, where it came from, and who still owes. */
+/** The money screen: what the chosen period earned, where it came from, and who still owes. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportsScreen(

@@ -1,22 +1,12 @@
 package com.seblful.klas.testutil
 
 /**
- * Reading the project's own Kotlin as text, for the tripwires that scan the tree ([ProjectFiles] finds
- * the files; this reads what is in them).
+ * Removes comments and parses call arguments for source-based checks.
  */
 object SourceText {
 
     /**
-     * [text] with its comments stripped — **the form a source-scanning tripwire has to match against.**
-     *
-     * The things these tests scan for are exactly the things the KDoc beside them has to be able to name:
-     * `KlasScreen`'s own doc explains the `Scaffold` it replaced, every screen that used to carry one says
-     * so in a comment, and `DatabaseModule`'s doc explains why it no longer calls `addMigrations`. Matching
-     * raw text makes writing that explanation fail the build — a tripwire that punishes documenting the rule
-     * it enforces, which is how one of them failed the moment the rule it checks became worth explaining.
-     *
-     * Shared rather than private to one test because two now need it, and a rule two tests apply is a rule
-     * they can apply differently.
+     * Strips comments so source checks match code without failing on explanatory KDoc.
      */
     fun code(text: String): String = text
         .replace(Regex("""/\*.*?\*/""", RegexOption.DOT_MATCHES_ALL), "")

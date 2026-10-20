@@ -17,17 +17,8 @@ import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 
 /**
- * What a report of the tutor's income is. Income counts only the charges captured on completed classes
- * (so it matches what was actually billed); cancelled and scheduled classes contribute nothing.
- *
- * **[of] is the way in.** It takes the database's lists and a period and returns the whole [Report] —
- * which classes count, how each breakdown is ordered, which sections are worth showing at all. The
- * aggregations below are its parts and are tested directly, one rule at a time; they are not a second
- * way to assemble a report. A caller that reaches for them is deciding something this object should
- * have decided, and `ReportsSurfaceTest` says so.
- *
- * Each aggregation takes the classes it should count, so *which* ones is one decision made once, in
- * [of], rather than a filter each could disagree about. [trend] is the exception and says why.
+ * Builds income reports from completed lessons and payments. [of] applies the active-student and period
+ * rules and assembles the breakdowns; [trend] also supplies empty time buckets for the chart.
  */
 object Reports {
 
@@ -38,25 +29,13 @@ object Reports {
     data class Debt(val student: StudentId, val amount: Money)
 
     /**
-     * **What is owed, as a whole**: how many students are in the red and what it adds up to.
-     *
-     * A named answer rather than two calls to the aggregations below, because there is a second reader of
-     * those numbers now — the weekly debt digest — and it is outside a report. `ReportsSurfaceTest` exists
-     * to stop exactly that: a caller reaching past [of] for pieces of a report and reassembling them puts
-     * the decisions about what a report *is* somewhere a report is not tested. The digest wants a summary
-     * and not a report, so the summary is a thing this module names.
-     *
-     * A [total] with no [students] behind it is not expressible here, which is the useful part: the two
-     * figures always come from one pass over one list of balances, so the tray cannot say «0 учеников ·
-     * 540 BYN».
+     * The number of students in debt and the total they owe.
      */
     data class Outstanding(val students: Int, val total: Money) {
 
         companion object {
             /**
-             * Sums [balances] — which must already be the students the caller means, since who counts is
-             * not this type's rule. The debt digest passes the **active** ones, by the same rule the
-             * reports follow: archiving is how a tutor says they have stopped teaching somebody.
+             * Summarizes the balances supplied by the caller.
              */
             fun of(balances: List<StudentBalance>): Outstanding =
                 Outstanding(students = debts(balances).size, total = totalOutstanding(balances))
@@ -67,15 +46,8 @@ object Reports {
     data class KindIncome(val kind: LessonKind, val total: Money)
 
     /**
-     * The income trend a report is drawn with: one bar per bucket of time, **oldest first**.
-     *
-     * This is the one breakdown ordered by time rather than by size, which is exactly why it is a
-     * chart and the others are ranked bars — a year's shape (a quiet January, a busy May) is a fact
-     * about the order the months come in, and sorting them by amount destroys it.
-     *
-     * The buckets are one step finer than the period: a year is drawn as its months, all time as its
-     * years. A single month therefore produces one bar and reports itself [isEmpty] — there is
-     * nothing to compare it against that the total above it does not already say.
+     * Income bars by month or year, **oldest first**, including buckets with no income. Periods use
+     * months; all-time reports use years.
      */
     data class Trend(val bucket: Bucket, val bars: List<Bar>) {
 
@@ -95,9 +67,7 @@ object Reports {
         val peak: Bar? get() = bars.maxByOrNull { it.total.minor }?.takeUnless { it.total.isZero }
 
         /**
-         * [bar]'s height as a fraction of [peak] — the chart is about *relative* size, which is what
-         * lets it need no value axis. A statement about the report rather than about drawing, so it
-         * lives here with [rows] and [peak] instead of in the composable; zero when nothing earned.
+         * [bar]'s height as a fraction of [peak], or zero when no income was earned.
          */
         fun shareOf(bar: Bar): Float =
             peak?.let { bar.total.minor.toFloat() / it.total.minor } ?: 0f
@@ -106,13 +76,7 @@ object Reports {
         val isEmpty: Boolean get() = bars.size < 2 || peak == null
 
         /**
-         * The same buckets as a list to read, **newest first and without the empty ones**.
-         *
-         * The chart and the list want opposite things from the same data, which is why both are stated
-         * here. A bucket that earned nothing has to be *in* the chart — that is what makes a quiet
-         * March read as a gap in the year rather than as an absence its neighbours close over — and has
-         * no business in the list, where it would be a row of zeros. The screen used to spell that
-         * second half itself, next to a comment explaining it, while the first half was tested here.
+         * Nonzero buckets in reverse chronological order, for the report list.
          */
         val rows: List<Bar> get() = bars.asReversed().filterNot { it.total.isZero }
 
@@ -122,18 +86,12 @@ object Reports {
     }
 
     /**
-     * One line of a report: a name out of the database, an amount, and its share of the whole where
-     * there is a whole for it to be a share of.
+     * One report line, with its label and amount.
      *
      * @param percent null where a share would be a lie — the lines of a section that does not partition
      *   the income (groups) or that measures something else entirely (debts) are not parts of one whole.
-     * @param studentId set only where the line **is** a person the app can open: the debts. It is the
-     *   most action-shaped list on the screen ("who owes me") and was the one that went nowhere.
-     * @param share the line's ranking bar, as a fraction of its **section's largest** line — the bar
-     *   pictures the ranking the rows are already in, where scaling to the total would leave a long
-     *   tail of near-empty tracks. Null for a section of one: there is nothing to rank it against,
-     *   and a bar filled to the brim would only assert that the only row is the biggest. Both rules
-     *   used to be decided in the composable drawing the bar, i.e. nowhere a report test could see.
+     * @param studentId the student to open for a debt line.
+     * @param share the amount relative to the largest line in the section, or null when there is no ranking.
      */
     data class Line(
         val label: String,
@@ -144,19 +102,12 @@ object Reports {
     )
 
     /**
-     * One kind of teaching's income and share. Carries the [LessonKind] rather than a label, because
-     * the two words for it are string resources and belong to the screen — every other line here is
-     * labelled by a name that came out of the database.
+     * Income for one kind of teaching.
      */
     data class KindLine(val kind: LessonKind, val amount: Money, val percent: Int)
 
     /**
-     * A whole report, assembled: everything the reports screen draws, and nothing it has to work out.
-     *
-     * This exists because the decisions were split. The aggregations below returned raw maps and the
-     * view model restated their filter and their order; the "a single kind is not a section" rule lived
-     * at the call site; the trend's rows were re-derived in a composable. Each of those is a statement
-     * about what a report *is*, and none of them was where the report is tested.
+     * The report data and breakdowns for one period.
      */
     data class Report(
         /** The slice of time every income number covers. [debts] are the documented exception. */
@@ -201,16 +152,8 @@ object Reports {
     }
 
     /**
-     * The whole report for [period], out of every class, student and payment there is.
-     *
-     * Takes the *unfiltered* lists on purpose. Which classes a report counts is one of its rules —
-     * active students only, then the period — and a caller that filtered first would be deciding it.
-     * That is also why the student labels are derived here rather than passed: a name table built from
-     * all the students, paired with a breakdown built from the active ones, would draw a real amount
-     * against a student the report is meant to be leaving out.
-     *
-     * [subjectNames] and [groupNames] do come in, because they are names and this has no database. They
-     * are keyed by the typed ids of `model/Ids.kt`, so the compiler pairs each with its own breakdown.
+     * Builds [period]'s report. [classes], [students], and [payments] must be unfiltered; this function
+     * includes active students only and applies the period to their income. Names are supplied by the caller.
      */
     fun of(
         period: ReportPeriod,
@@ -223,8 +166,6 @@ object Reports {
         /** Today, by the app's clock — what says whether [period] is still going. See [Report.changeToDate]. */
         today: LocalDate,
     ): Report {
-        // Reports cover active students only: an archived student is retired, so their classes, income
-        // and debts should no longer appear in totals or breakdowns.
         val activeStudents = students.filter { !it.archived }
         val activeIds = activeStudents.map { it.id }.toSet()
         val activeClasses = classes.filter { it.studentId in activeIds }
@@ -237,12 +178,7 @@ object Reports {
         val inPeriod = period.filter(activeClasses, zone)
         val total = totalIncome(inPeriod)
 
-        // The period before this one, filtered the same way. `shifted` returns the period itself for
-        // all time, which is what makes "there is nothing to compare against" the same test as "the
-        // arrows do nothing" — one fact about the period, stated once.
         val previous = period.shifted(-1).takeIf { period.isNavigable }
-        // While the period is still going, both sides are measured over the days it has had so far — this
-        // one's first N days against the previous one's first N. A finished period is compared whole.
         val elapsed = period.daysElapsed(today)
         val changeNow = elapsed?.let { period.firstDays(it) }?.let { totalIncome(it.filter(inPeriod, zone)) } ?: total
         val changeBefore = previous?.let { p ->
@@ -256,20 +192,13 @@ object Reports {
             totalIncome = total,
             taught = Taught.overall(inPeriod),
             trend = trend(activeClasses, period, zone),
-            // Only worth a section when there is a split to see; a tutor who teaches one way would
-            // otherwise get a heading over one line repeating the total above it.
             byKind = incomeByKind(inPeriod)
                 .takeIf { it.size > 1 }
                 .orEmpty()
                 .map { KindLine(it.kind, it.total, percentOf(it.total, total)) },
-            // No share: a group's lessons are only part of the income, so «38 %» here would read as a
-            // share of everything while summing to the group half — the kind split above says that.
             byGroup = incomeByGroup(inPeriod).ranked(whole = null) { groupNames[it] },
             bySubject = incomeBySubject(inPeriod).ranked(total) { subjectNames[it] },
             byStudent = incomeByStudent(inPeriod).ranked(total) { studentNames[it] },
-            // No share either: what matters about a debt is the money and who owes it, and a percentage
-            // of the arrears is not something to act on. The id rides along so the row can open the
-            // person — it is the one list here that names somebody to go and talk to.
             debts = debts(balances).map {
                 Line(
                     label = studentNames[it.student].orEmpty(),
@@ -294,7 +223,6 @@ object Reports {
         val rows = entries
             .filter { it.value.minor > 0 }
             .sortedByDescending { it.value.minor }
-        // The largest row is what every bar is a fraction of — see [Line.share].
         val top = rows.firstOrNull()?.value?.minor?.coerceAtLeast(1)
         return rows.map {
             Line(
@@ -327,13 +255,8 @@ object Reports {
      */
     fun trend(classes: List<TutoringClass>, period: ReportPeriod, zone: TimeZone): Trend {
         val inPeriod = period.filter(classes, zone)
-        // Branching on the bounds rather than on the kind: "all time" and "has no bounds to
-        // enumerate" are the same statement, and this way the months arm gets them non-null.
         return when (val bounds = period.bounds) {
-            // All time has no bound to enumerate, so the data sets it: first earning year to last.
             null -> {
-                // Keyed by the year itself: a bucket is not an id, and now that the sum is generic it
-                // no longer has to be widened to a Long and narrowed back to index the result.
                 val byYear = sumChargesBy(inPeriod) { it.start.toLocalDateTime(zone).date.year }
                 val years = byYear.keys
                 Trend(
@@ -345,7 +268,6 @@ object Reports {
             else -> {
                 val byMonth = incomeByMonth(inPeriod, zone).associate { it.monthKey to it.total }
                 val first = monthKeyOf(bounds.from)
-                // until is exclusive, so the last day inside the period names the last month.
                 val last = monthKeyOf(bounds.lastDay)
                 Trend(
                     bucket = Trend.Bucket.MONTHS,
@@ -355,9 +277,7 @@ object Reports {
         }
     }
 
-    // The three breakdowns below are keyed by *typed* ids rather than by `Long`. They are otherwise
-    // identical in shape, and the screen pairs each with its own table of names — see `model/Ids.kt`
-    // for what that used to allow, and why this is the one place in the app where ids carry a type.
+    // Typed ids keep each breakdown paired with the matching name map.
 
     fun incomeByStudent(classes: List<TutoringClass>): Map<StudentId, Money> =
         sumChargesBy(classes) { StudentId(it.studentId) }

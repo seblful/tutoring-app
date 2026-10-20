@@ -1,14 +1,14 @@
 package com.seblful.klas.domain.model
 
+import com.seblful.klas.domain.lesson.ClassRules
+
 /**
  * Lifecycle of a **lesson** — the hour, not the people in it.
  *
- * `SCHEDULED` is the only non-terminal state. A lesson auto-completes once its end time passes (the app
- * cannot detect attendance, only the clock). If it did not happen at all, the tutor cancels it, which
- * voids what it billed.
+ * A lesson is scheduled, completed, or cancelled. Auto-completion is an opt-in setting; the app cannot
+ * detect attendance. Transitions and billing rules live in [ClassRules].
  *
- * Note: "moving" a lesson is modelled as an in-place reschedule (it keeps `SCHEDULED` with a new start
- * time), not a separate terminal state — a moved lesson is still a lesson that will happen.
+ * Rescheduling changes the lesson's start time and may change its status; see [ClassRules.move].
  *
  * **Whether one student was there is [Attended], not this.** The two used to be one enum on one row per
  * student, so a group lesson whose absentee was cancelled had no status of its own and had to derive one

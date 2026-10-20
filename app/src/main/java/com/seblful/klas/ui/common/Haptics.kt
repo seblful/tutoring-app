@@ -5,14 +5,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 
-/** he buzz that says a gesture landed — **through the phone's haptics, never a raw [android.os.Vibrator]**. */
+/** The buzz that says a gesture landed — **through the phone's haptics, never a raw [android.os.Vibrator]**. */
 @Composable
 fun rememberConfirmFeedback(): () -> Unit {
     val haptics = LocalHapticFeedback.current
     return remember(haptics) { { haptics.performHapticFeedback(HapticFeedbackType.Confirm) } }
 }
 
-/** he tick that says a drag has reached the mark — **and that letting go now is what does the thing**. */
+/** The tick that says a drag has reached the mark — **and that letting go now is what does the thing**. */
 @Composable
 fun rememberArmedFeedback(): () -> Unit {
     val haptics = LocalHapticFeedback.current
@@ -21,14 +21,14 @@ fun rememberArmedFeedback(): () -> Unit {
     }
 }
 
-/** he buzz that says **no** — the app refused what was just asked for. */
+/** The buzz that says **no** — the app refused what was just asked for. */
 @Composable
 fun rememberRejectFeedback(): () -> Unit {
     val haptics = LocalHapticFeedback.current
     return remember(haptics) { { haptics.performHapticFeedback(HapticFeedbackType.Reject) } }
 }
 
-/** he click of a switch or a tick box, in whichever direction it went. */
+/** The click of a switch or a tick box, in whichever direction it went. */
 @Composable
 fun rememberToggleFeedback(): (Boolean) -> Unit {
     val haptics = LocalHapticFeedback.current

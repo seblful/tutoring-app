@@ -14,10 +14,7 @@ import kotlin.time.Instant
  * something has to pick the hour — and which hour it picks is visible, because the payment list is
  * ordered by instant.
  *
- * This lived in `StudentDetailScreen` as a `LocalDate.asPaymentInstant()` extension, which is the one
- * place in the app that could not be given the injected [WallClock]: it called `LocalDate.now()` and
- * `Instant.now()` directly. So the app's one rule about what time "now" is had an exception exactly
- * where money is recorded, and no test could move the clock past it.
+ * Uses [WallClock] so the recorded instant and the payment dialog share the same notion of today.
  */
 object PaymentDate {
 
@@ -32,12 +29,7 @@ object PaymentDate {
         if (day == today(clock)) clock.now() else day.atStartOfDayIn(clock.zone)
 
     /**
-     * The day a fresh payment dialog opens on — today, by the **same clock** [instantFor] will
-     * compare the answer against. The dialog used to ask the platform directly (`LocalDate.now()` in
-     * a composable), so the two halves of one decision read two clocks: whenever they disagree, a
-     * payment entered as "today" lands at `atStartOfDay` and loses its entry order — exactly the
-     * shuffle [instantFor] exists to prevent — and no test could reach the composable's default to
-     * say so.
+     * The default day for a new payment dialog, using the same clock [instantFor] uses to record it.
      */
     fun today(clock: WallClock): LocalDate = clock.today()
 }

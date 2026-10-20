@@ -132,7 +132,7 @@ class ScheduleViewModel @Inject constructor(
         }
             .derive(this, computation, null)
 
-    /** he students the filter menu offers — the active ones, in the repository's name order. */
+    /** The students the filter menu offers — the active ones, in the repository's name order. */
     val filterableStudents: StateFlow<List<Student>> = students.observeActive().hold(this, emptyList())
 
     /** Narrows the schedule to one student, or shows everyone again with null. */
@@ -315,7 +315,7 @@ class ScheduleViewModel @Inject constructor(
         }
             .derive(this, computation, null)
 
-    /** he lessons **happening right now**, by lesson id — what the schedule badges «Идёт». */
+    /** The lessons **happening right now**, by lesson id — what the schedule badges «Идёт». */
     val running: StateFlow<Set<Long>> =
         combine(content, minutes) { loaded, now ->
             loaded.valueOrNull()?.rowsShown.orEmpty()

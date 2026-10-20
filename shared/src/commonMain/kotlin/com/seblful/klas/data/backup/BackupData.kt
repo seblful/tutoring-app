@@ -164,34 +164,10 @@ data class BackupData(
 ) {
     companion object {
         /**
-         * 2 added groups; **3 gave a group its own hourly rate** (`student_groups.priceMinor`);
-         * **4 gave a group its subject** (`student_groups.subjectId`); **5 carries the rate log**
-         * (`price_history`); **6 splits a class into a lesson and an attendance** — the lesson's hour and
-         * status once per lesson, who was in it and what they owe once per student; **7 carries a
-         * lesson's note** (`lessons.notes`); **8 carries homework** — what a lesson set
-         * (`lessons.homework`) and how each student did it (`attendance.homeworkResult`); **9 gives
-         * homework its own list** ([homework]) and stops carrying notes.
-         *
-         * Older files still import — a v1 has no groups at all, a v2's groups come back priced at 0
-         * for the tutor to re-price, a v3's come back with no subject, a v4's arrive with no rate
-         * history (an empty log), a v5's classes are split on the way in ([splitIntoLessons]), a
-         * v6's lessons come back with no note, a v7's with no homework, and a v8's homework is moved into
-         * its own rows on the way in ([legacyHomework]). A restore otherwise reproduces the file rather
-         * than inventing rows it doesn't contain, so each of those gaps stays a gap. Notes are the one
-         * thing an older file carries that is not restored: the app no longer has them.
-         *
-         * The bump is for the other direction: a v6 file *would* parse in a build that predates the
-         * split — its `classes` list is empty, so it would restore a database with no lessons in it at
-         * all — so that build refuses it instead (see [isSupported]). A v7 file in a v6 build is the
-         * milder version of the same thing: the parser ignores unknown keys, so every note in it would
-         * be dropped in silence. Dropping a tutor's own writing without saying so is exactly what a
-         * version is for, and it is the reason each of 3, 4 and 5 bumped for a single column too — and
-         * 8, whose homework and verdicts a v7 build would drop the same way, and 9, whose homework list a
-         * v8 build would.
-         *
-         * **Schema v10 did not bump it.** Dropping the dead columns only stops a file carrying three keys
-         * that were always blank (`notes`, `homework`, `homeworkResult`); a v9 build reads their absence as
-         * the same blank, so nothing is lost in either direction and there is nothing to refuse.
+         * Bump when an older build could silently discard data in a newer file. Versions before 6 store
+         * flat classes and are converted by [splitIntoLessons]; v8 homework is converted by
+         * [legacyHomework]. Older lesson notes are not restored. Schema v10 removed only fields that were
+         * already blank, so it did not require a backup version bump.
          */
         const val CURRENT_VERSION = 9
 
@@ -205,19 +181,8 @@ data class BackupData(
 }
 
 /**
- * The v1–v5 classes of a file, as the lessons and attendance rows they describe.
- *
- * One lesson per `(groupId, startMillis)`, its status the strictest thing true of all its members
- * ([LessonStatus.PRECEDENCE]), and each member's attendance read off the pair of statuses.
- *
- * **This is the last reader of the pre-v2 shape.** It had a twin in SQL — `MIGRATION_1_2`, doing the same
- * thing to the table these rows were read from — and that went with the migration squash, because no
- * database is below the schema baseline any more (`AppDatabase.BASELINE_VERSION`). A backup **file** is
- * different: one written by an older build is a file on somebody's disk, and it still has to import.
- * `BackupSplitTest` pins what this produces.
- *
- * Ids are preserved: a lesson takes the lowest id of its classes, and every attendance row keeps its
- * class's id, so a charge, a calendar event and any id noted elsewhere all still point where they did.
+ * Converts backup versions 1–5 from flat classes into lessons and attendance. Rows are grouped by
+ * `(groupId, startMillis)`; IDs are preserved, and [LessonStatus.PRECEDENCE] resolves group status.
  */
 fun List<LegacyClass>.splitIntoLessons(): Pair<List<LessonEntity>, List<AttendanceEntity>> {
     // An individual class is its own lesson, so it is keyed by its own id; a group's members share theirs.
@@ -298,15 +263,9 @@ fun BackupData.toSnapshot(): DatabaseSnapshot {
     )
 }
 
-/**
- * The homework a v8 file keeps on its lessons, as the rows v9 keeps it in — the file's twin of
- * `Migrations.MIGRATION_8_9`, by the same rules: one row per lesson that set some and was not called off,
- * a group lesson's for the group and an individual one's for its student, given at the lesson's start,
- * and done if it had a verdict (for a group, once every member had one).
- *
- * Empty for anything else: no other version carries text in a lesson's `homework` — v9 wrote it blank,
- * and this build does not write the key at all. `BackupSplitTest`'s sibling, `BackupLegacyHomeworkTest`,
- * pins what this produces.
+/** Converts v8 lesson homework into rows, excluding cancelled lessons. Group work is assigned to the
+ * group; individual work is assigned to each attendee. A row is done when it has a verdict, or when all
+ * group attendees have verdicts.
  */
 fun legacyHomework(lessons: List<BackupLesson>, attendance: List<BackupAttendance>): List<HomeworkEntity> {
     val members = attendance.groupBy { it.lessonId }

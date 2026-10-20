@@ -349,7 +349,7 @@ fun <T> PresetChips(
         )
     }
 }
-/** ne tappable person in a roster picker — a group's members, or who was at a lesson. */
+/** One tappable person in a roster picker — a group's members, or who was at a lesson. */
 @Composable
 fun MemberPickRow(
     student: Student,
@@ -382,7 +382,7 @@ fun MemberPickRow(
         Checkbox(checked = selected, onCheckedChange = null)
     }
 }
-/** he search field the list screens carry in place of their title while searching. */
+/** The search field the list screens carry in place of their title while searching. */
 @Composable
 fun SearchField(
     query: String,

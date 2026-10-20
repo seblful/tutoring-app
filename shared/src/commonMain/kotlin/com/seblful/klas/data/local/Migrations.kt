@@ -10,36 +10,15 @@ import com.seblful.klas.data.lessons.ClassRow
 import com.seblful.klas.data.settings.SettingsEntity
 
 /**
- * Every way **into** the current schema from a version some phone is still at.
+ * Migrations from [AppDatabase.BASELINE_VERSION] through the current Room schema. Keep them aligned with
+ * exported schemas and the migration rules in the database-and-backup guide.
  *
- * The chain starts at [AppDatabase.BASELINE_VERSION] — the oldest version any `klas.db` can be — and every
- * single step from there to the version `@Database` declares must be here, or Room finds no path and the
- * app either wipes the database (debug) or refuses to open it (release). `MigrationChainTest` fails the
- * build over a missing step, a stale exported schema, and this list not being handed to `addMigrations`.
- *
- * This file existed once before, as four steps from v1, and was deleted: no device had ever held any of the
- * versions it migrated (see [AppDatabase.BASELINE_VERSION] for that argument in full). What is here now is
- * not that. v5 **shipped**, in `0.3.0`, so this step runs on real phones holding real students.
- *
- * The discipline for the next one:
- *
- * - A column added here must carry the same `DEFAULT` its entity declares as `defaultValue`, or Room's
- *   schema validation fails the instant the upgrade completes — a crash on first launch after a Play
- *   update, which is the worst place to find out.
- * - The instrumented tests (`androidTest`) are what prove a step *works*, against the exported schema JSONs
- *   in `shared/schemas/`. Those need a device; the unit test only proves the step is *there*.
- * - **A column is removed by rebuilding its table.** The bundled SQLite has `ALTER TABLE … DROP COLUMN`, but
- *   it refuses an indexed, foreign-key or primary-key column, and v10 was written for Android's own SQLite,
- *   which has none below Android 12. [MIGRATION_9_10] is how: set the old table aside, create the new one
- *   with Room's own DDL, copy every row by name, drop the old, recreate the indices, check the foreign keys.
- *   `MigrationChainTest` holds every table a step rebuilds to the exported schema of the version it ends at.
- * - **The schema has no views since v10**, and should not grow one: Room validates a view after a migration
- *   but never recreates it, so every step touching a column it projected had to rebuild it by hand, with
- *   that version's `SELECT` frozen here — [MIGRATION_6_7] is where that was learned, twice. The steps up to
- *   v9 still do it, and `MigrationChainTest` still holds the view each leaves to its version's schema.
- * - **A step overrides `migrate(SQLiteConnection)`**, never `migrate(SupportSQLiteDatabase)`. The database
- *   is opened through the bundled SQLite driver (`di/DatabaseModule`), and with a driver set Room calls only
- *   the connection overload; one written against the other throws on the phone it was meant to upgrade.
+ * - Added-column SQL defaults must match the entity's `defaultValue`.
+ * - Historical migrations recreate the matching frozen `classes` view when changing its projected columns;
+ *   Room validates views but does not recreate them.
+ * - Rebuild tables with Room's exported DDL, preserving IDs, foreign keys, and `sqlite_sequence`.
+ * - Override `migrate(SQLiteConnection)` for the bundled SQLite driver. Instrumented tests verify each step
+ *   against the exported schemas; `MigrationChainTest` checks that the chain is registered.
  */
 object Migrations {
 
@@ -58,33 +37,8 @@ object Migrations {
     }
 
     /**
-     * v6 → v7: a lesson learns to carry a note, and the settings row learns about the evening digest.
-     *
-     * Three `ADD COLUMN`s and no table rebuild, which is what keeps this safe on API 24 (see the class
-     * KDoc). Every `DEFAULT` here has a twin `defaultValue` on the entity — `''`, `0` and `1260` — and
-     * Room validates the pair the instant the upgrade finishes, so they are written next to each other
-     * deliberately.
-     *
-     * The backfills are all "this install has never had the feature", which is the honest answer in each
-     * case: a lesson taught before the app could hold a note has none, and a tutor who has never been
-     * offered an evening digest has not asked for one. Note the `''` — an empty string literal *inside*
-     * the SQL, not an empty SQL fragment, which is the way this particular default is easy to write
-     * wrongly and have SQLite accept.
-     *
-     * **The `classes` view is recreated here, and that is not optional.** Room *validates* views after a
-     * migration and never recreates them, so a view left projecting the old columns is compared against
-     * the new schema and the upgrade dies with `Migration didn't properly handle: classes` — on first
-     * launch after an update, with everything rolled back. This step shipped that way for one install:
-     * `lessons.notes` was added to the view's shared `SELECT` and to the table, and the view on disk still had
-     * thirteen columns.
-     *
-     * The discipline this adds to the list above: **a migration that changes any column the view projects
-     * recreates the view.** `LessonNotesMigrationTest` reads a lesson back *through* `classes`, which is
-     * what fails when this is forgotten.
-     *
-     * **And it recreates v7's view, not today's** ([CLASSES_VIEW_V7]). This step read the shared `SELECT`
-     * until v8 added two columns to it, and from then on it built the v8 view onto a v7 schema —
-     * `LessonNotesMigrationTest` failed on the first phone it ran on.
+     * v6 → v7 adds lesson notes and evening-digest settings. SQL defaults must match the entities;
+     * [CLASSES_VIEW_V7] preserves the view definition for this schema version.
      */
     val MIGRATION_6_7 = object : Migration(6, 7) {
         override fun migrate(connection: SQLiteConnection) {
@@ -105,17 +59,8 @@ object Migrations {
             "FROM attendance a JOIN lessons l ON l.id = a.lessonId"
 
     /**
-     * v7 → v8: homework — the lesson learns what was set at it, and each student's row learns how they did.
-     *
-     * Two `ADD COLUMN`s, no rebuild. `lessons.homework` defaults to `''`, the twin of its entity's
-     * `defaultValue`, and starts empty on every existing lesson rather than being copied out of the note:
-     * the note was «Заметки и домашнее задание», and guessing which half is which would hand a tutor's
-     * private remarks to the student the homework is now sent to. `attendance.homeworkResult` is nullable
-     * with no `DEFAULT`, which is how Room declares it and what "not checked yet" is stored as.
-     *
-     * **Both columns are projected by the `classes` view, so it is recreated** — the rule [MIGRATION_6_7]
-     * learned on a real phone. `HomeworkMigrationTest` reads a lesson back through the view. It builds v8's
-     * view ([CLASSES_VIEW_V8]), frozen when v9 took the columns back out of the shared one.
+     * v7 → v8 adds homework text and per-student results, both empty for existing rows. Recreate the
+     * matching [CLASSES_VIEW_V8] because the migration changes its projected columns.
      */
     val MIGRATION_7_8 = object : Migration(7, 8) {
         override fun migrate(connection: SQLiteConnection) {
@@ -136,23 +81,9 @@ object Migrations {
             "FROM attendance a JOIN lessons l ON l.id = a.lessonId"
 
     /**
-     * v8 → v9: homework becomes its own table, and the lesson's note goes.
-     *
-     * v8 kept homework on the lesson it was set at, with a verdict per student; the tutor wanted it set
-     * for a student (or a group) from anywhere, and only ever done or not. So:
-     *
-     * - **`homework` is created** exactly as Room declares [HomeworkEntity] — `HomeworkTableMigrationTest`
-     *   validates it column for column.
-     * - **Every lesson's homework moves into it**, one row per lesson: an individual lesson's for its one
-     *   student, a group lesson's for the group. Given at the lesson's start, which attaches it to the
-     *   assignee's next lesson after that one (by v9's rule — any lesson they are in, where v8 kept to the
-     *   same subject and kind). Done if it had a verdict — any verdict, «частично» and «не сделано»
-     *   included, because each meant "checked", and checked is what done means now; for a group, once
-     *   every member had one. A cancelled lesson's is dropped, as v8 already ignored it.
-     * - **The vestigial columns are emptied** — the note, v8's homework text and its verdicts. Left
-     *   holding text, they would still ride every backup file (`BackupData` carries the rows whole) and
-     *   read like data. [MIGRATION_9_10] drops them.
-     * - **The view is recreated**, since it stops projecting all three.
+     * v8 → v9 moves homework into its own table. Each non-cancelled lesson produces one assignment for
+     * its student or group; it is marked done when it has a homework result. The old note and homework
+     * columns are cleared, and the matching view is recreated.
      */
     val MIGRATION_8_9 = object : Migration(8, 9) {
         override fun migrate(connection: SQLiteConnection) {
@@ -198,38 +129,10 @@ object Migrations {
             "FROM attendance a JOIN lessons l ON l.id = a.lessonId"
 
     /**
-     * v9 → v10: the dead columns go, and so does the `classes` view.
-     *
-     * - **`lessons.notes`, `lessons.homework`, `attendance.homeworkResult`** — emptied by [MIGRATION_8_9] and
-     *   written empty ever since — and **`settings.showGroupsTab`**, unread since groups and students share
-     *   a tab. They stayed while removing one meant a table rebuild for a single column; three tables are
-     *   rebuilt here, once, instead of carrying four columns that look like data for good (the first three
-     *   rode every backup file).
-     * - **The view**, replaced by the join written into `ClassDao`'s queries ([CLASS_ROWS], see [ClassRow]).
-     *
-     * **How a table is rebuilt** ([rebuild]): renamed aside to `<table>_v9`, created again with Room's own
-     * v10 DDL, every row copied **by column name, id included**, the old one dropped, its indices created.
-     * The autoincrement high-water mark (`sqlite_sequence`) moves to the new table too, so an id that was
-     * used and then deleted is not handed out a second time.
-     *
-     * **Foreign keys are the hazard**, and `PRAGMA foreign_keys = OFF` — the textbook answer — does nothing
-     * inside the transaction Room runs this in. With them on, `DROP TABLE` first deletes every row and fires
-     * the `ON DELETE` actions, and `attendance` is `ON DELETE CASCADE` from `lessons`: dropping the old
-     * lessons while anything pointed at them would cascade away every attendance row — every charge the
-     * tutor has. So the order makes that impossible whether foreign keys are on or off, and whatever the
-     * SQLite version does to references on a rename (3.26+ rewrites them; older ones only with keys on):
-     *
-     * 1. the old `lessons` is renamed aside first, so nothing is ever *created* pointing at it;
-     * 2. the new `attendance` points at `lessons` — the new one, already holding every lesson;
-     * 3. the old `attendance` is dropped **before** the old `lessons`, so by the time that goes nothing
-     *    refers to it. Dropping a child table cascades nothing.
-     *
-     * `defer_foreign_keys` holds the constraint checks to the commit, and [requireNoOrphans] runs them itself
-     * at the end: a row pointing at nothing fails the step loudly and by name, the whole upgrade rolls back,
-     * and the v9 rows stay on disk for a later build. The view goes first, because a rename (SQLite 3.25+)
-     * rewrites a view naming the table and would leave it reading `lessons_v9`.
-     *
-     * `SchemaCleanupMigrationTest` runs it on a device against a populated v9 database.
+     * v9 → v10 removes cleared legacy columns and replaces the `classes` view with DAO queries. Rebuild
+     * tables using [rebuild], preserving IDs and `sqlite_sequence`. Drop the old attendance table before
+     * the old lessons table: dropping a referenced lesson could cascade-delete attendance rows. Run
+     * [requireNoOrphans] before committing the migration.
      */
     val MIGRATION_9_10 = object : Migration(9, 10) {
         override fun migrate(connection: SQLiteConnection) {

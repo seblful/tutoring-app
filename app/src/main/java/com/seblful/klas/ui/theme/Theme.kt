@@ -99,7 +99,7 @@ data class KlasColors(
     val successContainer: Color,
     /** What is legible on [successContainer]. */
     val onSuccessContainer: Color,
-    /** he amber a lesson **in progress** is badged «Идёт» in (`classPhaseColor`). */
+    /** The amber a lesson **in progress** is badged «Идёт» in (`classPhaseColor`). */
     val live: Color,
     /**
      * Whether the theme in force is the dark one — *the tutor's* answer, for a colour the app mixes itself

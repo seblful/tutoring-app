@@ -7,7 +7,7 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.reports.Taught
 import com.seblful.klas.format.formatHours
 
-/** he «Занятий» tile, shared by the student and group cards because they answer it the same way. */
+/** The «Занятий» tile, shared by the student and group cards because they answer it the same way. */
 @Composable
 fun lessonsStat(totals: Taught.Totals): Stat = Stat(
     label = stringResource(R.string.stat_lessons),

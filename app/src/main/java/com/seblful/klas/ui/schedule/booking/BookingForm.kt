@@ -29,7 +29,7 @@ data class BookingContext(
     val defaultLessonMinutes: Int = DEFAULT_LESSON_MINUTES,
 )
 
-/** very way the booking form can change — the tutor's edits and the answers the app went to look up. */
+/** Every way the booking form can change — the tutor's edits and the answers the app went to look up. */
 sealed interface BookingIntent {
 
     /** Whether this change is the tutor's work, and so makes the form unsaved. */
@@ -73,7 +73,7 @@ sealed interface BookingIntent {
 
     // ---- Answers, not edits --------------------------------------------------------------------
 
-    /** hat the app went to find out, coming back — never the tutor's work, so never an edit. */
+    /** What the app went to find out, coming back — never the tutor's work, so never an edit. */
     sealed interface Answer : BookingIntent {
         override val isEdit: Boolean get() = false
     }
@@ -84,7 +84,7 @@ sealed interface BookingIntent {
      */
     data class DefaultLength(val minutes: Int) : Answer
 
-    /** he only student there is, for a new lesson — with several, the tutor picks and nothing is guessed. */
+    /** The only student there is, for a new lesson — with several, the tutor picks and nothing is guessed. */
     data class OnlyStudent(val student: Student) : Answer
 
     /** The lesson being edited, loaded from the database. Not the tutor's work. */
@@ -135,7 +135,7 @@ data class BookingForm(
     val form: ClassForm = ClassForm(),
     val touched: Boolean = false,
 ) {
-    /** he form after [intent], and anything it now needs looked up. */
+    /** The form after [intent], and anything it now needs looked up. */
     fun change(intent: BookingIntent, context: BookingContext): Applied {
         val moved = transform(intent, context)
         // The tutor's edit marks the form unsaved — but only when it moved something. An intent that

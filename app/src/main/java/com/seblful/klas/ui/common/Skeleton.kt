@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.seblful.klas.ui.common.state.Loadable
 import kotlinx.coroutines.delay
 
-/** hat a screen draws while its state is [Loadable.Loading]. */
+/** What a screen draws while its state is [Loadable.Loading]. */
 @Composable
 fun ListSkeleton(
     modifier: Modifier = Modifier,

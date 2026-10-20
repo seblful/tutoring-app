@@ -12,36 +12,9 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 
 /**
- * What one day of the schedule adds up to: how many lessons are on it, how long they run, and what
- * they come to.
- *
- * The schedule could say which lessons a Tuesday held and not what Tuesday *was*. Counting four rows,
- * adding four durations and four rates is arithmetic the tutor was left to do on the screen that exists
- * to answer "how full is this day" — and the money half of it is the question the app is for.
- *
- * ### The third thing a day is counted as
- *
- * Three types count the same classes and none of them can be substituted for another, so each says
- * which question it answers:
- *
- * - [CalendarLayout.DayLoad] — **one number per status**, for a calendar *cell*: how the day divides.
- * - [Taught.Totals] — a *card's* totals over any span, and deliberately **backward-looking**: `lessons`
- *   and `minutes` count only what was taught, `earned` only what was billed. Right for "what has this
- *   student's year come to", wrong for a day: a tutor opening tomorrow would read «0».
- * - this — **what a day holds**, taught or still to come.
- *
- * ### The money is what the day comes to, billed or not
- *
- * [money] is each class's rate scaled by its length ([ClassRules.chargeFor]) rather than its recorded
- * [charge][com.seblful.klas.domain.model.TutoringClass.charge], because a charge is `Money.ZERO` until
- * the lesson is marked taught. For a lesson that has been, the two are the same number by construction
- * (`ClassRules.rebill` derives one from the other), so this is not a second opinion about billed
- * history — it is the same arithmetic reaching one day earlier.
- *
- * A **cancelled lesson counts for nothing** and is reported separately ([cancelled]): it gave its hour
- * back, which is the whole reason a cancelled card recedes in the list. And within a lesson that did go
- * ahead, only the students who owe for it are summed — an absence that stops a charge
- * ([Attended.bills][com.seblful.klas.domain.model.Attended.bills]) stops this too.
+ * A day's lesson count, teaching time, expected charges, and cancelled lesson count. Group lessons count
+ * once for time and lesson totals; money is summed per student who owes. Cancelled lessons contribute only
+ * to [cancelled].
  *
  * @param lessons lessons the day holds — **not** classes, so a group lesson taught to three is one.
  * @param minutes how long they run: the tutor's time, so that same group lesson counts its 90 minutes
@@ -59,23 +32,8 @@ data class DaySummary(
     val isEmpty: Boolean get() = lessons == 0 && cancelled == 0
 
     /**
-     * What this day's sentence is made of, in order — «4 занятия · 5 ч · 240 BYN» as four decisions rather
-     * than as a string.
-     *
-     * Two rules live here and nowhere else, and both used to be buried in the function that did the
-     * wording (`format/daySummaryText`), which takes `Resources` and therefore could not be reached from a
-     * JVM test:
-     *
-     * - **Empty is empty.** A day with nothing on and nothing called off returns no parts at all, so a
-     *   caller has to decide what "nothing to say" looks like rather than being handed «0 занятий · 0 ч».
-     * - **A day that was entirely called off says only that.** There are no hours and no money on such a
-     *   day, and printing zeroes for them would dress a cancelled day up as a counted one.
-     *
-     * This matters more than an ordinary extraction because the sentence has **two readers** — the
-     * schedule's day heading and the morning digest — and a digest that added a day up differently from
-     * the screen it summarises would be the worst kind of wrong: both numbers plausible, one of them the
-     * tutor's actual morning. That agreement is now a property of a pure value the two share, rather than
-     * of one Android-bound function they both happen to call.
+     * Displayable parts in order. Empty days return no parts; days containing only cancelled lessons
+     * return only the cancellation count. Future scheduled lessons omit money until billed.
      */
     val parts: List<Part>
         get() = when {
@@ -111,11 +69,7 @@ data class DaySummary(
         val NONE = DaySummary(lessons = 0, minutes = 0, money = Money.ZERO, cancelled = 0)
 
         /**
-         * Sums [sessions] — one day's lessons, already collapsed by [SessionRules.sessions].
-         *
-         * Takes sessions rather than classes because every caller has them: the schedule collapses a
-         * day's classes into rows before it draws them, and collapsing twice is what
-         * [Taught.bySessions] exists to avoid.
+     * Summarizes one day's lessons, already collapsed by [SessionRules.sessions].
          */
         fun of(sessions: List<ClassSession>): DaySummary {
             val (off, on) = sessions.partition { it.status == LessonStatus.CANCELLED }

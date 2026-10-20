@@ -228,21 +228,16 @@ object Digests {
     }
 
     /**
-     * The stored minute-past-midnight as a wall-clock time — **total**, like every other read of stored
-     * state in this app (`ClassStatus.parse`, `Currency.parse`).
+     * The stored minute-past-midnight as a wall-clock time, clamped to the day's valid range.
      *
-     * `LocalTime.ofSecondOfDay` throws outside the day, and this is read on a background path where a
-     * throw reports nothing to anybody: the digest would simply stop happening. Clamping puts an
-     * impossible stored value at one end of the day it was trying to name, which is wrong in a way the
-     * tutor can see and correct.
+     * An invalid value is clamped to the nearest end of the day so a malformed setting does not stop
+     * digest scheduling.
      */
     fun timeOf(minuteOfDay: Int): LocalTime =
         LocalTime.fromSecondOfDay(minuteOfDay.coerceIn(0, MINUTES_IN_DAY - 1) * SECONDS_IN_MINUTE)
 
     /**
-     * The stored weekday, **falling back to Monday** — total for [timeOf]'s reason. `DayOfWeek.of` throws
-     * outside 1..7, and a digest that stopped firing because of one bad integer would be a feature
-     * disappearing in silence. Monday is the default the column ships with.
+     * The stored weekday, falling back to Monday when the value is outside 1..7.
      */
     fun dayOfWeekOf(value: Int): DayOfWeek =
         if (value in 1..7) DayOfWeek(value) else DayOfWeek.MONDAY

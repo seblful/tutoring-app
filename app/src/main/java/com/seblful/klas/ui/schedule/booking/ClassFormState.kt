@@ -30,13 +30,11 @@ enum class SubjectNotice {
  * rules about booking a lesson, not about drawing one, and none of them could be tested where they
  * were. Here they are ordinary properties over ordinary data.
  */
-// There is no `isNew` here on purpose. It was a field of this state that nothing ever read: the screen
-// asks `viewModel.isNew` at all five of its sites, and has to, because one of them titles the app bar
-// before this state exists. A copy on a value nobody consults is a second answer waiting to disagree.
+// Keep `isNew` in the view model: the app bar needs it before this state has loaded.
 data class ClassFormState(
     val form: ClassForm = ClassForm(),
     val ending: ClassForm.Ending? = null,
-    /** hat the three pickers **say** — the chosen row's name, resolved, or blank where nothing is chosen. */
+    /** What the three pickers **say** — the chosen row's name, resolved, or blank where nothing is chosen. */
     val studentName: String = "",
     val groupName: String = "",
     val subjectName: String = "",
@@ -107,7 +105,7 @@ data class ClassFormState(
     override val canSave: Boolean
         get() = form.isValid && conflict == null && !allMembersExcluded && !groupHasNoMembers
 
-    /** hat tapping save should do: save, or ask about the income it would destroy first. */
+    /** What tapping save should do: save, or ask about the income it would destroy first. */
     val saveIntent: SaveIntent
         get() = billedDrops.let { if (it > 0) SaveIntent.ConfirmBilledDrops(it) else SaveIntent.Save }
 }
@@ -131,5 +129,5 @@ sealed interface SaveIntent {
     data class ConfirmBilledDrops(val billedLessons: Int) : SaveIntent
 }
 
-/** hat a repeating booking came to, when it could not book all of it. */
+/** What a repeating booking came to, when it could not book all of it. */
 data class SeriesOutcome(val booked: Int, val skipped: List<LocalDate>)

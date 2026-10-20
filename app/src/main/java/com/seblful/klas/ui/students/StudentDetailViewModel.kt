@@ -40,7 +40,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.LocalDate
 
-/** he student's card. */
+/** The student's card. */
 class StudentDetailViewModel @AssistedInject constructor(
     @Assisted savedStateHandle: SavedStateHandle,
     private val students: StudentRepository,

@@ -80,19 +80,8 @@ object Scheduling {
     data class Window(val from: Instant, val toExclusive: Instant)
 
     /**
-     * Which classes a conflict scan for [slot] has to read.
-     *
-     * This used to be a private helper on `ClassRepository`, on the far side of the seam from the rule
-     * it feeds — and that split is what made it untestable. [conflicts] decides whether two spans
-     * overlap; the window decides which classes are ever *offered* to it. Get the window too small and
-     * the rule is never asked, so a lesson already under way when [slot] opens is simply not found and
-     * the hour reads as free. Both halves of one question now live in one module, so a test can pin the
-     * magnitude and not merely the existence: shrinking [LONGEST_LESSON] fails `SchedulingTest`, where
-     * before it left all 647 tests green.
-     *
-     * The window filters on each class's start, which is why it reaches *backwards* at all: a class that
-     * began earlier and is still running when [slot] opens starts outside any window bounded by the slot
-     * itself.
+     * Start-time window for classes that could overlap [slot]. It reaches back by [LONGEST_LESSON] so a
+     * class already in progress when the slot opens is included in the conflict scan.
      */
     fun windowFor(slot: Slot): Window = windowFor(listOf(slot))
 

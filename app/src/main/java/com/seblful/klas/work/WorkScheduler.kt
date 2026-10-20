@@ -25,7 +25,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
-/** he app's time-driven scheduling, split by what each half actually needs. */
+/** The app's time-driven scheduling, split by what each half actually needs. */
 @ContributesBinding(AppScope::class, binding = binding<ReminderScheduler>())
 @ContributesBinding(AppScope::class, binding = binding<DigestScheduler>())
 @SingleIn(AppScope::class)

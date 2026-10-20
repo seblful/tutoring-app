@@ -19,29 +19,9 @@ class KlasApp : Application(), Configuration.Provider, AppGraph.Holder {
             .setWorkerFactory(graph.workerFactory)
             .build()
 
-    // **The application's base context is never wrapped, and must not be.**
-    //
-    // This used to pin it to a language the app has — `super.attachBaseContext(base.inLanguage(…))` — for
-    // the plural rules, since a quantity's form comes from the configuration's locale rather than from the
-    // folder the string was loaded from. It cost every `BroadcastReceiver` in the app.
-    //
-    // `ActivityThread.handleReceiver` instantiates a receiver by casting the application's base context
-    // straight to `ContextImpl`:
-    //
-    //     context = (ContextImpl) app.getBaseContext();
-    //
-    // `LocalizedContext` is a `ContextWrapper`, so that cast threw `ClassCastException` and the receiver
-    // never came into existence — `ReminderReceiver` (so no reminder could ever be posted, whatever the
-    // permission said), `ReminderActionReceiver` (so «Проведено» and «Перенести» did nothing) and
-    // `BootReceiver` (so alarms stayed dead after a restart). The crash is in the framework's own
-    // instantiation path, before `onReceive`, which is why nothing in this app could catch or report it and
-    // why the failure looked exactly like a notification that was never scheduled.
-    //
-    // Nothing is lost by dropping it. The two surfaces that build text from the application context ask for
-    // the language themselves at the moment they use it (`Context.inAppLanguage()` — `AndroidNotifier` and
-    // the calendar mirror's event location), and every screen is handed one by `ProvideLocalizedResources`.
-    // `MainActivity` still pins its own base context, which is safe: an activity is attached to a context
-    // the framework built for it rather than having its wrapper cast back.
+    // Keep the application base context unwrapped: Android casts it to ContextImpl when creating receivers.
+    // A localized ContextWrapper crashed before onReceive, breaking reminders, notification actions, and
+    // reboot recovery. Resolve the app language at each use site; MainActivity can wrap its own context.
 
     override fun onCreate() {
         super.onCreate()

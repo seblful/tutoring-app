@@ -17,7 +17,7 @@ import com.seblful.klas.ui.AppRoot
 import com.seblful.klas.ui.RootViewModel
 import dev.zacsweers.metrox.viewmodel.LocalMetroViewModelFactory
 
-/** he one activity. */
+/** The one activity. */
 class MainActivity : ComponentActivity() {
 
     private val rootViewModel: RootViewModel by viewModels { appGraph.metroViewModelFactory }

@@ -23,7 +23,7 @@ import com.seblful.klas.ui.theme.klasColors
  * `KlasColors` owns the green that means taught. What is here is the mapping onto words.
  */
 
-/** hat a money field says when what was typed will not do — the wording for [MoneyField.Error]. */
+/** What a money field says when what was typed will not do — the wording for [MoneyField.Error]. */
 @Composable
 fun moneyErrorText(field: MoneyField): String? = field.error?.let { error ->
     stringResource(
@@ -56,7 +56,7 @@ fun classStatusColor(status: LessonStatus): Color = when (status) {
     LessonStatus.CANCELLED -> MaterialTheme.colorScheme.error
 }
 
-/** hat a lesson's badge **says**: its status, or «Идёт» while the lesson is being taught. */
+/** What a lesson's badge **says**: its status, or «Идёт» while the lesson is being taught. */
 @Composable
 fun lessonBadgeLabel(status: LessonStatus, running: Boolean): String =
     if (running) stringResource(R.string.class_status_in_progress) else classStatusLabel(status)

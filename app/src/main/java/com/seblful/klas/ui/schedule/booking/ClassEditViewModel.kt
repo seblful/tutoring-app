@@ -98,7 +98,7 @@ class ClassEditViewModel @AssistedInject constructor(
 
     private val defaultMinutes = MutableStateFlow(DEFAULT_LESSON_MINUTES)
 
-    /** he lengths offered as chips, shortest first. */
+    /** The lengths offered as chips, shortest first. */
     val durationOptions: StateFlow<List<Int>> = defaultMinutes
         .map { (COMMON_DURATIONS + it).distinct().sorted() }
         .hold(this, (COMMON_DURATIONS + DEFAULT_LESSON_MINUTES).distinct().sorted())
@@ -481,7 +481,7 @@ class ClassEditViewModel @AssistedInject constructor(
 
         data class Refused(val reason: Event) : SaveOutcome
 
-        /** he lesson was removed while the form was open, so there is nothing to write into. */
+        /** The lesson was removed while the form was open, so there is nothing to write into. */
         data object Gone : SaveOutcome
     }
 

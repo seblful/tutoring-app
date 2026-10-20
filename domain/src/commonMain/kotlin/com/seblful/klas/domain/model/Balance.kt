@@ -27,12 +27,9 @@ package com.seblful.klas.domain.model
 sealed interface Balance {
 
     /**
-     * How much, **always positive** — the number to print, whatever the case is.
+     * The amount to display: zero for [Settled], positive for balances returned by [of].
      *
-     * On the interface rather than on the two cases that obviously have one, because the card that leads
-     * with this figure prints it in the same place in all three states: a settled student reads «Долг 0»,
-     * deliberately, so the card answers the same question in the same spot every time. Without a zero here
-     * that caller would need a fourth branch to invent one.
+     * The interface includes zero so a settled balance can use the same display as credit and debt.
      */
     val amount: Money
 

@@ -89,7 +89,7 @@ private enum class StudentTab(val labelRes: Int, val icon: ImageVector) {
     SUBJECTS(R.string.student_subjects_title, KlasIcons.Outlined.MenuBook),
 }
 
-/** he card, once there is a student to draw one for. */
+/** The card, once there is a student to draw one for. */
 @Composable
 fun StudentDetailScreen(
     onBack: () -> Unit,

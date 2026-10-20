@@ -28,7 +28,7 @@ class PaymentRepository @Inject constructor(
     fun observeForStudent(studentId: Long): Flow<List<Payment>> =
         dao.observeForStudent(studentId).map { list -> list.map { it.toDomain() } }
 
-    /** he day a fresh payment is offered on — today, by the same clock [record] will stamp it against. */
+    /** The day a fresh payment is offered on — today, by the same clock [record] will stamp it against. */
     fun today(): LocalDate = PaymentDate.today(clock)
 
     /** ecords [amount] from [studentId] as having been made on [day]. Returns the new row's id. */

@@ -135,7 +135,7 @@ fun NoSearchResults(modifier: Modifier = Modifier) {
         modifier = modifier,
     )
 }
-/** he one way to add to a tab's list, sitting at its top where a section header's action used to. */
+/** The one way to add to a tab's list, sitting at its top where a section header's action used to. */
 @Composable
 fun AddRow(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     TextButton(

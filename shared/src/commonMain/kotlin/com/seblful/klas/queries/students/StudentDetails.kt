@@ -77,7 +77,7 @@ data class StudentDetails(
             return allSubjects.filter { it.id !in priced }
         }
 
-    /** he lessons tab's rows under [filter]. */
+    /** The lessons tab's rows under [filter]. */
     fun lessonsShown(filter: LessonFilter): List<ClassRow> =
         if (hasBothKinds) filter.accepted(classes) { it.kind } else classes
 
@@ -88,7 +88,7 @@ data class StudentDetails(
      */
     val lastPaymentAt: Instant? get() = payments.maxOfOrNull { it.date }
 
-    /** hat the archive action should do, given what this student is carrying. */
+    /** What the archive action should do, given what this student is carrying. */
     val archiveIntent: ArchiveIntent
         get() = when {
             student == null -> ArchiveIntent.Nothing

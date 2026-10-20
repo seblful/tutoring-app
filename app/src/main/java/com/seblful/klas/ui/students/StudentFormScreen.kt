@@ -150,12 +150,7 @@ private fun SubjectPrices(
         subjects.forEach { subject ->
             val selected = subject.id in state.selectedSubjectIds
             val price = form.subjectPrices[subject.id] ?: MoneyField()
-            // **The tick and the rate stack; they no longer share a row.** The price field was a
-            // fixed 140 dp beside a checkbox and a subject name, which is a third of a 360 dp phone
-            // spent on a box before the name gets any — and at a large font scale the name was
-            // squeezed to an ellipsis while «Цена» kept every dp of its own. Stacked, the name has
-            // the whole width and the rate has the whole width, at every scale, and the field's
-            // indent is what says the rate belongs to the subject above it.
+            // Keep the price field below the subject row so names remain readable at larger font scales.
             Column(Modifier.fillMaxWidth()) {
                 Row(
                     Modifier

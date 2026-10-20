@@ -94,7 +94,7 @@ enum class CalendarDelivery {
     }
 }
 
-/** hat turning the reminder setting on owes the platform. */
+/** What turning the reminder setting on owes the platform. */
 sealed interface NotificationsIntent {
 
     /** Nothing to ask: it was switched off, or the permission is already granted. */
