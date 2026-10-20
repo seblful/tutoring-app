@@ -133,6 +133,56 @@ class HomeworkCalendarTest {
     }
 
     @Test
+    fun `homework writes leave events of lessons before it was given untouched`() = runTest {
+        fixtures.withCalendarSync()
+        val subject = fixtures.subject()
+        val student = fixtures.pricedStudent(subjectId = subject)
+        val past = fixtures.completedLesson(subject, listOf(student), env.clock.now() - 1.days).single()
+        val next = fixtures.lesson(subject, listOf(student), tomorrow).single()
+        env.calendar.calls.clear()
+        env.calendar.refreshes.clear()
+
+        val homework = repo.give(Assignee.Student(student), "Exercise 12")
+        repo.setDone(homework, done = true)
+
+        assertEquals("", description(next))
+        assertTrue(env.calendar.refreshes.none { it.klass.id == past })
+        assertTrue(env.calendar.calls.none { it.klass.id == past })
+    }
+
+    @Test
+    fun `booking a lesson leaves events of lessons before the homework was given untouched`() = runTest {
+        fixtures.withCalendarSync()
+        val subject = fixtures.subject()
+        val student = fixtures.pricedStudent(subjectId = subject)
+        val past = fixtures.completedLesson(subject, listOf(student), env.clock.now() - 1.days).single()
+        repo.give(Assignee.Student(student), "Exercise 12")
+        env.calendar.refreshes.clear()
+
+        val next = fixtures.lesson(subject, listOf(student), tomorrow).single()
+
+        assertEquals("Exercise 12", description(next))
+        assertTrue(env.calendar.refreshes.none { it.klass.id == past })
+    }
+
+    @Test
+    fun `renaming the student or the subject keeps homework on the event`() = runTest {
+        fixtures.withCalendarSync()
+        val subject = fixtures.subject()
+        val student = fixtures.pricedStudent(subjectId = subject)
+        val lesson = fixtures.lesson(subject, listOf(student), tomorrow).single()
+        repo.give(Assignee.Student(student), "Exercise 12")
+
+        env.studentRepo.upsert(env.studentRepo.getById(student)!!.copy(name = "Анна"))
+        assertTrue("Анна" in env.calendar.calls.last { it.klass.id == lesson }.title)
+        assertEquals("Exercise 12", description(lesson))
+
+        env.subjectRepo.upsert(env.subjectRepo.getById(subject)!!.copy(name = "Геометрия"))
+        assertTrue("Геометрия" in env.calendar.calls.last { it.klass.id == lesson }.title)
+        assertEquals("Exercise 12", description(lesson))
+    }
+
+    @Test
     fun `homework saved with sync off is backfilled without enabling email invitations`() = runTest {
         val subject = fixtures.subject()
         val student = fixtures.pricedStudent(subjectId = subject, email = "anya@example.com")

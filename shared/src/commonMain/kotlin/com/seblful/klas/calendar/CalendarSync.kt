@@ -31,14 +31,16 @@ interface CalendarSync {
         title: String,
         guest: Guest? = null,
         reminderLeadMinutes: Int = Reminders.DEFAULT_LEAD_MINUTES,
-        description: String = "",
+        description: String,
     ): String?
 
     /**
      * Writes [klass]'s current fields to the event it is already mirrored by — and does **nothing at
      * all** if there is no such event.
+     *
+     * @param description as for [upsert]; empty clears homework the event no longer carries.
      */
-    suspend fun refresh(klass: TutoringClass, title: String, description: String = "")
+    suspend fun refresh(klass: TutoringClass, title: String, description: String)
 
     /** Removes the mirrored event if it still exists. */
     suspend fun delete(eventId: String)

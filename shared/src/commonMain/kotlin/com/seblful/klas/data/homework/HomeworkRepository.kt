@@ -92,7 +92,7 @@ class HomeworkRepository @Inject constructor(
     suspend fun give(assignee: Assignee, text: String): Homework {
         val homework = Homework(assignee = assignee, text = text.trim(), givenAt = clock.now())
         val saved = homework.copy(id = dao.insert(homework.toEntity()))
-        refreshCalendar(setOf(assignee))
+        refreshCalendar(setOf(assignee), saved.givenAt)
         return saved
     }
 
@@ -105,13 +105,13 @@ class HomeworkRepository @Inject constructor(
         val previous = dao.getById(homework.id)?.toDomain()?.assignee ?: homework.assignee
         val row = homework.copy(assignee = assignee).toEntity()
         dao.edit(homework.id, row.studentId, row.groupId, text.trim())
-        refreshCalendar(setOf(previous, assignee))
+        refreshCalendar(setOf(previous, assignee), homework.givenAt)
     }
 
     /** Marks [homework] done now — into the archive — or, with [done] false, current again. */
     suspend fun setDone(homework: Homework, done: Boolean) {
         dao.setDone(homework.id, if (done) clock.now().toEpochMilliseconds() else null)
-        refreshCalendar(setOf(currentAssignee(homework)))
+        refreshCalendar(setOf(currentAssignee(homework)), homework.givenAt)
     }
 
     /**
@@ -121,26 +121,26 @@ class HomeworkRepository @Inject constructor(
      */
     suspend fun putBack(homework: Homework) {
         dao.setDone(homework.id, homework.doneAt?.toEpochMilliseconds())
-        refreshCalendar(setOf(currentAssignee(homework)))
+        refreshCalendar(setOf(currentAssignee(homework)), homework.givenAt)
     }
 
     suspend fun delete(homework: Homework) {
         val assignee = currentAssignee(homework)
         dao.deleteById(homework.id)
-        refreshCalendar(setOf(assignee))
+        refreshCalendar(setOf(assignee), homework.givenAt)
     }
 
     /** Puts a just-deleted [homework] back as it was, id included — the snackbar's undo. */
     suspend fun restore(homework: Homework) {
         dao.insert(homework.toEntity())
-        refreshCalendar(setOf(homework.assignee))
+        refreshCalendar(setOf(homework.assignee), homework.givenAt)
     }
 
     private suspend fun currentAssignee(homework: Homework): Assignee =
         dao.getById(homework.id)?.toDomain()?.assignee ?: homework.assignee
 
-    private suspend fun refreshCalendar(assignees: Set<Assignee>) {
-        runCatchingCancellable { calendar.refreshHomework(assignees) }
+    private suspend fun refreshCalendar(assignees: Set<Assignee>, givenAt: Instant) {
+        runCatchingCancellable { calendar.refreshHomework(assignees, givenAt) }
     }
 
     private fun earliestCurrent(homework: List<Homework>, since: Instant): Instant =

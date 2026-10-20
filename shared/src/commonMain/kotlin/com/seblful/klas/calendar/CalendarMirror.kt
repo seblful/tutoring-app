@@ -19,8 +19,9 @@ import com.seblful.klas.runCatchingCancellable
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlin.time.Instant
 
-/** verything the device calendar shows, and every table that decides it. */
+/** Everything the device calendar shows, and every table that decides it. */
 @SingleIn(AppScope::class)
 class CalendarMirror @Inject constructor(
     private val classDao: ClassDao,
@@ -34,7 +35,7 @@ class CalendarMirror @Inject constructor(
     private val homeworkDao: HomeworkDao,
 ) {
 
-    /** eflects [classes] into the calendar under one snapshot of the settings. */
+    /** Reflects [classes] into the calendar under one snapshot of the settings. */
     suspend fun mirror(classes: List<TutoringClass>, removed: List<TutoringClass> = emptyList()) {
         if (classes.isEmpty() && removed.isEmpty()) return
         mirror(classes, settings.get(), changed = classes + removed)
@@ -48,11 +49,15 @@ class CalendarMirror @Inject constructor(
         if (!settings.calendarSyncEnabled) return
         val homework = homeworkDao.getAll().map { it.toDomain() }.filterNot { it.isDone }
         val allClasses = if (homework.isEmpty()) emptyList() else classDao.getAll().map { it.toDomain() }
-        // Moving, cancelling or deleting a lesson can move homework onto a different existing event.
-        val affected = homework.map { it.assignee }.distinct().filter { who -> changed.any { who.takes(it) } }
+        // Moving, cancelling or deleting a lesson can move homework onto a different existing event —
+        // only one starting after that homework was given, so earlier events are left alone.
+        val affected = homework.groupBy { it.assignee }
+            .filterKeys { who -> changed.any { who.takes(it) } }
+            .mapValues { (_, theirs) -> theirs.minOf { it.givenAt } }
         val mirroredIds = classes.mapTo(mutableSetOf()) { it.id }
         val related = allClasses.filter { klass ->
-            klass.calendarEventId != null && klass.id !in mirroredIds && affected.any { it.takes(klass) }
+            klass.calendarEventId != null && klass.id !in mirroredIds &&
+                affected.any { (who, since) -> klass.start > since && who.takes(klass) }
         }
         val attached = homework.groupBy { HomeworkRules.attachedTo(it, allClasses)?.lessonId }
         (classes + related).forEach {
@@ -115,9 +120,12 @@ class CalendarMirror @Inject constructor(
     /** Refreshes the events naming [groupId], whose name is what makes n overlapping events one lesson. */
     suspend fun refreshForGroup(groupId: Long) = refreshWhere { it.groupId == groupId }
 
-    /** Refreshes both owners after a reassignment, including events whose homework has been cleared. */
-    suspend fun refreshHomework(assignees: Set<Assignee>) =
-        refreshWhere { klass -> assignees.any { it.takes(klass) } }
+    /**
+     * Refreshes the events of homework given at [givenAt] — both owners after a reassignment, including
+     * events it has just left. Only lessons starting after [givenAt] can carry it.
+     */
+    suspend fun refreshHomework(assignees: Set<Assignee>, givenAt: Instant) =
+        refreshWhere { klass -> klass.start > givenAt && assignees.any { it.takes(klass) } }
 
     private suspend fun refreshWhere(matches: (TutoringClass) -> Boolean) {
         val settings = settings.get()

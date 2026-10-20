@@ -11,6 +11,7 @@ The database drives both mirrors; neither writes changes back into Klas.
 - Event descriptions include current homework attached to that lesson: the student's own assignments
   and homework for that group lesson, oldest first. Other students' individual assignments are excluded.
   Homework changes refresh existing events; lesson changes also refresh events whose assignments move.
+  Only lessons starting after the homework was given are rewritten, since no earlier one can carry it.
   Empty descriptions clear homework that was completed, removed or attached to a different lesson.
 - An absent member of a scheduled lesson has no event, billed or not. Marking them present re-creates
   it; attendance no longer affects this policy once the lesson is completed.
