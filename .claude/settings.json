@@ -1,0 +1,20 @@
+{
+  "enabledPlugins": {
+    "material-3@material-3-skill": true,
+    "android-skills@android-skills": true
+  },
+  "extraKnownMarketplaces": {
+    "material-3-skill": {
+      "source": {
+        "source": "github",
+        "repo": "hamen/material-3-skill"
+      }
+    },
+    "android-skills": {
+      "source": {
+        "source": "github",
+        "repo": "android/skills"
+      }
+    }
+  }
+}
