@@ -6,7 +6,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.Money
 import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.AvatarStack
 import com.seblful.klas.ui.common.ContentCard
@@ -50,16 +52,26 @@ private fun StatRowPreview() = PreviewSurface {
         listOf(
             Stat(label = "Занятий", value = "128", hint = "впереди 3"),
             Stat(label = "Часов", value = "192,5"),
-            Stat(label = "Заработано", value = "12 480,50 BYN"),
+            Stat(label = "Заработано", value = "12 480,50 \u20C5"),
         ),
     )
     Text("Ученик", style = MaterialTheme.typography.labelSmall)
     StatRow(
         listOf(
             Stat(label = "Занятий", value = "24", hint = "8 ч"),
-            Stat(label = "Заработано", value = "1 250,50 BYN"),
+            Stat(label = "Заработано", value = "1 250,50 \u20C5"),
         ),
     )
+}
+
+@KlasPreview
+@Composable
+private fun CurrencySymbolsPreview() = PreviewSurface {
+    Currency.entries.forEach { currency ->
+        val amount = Money(150050).format(currency, ',', ' ')
+        Text(amount, style = MaterialTheme.typography.bodyLarge)
+        Text(amount, style = MaterialTheme.typography.titleLarge)
+    }
 }
 
 /**
@@ -114,8 +126,8 @@ private fun ContentCardPreview() = PreviewSurface {
 @KlasPreview
 @Composable
 private fun HeroCardPreview() = PreviewSurface {
-    HeroCard(label = "Заработано за июнь", value = "3 480,00 BYN")
-    HeroCard(label = "Долг", value = "240,00 BYN", tonal = true) {
+    HeroCard(label = "Заработано за июнь", value = "3 480,00 \u20C5")
+    HeroCard(label = "Долг", value = "240,00 \u20C5", tonal = true) {
         Text("за 4 занятия", style = MaterialTheme.typography.bodyMedium)
     }
 }

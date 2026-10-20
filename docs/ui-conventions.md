@@ -46,8 +46,11 @@ Build screens from shared state and controls. Feature rules belong in the domain
 
 ## Formatting and appearance
 
-- Display money via `Money.money()` (`16 037,50 BYN`, `16,037.50 USD`); seed inputs with ungrouped
+- Display money via `Money.money()` (`16 037,50 ₽`, `16,037.50 $`); seed inputs with ungrouped
   `amount()` because `parseMoneyOrNull` treats a comma as decimal. CSV uses ungrouped amounts.
+- BYN uses the official vector sign at provisional [U+20C5](https://www.unicode.org/alloc/Pipeline.html),
+  embedded in all Golos Text weights. After replacing fonts or editing `art/belarusian_ruble.svg`, run
+  `uv run --with fonttools art/add_byn_glyph.py`. System notifications fall back to `BYN`.
 - Apply `AppLanguage` with `ProvideLocalizedResources`, never `Locale.setDefault()`. `StringCoverageTest`
   checks resource parity; language changes re-sync baked calendar text.
 - Phone settings govern 12/24-hour time and week start, independent of app language; ask the application

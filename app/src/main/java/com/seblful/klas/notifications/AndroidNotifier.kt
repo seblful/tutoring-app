@@ -19,6 +19,7 @@ import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.format.DisplayLocale
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.daySummaryText
+import com.seblful.klas.format.forSystemFont
 import com.seblful.klas.format.formatTime
 import com.seblful.klas.format.inLanguage
 import com.seblful.klas.format.money
@@ -173,7 +174,7 @@ class AndroidNotifier @Inject constructor(
         val summary = daySummaryText(words.resources, agenda.summary, currency, displayLocale.current).orEmpty()
 
         val notification = builder(CHANNEL_AGENDA, R.string.agenda_title)
-            .setContentText(summary)
+            .setContentText(summary.forSystemFont())
             .setStyle(style)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(openDay(ID_AGENDA, agenda.day))
@@ -215,7 +216,7 @@ class AndroidNotifier @Inject constructor(
             debts.total.money(currency, displayLocale.current),
         )
         val notification = builder(CHANNEL_DEBTS, R.string.debts_title)
-            .setContentText(body)
+            .setContentText(body.forSystemFont())
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             // Straight to the report that lists them, where each debt row opens the student — the tray can
             // say how much is owed in total and nothing at all about by whom.
@@ -233,7 +234,7 @@ class AndroidNotifier @Inject constructor(
             billed.money(currency, displayLocale.current),
         )
         val notification = builder(CHANNEL_UPKEEP, R.string.upkeep_completed_title)
-            .setContentText(body)
+            .setContentText(body.forSystemFont())
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setContentIntent(openDay(ID_UPKEEP, day))
             .build()

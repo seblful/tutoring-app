@@ -10,25 +10,25 @@ class MoneyTest {
 
     @Test
     fun `formats whole units without decimals`() {
-        assertEquals("1 500 BYN", Money.ofMajor(1500).format(Currency.BYN, ',', ' '))
+        assertEquals("1 500 \u20C5", Money.ofMajor(1500).format(Currency.BYN, ',', ' '))
     }
 
     @Test
     fun `formats minor units with two decimal places`() {
-        assertEquals("1 500,50 BYN", Money(150050).format(Currency.BYN, ',', ' '))
-        assertEquals("0,05 BYN", Money(5).format(Currency.BYN, ',', ' '))
+        assertEquals("1 500,50 \u20C5", Money(150050).format(Currency.BYN, ',', ' '))
+        assertEquals("0,05 \u20C5", Money(5).format(Currency.BYN, ',', ' '))
     }
 
     @Test
     fun `formats negative amounts with a leading sign`() {
-        assertEquals("-300 BYN", Money.ofMajor(-300).format(Currency.BYN, ',', ' '))
-        assertEquals("-1 300 BYN", Money.ofMajor(-1300).format(Currency.BYN, ',', ' '))
+        assertEquals("-300 \u20C5", Money.ofMajor(-300).format(Currency.BYN, ',', ' '))
+        assertEquals("-1 300 \u20C5", Money.ofMajor(-1300).format(Currency.BYN, ',', ' '))
     }
 
     @Test
     fun `the decimal separator is the caller's`() {
-        assertEquals("1,500.50 USD", Money(150050).format(Currency.USD, '.', ','))
-        assertEquals("1 500,50 USD", Money(150050).format(Currency.USD, ',', ' '))
+        assertEquals("1,500.50 $", Money(150050).format(Currency.USD, '.', ','))
+        assertEquals("1 500,50 $", Money(150050).format(Currency.USD, ',', ' '))
         assertEquals("-0.50", Money(-50).amountText('.'))
         assertEquals("1500", Money.ofMajor(1500).amountText('.'), "a whole amount has no separator to write")
     }
@@ -58,7 +58,7 @@ class MoneyTest {
     fun `a currency only labels the amount`() {
         val amount = Money(150050)
         assertEquals(
-            Currency.entries.map { "1 500,50 ${it.name}" },
+            listOf("1 500,50 \u20C5", "1 500,50 ₽", "1 500,50 $", "1 500,50 €"),
             Currency.entries.map { amount.format(it, ',', ' ') },
         )
     }

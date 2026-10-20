@@ -552,10 +552,10 @@
     <string name="settings_dynamic_color">Colours from wallpaper</string>
     <string name="settings_dynamic_color_desc">Take the shades from your phone\'s wallpaper instead of the app\'s own colours</string>
     <!-- All four are ISO codes rather than symbols — see the `Currency` enum for why. -->
-    <string name="currency_byn">BYN</string>
-    <string name="currency_rub">RUB</string>
-    <string name="currency_usd">USD</string>
-    <string name="currency_eur">EUR</string>
+    <string name="currency_byn">\u20C5</string>
+    <string name="currency_rub">₽</string>
+    <string name="currency_usd">$</string>
+    <string name="currency_eur">€</string>
     <string name="settings_currency_change">Change</string>
     <string name="settings_currency_change_confirm">Amounts are not converted at any exchange rate: prices, payments and reports will simply start showing in %1$s. The numbers themselves stay as they are.</string>
     <string name="minutes_short">%1$d&#160;min</string>

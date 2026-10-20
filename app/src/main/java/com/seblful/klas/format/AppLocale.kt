@@ -51,10 +51,13 @@ object AppLocale {
 fun Money.amount(): String = amountText(AppLocale.decimalSeparator)
 
 /**
- * The amount as it is **shown**, captioned with [currency], in the app's language — `16 037,50 BYN`,
- * `16,037.50 USD`. Every display of money goes through this, so an amount cannot render two ways.
+ * The amount as it is **shown**, captioned with [currency], in the app's language — `16 037,50 ₽`,
+ * `16,037.50 $`. Every display of money goes through this, so an amount cannot render two ways.
  */
 fun Money.money(currency: Currency, locale: Locale = AppLocale.current): String {
     val symbols = DecimalFormatSymbols.getInstance(locale)
     return format(currency, symbols.decimalSeparator, symbols.groupingSeparator)
 }
+
+/** System notification fonts cannot render the bundled Belarusian ruble glyph. */
+fun String.forSystemFont(): String = replace(Currency.BYN.symbol, Currency.BYN.name)

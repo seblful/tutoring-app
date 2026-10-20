@@ -83,7 +83,7 @@ private fun SectionTitlePreview() = PreviewSurface {
 private fun NestedRowPreview() = PreviewSurface {
     SectionCard {
         SectionTitle("Занятия", modifier = Modifier.padding(start = Spacing.gutter, top = Spacing.gutter))
-        LessonRow(date = "Сб, 4 окт · 10:00", status = LessonStatus.COMPLETED, amount = "40,00 BYN")
+        LessonRow(date = "Сб, 4 окт · 10:00", status = LessonStatus.COMPLETED, amount = "40,00 \u20C5")
         LessonRow(date = "Ср, 8 окт · 18:30", status = LessonStatus.SCHEDULED, amount = null)
         ListItem(
             headlineContent = { Text("Все занятия") },

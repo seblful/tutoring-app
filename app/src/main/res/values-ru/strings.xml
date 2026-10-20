@@ -672,10 +672,10 @@
     <string name="language_russian">Русский</string>
     <string name="language_english">English</string>
     <!-- Все четыре — коды ISO, а не символы; почему именно так, сказано в перечислении `Currency`. -->
-    <string name="currency_byn">BYN</string>
-    <string name="currency_rub">RUB</string>
-    <string name="currency_usd">USD</string>
-    <string name="currency_eur">EUR</string>
+    <string name="currency_byn">\u20C5</string>
+    <string name="currency_rub">₽</string>
+    <string name="currency_usd">$</string>
+    <string name="currency_eur">€</string>
     <string name="settings_currency_change">Сменить</string>
     <string name="settings_currency_change_confirm">Суммы не пересчитываются по курсу: цены, платежи и отчёты просто начнут отображаться в %1$s. Сами числа останутся прежними.</string>
     <string name="minutes_short">%1$d&#160;мин</string>

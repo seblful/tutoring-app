@@ -7,7 +7,7 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
 
 - Money uses integer minor units, never floats. Typed rates/payments stop at `Money.MAX`; duration-based
   charges can exceed that input ceiling.
-- Currency is a display label (`BYN|RUB|USD|EUR`), never a conversion; print its ISO code. A fresh install
+- Currency is a display label (`BYN|RUB|USD|EUR`), never a conversion; display its symbol. A fresh install
   uses the phone's region. Decimal separators follow app language, not currency.
 - Each class books an editable hourly rate, initially the student's/group's. Later rate changes leave
   existing classes untouched.

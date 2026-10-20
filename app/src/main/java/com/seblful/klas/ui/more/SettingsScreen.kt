@@ -416,7 +416,7 @@ private fun SettingsList(
 
         SectionHeader(stringResource(R.string.settings_section_money))
         // Asks first, because the change is a **re-labelling and not a conversion**: money is
-        // stored as minor units and the code is only what gets printed beside them, so 100 BYN of
+        // stored as minor units and the symbol is only what gets printed beside them, so 100 BYN of
         // recorded history begins reading as 100 RUB. That is the right behaviour for an offline
         // app — inventing an exchange rate would be worse, and rewriting billed history worse
         // still — but it is not what "сменить валюту" leads a tutor to expect, so it is said out

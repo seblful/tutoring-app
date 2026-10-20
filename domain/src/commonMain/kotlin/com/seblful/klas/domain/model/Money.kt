@@ -4,7 +4,7 @@ import kotlin.jvm.JvmInline
 
 /**
  * An amount of money, stored as an integer number of minor units (kopecks, cents) to avoid
- * floating-point rounding. Displayed with the currency's ISO code after it, e.g. `1 500 BYN`.
+ * floating-point rounding. Displayed with the currency's symbol after it, e.g. `1 500 ₽`.
  *
  * **The amount carries no currency**, deliberately: which one it is captioned with is a display setting
  * ([Currency]), so the same stored number reads as rubles or as dollars without being touched.
@@ -57,9 +57,9 @@ value class Money(val minor: Long) : Comparable<Money> {
         return "$sign$grouped$fraction"
     }
 
-    /** Formats as an amount in [currency], e.g. `1 500 BYN` or `1,500.50 USD`. See [displayText]. */
+    /** Formats as an amount in [currency], e.g. `1 500 ₽` or `1,500.50 $`. See [displayText]. */
     fun format(currency: Currency, decimal: Char, grouping: Char): String =
-        "${displayText(decimal, grouping)} ${currency.name}"
+        "${displayText(decimal, grouping)} ${currency.symbol}"
 
     companion object {
         val ZERO = Money(0)

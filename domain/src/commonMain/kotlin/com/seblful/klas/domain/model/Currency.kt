@@ -1,11 +1,12 @@
 package com.seblful.klas.domain.model
 
 /** Currency names are persisted; switching currency relabels stored amounts but never converts them. */
-enum class Currency {
-    BYN,
-    RUB,
-    USD,
-    EUR,
+enum class Currency(val symbol: String) {
+    // Provisionally assigned by Unicode; the app bundles the glyph in its fonts.
+    BYN("\u20C5"),
+    RUB("₽"),
+    USD("$"),
+    EUR("€"),
     ;
 
     companion object {

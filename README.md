@@ -2,7 +2,7 @@
 
 A native Android app for a **single private tutor**: students, groups, lessons, homework, payments and
 debts. The database stays on your device; no backend or account. Calendar sync and sharing are optional.
-Russian and English UI, Material 3, and amounts labelled **BYN**, **RUB**, **USD** or **EUR**.
+Russian and English UI, Material 3, and currency symbols for Belarusian rubles, Russian rubles, dollars and euros.
 
 > Application ID: `com.seblful.klas` · launcher label: **Klas**
 

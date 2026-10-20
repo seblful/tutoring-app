@@ -23,7 +23,7 @@ val LocalCurrency = compositionLocalOf { Currency.BYN }
 @ReadOnlyComposable
 fun Money.text(): String = money(LocalCurrency.current)
 
-/** The human name of [currency] — words only; the legal set is [Currency]'s. */
+/** The symbol of [currency], including the bundled Belarusian ruble glyph. */
 @Composable
 @ReadOnlyComposable
 fun currencyLabel(currency: Currency): String = stringResource(

@@ -38,7 +38,7 @@ struct PilotView: View {
                 } header: {
                     Text("Book a lesson")
                 } footer: {
-                    Text("Math · 30 USD per hour")
+                    Text("Math · 30 $ per hour")
                 }
 
                 if let message = model.errorMessage {

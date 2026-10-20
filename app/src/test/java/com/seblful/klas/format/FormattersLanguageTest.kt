@@ -76,13 +76,13 @@ class FormattersLanguageTest {
     fun `money is written with the language's decimal separator, whatever the currency`() {
         inLanguage(AppLocaleRule.RUSSIAN) {
             assertEquals(',', AppLocale.decimalSeparator)
-            assertEquals("1 500,50 USD", Money(150050).money(Currency.USD))
+            assertEquals("1 500,50 $", Money(150050).money(Currency.USD))
             assertEquals("1500,50", Money(150050).amount())
             assertEquals("-0,50", Money(-50).toAmountInput())
         }
         inLanguage(AppLocaleRule.ENGLISH) {
             assertEquals('.', AppLocale.decimalSeparator)
-            assertEquals("1,500.50 BYN", Money(150050).money(Currency.BYN))
+            assertEquals("1,500.50 \u20C5", Money(150050).money(Currency.BYN))
             assertEquals("1500.50", Money(150050).amount())
             assertEquals("-0.50", Money(-50).toAmountInput())
         }
@@ -97,13 +97,22 @@ class FormattersLanguageTest {
     fun `a shown amount is grouped in thousands and a typed one reads back as itself`() {
         val total = Money(1_603_750)
         inLanguage(AppLocaleRule.RUSSIAN) {
-            assertEquals("16 037,50 BYN", total.money(Currency.BYN))
+            assertEquals("16 037,50 \u20C5", total.money(Currency.BYN))
             assertEquals(total, parseMoneyOrNull(total.toAmountInput()))
         }
         inLanguage(AppLocaleRule.ENGLISH) {
-            assertEquals("16,037.50 USD", total.money(Currency.USD))
+            assertEquals("16,037.50 $", total.money(Currency.USD))
             assertEquals(total, parseMoneyOrNull(total.toAmountInput()))
         }
+    }
+
+    @Test
+    fun `system text uses a readable fallback for the bundled sign`() {
+        val locale = AppLocaleRule.ENGLISH
+        assertEquals("1,500.50 BYN", Money(150050).money(Currency.BYN, locale).forSystemFont())
+        assertEquals("1,500.50 ₽", Money(150050).money(Currency.RUB, locale).forSystemFont())
+        assertEquals("1,500.50 $", Money(150050).money(Currency.USD, locale).forSystemFont())
+        assertEquals("1,500.50 €", Money(150050).money(Currency.EUR, locale).forSystemFont())
     }
 
     /** An hour count is a number too, and was the one place the comma was written into the arithmetic. */
