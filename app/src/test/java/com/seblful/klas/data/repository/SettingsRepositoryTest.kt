@@ -1,12 +1,16 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.data.local.SettingsDao
-import com.seblful.klas.data.local.SettingsEntity
+import com.seblful.klas.data.settings.AppSettings
+import com.seblful.klas.data.settings.SettingsDao
+import com.seblful.klas.data.settings.SettingsEntity
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.format.AppLocale
+import com.seblful.klas.format.DisplayLocale
+import com.seblful.klas.format.toDevicePreferences
 import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.testutil.RussianMinskPhone
 import com.seblful.klas.testutil.TestDatabase
@@ -32,11 +36,6 @@ import kotlin.time.Instant
 @RunWith(RobolectricTestRunner::class)
 class SettingsRepositoryTest {
 
-    /**
-     * Reading the row **writes** `AppLocale.current`, which is process-wide — so this class is one of the
-     * ones that has to put it back, or which language the next test class formats a date in would depend on
-     * the order JUnit happened to run them in.
-     */
     @get:Rule
     val locale = AppLocaleRule.russian()
 
@@ -44,7 +43,7 @@ class SettingsRepositoryTest {
     val database = TestDatabase()
 
     private val dao = database.db.settingsDao()
-    private val repo = SettingsRepository(dao, RussianMinskPhone)
+    private val repo = SettingsRepository(dao, RussianMinskPhone.toDevicePreferences())
 
     @Test
     fun `a missing row reads as the defaults`() = runTest {
@@ -62,9 +61,9 @@ class SettingsRepositoryTest {
 
     @Test
     fun `a phone with no row is captioned in its own currency`() = runTest {
-        val american = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-US")))
-        val german = SettingsRepository(dao, listOf(Locale.forLanguageTag("de-DE")))
-        val unknown = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-GB")))
+        val american = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-US")).toDevicePreferences())
+        val german = SettingsRepository(dao, listOf(Locale.forLanguageTag("de-DE")).toDevicePreferences())
+        val unknown = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-GB")).toDevicePreferences())
 
         assertEquals(Currency.USD, american.get().currency)
         assertEquals(Currency.EUR, german.get().currency)
@@ -73,7 +72,7 @@ class SettingsRepositoryTest {
 
     @Test
     fun `the first write persists the currency the phone named`() = runTest {
-        val repo = SettingsRepository(dao, listOf(Locale.forLanguageTag("de-DE")))
+        val repo = SettingsRepository(dao, listOf(Locale.forLanguageTag("de-DE")).toDevicePreferences())
 
         repo.update { it.copy(onboardingComplete = true) }
 
@@ -81,28 +80,32 @@ class SettingsRepositoryTest {
     }
 
     @Test
-    fun `reading the row publishes the locale everything formats in`() = runTest {
+    fun `language state updates without changing the foreground locale`() = runTest {
+        val display = DisplayLocale(repo, RussianMinskPhone.toDevicePreferences())
+        AppLocale.current = Locale.ROOT
         repo.update { it.copy(language = AppLanguage.ENGLISH) }
-        assertEquals(Locale.forLanguageTag("en"), AppLocale.current)
+        assertEquals(Locale.forLanguageTag("en"), display.current)
 
         repo.update { it.copy(language = AppLanguage.RUSSIAN) }
-        assertEquals(Locale.forLanguageTag("ru"), AppLocale.current)
+        assertEquals(Locale.forLanguageTag("ru"), display.current)
 
         repo.update { it.copy(language = AppLanguage.SYSTEM) }
-        assertEquals(Locale.forLanguageTag("ru"), AppLocale.current)
+        assertEquals(Locale.forLanguageTag("ru"), display.current)
 
         AppLocale.current = Locale.ROOT
         repo.observe().first()
-        assertEquals("observing publishes it too", Locale.forLanguageTag("ru"), AppLocale.current)
+        assertEquals(AppLanguage.SYSTEM, repo.language.value)
+        assertEquals("persistence does not change presentation globals", Locale.ROOT, AppLocale.current)
     }
 
     @Test
     fun `system resolves against the phone the app is on`() = runTest {
-        val american = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-US")))
+        val american = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-US")).toDevicePreferences())
 
         american.update { it.copy(language = AppLanguage.SYSTEM) }
 
-        assertEquals(Locale.forLanguageTag("en"), AppLocale.current)
+        val display = DisplayLocale(american, listOf(Locale.US).toDevicePreferences())
+        assertEquals(Locale.forLanguageTag("en"), display.current)
     }
 
     @Test
@@ -174,7 +177,7 @@ class SettingsRepositoryTest {
     @Test
     fun `two concurrent updates do not lose one another`() = runTest {
         val dao = SuspendingSettingsDao()
-        val repo = SettingsRepository(dao, RussianMinskPhone)
+        val repo = SettingsRepository(dao, RussianMinskPhone.toDevicePreferences())
 
         val first = launch { repo.update { it.copy(currency = Currency.RUB) } }
         val second = launch { repo.update { it.copy(reminderLeadMinutes = 30) } }
@@ -189,7 +192,7 @@ class SettingsRepositoryTest {
     @Test
     fun `an update is not lost by one that started while it was reading`() = runTest {
         val dao = SuspendingSettingsDao()
-        val repo = SettingsRepository(dao, RussianMinskPhone)
+        val repo = SettingsRepository(dao, RussianMinskPhone.toDevicePreferences())
 
         val enabling = launch { repo.update { it.copy(calendarSyncEnabled = true) } }
         val theming = launch { repo.update { it.copy(themeMode = ThemeChoice.DARK) } }

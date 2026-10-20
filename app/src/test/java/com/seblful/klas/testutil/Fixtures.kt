@@ -1,10 +1,11 @@
 package com.seblful.klas.testutil
 
-import com.seblful.klas.data.local.AttendanceEntity
-import com.seblful.klas.data.local.LessonEntity
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.lessons.AttendanceEntity
+import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.lessons.LessonEntity
 import com.seblful.klas.data.local.upsertedId
+import com.seblful.klas.data.people.StudentEntity
+import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode

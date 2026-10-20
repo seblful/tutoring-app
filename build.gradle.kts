@@ -7,6 +7,7 @@ buildscript {
 
 plugins {
     alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.android.multiplatform.library) apply false
     alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.kotlin.serialization) apply false
@@ -25,6 +26,9 @@ subprojects {
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
     configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
         version = ktlintVersion
+        filter {
+            exclude { it.file.invariantSeparatorsPath.contains("/build/generated/") }
+        }
     }
 
     apply(plugin = "dev.detekt")

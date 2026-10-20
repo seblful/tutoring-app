@@ -1,6 +1,6 @@
 package com.seblful.klas.ui.groups
 
-import com.seblful.klas.data.local.StudentEntity
+import com.seblful.klas.data.people.StudentEntity
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv

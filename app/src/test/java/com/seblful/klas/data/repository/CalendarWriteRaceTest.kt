@@ -1,7 +1,9 @@
 package com.seblful.klas.data.repository
 
+import com.seblful.klas.calendar.CalendarMirror
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
+import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus

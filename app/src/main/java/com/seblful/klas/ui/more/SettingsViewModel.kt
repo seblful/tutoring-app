@@ -3,20 +3,17 @@ package com.seblful.klas.ui.more
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.klas.calendar.CalendarPermission
-import com.seblful.klas.data.repository.AppSettings
-import com.seblful.klas.data.repository.CalendarMirror
-import com.seblful.klas.data.repository.SettingsChange
-import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.data.settings.AppSettings
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
-import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.notifications.ExactAlarmPermission
 import com.seblful.klas.notifications.NotificationPermission
+import com.seblful.klas.settings.SettingsWorkflow
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.write
-import com.seblful.klas.work.Maintenance
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
@@ -34,9 +31,7 @@ import kotlinx.coroutines.launch
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class SettingsViewModel @Inject constructor(
     private val settings: SettingsRepository,
-    private val calendar: CalendarMirror,
-    private val reminders: ReminderScheduler,
-    private val maintenance: Maintenance,
+    private val workflow: SettingsWorkflow,
     private val calendarPermission: CalendarPermission,
     private val notificationPermission: NotificationPermission,
     private val exactAlarms: ExactAlarmPermission,
@@ -137,29 +132,9 @@ class SettingsViewModel @Inject constructor(
      * whatever the change owes the world outside the row.
      */
     fun update(transform: (AppSettings) -> AppSettings) {
-        appScope.write(failed, Unit) { apply(transform) }
-    }
-
-    private suspend fun apply(transform: (AppSettings) -> AppSettings) {
-        val change = settings.update(transform)
-        when (change.calendarWork) {
-            SettingsChange.CalendarWork.RESYNC -> calendar.resyncAll()
-            SettingsChange.CalendarWork.WITHDRAW -> calendar.clear()
-            SettingsChange.CalendarWork.NONE -> Unit
-        }
-        // One call answers both, because both are discharged by an upkeep pass: it re-derives the
-        // reminder plan and re-plans the digests from the row that has just been written.
-        if (change.replansReminders || change.replansDigests) reminders.refreshNow()
-        // Run here and now, rather than by asking the scheduler to get round to it: the tutor is
-        // standing in front of the switch they just flipped, and the pass has to be able to report
-        // back. It re-derives the reminder plan too, so it subsumes the refresh above.
-        //
-        // `run` and not `runUnwatched`: this pass **is** watched, and reporting it twice — once in the
-        // snackbar the tutor is looking at and once in the notification tray — would be the app
-        // telling them something they had just been told.
-        if (change.sweepsDueLessons) {
-            val settled = maintenance.run()
-            if (settled.lessons > 0) swept.send(settled.lessons)
+        appScope.write(failed, Unit) {
+            val lessons = workflow.update(transform)
+            if (lessons > 0) swept.send(lessons)
         }
     }
 
@@ -174,7 +149,7 @@ class SettingsViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            val backlog = maintenance.dueForCompletion()
+            val backlog = workflow.dueForCompletion()
             if (backlog > 0) _pendingSweep.value = backlog
             else update { it.copy(autoCompleteEnabled = true) }
         }

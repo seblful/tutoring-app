@@ -69,25 +69,37 @@ class MigrationChainTest {
     @Test
     fun `the migrations are wired into the database that ships`() {
         assertEquals(
-            "Migrations.kt is not what Room reads — DatabaseModule's builder is. A chain that exists " +
+            "Android must use the shared database configuration",
+            true,
+            databaseModuleSource.contains("buildDatabase("),
+        )
+        assertEquals(
+            "Migrations.kt is not what Room reads — the shared database builder is. A chain that exists " +
                 "but is never passed to `addMigrations` leaves every upgrade with no path at all, " +
                 "which is exactly the state having written the migration is supposed to rule out.",
             declaredVersion > baselineVersion,
-            databaseModuleSource.contains("addMigrations"),
+            databaseFactorySource.contains("addMigrations(*Migrations.ALL)"),
         )
     }
 
     @Test
     fun `a release build has no destructive path`() {
-        if (!databaseModuleSource.contains("fallbackToDestructiveMigration")) return
         assertEquals(
-            "DatabaseModule calls fallbackToDestructiveMigration without an `if (debugBuild)` guard, " +
+            "Destructive fallback belongs to the shared factory's guarded option",
+            false,
+            databaseModuleSource.contains("fallbackToDestructiveMigration"),
+        )
+        if (!databaseFactorySource.contains("fallbackToDestructiveMigration")) return
+        assertEquals(
+            "The shared factory enables destructive migration without a default-off host option, " +
                 "so a release build would answer a missing migration by dropping every table. Keep " +
                 "the guard (rename it here if the flag is now called something else) — a release " +
                 "build must fail to open a database it cannot migrate, leaving the rows on disk for " +
                 "the next build to migrate properly.",
             true,
-            databaseModuleSource.contains("if (debugBuild)"),
+            databaseFactorySource.contains("if (allowDestructiveMigration)") &&
+                databaseFactorySource.contains("allowDestructiveMigration: Boolean = false") &&
+                databaseModuleSource.contains("allowDestructiveMigration = debugBuild"),
         )
     }
 
@@ -152,7 +164,7 @@ class MigrationChainTest {
             }
             assertEquals(
                 "MIGRATION_${migration.startVersion}_$to creates a table or index that is not v$to's exported one. " +
-                    "Copy the statement from app/schemas/…/$to.json (with the table's name for \${TABLE_NAME}).",
+                    "Copy the statement from shared/schemas/…/$to.json (with the table's name for \${TABLE_NAME}).",
                 emptyList<String>(),
                 created - declared,
             )
@@ -287,6 +299,10 @@ class MigrationChainTest {
 
     private val databaseModuleSource: String by lazy {
         SourceText.code(ProjectFiles.sourceFile("di/DatabaseModule.kt").readText())
+    }
+
+    private val databaseFactorySource: String by lazy {
+        SourceText.code(ProjectFiles.sourceFile("data/local/DatabaseFactory.kt").readText())
     }
 
     private fun schemaFile(version: Int): File =

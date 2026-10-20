@@ -1,7 +1,7 @@
 package com.seblful.klas.ui.schedule
 
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.people.StudentEntity
+import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.lesson.DeleteWarning
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attended

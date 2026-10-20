@@ -1,5 +1,7 @@
 package com.seblful.klas.data.repository
 
+import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.lessons.LessonWrite
 import com.seblful.klas.data.local.Transactor
 import com.seblful.klas.domain.lesson.SessionEdit
 import com.seblful.klas.domain.model.ClassMode

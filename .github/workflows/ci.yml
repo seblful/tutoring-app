@@ -54,7 +54,7 @@ jobs:
       # :domain is Kotlin Multiplatform, so its suite is the JVM target's `jvmTest`, not a per-variant
       # Includes unit tests and screenshot comparisons for every @Preview.
       - name: Unit and screenshot tests
-        run: ./gradlew :domain:jvmTest :app:verifyRoborazziDebug --stacktrace
+        run: ./gradlew :domain:jvmTest :shared:jvmTest :app:verifyRoborazziDebug --stacktrace
 
       - name: Upload screenshot diffs
         if: failure()
@@ -99,5 +99,55 @@ jobs:
             app/build/test-results/
             domain/build/reports/tests/
             domain/build/test-results/
+            shared/build/reports/tests/
+            shared/build/test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+      - name: Select an available iOS simulator
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+
+          available = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "--json"]))
+          devices = [
+              device
+              for runtime, entries in sorted(available["devices"].items(), reverse=True)
+              if ".iOS-" in runtime
+              for device in entries
+              if device["isAvailable"] and device["name"].startswith("iPhone")
+          ]
+          if not devices:
+              raise SystemExit("No available iPhone simulator on this runner")
+          with open(os.environ["GITHUB_ENV"], "a") as env:
+              env.write("KMP_IOS_SIMULATOR_ID=" + devices[0]["udid"] + "\n")
+          PY
+      - name: Compile iOS device code and run common tests on iOS
+        run: ./gradlew :shared:compileKotlinIosArm64 :domain:iosSimulatorArm64Test :shared:iosSimulatorArm64Test --stacktrace
+      - name: Upload iOS test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-reports
+          path: |
+            domain/build/reports/tests/
+            domain/build/test-results/
+            shared/build/reports/tests/
+            shared/build/test-results/
           retention-days: 14
           if-no-files-found: ignore

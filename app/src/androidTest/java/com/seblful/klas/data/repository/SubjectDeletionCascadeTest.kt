@@ -5,20 +5,26 @@ import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.seblful.klas.calendar.CalendarMirror
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
+import com.seblful.klas.data.billing.PaymentEntity
+import com.seblful.klas.data.billing.PriceEntity
+import com.seblful.klas.data.billing.RateChangeEntity
+import com.seblful.klas.data.billing.RateHistoryRepository
+import com.seblful.klas.data.lessons.AttendanceEntity
+import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.lessons.LessonEntity
 import com.seblful.klas.data.local.AppDatabase
-import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.DatabaseSnapshot
-import com.seblful.klas.data.local.GroupEntity
-import com.seblful.klas.data.local.LessonEntity
-import com.seblful.klas.data.local.PaymentEntity
-import com.seblful.klas.data.local.PriceEntity
-import com.seblful.klas.data.local.RateChangeEntity
 import com.seblful.klas.data.local.RoomTransactor
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.data.local.StudentSubjectCrossRef
-import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.people.GroupEntity
+import com.seblful.klas.data.people.GroupRepository
+import com.seblful.klas.data.people.StudentEntity
+import com.seblful.klas.data.people.StudentSubjectCrossRef
+import com.seblful.klas.data.people.SubjectEntity
+import com.seblful.klas.data.people.SubjectRepository
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.domain.billing.Billing
 import com.seblful.klas.domain.model.Attended
@@ -27,6 +33,7 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.format.toDevicePreferences
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.testutil.RussianMinskPhone
 import kotlinx.coroutines.test.runTest
@@ -71,7 +78,7 @@ class SubjectDeletionCascadeTest {
         )
         val mirror = CalendarMirror(
             db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(),
-            noCalendar, SettingsRepository(db.settingsDao(), RussianMinskPhone),
+            noCalendar, SettingsRepository(db.settingsDao(), RussianMinskPhone.toDevicePreferences()),
         )
         val transactor = RoomTransactor(db)
         val classes = ClassRepository(

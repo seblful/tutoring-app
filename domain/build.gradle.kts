@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest
 
 // Keep domain rules in commonMain so platform APIs cannot enter the shared module.
 plugins {
@@ -24,6 +25,10 @@ kotlin {
             implementation(kotlin("test"))
         }
     }
+}
+
+tasks.withType<KotlinNativeSimulatorTest>().configureEach {
+    providers.environmentVariable("KMP_IOS_SIMULATOR_ID").orNull?.let { device.set(it) }
 }
 
 // Compile common metadata on JVM builds to catch platform-specific calls on every host.

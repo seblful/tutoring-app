@@ -16,10 +16,11 @@ import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.reminders.Digests
+import com.seblful.klas.format.DisplayLocale
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.daySummaryText
 import com.seblful.klas.format.formatTime
-import com.seblful.klas.format.inAppLanguage
+import com.seblful.klas.format.inLanguage
 import com.seblful.klas.format.money
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -34,9 +35,10 @@ class AndroidNotifier @Inject constructor(
     @param:ApplicationContext private val context: Context,
 
     private val permission: NotificationPermission,
+    private val displayLocale: DisplayLocale,
 ) : Notifier {
 
-    private val words: Context get() = context.inAppLanguage()
+    private val words: Context get() = context.inLanguage(displayLocale.current)
 
     override fun ensureChannels() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -107,7 +109,7 @@ class AndroidNotifier @Inject constructor(
         // *on* the phone — it is only "not a screen" in the sense that this class draws it, and the
         // first pass at following the system clock drew the line there and missed this. A lesson booked
         // at 9:00 PM was announced as «21:00»: one clock to set it on and another to be reminded of it.
-        val time = klass.start.formatTime(hour12 = hour12())
+        val time = klass.start.formatTime(hour12 = hour12(), locale = displayLocale.current)
         val headline = bulletJoin(time, subjectName, whoName)
         // In the expanded text only: the collapsed line stays the lesson, which is what the tray is sorted by
         // at a glance, and the homework is what the tutor opens it to read.
@@ -168,7 +170,7 @@ class AndroidNotifier @Inject constructor(
 
         // The same sentence the schedule prints under the day it names — see [daySummaryText]. Never
         // null here: `Agenda.isWorthPosting` has already refused an empty day, and it is the only way in.
-        val summary = daySummaryText(words.resources, agenda.summary, currency).orEmpty()
+        val summary = daySummaryText(words.resources, agenda.summary, currency, displayLocale.current).orEmpty()
 
         val notification = builder(CHANNEL_AGENDA, R.string.agenda_title)
             .setContentText(summary)
@@ -210,7 +212,7 @@ class AndroidNotifier @Inject constructor(
 
         val body = bulletJoin(
             words.resources.getQuantityString(R.plurals.students_count, debts.students, debts.students),
-            debts.total.money(currency),
+            debts.total.money(currency, displayLocale.current),
         )
         val notification = builder(CHANNEL_DEBTS, R.string.debts_title)
             .setContentText(body)
@@ -228,7 +230,7 @@ class AndroidNotifier @Inject constructor(
 
         val body = bulletJoin(
             words.resources.getQuantityString(R.plurals.lessons_count, lessons, lessons),
-            billed.money(currency),
+            billed.money(currency, displayLocale.current),
         )
         val notification = builder(CHANNEL_UPKEEP, R.string.upkeep_completed_title)
             .setContentText(body)
@@ -255,7 +257,11 @@ class AndroidNotifier @Inject constructor(
         val style = NotificationCompat.InboxStyle()
         val hour12 = hour12()
         posting.lines.forEach { entry ->
-            style.addLine(bulletJoin(entry.start.formatTime(hour12 = hour12), entry.subject, entry.who))
+            style.addLine(
+                bulletJoin(
+                    entry.start.formatTime(hour12 = hour12, locale = displayLocale.current), entry.subject, entry.who,
+                ),
+            )
         }
         if (posting.more > 0) {
             style.setSummaryText(words.getString(R.string.agenda_more, posting.more))

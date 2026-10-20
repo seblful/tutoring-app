@@ -1,20 +1,18 @@
 # Architecture
 
 Room is the source of truth. Calendar events and notifications are best-effort mirrors, never inputs.
-MVVM lives in `:app`; pure rules live in `:domain` (`commonMain`). The compiler rejects Android/JDK
-APIs in the domain. Dates use kotlinx-datetime; instants/durations use `kotlin.time`. Device time
-crosses through `WallClock`; locales cross as BCP 47 tags and currency codes.
+MVVM and Android integrations live in `:app`. Shared persistence and workflows live in `:shared`;
+pure rules live in `:domain`. Both libraries use Kotlin Multiplatform with iOS targets. Shared common
+sources reject Android/JDK APIs. Dates use kotlinx-datetime; instants/durations use `kotlin.time`.
+Device preferences cross as BCP 47 tags and ISO currency codes.
 
 ```mermaid
 flowchart TB
-    UI[Compose screens + ViewModels] --> Repos[Repositories]
-    UI --> Domain
-    Repos --> Domain[Domain: pure rules]
-    Repos --> Room[(Room DB)]
-    Repos --> Cal[CalendarSync port]
-    Work[WorkManager workers] --> Repos
-    Work --> Notif[Notifier]
-    Cal -.-> Device[Device calendar → provider sync]
+    App["app: Android UI, workers and adapters"] --> Shared["shared: repositories and workflows"]
+    Shared --> Domain["domain: models and pure rules"]
+    Shared --> Room[(Room DB)]
+    Shared --> Ports[Calendar, notifications and documents]
+    App -. implements .-> Ports
 ```
 
 ## Where code goes
@@ -24,11 +22,12 @@ Paths below are inside `com.seblful.klas`; follow the linked sources for individ
 | Location | Responsibility |
 |---|---|
 | [Domain](../domain/src/commonMain/kotlin/com/seblful/klas/domain/) | Models and pure lesson, scheduling, billing, report, homework, people and reminder rules. |
-| [Data](../app/src/main/java/com/seblful/klas/data/) | Room entities/DAOs, mappers, repositories and backup format. `SnapshotDao` alone exposes whole-table operations. |
-| [Calendar](../app/src/main/java/com/seblful/klas/calendar/) / [notifications](../app/src/main/java/com/seblful/klas/notifications/) | Device ports, Android adapters, permission prompts, tray actions and navigation. |
-| [Work](../app/src/main/java/com/seblful/klas/work/) | Maintenance, digests, boot/clock-change rescheduling and worker creation. |
-| [Storage](../app/src/main/java/com/seblful/klas/storage/) / [diagnostics](../app/src/main/java/com/seblful/klas/diagnostics/) | Document storage/sharing ports and a capped local crash log. |
-| [Format](../app/src/main/java/com/seblful/klas/format/) | Locale, money/date/time formatting and device preferences; `java.time` stays here. |
+| [Shared data](../shared/src/commonMain/kotlin/com/seblful/klas/data/) | Room types and repositories grouped by people, lessons, billing, homework and settings. Backup format lives in `backup/`; `local/` owns the database, migrations and transactional snapshots. |
+| [Shared settings](../shared/src/commonMain/kotlin/com/seblful/klas/settings/) / [maintenance](../shared/src/commonMain/kotlin/com/seblful/klas/maintenance/) | Settings side effects and upkeep, independent of screens and background scheduling. |
+| [Shared calendar](../shared/src/commonMain/kotlin/com/seblful/klas/calendar/) / [notifications](../shared/src/commonMain/kotlin/com/seblful/klas/notifications/) / [storage](../shared/src/commonMain/kotlin/com/seblful/klas/storage/) | Calendar mirroring, reminder/digest posting decisions and device interfaces. |
+| [Android calendar](../app/src/main/java/com/seblful/klas/calendar/) / [notifications](../app/src/main/java/com/seblful/klas/notifications/) / [work](../app/src/main/java/com/seblful/klas/work/) | Device adapters, permission prompts, tray navigation, receivers and WorkManager scheduling. |
+| [Android storage](../app/src/main/java/com/seblful/klas/storage/) / [diagnostics](../app/src/main/java/com/seblful/klas/diagnostics/) | Document picker/sharing adapters and a capped local crash log. |
+| [Shared format](../shared/src/commonMain/kotlin/com/seblful/klas/format/) / [Android format](../app/src/main/java/com/seblful/klas/format/) | Portable exact amount parsing and observable-clock interface; Android owns localized display and device preferences. |
 | [UI](../app/src/main/java/com/seblful/klas/ui/) | Screens and view models by feature; shared atoms/state in `common/`, routes in `navigation/`, booking in `schedule/booking/`. Feature-only parts stay with their feature. |
 | [DI](../app/src/main/java/com/seblful/klas/di/) | Metro graph and platform bindings. `KlasApp` owns the graph/upkeep; `MainActivity` hosts `AppRoot`. |
 
@@ -42,11 +41,21 @@ Paths below are inside `com.seblful.klas`; follow the linked sources for individ
 | `GroupRepository` | Only writer of group membership. |
 | `HomeworkRepository` | Only writer of homework; no mirror/refresh phase because reminders read homework when firing. |
 | `PaymentRepository` | Payment dates, corrections and derived instants. |
-| `SettingsRepository` | Serialized `update {}` returns required side effects; owns default currency/display locale. |
+| `SettingsRepository` | Serialized `update {}` returns required side effects and publishes portable language state. Device currency defaults arrive through `DevicePreferences`. |
+| `SettingsWorkflow` | Applies a settings update, calendar changes and maintenance; returns the number of lessons settled. Permission prompts and confirmation remain with the host UI. |
 | `StudentRepository` / `SubjectRepository` | Archiving cancels a student's planned lessons; subject deletion requires no references. |
 
 A write spanning tables is one `Transactor.transaction`, including conflict reads guarding the write.
 Order: pure rules → transactional rows → calendar/reminders after commit.
+
+`buildDatabase` owns the bundled driver and migration chain. Platform source sets supply database
+builders; only the Android debug host opts into destructive migration. Keep exported schemas under
+`shared/schemas/` and preserve the existing database name and backup keys when moving code.
+
+Android `RootViewModel` publishes the foreground `AppLocale` before its settings reach screens.
+Background calendar and notification adapters resolve `DisplayLocale` directly from shared language
+state, so formatting does not depend on a screen collecting settings. `ObservableWallClock` supplies
+zone-change events; fixed clocks emit their chosen zone once.
 
 View models observe repository `Flow`s and expose read-only `StateFlow`. Reads use `viewModelScope`;
 writes use injected `@ApplicationScope` through `write`/`writeAwaited`, so saves outlive screens.
@@ -69,3 +78,7 @@ in [the version catalog](../gradle/libs.versions.toml).
   Navigation arguments require assisted `SavedStateHandle`, a nested factory and `assistedMetroViewModel()`.
 - Test graphs replace bindings with `excludes` (`StoreGraph`). `KlasGraphTest` checks runtime discovery
   of view models, workers and manifest receivers.
+
+To add another host, provide `DevicePreferences`, device-interface implementations and a platform
+database builder. Keep shared constructors independent of Android graph types. Shared UI is a separate
+choice; the Android feature packages can keep evolving while persistence and workflows are reused.

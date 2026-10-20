@@ -1,7 +1,7 @@
 package com.seblful.klas.ui.students
 
 import androidx.lifecycle.SavedStateHandle
-import com.seblful.klas.data.local.StudentEntity
+import com.seblful.klas.data.people.StudentEntity
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.MutableClock
 import com.seblful.klas.testutil.TestEnv

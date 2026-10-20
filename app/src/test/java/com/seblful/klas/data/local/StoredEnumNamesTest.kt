@@ -1,5 +1,18 @@
 package com.seblful.klas.data.local
 
+import com.seblful.klas.data.billing.PaymentEntity
+import com.seblful.klas.data.billing.PriceEntity
+import com.seblful.klas.data.billing.RateChangeEntity
+import com.seblful.klas.data.homework.HomeworkEntity
+import com.seblful.klas.data.lessons.AttendanceEntity
+import com.seblful.klas.data.lessons.ClassRow
+import com.seblful.klas.data.lessons.LessonEntity
+import com.seblful.klas.data.people.GroupEntity
+import com.seblful.klas.data.people.GroupMemberCrossRef
+import com.seblful.klas.data.people.StudentEntity
+import com.seblful.klas.data.people.StudentSubjectCrossRef
+import com.seblful.klas.data.people.SubjectEntity
+import com.seblful.klas.data.settings.SettingsEntity
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
@@ -127,7 +140,7 @@ class StoredEnumNamesTest {
 
     @Test
     fun `every status literal in the DAO SQL names a real status`() {
-        val sql = ProjectFiles.sourceFile("data/local/Daos.kt").readText()
+        val sql = ProjectFiles.daoSources().joinToString("\n") { it.readText() }
         val literals = Regex("""status\s*=\s*'([A-Za-z_]+)'""").findAll(sql).map { it.groupValues[1] }.toList()
 
         assertTrue(

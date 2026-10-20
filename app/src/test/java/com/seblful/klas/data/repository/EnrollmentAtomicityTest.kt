@@ -1,7 +1,8 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.people.EnrollmentRepository
+import com.seblful.klas.data.people.StudentEntity
+import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money

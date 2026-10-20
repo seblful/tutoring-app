@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.seblful.klas.data.backup.BackupFailure
 import com.seblful.klas.data.backup.BackupManager
 import com.seblful.klas.data.backup.BackupRestore
-import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today

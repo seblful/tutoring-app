@@ -5,21 +5,25 @@ import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.seblful.klas.calendar.CalendarMirror
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
+import com.seblful.klas.data.billing.PriceEntity
+import com.seblful.klas.data.lessons.AttendanceEntity
+import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.lessons.LessonEntity
 import com.seblful.klas.data.local.AppDatabase
-import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.DatabaseSnapshot
-import com.seblful.klas.data.local.LessonEntity
-import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.RoomTransactor
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.people.StudentEntity
+import com.seblful.klas.data.people.SubjectEntity
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.billing.Billing
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.format.toDevicePreferences
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.testutil.RussianMinskPhone
 import kotlinx.coroutines.test.runTest
@@ -62,7 +66,7 @@ class AutoCompleteTest {
                 prices = listOf(PriceEntity(1, 1, amountMinor = 5000)), // 50 BYN
             ),
         )
-        val settings = SettingsRepository(db.settingsDao(), RussianMinskPhone)
+        val settings = SettingsRepository(db.settingsDao(), RussianMinskPhone.toDevicePreferences())
         val mirror = CalendarMirror(
             db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(), noCalendar, settings,
         )

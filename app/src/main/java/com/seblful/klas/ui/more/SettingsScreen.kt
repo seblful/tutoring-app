@@ -24,7 +24,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.calendar.rememberCalendarPermissionRequest
-import com.seblful.klas.data.repository.AppSettings
+import com.seblful.klas.data.settings.AppSettings
+import com.seblful.klas.data.settings.SettingsChange
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.ThemeChoice

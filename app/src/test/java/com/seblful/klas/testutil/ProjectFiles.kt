@@ -46,11 +46,12 @@ object ProjectFiles {
     fun moduleFile(relative: String): File = moduleFileOrNull(relative)
         ?: error("Could not find `$relative` from ${System.getProperty("user.dir")}")
 
-    /** A source file under [SOURCE_ROOT], e.g. `data/local/Daos.kt`, or null when absent. */
+    /** An Android or shared common source file, relative to its package root. */
     fun sourceFileOrNull(relative: String): File? = moduleFileOrNull("$SOURCE_ROOT/$relative")
+        ?: siblingModuleFileOrNull("shared", "src/commonMain/kotlin/com/seblful/klas/$relative")
 
     /**
-     * A source file under [SOURCE_ROOT], e.g. `data/local/Daos.kt`. A test reading one is asserting
+     * An Android or shared common source file, e.g. `data/lessons/LessonsDaos.kt`. A test asserts
      * something about the source text, so the failure names the file: if it moved, the test has to be
      * pointed at wherever it now lives rather than quietly finding nothing.
      */
@@ -60,14 +61,17 @@ object ProjectFiles {
     /**
      * Every `.kt` file under [SOURCE_ROOT] — for a test asserting something about the app's own shape.
      *
-     * Both modules: `app` and the pure-Kotlin `domain` beside it, which shares the package. A scan for
-     * something that must not reappear anywhere would otherwise stop looking at the domain the day it
-     * moved out of `app`.
+     * Includes shared common and platform sources and the domain, so moving code between modules
+     * cannot bypass a repository-wide check.
      */
     fun sources(): List<File> {
         val roots = listOf(
             moduleFileOrNull(SOURCE_ROOT),
             siblingModuleFileOrNull(DOMAIN_MODULE, DOMAIN_SOURCE_ROOT),
+            siblingModuleFileOrNull("shared", DOMAIN_SOURCE_ROOT),
+            siblingModuleFileOrNull("shared", "src/androidMain/kotlin/com/seblful/klas"),
+            siblingModuleFileOrNull("shared", "src/iosMain/kotlin/com/seblful/klas"),
+            siblingModuleFileOrNull("shared", "src/jvmMain/kotlin/com/seblful/klas"),
         )
         check(roots.all { it != null }) {
             "Could not find `$SOURCE_ROOT` in `app` and `$DOMAIN_SOURCE_ROOT` in `$DOMAIN_MODULE` from " +
@@ -76,6 +80,11 @@ object ProjectFiles {
         return roots.filterNotNull().flatMap { root ->
             root.walkTopDown().filter { it.isFile && it.extension == "kt" }
         }
+    }
+
+    /** Feature DAOs, excluding SnapshotDao's intentional whole-table operations. */
+    fun daoSources(): List<File> = sources().filter {
+        it.name != "SnapshotDao.kt" && (it.name.endsWith("Dao.kt") || it.name.endsWith("Daos.kt"))
     }
 
     private const val DOMAIN_MODULE = "domain"
@@ -107,9 +116,17 @@ object ProjectFiles {
 
     /** Every `.kt` file under [TEST_SOURCE_ROOT] — for the one test that scans the suite itself. */
     fun testSources(): List<File> {
-        val root = moduleFileOrNull(TEST_SOURCE_ROOT)
-            ?: error("Could not find `$TEST_SOURCE_ROOT` from ${System.getProperty("user.dir")}")
-        return root.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
+        val roots = listOf(
+            moduleFileOrNull(TEST_SOURCE_ROOT),
+            siblingModuleFileOrNull("domain", "src/commonTest/kotlin/com/seblful/klas"),
+            siblingModuleFileOrNull("shared", "src/commonTest/kotlin/com/seblful/klas"),
+            siblingModuleFileOrNull("shared", "src/jvmTest/kotlin/com/seblful/klas"),
+            siblingModuleFileOrNull("shared", "src/iosTest/kotlin/com/seblful/klas"),
+        )
+        check(roots.all { it != null }) { "Could not find every module's test sources" }
+        return roots.filterNotNull().flatMap { root ->
+            root.walkTopDown().filter { it.isFile && it.extension == "kt" }
+        }
     }
 
     /**
@@ -117,7 +134,8 @@ object ProjectFiles {
      * the version — that is the whole naming convention Room uses under `schemas/`.
      */
     fun exportedSchemas(): Map<Int, File> {
-        val dir = moduleFileOrNull("schemas") ?: error("Could not find the exported schemas directory")
+        val dir = siblingModuleFileOrNull("shared", "schemas")
+            ?: error("Could not find the shared exported schemas directory")
         return dir.walkTopDown()
             .filter { it.isFile && it.extension == "json" }
             .mapNotNull { file -> file.nameWithoutExtension.toIntOrNull()?.let { it to file } }

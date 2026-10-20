@@ -2,11 +2,11 @@ package com.seblful.klas.ui.reports
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.seblful.klas.data.repository.ClassRepository
-import com.seblful.klas.data.repository.GroupRepository
-import com.seblful.klas.data.repository.PaymentRepository
-import com.seblful.klas.data.repository.StudentRepository
-import com.seblful.klas.data.repository.SubjectRepository
+import com.seblful.klas.data.billing.PaymentRepository
+import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.people.GroupRepository
+import com.seblful.klas.data.people.StudentRepository
+import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.GroupId

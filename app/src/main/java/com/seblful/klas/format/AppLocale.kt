@@ -6,23 +6,9 @@ import java.text.DecimalFormatSymbols
 import java.util.Locale
 
 /**
- * The locale the app is currently **displaying** in — the resolved answer to
- * `AppSettings.language`, published once so that the words and the numbers cannot disagree.
- *
- * Ambient, and for the same reason `Formatters`' zone is: at the moment anything is rendered there is
- * exactly one answer. Which language the app speaks is a single fact about a single tutor's single
- * settings row, and threading a `Locale` through seventeen display functions, `MoneyField`, `DaySummary`
- * and every one of their call sites would be ceremony with no decision behind it. It is *not* the JVM
- * default: `Locale.getDefault` is the **phone's** and is read as such by `WeekStart`, which asks it what
- * the tutor set their week to — overwriting it would answer that question with the app's own preference.
- *
- * **Published wherever the settings row is read or written** (`SettingsRepository.observe`/`get`/`update`),
- * which is what makes it impossible for a consumer to be handed a language and format a date in the previous
- * one: every reader of the row — the UI, the workers, the notifier — goes through there, so the locale is
- * already current by the time the new `AppSettings` arrives. Seeded from the phone, so a process that formats
- * something before any row has been read still formats it in a language the strings exist in.
- *
- * A JVM test sets [current] directly; nothing else may write it.
+ * The foreground locale, published by RootViewModel before its settings reach the UI.
+ * Background adapters resolve their own DisplayLocale from shared language state.
+ * The device's default locale remains untouched.
  */
 object AppLocale {
 
@@ -68,5 +54,7 @@ fun Money.amount(): String = amountText(AppLocale.decimalSeparator)
  * The amount as it is **shown**, captioned with [currency], in the app's language — `16 037,50 BYN`,
  * `16,037.50 USD`. Every display of money goes through this, so an amount cannot render two ways.
  */
-fun Money.money(currency: Currency): String =
-    format(currency, AppLocale.decimalSeparator, AppLocale.groupingSeparator)
+fun Money.money(currency: Currency, locale: Locale = AppLocale.current): String {
+    val symbols = DecimalFormatSymbols.getInstance(locale)
+    return format(currency, symbols.decimalSeparator, symbols.groupingSeparator)
+}

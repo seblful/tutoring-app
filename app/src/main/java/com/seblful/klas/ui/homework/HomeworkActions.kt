@@ -1,6 +1,6 @@
 package com.seblful.klas.ui.homework
 
-import com.seblful.klas.data.repository.HomeworkRepository
+import com.seblful.klas.data.homework.HomeworkRepository
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.ui.common.state.UiEvents

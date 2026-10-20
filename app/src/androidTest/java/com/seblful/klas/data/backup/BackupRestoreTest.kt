@@ -5,22 +5,23 @@ import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.seblful.klas.calendar.CalendarMirror
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
+import com.seblful.klas.data.billing.PriceEntity
+import com.seblful.klas.data.lessons.AttendanceEntity
+import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.lessons.LessonEntity
 import com.seblful.klas.data.local.AppDatabase
-import com.seblful.klas.data.local.AttendanceEntity
 import com.seblful.klas.data.local.DatabaseSnapshot
-import com.seblful.klas.data.local.LessonEntity
-import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.RoomTransactor
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.data.local.SubjectEntity
-import com.seblful.klas.data.repository.CalendarMirror
-import com.seblful.klas.data.repository.ClassRepository
-import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.data.people.StudentEntity
+import com.seblful.klas.data.people.SubjectEntity
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.format.toDevicePreferences
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.testutil.RussianMinskPhone
 import kotlinx.coroutines.test.runTest
@@ -67,7 +68,7 @@ class BackupRestoreTest {
     @Before fun setUp() {
         source = newDb()
         target = newDb()
-        settings = SettingsRepository(target.settingsDao(), RussianMinskPhone)
+        settings = SettingsRepository(target.settingsDao(), RussianMinskPhone.toDevicePreferences())
         val mirror = CalendarMirror(
             target.classDao(), target.attendanceDao(), target.studentDao(), target.subjectDao(), target.groupDao(),
             noCalendar, settings,

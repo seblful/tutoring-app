@@ -4,6 +4,8 @@ import android.content.res.Resources
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.schedule.DaySummary
+import java.text.DecimalFormatSymbols
+import java.util.Locale
 
 /**
  * What a day comes to, in words: «4 занятия · 5 ч · 240 BYN» — or **null** when there is nothing to say
@@ -32,15 +34,23 @@ import com.seblful.klas.domain.schedule.DaySummary
  * @param currency what money is printed in — the display setting, passed rather than read, since neither
  *   caller can reach `LocalCurrency` (one is not in composition, the other is below the UI).
  */
-fun daySummaryText(res: Resources, summary: DaySummary, currency: Currency): String? {
+fun daySummaryText(
+    res: Resources,
+    summary: DaySummary,
+    currency: Currency,
+    locale: Locale = AppLocale.current,
+): String? {
     val parts = summary.parts
     if (parts.isEmpty()) return null
-    return bulletJoin(parts.map { it.text(res, currency) })
+    return bulletJoin(parts.map { it.text(res, currency, locale) })
 }
 
-private fun DaySummary.Part.text(res: Resources, currency: Currency): String = when (this) {
+private fun DaySummary.Part.text(res: Resources, currency: Currency, locale: Locale): String = when (this) {
     is DaySummary.Part.Lessons -> res.getQuantityString(R.plurals.lessons_count, count, count)
-    is DaySummary.Part.Hours -> res.getString(R.string.hours_value, formatHours(minutes))
-    is DaySummary.Part.Earned -> money.money(currency)
+    is DaySummary.Part.Hours -> res.getString(
+        R.string.hours_value,
+        formatHours(minutes, DecimalFormatSymbols.getInstance(locale).decimalSeparator),
+    )
+    is DaySummary.Part.Earned -> money.money(currency, locale)
     is DaySummary.Part.Cancelled -> res.getString(R.string.schedule_summary_cancelled, count)
 }

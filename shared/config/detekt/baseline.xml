@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>MagicNumber:SettingsEntity.kt:SettingsEntity$21</ID>
+    <ID>MagicNumber:SettingsEntity.kt:SettingsEntity$60</ID>
+    <ID>MagicNumber:SettingsEntity.kt:SettingsEntity$9</ID>
+    <ID>MagicNumber:SettingsRepository.kt:AppSettings$21</ID>
+    <ID>MagicNumber:SettingsRepository.kt:AppSettings$60</ID>
+    <ID>MagicNumber:SettingsRepository.kt:AppSettings$9</ID>
+    <ID>ReturnCount:ClassRepository.kt:ClassRepository$suspend fun setStatus: LessonWrite&lt;List&lt;TutoringClass&gt;&gt;</ID>
+    <ID>ReturnCount:DueDigest.kt:DueDigest$suspend fun postAgenda: Boolean</ID>
+    <ID>ReturnCount:DueDigest.kt:DueDigest$suspend fun postDebts: Boolean</ID>
+    <ID>ReturnCount:DueDigest.kt:DueDigest$suspend fun postUnfinished: Boolean</ID>
+    <ID>ReturnCount:DueReminder.kt:DueReminder$suspend fun post: Boolean</ID>
+    <ID>ReturnCount:SubjectRepository.kt:SubjectRepository$suspend fun delete: Delete</ID>
+    <ID>TooGenericExceptionCaught:Cancellable.kt:e: Throwable</ID>
+    <ID>TooManyFunctions:AppDatabase.kt:AppDatabase : RoomDatabase</ID>
+    <ID>TooManyFunctions:CalendarMirror.kt:CalendarMirror</ID>
+    <ID>TooManyFunctions:ClassRepository.kt:ClassRepository</ID>
+    <ID>TooManyFunctions:EnumConverters.kt:EnumConverters</ID>
+    <ID>TooManyFunctions:GroupRepository.kt:GroupRepository</ID>
+    <ID>TooManyFunctions:HomeworkRepository.kt:HomeworkRepository</ID>
+    <ID>TooManyFunctions:LessonsDaos.kt:ClassDao</ID>
+    <ID>TooManyFunctions:Mappers.kt:com.seblful.klas.data.Mappers.kt</ID>
+    <ID>TooManyFunctions:PeopleDaos.kt:GroupDao</ID>
+    <ID>TooManyFunctions:SnapshotDao.kt:SnapshotDao</ID>
+    <ID>UnusedParameter:ClassRepository.kt:ClassRepository$notes: String = ""</ID>
+  </CurrentIssues>
+</SmellBaseline>

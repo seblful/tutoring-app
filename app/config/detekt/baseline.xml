@@ -30,18 +30,12 @@
     <ID>LongMethod:StudentDetailScreen.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable private fun StudentCard</ID>
     <ID>LongMethod:SubjectsScreen.kt:@Composable fun SubjectsScreen</ID>
     <ID>MagicNumber:DeviceCalendarSync.kt:DeviceCalendarSync$3</ID>
-    <ID>MagicNumber:Entities.kt:SettingsEntity$21</ID>
-    <ID>MagicNumber:Entities.kt:SettingsEntity$60</ID>
-    <ID>MagicNumber:Entities.kt:SettingsEntity$9</ID>
     <ID>MagicNumber:Formatters.kt:12</ID>
     <ID>MagicNumber:Formatters.kt:Formats$12</ID>
     <ID>MagicNumber:LessonKindUi.kt:12f</ID>
     <ID>MagicNumber:LessonKindUi.kt:16f</ID>
     <ID>MagicNumber:LessonKindUi.kt:24f</ID>
     <ID>MagicNumber:OnboardingScreen.kt:Step.STUDENT$3</ID>
-    <ID>MagicNumber:SettingsRepository.kt:AppSettings$21</ID>
-    <ID>MagicNumber:SettingsRepository.kt:AppSettings$60</ID>
-    <ID>MagicNumber:SettingsRepository.kt:AppSettings$9</ID>
     <ID>MagicNumber:WorkScheduler.kt:WorkScheduler$7</ID>
     <ID>MatchingDeclarationName:Stats.kt:Stat</ID>
     <ID>ReturnCount:BookingForm.kt:BookingForm$private fun chooseTarget: Applied</ID>
@@ -49,39 +43,21 @@
     <ID>ReturnCount:ClassEditViewModel.kt:ClassEditViewModel$private suspend fun write: SaveOutcome</ID>
     <ID>ReturnCount:ClassForm.kt:ClassForm$fun slot: Scheduling.Slot?</ID>
     <ID>ReturnCount:ClassForm.kt:ClassForm$fun starts: List&lt;Instant&gt;</ID>
-    <ID>ReturnCount:ClassRepository.kt:ClassRepository$suspend fun setStatus: LessonWrite&lt;List&lt;TutoringClass&gt;&gt;</ID>
-    <ID>ReturnCount:DueDigest.kt:DueDigest$suspend fun postAgenda: Boolean</ID>
-    <ID>ReturnCount:DueDigest.kt:DueDigest$suspend fun postDebts: Boolean</ID>
-    <ID>ReturnCount:DueDigest.kt:DueDigest$suspend fun postUnfinished: Boolean</ID>
-    <ID>ReturnCount:DueReminder.kt:DueReminder$suspend fun post: Boolean</ID>
     <ID>ReturnCount:Formatters.kt:fun parseMoneyOrNull: Money?</ID>
     <ID>ReturnCount:GroupDetailViewModel.kt:GroupDetailViewModel$fun homeworkChoice: AssigneeChoice?</ID>
     <ID>ReturnCount:GroupFormViewModel.kt:GroupFormViewModel$fun save</ID>
     <ID>ReturnCount:ScheduleModels.kt:fun Loadable&lt;ScheduleContent.Week&gt;.day: Loadable&lt;ScheduleContent.Day&gt;</ID>
     <ID>ReturnCount:StudentDetailViewModel.kt:StudentDetailViewModel$fun homeworkChoice: AssigneeChoice?</ID>
-    <ID>ReturnCount:SubjectRepository.kt:SubjectRepository$suspend fun delete: Delete</ID>
-    <ID>TooGenericExceptionCaught:Coroutines.kt:e: Throwable</ID>
     <ID>TooGenericExceptionThrown:DiagnosticsScreen.kt:throw RuntimeException("Test crash from Diagnostics screen")</ID>
     <ID>TooManyFunctions:AndroidNotifier.kt:AndroidNotifier : Notifier</ID>
-    <ID>TooManyFunctions:AppDatabase.kt:AppDatabase : RoomDatabase</ID>
     <ID>TooManyFunctions:BookingForm.kt:BookingForm</ID>
-    <ID>TooManyFunctions:CalendarMirror.kt:CalendarMirror</ID>
     <ID>TooManyFunctions:ClassEditViewModel.kt:ClassEditViewModel : ViewModel</ID>
-    <ID>TooManyFunctions:ClassRepository.kt:ClassRepository</ID>
-    <ID>TooManyFunctions:Daos.kt:ClassDao</ID>
-    <ID>TooManyFunctions:Daos.kt:GroupDao</ID>
     <ID>TooManyFunctions:DatabaseModule.kt:DatabaseModule</ID>
     <ID>TooManyFunctions:DeviceCalendarSync.kt:DeviceCalendarSync : CalendarSync</ID>
-    <ID>TooManyFunctions:EnumConverters.kt:EnumConverters</ID>
     <ID>TooManyFunctions:Formatters.kt:com.seblful.klas.format.Formatters.kt</ID>
-    <ID>TooManyFunctions:GroupRepository.kt:GroupRepository</ID>
     <ID>TooManyFunctions:HomeworkParts.kt:com.seblful.klas.ui.homework.HomeworkParts.kt</ID>
-    <ID>TooManyFunctions:HomeworkRepository.kt:HomeworkRepository</ID>
-    <ID>TooManyFunctions:Mappers.kt:com.seblful.klas.data.Mappers.kt</ID>
     <ID>TooManyFunctions:ReportsScreen.kt:com.seblful.klas.ui.reports.ReportsScreen.kt</ID>
     <ID>TooManyFunctions:ScheduleViewModel.kt:ScheduleViewModel : ViewModel</ID>
-    <ID>TooManyFunctions:SnapshotDao.kt:SnapshotDao</ID>
     <ID>TooManyFunctions:StudentDetailViewModel.kt:StudentDetailViewModel : ViewModel</ID>
-    <ID>UnusedParameter:ClassRepository.kt:ClassRepository$notes: String = ""</ID>
   </CurrentIssues>
 </SmellBaseline>

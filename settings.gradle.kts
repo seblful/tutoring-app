@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 rootProject.name = "Klas"
 include(":app")
 include(":domain")
+include(":shared")

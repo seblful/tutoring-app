@@ -107,6 +107,7 @@ androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx"
 androidx-work-testing = { group = "androidx.work", name = "work-testing", version.ref = "workManager" }
 
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDatetime" }
@@ -115,6 +116,7 @@ desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", ver
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 # The `:domain` module: Kotlin Multiplatform, so no Android plugin to compile it. Same `kotlin` as the
 # app's built-in Kotlin — it is the one KGP pinned in the root build.gradle.kts.

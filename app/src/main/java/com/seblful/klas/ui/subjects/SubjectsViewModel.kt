@@ -1,7 +1,7 @@
 package com.seblful.klas.ui.subjects
 
 import androidx.lifecycle.ViewModel
-import com.seblful.klas.data.repository.SubjectRepository
+import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.model.Subject

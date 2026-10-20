@@ -1,8 +1,8 @@
 package com.seblful.klas.data.backup
 
-import com.seblful.klas.data.local.AttendanceEntity
-import com.seblful.klas.data.local.HomeworkEntity
-import com.seblful.klas.data.local.LessonEntity
+import com.seblful.klas.data.homework.HomeworkEntity
+import com.seblful.klas.data.lessons.AttendanceEntity
+import com.seblful.klas.data.lessons.LessonEntity
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
 import kotlinx.serialization.json.Json

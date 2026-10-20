@@ -1,10 +1,10 @@
 package com.seblful.klas.data.backup
 
-import com.seblful.klas.data.local.GroupEntity
-import com.seblful.klas.data.local.HomeworkEntity
-import com.seblful.klas.data.local.RateChangeEntity
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.billing.RateChangeEntity
+import com.seblful.klas.data.homework.HomeworkEntity
+import com.seblful.klas.data.people.GroupEntity
+import com.seblful.klas.data.people.StudentEntity
+import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus

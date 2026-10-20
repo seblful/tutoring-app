@@ -1,8 +1,9 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.data.local.GroupEntity
-import com.seblful.klas.data.local.PriceEntity
-import com.seblful.klas.data.local.RateChangeEntity
+import com.seblful.klas.data.billing.PriceEntity
+import com.seblful.klas.data.billing.RateChangeEntity
+import com.seblful.klas.data.people.EnrollmentRepository
+import com.seblful.klas.data.people.GroupEntity
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money

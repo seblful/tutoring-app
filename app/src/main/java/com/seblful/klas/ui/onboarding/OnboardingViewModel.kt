@@ -2,9 +2,9 @@ package com.seblful.klas.ui.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.seblful.klas.data.repository.AppSettings
-import com.seblful.klas.data.repository.SettingsRepository
-import com.seblful.klas.data.repository.SubjectRepository
+import com.seblful.klas.data.people.SubjectRepository
+import com.seblful.klas.data.settings.AppSettings
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency

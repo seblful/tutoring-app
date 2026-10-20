@@ -5,11 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
-import com.seblful.klas.data.repository.ClassRepository
-import com.seblful.klas.data.repository.GroupRepository
-import com.seblful.klas.data.repository.HomeworkRepository
-import com.seblful.klas.data.repository.StudentRepository
-import com.seblful.klas.data.repository.SubjectRepository
+import com.seblful.klas.data.homework.HomeworkRepository
+import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.people.GroupRepository
+import com.seblful.klas.data.people.StudentRepository
+import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.billing.Billing

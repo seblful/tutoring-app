@@ -1,6 +1,6 @@
 package com.seblful.klas.ui.subjects
 
-import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.testutil.MainDispatcherRule

@@ -11,7 +11,6 @@ import kotlinx.datetime.toJavaLocalDate
 import kotlinx.datetime.toJavaLocalTime
 import kotlinx.datetime.toJavaZoneId
 import kotlinx.datetime.toLocalDateTime
-import java.math.RoundingMode
 import java.text.DateFormatSymbols
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -66,7 +65,9 @@ private class Formats(val locale: Locale) {
 
 private val cache = java.util.Collections.synchronizedMap(mutableMapOf<Locale, Formats>())
 
-private val formats: Formats get() = cache.getOrPut(AppLocale.current) { Formats(AppLocale.current) }
+private fun formatsFor(locale: Locale): Formats = cache.getOrPut(locale) { Formats(locale) }
+
+private val formats: Formats get() = formatsFor(AppLocale.current)
 
 private val zone: TimeZone get() = TimeZone.currentSystemDefault()
 
@@ -88,8 +89,8 @@ fun Instant.formatDay(): String = javaZoned().format(formats.day).capitalizedFor
  * (`notifications/AndroidNotifier`). A report, an export or a backup passes `false`: it is read
  * somewhere else, so it keeps `HH:mm` whatever this phone is set to.
  */
-fun Instant.formatTime(hour12: Boolean): String =
-    javaZoned().format(if (hour12) formats.time12 else formats.time)
+fun Instant.formatTime(hour12: Boolean, locale: Locale = AppLocale.current): String =
+    formatsFor(locale).let { javaZoned().format(if (hour12) it.time12 else it.time) }
 
 fun Instant.formatDateTime(hour12: Boolean): String =
     javaZoned().format(if (hour12) formats.dateTime12 else formats.dateTime)
@@ -102,46 +103,6 @@ fun LocalDate.formatDate(): String = toJavaLocalDate().format(formats.date)
 fun LocalDate.formatDay(): String = toJavaLocalDate().format(formats.day).capitalizedForDisplay()
 fun LocalTime.formatTime(hour12: Boolean): String =
     toJavaLocalTime().format(if (hour12) formats.time12 else formats.time)
-
-/**
- * Parses a user-entered amount (comma or dot decimals) into [Money], or null.
- * Uses [java.math.BigDecimal] — not floating point — so it matches the integer-kopeck money model exactly,
- * rejects non-finite input ("Infinity"/"NaN") and clamps nothing: an amount too large to fit in
- * [Money]'s `Long` minor units is rejected (null) rather than silently overflowing.
- *
- * **Both separators, in both languages.** The app writes `1500,50` in Russian and `1500.50` in English
- * ([AppLocale.decimalSeparator]), and this accepts either whichever is being written — a field seeded before
- * the language changed still reads, and a tutor whose phone keyboard offers the other one is not refused.
- *
- * **This is the app's one gate on how large an amount can be** — anything above [Money.MAX] is
- * rejected here, where the answer is still "that is not an amount" rather than a number that has
- * already lost its meaning. Fitting in a `Long` is not enough: the charge for a lesson is
- * `rate × minutes`, so a rate that fits can still bill a wrapped, negative amount. See [Money.MAX]
- * for why that particular ceiling.
- *
- * **Digits and one separator, nothing else.** `BigDecimal` also reads scientific notation, so a pasted
- * `1e3` was a thousand and `1e2147483647` an exponent to expand; nobody writes a price that way, and
- * an amount the tutor did not type as digits is not one they meant. Spaces — plain and the no-break
- * ones Russian groups thousands with — are dropped, so a pasted `1 500` still reads.
- */
-fun parseMoneyOrNull(text: String): Money? {
-    val normalized = text.trim().replace(',', '.').filterNot { it.isWhitespace() }
-    if (!PLAIN_AMOUNT.matches(normalized)) return null
-    val value = normalized.toBigDecimalOrNull() ?: return null
-    // Compare before scaling, so a pasted run of digits is refused without being multiplied out. Keep a
-    // rounding margin above the ceiling, and return zero directly below half a kopeck.
-    val unroundedLimit = java.math.BigDecimal.valueOf(Money.MAX.minor, 2).add(java.math.BigDecimal.ONE)
-    if (value > unroundedLimit) return null
-    if (value < java.math.BigDecimal("0.005")) return Money.ZERO
-    return try {
-        val minor = value.movePointRight(2).setScale(0, RoundingMode.HALF_UP)
-        Money(minor.longValueExact()).takeIf { it <= Money.MAX }
-    } catch (_: ArithmeticException) {
-        null
-    }
-}
-
-private val PLAIN_AMOUNT = Regex("""\d+(\.\d*)?|\.\d+""")
 
 /**
  * Formats [Money] as a plain editable amount with no currency sign, e.g. "50", "45,05", "-0,50".
@@ -160,11 +121,11 @@ fun Money.toAmountInput(): String = amount()
  * "42 ч" rather than "42,0 ч", since both callers are summaries and the extra digit only adds noise.
  * The separator is the app language's, the same one money is written with.
  */
-fun formatHours(minutes: Int): String {
+fun formatHours(minutes: Int, decimalSeparator: Char = AppLocale.decimalSeparator): String {
     val tenths = (minutes * 10 + 30) / 60
     val whole = tenths / 10
     val fraction = tenths % 10
-    return if (fraction == 0) "$whole" else "$whole${AppLocale.decimalSeparator}$fraction"
+    return if (fraction == 0) "$whole" else "$whole$decimalSeparator$fraction"
 }
 
 /**

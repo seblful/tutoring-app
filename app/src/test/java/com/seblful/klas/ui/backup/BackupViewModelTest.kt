@@ -3,7 +3,7 @@ package com.seblful.klas.ui.backup
 import com.seblful.klas.data.backup.BackupData
 import com.seblful.klas.data.backup.BackupFailure
 import com.seblful.klas.data.local.DatabaseSnapshot
-import com.seblful.klas.data.local.StudentEntity
+import com.seblful.klas.data.people.StudentEntity
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.testutil.FakeDocumentStore

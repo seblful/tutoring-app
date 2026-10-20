@@ -6,8 +6,8 @@ import com.seblful.klas.calendar.AndroidCalendarPermission
 import com.seblful.klas.calendar.CalendarPermission
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.DeviceCalendarSync
-import com.seblful.klas.data.repository.ClassRepository
-import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.AppGraph
 import com.seblful.klas.di.ApplicationContext
 import com.seblful.klas.di.DeviceLocales

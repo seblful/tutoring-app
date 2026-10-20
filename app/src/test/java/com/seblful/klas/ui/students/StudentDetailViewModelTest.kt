@@ -1,9 +1,9 @@
 package com.seblful.klas.ui.students
 
-import com.seblful.klas.data.local.GroupEntity
-import com.seblful.klas.data.local.PriceEntity
-import com.seblful.klas.data.local.StudentSubjectCrossRef
-import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.billing.PriceEntity
+import com.seblful.klas.data.people.GroupEntity
+import com.seblful.klas.data.people.StudentSubjectCrossRef
+import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.lesson.LessonKind

@@ -1,5 +1,6 @@
 package com.seblful.klas.data.repository
 
+import com.seblful.klas.data.people.EnrollmentRepository
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student

@@ -1,10 +1,13 @@
 package com.seblful.klas.ui
 
-import com.seblful.klas.data.repository.AppSettings
+import com.seblful.klas.data.settings.AppSettings
+import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.ThemeChoice
+import com.seblful.klas.format.AppLocale
+import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
@@ -18,6 +21,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.util.Locale
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -30,7 +34,27 @@ class RootViewModelTest {
     @get:Rule
     val env = TestEnv()
 
+    @get:Rule
+    val locale = AppLocaleRule.russian()
+
     private fun vm() = RootViewModel(env.settingsRepo, env.deviceLocales, env.maintenance, mainRule.appScope)
+
+    @Test
+    fun `foreground locale follows settings before the UI reads them`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        observing(vm.settings)
+        advanceUntilIdle()
+
+        env.settingsRepo.update { it.copy(language = AppLanguage.ENGLISH) }
+        advanceUntilIdle()
+
+        assertEquals(AppLanguage.ENGLISH, vm.settings.value?.language)
+        assertEquals(Locale.forLanguageTag("en"), AppLocale.current)
+
+        env.settingsRepo.update { it.copy(language = AppLanguage.RUSSIAN) }
+        advanceUntilIdle()
+        assertEquals(Locale.forLanguageTag("ru"), AppLocale.current)
+    }
 
     @Test
     fun `settings read as not-yet-loaded rather than as defaults`() {

@@ -1,9 +1,9 @@
 package com.seblful.klas.ui.schedule.booking
 
-import com.seblful.klas.data.local.PriceEntity
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.data.local.StudentSubjectCrossRef
-import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.billing.PriceEntity
+import com.seblful.klas.data.people.StudentEntity
+import com.seblful.klas.data.people.StudentSubjectCrossRef
+import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode

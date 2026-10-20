@@ -1,12 +1,13 @@
 package com.seblful.klas.ui.more
 
 import com.seblful.klas.calendar.Guest
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.people.StudentEntity
+import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.ThemeChoice
+import com.seblful.klas.settings.SettingsWorkflow
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
@@ -38,7 +39,7 @@ class SettingsViewModelTest {
     val env = TestEnv()
 
     private fun vm() = SettingsViewModel(
-        env.settingsRepo, env.calendarMirror, env.reminders, env.maintenance,
+        env.settingsRepo, SettingsWorkflow(env.settingsRepo, env.calendarMirror, env.reminders, env.maintenance),
         env.calendarPermission, env.notificationPermission, env.exactAlarmPermission, mainRule.appScope,
     )
 

@@ -1,11 +1,12 @@
 package com.seblful.klas.ui.onboarding
 
-import com.seblful.klas.data.local.SettingsDao
-import com.seblful.klas.data.local.SettingsEntity
-import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.data.settings.SettingsDao
+import com.seblful.klas.data.settings.SettingsEntity
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Subject
+import com.seblful.klas.format.toDevicePreferences
 import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
@@ -139,7 +140,9 @@ class OnboardingViewModelTest {
         val broken = object : SettingsDao by env.settingsDao {
             override suspend fun upsert(settings: SettingsEntity): Unit = throw IllegalStateException("disk full")
         }
-        val vm = OnboardingViewModel(env.subjectRepo, SettingsRepository(broken, env.deviceLocales), mainRule.appScope)
+        val vm = OnboardingViewModel(
+            env.subjectRepo, SettingsRepository(broken, env.deviceLocales.toDevicePreferences()), mainRule.appScope,
+        )
         val events = mutableListOf<OnboardingViewModel.Event>()
         backgroundScope.launch { vm.events.stream.collect { events += it } }
 

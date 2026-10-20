@@ -22,6 +22,8 @@ Preserve on-device data and existing backup files when changing storage. Before 
   `LOCALIZED` collation: sort/match text in Kotlin.
 - Bump `AppDatabase`'s schema version and add a migration for every change past `BASELINE_VERSION`.
   `MigrationChainTest` checks wiring; each migration needs a device test against exported schemas.
+  Room sources, migration registration and exported schemas belong to `:shared`; Android device tests
+  read `shared/schemas/` as assets. Platform database builders share `buildDatabase`'s configuration.
 - Keep queries view-free: `ClassDao` joins through `CLASS_ROWS`. Room validates views after migration
   without recreating them. Pre-v10 steps retain frozen view definitions checked against their schemas.
 - **Rebuild tables carefully** using `MIGRATION_9_10` as the pattern: rename aside, create from exported

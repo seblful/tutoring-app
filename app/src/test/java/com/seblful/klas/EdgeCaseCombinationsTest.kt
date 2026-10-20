@@ -1,9 +1,9 @@
 package com.seblful.klas
 
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.data.local.SubjectEntity
-import com.seblful.klas.data.repository.LessonWrite
-import com.seblful.klas.data.repository.SubjectRepository
+import com.seblful.klas.data.lessons.LessonWrite
+import com.seblful.klas.data.people.StudentEntity
+import com.seblful.klas.data.people.SubjectEntity
+import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.lesson.GroupRules
 import com.seblful.klas.domain.lesson.SessionEdit

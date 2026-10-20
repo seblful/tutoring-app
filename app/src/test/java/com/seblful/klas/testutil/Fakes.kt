@@ -1,23 +1,24 @@
 package com.seblful.klas.testutil
 
+import com.seblful.klas.calendar.CalendarMirror
 import com.seblful.klas.calendar.CalendarPermission
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
 import com.seblful.klas.data.backup.BackupManager
 import com.seblful.klas.data.backup.BackupRestore
-import com.seblful.klas.data.local.ClassRow
+import com.seblful.klas.data.billing.PaymentRepository
+import com.seblful.klas.data.billing.RateHistoryRepository
+import com.seblful.klas.data.homework.HomeworkRepository
+import com.seblful.klas.data.lessons.ClassDao
+import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.lessons.ClassRow
 import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.local.Transactor
-import com.seblful.klas.data.repository.CalendarMirror
-import com.seblful.klas.data.repository.ClassRepository
-import com.seblful.klas.data.repository.EnrollmentRepository
-import com.seblful.klas.data.repository.GroupRepository
-import com.seblful.klas.data.repository.HomeworkRepository
-import com.seblful.klas.data.repository.PaymentRepository
-import com.seblful.klas.data.repository.RateHistoryRepository
-import com.seblful.klas.data.repository.SettingsRepository
-import com.seblful.klas.data.repository.StudentRepository
-import com.seblful.klas.data.repository.SubjectRepository
+import com.seblful.klas.data.people.EnrollmentRepository
+import com.seblful.klas.data.people.GroupRepository
+import com.seblful.klas.data.people.StudentRepository
+import com.seblful.klas.data.people.SubjectRepository
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
@@ -25,6 +26,8 @@ import com.seblful.klas.domain.reminders.DigestScheduler
 import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.reminders.Reminders
+import com.seblful.klas.format.toDevicePreferences
+import com.seblful.klas.maintenance.Maintenance
 import com.seblful.klas.notifications.AlarmClock
 import com.seblful.klas.notifications.ArmedReminders
 import com.seblful.klas.notifications.DueDigest
@@ -34,7 +37,6 @@ import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentSharing
 import com.seblful.klas.storage.DocumentStore
-import com.seblful.klas.work.Maintenance
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import org.junit.rules.TestRule
@@ -364,7 +366,7 @@ class TestEnv(
     val notifier = RecordingNotifier()
     val digestScheduler = RecordingDigestScheduler()
 
-    val settingsRepo = SettingsRepository(settingsDao, deviceLocales)
+    val settingsRepo = SettingsRepository(settingsDao, deviceLocales.toDevicePreferences())
     val calendarMirror =
         CalendarMirror(classDao, attendanceDao, studentDao, subjectDao, groupDao, calendar, settingsRepo)
 

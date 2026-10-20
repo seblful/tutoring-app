@@ -1,7 +1,7 @@
 package com.seblful.klas.work
 
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.people.StudentEntity
+import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money

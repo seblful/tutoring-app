@@ -1,6 +1,6 @@
 package com.seblful.klas.ui.students
 
-import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv

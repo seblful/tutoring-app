@@ -25,7 +25,8 @@ Russian and English UI, Material 3, and amounts labelled **BYN**, **RUB**, **USD
 ## Tech Stack
 
 Kotlin, Jetpack Compose/Material 3, Room, Metro DI, WorkManager, `AlarmManager`, kotlinx-serialization
-and kotlinx-datetime. MVVM in `:app`; platform-free Kotlin Multiplatform rules in `:domain`.
+and kotlinx-datetime. Android MVVM in `:app`; Kotlin Multiplatform persistence/workflows in `:shared`
+and pure rules in `:domain`.
 **JDK 21**, **minSdk 24**. [Dependency versions](gradle/libs.versions.toml) ·
 [SDK/build settings](app/build.gradle.kts) · [Architecture](docs/architecture.md).
 
@@ -46,6 +47,7 @@ and kotlinx-datetime. MVVM in `:app`; platform-free Kotlin Multiplatform rules i
 ```bash
 ./gradlew :app:assembleDebug            # debug APK
 ./gradlew :domain:jvmTest               # domain unit tests (billing, scheduling, reminders, reports)
+./gradlew :shared:jvmTest               # shared parsing, clock and real-database contracts
 ./gradlew :app:verifyRoborazziDebug     # app unit tests + preview screenshot comparisons
 ./gradlew :app:lintDebug ktlintCheck detekt
 ./gradlew :app:connectedDebugAndroidTest # instrumented tests; needs a device/emulator

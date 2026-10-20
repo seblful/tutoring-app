@@ -1,6 +1,6 @@
 package com.seblful.klas.ui.schedule.booking
 
-import com.seblful.klas.data.repository.ClassRepository
+import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.domain.lesson.GroupRules
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Group

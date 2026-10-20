@@ -2,8 +2,8 @@ package com.seblful.klas.ui.students
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.seblful.klas.data.repository.EnrollmentRepository
-import com.seblful.klas.data.repository.SubjectRepository
+import com.seblful.klas.data.people.EnrollmentRepository
+import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.model.ClassMode

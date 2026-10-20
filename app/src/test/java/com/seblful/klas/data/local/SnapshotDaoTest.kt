@@ -1,5 +1,11 @@
 package com.seblful.klas.data.local
 
+import com.seblful.klas.data.billing.PriceEntity
+import com.seblful.klas.data.billing.RateChangeEntity
+import com.seblful.klas.data.lessons.AttendanceEntity
+import com.seblful.klas.data.lessons.LessonEntity
+import com.seblful.klas.data.people.StudentEntity
+import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.testutil.TestEnv

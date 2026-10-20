@@ -7,6 +7,7 @@ import android.content.res.Resources
 import android.os.LocaleList
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
+import com.seblful.klas.settings.DevicePreferences
 import java.util.Locale
 
 /*
@@ -66,6 +67,9 @@ fun AppLanguage.localeFor(preferred: List<Locale>): Locale =
  */
 fun List<Locale>.regionCurrencies(): List<String?> =
     map { locale -> runCatching { java.util.Currency.getInstance(locale).currencyCode }.getOrNull() }
+
+fun List<Locale>.toDevicePreferences(): DevicePreferences =
+    DevicePreferences(map(Locale::toLanguageTag), regionCurrencies())
 
 /**
  * The phone's locales, most-preferred first — what `AppLanguage.SYSTEM` and `Currency.preferredFor` are

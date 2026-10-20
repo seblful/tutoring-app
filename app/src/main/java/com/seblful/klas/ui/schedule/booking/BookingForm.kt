@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.schedule.booking
 
+import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money

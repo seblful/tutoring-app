@@ -1,15 +1,16 @@
 package com.seblful.klas.ui
 
 import androidx.lifecycle.ViewModel
-import com.seblful.klas.data.repository.AppSettings
-import com.seblful.klas.data.repository.SettingsRepository
+import com.seblful.klas.data.settings.AppSettings
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.DeviceLocales
 import com.seblful.klas.domain.model.AppLanguage
+import com.seblful.klas.format.AppLocale
 import com.seblful.klas.format.localeFor
+import com.seblful.klas.maintenance.Maintenance
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.state.hold
-import com.seblful.klas.work.Maintenance
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
@@ -17,6 +18,7 @@ import dev.zacsweers.metro.binding
 import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -61,6 +63,7 @@ class RootViewModel @Inject constructor(
     }
 
     val settings: StateFlow<AppSettings?> = settings.observe()
+        .onEach { AppLocale.current = it.language.localeFor(deviceLocales) }
         .hold(this, null)
 
     /** What to show for [settings], whatever state they are in. */

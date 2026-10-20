@@ -1,9 +1,9 @@
 package com.seblful.klas.ui.homework
 
 import androidx.lifecycle.ViewModel
-import com.seblful.klas.data.repository.GroupRepository
-import com.seblful.klas.data.repository.HomeworkRepository
-import com.seblful.klas.data.repository.StudentRepository
+import com.seblful.klas.data.homework.HomeworkRepository
+import com.seblful.klas.data.people.GroupRepository
+import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.homework.HomeworkRules

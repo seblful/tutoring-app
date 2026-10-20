@@ -6,7 +6,8 @@ Choose tests by the behavior they prove. Quick build commands are in the [README
 
 | Location | Use for |
 |---|---|
-| `domain/src/jvmTest` | Pure rules with `kotlin.test` only. No Android, fixtures, fakes or project files; these belong in `app`. |
+| `domain/src/commonTest` | Pure rules with `kotlin.test`; the same tests run on JVM and iOS. |
+| `shared/src/commonTest` | Portable parsing, clock events and persistence contracts over real Room databases. Platform test source sets provide in-memory database creation. |
 | `app/src/test` | Backup format, view models, repositories, mappers, formatters and source/artifact tripwires. Unmocked Android calls fail (`isReturnDefaultValues` is off). |
 
 - Seed through `testutil/Fixtures`, never DAOs (`DirectSeedingRatchetTest` guards exceptions).
@@ -16,10 +17,16 @@ Choose tests by the behavior they prove. Quick build commands are in the [README
 - `RecordingTransactor` counts real transactions and `failAt` forces rollback. Queries use
   `Dispatchers.Unconfined`, so writes/invalidated flows settle together; `advanceUntilIdle()` remains
   the test clock. Referenced rows must exist before booking or saving.
-- Artifact tripwires use `testutil/ProjectFiles` and inspect both modules. They guard schema/backup
+- Artifact tripwires use `testutil/ProjectFiles` and inspect all three modules. They guard schema/backup
   coverage, enum names, table writes, screen contracts and migration wiring; `MigrationChainTest` is
   the unit guard for upgrades. Generic formatting/complexity belongs to ktlint/detekt.
 - `./gradlew :app:testDebugUnitTest` runs app tests without screenshot comparison.
+- `./gradlew :domain:jvmTest :shared:jvmTest` runs common tests on the JVM without Android.
+- Common tests use `kotlin.test` assertions and `assertFailsWith`, without JVM-only annotation
+  parameters or plain `assert`. Keep commas out of backtick function names; Kotlin/Native rejects them.
+- On an Apple Silicon Mac, run `./gradlew :domain:iosSimulatorArm64Test :shared:iosSimulatorArm64Test`.
+  Set `KMP_IOS_SIMULATOR_ID` to an available simulator UDID to select a device. CI selects an available
+  iPhone, runs both suites and compiles shared iOS device code. Windows cannot run these iOS tasks.
 
 ## Screenshot tests
 
@@ -65,5 +72,5 @@ without startup scheduling; activity/receiver injection works even before a test
 
 ktlint reads [.editorconfig](../.editorconfig) and checks all files without a baseline. detekt reads
 [its config](../config/detekt/detekt.yml) and per-module `config/detekt/baseline.xml`; new findings fail.
-`./gradlew ktlintCheck detekt` checks both modules. `./gradlew ktlintFormat` changes the whole tree:
+`./gradlew ktlintCheck detekt` checks every module. `./gradlew ktlintFormat` changes the whole tree:
 review the diff. Run `./gradlew detektBaseline` only after reviewing findings.

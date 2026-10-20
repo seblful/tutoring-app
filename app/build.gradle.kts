@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.ksp)
     alias(libs.plugins.metro)
     alias(libs.plugins.roborazzi)
 }
@@ -82,7 +81,7 @@ android {
     // Keep unmocked Android calls failing in JVM tests; defaults hide missing test boundaries.
     // Robolectric gets merged resources. Device migration tests need Room’s exported schemas.
     sourceSets {
-        getByName("androidTest").assets.directories.add("$projectDir/schemas")
+        getByName("androidTest").assets.directories.add("${project(":shared").projectDir}/schemas")
     }
     testOptions {
         unitTests.isIncludeAndroidResources = true
@@ -115,11 +114,6 @@ kotlin {
     }
 }
 
-ksp {
-    // Export schemas for migration tests.
-    arg("room.schemaLocation", "$projectDir/schemas")
-}
-
 // Generate screenshot tests for every @Preview.
 @OptIn(ExperimentalRoborazziApi::class)
 roborazzi {
@@ -138,7 +132,7 @@ roborazzi {
 }
 
 dependencies {
-    implementation(project(":domain"))
+    implementation(project(":shared"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
@@ -155,7 +149,6 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
 
     implementation(libs.androidx.room.runtime)
-    ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.sqlite.bundled)
 
     implementation(libs.metrox.viewmodel.compose)

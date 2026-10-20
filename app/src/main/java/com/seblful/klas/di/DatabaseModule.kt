@@ -1,54 +1,41 @@
 package com.seblful.klas.di
 
 import android.content.Context
-import androidx.room.Room
-import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import com.seblful.klas.data.billing.PaymentDao
+import com.seblful.klas.data.billing.PriceDao
+import com.seblful.klas.data.billing.RateHistoryDao
+import com.seblful.klas.data.homework.HomeworkDao
+import com.seblful.klas.data.lessons.AttendanceDao
+import com.seblful.klas.data.lessons.ClassDao
+import com.seblful.klas.data.lessons.LessonDao
 import com.seblful.klas.data.local.AppDatabase
-import com.seblful.klas.data.local.AttendanceDao
-import com.seblful.klas.data.local.ClassDao
-import com.seblful.klas.data.local.GroupDao
-import com.seblful.klas.data.local.HomeworkDao
-import com.seblful.klas.data.local.LessonDao
-import com.seblful.klas.data.local.Migrations
-import com.seblful.klas.data.local.PaymentDao
-import com.seblful.klas.data.local.PriceDao
-import com.seblful.klas.data.local.RateHistoryDao
 import com.seblful.klas.data.local.RoomTransactor
-import com.seblful.klas.data.local.SettingsDao
 import com.seblful.klas.data.local.SnapshotDao
-import com.seblful.klas.data.local.StudentDao
-import com.seblful.klas.data.local.SubjectDao
 import com.seblful.klas.data.local.Transactor
+import com.seblful.klas.data.local.buildDatabase
+import com.seblful.klas.data.local.databaseBuilder
+import com.seblful.klas.data.people.GroupDao
+import com.seblful.klas.data.people.StudentDao
+import com.seblful.klas.data.people.SubjectDao
+import com.seblful.klas.data.settings.SettingsDao
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.BindingContainer
 import dev.zacsweers.metro.ContributesTo
 import dev.zacsweers.metro.Provides
 import dev.zacsweers.metro.SingleIn
-import kotlinx.coroutines.Dispatchers
 
 @ContributesTo(AppScope::class)
 @BindingContainer
 object DatabaseModule {
 
-    /**
-     * **Every migration the app owns is handed over here** — `Migrations.kt` is where they are written and
-     * this is the only thing Room reads, so a chain that exists but is never passed to `addMigrations`
-     * leaves every upgrade with no path at all. `MigrationChainTest` asserts both halves: that a step exists
-     * for every version between [AppDatabase.BASELINE_VERSION] and the one declared, and that they are
-     * wired in here.
-     */
+    /** Shared schema and migrations, with destructive fallback enabled only by the debug host. */
     @Provides
     @SingleIn(AppScope::class)
     fun provideDatabase(
         @ApplicationContext context: Context,
         @DebugBuild debugBuild: Boolean,
     ): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.NAME)
-            .setDriver(BundledSQLiteDriver())
-            .setQueryCoroutineContext(Dispatchers.IO)
-            .addMigrations(*Migrations.ALL)
-            .apply { if (debugBuild) fallbackToDestructiveMigration(dropAllTables = true) }
-            .build()
+        buildDatabase(databaseBuilder(context), allowDestructiveMigration = debugBuild)
 
     @Provides fun provideSubjectDao(db: AppDatabase): SubjectDao = db.subjectDao()
     @Provides fun provideStudentDao(db: AppDatabase): StudentDao = db.studentDao()

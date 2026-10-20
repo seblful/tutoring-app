@@ -1,12 +1,12 @@
 package com.seblful.klas.store
 
-import com.seblful.klas.data.repository.ClassRepository
-import com.seblful.klas.data.repository.EnrollmentRepository
-import com.seblful.klas.data.repository.GroupRepository
-import com.seblful.klas.data.repository.HomeworkRepository
-import com.seblful.klas.data.repository.PaymentRepository
-import com.seblful.klas.data.repository.SettingsRepository
-import com.seblful.klas.data.repository.SubjectRepository
+import com.seblful.klas.data.billing.PaymentRepository
+import com.seblful.klas.data.homework.HomeworkRepository
+import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.people.EnrollmentRepository
+import com.seblful.klas.data.people.GroupRepository
+import com.seblful.klas.data.people.SubjectRepository
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Group

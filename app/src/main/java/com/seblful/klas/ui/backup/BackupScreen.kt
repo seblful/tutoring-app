@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
+import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.storage.DocumentRef

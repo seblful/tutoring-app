@@ -1,9 +1,9 @@
 package com.seblful.klas.ui.students
 
 import androidx.lifecycle.ViewModel
-import com.seblful.klas.data.repository.ClassRepository
-import com.seblful.klas.data.repository.PaymentRepository
-import com.seblful.klas.data.repository.StudentRepository
+import com.seblful.klas.data.billing.PaymentRepository
+import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.billing.Billing
 import com.seblful.klas.domain.model.Balance

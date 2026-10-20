@@ -11,7 +11,9 @@ class WholeTableWritesTest {
 
     @Test
     fun `no DAO but SnapshotDao empties a whole table`() {
-        val daos = ProjectFiles.sourceFile("data/local/Daos.kt").readText()
+        val sources = ProjectFiles.daoSources()
+        assertTrue("No feature DAO sources found", sources.isNotEmpty())
+        val daos = sources.joinToString("\n") { it.readText() }
 
         val wipes = unqualifiedDelete.findAll(daos).map { it.groupValues[1] }.toList()
         assertEquals(

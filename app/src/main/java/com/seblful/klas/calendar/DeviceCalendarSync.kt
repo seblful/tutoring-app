@@ -4,9 +4,11 @@ import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.provider.CalendarContract
+import com.seblful.klas.data.settings.SettingsChange
 import com.seblful.klas.di.ApplicationContext
 import com.seblful.klas.domain.model.TutoringClass
-import com.seblful.klas.format.inAppLanguage
+import com.seblful.klas.format.DisplayLocale
+import com.seblful.klas.format.inLanguage
 import com.seblful.klas.format.labelRes
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -29,6 +31,7 @@ class DeviceCalendarSync @Inject constructor(
     @param:ApplicationContext private val context: Context,
 
     private val permission: CalendarPermission,
+    private val displayLocale: DisplayLocale,
 ) : CalendarSync {
 
     override suspend fun upsert(klass: TutoringClass, title: String, guest: Guest?, reminderLeadMinutes: Int): String? =
@@ -166,7 +169,10 @@ class DeviceCalendarSync @Inject constructor(
         // rather than off the application context (which is pinned to the phone's — see `KlasApp`). An event
         // keeps the language it was mirrored in until something re-mirrors it, which is why changing the
         // language owes a resync: `SettingsChange.calendarWork`.
-        put(CalendarContract.Events.EVENT_LOCATION, context.inAppLanguage().getString(klass.mode.labelRes()))
+        put(
+            CalendarContract.Events.EVENT_LOCATION,
+            context.inLanguage(displayLocale.current).getString(klass.mode.labelRes()),
+        )
         // Mark that this event carries reminders/guests, so the provider keeps the rows we add.
         put(CalendarContract.Events.HAS_ALARM, 1)
         put(CalendarContract.Events.HAS_ATTENDEE_DATA, 1)

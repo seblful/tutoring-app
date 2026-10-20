@@ -6,6 +6,8 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.sqlite.execSQL
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.seblful.klas.data.lessons.ClassRow
+import com.seblful.klas.data.settings.SettingsEntity
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode

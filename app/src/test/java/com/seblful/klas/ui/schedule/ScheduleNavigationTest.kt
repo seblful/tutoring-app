@@ -1,7 +1,7 @@
 package com.seblful.klas.ui.schedule
 
-import com.seblful.klas.data.local.StudentEntity
-import com.seblful.klas.data.local.SubjectEntity
+import com.seblful.klas.data.people.StudentEntity
+import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing

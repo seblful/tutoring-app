@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.ui.common.LocalCurrency

@@ -6,6 +6,7 @@ import android.content.Intent
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.appGraph
 import com.seblful.klas.launchAsync
+import com.seblful.klas.maintenance.Maintenance
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.CoroutineScope
 
