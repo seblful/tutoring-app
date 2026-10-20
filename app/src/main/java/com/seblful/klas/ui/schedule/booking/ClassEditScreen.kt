@@ -75,12 +75,12 @@ fun ClassEditScreen(
 
     // Said, with the way back, rather than drawn as an empty form over a lesson that no longer exists.
     if (gone) {
-        KlasScreen(title = title, onBack = onBack) { modifier ->
+        KlasScreen(title = title, onBack = onBack) { modifier, bottomInset ->
             EmptyState(
                 title = stringResource(R.string.class_gone),
                 detail = stringResource(R.string.class_gone_detail),
                 icon = KlasIcons.Outlined.EventBusy,
-                modifier = modifier,
+                modifier = modifier.padding(bottomInset),
             )
         }
         return
@@ -181,12 +181,13 @@ private fun ClassEditForm(
         // already says so — the lesson could not happen.
         imeAware = true,
         actions = { SaveAction(enabled = state.canSave, onSave = ::requestSave) },
-    ) { modifier ->
+    ) { modifier, bottomInset ->
         Column(
             modifier
                 // The gutter inside the scroll, as the student form has it: padded outside, the fields
                 // scrolled within a box 16 dp short of the bar instead of passing under it.
                 .verticalScroll(rememberScrollState())
+                .padding(bottomInset)
                 .padding(Spacing.gutter),
             verticalArrangement = Arrangement.spacedBy(Spacing.gutter),
         ) {

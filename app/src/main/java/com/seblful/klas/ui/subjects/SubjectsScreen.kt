@@ -38,6 +38,7 @@ import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TextFieldDialog
 import com.seblful.klas.ui.common.animateInPlace
+import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.theme.KlasIcons
@@ -84,17 +85,17 @@ fun SubjectsScreen(
                 Icon(KlasIcons.Filled.Add, stringResource(R.string.subjects_add))
             }
         },
-    ) { modifier ->
+    ) { modifier, bottomInset ->
         Box(modifier) {
             // «Пока нет предметов» offers to create the first one, so it must not be shown about
             // subjects that have merely not been read yet — see [Loadable].
             when (val state = subjectsState) {
-                Loadable.Loading -> ListSkeleton(rowHeight = SubjectRowHeight)
+                Loadable.Loading -> ListSkeleton(Modifier.padding(bottomInset), rowHeight = SubjectRowHeight)
 
                 is Loadable.Ready -> {
                     val subjects = state.value
                     when {
-                        subjects.isEmpty() && query.isNotBlank() -> NoSearchResults()
+                        subjects.isEmpty() && query.isNotBlank() -> NoSearchResults(Modifier.padding(bottomInset))
 
                         subjects.isEmpty() -> EmptyState(
                             title = stringResource(R.string.subjects_empty),
@@ -102,6 +103,7 @@ fun SubjectsScreen(
                             icon = KlasIcons.Outlined.MenuBook,
                             actionLabel = stringResource(R.string.subjects_add),
                             onAction = { adding = true },
+                            modifier = Modifier.padding(bottomInset),
                         )
 
                         // Cards, not `ListItem`s: this is a **top-level browsable list**, the same kind
@@ -112,7 +114,7 @@ fun SubjectsScreen(
                         else -> LazyColumn(
                             Modifier.fillMaxSize(),
                             // Past the add button, so it never sits on the last row.
-                            contentPadding = FabListPadding,
+                            contentPadding = FabListPadding.plusInset(bottomInset),
                             verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
                         ) {
                             items(subjects, key = { it.id }) { subject ->

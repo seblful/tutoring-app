@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.settings
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -16,7 +17,7 @@ import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
 fun CalendarSettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = metroViewModel()) {
-    SettingsPage(R.string.settings_calendar_title, onBack, viewModel) { page, modifier, messages ->
+    SettingsPage(R.string.settings_calendar_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
         val openSettings = rememberOpenSystemSettings(messages, ::appDetailsSettings)
         val denied = stringResource(R.string.calendar_denied)
         val openLabel = stringResource(R.string.action_open_settings)
@@ -36,6 +37,7 @@ fun CalendarSettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = me
             onUpdate = viewModel::update,
             onFixCalendar = openSettings,
             modifier = modifier,
+            bottomInset = bottomInset,
         )
     }
 }
@@ -48,8 +50,9 @@ internal fun CalendarSettingsContent(
     onUpdate: ((AppSettings) -> AppSettings) -> Unit,
     onFixCalendar: () -> Unit,
     modifier: Modifier = Modifier,
+    bottomInset: PaddingValues = PaddingValues(),
 ) {
-    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter)) {
+    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter).padding(bottomInset)) {
         SettingsGroup { CalendarSyncRows(settings, delivery, onSync, onUpdate, onFixCalendar) }
         SettingsGroup(stringResource(R.string.settings_reminder_timing)) {
             SharedReminderTimingRow(

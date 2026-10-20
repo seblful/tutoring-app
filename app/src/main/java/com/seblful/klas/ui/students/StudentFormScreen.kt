@@ -78,8 +78,8 @@ fun StudentFormScreen(
         // because onboarding embeds it — and that one is a no-op here, the inset already consumed.
         imeAware = true,
         actions = { SaveAction(enabled = state.canSave, onSave = save) },
-    ) { modifier ->
-        StudentFormContent(state = state, viewModel = viewModel, modifier = modifier)
+    ) { modifier, bottomInset ->
+        StudentFormContent(state = state, viewModel = viewModel, modifier = modifier, bottomInset = bottomInset)
     }
 }
 
@@ -89,6 +89,7 @@ fun StudentFormContent(
     state: StudentFormViewModel.UiState,
     viewModel: StudentFormViewModel,
     modifier: Modifier = Modifier,
+    bottomInset: PaddingValues = PaddingValues(),
 ) {
     val form = state.form
     Column(
@@ -99,6 +100,7 @@ fun StudentFormContent(
             // belt-and-braces copy for an embedding that has not, and a no-op for the two that have.
             .imePadding()
             .verticalScroll(rememberScrollState())
+            .padding(bottomInset)
             .padding(Spacing.gutter),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {

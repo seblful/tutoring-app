@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.settings
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -33,10 +34,10 @@ import dev.zacsweers.metrox.viewmodel.metroViewModel
 @Composable
 fun LessonSettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = metroViewModel()) {
     val backlog by viewModel.pendingSweep.collectAsStateWithLifecycle()
-    SettingsPage(R.string.settings_lessons_title, onBack, viewModel) { page, modifier, messages ->
+    SettingsPage(R.string.settings_lessons_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
         val settings = page.settings
         val notify = rememberNotificationAction(viewModel, messages)
-        LessonSettingsContent(settings, viewModel::update, viewModel::setAutoCompleteEnabled, modifier) {
+        LessonSettingsContent(settings, viewModel::update, viewModel::setAutoCompleteEnabled, modifier, bottomInset) {
             if (settings.autoCompleteEnabled && page.notifications == NotificationDelivery.BLOCKED) {
                 SystemSettingsRow(
                     title = stringResource(R.string.settings_notifications_fix),
@@ -62,9 +63,10 @@ internal fun LessonSettingsContent(
     onUpdate: ((AppSettings) -> AppSettings) -> Unit,
     onAutoComplete: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    bottomInset: PaddingValues = PaddingValues(),
     notificationStatus: @Composable () -> Unit = {},
 ) {
-    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter)) {
+    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter).padding(bottomInset)) {
         // By what a row is about, not by when it applies: auto-complete decides what happens to a lesson once
         // it ends, so it sits with the lesson's length; the currency and the group rate are both money.
         SettingsGroup(stringResource(R.string.settings_section_lessons)) {

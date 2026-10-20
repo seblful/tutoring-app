@@ -63,9 +63,9 @@ fun DiagnosticsScreen(
         title = stringResource(R.string.diagnostics_title),
         onBack = onBack,
         messages = messages,
-    ) { modifier ->
+    ) { modifier, bottomInset ->
         Column(
-            modifier.padding(Spacing.gutter),
+            modifier.padding(bottomInset).padding(Spacing.gutter),
             verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
             Text(

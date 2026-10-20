@@ -2,6 +2,7 @@ package com.seblful.klas.ui.backup
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -77,13 +78,14 @@ fun BackupScreen(
         title = stringResource(R.string.backup_title),
         onBack = onBack,
         messages = messages,
-    ) { modifier ->
+    ) { modifier, bottomInset ->
         BackupContent(
             lastExportAt = lastExportAt,
             importing = importing,
             onExport = { saveBackup(backupFilename) },
             onImport = { openBackup(BACKUP_MIME_TYPES) },
             modifier = modifier,
+            bottomInset = bottomInset,
         )
     }
 
@@ -123,8 +125,9 @@ internal fun BackupContent(
     onExport: () -> Unit,
     onImport: () -> Unit,
     modifier: Modifier = Modifier,
+    bottomInset: PaddingValues = PaddingValues(),
 ) {
-    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter)) {
+    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter).padding(bottomInset)) {
         // An action under way rather than a screen loading, so a bar and not a skeleton: the rows are
         // already drawn, and what the tutor needs to know is that the tap took and to wait.
         if (importing) LinearProgressIndicator(Modifier.fillMaxWidth())

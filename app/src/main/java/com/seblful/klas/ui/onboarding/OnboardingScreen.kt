@@ -181,8 +181,8 @@ fun OnboardingScreen(
         // Not only inside the embedded student form: the step's «Готово» button sits *below* the form,
         // so without this the keyboard covers the one control that finishes setup.
         imeAware = true,
-    ) { modifier ->
-        Column(modifier) {
+    ) { modifier, bottomInset ->
+        Column(modifier.padding(bottomInset)) {
             // Which step, and how many are left. Without it the setup was a sequence of screens with
             // no visible end, which is the difference between "this takes a minute" as a claim and as
             // something the tutor can see.

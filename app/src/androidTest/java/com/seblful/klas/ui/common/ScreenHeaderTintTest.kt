@@ -62,7 +62,7 @@ class ScreenHeaderTintTest {
             KlasTheme {
                 surface = MaterialTheme.colorScheme.surface
                 scrolled = MaterialTheme.colorScheme.surfaceContainer
-                KlasScreen(title = "Люди", page = page.intValue) { modifier ->
+                KlasScreen(title = "Люди", page = page.intValue) { modifier, _ ->
                     Column(modifier) {
                         ScreenHeader(Modifier.height(HeaderHeight.dp).testTag(HEADER)) {}
                         key(page.intValue) {

@@ -29,6 +29,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - One `KlasScreen`/`Scaffold` owns insets, width cap, snackbar, back arrow and scroll behavior.
   `ScreenHeader` joins pinned controls to the bar: page-colored at rest, tinted together on scroll,
   no divider. Pass `page` when replacing a non-scrolling body to reset bar tint.
+- Edge to edge: `KlasScreen` pads its body's top and sides and hands the bottom inset over as
+  `bottomInset`, so rows pass under the system navigation bar. A list adds it to `contentPadding`
+  (`plusInset`), a scrolling column pads by it inside its scroll, and anything else pads by it.
+  It is zero on a tab (the tab bar takes it) and under the keyboard on an `imeAware` form.
 - Use `SegmentedPage` (tabs, no divider) for fixed views, `PageStepper` for successive pages; both
   page titles are ink. Choices of a value use `SegmentedChoice`, settings-shaped `ChoiceRow` (segments
   up to four, then a field), or shortlist chips with an escape hatch. Screen filters share

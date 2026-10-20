@@ -67,6 +67,7 @@ import com.seblful.klas.ui.common.detailCard
 import com.seblful.klas.ui.common.earnedStat
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.lessonsStat
+import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberExternalApps
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRejectFeedback
@@ -250,10 +251,10 @@ private fun StudentCard(
                 )
             }
         },
-    ) { modifier ->
+    ) { modifier, bottomInset ->
         LazyColumn(
             modifier = modifier,
-            contentPadding = PaddingValues(bottom = Spacing.sectionGap),
+            contentPadding = PaddingValues(bottom = Spacing.sectionGap).plusInset(bottomInset),
         ) {
             // Identity, then the numbers, then the tabs — the same three in the same order as the
             // group's card (see [detailCard]). This one used to lead with the stat row and put the contacts

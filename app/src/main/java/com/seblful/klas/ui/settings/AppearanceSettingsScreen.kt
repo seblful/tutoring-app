@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.settings
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -19,8 +20,8 @@ import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
 fun AppearanceSettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = metroViewModel()) {
-    SettingsPage(R.string.settings_appearance_title, onBack, viewModel) { page, modifier, _ ->
-        AppearanceSettingsContent(page.settings, viewModel::update, dynamicColorAvailable, modifier)
+    SettingsPage(R.string.settings_appearance_title, onBack, viewModel) { page, modifier, bottomInset, _ ->
+        AppearanceSettingsContent(page.settings, viewModel::update, dynamicColorAvailable, modifier, bottomInset)
     }
 }
 
@@ -30,8 +31,9 @@ internal fun AppearanceSettingsContent(
     onUpdate: ((AppSettings) -> AppSettings) -> Unit,
     showDynamicColor: Boolean,
     modifier: Modifier = Modifier,
+    bottomInset: PaddingValues = PaddingValues(),
 ) {
-    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter)) {
+    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter).padding(bottomInset)) {
         SettingsGroup {
             ChoiceRow(
                 title = stringResource(R.string.settings_language),

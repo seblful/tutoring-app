@@ -62,6 +62,7 @@ import com.seblful.klas.ui.common.earnedStat
 import com.seblful.klas.ui.common.hoursStat
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.lessonsStat
+import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
@@ -181,10 +182,10 @@ private fun GroupCard(
                 )
             }
         },
-    ) { modifier ->
+    ) { modifier, bottomInset ->
         LazyColumn(
             modifier = modifier,
-            contentPadding = PaddingValues(bottom = Spacing.sectionGap),
+            contentPadding = PaddingValues(bottom = Spacing.sectionGap).plusInset(bottomInset),
         ) {
             // Identity, then the numbers, then the tabs — the same three in the same order as the
             // student's card (see [detailCard]). The two used to disagree: the student led with the stat

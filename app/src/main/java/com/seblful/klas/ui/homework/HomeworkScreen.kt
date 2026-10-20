@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FloatingActionButton
@@ -36,6 +37,7 @@ import com.seblful.klas.ui.common.SegmentedPage
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
+import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.theme.KlasIcons
@@ -106,7 +108,7 @@ fun HomeworkScreen(
                 Icon(KlasIcons.Filled.Add, stringResource(R.string.homework_add))
             }
         },
-    ) { modifier ->
+    ) { modifier, bottomInset ->
         // The same two-sided shape as «Люди»: segments on the page, and a drag across the body turns it.
         SegmentedPage(
             options = HomeworkSide.entries,
@@ -121,7 +123,7 @@ fun HomeworkScreen(
         ) {
             Box(Modifier.fillMaxSize()) {
                 when (val ready = state) {
-                    Loadable.Loading -> ListSkeleton()
+                    Loadable.Loading -> ListSkeleton(Modifier.padding(bottomInset))
                     is Loadable.Ready -> HomeworkList(
                         side = side,
                         lists = ready.value.lists,
@@ -130,6 +132,7 @@ fun HomeworkScreen(
                         undo = undo,
                         onAdd = ::add,
                         onOpen = { row -> scope.launch { opened = Opened(row, viewModel.choicesFor(row)) } },
+                        bottomInset = bottomInset,
                     )
                 }
             }
@@ -172,6 +175,7 @@ private fun HomeworkList(
     undo: HomeworkUndo,
     onAdd: () -> Unit,
     onOpen: (HomeworkRow) -> Unit,
+    bottomInset: PaddingValues,
 ) {
     val rows = if (side == HomeworkSide.CURRENT) lists.current else lists.archive
     if (rows.isEmpty() && filterName != null) {
@@ -180,6 +184,7 @@ private fun HomeworkList(
             title = stringResource(R.string.homework_filter_empty, filterName),
             detail = stringResource(R.string.homework_filter_empty_detail),
             icon = KlasIcons.Outlined.Assignment,
+            modifier = Modifier.padding(bottomInset),
         )
         return
     }
@@ -191,11 +196,13 @@ private fun HomeworkList(
                 icon = KlasIcons.Outlined.Assignment,
                 actionLabel = stringResource(R.string.homework_add),
                 onAction = onAdd,
+                modifier = Modifier.padding(bottomInset),
             )
             HomeworkSide.ARCHIVE -> EmptyState(
                 title = stringResource(R.string.homework_empty_archive),
                 detail = stringResource(R.string.homework_empty_archive_detail),
                 icon = KlasIcons.Outlined.Inventory2,
+                modifier = Modifier.padding(bottomInset),
             )
         }
         return
@@ -207,7 +214,7 @@ private fun HomeworkList(
             end = Spacing.gutter,
             top = Spacing.inline,
             bottom = FabClearance,
-        ),
+        ).plusInset(bottomInset),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         items(rows, key = { it.homework.id }) { row ->

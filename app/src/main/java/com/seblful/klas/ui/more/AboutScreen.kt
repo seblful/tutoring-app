@@ -51,10 +51,11 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
         }.getOrNull().orEmpty()
     }
 
-    KlasScreen(title = stringResource(R.string.about_title), onBack = onBack) { modifier ->
+    KlasScreen(title = stringResource(R.string.about_title), onBack = onBack) { modifier, bottomInset ->
         Column(
             modifier
                 .verticalScroll(rememberScrollState())
+                .padding(bottomInset)
                 // The app's gutter at the sides, so the card lines up with every other screen's; the
                 // extra air stays above and below, where the logo wants it.
                 .padding(horizontal = Spacing.gutter, vertical = Spacing.sectionGap),

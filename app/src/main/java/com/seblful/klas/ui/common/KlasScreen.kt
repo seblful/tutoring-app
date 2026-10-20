@@ -3,10 +3,13 @@ package com.seblful.klas.ui.common
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.TextAutoSize
@@ -35,6 +38,9 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.ui.theme.KlasIcons
@@ -53,7 +59,12 @@ import com.seblful.klas.ui.theme.KlasIcons
  * whose body is swapped for another *without scrolling*. The bar keeps count of how far content has
  * scrolled beneath it, and a page that opens at its top has scrolled nowhere: without this, «Группы»
  * opened under a bar (and a [ScreenHeader]) still tinted for the students list scrolled a moment ago.
- * @param content given the modifier for the screen's top-level scrollable, insets and cap applied.
+ * @param content given the modifier for the screen's top-level scrollable — the top and side insets and the
+ * cap applied — and the **bottom inset**, which the body owns: a list adds it to its `contentPadding`
+ * (see [plusInset]) and a scrolling column pads by it *inside* its scroll, so rows pass under the system
+ * navigation bar and the last one still clears it. A body that does not scroll pads by it. It reads as
+ * nothing on a tab, where the tab bar has taken the inset, and on an [imeAware] form while the keyboard
+ * covers it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +79,7 @@ fun KlasScreen(
     page: Any? = null,
     actions: @Composable RowScope.() -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
-    content: @Composable (Modifier) -> Unit,
+    content: @Composable (modifier: Modifier, bottomInset: PaddingValues) -> Unit,
 ) {
     var searching by rememberSaveable { mutableStateOf(false) }
     // The search box, or null when there is none or it is shut — one value rather than a flag plus a
@@ -190,19 +201,28 @@ fun KlasScreen(
         },
         floatingActionButton = floatingActionButton,
     ) { insets ->
+        val density = LocalDensity.current
+        val ime = WindowInsets.ime
+        val aboveBottom = remember(insets) { AboveBottom(insets) }
+        val bottomInset = remember(insets, imeAware, density) {
+            BottomInset(insets, keyboard = ime.takeIf { imeAware }, density)
+        }
         CompositionLocalProvider(
             LocalBarColor provides readBarColor.takeIf { titleSize == TitleSize.Compact },
         ) {
             content(
                 Modifier
                     .fillMaxSize()
-                    .padding(insets)
-                    // Scaffold pads but does not consume: without this the IME padding below counts the
-                    // navigation bar a second time on a pushed screen.
-                    .consumeWindowInsets(insets)
+                    .padding(aboveBottom)
+                    // Only what was padded: the navigation bar's inset is still the keyboard's to cover, so
+                    // the IME padding below reaches the keyboard's top rather than a bar's height short of it.
+                    .consumeWindowInsets(aboveBottom)
                     // Before the cap and before whatever scroll the body adds. See [imeAware].
                     .then(if (imeAware) Modifier.imePadding() else Modifier)
+                    // The bottom is the body's now (`bottomInset`); nothing under it pads by it again.
+                    .consumeWindowInsets(insets)
                     .constrainedContent(),
+                bottomInset,
             )
         }
     }
@@ -224,6 +244,44 @@ fun ScreenHeader(modifier: Modifier = Modifier, content: @Composable ColumnScope
 }
 
 private val LocalBarColor = staticCompositionLocalOf<(() -> Color)?> { null }
+
+/** The Scaffold's insets without the bottom one, which [KlasScreen] hands its body instead. */
+private class AboveBottom(private val insets: PaddingValues) : PaddingValues {
+    override fun calculateLeftPadding(layoutDirection: LayoutDirection) = insets.calculateLeftPadding(layoutDirection)
+    override fun calculateTopPadding() = insets.calculateTopPadding()
+    override fun calculateRightPadding(layoutDirection: LayoutDirection) = insets.calculateRightPadding(layoutDirection)
+    override fun calculateBottomPadding() = 0.dp
+}
+
+/**
+ * The Scaffold's bottom inset, less what of it the [keyboard] covers on a form that pads for one. Read at
+ * layout, like the Scaffold's own, so it follows the keyboard's slide without recomposing the body.
+ */
+private class BottomInset(
+    private val insets: PaddingValues,
+    private val keyboard: WindowInsets?,
+    private val density: Density,
+) : PaddingValues {
+    override fun calculateLeftPadding(layoutDirection: LayoutDirection) = 0.dp
+    override fun calculateTopPadding() = 0.dp
+    override fun calculateRightPadding(layoutDirection: LayoutDirection) = 0.dp
+    override fun calculateBottomPadding(): Dp {
+        val covered = keyboard?.let { with(density) { it.getBottom(this).toDp() } } ?: 0.dp
+        return (insets.calculateBottomPadding() - covered).coerceAtLeast(0.dp)
+    }
+}
+
+/** A scrollable's own padding with [inset] — [KlasScreen]'s bottom inset — added to it. */
+fun PaddingValues.plusInset(inset: PaddingValues): PaddingValues = SumOfPaddings(this, inset)
+
+private class SumOfPaddings(private val first: PaddingValues, private val second: PaddingValues) : PaddingValues {
+    override fun calculateLeftPadding(layoutDirection: LayoutDirection) =
+        first.calculateLeftPadding(layoutDirection) + second.calculateLeftPadding(layoutDirection)
+    override fun calculateTopPadding() = first.calculateTopPadding() + second.calculateTopPadding()
+    override fun calculateRightPadding(layoutDirection: LayoutDirection) =
+        first.calculateRightPadding(layoutDirection) + second.calculateRightPadding(layoutDirection)
+    override fun calculateBottomPadding() = first.calculateBottomPadding() + second.calculateBottomPadding()
+}
 
 private const val OverlapThreshold = 0.01f
 

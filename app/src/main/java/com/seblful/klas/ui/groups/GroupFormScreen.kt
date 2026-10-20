@@ -47,6 +47,7 @@ import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.leaveGuard
+import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.supportingTextOf
@@ -125,11 +126,11 @@ private fun GroupForm(
         // IME is an inset rather than a resize — the shell composes it in ahead of the scroll.
         imeAware = true,
         actions = { SaveAction(enabled = state.canSave, onSave = ::requestSave) },
-    ) { modifier ->
+    ) { modifier, bottomInset ->
         LazyColumn(
             modifier,
             // The list owns the gutter, as every list in the app does — see [Spacing].
-            contentPadding = PaddingValues(Spacing.gutter),
+            contentPadding = PaddingValues(Spacing.gutter).plusInset(bottomInset),
             verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
             item(key = "name") {

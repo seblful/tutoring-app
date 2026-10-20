@@ -1,7 +1,9 @@
 package com.seblful.klas.ui.groups
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
@@ -18,6 +20,7 @@ import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.NoSearchResults
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
+import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.people.PeopleCard
 import com.seblful.klas.ui.people.lessonLineText
@@ -36,17 +39,18 @@ fun GroupsList(
     onGroupClick: (Long) -> Unit,
     onAddGroup: () -> Unit,
     modifier: Modifier = Modifier,
+    bottomInset: PaddingValues = PaddingValues(),
 ) {
     val rows = when (state) {
         Loadable.Loading -> {
-            ListSkeleton(modifier)
+            ListSkeleton(modifier.padding(bottomInset))
             return
         }
         is Loadable.Ready -> state.value
     }
     if (rows.isEmpty()) {
         if (searching) {
-            NoSearchResults(modifier)
+            NoSearchResults(modifier.padding(bottomInset))
         } else {
             EmptyState(
                 title = stringResource(R.string.groups_empty),
@@ -54,7 +58,7 @@ fun GroupsList(
                 icon = KlasIcons.Outlined.Groups,
                 actionLabel = stringResource(R.string.groups_add),
                 onAction = onAddGroup,
-                modifier = modifier,
+                modifier = modifier.padding(bottomInset),
             )
         }
         return
@@ -62,7 +66,7 @@ fun GroupsList(
     LazyColumn(
         modifier.fillMaxSize(),
         // Past the add button, so it never sits on the last row.
-        contentPadding = FabListPadding,
+        contentPadding = FabListPadding.plusInset(bottomInset),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         items(rows, key = { it.group.id }) { row ->

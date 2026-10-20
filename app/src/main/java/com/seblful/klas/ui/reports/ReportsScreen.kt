@@ -81,6 +81,7 @@ import com.seblful.klas.ui.common.lessonKindFill
 import com.seblful.klas.ui.common.lessonKindLabel
 import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.outsetRowPress
+import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberCreateDocument
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.sectionSurface
@@ -189,12 +190,12 @@ fun ReportsScreen(
                 )
             }
         },
-    ) { modifier ->
+    ) { modifier, bottomInset ->
         // «Нет данных» says the tutor has earned nothing, which is a claim about their year — so it
         // waits for the report to actually arrive. Before [Loadable] the initial value was an empty
         // report, and every cold open of this screen made that claim for a frame or two.
         if (report == null) {
-            Column(modifier) { ReportsSkeleton() }
+            Column(modifier.padding(bottomInset)) { ReportsSkeleton() }
             return@KlasScreen
         }
         if (!report.hasData) {
@@ -202,7 +203,7 @@ fun ReportsScreen(
                 title = stringResource(R.string.reports_empty),
                 detail = stringResource(R.string.reports_empty_detail),
                 icon = KlasIcons.Outlined.QueryStats,
-                modifier = modifier,
+                modifier = modifier.padding(bottomInset),
             )
             return@KlasScreen
         }
@@ -219,7 +220,7 @@ fun ReportsScreen(
                     onKind = viewModel::setKind,
                 )
             }
-            ReportBody(report, onStudentClick, listState, Modifier.weight(1f))
+            ReportBody(report, onStudentClick, listState, bottomInset, Modifier.weight(1f))
         }
     }
 }
@@ -257,6 +258,7 @@ private fun ReportBody(
     state: Reports.Report,
     onStudentClick: (Long) -> Unit,
     listState: LazyListState,
+    bottomInset: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
     // Resolved here (composable scope) so the LazyListScope blocks below stay string-free.
@@ -269,7 +271,7 @@ private fun ReportBody(
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
         state = listState,
-        contentPadding = PaddingValues(Spacing.gutter),
+        contentPadding = PaddingValues(Spacing.gutter).plusInset(bottomInset),
     ) {
         item { IncomeCard(state) }
 

@@ -130,9 +130,9 @@ fun LoadingDetailScreen(onBack: () -> Unit) {
         // would be the one piece of this screen that lies rather than waits.
         title = null,
         onBack = onBack,
-    ) { modifier ->
+    ) { modifier, bottomInset ->
         Column(
-            modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.itemGap),
+            modifier.padding(bottomInset).padding(horizontal = Spacing.gutter, vertical = Spacing.itemGap),
             verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
             SkeletonBlock(StatRowHeight)
@@ -149,9 +149,9 @@ fun LoadingDetailScreen(onBack: () -> Unit) {
  */
 @Composable
 fun LoadingFormScreen(title: String, onBack: () -> Unit, fields: Int = 4) {
-    KlasScreen(title = title, onBack = onBack) { modifier ->
+    KlasScreen(title = title, onBack = onBack) { modifier, bottomInset ->
         Column(
-            modifier.padding(Spacing.gutter),
+            modifier.padding(bottomInset).padding(Spacing.gutter),
             verticalArrangement = Arrangement.spacedBy(Spacing.gutter),
         ) {
             repeat(fields) { SkeletonBlock(FieldHeight) }

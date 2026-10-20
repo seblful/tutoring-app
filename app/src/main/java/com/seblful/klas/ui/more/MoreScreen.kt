@@ -30,12 +30,12 @@ fun MoreScreen(
     onSettings: () -> Unit,
     onAbout: () -> Unit,
 ) {
-    KlasScreen(title = stringResource(R.string.nav_more)) { modifier ->
+    KlasScreen(title = stringResource(R.string.nav_more)) { modifier, bottomInset ->
         // No wordmark above the menu: the bar already names the screen, and a logo between the title and
         // the first row pushed the four things a tutor came here for halfway down the page. The brand has
         // its place in «О приложении», one row below.
         // On one card, led by avatars, as Settings' own index is: the two menus are one kind of list.
-        Column(modifier.verticalScroll(rememberScrollState()).padding(Spacing.gutter)) {
+        Column(modifier.verticalScroll(rememberScrollState()).padding(bottomInset).padding(Spacing.gutter)) {
             SectionCard {
                 Column(Modifier.padding(vertical = Spacing.inline)) {
                     NavigationRow(KlasIcons.Outlined.MenuBook, stringResource(R.string.more_subjects), onSubjects)

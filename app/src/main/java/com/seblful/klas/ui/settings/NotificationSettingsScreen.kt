@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.settings
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -14,7 +15,7 @@ import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
 fun NotificationSettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = metroViewModel()) {
-    SettingsPage(R.string.settings_notifications_title, onBack, viewModel) { page, modifier, messages ->
+    SettingsPage(R.string.settings_notifications_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
         val notify = rememberNotificationAction(viewModel, messages)
         val openExactAlarms = rememberOpenSystemSettings(messages, ::exactAlarmSettings)
         val openNotifications = rememberOpenSystemSettings(messages, ::appNotificationSettings)
@@ -31,6 +32,7 @@ fun NotificationSettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel 
                 systemNotifications = openNotifications,
             ),
             modifier = modifier,
+            bottomInset = bottomInset,
         )
     }
 }
@@ -51,8 +53,9 @@ internal fun NotificationSettingsContent(
     reminders: ReminderDelivery,
     actions: NotificationSettingsActions,
     modifier: Modifier = Modifier,
+    bottomInset: PaddingValues = PaddingValues(),
 ) {
-    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter)) {
+    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter).padding(bottomInset)) {
         if (notifications == NotificationDelivery.BLOCKED) {
             SettingsGroup {
                 SystemSettingsRow(

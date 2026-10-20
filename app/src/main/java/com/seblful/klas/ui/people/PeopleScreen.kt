@@ -102,7 +102,7 @@ fun PeopleScreen(
                 )
             }
         },
-    ) { modifier ->
+    ) { modifier, bottomInset ->
         // The segments are the control; the drag is the shortcut — see [swipeBetweenSegments]. On the whole
         // body rather than on the lists alone, so the gesture is available over the band as well: the two
         // sides of «Люди» are one screen showing the same people two ways, and every part of it should turn
@@ -128,6 +128,7 @@ fun PeopleScreen(
                         searching = query.isNotBlank(),
                         onStudentClick = onStudentClick,
                         onAddStudent = onAddStudent,
+                        bottomInset = bottomInset,
                     )
 
                     PeopleTab.GROUPS -> GroupsList(
@@ -135,6 +136,7 @@ fun PeopleScreen(
                         searching = query.isNotBlank(),
                         onGroupClick = onGroupClick,
                         onAddGroup = onAddGroup,
+                        bottomInset = bottomInset,
                     )
                 }
             }

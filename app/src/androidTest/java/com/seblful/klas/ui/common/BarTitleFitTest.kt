@@ -76,7 +76,7 @@ class BarTitleFitTest {
                             title = title.value,
                             onBack = {},
                             actions = { SaveAction(enabled = true, onSave = {}) },
-                        ) {}
+                        ) { _, _ -> }
                     }
                 }
             }

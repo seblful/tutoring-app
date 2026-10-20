@@ -50,6 +50,7 @@ import com.seblful.klas.ui.common.SegmentedPage
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
+import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberConfirmFeedback
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRejectFeedback
@@ -227,7 +228,7 @@ fun ScheduleScreen(
                 Icon(KlasIcons.Filled.Add, stringResource(R.string.schedule_add_class))
             }
         },
-    ) { modifier ->
+    ) { modifier, bottomInset ->
         // **The view also turns by dragging the page sideways** — see [swipeBetweenSegments]. It reaches the
         // whole body, including the list, and the lesson cards keep their own swipe regardless: a child
         // consumes the drag before an ancestor is offered it, so a gesture begun on a lesson still marks
@@ -302,7 +303,7 @@ fun ScheduleScreen(
                 // The gutter is the list's, not each row's — see [Spacing]. The calendar items in here
                 // are laid out inside it too, which is why `MonthCalendar` and `WeekStrip` no longer
                 // carry a narrower one of their own.
-                contentPadding = FabListPadding,
+                contentPadding = FabListPadding.plusInset(bottomInset),
                 verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
             ) {
                 when (viewMode) {

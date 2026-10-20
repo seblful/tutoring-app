@@ -2,6 +2,7 @@ package com.seblful.klas.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -41,11 +42,12 @@ fun SettingsScreen(
     navigation: SettingsNavigation,
     viewModel: SettingsViewModel = metroViewModel(),
 ) {
-    SettingsPage(R.string.settings_title, onBack, viewModel) { page, modifier, _ ->
+    SettingsPage(R.string.settings_title, onBack, viewModel) { page, modifier, bottomInset, _ ->
         SettingsIndex(
             page.settings, page.notifications, page.reminders, page.calendar,
             navigation,
             modifier,
+            bottomInset,
         )
     }
 }
@@ -66,8 +68,9 @@ internal fun SettingsIndex(
     calendar: CalendarDelivery,
     navigation: SettingsNavigation,
     modifier: Modifier = Modifier,
+    bottomInset: PaddingValues = PaddingValues(),
 ) {
-    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter)) {
+    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter).padding(bottomInset)) {
         SettingsGroup { SettingsCategories(settings, notifications, reminders, calendar, navigation) }
         // Its own card: secondary to the four above, and the break between them now says so.
         SettingsGroup {
@@ -175,7 +178,7 @@ internal fun SettingsPage(
     title: Int,
     onBack: () -> Unit,
     viewModel: SettingsViewModel,
-    content: @Composable (SettingsState, Modifier, Messages) -> Unit,
+    content: @Composable (SettingsState, Modifier, PaddingValues, Messages) -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val messages = rememberMessages()
@@ -186,10 +189,10 @@ internal fun SettingsPage(
         resources.getQuantityString(R.plurals.settings_autocomplete_swept, count, count)
     }
     RefreshSettingsPermissions(viewModel)
-    KlasScreen(title = stringResource(title), onBack = onBack, messages = messages) { modifier ->
+    KlasScreen(title = stringResource(title), onBack = onBack, messages = messages) { modifier, bottomInset ->
         when (val loaded = state) {
-            Loadable.Loading -> ListSkeleton(modifier, rows = 5, rowHeight = SettingsRowHeight)
-            is Loadable.Ready -> content(loaded.value, modifier, messages)
+            Loadable.Loading -> ListSkeleton(modifier.padding(bottomInset), rows = 5, rowHeight = SettingsRowHeight)
+            is Loadable.Ready -> content(loaded.value, modifier, bottomInset, messages)
         }
     }
 }
