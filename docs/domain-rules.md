@@ -10,7 +10,8 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
 - Currency is a display label (`BYN|RUB|USD|EUR`), never a conversion; display its symbol. A fresh install
   uses the phone's region. Decimal separators follow app language, not currency.
 - Each class books an editable hourly rate, initially the student's/group's. Later rate changes leave
-  existing classes untouched.
+  existing classes untouched. A new individual booking follows subject price suggestions until the
+  tutor overrides the amount; changing subjects never replaces a typed or historical booked rate.
 - Balance = completed-lesson charges − payments; balances/income are derived. Lists, reports and the
   debt digest read them summed by SQLite (`BalanceDao`, held to `Billing` by `BalanceRepositoryTest`); a
   report reads only its period and the one before (`Reports.window`). Partial payments and
@@ -30,6 +31,9 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   re-plans a lesson; corrections in the past retain its status. `LessonPhase`
   (`UPCOMING|IN_PROGRESS|OVERDUE|SETTLED`) derives from status and the injected clock; it is not persisted.
   There is no `missed` or `moved` status.
+- An explicit completion correction returns a taught lesson to Planned, voids charges and turns Present
+  into Expected while preserving absences. Immediate Undo is guarded by its completion snapshot so later
+  edits, cancellations or deletions cannot be overwritten.
 - A lesson carries no tutor notes. Homework is attached by rule, below.
 - Writes take a whole `ClassSession`, except per-person `setAttendance`. Editing/deleting works in any
   status and recalculates charges; deleting a completed lesson removes income and requires a UI warning.
@@ -41,7 +45,7 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
 - Repeating bookings write ordinary lessons in one transaction (`Recurrence`, `bookSeries`). Taken
   slots are skipped, including the first date; Save requires at least one free occurrence. Results are
   reported as `SeriesWrite`; there is no series entity or bulk “cancel the rest”. See
-  `Recurrence`'s KDoc for why.
+  `Recurrence`'s KDoc for why. The booking form explains that each resulting lesson is maintained separately.
 
 ## Homework
 

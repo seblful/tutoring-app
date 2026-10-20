@@ -2,12 +2,11 @@ package com.seblful.klas.store
 
 import android.app.Application
 import android.content.Context
+import com.seblful.klas.KlasStore
 import com.seblful.klas.calendar.AndroidCalendarPermission
 import com.seblful.klas.calendar.CalendarPermission
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.DeviceCalendarSync
-import com.seblful.klas.data.lessons.ClassRepository
-import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.AppGraph
 import com.seblful.klas.di.ApplicationContext
 import com.seblful.klas.di.DeviceLocales
@@ -36,10 +35,8 @@ import java.util.Locale
         AndroidCalendarPermission::class,
     ],
 )
-internal interface StoreGraph : AppGraph {
+internal interface StoreGraph : AppGraph, KlasStore {
     val seeder: DemoSeeder
-    val settings: SettingsRepository
-    val classes: ClassRepository
     val dueReminder: DueReminder
     val dueDigest: DueDigest
 

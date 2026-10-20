@@ -164,7 +164,8 @@ fun SwipeableHomework(
             stringResource(if (row.isCurrent) R.string.homework_done else R.string.homework_restore),
             onSwipe,
         )
-        if (nested) HomeworkListItem(row, messages, onClick, swipe) else HomeworkCard(row, messages, onClick, swipe)
+        if (nested) HomeworkListItem(row, messages, onClick, onSwipe, swipe)
+        else HomeworkCard(row, messages, onClick, onSwipe, swipe)
     }
 }
 
@@ -187,7 +188,13 @@ private fun HomeworkReveal(done: Boolean, armed: Boolean, shape: Shape) {
 }
 
 @Composable
-private fun HomeworkCard(row: HomeworkRow, messages: Messages, onClick: () -> Unit, modifier: Modifier) {
+private fun HomeworkCard(
+    row: HomeworkRow,
+    messages: Messages,
+    onClick: () -> Unit,
+    onDone: () -> Unit,
+    modifier: Modifier,
+) {
     ContentCard(onClick = onClick, modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -221,16 +228,34 @@ private fun HomeworkCard(row: HomeworkRow, messages: Messages, onClick: () -> Un
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = Spacing.inline),
         )
+        TextButton(onClick = onDone) {
+            Text(stringResource(if (row.isCurrent) R.string.homework_done else R.string.homework_restore))
+        }
     }
 }
 
 @Composable
-private fun HomeworkListItem(row: HomeworkRow, messages: Messages, onClick: () -> Unit, modifier: Modifier) {
+private fun HomeworkListItem(
+    row: HomeworkRow,
+    messages: Messages,
+    onClick: () -> Unit,
+    onDone: () -> Unit,
+    modifier: Modifier,
+) {
     ListItem(
         leadingContent = { LessonKindIcon(if (row.isGroup) LessonKind.GROUP else LessonKind.INDIVIDUAL) },
         headlineContent = { Text(row.text, maxLines = HomeworkPreviewLines, overflow = TextOverflow.Ellipsis) },
-        supportingContent = { DueLine(row, prefix = row.title.takeIf { row.isGroup }) },
-        trailingContent = if (row.isCurrent) ({ SendHomeworkButton(row, messages) }) else null,
+        supportingContent = {
+            Column {
+                DueLine(row, prefix = row.title.takeIf { row.isGroup })
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = onDone) {
+                        Text(stringResource(if (row.isCurrent) R.string.homework_done else R.string.homework_restore))
+                    }
+                    if (row.isCurrent) SendHomeworkButton(row, messages)
+                }
+            }
+        },
         modifier = Modifier
             .insetRowPress { Modifier.clickable(it, indication = null, onClick = onClick) }
             .then(modifier),
@@ -311,7 +336,7 @@ fun HomeworkDialog(
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                     minLines = HomeworkDialogLines,
                     supportingText = selected?.takeIf {
-                        editing == null
+                        editing == null || it.assignee != editing.assignee
                     }?.let { choice -> { Text(attachedText(choice)) } },
                     modifier = Modifier
                         .fillMaxWidth()

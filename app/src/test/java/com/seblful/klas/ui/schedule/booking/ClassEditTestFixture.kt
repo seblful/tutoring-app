@@ -29,8 +29,15 @@ abstract class ClassEditTestFixture {
     val env = TestEnv()
     protected val zone: TimeZone = TimeZone.currentSystemDefault()
 
-    protected fun vm(id: Long = 0L, groupId: Long = 0L, day: LocalDate? = null) = ClassEditViewModel(
-        savedStateHandle = SavedStateHandle(mapOf("id" to id, "group" to groupId, "day" to day?.toString())),
+    protected fun vm(
+        id: Long = 0L,
+        groupId: Long = 0L,
+        day: LocalDate? = null,
+        studentId: Long = 0L,
+    ) = ClassEditViewModel(
+        savedStateHandle = SavedStateHandle(
+            mapOf("id" to id, "group" to groupId, "day" to day?.toString(), "student" to studentId),
+        ),
         classes = env.classRepo,
         studentsRepo = env.studentRepo,
         groupsRepo = env.groupRepo,

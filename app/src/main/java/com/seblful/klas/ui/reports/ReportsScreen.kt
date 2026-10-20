@@ -377,6 +377,11 @@ private fun IncomeCard(state: Reports.Report) {
         value = state.totalIncome.text(),
     ) {
         ComparisonLine(state)
+        Text(
+            stringResource(R.string.reports_earned_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

@@ -17,6 +17,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,6 +77,14 @@ private enum class GroupTab(val labelRes: Int, val icon: ImageVector) {
     STUDENTS(R.string.group_students_title, KlasIcons.Outlined.Groups),
 }
 
+private data class GroupNavigation(
+    val back: () -> Unit,
+    val edit: () -> Unit,
+    val member: (Long) -> Unit,
+    val lesson: (Long) -> Unit,
+    val book: () -> Unit,
+)
+
 /**
  * A group's card: what it is taught and for how much, how much of it has happened, who is in it and
  * which lessons they attended.
@@ -90,13 +99,18 @@ fun GroupDetailScreen(
     onMemberClick: (Long) -> Unit,
     onLessonClick: (Long) -> Unit,
     viewModel: GroupDetailViewModel = assistedMetroViewModel(),
+    onBookLesson: () -> Unit = {},
+    initialHomework: Boolean = false,
 ) {
     // As the student's card: `GroupDetailState()` is an empty group rather than an unread one, so the
     // wait is its own screen instead of a card claiming no members and no lessons. See [Loadable].
     when (val screenState = viewModel.state.collectAsStateWithLifecycle().value) {
         Loadable.Loading -> LoadingDetailScreen(onBack)
         is Loadable.Ready ->
-            GroupCard(screenState.value, viewModel, onBack, onEdit, onMemberClick, onLessonClick)
+            GroupCard(
+                screenState.value, viewModel,
+                GroupNavigation(onBack, onEdit, onMemberClick, onLessonClick, onBookLesson), initialHomework,
+            )
     }
 }
 
@@ -105,10 +119,8 @@ fun GroupDetailScreen(
 private fun GroupCard(
     state: GroupDetailState,
     viewModel: GroupDetailViewModel,
-    onBack: () -> Unit,
-    onEdit: () -> Unit,
-    onMemberClick: (Long) -> Unit,
-    onLessonClick: (Long) -> Unit,
+    navigation: GroupNavigation,
+    initialHomework: Boolean,
 ) {
     val group = state.group
 
@@ -117,6 +129,10 @@ private fun GroupCard(
     // Taken when the dialog opens — see `GroupDetailViewModel.homeworkChoice`.
     var addingHomework by remember { mutableStateOf<AssigneeChoice?>(null) }
     var openedHomework by remember { mutableStateOf<HomeworkRow?>(null) }
+    HomeworkEntry(initialHomework, group?.id) {
+        tab = GroupTab.HOMEWORK
+        addingHomework = viewModel.homeworkChoice()
+    }
 
     val messages = rememberMessages()
     val deleteBlockedMsg = stringResource(R.string.group_delete_blocked)
@@ -139,11 +155,18 @@ private fun GroupCard(
     // collapsing title, so the two cards read as one pattern.
     KlasScreen(
         title = group?.name,
-        onBack = onBack,
+        onBack = navigation.back,
         titleSize = TitleSize.Large,
         messages = messages,
         actions = {
-            NamedIconButton(KlasIcons.Filled.Edit, stringResource(R.string.action_edit), onClick = onEdit)
+            if (group != null && !group.archived) {
+                NamedIconButton(
+                    KlasIcons.Filled.EditCalendar,
+                    stringResource(R.string.class_book),
+                    onClick = navigation.book,
+                )
+            }
+            NamedIconButton(KlasIcons.Filled.Edit, stringResource(R.string.action_edit), onClick = navigation.edit)
             // Retiring and removing the group, behind the overflow — where a student's already were.
             // They used to be a pair of outlined buttons under a «danger zone» heading at the foot of
             // the group's *form*, so the same lifecycle verb lived on the card for one entity and on
@@ -191,7 +214,7 @@ private fun GroupCard(
                 },
             ) { shown ->
                 when (shown) {
-                    GroupTab.LESSONS -> lessonsTab(state, onLessonClick)
+                    GroupTab.LESSONS -> lessonsTab(state, navigation.lesson)
                     GroupTab.HOMEWORK -> homeworkItems(
                         lists = state.homework,
                         messages = messages,
@@ -199,7 +222,7 @@ private fun GroupCard(
                         onOpen = { openedHomework = it },
                         onDone = homeworkUndo::swiped,
                     )
-                    GroupTab.STUDENTS -> studentsTab(state, onMemberClick, onEditMembers = onEdit)
+                    GroupTab.STUDENTS -> studentsTab(state, navigation.member, onEditMembers = navigation.edit)
                 }
             }
         }
@@ -218,9 +241,20 @@ private fun GroupCard(
         ConfirmDialog(
             text = stringResource(R.string.group_delete_confirm),
             destructive = true,
-            onConfirm = { viewModel.delete(onDeleted = onBack) },
+            onConfirm = { viewModel.delete(onDeleted = navigation.back) },
             onDismiss = { confirmingDelete = false },
         )
+    }
+}
+
+@Composable
+private fun HomeworkEntry(requested: Boolean, groupId: Long?, onOpen: () -> Unit) {
+    var handled by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(groupId) {
+        if (requested && !handled && groupId != null) {
+            onOpen()
+            handled = true
+        }
     }
 }
 

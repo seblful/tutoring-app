@@ -90,6 +90,15 @@ private enum class StudentTab(val labelRes: Int, val icon: ImageVector) {
     SUBJECTS(R.string.student_subjects_title, KlasIcons.Outlined.MenuBook),
 }
 
+/** The task carried from a lesson or an unfinished setup form. */
+enum class StudentTask { HOMEWORK, PAYMENT, SUBJECT }
+
+private data class StudentNavigation(
+    val back: () -> Unit,
+    val lesson: (Long) -> Unit,
+    val book: () -> Unit,
+)
+
 /** The card, once there is a student to draw one for. */
 @Composable
 fun StudentDetailScreen(
@@ -97,10 +106,14 @@ fun StudentDetailScreen(
 
     onLessonClick: (Long) -> Unit,
     viewModel: StudentDetailViewModel = assistedMetroViewModel(),
+    onBookLesson: () -> Unit = {},
+    initialTask: StudentTask? = null,
 ) {
     when (val screenState = viewModel.state.collectAsStateWithLifecycle().value) {
         Loadable.Loading -> LoadingDetailScreen(onBack)
-        is Loadable.Ready -> StudentCard(screenState.value, viewModel, onBack, onLessonClick)
+        is Loadable.Ready -> StudentCard(
+            screenState.value, viewModel, StudentNavigation(onBack, onLessonClick, onBookLesson), initialTask,
+        )
     }
 }
 
@@ -109,8 +122,8 @@ fun StudentDetailScreen(
 private fun StudentCard(
     state: StudentDetails,
     viewModel: StudentDetailViewModel,
-    onBack: () -> Unit,
-    onLessonClick: (Long) -> Unit,
+    navigation: StudentNavigation,
+    initialTask: StudentTask?,
 ) {
     val student = state.student
 
@@ -129,6 +142,22 @@ private fun StudentCard(
     // Taken when the dialog opens — see `StudentDetailViewModel.homeworkChoice`.
     var addingHomework by remember { mutableStateOf<AssigneeChoice?>(null) }
     var openedHomework by remember { mutableStateOf<HomeworkRow?>(null) }
+    var taskHandled by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(student?.id, initialTask) {
+        if (taskHandled || student == null || initialTask == null) return@LaunchedEffect
+        when (initialTask) {
+            StudentTask.HOMEWORK -> {
+                tab = StudentTab.HOMEWORK
+                addingHomework = viewModel.homeworkChoice()
+            }
+            StudentTask.PAYMENT -> { tab = StudentTab.PAYMENTS; addingPayment = true }
+            StudentTask.SUBJECT -> {
+                tab = StudentTab.SUBJECTS
+                addingSubject = true
+            }
+        }
+        taskHandled = true
+    }
 
     val messages = rememberMessages()
     val externalApps = rememberExternalApps(messages)
@@ -182,10 +211,17 @@ private fun StudentCard(
     // behaviour it needs, said once.
     KlasScreen(
         title = student?.name,
-        onBack = onBack,
+        onBack = navigation.back,
         titleSize = TitleSize.Large,
         messages = messages,
         actions = {
+            if (student != null && !student.archived) {
+                NamedIconButton(
+                    KlasIcons.Filled.EditCalendar,
+                    stringResource(R.string.class_book),
+                    onClick = navigation.book,
+                )
+            }
             NamedIconButton(KlasIcons.Filled.Edit, stringResource(R.string.action_edit), onClick = { editing = true })
             // Archiving is behind the overflow now. It used to be a bare text button in the
             // bar — «Имя [✎] [В архив]» — which put the most consequential thing on the
@@ -282,7 +318,7 @@ private fun StudentCard(
                         state = state,
                         rows = lessonRows,
                         filter = lessonFilter,
-                        onLessonClick = onLessonClick,
+                        onLessonClick = navigation.lesson,
                         onFilter = { lessonFilter = it },
                     )
                     StudentTab.PAYMENTS -> paymentsTab(

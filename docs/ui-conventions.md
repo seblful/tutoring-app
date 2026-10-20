@@ -83,8 +83,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - Tabs are People, Homework, Schedule, Reports, More; Schedule opens first, Students/Groups share People.
   Selection follows the back stack. Destinations cross-fade; predictive back is enabled.
 - `navigateToTab` ignores reselection to avoid a pop/restore fade glitch. Navigating to the owning tab
-  closes its pushed screens; another tab retains its stack (`owningTabRoute`). Tray “Reschedule” pushes
-  the lesson form over the current screen. See [tray destinations](calendar-and-reminders.md#lesson-reminders).
+  closes its pushed screens; another tab retains its stack (`owningTabRoute`). All tray actions preserve
+  a pushed screen beneath their destination; Back returns to its draft. See
+  [tray destinations](calendar-and-reminders.md#lesson-reminders).
 - Lazy items use `animateInPlace`: movement only, no fade overlay. Key items by page when replacing views.
 - Every swipe has a `swipeAction` on the same semantic node; background actions are not read. Use
   `selected` semantics (`TickedMenuItem`), headings, and `NamedIconButton`/`HoldToName` on bar icons/tabs.
@@ -103,8 +104,14 @@ Build screens from shared state and controls. Feature rules belong in the domain
   inside the week. Summaries are count·hours·money (`DaySummary`); show “now” only today. Completion is
   an undoable green swipe; cancelled lessons recede with a red badge. Book by duration, starting on the
   selected schedule day.
+- Lesson context opens homework, payment entry and profiles for the named student/group. Group payments
+  first ask who paid; completing a lesson never creates a payment. Profiles book through the same form.
+- Setup detours push over the unfinished booking/group form and return created IDs through its navigation
+  entry. The parent selects the result without resetting its date, time or other edits. Group eligibility
+  can be repaired with an individual subject price in place; group lessons still use the group rate.
 - Homework filters offer assignees with current/archived work, including a student's group work; the
   add dialog offers everyone, orders by nearest lesson and names the destination lesson. Card entry
-  preselects its owner; tab entry preselects nobody.
+  preselects its owner; tab entry preselects nobody. Reassignment previews the first lesson after the
+  original given time, including historical lessons. Visible Done/Restore actions share swipe undo.
 - People lists share `PeopleSearch`: case-insensitive substrings, terms in any order. Reports use charts
   only when shape helps; CSV delimiter follows decimal separator and exports can be saved or shared.

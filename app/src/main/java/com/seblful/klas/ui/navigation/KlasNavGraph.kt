@@ -1,6 +1,11 @@
 package com.seblful.klas.ui.navigation
 
 import android.annotation.SuppressLint
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraphBuilder
@@ -10,6 +15,7 @@ import com.seblful.klas.ui.backup.BackupScreen
 import com.seblful.klas.ui.diagnostics.DiagnosticsScreen
 import com.seblful.klas.ui.groups.GroupDetailScreen
 import com.seblful.klas.ui.groups.GroupFormScreen
+import com.seblful.klas.ui.groups.GroupFormViewModel
 import com.seblful.klas.ui.homework.HomeworkScreen
 import com.seblful.klas.ui.more.AboutScreen
 import com.seblful.klas.ui.more.MoreScreen
@@ -17,7 +23,10 @@ import com.seblful.klas.ui.people.PeopleScreen
 import com.seblful.klas.ui.reports.ReportsScreen
 import com.seblful.klas.ui.schedule.ScheduleScreen
 import com.seblful.klas.ui.schedule.ScheduleTarget
+import com.seblful.klas.ui.schedule.booking.BookingIntent
+import com.seblful.klas.ui.schedule.booking.BookingSetupNavigation
 import com.seblful.klas.ui.schedule.booking.ClassEditScreen
+import com.seblful.klas.ui.schedule.booking.ClassEditViewModel
 import com.seblful.klas.ui.settings.AppearanceSettingsScreen
 import com.seblful.klas.ui.settings.CalendarSettingsScreen
 import com.seblful.klas.ui.settings.LessonSettingsScreen
@@ -26,7 +35,9 @@ import com.seblful.klas.ui.settings.SettingsNavigation
 import com.seblful.klas.ui.settings.SettingsScreen
 import com.seblful.klas.ui.students.StudentDetailScreen
 import com.seblful.klas.ui.students.StudentFormScreen
+import com.seblful.klas.ui.students.StudentTask
 import com.seblful.klas.ui.subjects.SubjectsScreen
+import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
 /**
  * Every destination in the app, and where each one leads — the graph the main tabs host.
@@ -36,36 +47,54 @@ import com.seblful.klas.ui.subjects.SubjectsScreen
  */
 fun NavGraphBuilder.klasGraph(
     navController: NavHostController,
-    scheduleArrival: () -> Arrival<ScheduleTarget>?,
-    debtsArrival: () -> Arrival<Unit>?,
+    scheduleArrival: (String) -> Arrival<ScheduleTarget>?,
+    debtsArrival: (String) -> Arrival<Unit>?,
 ) {
     tabs(navController, scheduleArrival, debtsArrival)
     peopleCards(navController)
     moreScreens(navController)
-    screen<Routes.ClassEdit> {
-        ClassEditScreen(onBack = { navController.popBackStack() })
+    screen<Routes.ClassEdit> { entry ->
+        val viewModel: ClassEditViewModel = assistedMetroViewModel()
+        CreatedResult(entry, CREATED_STUDENT, viewModel::selectCreatedStudent)
+        CreatedResult(entry, CREATED_GROUP) { viewModel.change(BookingIntent.ChooseGroup(it)) }
+        ClassEditScreen(
+            onBack = { navController.popBackStack() },
+            viewModel = viewModel,
+            setup = BookingSetupNavigation(
+                addStudent = { navController.navigate(Routes.StudentAddForSubject()) },
+                addGroup = { navController.navigate(Routes.GroupAdd) },
+                studentSubjects = { navController.navigate(Routes.StudentDetail(it, task = StudentTask.SUBJECT)) },
+                groupEdit = { navController.navigate(Routes.GroupEdit(it)) },
+                subjects = { navController.navigate(Routes.Subjects) },
+            ),
+        )
     }
 }
 
 private fun NavGraphBuilder.tabs(
     navController: NavHostController,
-    scheduleArrival: () -> Arrival<ScheduleTarget>?,
-    debtsArrival: () -> Arrival<Unit>?,
+    scheduleArrival: (String) -> Arrival<ScheduleTarget>?,
+    debtsArrival: (String) -> Arrival<Unit>?,
 ) {
-    screen<Routes.Schedule> {
+    screen<Routes.Schedule> { entry ->
         ScheduleScreen(
-            arrival = scheduleArrival(),
+            arrival = scheduleArrival(entry.id),
             onAddClass = { day -> navController.navigate(Routes.classEdit(0, day = day)) },
             onEditClass = { navController.navigate(Routes.classEdit(it)) },
             // The way out of "nothing can be booked yet": the schedule's empty state offers
             // the missing step rather than only naming it.
             onAddStudent = { navController.navigate(Routes.StudentAdd) },
+            onOpenStudent = { navController.navigate(Routes.StudentDetail(it)) },
+            onOpenGroup = { navController.navigate(Routes.GroupDetail(it)) },
+            onSetStudentHomework = { navController.navigate(Routes.StudentDetail(it, task = StudentTask.HOMEWORK)) },
+            onSetGroupHomework = { navController.navigate(Routes.GroupDetail(it, setHomework = true)) },
+            onRecordPayment = { navController.navigate(Routes.StudentDetail(it, task = StudentTask.PAYMENT)) },
         )
     }
-    screen<Routes.Reports> {
+    screen<Routes.Reports> { entry ->
         ReportsScreen(
             onStudentClick = { navController.navigate(Routes.StudentDetail(it)) },
-            debtsArrival = debtsArrival(),
+            debtsArrival = debtsArrival(entry.id),
         )
     }
     screen<Routes.More> {
@@ -93,28 +122,72 @@ private fun NavGraphBuilder.peopleCards(navController: NavHostController) {
     screen<Routes.StudentAdd> {
         StudentFormScreen(onBack = { navController.popBackStack() })
     }
-    screen<Routes.StudentDetail> {
+    screen<Routes.StudentAddForSubject> { entry ->
+        StudentFormScreen(
+            onBack = { navController.popBackStack() },
+            initialSubjectId = entry.toRoute<Routes.StudentAddForSubject>().subject.takeIf { it != 0L },
+            onCreated = { navController.returnCreated(CREATED_STUDENT, it) },
+        )
+    }
+    screen<Routes.StudentDetail> { entry ->
+        val route = entry.toRoute<Routes.StudentDetail>()
         StudentDetailScreen(
             onBack = { navController.popBackStack() },
             onLessonClick = { navController.navigate(Routes.classEdit(it)) },
+            onBookLesson = { navController.navigate(Routes.classEdit(0, studentId = route.id)) },
+            initialTask = route.task,
         )
     }
 
-    screen<Routes.GroupAdd> {
-        GroupFormScreen(onBack = { navController.popBackStack() })
+    screen<Routes.GroupAdd> { entry ->
+        GroupFormDestination(navController, entry, creating = true)
     }
     screen<Routes.GroupDetail> { entry ->
-        val id = entry.toRoute<Routes.GroupDetail>().id
+        val route = entry.toRoute<Routes.GroupDetail>()
+        val id = route.id
         GroupDetailScreen(
             onBack = { navController.popBackStack() },
             onEdit = { navController.navigate(Routes.GroupEdit(id)) },
             onMemberClick = { navController.navigate(Routes.StudentDetail(it)) },
             onLessonClick = { navController.navigate(Routes.classEdit(it)) },
+            onBookLesson = { navController.navigate(Routes.classEdit(0, groupId = id)) },
+            initialHomework = route.setHomework,
         )
     }
     // Adding and editing are the same form; it tells them apart by the id it is given.
-    screen<Routes.GroupEdit> {
-        GroupFormScreen(onBack = { navController.popBackStack() })
+    screen<Routes.GroupEdit> { entry ->
+        GroupFormDestination(navController, entry, creating = false)
+    }
+}
+
+@Composable
+private fun GroupFormDestination(navController: NavHostController, entry: NavBackStackEntry, creating: Boolean) {
+    val viewModel: GroupFormViewModel = assistedMetroViewModel()
+    CreatedResult(entry, CREATED_STUDENT) { viewModel.toggleMember(it, true) }
+    GroupFormScreen(
+        onBack = { navController.popBackStack() },
+        viewModel = viewModel,
+        onAddStudent = { subject -> navController.navigate(Routes.StudentAddForSubject(subject ?: 0)) },
+        onSaved = if (creating) ({ navController.returnCreated(CREATED_GROUP, it) }) else null,
+    )
+}
+
+private const val CREATED_STUDENT = "createdStudent"
+private const val CREATED_GROUP = "createdGroup"
+
+private fun NavController.returnCreated(key: String, id: Long) {
+    previousBackStackEntry?.savedStateHandle?.set(key, id)
+    popBackStack()
+}
+
+@Composable
+private fun CreatedResult(entry: NavBackStackEntry, key: String, onCreated: (Long) -> Unit) {
+    val id by entry.savedStateHandle.getStateFlow(key, 0L).collectAsStateWithLifecycle()
+    LaunchedEffect(id) {
+        if (id != 0L) {
+            onCreated(id)
+            entry.savedStateHandle[key] = 0L
+        }
     }
 }
 
@@ -165,18 +238,15 @@ private fun NavGraphBuilder.moreScreens(navController: NavHostController) {
 
 /**
  * Switches to [tab] the way the bar does — back to the start destination with the state
- * saved, so each tab keeps where the tutor was in it rather than stacking one tab on another. The bar and
- * a tray tap that names a tab both switch this way; they used to spell it out once each.
+ * saved, so each tab keeps where the tutor was in it. External interruptions use [openTabFromTray]
+ * to preserve a pushed form.
  *
  * **The tab already showing is left alone.** Switching to it would pop it and restore the same entry,
  * which re-targets the fade it is arriving with: a second tap inside the first frames of that fade — the
  * slow ones, on a cold or idle app — made the screen lurch forward instead of finishing it.
  *
  * **A screen pushed over the tab asked for is closed.** The tab is already under it, so the pop and restore
- * used to land on that same screen again and a tray tap that named the tab did nothing the tutor could see
- * — the schedule's day, a lesson's sheet and the debts all waited behind the open form or card. What was
- * typed into the closed screen is not kept; Back is what asks first. A screen pushed over a *different*
- * tab still waits with its tab and comes back with it.
+ * used to land on that same screen again. A screen pushed over a different tab waits with its tab.
  */
 // `currentBackStack` is `@RestrictedApi`, for the reason `AppRoot` gives where it reads the same list.
 @SuppressLint("RestrictedApi")
@@ -187,6 +257,15 @@ fun NavController.navigateToTab(tab: TopDestination) {
         popUpTo(graph.startDestinationId) { saveState = true }
         launchSingleTop = true
         restoreState = true
+    }
+}
+
+/** External interruptions keep the current screen and its draft on the stack for Back. */
+fun NavController.openTabFromTray(tab: TopDestination) {
+    if (currentDestination?.let(TopDestination::of) == null) {
+        navigate(tab.route) { launchSingleTop = true }
+    } else {
+        navigateToTab(tab)
     }
 }
 

@@ -41,6 +41,7 @@ class GroupFormViewModelTest {
         students = env.studentRepo,
         subjects = env.subjectRepo,
         rateHistory = env.rateHistoryRepo,
+        enrollment = env.enrollmentRepo,
         appScope = mainRule.appScope,
         computation = mainRule.dispatcher,
     )
@@ -49,6 +50,32 @@ class GroupFormViewModelTest {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         return ann to bob
+    }
+
+    @Test
+    fun `eligibility can be repaired without losing the unfinished group`() = runTest(mainRule.dispatcher) {
+        val subject = env.fixtures.subject()
+        val student = env.fixtures.student("New member")
+        val vm = vm()
+        observing(vm.state)
+        vm.update { it.copy(name = "Evening group", note = "Keep this draft", price = MoneyField("20")) }
+        vm.setSubject(subject)
+        advanceUntilIdle()
+        assertEquals(listOf(student), vm.state.current.unpriced.map { it.id })
+        assertFalse(vm.state.current.canSave)
+
+        vm.enrollMember(student, subject, Money.ZERO)
+        advanceUntilIdle()
+
+        assertEquals(setOf(student), vm.state.current.selectedMemberIds)
+        assertTrue(vm.state.current.unpriced.isEmpty())
+        assertEquals("Keep this draft", vm.state.current.form.note)
+        assertEquals(Money.ofMajor(20), vm.state.current.price)
+        assertEquals(Money.ZERO, env.enrollmentRepo.priceFor(student, subject)?.amount)
+        var savedId = 0L
+        vm.save { savedId = it }
+        advanceUntilIdle()
+        assertEquals(setOf(student), env.groupRepo.getMemberIds(savedId).toSet())
     }
 
     @Test

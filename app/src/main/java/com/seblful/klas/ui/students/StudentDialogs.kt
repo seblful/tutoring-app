@@ -197,15 +197,17 @@ internal fun AddSubjectPriceDialog(
     noSubjectsYet: Boolean,
     onConfirm: (subjectId: Long, amount: Money) -> Unit,
     onDismiss: () -> Unit,
+    initialSubjectId: Long? = null,
+    title: String? = null,
 ) {
-    var selectedId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var selectedId by rememberSaveable { mutableStateOf(initialSubjectId) }
     var priceText by rememberSaveable { mutableStateOf("") }
     val price = MoneyField(priceText, MoneyField.Kind.RATE)
     AlertDialog(
         onDismissRequest = onDismiss,
         // A stray tap beside the dialog must not throw away the price just typed.
         properties = KeepTypedInput,
-        title = { Text(stringResource(R.string.student_add_subject)) },
+        title = { Text(title ?: stringResource(R.string.student_add_subject)) },
         text = {
             // Scrolls, as the student's edit dialog does: an `AlertDialog`'s text slot has no scroll of its
             // own, and with a handful of subjects the keyboard for the price covered the field being typed.

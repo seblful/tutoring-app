@@ -37,6 +37,25 @@ import kotlin.time.Instant
 class ScheduleWriteTest : ScheduleTestFixture() {
 
     @Test
+    fun `undo of a completion voids its charges without a payment`() = runTest(mainRule.dispatcher) {
+        val subject = env.fixtures.subject()
+        val student = env.fixtures.pricedStudent("Student", subject)
+        val id = env.fixtures.lesson(subject, listOf(student), at(10)).single()
+        val vm = vm()
+        vm.setStatus(env.classRepo.getSessionFor(id)!!, LessonStatus.COMPLETED)
+        advanceUntilIdle()
+        val receipt = vm.completions.stream.first()
+        assertEquals(LessonStatus.COMPLETED, receipt.status)
+        vm.correctCompletion(receipt, undo = true)
+        advanceUntilIdle()
+        val corrected = env.classRepo.getById(id)!!
+        assertEquals(LessonStatus.SCHEDULED, corrected.status)
+        assertEquals(Attended.EXPECTED, corrected.attended)
+        assertEquals(Money.ZERO, corrected.charge)
+        assertTrue(env.paymentRepo.observeForStudent(student).first().isEmpty())
+    }
+
+    @Test
     fun `setStatus completes a class and captures its charge`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))

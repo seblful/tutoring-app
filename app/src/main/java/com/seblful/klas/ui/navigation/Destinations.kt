@@ -6,6 +6,7 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import com.seblful.klas.R
+import com.seblful.klas.ui.students.StudentTask
 import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
@@ -64,7 +65,10 @@ object Routes {
     data object StudentAdd
 
     @Serializable
-    data class StudentDetail(val id: Long)
+    data class StudentAddForSubject(val subject: Long = 0)
+
+    @Serializable
+    data class StudentDetail(val id: Long, val task: StudentTask? = null)
 
     @Serializable
     data object GroupAdd
@@ -75,7 +79,7 @@ object Routes {
      * which answered how to change a group and nothing about how one is going.
      */
     @Serializable
-    data class GroupDetail(val id: Long)
+    data class GroupDetail(val id: Long, val setHomework: Boolean = false)
 
     /** The group form for an existing group — the only place its roster, subject or rate changes. */
     @Serializable
@@ -83,17 +87,17 @@ object Routes {
 
     /**
      * id = 0 means "new class". [group] (non-zero) opens the form already booking for that group —
-     * an entry point the form still honours, though **no screen passes it today**: booking lives on
-     * the schedule, which is the one place that knows what else the hour holds.
+     * [student] preselects an individual. Profile entry uses the same conflict-checked form as Schedule.
      */
     @Serializable
-    data class ClassEdit(val id: Long, val group: Long = 0, val day: String? = null)
+    data class ClassEdit(val id: Long, val group: Long = 0, val day: String? = null, val student: Long = 0)
 
     /**
      * [ClassEdit] with its day as a date. A string in the route because navigation carries a string with
      * no help, where a `LocalDate` would need its own `NavType` on every graph and test that declares it.
      */
-    fun classEdit(id: Long, groupId: Long = 0, day: LocalDate? = null) = ClassEdit(id, groupId, day?.toString())
+    fun classEdit(id: Long, groupId: Long = 0, day: LocalDate? = null, studentId: Long = 0) =
+        ClassEdit(id, groupId, day?.toString(), studentId)
 }
 
 /**

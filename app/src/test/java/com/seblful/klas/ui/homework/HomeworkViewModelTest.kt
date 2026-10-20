@@ -41,7 +41,30 @@ class HomeworkViewModelTest {
 
     private fun vm() = HomeworkViewModel(
         env.homeworkRepo, env.studentRepo, env.groupRepo, mainRule.appScope, mainRule.dispatcher, env.clock,
+        env.classRepo,
     )
+
+    @Test
+    fun `reassigning old homework previews the actual historical destination lesson`() = runTest(mainRule.dispatcher) {
+        val subject = fixtures.subject()
+        val first = fixtures.pricedStudent("First", subject)
+        val second = fixtures.pricedStudent("Second", subject)
+        val givenAt = Instant.parse("2026-03-01T12:00:00Z")
+        val destination = Instant.parse("2026-03-05T12:00:00Z")
+        fixtures.lesson(subject, listOf(second), destination)
+        fixtures.lesson(subject, listOf(second), tomorrow)
+        fixtures.homework(Assignee.Student(first), at = givenAt, done = true)
+        val vm = vm()
+        observing(vm.state)
+        val row = vm.state.current.lists.archive.single()
+
+        val preview = vm.choicesFor(row).single { it.assignee == Assignee.Student(second) }
+        assertEquals(destination, preview.nextLessonAt)
+        vm.edit(row.homework, preview.assignee, row.text)
+        runCurrent()
+        val saved = env.homeworkRepo.observeAll().first().single()
+        assertEquals(destination, HomeworkRules.attachedTo(saved, env.classRepo.getAll())?.start)
+    }
 
     @Test
     fun `the tab is Loading until it has been read`() = runTest(mainRule.dispatcher) {

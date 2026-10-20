@@ -850,4 +850,18 @@
     <string name="diagnostics_export_success">Report saved</string>
     <string name="diagnostics_error">Could not save the file</string>
     <string name="diagnostics_test_crash">Trigger a test crash</string>
+    <string name="class_book">Book lesson</string>
+    <string name="class_open_student">Open student</string>
+    <string name="class_open_group">Open group</string>
+    <string name="payment_choose_student">Who made the payment?</string>
+    <string name="subject_set_price">Set subject price</string>
+    <string name="group_member_set_price">Set price</string>
+    <string name="subject_add">Add subject</string>
+    <string name="group_price_setup_hint">Set an individual subject price to add these students. Group lessons use the group rate.</string>
+    <string name="class_completed_message">Marked taught</string>
+    <string name="class_correct_planned">Return to planned</string>
+    <string name="class_correct_planned_confirm">Return this lesson to Planned and remove its earned charges? Recorded absences will be kept.</string>
+    <string name="class_correction_changed">The lesson changed. Open it again to correct its status.</string>
+    <string name="class_repeat_independent_hint">Creates separate lessons. Edit or cancel each lesson individually.</string>
+    <string name="reports_earned_hint">Earned from taught lessons, whether paid or unpaid.</string>
 </resources>

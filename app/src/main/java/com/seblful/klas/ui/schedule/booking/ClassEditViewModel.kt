@@ -93,6 +93,7 @@ class ClassEditViewModel @AssistedInject constructor(
     private val classId: Long = savedStateHandle["id"] ?: 0L
 
     private val preselectedGroupId: Long = savedStateHandle["group"] ?: 0L
+    private val preselectedStudentId: Long = savedStateHandle["student"] ?: 0L
 
     private val openedOnDay: LocalDate? = savedStateHandle.get<String>("day")?.let(LocalDate::parse)
 
@@ -310,6 +311,12 @@ class ClassEditViewModel @AssistedInject constructor(
             // Not the tutor's work, so neither marks the form unsaved — see [BookingIntent.isEdit].
             change(BookingIntent.ChooseTarget(ClassTarget.GROUP).asSetup())
             change(BookingIntent.ChooseGroup(preselectedGroupId).asSetup())
+        } else if (preselectedStudentId != 0L) {
+            viewModelScope.launch {
+                studentsRepo.getById(preselectedStudentId)?.let {
+                    change(BookingIntent.ChooseStudent(it.id, it).asSetup())
+                }
+            }
         }
         viewModelScope.launch {
             defaultMinutes.value = settingsRepo.get().defaultLessonMinutes
@@ -321,12 +328,9 @@ class ClassEditViewModel @AssistedInject constructor(
         }
         // Auto-select the only student there is (a new class, before any choice). With several
         // students, the user picks — we don't guess.
-        if (isNew) {
+        if (isNew && preselectedStudentId == 0L) {
             viewModelScope.launch {
-                // Read straight from the repository, one emission, rather than collecting the shared
-                // [students] flow forever: the form offers no way to add a student, so "the only
-                // student there is" cannot become true while it is open, and a standing collector
-                // would only serve to defeat that flow's `WhileSubscribed`.
+                // Initial convenience only. Setup detours return the created student's ID explicitly.
                 val only = studentsRepo.observeActive().first().singleOrNull() ?: return@launch
                 // Whether it still applies by the time it is read is the form's — see
                 // [BookingIntent.OnlyStudent].
@@ -397,6 +401,17 @@ class ClassEditViewModel @AssistedInject constructor(
         applied.lookups.forEach { run(it) }
     }
 
+    fun selectCreatedStudent(studentId: Long) {
+        viewModelScope.launch {
+            studentsRepo.getById(studentId)?.let { change(BookingIntent.ChooseStudent(it.id, it)) }
+        }
+    }
+
+    /** Re-check a missing prerequisite after returning from student or subject setup. */
+    fun refreshChoices() {
+        if (currentForm.subjectId == null) run(Lookup.OnlySubjectFor(SubjectKey.of(currentForm)))
+    }
+
     private fun bookingContext() = BookingContext(
         students = students.value.valueOrNull().orEmpty(),
         groups = groups.value.valueOrNull().orEmpty(),
@@ -417,9 +432,7 @@ class ClassEditViewModel @AssistedInject constructor(
                     ),
                 )
 
-                // Read once rather than collected: the form offers no way to add a subject, so "the only
-                // subject there is" cannot become true while it is open, and a standing collector would
-                // only defeat that flow's `WhileSubscribed`.
+                // Setup returns re-check a missing subject through refreshChoices.
                 is Lookup.OnlySubjectFor -> subjectsFor(lookup.askedFor).first().subjects.singleOrNull()
                     ?.let { change(BookingIntent.OnlySubject(lookup.askedFor, it.id)) }
             }

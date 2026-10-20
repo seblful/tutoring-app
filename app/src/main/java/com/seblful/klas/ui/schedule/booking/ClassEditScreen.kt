@@ -21,12 +21,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.schedule.Recurrence
 import com.seblful.klas.domain.schedule.Repeat
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.notifications.rememberNotificationPermissionRequest
+import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.CountPickerModal
 import com.seblful.klas.ui.common.DatePickerModal
@@ -61,7 +63,12 @@ import kotlinx.datetime.LocalDate
 fun ClassEditScreen(
     onBack: () -> Unit,
     viewModel: ClassEditViewModel = assistedMetroViewModel(),
+    setup: BookingSetupNavigation = BookingSetupNavigation(),
 ) {
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshChoices()
+        onPauseOrDispose { }
+    }
     val screenState by viewModel.state.collectAsStateWithLifecycle()
     val gone by viewModel.gone.collectAsStateWithLifecycle()
     val title = stringResource(if (viewModel.isNew) R.string.class_add_title else R.string.class_edit_title)
@@ -85,7 +92,9 @@ fun ClassEditScreen(
     // from the start, because a blank form is what a new booking *is*.
     when (val loaded = screenState) {
         Loadable.Loading -> LoadingFormScreen(title = title, onBack = onBack, fields = 5)
-        is Loadable.Ready -> ClassEditForm(loaded.value, title, viewModel, onBack)
+        is Loadable.Ready -> ClassEditForm(
+            loaded.value, title, viewModel, onBack, setup,
+        )
     }
 }
 
@@ -96,6 +105,7 @@ private fun ClassEditForm(
     title: String,
     viewModel: ClassEditViewModel,
     onBack: () -> Unit,
+    setup: BookingSetupNavigation,
 ) {
     val form = state.form
     val members = state.members
@@ -213,6 +223,14 @@ private fun ClassEditForm(
                 )
             }
 
+            if (viewModel.isNew) {
+                if (form.target == ClassTarget.STUDENT) {
+                    AddRow(stringResource(R.string.schedule_add_student), setup.addStudent)
+                } else {
+                    AddRow(stringResource(R.string.group_add_title), setup.addGroup)
+                }
+            }
+
             DropdownField(
                 label = stringResource(R.string.class_subject_label),
                 selectedText = state.subjectName,
@@ -234,6 +252,13 @@ private fun ClassEditForm(
                 isError = state.subjectNotice != null &&
                     state.subjectNotice != SubjectNotice.FIXED_BY_GROUP,
             )
+            when (state.subjectNotice) {
+                SubjectNotice.NONE_FOR_STUDENT -> form.studentId?.let { id ->
+                    AddRow(stringResource(R.string.subject_set_price), onClick = { setup.studentSubjects(id) })
+                }
+                SubjectNotice.NONE_FOR_GROUP -> AddRow(stringResource(R.string.subject_add), setup.subjects)
+                else -> Unit
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.gutter)) {
                 PickerField(
@@ -298,6 +323,13 @@ private fun ClassEditForm(
                     onCount = { count -> viewModel.change(BookingIntent.Edit { it.copy(repeatCount = count) }) },
                     onCustomCount = { showRepeatCountPicker = true },
                 )
+                if (form.repeat.repeats) {
+                    Text(
+                        stringResource(R.string.class_repeat_independent_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
             if (form.target == ClassTarget.GROUP) {
@@ -308,6 +340,9 @@ private fun ClassEditForm(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
+                    form.groupId?.let { id ->
+                        AddRow(stringResource(R.string.group_edit_members), onClick = { setup.groupEdit(id) })
+                    }
                 }
                 if (members.isNotEmpty()) {
                     SectionTitle(stringResource(R.string.class_group_members_title))

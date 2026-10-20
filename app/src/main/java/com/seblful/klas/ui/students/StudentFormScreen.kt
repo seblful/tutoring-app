@@ -18,6 +18,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -53,8 +54,12 @@ import dev.zacsweers.metrox.viewmodel.metroViewModel
 fun StudentFormScreen(
     onBack: () -> Unit,
     viewModel: StudentFormViewModel = metroViewModel(),
+    initialSubjectId: Long? = null,
+    onCreated: ((Long) -> Unit)? = null,
 ) {
+    LaunchedEffect(initialSubjectId) { initialSubjectId?.let(viewModel::suggestSubject) }
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val save = { viewModel.create { id -> if (onCreated != null) onCreated(id) else onBack() } }
 
     // A save that failed must not look like one that went through: the form stays open and says so.
     val messages = rememberMessages()
@@ -62,7 +67,7 @@ fun StudentFormScreen(
     ShowMessagesFor(viewModel.events, messages) { saveFailedMsg }
 
     // Back — the arrow or the system gesture — asks before throwing a filled-in form away.
-    val requestLeave = leaveGuard(form = state, onLeave = onBack, onSave = { viewModel.save(onBack) })
+    val requestLeave = leaveGuard(form = state, onLeave = onBack, onSave = save)
 
     KlasScreen(
         title = stringResource(R.string.student_add_title),
@@ -72,7 +77,7 @@ fun StudentFormScreen(
         // for the group and booking forms; `StudentFormContent` keeps its own `imePadding()` only
         // because onboarding embeds it — and that one is a no-op here, the inset already consumed.
         imeAware = true,
-        actions = { SaveAction(enabled = state.canSave, onSave = { viewModel.save(onBack) }) },
+        actions = { SaveAction(enabled = state.canSave, onSave = save) },
     ) { modifier ->
         StudentFormContent(state = state, viewModel = viewModel, modifier = modifier)
     }

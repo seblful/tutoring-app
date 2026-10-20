@@ -33,6 +33,25 @@ class StudentFormViewModelTest {
     private fun vm() = StudentFormViewModel(env.subjectRepo, env.enrollmentRepo, mainRule.appScope, mainRule.dispatcher)
 
     @Test
+    fun `a setup detour carries its subject and returns the created student`() = runTest(mainRule.dispatcher) {
+        val subject = env.fixtures.subject()
+        val vm = vm()
+        observing(vm.state)
+        vm.suggestSubject(subject)
+        advanceUntilIdle()
+        assertFalse(vm.state.value.isDirty)
+        assertEquals(setOf(subject), vm.state.value.selectedSubjectIds)
+        vm.update { it.copy(name = "Created from group") }
+        vm.setPriceText(subject, "30")
+        advanceUntilIdle()
+        var created = 0L
+        vm.create { created = it }
+        advanceUntilIdle()
+        assertEquals("Created from group", env.studentRepo.getById(created)?.name)
+        assertEquals(Money.ofMajor(30), env.enrollmentRepo.priceFor(created, subject)?.amount)
+    }
+
+    @Test
     fun `only the subject list waits to be read`() = runTest(mainRule.dispatcher) {
         env.fixtures.subject("Математика")
         val vm = vm()

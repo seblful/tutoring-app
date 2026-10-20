@@ -2,6 +2,7 @@ package com.seblful.klas.ui.homework
 
 import androidx.lifecycle.ViewModel
 import com.seblful.klas.data.homework.HomeworkRepository
+import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.di.ApplicationScope
@@ -37,6 +38,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
 
 /**
  * What the «Задания» tab shows: its two lists, what it is narrowed to, and what the add dialog is built
@@ -68,6 +70,7 @@ class HomeworkViewModel @Inject constructor(
     @param:ApplicationScope appScope: CoroutineScope,
     @Computation computation: CoroutineDispatcher,
     private val clock: WallClock,
+    private val classes: ClassRepository,
 ) : ViewModel() {
 
     private val zone get() = clock.zone
@@ -130,8 +133,14 @@ class HomeworkViewModel @Inject constructor(
      * among the rest. Otherwise the dialog, which preselects the homework's own assignee from the list,
      * would fall back to somebody else and save the homework onto them.
      */
-    fun choicesFor(row: HomeworkRow): List<AssigneeChoice> {
-        val all = choices().orEmpty()
+    suspend fun choicesFor(row: HomeworkRow): List<AssigneeChoice> {
+        val loaded = state.value.valueOrNull()
+        // Reassignment keeps the original given time. A nearest-upcoming preview would promise a
+        // different lesson, and the tab's short lookback may omit the actual historical destination.
+        val lessons = classes.getBetween(row.homework.givenAt, Instant.fromEpochMilliseconds(Long.MAX_VALUE))
+        val all = loaded?.assignees.orEmpty().map { who ->
+            AssigneeChoice.of(who, loaded?.captions?.titleOf(who).orEmpty(), lessons, row.homework.givenAt)
+        }
         return if (all.any { it.assignee == row.homework.assignee }) all
         else listOf(AssigneeChoice(row.homework.assignee, row.title, row.lessonAt)) + all
     }

@@ -985,4 +985,18 @@
     <string name="diagnostics_export_success">Отчёт сохранён</string>
     <string name="diagnostics_error">Не удалось сохранить файл</string>
     <string name="diagnostics_test_crash">Вызвать тестовый сбой</string>
+    <string name="class_book">Записать занятие</string>
+    <string name="class_open_student">Карточка ученика</string>
+    <string name="class_open_group">Карточка группы</string>
+    <string name="payment_choose_student">От кого оплата?</string>
+    <string name="subject_set_price">Указать цену предмета</string>
+    <string name="group_member_set_price">Указать цену</string>
+    <string name="subject_add">Добавить предмет</string>
+    <string name="group_price_setup_hint">Чтобы добавить этих учеников, укажите их цену предмета. Групповые занятия оплачиваются по цене группы.</string>
+    <string name="class_completed_message">Занятие проведено</string>
+    <string name="class_correct_planned">Вернуть в план</string>
+    <string name="class_correct_planned_confirm">Вернуть занятие в запланированные и убрать начисления за него? Отметки о пропусках сохранятся.</string>
+    <string name="class_correction_changed">Занятие изменилось. Откройте его снова, чтобы исправить статус.</string>
+    <string name="class_repeat_independent_hint">Создаются отдельные занятия. Каждое можно изменить или отменить по отдельности.</string>
+    <string name="reports_earned_hint">Начисления за проведённые занятия, в том числе ещё не оплаченные.</string>
 </resources>

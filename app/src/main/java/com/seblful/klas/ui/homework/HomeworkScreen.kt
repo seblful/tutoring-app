@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -39,6 +40,7 @@ import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
+import kotlinx.coroutines.launch
 
 private enum class HomeworkSide(val labelRes: Int) {
     CURRENT(R.string.homework_side_current),
@@ -57,6 +59,7 @@ fun HomeworkScreen(
     // The dialog's choices are taken when it opens — see `HomeworkViewModel.choices`.
     var adding by remember { mutableStateOf<List<AssigneeChoice>?>(null) }
     var opened by remember { mutableStateOf<Opened?>(null) }
+    val scope = rememberCoroutineScope()
 
     val messages = rememberMessages()
     val failed = stringResource(R.string.action_failed)
@@ -126,7 +129,7 @@ fun HomeworkScreen(
                         messages = messages,
                         undo = undo,
                         onAdd = ::add,
-                        onOpen = { row -> opened = Opened(row, viewModel.choicesFor(row)) },
+                        onOpen = { row -> scope.launch { opened = Opened(row, viewModel.choicesFor(row)) } },
                     )
                 }
             }

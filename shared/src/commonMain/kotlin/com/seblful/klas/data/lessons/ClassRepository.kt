@@ -408,6 +408,19 @@ class ClassRepository @Inject constructor(
     }
 
     /**
+     * Corrects a completion without the cancel/re-plan detour. Undo supplies [unchanged] so a receipt
+     * cannot undo later edits. Calendar IDs are mirrors and do not count as edits to the lesson.
+     */
+    suspend fun correctCompletion(session: ClassSession, unchanged: ClassSession? = null): Boolean = write {
+        val current = current(session) ?: return@write Committed(false, changed = false)
+        val matches = unchanged == null || current.classes.map { it.copy(calendarEventId = null) } ==
+            unchanged.classes.map { it.copy(calendarEventId = null) }
+        if (current.status != LessonStatus.COMPLETED || !matches) return@write Committed(false, changed = false)
+        val corrected = current.classes.map(ClassRules::correctCompletion)
+        persistRows(LessonEdit(lesson = corrected.first(), updated = corrected)).mapValue { true }
+    }
+
+    /**
      * Records whether one student was in one lesson — the per-member correction, and the only write that
      * touches a single row of a lesson rather than the lesson.
      */

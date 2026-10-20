@@ -42,6 +42,37 @@ import kotlin.time.Instant
 class ClassEditFormTest : ClassEditTestFixture() {
 
     @Test
+    fun `profile booking uses the named student and normal rate and conflict checks`() = runTest(mainRule.dispatcher) {
+        val subject = env.fixtures.subject()
+        env.fixtures.pricedStudent("Other", subject)
+        val student = env.fixtures.pricedStudent("Chosen", subject, rate = Money.ofMajor(45))
+        val vm = vm(studentId = student)
+        observing(vm.state)
+        advanceUntilIdle()
+        assertEquals(student, vm.state.current.form.studentId)
+        assertEquals(subject, vm.state.current.form.subjectId)
+        assertEquals(Money.ofMajor(45), vm.state.current.form.price.amount)
+        assertFalse(vm.state.current.isDirty)
+    }
+
+    @Test
+    fun `returning from student creation preserves booking time and selects the new student`() =
+        runTest(mainRule.dispatcher) {
+            val subject = env.fixtures.subject()
+            val vm = vm()
+            observing(vm.state)
+            val day = LocalDate(2027, 1, 5)
+            vm.change(BookingIntent.Edit { it.copy(date = day, timeFrom = LocalTime(14, 0)) })
+            val student = env.fixtures.pricedStudent("Created", subject)
+            vm.selectCreatedStudent(student)
+            advanceUntilIdle()
+            assertEquals(day, vm.state.current.form.date)
+            assertEquals(LocalTime(14, 0), vm.state.current.form.timeFrom)
+            assertEquals(student, vm.state.current.form.studentId)
+            assertEquals(subject, vm.state.current.form.subjectId)
+        }
+
+    @Test
     fun `an existing lesson's form is Loading until the lesson has been read`() = runTest(mainRule.dispatcher) {
         val date = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
         val (_, id) = seedLesson(date, LocalTime(14, 0))
@@ -283,7 +314,7 @@ class ClassEditFormTest : ClassEditTestFixture() {
         }
 
     @Test
-    fun `selecting a subject prefills its price only when the field is empty`() = runTest(mainRule.dispatcher) {
+    fun `subject changes refresh automatic rates and preserve typed overrides`() = runTest(mainRule.dispatcher) {
         val studentId = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val math = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val physics = env.subjectDao.upsert(SubjectEntity(name = "Физика"))
@@ -300,10 +331,13 @@ class ClassEditFormTest : ClassEditTestFixture() {
         advanceUntilIdle()
         assertEquals("30", vm.state.current.form.price.text)
 
-        // Switching subject keeps a price the user already has — selectSubject only fills an empty field.
         vm.change(BookingIntent.ChooseSubject(physics))
         advanceUntilIdle()
-        assertEquals("30", vm.state.current.form.price.text)
+        assertEquals("40", vm.state.current.form.price.text)
+        vm.change(BookingIntent.Edit { it.copy(price = it.price.typed("35")) })
+        vm.change(BookingIntent.ChooseSubject(math))
+        advanceUntilIdle()
+        assertEquals("35", vm.state.current.form.price.text)
     }
 
     /**

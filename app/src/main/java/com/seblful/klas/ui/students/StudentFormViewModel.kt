@@ -54,6 +54,7 @@ class StudentFormViewModel @Inject constructor(
     )
 
     private val form = MutableStateFlow(Form())
+    private val pristine = MutableStateFlow(Form())
 
     data class UiState(
         val form: Form = Form(),
@@ -62,6 +63,7 @@ class StudentFormViewModel @Inject constructor(
          * state is not.
          */
         val allSubjects: Loadable<List<Subject>> = Loadable.Loading,
+        private val baseline: Form = Form(),
     ) : LeavableForm {
         val selectedSubjectIds: Set<Long> get() = form.subjectPrices.keys
 
@@ -72,15 +74,23 @@ class StudentFormViewModel @Inject constructor(
                 form.subjectPrices.values.all { it.isValid }
 
         /** hether anything has been entered — what leaving without saving would cost. */
-        override val isDirty: Boolean get() = form != Form()
+        override val isDirty: Boolean get() = form != baseline
     }
 
     val state: StateFlow<UiState> = combine(
         form,
         subjectsRepo.observeAll(),
-    ) { f, subjects ->
+        pristine,
+    ) { f, subjects, baseline ->
         val existing = subjects.mapTo(mutableSetOf()) { it.id }
-        UiState(f.copy(subjectPrices = f.subjectPrices.filterKeys { it in existing }), Loadable.Ready(subjects))
+        UiState(
+            f.copy(
+                subjectPrices = f.subjectPrices.filterKeys {
+                    it in existing
+                },
+            ),
+            Loadable.Ready(subjects), baseline,
+        )
     }
         // The form itself is usable from the first frame, so the state is not wrapped — the one part of it
         // that has to have been read carries its own answer (see [UiState.allSubjects]).
@@ -88,6 +98,14 @@ class StudentFormViewModel @Inject constructor(
 
     fun update(transform: (Form) -> Form) {
         form.value = transform(form.value)
+    }
+
+    /** A setup detour carries the subject, while its parent form stays on the back stack. */
+    fun suggestSubject(subjectId: Long) {
+        if (form.value != Form()) return
+        val suggested = Form(subjectPrices = mapOf(subjectId to MoneyField()))
+        form.value = suggested
+        pristine.value = suggested
     }
 
     fun toggleSubject(subjectId: Long, on: Boolean) {
@@ -136,7 +154,9 @@ class StudentFormViewModel @Inject constructor(
     val events = UiEvents<Event>()
 
     /** reates the student and their priced subjects. */
-    fun save(onSaved: () -> Unit) {
+    fun save(onSaved: () -> Unit) = create { onSaved() }
+
+    fun create(onCreated: (Long) -> Unit) {
         val s = state.value
         // Once: a double tap on «Сохранить» created the student twice and popped two screens.
         if (!s.canSave || saving) return
@@ -151,7 +171,7 @@ class StudentFormViewModel @Inject constructor(
         viewModelScope.launch {
             val written = appScope.writeAwaited { enrollment.createStudent(student, pricedSubjects) }
             if (written.isSuccess) {
-                onSaved()
+                onCreated(written.getOrThrow())
             } else {
                 saving = false
                 events.send(Event.SAVE_FAILED)

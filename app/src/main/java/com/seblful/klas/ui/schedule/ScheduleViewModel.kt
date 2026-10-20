@@ -165,9 +165,11 @@ class ScheduleViewModel @Inject constructor(
          * having lost it.
          */
         LESSON_GONE,
+        CORRECTION_CHANGED,
     }
 
     val events = UiEvents<Event>()
+    val completions = UiEvents<ClassSession>()
 
     private val homeworkActions = HomeworkActions(homework, appScope, events, Event.ACTION_FAILED)
 
@@ -418,7 +420,20 @@ class ScheduleViewModel @Inject constructor(
             when (val changed = classes.setStatus(session, status)) {
                 is LessonWrite.HourTaken -> reportHourTaken(changed.clash)
                 // Written, or deleted underneath the sheet: either way the schedule already shows it.
-                is LessonWrite.Written, LessonWrite.Gone -> Unit
+                is LessonWrite.Written -> {
+                    if (status == LessonStatus.COMPLETED && changed.value.isNotEmpty()) {
+                        completions.send(ClassSession(session.groupId, changed.value))
+                    }
+                }
+                LessonWrite.Gone -> Unit
+            }
+        }
+    }
+
+    fun correctCompletion(session: ClassSession, undo: Boolean = false) {
+        write {
+            if (!classes.correctCompletion(session, unchanged = session.takeIf { undo })) {
+                events.send(Event.CORRECTION_CHANGED)
             }
         }
     }

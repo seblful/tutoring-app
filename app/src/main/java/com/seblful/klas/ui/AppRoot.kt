@@ -122,14 +122,17 @@ private fun MainApp() {
     /**
      * The latest tray tap that asked a tab for something more than itself — the schedule for a day or a
      * lesson's sheet, the reports for their debts. See [Arrival], and why each tap is its own instance.
+     * Bound to the new destination entry so a tab preserved below a draft cannot replay the tap later.
      */
-    var scheduleArrival by remember { mutableStateOf<Arrival<ScheduleTarget>?>(null) }
-    var debtsArrival by remember { mutableStateOf<Arrival<Unit>?>(null) }
+    var scheduleArrival by remember { mutableStateOf<Pair<String, Arrival<ScheduleTarget>>?>(null) }
+    var debtsArrival by remember { mutableStateOf<Pair<String, Arrival<Unit>>?>(null) }
 
     OpensWhatTheTrayNames(
         navController,
-        onSchedule = { scheduleArrival = Arrival(it) },
-        onDebts = { debtsArrival = Arrival(Unit) },
+        onSchedule = { target ->
+            navController.currentBackStackEntry?.let { scheduleArrival = it.id to Arrival(target) }
+        },
+        onDebts = { navController.currentBackStackEntry?.let { debtsArrival = it.id to Arrival(Unit) } },
     )
 
     // **The chrome leaves with the screen, not ahead of it.** Whether the tabs apply is settled the
@@ -168,7 +171,11 @@ private fun MainApp() {
             startDestination = Routes.Schedule,
             modifier = Modifier.fillMaxSize(),
         ) {
-            klasGraph(navController, scheduleArrival = { scheduleArrival }, debtsArrival = { debtsArrival })
+            klasGraph(
+                navController,
+                scheduleArrival = { id -> scheduleArrival?.takeIf { it.first == id }?.second },
+                debtsArrival = { id -> debtsArrival?.takeIf { it.first == id }?.second },
+            )
         }
     }
 }

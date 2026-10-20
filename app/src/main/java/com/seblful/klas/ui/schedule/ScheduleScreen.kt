@@ -69,6 +69,11 @@ fun ScheduleScreen(
     onAddClass: (LocalDate) -> Unit,
     onEditClass: (Long) -> Unit,
     onAddStudent: () -> Unit,
+    onOpenStudent: (Long) -> Unit = {},
+    onOpenGroup: (Long) -> Unit = {},
+    onSetStudentHomework: (Long) -> Unit = {},
+    onSetGroupHomework: (Long) -> Unit = {},
+    onRecordPayment: (Long) -> Unit = {},
     /**
      * The latest tap in the tray that asked for the schedule — a day, or a lesson's sheet — or null when
      * nothing has, the launcher's ordinary case. See `AppRoot`.
@@ -130,6 +135,8 @@ fun ScheduleScreen(
     var sheetFor by remember { mutableStateOf<ScheduleRow?>(null) }
     var movingRow by remember { mutableStateOf<ScheduleRow?>(null) }
     var deletingRow by remember { mutableStateOf<ScheduleRow?>(null) }
+    var paymentFor by remember { mutableStateOf<ScheduleRow?>(null) }
+    var correctingRow by remember { mutableStateOf<ScheduleRow?>(null) }
 
     // A reminder's tap opens its lesson the way tapping the card does, once the day it is on has loaded.
     val askedSheet by viewModel.askedSheet.collectAsStateWithLifecycle()
@@ -145,10 +152,19 @@ fun ScheduleScreen(
     val messages = rememberMessages()
     val actionFailedMsg = stringResource(R.string.action_failed)
     val lessonGoneMsg = stringResource(R.string.class_gone)
+    val correctionChangedMsg = stringResource(R.string.class_correction_changed)
     ShowMessagesFor(viewModel.events, messages) { event ->
         when (event) {
             ScheduleViewModel.Event.ACTION_FAILED -> actionFailedMsg
             ScheduleViewModel.Event.LESSON_GONE -> lessonGoneMsg
+            ScheduleViewModel.Event.CORRECTION_CHANGED -> correctionChangedMsg
+        }
+    }
+    val completedMsg = stringResource(R.string.class_completed_message)
+    val undoLabel = stringResource(R.string.action_undo)
+    LaunchedEffect(viewModel, completedMsg, undoLabel) {
+        viewModel.completions.stream.collect { completed ->
+            messages.show(completedMsg, undoLabel) { viewModel.correctCompletion(completed, undo = true) }
         }
     }
 
@@ -445,6 +461,30 @@ fun ScheduleScreen(
             onMove = { closeSheet { movingRow = row } },
             onDelete = { closeSheet { deletingRow = row } },
             onDismiss = { sheetFor = null },
+            onCorrectCompletion = { closeSheet { correctingRow = row } },
+            onSetHomework = {
+                closeSheet {
+                    row.session.groupId?.let(onSetGroupHomework) ?: onSetStudentHomework(row.klass.studentId)
+                }
+            },
+            onRecordPayment = {
+                closeSheet { if (row.isGroup) paymentFor = row else onRecordPayment(row.klass.studentId) }
+            },
+            onOpenProfile = {
+                closeSheet { row.session.groupId?.let(onOpenGroup) ?: onOpenStudent(row.klass.studentId) }
+            },
+        )
+    }
+
+    paymentFor?.let { row ->
+        LessonPayerDialog(row, onRecordPayment, onDismiss = { paymentFor = null })
+    }
+    correctingRow?.let { row ->
+        ConfirmDialog(
+            text = stringResource(R.string.class_correct_planned_confirm),
+            confirmLabel = stringResource(R.string.class_correct_planned),
+            onConfirm = { viewModel.correctCompletion(row.session); correctingRow = null },
+            onDismiss = { correctingRow = null },
         )
     }
 

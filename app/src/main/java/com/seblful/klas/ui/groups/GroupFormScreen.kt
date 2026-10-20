@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,6 +15,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,13 +26,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
+import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.Student
+import com.seblful.klas.ui.common.AddRow
+import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LoadingFormScreen
 import com.seblful.klas.ui.common.MemberPickRow
+import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.ModeField
 import com.seblful.klas.ui.common.MoneyTextField
 import com.seblful.klas.ui.common.RateHistory
@@ -42,6 +50,7 @@ import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.supportingTextOf
+import com.seblful.klas.ui.students.AddSubjectPriceDialog
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
 /** reate or edit one group: **subject**, name, note, hourly rate, default mode and roster. */
@@ -49,6 +58,8 @@ import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 fun GroupFormScreen(
     onBack: () -> Unit,
     viewModel: GroupFormViewModel = assistedMetroViewModel(),
+    onAddStudent: (Long?) -> Unit = {},
+    onSaved: ((Long) -> Unit)? = null,
 ) {
     val screenState by viewModel.state.collectAsStateWithLifecycle()
     val title = stringResource(
@@ -60,7 +71,7 @@ fun GroupFormScreen(
     // no name, no rate and — in the error red — that the tutor has no students. See [Loadable].
     when (val loaded = screenState) {
         Loadable.Loading -> LoadingFormScreen(title = title, onBack = onBack, fields = 5)
-        is Loadable.Ready -> GroupForm(loaded.value, title, viewModel, onBack)
+        is Loadable.Ready -> GroupForm(loaded.value, title, viewModel, onBack, onAddStudent, onSaved)
     }
 }
 
@@ -71,13 +82,18 @@ private fun GroupForm(
     title: String,
     viewModel: GroupFormViewModel,
     onBack: () -> Unit,
+    onAddStudent: (Long?) -> Unit,
+    onSaved: ((Long) -> Unit)?,
 ) {
     val form = state.form
+    val saved: (Long) -> Unit = { id -> if (onSaved != null) onSaved(id) else onBack() }
+    var pricingMemberId by rememberSaveable { mutableStateOf<Long?>(null) }
+    GroupMemberPrice(state, pricingMemberId, viewModel::enrollMember) { pricingMemberId = null }
 
     // A save that would take somebody off the roster — no price for the group's subject — asks first.
     var confirmingDrops by rememberSaveable { mutableStateOf(false) }
     fun requestSave() {
-        if (state.leavingOnSave > 0) confirmingDrops = true else viewModel.save { onBack() }
+        if (state.leavingOnSave > 0) confirmingDrops = true else viewModel.save(saved)
     }
 
     // Back — the arrow or the system gesture — asks before throwing away edits to a group, and saving on
@@ -96,7 +112,7 @@ private fun GroupForm(
                 state.leavingOnSave,
             ),
             confirmLabel = stringResource(R.string.action_save),
-            onConfirm = { viewModel.save { onBack() } },
+            onConfirm = { viewModel.save(saved) },
             onDismiss = { confirmingDrops = false },
         )
     }
@@ -250,11 +266,71 @@ private fun GroupForm(
                 )
             }
 
+            if (state.unpriced.isNotEmpty()) {
+                item(key = "unpriced-help") {
+                    Text(
+                        stringResource(R.string.group_price_setup_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.itemGap),
+                    )
+                }
+                // Laid out as the member rows above, so the roster reads as one list: the same avatar and
+                // name, with the step that makes them eligible where the checkbox would be.
+                items(state.unpriced, key = { "unpriced:${it.id}" }) { student ->
+                    UnpricedMemberRow(student, onSetPrice = { pricingMemberId = student.id })
+                }
+            }
+            item(key = "add-student") {
+                AddRow(stringResource(R.string.schedule_add_student), onClick = { onAddStudent(form.subjectId) })
+            }
+
             // No "danger zone" any more: archiving and deleting the group are lifecycle actions and
             // they live on the group's **card**, behind the overflow, where a student's already did.
             // See [GroupDetailViewModel].
         }
     }
+}
+
+@Composable
+private fun UnpricedMemberRow(student: Student, onSetPrice: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = MinTouchTarget)
+            .padding(horizontal = Spacing.inline, vertical = Spacing.tight),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Avatar(student.name, student.id)
+        Text(
+            student.name,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f).padding(start = Spacing.leading),
+        )
+        TextButton(onClick = onSetPrice) { Text(stringResource(R.string.group_member_set_price)) }
+    }
+}
+
+@Composable
+private fun GroupMemberPrice(
+    state: GroupFormViewModel.UiState,
+    memberId: Long?,
+    onEnroll: (Long, Long, Money) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val member = state.unpriced.firstOrNull { it.id == memberId } ?: return
+    val subject = state.subjects.firstOrNull { it.id == state.form.subjectId } ?: return
+    AddSubjectPriceDialog(
+        addableSubjects = listOf(subject),
+        noSubjectsYet = false,
+        initialSubjectId = subject.id,
+        title = member.name,
+        onConfirm = { subjectId, amount -> onEnroll(member.id, subjectId, amount) },
+        onDismiss = onDismiss,
+    )
 }
 
 // The group and booking forms share MemberPickRow for roster membership.

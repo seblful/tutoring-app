@@ -57,6 +57,22 @@ class NavigateToTabTest {
     }
 
     @Test
+    fun `tray arrivals preserve an unfinished form from the same tab and another tab`() {
+        showTabs()
+        onUiThread { navController.navigate(Routes.classEdit(0)) }
+        val draft = navController.currentBackStackEntry!!
+        onUiThread { draft.savedStateHandle["draft"] = "Maths at 30" }
+
+        for (tab in listOf(TopDestination.SCHEDULE, TopDestination.REPORTS)) {
+            onUiThread { navController.openTabFromTray(tab) }
+            assertEquals(tab, showing())
+            onUiThread { navController.popBackStack() }
+            assertEquals(draft, navController.currentBackStackEntry)
+            assertEquals("Maths at 30", draft.savedStateHandle.get<String>("draft"))
+        }
+    }
+
+    @Test
     fun `settings categories return through the index and retain More tab ownership`() {
         showTabs()
         tap(TopDestination.MORE)

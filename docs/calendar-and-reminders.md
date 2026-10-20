@@ -43,7 +43,8 @@ The database drives both mirrors; neither writes changes back into Klas.
   keep their alarms. `Reminders.shouldPost` re-checks state and lead time at delivery.
 - «Проведено» bills through a broadcast. «Перенести» opens the lesson form over the current screen;
   an existing form waits underneath. Both re-check current legality because notifications can be stale.
-- `TrayNavigation` opens the named destination; `Arrival` consumes each tap once:
+- `TrayNavigation` opens the named destination above any pushed form, preserving its draft for Back.
+  `Arrival` consumes each tap once, bound to that destination entry so an older tab cannot replay it:
 
   | Entry | Destination |
   |---|---|

@@ -134,6 +134,8 @@ data class Applied(val form: BookingForm, val lookups: List<Lookup> = emptyList(
 data class BookingForm(
     val form: ClassForm = ClassForm(),
     val touched: Boolean = false,
+    /** Suggestions follow the subject; typed and already-booked amounts belong to this lesson. */
+    val automaticPrice: Boolean = true,
 ) {
     /** The form after [intent], and anything it now needs looked up. */
     fun change(intent: BookingIntent, context: BookingContext): Applied {
@@ -158,13 +160,16 @@ data class BookingForm(
         is BookingIntent.IncludeMember -> includeMember(intent.studentId, intent.included)
         is BookingIntent.StartAt -> startAt(intent.time, context)
         is BookingIntent.LastsFor -> settled(form.copy(durationMinutes = intent.minutes))
-        is BookingIntent.Edit -> settled(intent.transform(form))
+        is BookingIntent.Edit -> {
+            val edited = intent.transform(form)
+            Applied(copy(form = edited, automaticPrice = automaticPrice && edited.price == form.price))
+        }
         is BookingIntent.Answer -> answer(intent, context)
         is BookingIntent.AsSetup -> transform(intent.inner, context)
     }
 
     private fun answer(answer: BookingIntent.Answer, context: BookingContext): Applied = when (answer) {
-        is BookingIntent.Load -> settled(answer.form)
+        is BookingIntent.Load -> Applied(copy(form = answer.form, automaticPrice = false))
         is BookingIntent.DefaultLength -> defaultLength(answer.minutes)
         is BookingIntent.OnlyStudent -> onlyStudent(answer.student, context)
         is BookingIntent.GroupLoaded -> groupLoaded(answer.group)
@@ -186,11 +191,14 @@ data class BookingForm(
         // Auto-select the only group there is, mirroring the single-student case.
         val onlyGroup = context.groups.singleOrNull()
         if (target == ClassTarget.GROUP && onlyGroup != null) {
-            return copy(form = cleared).chooseGroup(onlyGroup.id)
+            return copy(form = cleared, automaticPrice = true).chooseGroup(onlyGroup.id)
         }
         // The subject was just cleared, so whatever the new target offers may be a single choice that
         // needs no picking.
-        return Applied(copy(form = cleared), listOf(Lookup.OnlySubjectFor(SubjectKey.of(cleared))))
+        return Applied(
+            copy(form = cleared, automaticPrice = true),
+            listOf(Lookup.OnlySubjectFor(SubjectKey.of(cleared))),
+        )
     }
 
     private fun chooseStudent(studentId: Long, known: Student?, context: BookingContext): Applied {
@@ -203,7 +211,7 @@ data class BookingForm(
             mode = student?.defaultMode ?: ClassMode.IN_PERSON,
         )
         // A different student prices different subjects; theirs may be a single one.
-        return Applied(copy(form = next), listOf(Lookup.OnlySubjectFor(SubjectKey.of(next))))
+        return Applied(copy(form = next, automaticPrice = true), listOf(Lookup.OnlySubjectFor(SubjectKey.of(next))))
     }
 
     private fun chooseGroup(groupId: Long): Applied {
@@ -214,7 +222,7 @@ data class BookingForm(
             price = MoneyField(kind = MoneyField.Kind.RATE),
             excludedMemberIds = emptySet(),
         )
-        return Applied(copy(form = next), listOf(Lookup.GroupOf(groupId)))
+        return Applied(copy(form = next, automaticPrice = true), listOf(Lookup.GroupOf(groupId)))
     }
 
     private fun groupLoaded(group: Group): Applied {
@@ -222,7 +230,7 @@ data class BookingForm(
         val next = form.copy(
             mode = group.defaultMode,
             // Never clobber an amount the tutor has already typed for this lesson.
-            price = form.price.prefilledWith(group.price),
+            price = if (automaticPrice) form.price.prefilledWith(group.price) else form.price,
             // A group that has a subject decides it — there is nothing to pick per lesson.
             subjectId = group.subjectId ?: form.subjectId,
         )
@@ -233,7 +241,11 @@ data class BookingForm(
     }
 
     private fun chooseSubject(subjectId: Long): Applied {
-        val next = form.copy(subjectId = subjectId)
+        if (form.subjectId == subjectId) return Applied(this)
+        val next = form.copy(
+            subjectId = subjectId,
+            price = if (form.target == ClassTarget.STUDENT && automaticPrice) MoneyField() else form.price,
+        )
         val studentId = next.studentId
         val lookups = if (next.target == ClassTarget.STUDENT && studentId != null) {
             listOf(Lookup.PriceOf(studentId, subjectId))
@@ -257,7 +269,7 @@ data class BookingForm(
         if (form.target != ClassTarget.STUDENT || form.studentId != studentId || form.subjectId != subjectId) {
             return Applied(this)
         }
-        return settled(form.copy(price = form.price.prefilledWith(amount)))
+        return if (automaticPrice) settled(form.copy(price = form.price.prefilledWith(amount))) else Applied(this)
     }
 
     private fun onlySubject(askedFor: SubjectKey, subjectId: Long): Applied {

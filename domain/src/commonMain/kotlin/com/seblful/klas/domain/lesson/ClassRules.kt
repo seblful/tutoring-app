@@ -106,6 +106,12 @@ object ClassRules {
         return rebill(c.copy(status = to, attended = attended))
     }
 
+    /** Applies the cancel/re-plan correction in memory; the repository persists its final state once. */
+    fun correctCompletion(c: TutoringClass): TutoringClass {
+        require(c.status == LessonStatus.COMPLETED) { "Only a completed lesson can be corrected to planned" }
+        return applyStatus(applyStatus(c, LessonStatus.CANCELLED), LessonStatus.SCHEDULED)
+    }
+
     /**
      * Records whether one student was in a lesson, and rebills them for it.
      *

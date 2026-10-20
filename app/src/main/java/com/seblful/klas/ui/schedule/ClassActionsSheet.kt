@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -19,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -74,6 +76,10 @@ internal fun ClassActionsSheet(
     onMove: () -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
+    onSetHomework: () -> Unit = {},
+    onRecordPayment: () -> Unit = {},
+    onOpenProfile: () -> Unit = {},
+    onCorrectCompletion: () -> Unit = {},
 ) {
     val klass = row.klass
     // No `dragHandle`: Material wraps whatever is passed there in a clickable, tooltipped box of its own,
@@ -103,12 +109,28 @@ internal fun ClassActionsSheet(
             // selected. Offering only the transitions (as a list of actions did) meant the sheet never
             // said what the lesson *is* — the tutor had to infer it from which verbs were absent.
             StatusSelector(row = row, onStatus = onStatus)
+            if (row.session.status == LessonStatus.COMPLETED) {
+                SheetAction(
+                    stringResource(R.string.class_correct_planned),
+                    KlasIcons.Filled.EditCalendar,
+                    onCorrectCompletion,
+                )
+            }
 
             LessonAttendance(row, onAttendance)
 
             // What was set for this lesson, **with its ticks on the sheet**: the start of a lesson is when
             // the tutor asks for it, and this is the screen they are on.
             if (homework.isNotEmpty()) AttachedHomework(homework, onHomeworkDone)
+
+            HorizontalDivider(Modifier.padding(vertical = Spacing.inline))
+            SheetAction(stringResource(R.string.homework_add), KlasIcons.Filled.Assignment, onSetHomework)
+            SheetAction(stringResource(R.string.add_payment), KlasIcons.Outlined.Payments, onRecordPayment)
+            SheetAction(
+                stringResource(if (row.isGroup) R.string.class_open_group else R.string.class_open_student),
+                if (row.isGroup) KlasIcons.Filled.Group else KlasIcons.Filled.Person,
+                onOpenProfile,
+            )
 
             HorizontalDivider(Modifier.padding(vertical = Spacing.inline))
 
@@ -131,6 +153,27 @@ internal fun ClassActionsSheet(
             )
         }
     }
+}
+
+/** A group's payment belongs to one student, so the tutor names the payer first. */
+@Composable
+internal fun LessonPayerDialog(row: ScheduleRow, onSelect: (Long) -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.payment_choose_student)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                row.classes.forEachIndexed { index, klass ->
+                    TextButton(
+                        onClick = { onSelect(klass.studentId); onDismiss() },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(row.members.getOrNull(index).orEmpty()) }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
 }
 
 @Composable

@@ -6,6 +6,7 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.seblful.klas.data.billing.RateHistoryRepository
+import com.seblful.klas.data.people.EnrollmentRepository
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.people.SubjectRepository
@@ -55,6 +56,7 @@ class GroupFormViewModel @AssistedInject constructor(
     students: StudentRepository,
     subjects: SubjectRepository,
     rateHistory: RateHistoryRepository,
+    private val enrollment: EnrollmentRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
@@ -92,6 +94,8 @@ class GroupFormViewModel @AssistedInject constructor(
          * active student while no subject is chosen.
          */
         val candidates: List<Student> = emptyList(),
+        /** Active students who need a subject price before they can join. */
+        val unpriced: List<Student> = emptyList(),
         /** Everything the tutor could teach this group, for the subject picker. */
         val subjects: List<Subject> = emptyList(),
         /** Every recorded change to this group's hourly rate, newest first. */
@@ -187,6 +191,7 @@ class GroupFormViewModel @AssistedInject constructor(
         UiState(
             form = f,
             candidates = if (priced == null) activeStudents else activeStudents.filter { it.id in priced },
+            unpriced = if (priced == null) emptyList() else activeStudents.filterNot { it.id in priced },
             subjects = allSubjects,
             archived = isArchived,
             pricedIds = priced,
@@ -260,6 +265,17 @@ class GroupFormViewModel @AssistedInject constructor(
      */
     fun setSubject(subjectId: Long?) {
         form.value = form.value.copy(subjectId = subjectId)
+    }
+
+    /** Repairs eligibility in place, then selects the student without resetting the group draft. */
+    fun enrollMember(studentId: Long, subjectId: Long, price: Money) {
+        viewModelScope.launch {
+            appScope.writeAwaited { enrollment.enroll(studentId, subjectId, price) }
+                .onSuccess {
+                    if (form.value.subjectId == subjectId) toggleMember(studentId, true)
+                }
+                .onFailure { events.send(Event.SAVE_FAILED) }
+        }
     }
 
     private var saving = false

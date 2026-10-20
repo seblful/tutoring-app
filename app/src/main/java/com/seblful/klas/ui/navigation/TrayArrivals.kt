@@ -27,7 +27,7 @@ internal fun OpensWhatTheTrayNames(
     // alone would land the tutor on whatever day they were last browsing, which for a notification saying
     // «3 занятия не отмечены» would show a week with none of them in it.
     fun toSchedule(target: ScheduleTarget) {
-        navController.navigateToTab(TopDestination.SCHEDULE)
+        navController.openTabFromTray(TopDestination.SCHEDULE)
         onSchedule(target)
     }
 
@@ -42,11 +42,9 @@ internal fun OpensWhatTheTrayNames(
             is TrayNavigation.Destination.Lesson -> navController.openLessonForm(destination.classId)
             is TrayNavigation.Destination.LessonOnSchedule ->
                 toSchedule(ScheduleTarget.Lesson(destination.classId))
-            // A **tab**, so it is switched to the way the bottom bar switches to it. Pushing «Отчёты» on
-            // top of wherever the tutor was would leave the reports sitting above the schedule with a
-            // back arrow and no tab selected.
+            // A form interrupted by a notification stays underneath, just as with Reschedule.
             TrayNavigation.Destination.Debts -> {
-                navController.navigateToTab(TopDestination.REPORTS)
+                navController.openTabFromTray(TopDestination.REPORTS)
                 onDebts()
             }
             TrayNavigation.Destination.Today -> toSchedule(ScheduleTarget.Today)
