@@ -16,5 +16,8 @@
         "repo": "android/skills"
       }
     }
+  },
+  "worktree": {
+    "bgIsolation": "none"
   }
 }
