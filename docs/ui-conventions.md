@@ -1,128 +1,86 @@
 # UI conventions
 
-How a screen is built in Klas: where its state comes from, the shell it sits in, and the shared parts
-it draws with.
+Build screens from shared state and controls. Feature rules belong in the domain; see
+[architecture](architecture.md) for write lifetimes and [testing](testing.md) for previews.
 
 ## Screen state
 
-- **A screen draws, it does not decide**: every branch is a named value from the domain layer
-  (`ArchiveIntent`, `DeleteWarning`, `ScheduleEmpty`, `Balance`, `Taught.Totals.hint`, etc.), never an
-  `if` inside a composable. `ClassFormState`, `MoneyField`, `leaveIntent`, `Maintenance`, `CrashLogger`
-  hold the rules. Clock reads for money/scheduling go through the injected `WallClock`, never
-  `Clock.System.now()`/`TimeZone.currentSystemDefault()` in a composable.
-- The booking form's whole mutable surface is `BookingForm.change(intent, context)`
-  (`ui/schedule/booking/BookingForm.kt`); reads it needs come back as data (`Lookup`) through the same `change`.
-- Every screen's loading/ready state is `Loadable<T>` (`Loading | Ready`), drawn as a skeleton, never a
-  spinner; applies to forms too (a blank form is a real, wrong state until data arrives). A placeholder
-  draws only after 150 ms of waiting (`rememberPlaceholderShown`), so a fast local read goes straight to
-  content instead of blinking grey blocks. A query re-asked as the tutor pages keeps its previous answer
-  up to a grace (`readyOrLoadingAfter`); what is drawn from it is labelled by the answer's own key (a
-  day's content carries its date), never by the question just asked.
-- `derive`/`hold` end every screen flow; `ShowMessagesFor`/`rememberMessages` end one-shot snackbar events;
-  the guarded-write tail is `appScope.write(events, failure)` (application scope + `runCatchingCancellable`
-  + failure event), and a write the screen waits on is `appScope.writeAwaited { }` — both in
-  `ui/common/state/Writes.kt`. The homework writes the tab and both cards share are `ui/homework/HomeworkActions`.
-- **A screen names no `Intent` or `Uri`**: another app is opened with `rememberExternalApps(messages)` and an
-  `ExternalTarget` (dial, mail, Telegram, share text), a file with `rememberCreateDocument` /
-  `rememberOpenDocument`, which answer a `DocumentRef` (`ui/common/ExternalApp.kt`, `DocumentPickers.kt`).
-  Both say so in the snackbar when no app or picker can. Only the system's own settings pages
-  (`ui/more/SettingsRows.kt`) and the permission prompts stay Android-shaped.
-- One-shot outcomes report through one snackbar helper (`ui/common/Messages`) — no `Toast`. A message
-  about a save that closes its screen is lost with the screen, so such a form asks *before* saving instead.
-- Turning the phone or resizing its window is handled in place (`configChanges` on `MainActivity`), so an
-  open dialog and what was typed into it survive; typed dialog fields are still `rememberSaveable`. A money
-  input is a `MoneyTextField` whose *text* is saved and the `MoneyField` derived from it
-  (`MoneyFieldSurfaceTest`).
+- Screens render named decisions (`ArchiveIntent`, `DeleteWarning`, `ScheduleEmpty`, `Balance`, etc.).
+  Keep business rules in `ClassFormState`, `MoneyField`, `leaveIntent` and domain modules. Money/time
+  decisions use injected `WallClock`, never direct system clock/zone reads in composables.
+- Booking changes go through `BookingForm.change(intent, context)`; required reads return as `Lookup`.
+- Use `Loadable<T>` (`Loading|Ready`) and skeletons, including forms. `rememberPlaceholderShown` delays
+  placeholders 150 ms. `readyOrLoadingAfter` keeps previous content briefly during paging; label it
+  with its own key/date, never the newly requested one.
+- End flows with `derive`/`hold`, events with `ShowMessagesFor`/`rememberMessages`. Save through
+  `appScope.write(events, failure)` or awaited `writeAwaited`; homework shares `HomeworkActions`.
+- Screens open other apps via `rememberExternalApps(messages)`/`ExternalTarget`, files via
+  `rememberCreateDocument`/`rememberOpenDocument` returning `DocumentRef`. These report missing handlers
+  in a snackbar. Only system-settings links and permission prompts carry Android `Intent`/`Uri` details.
+- Use `Messages` snackbars, never `Toast`. Forms that close on save ask beforehand when confirmation
+  is needed: their snackbar would disappear with them.
+- Rotation/resizing is handled in place by `MainActivity.configChanges`; dialog text still uses
+  `rememberSaveable`. Save a `MoneyTextField`'s text and derive `MoneyField` from it.
 
-## Look and behaviour
+## Layout and controls
 
-- **Money**: shown through `Money.money()`, grouped in thousands with the language's separator
-  (`16 037,50 BYN`, `16,037.50 USD`); a field is seeded with the ungrouped `amount()`, because
-  `parseMoneyOrNull` reads a comma as a decimal point. CSV export writes its own ungrouped amounts.
-- **Language**: `AppLanguage` (SYSTEM|RUSSIAN|ENGLISH) is a setting; pinned onto resources via
-  `ProvideLocalizedResources`, never `Locale.setDefault()`. `StringCoverageTest` pins parity between
-  `values/`/`values-ru/` (strings, plurals, format args, array lengths). A language change re-syncs the
-  calendar (mirrored text is baked in).
-- **Time**: kotlinx-datetime and `kotlin.time` everywhere, `java.time` only inside `format/`'s formatters
-  (desugared, minSdk 24); 12/24-hour and week-start both follow the
-  *phone's* setting, not the app language (the clock is asked of the application context, so a bottom sheet
-  agrees with the screen under it); today rolls over at local midnight off the injected `WallClock` (`WallClock.days()`, `ui/common/state/Days.kt` —
-  never a "today" read once per emission); a day as instants is `domain/schedule/DayBounds`.
-  The injected device clock follows timezone changes; open calendars re-query their bounds on the
-  system broadcast, and form endings use the same elapsed-time slot as booking, including DST.
-- **Haptics**: five named moments only (`ui/common/Haptics`), wired into shared atoms (a refusal through
-  `ShowMessagesFor(refused = …)`), never per-screen; ordinary taps stay silent.
-- **Shell**: every screen is a `KlasScreen` (owns `Scaffold`, insets, width cap, snackbar host, back arrow,
-  scroll behavior) — exactly one `Scaffold` per tree. Controls pinned under a compact bar (segments, a
-  pager, a period) are a `ScreenHeader`: page-coloured at rest, no rule under them, tinted *with* the bar
-  once content scrolls beneath — one block, one lower edge. A body that is one of a fixed few views is a
-  `SegmentedPage`; a page read one at a time is a ‹ › `PageStepper`. A screen that swaps its body without
-  scrolling passes `page` so the bar's tint resets with it. `Spacing` is the app's rhythm
-  (`tight`…`sectionGap`). Card vs. row is by nesting depth (`ContentCard` top-level, `ListItem` nested); a
-  top-level card leads with a 40 dp disc — a student's monogram (`Avatar`), else a glyph (`IconAvatar`).
-  A press is never a grey block: cards press in their own shape, full-width rows through `insetRowPress`
-  (`outsetRowPress` where the row's control sits flush with its column) as a rounded inset tint, and a
-  bottom sheet draws `SheetHandle` itself with `dragHandle = null` — Material's handle is a tooltipped
-  button (`PressSurfaceTest`). Detail cards are all
-  identity → `StatRow` → one pinned view menu (`StickyViewMenu`, «Занятия ▾» — page-coloured at rest, the collapsed bar's colour once pinned), not a tab row — four
-  tabs were too much to read at a glance — built by one `detailCard` (`ui/common/DetailCard.kt`), so the two
-  cards cannot drift apart again. Held, a bar's icon names itself (`NamedIconButton`, over `HoldToName`) — top-bar
-  icons and the bottom bar's tabs. One control per kind of question: `SegmentedChoice` (fixed few,
-  swipeable), `ChoiceRow` (settings-shaped choice, segments up to 4 then a field), chips (shortlist +
-  escape hatch). Text sits on the gutter: page sides are `Spacing.gutter`, and a tappable row that needs
-  ripple room takes it from the card's padding, not from the text's edge.
-- **Section titles and dialogs**: a section title is a `SectionTitle` — `titleSmall`, read as a heading —
-  on forms, sheets, cards and settings alike; colour only when it marks something (a settings category,
-  the selected day). A full-screen empty state's action is tonal: the screen's add button is its primary. A confirmation that loses something — delete, remove, clear, replace from a backup, discard
-  typed input — says its button in `colorScheme.error` (`ConfirmDialog(destructive = true)`). A dialog
-  opened to type one thing opens with the caret in it (`rememberRevealedFocus`).
-- **Text that must fit** (bar titles, tab and segment labels — `OneLineLabel` — stat values, the
-  schedule's page title) shrinks before it ellipsizes (`TextAutoSize`), capped at its style's size and floored in **dp** — the system font
-  scale is already in the starting size, so an sp floor rises with it and leaves nothing to shrink into.
-  Pinned at 1.3× and 1.5× by `BottomBarLabelTest`/`BarTitleFitTest`; 2× is not.
-- **Navigation**: bottom bar «Люди·Задания·Расписание·Отчёты·Ещё», opens on the schedule (the middle tab);
-  Students+Groups share one tab via a segmented control. Which tab is marked is read off the back stack.
-  Destinations cross-fade; predictive back is on. Tapping the tab already showing does nothing
-  (`navigateToTab`): switching to it would pop and restore the entry mid-fade, and a second tap in the
-  first frames of the fade made the screen lurch (`TabReselectFadeTest`). A screen pushed over the tab asked
-  for — a tray tap naming the schedule while a form opened from it is up — is closed by it, so the tap shows
-  what it names; one pushed over *another* tab waits with that tab (`owningTabRoute`, shared with the bar's
-  mark). «Перенести» from the tray opens the lesson's form *over* what is open, never in place of it.
-- **List motion**: lazy list items animate only through `animateInPlace` — a move slides, nothing fades
-  in or out, because a fading row keeps drawing over whatever replaces it. A list that shows several pages
-  (the schedule's views and days) keys its items per page, so a swap is never read as every row moving.
-- **Lists**: shared search rule (`domain/people/PeopleSearch`) across the three list screens — case-insensitive,
-  substring, terms in any order. Empty lists always carry the way out (`EmptyState`); a search that matched nothing is
-  `NoSearchResults`. «в архиве» is `ArchivedBadge`; a list under an add button pads with `FabListPadding`. State is a
-  `StatusBadge`, never a font style (`StatusBadgeSurfaceTest`), and on a lesson it leads the second line —
-  schedule card, lesson sheet, student and group cards — so the name or date above keeps the full width.
-  A lesson row leads with its date. Money at a nested row's trailing edge is `TrailingAmount`; colour on
-  an amount means something (a debt's red, the hero's fill), so other amounts are ink.
-- **Schedule**: three views (Day/Week/Month) via segmented control, all fed by one assembly of the week
-  holding the selected day (`ScheduleViewModel.content`) — Day and Month read their day out of it, so a
-  view switch or a day tap inside the week reads nothing; a day is always summarized as
-  count·hours·money (`domain/schedule/DaySummary`); a "now" hairline on today only; completing a lesson is a
-  revocable swipe (green panel); a cancelled lesson recedes, badge stays red. Can be narrowed to one
-  student (dismissible chip — `FilterMenuAction` + `FilterChipRow`, shared with «Задания»). Booking is by
-  length, not end time; a new booking starts on the selected schedule day so the tutor need not choose
-  it again.
-- **Homework filter**: offers only students and groups with current or archived homework, including
-  students with group homework. The add dialog offers everyone so a first assignment can be given.
-- **Reports**: number only where the chart shape adds meaning (column/stacked-bar/ranked-bars/plain text);
-  CSV export's delimiter follows the decimal separator; can be saved or sent.
-- **Previews**: a shared atom gets a `@KlasPreview` in `src/debug/.../preview/`, which is also its
-  screenshot test (see [Testing](testing.md)).
-- **Design system**: curated indigo+teal Material 3 palette, dynamic color off by default. Amber = "on
-  now"; green = "taught" (`KlasColors`, app-owned, unaffected by dynamic color). Golos Text typeface
-  (Cyrillic-first, full Latin). Avatar colors key off id, not name.
-- **Icons**: Material Symbols, copied into `ui/theme/KlasIcons` (no icon library; its KDoc says where a new
-  one comes from). Filled for actions and selected states, outlined for art and inactive glyphs. Empty-state
-  pictures and decorative glyphs beside a line of text are `KlasIcons.Outlined`; buttons, menu items,
-  chevrons and the selected tab stay filled. Settings rows carry no leading icon (every title on one
-  edge); a row that goes somewhere says so at its trailing edge — a chevron in the app (`OpensScreenMark`, decorative —
-  the click's `onClickLabel` says where it leads), «open in new» out of it. The two lesson-kind icons are exempt —
-  a matched pair pinned on ink height by `LessonKindIconTest`.
-- **Screen readers**: a swipe always has a twin action on the same node (`swipeAction`), and what is drawn
-  behind a swipe row is not read; selection is `selected` semantics, not a tick alone
-  (`TickedMenuItem`, `TickedMenuSurfaceTest`); section titles are
-  headings.
+- One `KlasScreen`/`Scaffold` owns insets, width cap, snackbar, back arrow and scroll behavior.
+  `ScreenHeader` joins pinned controls to the bar: page-colored at rest, tinted together on scroll,
+  no divider. Pass `page` when replacing a non-scrolling body to reset bar tint.
+- Use `SegmentedPage` for fixed views, `PageStepper` for successive pages. Choices use
+  `SegmentedChoice`, settings-shaped `ChoiceRow` (segments up to four, then a field), or shortlist chips
+  with an escape hatch. Screen filters share `FilterMenuAction`/`FilterChipRow`.
+- Follow `Spacing`; page sides use `gutter`. A row gets ripple room from card padding, keeping text
+  aligned. Use top-level `ContentCard`, nested `ListItem`; top-level cards lead with a 40 dp `Avatar`
+  or `IconAvatar`. Detail cards share `detailCard`: identity → `StatRow` → pinned `StickyViewMenu`.
+- Cards press within their shape; full-width rows use `insetRowPress` (`outsetRowPress` for flush
+  controls). Sheets draw `SheetHandle` with `dragHandle = null`, avoiding Material's tooltipped button.
+- `SectionTitle` uses `titleSmall` and heading semantics; color only for meaning. Full-screen empty
+  actions are tonal because the screen's add button is primary. Destructive confirmations use
+  `ConfirmDialog(destructive = true)`; single-input dialogs focus via `rememberRevealedFocus`.
+- `OneLineLabel`, bar/page titles and stat values shrink before ellipsizing (`TextAutoSize`). Floor
+  sizes in **dp**, not sp, so font scaling leaves room to shrink. Tests cover 1.3×/1.5×; 2× is not guaranteed.
+- Use `EmptyState` with a way out, `NoSearchResults`, `ArchivedBadge` and `FabListPadding` consistently.
+  Status uses `StatusBadge`, never font style; on lessons it starts line two. Nested trailing money
+  uses `TrailingAmount`; ordinary amounts stay ink, red means debt. Lesson rows lead with their date.
+
+## Formatting and appearance
+
+- Display money via `Money.money()` (`16 037,50 BYN`, `16,037.50 USD`); seed inputs with ungrouped
+  `amount()` because `parseMoneyOrNull` treats a comma as decimal. CSV uses ungrouped amounts.
+- Apply `AppLanguage` with `ProvideLocalizedResources`, never `Locale.setDefault()`. `StringCoverageTest`
+  checks resource parity; language changes re-sync baked calendar text.
+- Phone settings govern 12/24-hour time and week start, independent of app language; ask the application
+  context. Use `WallClock.days()` for midnight rollover, `DayBounds` for day boundaries. Timezone changes
+  re-query open calendars; form endings and booking use the same elapsed-time slots across DST.
+- Indigo/teal Material 3, dynamic color off by default; app-owned amber means “on now”, green “taught”.
+  Golos Text supports Cyrillic/Latin; avatar colors depend on ID.
+- Material Symbols live in `KlasIcons`: filled for actions/selection, outlined for decoration/inactive
+  art. Its KDoc explains adding icons. Settings rows have no leading icon; trailing `OpensScreenMark`
+  names in-app navigation through `onClickLabel`, “open in new” marks external links. Lesson-kind icons
+  are a matched pair tested on ink height.
+- Haptics use the five moments in `Haptics`, wired through shared atoms/`ShowMessagesFor(refused = …)`;
+  ordinary taps are silent.
+
+## Motion, navigation and accessibility
+
+- Tabs are People, Homework, Schedule, Reports, More; Schedule opens first, Students/Groups share People.
+  Selection follows the back stack. Destinations cross-fade; predictive back is enabled.
+- `navigateToTab` ignores reselection to avoid a pop/restore fade glitch. Navigating to the owning tab
+  closes its pushed screens; another tab retains its stack (`owningTabRoute`). Tray “Reschedule” pushes
+  the lesson form over the current screen. See [tray destinations](calendar-and-reminders.md#lesson-reminders).
+- Lazy items use `animateInPlace`: movement only, no fade overlay. Key items by page when replacing views.
+- Every swipe has a `swipeAction` on the same semantic node; background actions are not read. Use
+  `selected` semantics (`TickedMenuItem`), headings, and `NamedIconButton`/`HoldToName` on bar icons/tabs.
+
+## Feature conventions
+
+- Schedule Day/Week/Month share `ScheduleViewModel.content`'s week assembly, avoiding reads for switches
+  inside the week. Summaries are count·hours·money (`DaySummary`); show “now” only today. Completion is
+  an undoable green swipe; cancelled lessons recede with a red badge. Book by duration, starting on the
+  selected schedule day.
+- Homework filters offer assignees with current/archived work, including a student's group work; the
+  add dialog offers everyone, orders by nearest lesson and names the destination lesson. Card entry
+  preselects its owner; tab entry preselects nobody.
+- People lists share `PeopleSearch`: case-insensitive substrings, terms in any order. Reports use charts
+  only when shape helps; CSV delimiter follows decimal separator and exports can be saved or shared.

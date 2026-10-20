@@ -1,57 +1,45 @@
 # Calendar and reminders
 
-What Klas pushes to the device calendar and the notification tray, and when. Both are mirrors of the
-database, never a source (see [architecture.md](architecture.md)).
+The database drives both mirrors; neither writes changes back into Klas.
 
 ## Calendar sync
 
-- Sync via `CalendarContract`, opt-in; the OS syncs the device calendar to Google itself. **Not the
-  Google Calendar REST API** — that would need a Cloud project, an OAuth consent screen and extra
-  privacy-policy surface, for nothing the OS doesn't already do.
-- Mirror runs **one way**, app → calendar, through `ClassRepository.write`'s post-commit phase; nothing
-  reads the calendar back.
-- A completed lesson's event is kept true but never (re)created (`Action.REFRESH`). Its description is
-  **always written empty** (`CalendarEvent.DESCRIPTION`): a lesson carries no text of the tutor's, and the
-  write clears the note (v7) or homework (v8) an older build put in front of an invited student.
-- A member **not coming** to a lesson that is still scheduled (absent, billed or not — e.g. excused by
-  archiving) has no event: `CalendarSyncPolicy.actionFor` reads attendance as well as status. Marked
-  present again, the event is re-created; once the lesson is completed, absence no longer matters.
-- Email invites are a separate, off-by-default setting; turning it off and re-syncing withdraws invites.
+- Opt-in, one-way through `CalendarContract`; the device's provider handles cloud sync. No Google
+  Calendar REST API, Cloud project or OAuth flow is needed.
+- `ClassRepository.write` mirrors after commit; `CalendarMirror` owns backfill and withdrawal.
+- Completed events are refreshed but never created/re-created (`CalendarSyncPolicy.Action.REFRESH`).
+  Descriptions are always overwritten with empty text, clearing notes/homework from older versions.
+- An absent member of a scheduled lesson has no event, billed or not. Marking them present re-creates
+  it; attendance no longer affects this policy once the lesson is completed.
+- Email invitations are a separate, off-by-default setting; disabling it and re-syncing withdraws them.
 
-## Reminders
+## Lesson reminders
 
-- Reminders are alarms (`AlarmManager`), not workers — exact where the OS allows, inexact fallback
-  otherwise; re-derived from scratch over a fixed horizon on every change; re-armed after reboot.
-- A reminder whose moment has passed but whose lesson has not ended is **owed** (`Reminders.Plan.due`):
-  never armed again, never cancelled, because an inexact alarm Doze is holding may still be on its way.
-  The plan is read from every lesson not yet ended (`ClassRepository.notEndedWithin`), so a running
-  lesson keeps its alarm until it ends. `Reminders.shouldPost` re-checks the lesson and the current lead
-  when an alarm fires.
-- Tray actions: «Проведено» bills in place via a broadcast; «Перенести» opens the lesson's form over whatever
-  is open (`openLessonForm`) — a form being edited waits underneath, since only Back asks before leaving it.
-  Both re-check legality against the current lesson state (a notification can be stale).
-- **Every tray entry opens what it names** (`notifications/TrayNavigation`), never just the app: a reminder →
-  the schedule on the lesson's *current* day with its sheet open; the agenda and the evening digest → the
-  schedule on the day they are about (carried in the intent, so a tap after midnight still lands there);
-  the auto-completion report → the latest day it settled; the debt digest → Reports, scrolled to the debts.
-  A tab acts on each tap once, however often it is returned to (`ui/navigation/Arrival`).
-- The notification permission is **asked for where reminders are**: the Settings row, and once at the
-  tutor's first booking (`ClassEditViewModel.shouldAskForNotifications`) — never over first launch, when there
-  is no lesson to be reminded of.
-- The permission ports only answer *whether* — a grant is held, and for notifications whether there is a
-  prompt to show (`canAsk`). Showing the prompt needs a screen, so it is `rememberNotificationPermissionRequest`
-  / `rememberCalendarPermissionRequest` beside the adapters: no view model carries Android permission names.
-- `ReminderDelivery` (`OFF|ON_TIME|BLOCKED|LATE`) reports the two permission grants (post-notifications,
-  exact-alarm) as one settings row with a link to the right system page. `CalendarDelivery`
-  (`OFF|ON|BLOCKED`) does the same for the sync row: on, with the calendar permission revoked in system
-  settings, is a report rather than a silent dead mirror.
+- `AlarmManager` delivers reminders: exact when allowed, otherwise inexact. Changes re-derive the plan
+  over a fixed horizon; reboot re-arms it.
+- A passed reminder time with a lesson not yet ended is still **owed** (`Reminders.Plan.due`). Do not
+  re-arm or cancel it: Doze may be holding its alarm. Read through `notEndedWithin` so running lessons
+  keep their alarms. `Reminders.shouldPost` re-checks state and lead time at delivery.
+- «Проведено» bills through a broadcast. «Перенести» opens the lesson form over the current screen;
+  an existing form waits underneath. Both re-check current legality because notifications can be stale.
+- `TrayNavigation` opens the named destination; `Arrival` consumes each tap once:
 
-## Digests
+  | Entry | Destination |
+  |---|---|
+  | Lesson reminder | Schedule on the lesson's current day, lesson sheet open |
+  | Agenda / evening digest | Schedule on the day carried by the notification, even after midnight |
+  | Auto-completion report | Latest day settled |
+  | Debt digest | Reports, scrolled to debts |
 
-- Three digests (morning agenda, evening unmarked lessons, weekly debts), opt-in, scheduled by the upkeep
-  pass, are workers (lateness is fine). A run already due is left alone rather than skipped; a digest
-  with nothing to say sends nothing.
-- Their times are wall-clock times in the device's zone, so a timezone change (or a clock set by hand)
-  runs an upkeep pass at once (`work/ClockChangeReceiver`) rather than waiting for the next tick.
-- The evening digest is auto-completion's counterpart (asks vs. assumes), counts lessons only, today only,
-  no action button.
+## Permissions and digests
+
+- Ask for notifications in Settings and once at first booking (`shouldAskForNotifications`), never at
+  first launch. Permission ports report grants/`canAsk`; Compose permission-request helpers show prompts.
+  View models carry no Android permission names.
+- `ReminderDelivery` combines notification/exact-alarm grants (`OFF|ON_TIME|BLOCKED|LATE`);
+  `CalendarDelivery` reports sync permission (`OFF|ON|BLOCKED`). Settings links to the relevant system page.
+- Morning agenda, evening unmarked lessons and weekly debts are opt-in workers: lateness is acceptable.
+  Upkeep schedules them, leaves due runs alone and sends nothing for an empty digest.
+- Digest times follow the device's wall clock/zone. `ClockChangeReceiver` runs upkeep immediately on a
+  clock/timezone change. The evening digest asks about today's lessons, with no action button;
+  auto-completion instead assumes they were taught.

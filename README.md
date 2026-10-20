@@ -1,49 +1,42 @@
 # Klas — Tutoring App
 
-A native Android app for a **single private tutor** to manage students, groups, subjects, schedule,
-payments and debts. **Offline-first and local-only — no backend, no account, no cloud.** Russian and
-English UI (following the phone unless told otherwise), Material 3, money in **BYN**, **RUB**, **USD**
-or **EUR**.
+A native Android app for a **single private tutor**: students, groups, lessons, homework, payments and
+debts. The database stays on your device; no backend or account. Calendar sync and sharing are optional.
+Russian and English UI, Material 3, and amounts labelled **BYN**, **RUB**, **USD** or **EUR**.
 
 > Application ID: `com.seblful.klas` · launcher label: **Klas**
 
 ## Features
 
-- **People** — students and groups in one tab, searchable; students also sortable by who owes the most.
-- **Homework** — set for a student or a group from its own tab (or a student's or group's card) and attached to their next lesson, which the app works out itself. Swipe it done and it goes to the archive; the lesson's sheet and its reminder say what was set; a send button shares it.
-- **Students & subjects** — per-student subjects, each with an hourly price and a change log; archive-only (history is protected).
-- **Groups** — a named roster taught one subject at the group's own hourly rate. Booking one lesson books it for every member, so the schedule shows one card while billing stays per-student — including "this one didn't come".
-- **Schedule** — day / week / month views of one-off classes, with a `scheduled → completed | cancelled` lifecycle, swipe-to-complete, and optional auto-complete once a class ends. One tutor, one lesson at a time: an overlapping slot is refused.
-- **Billing** — hourly rate booked per class, so re-pricing never rewrites history; balances and income derived on the fly, never stored.
-- **Reports** — income and outstanding debt for a month, a year or all time: trend over time, individual vs group split, per-student/subject/group breakdowns, and **CSV export**.
-- **Calendar sync** (opt-in) — mirrors classes to the device calendar via `CalendarContract`, so the OS syncs them to Google; email reminders ride on calendar attendees (a separate opt-in).
-- **Reminders** — notifications ahead of a lesson, driven by `AlarmManager` (exact where the platform allows) so they arrive on time rather than whenever the system feels like it.
-- **Backup** — full database export/import as a JSON snapshot via the Storage Access Framework, checked for readability before a single row is written.
-- **Crash diagnostics** — local crash log (viewable/exportable in-app) plus Google Play Vitals; no third-party SDK.
-- **Language & currency** — Russian or English, following the phone by default, switched instantly in Settings or picked during first-run setup. Money is labelled BYN / RUB / USD / EUR — a display setting, never a conversion — and a fresh install starts on whichever of the four the phone's region names.
+- **People** — searchable students and groups; per-subject hourly rates and rate history. Students are
+  archived to protect history; unreferenced subjects and groups can be deleted.
+- **Groups** — one subject and rate per roster, one schedule card, individual attendance and billing.
+- **Schedule** — day/week/month views, repeating bookings, swipe-to-complete and optional auto-completion.
+  Overlapping lessons are refused; back-to-back lessons are allowed.
+- **Homework** — student or group assignments attach to the next lesson automatically; swipe done,
+  undo, archive, and share. Lesson sheets and reminders show the assignment.
+- **Billing and reports** — booked rates preserve history; derived balances, partial payments,
+  overpayments, income/debt breakdowns and CSV export. Changing currency labels never converts amounts.
+- **Calendar and reminders** — optional device-calendar sync, separate email-invite opt-in, lesson
+  alarms and optional agenda/debt digests.
+- **Backup and diagnostics** — manual JSON export/restore and a local, exportable crash log; no
+  third-party crash SDK. Google Play Vitals provides platform diagnostics.
 
 ## Tech Stack
 
-- **Kotlin**, **Jetpack Compose** (Material 3), Navigation Compose
-- **Room** (single source of truth) · **Metro** DI · **WorkManager** + `AlarmManager`
-- **kotlinx-serialization** (backup) · **kotlinx-datetime** (`java.time` stays only in the Android formatters, desugared)
-- AGP (built-in Kotlin) · Gradle · **JDK 21** · **minSdk 24**
-- Two modules: `:app` (Android) and `:domain` (Kotlin Multiplatform — the compiler keeps Android and the JDK out of it)
-
-Versions live in `gradle/libs.versions.toml`, SDK levels in `app/build.gradle.kts`.
-
-Before raising Kotlin, check that Metro supports the new version (a compiler plugin follows the
-compiler) — see `gradle/libs.versions.toml`.
-
-Architecture is MVVM over a pure, unit-tested domain layer — see **[docs/architecture.md](docs/architecture.md)**.
+Kotlin, Jetpack Compose/Material 3, Room, Metro DI, WorkManager, `AlarmManager`, kotlinx-serialization
+and kotlinx-datetime. MVVM in `:app`; platform-free Kotlin Multiplatform rules in `:domain`.
+**JDK 21**, **minSdk 24**. [Dependency versions](gradle/libs.versions.toml) ·
+[SDK/build settings](app/build.gradle.kts) · [Architecture](docs/architecture.md).
 
 ## Getting Started
 
 **Prerequisites:** Android Studio with **JDK 21** (the bundled JBR works), and the Android SDK.
 
-1. Clone the repository:
+1. Clone and enter the repository:
    ```bash
    git clone https://github.com/seblful/tutoring-app.git
+   cd tutoring-app
    ```
 2. Ensure `local.properties` points at your SDK (`sdk.dir=...`) — Android Studio creates this on first open.
 3. Let Gradle sync, then **Run ▶** on an emulator or device.
@@ -53,38 +46,19 @@ Architecture is MVVM over a pure, unit-tested domain layer — see **[docs/archi
 ```bash
 ./gradlew :app:assembleDebug            # debug APK
 ./gradlew :domain:jvmTest               # domain unit tests (billing, scheduling, reminders, reports)
-./gradlew :app:testDebugUnitTest        # app unit tests (view models, repositories, mappers, backup)
-./gradlew :app:verifyRoborazziDebug     # the app's unit tests, plus every @Preview compared with its golden screenshot
-./gradlew :app:recordRoborazziDebug     # re-record the goldens in app/src/test/screenshots after a deliberate UI change
-./gradlew :app:lintDebug                # lint (release lint is off: an AGP file-locking bug on Windows, see app/build.gradle.kts)
-./gradlew :app:assembleDebugAndroidTest # build instrumented tests (Room, calendar, backup round-trip)
-
-./gradlew ktlintCheck detekt # formatting (ktlint) and static analysis (detekt), every module
-./gradlew ktlintFormat       # auto-format every file it can fix
-./gradlew detektBaseline     # refresh detekt baselines after reviewing the findings
+./gradlew :app:verifyRoborazziDebug     # app unit tests + preview screenshot comparisons
+./gradlew :app:lintDebug ktlintCheck detekt
+./gradlew :app:connectedDebugAndroidTest # instrumented tests; needs a device/emulator
 ```
 
-ktlint's rules are in `.editorconfig` (the IDE formatter reads the same file), detekt's departures from
-its defaults in `config/detekt/detekt.yml`. ktlint checks every file without a baseline. Existing detekt
-findings are recorded per module in `config/detekt/baseline.xml`; new findings fail the build.
-`ktlintFormat` touches the whole tree, so review its diff before keeping it.
+Debug APK: `app/build/outputs/apk/debug/app-debug.apk`. Its `.debug` app ID keeps its database separate
+from release. On Windows, use `gradlew.bat` in place of `./gradlew`.
 
-The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk` and installs without any signing
-setup. It carries a `.debug` application id, so it sits beside a release install with its own database.
-
-CI (`.github/workflows/ci.yml`) runs both unit suites with screenshot verification (uploading the diff
-images when one fails), `lintDebug`, ktlint, detekt, the debug APK and the *compilation*
-of the instrumented tests on every push to `main` and every PR targeting `main` or `develop` (any branch can be run
-on demand). Running the instrumented tests themselves needs a connected device
-(`./gradlew :app:connectedDebugAndroidTest`) or the emulators of `.github/workflows/device-tests.yml`.
-
-Pushing a `vX.Y.Z` tag runs the release workflow (`.github/workflows/release.yml`): the same suite and the
-instrumented tests on emulators, then a signed APK and AAB attached to a GitHub release and uploaded to
-Google Play with the notes in `store/whatsnew/`. Dependabot keeps the workflows' actions current.
+[CI](.github/workflows/ci.yml) checks pushes to `main` and PRs into `main`/`develop`; device tests run
+separately. See [Testing](docs/testing.md) for test setup, screenshot updates and static analysis,
+and [Releasing](docs/releasing.md) for signed builds and tag-driven publishing.
 
 ## Docs
-
-The reasoning behind a rule lives in KDoc next to the code; these docs are the map.
 
 - [Architecture](docs/architecture.md) — where code goes, and which class owns each rule
 - [Domain rules](docs/domain-rules.md) — money, lessons, homework, groups, students: what the app enforces and why
@@ -97,11 +71,4 @@ The reasoning behind a rule lives in KDoc next to the code; these docs are the m
 
 ## License
 
-Copyright (C) 2026 seblful
-
-This program is free software: you can redistribute it and/or modify it under the terms of the
-**GNU General Public License v3.0** as published by the Free Software Foundation. See the
-[LICENSE](LICENSE) file for the full text.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
-even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+Copyright (C) 2026 seblful. [GNU General Public License v3.0](LICENSE); distributed without warranty.

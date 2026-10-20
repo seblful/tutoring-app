@@ -1,31 +1,47 @@
 # Releasing
 
-How to build a signed release of Klas, install it on your own phone, and publish it to Google Play.
+Build signed APKs for sideloading and AABs for Google Play. For normal releases, follow
+[Release from a tag](#release-from-a-tag); signing/pipeline setup is needed only once.
+
+## Release from a tag
+
+1. On `develop`, bump `versionCode` and `versionName` in `app/build.gradle.kts`, rewrite both
+   `store/whatsnew/whatsnew-ru-RU` and `whatsnew-en-US`, and commit as `chore(release): X.Y.Z`.
+2. Complete the [checklist](#per-release-checklist), then fast-forward `main` to the release commit.
+3. Tag and push:
+   ```bash
+   git tag -a vX.Y.Z -m "Klas X.Y.Z"
+   git push origin main vX.Y.Z
+   ```
+4. Check the workflow, rewrite GitHub notes with `gh release edit vX.Y.Z --notes-file …`, and confirm
+   the Play track. If `PLAY_STATUS` is `draft`, finish rollout in the Console.
+
+The [release workflow](../.github/workflows/release.yml) checks that the tag matches `versionName` and
+is on `main`; runs CI and device tests; builds/checks signed APK/AAB artifacts; attaches them to a
+GitHub release; and publishes to Play only when `PLAY_PUBLISH=true`. Device tests cover the full suite
+on API 35 and data tests on API 24. A failed publish can be rerun alone. A manual run **on the tag**
+repeats the release and replaces existing GitHub artifacts; its `track` input overrides `PLAY_TRACK`.
+
+Play notes are plain text, at most **500 characters per locale**. With publishing enabled, the workflow
+refuses missing, blank, oversized or unchanged notes. Write for the tutor; GitHub notes hold technical
+detail. Adding a listing language requires `whatsnew-<locale>` and a corresponding workflow check.
 
 ## Set up signing (once)
 
-The `release` build is **minified and resource-shrunk (R8)** and is signed when a `keystore.properties`
-file is present (it is gitignored). Without it, the release build is left unsigned so debug builds, CI,
-and contributors are unaffected. With Play App Signing, Google holds the real release key; you sign with
-an *upload* key.
+Release builds use R8 minification/resource shrinking. `keystore.properties` enables signing; without
+it, release builds remain unsigned. Keep the upload key outside the repo and back up its file/passwords.
 
-1. **Generate an upload key** in `~/keystores/`, outside every repo, named after the app so it can't be
-   mixed up with other apps' keys:
+1. Generate a long-lived key:
    ```bash
    mkdir -p ~/keystores
    keytool -genkeypair -v -keystore ~/keystores/klas-upload-v2.jks -alias upload \
      -keyalg RSA -keysize 2048 -validity 10000
    ```
-   `-validity` is in days and must not be shortened: Play rejects a certificate that expires before
-   **22 October 2033** ("signed with a certificate that expires too soon"), and a key can't be
-   lengthened afterwards. Check any key with `keytool -list -v -keystore <file> -alias upload` (the
-   *Valid from … until* line); the release workflow checks it too.
-
-   Back up the keystore file and its passwords *off this machine* (e.g. a password-manager attachment).
-   Losing the upload key means a manual reset with Google; losing it before Play App Signing is enabled
-   would block all future updates.
-
-2. **Create `keystore.properties`** in the repo root from the template:
+   `-validity` is days. The workflow requires expiry past **22 October 2033**; do not shorten it.
+   Check with `keytool -list -v -keystore <file> -alias upload`. Existing key validity cannot be extended.
+   Losing the upload key requires a Google reset; losing the signing key before Play App Signing
+   can prevent future updates. Back up the keystore and passwords off this machine.
+2. Copy the gitignored configuration template:
    ```bash
    cp keystore.properties.example keystore.properties
    ```
@@ -35,97 +51,50 @@ an *upload* key.
    keyAlias=upload
    keyPassword=<your key password>
    ```
-   Use an absolute path: Gradle doesn't expand `~`, and relative paths resolve against the repo root.
-   If you pressed Enter at keytool's key-password prompt, both passwords are the same value.
+   Use an absolute path: Gradle does not expand `~`; relative paths resolve from the repo root.
+   Enter at keytool's key-password prompt makes both passwords equal.
 
-> ⚠️ **Verify the backup feature on a release build before shipping.** R8 building successfully does
-> not prove the reflection-driven backup export/import survives minification. Test the backup
-> round-trip on a real device on a release build. R8 keep rules for `@Serializable` types live in
-> `app/proguard-rules.pro`. If unsure for a first beta, temporarily set `isMinifyEnabled = false` in the
-> `release` block and enable it later once verified.
+**Verify backup export/import on a real device with a release build before shipping.** R8 success does
+not prove the round-trip survives minification; keep rules are in `app/proguard-rules.pro`.
 
-## Install on your own phone
+## Build and sideload
 
-1. **Build:**
-   ```bash
-   ./gradlew :app:assembleRelease
-   ```
-   Output: `app/build/outputs/apk/release/app-release.apk` (a `-unsigned` suffix means signing was
-   skipped — check `keystore.properties`).
+```bash
+./gradlew :app:assembleRelease
+adb install "app/build/outputs/apk/release/app-release.apk"
+```
 
-2. **Install:**
-   ```bash
-   adb install "app/build/outputs/apk/release/app-release.apk"
-   ```
-   Or copy the APK to the phone and tap it (allow "install from unknown sources").
+An `app-release-unsigned.apk` means signing was skipped: check `keystore.properties`. Alternatively,
+copy the signed APK to the phone and allow installation from unknown sources.
 
-A sideloaded APK is signed with *your* upload key, not Google's. A later Play Store install of the same
-app won't update over it — uninstall the sideloaded copy first.
+**A Play build signed with Google's key cannot update an APK signed with a different upload key.**
+Export a backup outside the app **before uninstalling** the sideloaded version; restore it after
+installing from Play. Uninstalling removes the local database. Choosing an existing signing key when
+first configuring Play App Signing can preserve compatibility, provided Play accepts that key.
 
-## Publish to Google Play
+## First Play upload
 
-### Before the first upload
+Personal developer accounts created after 13 November 2023 need a closed test with at least 12 testers
+opted in continuously for 14 days before applying for production access; see
+[Google's testing requirements](https://support.google.com/googleplay/android-developer/answer/14151465).
+The [tester instructions](../store/tester-instructions.md) currently link to the internal test;
+that track is separate from the required closed test.
 
-**New personal accounts** must run a **closed test with 12+ testers for 14 continuous days** before
-they can publish to production. Start recruiting testers early — this is the usual bottleneck.
-
-### Build the bundle by hand (the first upload only)
-
-Play requires an **App Bundle** (`.aab`), not an APK. After the first upload the
-[release workflow](#release-from-a-tag) builds and uploads it.
-
-1. **Bump `versionCode`** in `app/build.gradle.kts` — every upload needs a higher value. `versionName`
-   is cosmetic.
-2. Build:
+1. Create the app in Play Console with Russian as default language. Prepare the
+   [store listing](store-listing.md), questionnaires and a public privacy-policy URL.
+2. Build the first bundle manually; each upload needs a higher `versionCode`:
    ```bash
    ./gradlew :app:bundleRelease
    ```
-   Output: `app/build/outputs/bundle/release/app-release.aab`
+   Upload `app/build/outputs/bundle/release/app-release.aab` in the Console.
+3. Complete Data safety using [the privacy policy](../store/privacy-policy.md) and
+   [Google's definitions](https://support.google.com/googleplay/android-developer/answer/10787469).
+   Review optional calendar sync, invitations and user-selected exports/sharing, including applicable
+   exemptions. `allowBackup="false"` disables Android backup; it does not mean data is never transferred.
 
-**Choose the signing key deliberately when you create that first release.** With a Google-generated key,
-the Play build is signed with a key you don't hold, so a copy sideloaded from a GitHub release (signed
-with the upload key) can't be updated from Play: it has to be uninstalled first, and its data goes with
-it — export a backup first. Uploading an existing key to Play App Signing instead keeps those installs
-updating in place, but only if that key is valid past October 2033 (Klas's first key was valid to
-March 2029, so it could not be used and the sideloaded 0.4.x installs had to be reinstalled).
+## Set up the pipeline (once)
 
-### Play Console
-
-Create the app with Russian as its default language; the Console walks you through the listing, the
-questionnaires and the rollout. The listing's screenshots, feature graphic, icon, text and promo video are
-generated — see [Store listing](store-listing.md); the video goes in as a YouTube link. Two answers are specific to Klas:
-
-- **Privacy policy URL** — required: the app stores student names, phones, emails and payment data.
-  All data stays on-device, no backend, so the policy is simple.
-- **Data safety form** — data stays local and is never transmitted; declare no collection and no
-  sharing. This matches `allowBackup="false"` in the manifest — Play's Auto Backup is deliberately
-  off so `klas.db` is never copied to Google's servers. Keep the two consistent.
-
-## Release from a tag
-
-Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`:
-
-1. **`check`** — the tag equals `versionName` in `app/build.gradle.kts` and is on `main`; with Play
-   publishing on, the [Play release notes](#play-release-notes) are filled in, fit, and are new.
-2. **`verify`** — the whole of `ci.yml` on the tagged commit.
-3. **`device-tests`** — `device-tests.yml`, alongside `verify`: the instrumented suite on an API 35
-   emulator, and the data-layer tests (migrations, backup, repositories) on an API 24 one, minSdk. It can also be run by hand on any branch from the Actions tab.
-4. **`build`** — restores the upload key, builds the signed APK and AAB, checks both are signed
-   (the log prints the APK's certificate), and attaches them to a GitHub release with generated notes.
-   Rewrite the notes afterwards with `gh release edit vX.Y.Z --notes-file …`.
-5. **`publish`** — uploads the AAB to a Play track with the Play release notes. Skipped until
-   `PLAY_PUBLISH` is `true`.
-
-To release: bump `versionCode` and `versionName` and write the Play release notes in a
-`chore(release): X.Y.Z` commit on `develop`, fast-forward `main` to it, then tag and push (`git tag -a vX.Y.Z -m "Klas X.Y.Z"`,
-`git push origin main vX.Y.Z`). A failed `publish` can be re-run alone from the Actions tab, and a release
-can be repeated by running the workflow on its tag (the **Run workflow** ref picker) — that also
-re-uploads the files to the existing GitHub release.
-
-### Set up the pipeline (once)
-
-**Signing.** Four repository secrets give the workflow the upload key (run from a terminal with `gh`;
-each of the last three prompts for its value):
+Store signing secrets with `gh`; the last three commands prompt for values:
 
 ```bash
 base64 -w0 ~/keystores/klas-upload-v2.jks | gh secret set UPLOAD_KEYSTORE_BASE64
@@ -134,55 +103,34 @@ gh secret set UPLOAD_KEY_ALIAS
 gh secret set UPLOAD_KEY_PASSWORD
 ```
 
-**Play publishing**, after the first bundle is uploaded by hand and the app exists in the Console:
+After the first bundle exists in Play Console:
 
-1. In Google Cloud, create a project, enable the **Google Play Android Developer API**, create a
-   **service account** and download a JSON key for it.
-2. In Play Console → **Users and permissions**, invite the service account's email and grant it the
-   release permissions for Klas (testing tracks and, when ready, production). If the Console still shows
-   a Setup → API access page, link the Cloud project there too.
-3. Store the key and switch publishing on:
+1. Create a Google Cloud project, enable the Google Play Android Developer API, and create a service
+   account with a downloaded JSON key.
+2. Invite its email in Play Console → Users and permissions; grant Klas testing/production release
+   permissions as needed. Link the project under Setup → API access if the Console shows that page.
+3. Store the key and enable publishing:
    ```bash
    gh secret set PLAY_SERVICE_ACCOUNT_JSON < service-account.json
    gh variable set PLAY_PUBLISH --body true
    ```
-4. Delete the downloaded JSON; the secret is the only copy that needs to exist.
+   Delete the downloaded JSON after storing the secret.
 
-Two optional variables steer where a release goes; both can be changed without touching the workflow:
-
-| Variable | Default | Meaning |
+| Variable | Default | Use |
 |---|---|---|
-| `PLAY_TRACK` | `internal` | `internal`, `alpha` (the default closed-testing track), `beta`, `production`, or a custom closed track's name. The workflow's manual run takes a `track` input that overrides it once. |
-| `PLAY_STATUS` | `completed` | Set `draft` until the app's first release has passed Play review — the API only accepts drafts for an unpublished app — and the release is then finished in the Console. |
+| `PLAY_TRACK` | `internal` | `internal`, `alpha` (default closed track), `beta`, `production` or custom closed-track name. |
+| `PLAY_STATUS` | `completed` | Use `draft` until first-release review allows publishing; finish drafts in the Console. |
 
-Without a service account, nothing is lost: the tag still produces the GitHub release, and the AAB
-can be uploaded in the Console by hand. Promoting a release between tracks (closed test → production) is
-easiest in the Console.
-
-### Play release notes
-
-Play's "What's new" for a release comes from `store/whatsnew/whatsnew-ru-RU` and `whatsnew-en-US`
-(plain text, at most 500 characters each; Play's locale codes, as in `store/listing/`). Rewrite both in
-every `chore(release)` commit: while `PLAY_PUBLISH` is `true`, `check` refuses a tag whose notes are
-empty, too long, or unchanged since the previous tag, so last release's text can't go out again. Write
-them for the tutor, from the commit bodies — the GitHub release notes are the place for detail.
-
-A language added to the listing needs its own `whatsnew-<locale>` file and a line in `check`.
-
-### Dependabot
-
-`.github/dependabot.yml` opens one pull request a month into `develop` bumping the workflows' actions,
-the commit-pinned ones too; `ci.yml` runs on it. Merge it when green. Gradle dependencies are updated by
-hand. The config only takes effect once it is on `main`, GitHub's default branch.
+Without Play setup, tags still produce GitHub artifacts for manual upload. Promote releases between
+tracks in the Console. [Dependabot](../.github/dependabot.yml) maintains workflow actions; Gradle
+versions are updated manually.
 
 ## Per-release checklist
 
-- [ ] Schema change? A migration is shipped, `MigrationChainTest` passes, and its migration test passes on a device
-- [ ] `./gradlew :domain:jvmTest :app:verifyRoborazziDebug :app:lintDebug ktlintCheck detekt` pass (CI runs the same)
-- [ ] `./gradlew :app:connectedDebugAndroidTest` passes on a phone if the release touches notifications,
-      calendar sync or gestures — the emulators in `device-tests` cover the rest
-- [ ] Backup round-trip verified on a release build (device)
-- [ ] `chore(release)` commit bumps `versionCode` (and `versionName`) and rewrites `store/whatsnew/`;
-      `main` fast-forwarded; tag pushed
-- [ ] Release workflow green; GitHub release notes rewritten
-- [ ] Play track shows the new version (a draft, while `PLAY_STATUS` is `draft`: roll it out in the Console)
+- [ ] Schema change: migration shipped, `MigrationChainTest` and device migration tests pass.
+- [ ] `./gradlew :domain:jvmTest :app:verifyRoborazziDebug :app:lintDebug ktlintCheck detekt` passes.
+- [ ] `./gradlew :app:connectedDebugAndroidTest` passes on a phone for notification/calendar/gesture
+      changes; release emulators cover the remaining instrumented tests.
+- [ ] Backup round-trip verified on a release build on a device.
+- [ ] Version and both Play notes updated; `main` fast-forwarded; matching tag pushed.
+- [ ] Release workflow green, GitHub notes rewritten, correct Play track/version rolled out.

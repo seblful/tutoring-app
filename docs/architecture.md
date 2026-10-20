@@ -1,19 +1,9 @@
 # Architecture
 
-Where code goes in Klas, and which class owns each rule. The reasoning behind a rule lives in KDoc next
-to the code.
-
-MVVM, pure unit-tested domain layer. Room is the single source of truth; calendar and notifications are
-best-effort mirrors of it, never the reverse. DI: Metro (a compiler plugin, so it can run in shared
-code later), see [Dependency injection](#dependency-injection).
-
-Two Gradle modules, one package (`com.seblful.klas`): `:domain` holds `domain/` as Kotlin Multiplatform,
-and `:app` (Android) holds everything else and depends on it. The split exists so that "no platform in
-the domain" is a compile error, not a convention — `:domain`'s code is all in `commonMain`, compiled
-against the common standard library and kotlinx-datetime only, so neither `android.*` nor `java.*`
-resolves there. Dates are kotlinx-datetime's, instants and durations `kotlin.time`'s, and the clock is
-`domain/time/WallClock` (the instant plus the zone it is read in). Locales cross into the domain as BCP 47
-tags and region currency codes (`format/Localization` converts).
+Room is the source of truth. Calendar events and notifications are best-effort mirrors, never inputs.
+MVVM lives in `:app`; pure rules live in `:domain` (`commonMain`). The compiler rejects Android/JDK
+APIs in the domain. Dates use kotlinx-datetime; instants/durations use `kotlin.time`. Device time
+crosses through `WallClock`; locales cross as BCP 47 tags and currency codes.
 
 ```mermaid
 flowchart TB
@@ -24,89 +14,58 @@ flowchart TB
     Repos --> Cal[CalendarSync port]
     Work[WorkManager workers] --> Repos
     Work --> Notif[Notifier]
-    Cal -.-> Device[Device calendar → Google sync]
+    Cal -.-> Device[Device calendar → provider sync]
 ```
 
-## Packages
+## Where code goes
 
-| Package | Responsibility |
+Paths below are inside `com.seblful.klas`; follow the linked sources for individual types.
+
+| Location | Responsibility |
 |---|---|
-| `domain/` (`:domain` module) | Pure Kotlin, no Android deps (compiler-enforced), all JVM-tested, one subpackage per concept (below). |
-| `domain/model/` | The types every rule shares: `TutoringClass`, `ClassSession` (one lesson's classes), `Student`, `Group`, `Money`, `Balance`, `Currency`, `AppLanguage`, `ThemeChoice`. |
-| `domain/lesson/` | What a lesson is and how it changes: `ClassRules`, `SessionRules` (every lesson: sessions, edits, transitions), `GroupRules` (a group's roster), `LessonEdits`, `LessonPhase`, `LessonKind`, `DeleteWarning`, `CalendarSyncPolicy`. |
-| `domain/schedule/` | Time: `Scheduling` (slots, the one-tutor refusal, bookable subjects), `Recurrence`, `DayBounds`, `CalendarLayout`, `DaySummary`, `TimeConflict`, `ScheduleEmpty`. |
-| `domain/billing/` | `Billing` (what counts as income, balances, a row's amount), `PaymentDate`. |
-| `domain/reports/` | `Reports`, `ReportPeriod`, `ReportCsv`, `Taught`. |
-| `domain/reminders/` | `Reminders`, `ReminderScheduler` port, `Digests`, `DigestScheduler` port. |
-| `domain/homework/` | `HomeworkRules`. |
-| `domain/people/` | Names and finding people: `PeopleSearch`, `NameOrder`, `Captions`, `SubjectNames`, `Phone`, `AvatarPalette`. |
-| `data/local/` | Room entities, DAOs, `AppDatabase`, `Migrations`, `EnumConverters`, `Transactor` port. `SnapshotDao` is the separate whole-table seam. |
-| `data/Mappers.kt` | Entities ⇄ domain models. |
-| `data/repository/` | One invariant each, end to end, one transaction (see [Who owns each rule](#who-owns-each-rule)). |
-| `data/backup/` | File format: export, transactional replace-all import, integrity/failure classification, restore. |
-| `calendar/` | `CalendarSync`/`CalendarPermission` ports, `CalendarContract` adapter, calendar/guest choice rules, and the permission prompt (`rememberCalendarPermissionRequest`). |
-| `notifications/` | `Notifier` + permission ports/adapters, the permission prompt (`rememberNotificationPermissionRequest`), reminder/digest content, tray actions/navigation, alarm scheduling. |
-| `work/` | Periodic maintenance worker, three digest workers, `AppWorkerFactory`, `WorkScheduler`, `BootReceiver`, `ClockChangeReceiver`, `Maintenance`. |
-| `diagnostics/` | `CrashLogger` over a capped local log file, and `Diagnostics` (what a crash entry says); viewed/exported from `ui/diagnostics`. No Crashlytics/Sentry — Play Vitals still receives the crash. |
-| `storage/` | `DocumentStore` (SAF) and `DocumentSharing` (`ACTION_SEND`) ports. |
-| `format/` | Date/time/money formatting, `AppLocale`, `MoneyField`, the lesson-mode word (`ClassMode.labelRes`, read by screens and the calendar alike), and what the device says: `Localization.kt` (`Context.inLanguage()`, `deviceLocales()`), `WeekStart.kt` (the phone's first day of the week). |
-| `ui/` | Compose screens + their view models (`metroViewModel()`), one package per feature, `onboarding/`, `RootViewModel`, `AppRoot` (theme, locale, the tabs' chrome). The «Задания» tab and the homework parts the student and group cards share in `ui/homework/`. Settings/About in `ui/more/`. Theme and icons (`KlasIcons`) in `ui/theme/`. |
-| `ui/navigation/` | `Routes`, the graph (`KlasNavGraph.kt`: `klasGraph`, `navigateToTab`), the tabs, what a tray tap opens (`TrayArrivals.kt`), `Arrival`. |
-| `ui/common/` | Shared atoms (`KlasScreen`, `detailCard`, fields, dialogs, badges…), the doors out of the app (`rememberExternalApps`, the document pickers), and, in `state/`, the view models' plumbing with no Compose in it: `Loadable`, `derive`/`hold`, `WallClock.days()`/`minutes()`, `UiEvents`, `write`/`writeAwaited`. A part only one feature uses lives in that feature. |
-| `ui/schedule/` | The schedule screen (split into the screen, `LessonCard`, `ScheduleHeaders`, `ClassActionsSheet`, `CalendarViews`) and its view model and models, with `SchedulePages` (the selected day and visible pages, pure); the booking form in `booking/` (`ClassForm`, `ClassFormState`, `BookingForm`, the edit screen and view model). |
-| `preview/` (debug only) | `@Preview`s of `ui/common/`. |
-| `di/` | `AppGraph` (the graph, `appGraph`, `@ApplicationContext`, the view-model factory), DB module, scopes/dispatchers, `WallClock`, week-start, device locales. |
-| root | `KlasApp` (owns the graph, WorkManager config, notification channels, the periodic upkeep pass; the catch-up as the UI opens is `RootViewModel.catchUp`), `MainActivity` → `AppRoot()`, `Coroutines.kt` (`runCatchingCancellable`, and `launchAsync` for every broadcast receiver). |
+| [Domain](../domain/src/commonMain/kotlin/com/seblful/klas/domain/) | Models and pure lesson, scheduling, billing, report, homework, people and reminder rules. |
+| [Data](../app/src/main/java/com/seblful/klas/data/) | Room entities/DAOs, mappers, repositories and backup format. `SnapshotDao` alone exposes whole-table operations. |
+| [Calendar](../app/src/main/java/com/seblful/klas/calendar/) / [notifications](../app/src/main/java/com/seblful/klas/notifications/) | Device ports, Android adapters, permission prompts, tray actions and navigation. |
+| [Work](../app/src/main/java/com/seblful/klas/work/) | Maintenance, digests, boot/clock-change rescheduling and worker creation. |
+| [Storage](../app/src/main/java/com/seblful/klas/storage/) / [diagnostics](../app/src/main/java/com/seblful/klas/diagnostics/) | Document storage/sharing ports and a capped local crash log. |
+| [Format](../app/src/main/java/com/seblful/klas/format/) | Locale, money/date/time formatting and device preferences; `java.time` stays here. |
+| [UI](../app/src/main/java/com/seblful/klas/ui/) | Screens and view models by feature; shared atoms/state in `common/`, routes in `navigation/`, booking in `schedule/booking/`. Feature-only parts stay with their feature. |
+| [DI](../app/src/main/java/com/seblful/klas/di/) | Metro graph and platform bindings. `KlasApp` owns the graph/upkeep; `MainActivity` hosts `AppRoot`. |
 
-## Who owns each rule
+## Who owns writes
 
-- `ClassRepository` — side effects of a class change (calendar mirror, reminder refresh) and the
-  one-tutor-one-lesson refusal. Every write takes a whole lesson (`ClassSession`). `bookSeries` reports
-  instead of refusing.
-- `CalendarMirror` — what a mirrored event shows; owns sync on/off backfill and withdrawal.
-- `EnrollmentRepository` — the subject⇄price invariant.
-- `GroupRepository` — the only writer of group membership.
-- `HomeworkRepository` — the only writer of `homework`; its writes owe no phase 3 (no calendar, and a
-  reminder reads what is attached as it fires).
-- `PaymentRepository` — a payment's date and correcting one in place; the instant is derived here.
-- `RateHistoryRepository` — what a rate change is (two repositories set rates).
-- `SettingsRepository` — one serialized `update {}`, returning what the change owes the rest of the app.
-  Also owns the default currency and the display locale.
-- `StudentRepository` — archiving calls off a retired student's planned lessons first.
-- `SubjectRepository` — deletable only while unreferenced.
+| Repository | Contract |
+|---|---|
+| `ClassRepository` | Whole-lesson writes (`ClassSession`), overlap refusal, calendar/reminder effects. `bookSeries` reports taken slots instead of refusing the run. |
+| `CalendarMirror` | Event content, sync backfill/withdrawal and restore reconciliation. |
+| `EnrollmentRepository` / `RateHistoryRepository` | Subjects and prices stay paired; rate changes share one log. |
+| `GroupRepository` | Only writer of group membership. |
+| `HomeworkRepository` | Only writer of homework; no mirror/refresh phase because reminders read homework when firing. |
+| `PaymentRepository` | Payment dates, corrections and derived instants. |
+| `SettingsRepository` | Serialized `update {}` returns required side effects; owns default currency/display locale. |
+| `StudentRepository` / `SubjectRepository` | Archiving cancels a student's planned lessons; subject deletion requires no references. |
 
-**A write spanning tables is one transaction**, including any conflict reads that guard its writes;
-otherwise two saves can both reserve an apparently free hour. The phases are pure rules → rows inside
-`Transactor.transaction` → calendar/reminders after commit.
+A write spanning tables is one `Transactor.transaction`, including conflict reads guarding the write.
+Order: pure rules → transactional rows → calendar/reminders after commit.
+
+View models observe repository `Flow`s and expose read-only `StateFlow`. Reads use `viewModelScope`;
+writes use injected `@ApplicationScope` through `write`/`writeAwaited`, so saves outlive screens.
+`derive` moves state computation off the main thread. Guarded failures become UI events; unguarded
+failures reach the application handler and crash log. Use `runCatchingCancellable`, which preserves
+coroutine cancellation. See [UI conventions](ui-conventions.md) for screen plumbing.
 
 ## Dependency injection
 
-- **Metro**, a Kotlin compiler plugin: the graph is checked as `:app` compiles (a missing binding is a build
-  error), there is no KSP step for it, and the same annotations work in common code.
-- `KlasGraph` (`di/AppGraph.kt`) is everything contributed to `AppScope`. An implementation binds itself to its
-  port (`@ContributesBinding` + `@SingleIn(AppScope::class)`); providers live in `@ContributesTo`
-  `@BindingContainer` objects (`di/`, `DiagnosticsModule`). The application context enters through the
-  graph's factory as `@ApplicationContext Context`.
-- `KlasApp` holds the graph (`AppGraph.Holder`). What Android instantiates itself reaches it through
-  `context.appGraph`: a receiver calls `appGraph.inject(this)` first in `onReceive`, workers come from
-  `AppWorkerFactory` (each worker has a nested `@AssistedFactory` keyed by `@WorkerKey`), and `MainActivity`
-  provides the graph's view-model factory to the composition. metrox-android's `AppComponentFactory` would
-  construct activities and receivers itself, but it needs API 28 and minSdk is 24.
-- A view model is `@ViewModelKey` + `@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())` and is
-  obtained with `metroViewModel()`. One that reads its navigation arguments takes `@Assisted savedStateHandle`
-  and has a nested assisted `Factory`; its screen uses `assistedMetroViewModel()`.
-- A test needing other bindings declares its own graph with `excludes` (`StoreGraph`). What Android looks up by
-  name at runtime — view models, workers, receivers — is covered by `KlasGraphTest`.
+Metro checks bindings at compile time. Before upgrading Kotlin, check Metro's compiler compatibility
+in [the version catalog](../gradle/libs.versions.toml).
 
-## Data flow
-
-ViewModels observe repository `Flow`s, expose `StateFlow`. Writes: ViewModel → repository → Room →
-(repository) mirrors calendar + refreshes reminders.
-
-Reads live in `viewModelScope`; writes go to the injected `@ApplicationScope` so a save outlives its
-screen, through `write`/`writeAwaited` (`ui/common/state/Writes.kt`). Deriving state happens off the main thread
-(`combine(...).derive(scope, computation, initial)`). A failed write is never fatal: a guarded one is
-reported to the screen as an event, and an unguarded one reaches the application scope's handler, which
-records it to the crash log. ViewModel
-state is read-only (`StateFlow`, never mutable). Guarded suspend calls use `runCatchingCancellable`
-(never plain `runCatching`, which swallows cancellation).
+- [AppGraph.kt](../app/src/main/java/com/seblful/klas/di/AppGraph.kt) defines `KlasGraph` and `AppScope`.
+  Bind adapters with `@ContributesBinding`/`@SingleIn`; providers use `@ContributesTo`/`@BindingContainer`.
+  The graph factory receives `@ApplicationContext Context`.
+- Android-created objects use `context.appGraph`: receivers inject first in `onReceive`, workers use
+  `AppWorkerFactory` with nested `@AssistedFactory`/`@WorkerKey`, and the activity provides the view-model
+  factory. metrox's `AppComponentFactory` needs API 28; minSdk is 24.
+- View models contribute via `@ViewModelKey` and `@ContributesIntoMap` and use `metroViewModel()`.
+  Navigation arguments require assisted `SavedStateHandle`, a nested factory and `assistedMetroViewModel()`.
+- Test graphs replace bindings with `excludes` (`StoreGraph`). `KlasGraphTest` checks runtime discovery
+  of view models, workers and manifest receivers.

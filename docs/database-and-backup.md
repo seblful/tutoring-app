@@ -1,72 +1,51 @@
 # Database and backup
 
-How to change the schema or the backup file without losing a tutor's data. Before a release with a
-schema change, see the checklist in [releasing.md](releasing.md#per-release-checklist).
+Preserve on-device data and existing backup files when changing storage. Before shipping, use the
+[release checklist](releasing.md#per-release-checklist).
 
-## Seams
+## Persistence contracts
 
-- `SnapshotDao` is the only whole-database seam (backup/restore); its per-table methods are `protected`,
-  everything else goes through the ordinary repositories.
-- Backup file format (`BackupData`) is a separate type from the internal snapshot — its field names are
-  JSON keys already on disk and may never be renamed. Lessons and attendance have file types of their own
-  (`BackupLesson`, `BackupAttendance`): v10 dropped columns that a v8 file still carries, so those keys are
-  read and never written.
-- An enum's constant name is a persisted value (status, attendance, mode, settings columns, SQL literals,
-  backup JSON) — renaming one is a migration (`StoredEnumNamesTest`). Entities hold the enum types; Room
-  stores the name through `EnumConverters`, which parses totally, never `valueOf`: a fallback where the
-  column carries no money, a named failure where it does.
-- A backup's enum names are typed on the way in, so an unknown one refuses the file as it is parsed; the
-  version is read first, so a newer file is refused as newer rather than as broken.
+- `SnapshotDao` alone exposes whole-database reads/replacement; per-table methods are protected.
+  Ordinary writes go through repositories.
+- `BackupData` is independent of the internal snapshot. JSON keys already on disk must not be renamed.
+  `BackupLesson`/`BackupAttendance` retain obsolete fields for reading old files, never writing them.
+- Enum constant names are persisted in Room, SQL and backup JSON: renaming one requires migration
+  (`StoredEnumNamesTest`). `EnumConverters` parses unknown names with a fallback only for non-money
+  columns; money-bearing columns fail explicitly. Backup parsing refuses unknown enum names, but checks
+  version first so a newer file is reported as newer rather than broken.
 
-## Schema and migrations
+## Schema changes
 
-- SQLite is the bundled driver's (`BundledSQLiteDriver`, SQLite 3.50 with androidx.sqlite 2.6.2), compiled
-  into the app rather than Android's: one engine on every API level, in the JVM tests, and on iOS when the
-  data layer moves there. With a driver set, Room calls only `migrate(SQLiteConnection)`, so every step
-  overrides that one, and transactions go through `useWriterConnection` (`RoomTransactor`), never
-  `withTransaction`. It has no ICU and no `LOCALIZED` collation, so text is ordered and matched in Kotlin,
-  not SQL (see `Daos.kt`).
-- `Migrations.kt` holds exactly the steps since the baseline (`AppDatabase.BASELINE_VERSION`): v5 → v10
-  today. Every schema change past baseline bumps the version and ships a migration
-  (`MigrationChainTest` enforces wiring; each migration also gets a device test against the exported schema).
-- No views (since v10): `ClassDao` joins `lessons` and `attendance` itself, every query starting from one
-  `CLASS_ROWS` constant, so a migration never has a view to rebuild. Don't add one back — Room validates
-  views after a migration but never recreates them. The steps up to v9 still rebuild their own version's
-  `classes` view from a frozen `SELECT`, and `MigrationChainTest` checks each against that version's schema.
-- A column is dropped by rebuilding its table. The bundled SQLite has `DROP COLUMN` on every API level, but
-  it refuses an indexed, foreign-key or primary-key column, and v10 was written for Android's own SQLite,
-  which has none below API 31. `MIGRATION_9_10` is the pattern: rename the old table aside, create the new one with Room's DDL from the
-  exported schema, copy every row by column name (ids included) and carry its `sqlite_sequence` row over,
-  drop the old tables child before parent, then recreate the indices and run `PRAGMA foreign_key_check`.
-  `PRAGMA foreign_keys = OFF` does nothing inside Room's migration transaction, and with keys on, dropping
-  a parent that something still points at fires its `ON DELETE CASCADE`. A table that refers to a rebuilt
-  one is rebuilt too, because SQLite 3.26+ re-points its foreign key at the renamed copy. `MigrationChainTest`
-  checks the DDL, the copied columns, the indices and the drop order against the exported schema.
-- Destructive fallback (wipe-on-unmigratable) is debug-only; release refuses to open such a database. It
-  also covers a *downgrade*, so a debug build of an older schema wipes a newer debug database.
+- `BundledSQLiteDriver` supplies the same engine on every API and in JVM tests; versions live in the
+  [catalog](../gradle/libs.versions.toml). Migrations override `migrate(SQLiteConnection)`; transactions
+  use `useWriterConnection` through `RoomTransactor`, never `withTransaction`. There is no ICU or
+  `LOCALIZED` collation: sort/match text in Kotlin.
+- Bump `AppDatabase`'s schema version and add a migration for every change past `BASELINE_VERSION`.
+  `MigrationChainTest` checks wiring; each migration needs a device test against exported schemas.
+- Keep queries view-free: `ClassDao` joins through `CLASS_ROWS`. Room validates views after migration
+  without recreating them. Pre-v10 steps retain frozen view definitions checked against their schemas.
+- **Rebuild tables carefully** using `MIGRATION_9_10` as the pattern: rename aside, create from exported
+  Room DDL, copy named columns and IDs, carry `sqlite_sequence`, drop children before parents, recreate
+  indices and run `PRAGMA foreign_key_check`. `DROP COLUMN` cannot remove indexed/FK/primary-key columns.
+  `PRAGMA foreign_keys = OFF` has no effect inside Room's migration transaction; dropping a referenced
+  parent with keys enabled fires `ON DELETE CASCADE`. Rebuild referencing tables too, because SQLite
+  re-points their foreign keys at the renamed table. `MigrationChainTest` checks DDL, copies and order.
+- Destructive migration fallback is **debug-only**, including downgrades: opening newer debug data with
+  an older schema can wipe it. Release refuses an unmigratable database.
 
-## Settings
+## Backup and restore
 
-- Settings live in Room (single row), device-local, not backed up, written under a `Mutex`.
-- Platform auto-backup is off; the app's own JSON export (SAF) is the only way data moves between devices.
-
-## Backup
-
-- Backup = one transaction's full DB snapshot → JSON. Ids preserved, import is one transaction. Older file versions still
-  import (defaults fill gaps); newer ones are refused. Restore reproduces the file as given, except that
-  a v8 file's homework is converted into rows (`legacyHomework`, `MIGRATION_8_9`'s twin) and an older
-  file's notes are not restored. Imported calendar event ids are discarded: they name appointments on
-  the exporting device, never permission to update or delete this device's appointments.
-  After a successful restore, this database's own event ids are handed back to the restored classes
-  that are the same class (row id, lesson, student, start — `CalendarMirror.remirrorAfter`); only the
-  ones no restored class claims are withdrawn, then the schedule is re-mirrored. So restoring this
-  phone's own backup keeps past lessons in the calendar (no event is ever created for one) and does
-  not re-invite students to every upcoming lesson.
-  A schema change that only drops columns that were always blank (v10)
-  does not bump the file version.
-- `BackupData.version` is independent of the schema version — it's the only bridge out of the old
-  `com.seblful.repetit` app id, which has no upgrade path to Klas.
-- `BackupIntegrity` checks readability before any row is written; `BackupFailure` classifies a refusal;
-  `BackupRestore` owns the whole restore act (rows + first-run flag + reminders + calendar re-mirror).
-- **Not Google Drive.** SAF already covers "put the file wherever you like", Drive included, without the
-  app holding a cloud credential.
+- Settings are a device-local Room row, written under a `Mutex` and excluded from backup. Android
+  automatic backup is disabled; manual JSON export through SAF moves tutoring data between devices.
+  SAF supports cloud destinations such as Drive without app-held cloud credentials.
+- Export reads one transactional snapshot. Import **replaces the database, never merges**, preserves
+  IDs and commits in one transaction. `BackupIntegrity` checks readability before writes;
+  `BackupFailure` classifies refusals; `BackupRestore` owns rows, first-run state and mirror refresh.
+- Older file versions import with defaults; newer ones are refused. v8 homework becomes rows through
+  `legacyHomework`; old lesson notes are not restored. Dropping always-blank columns need not bump the
+  file version. `BackupData.version` is independent of schema version and also supports transfer from
+  the old `com.seblful.repetit` app ID, which cannot upgrade in place.
+- Discard imported calendar event IDs: they belong to the exporting device. `remirrorAfter` reuses this
+  device's IDs only for matching restored classes (row ID, lesson, student, start), withdraws unclaimed
+  events and re-mirrors. This preserves past events and avoids re-inviting upcoming students when
+  restoring this phone's own backup; past events are never newly created.
