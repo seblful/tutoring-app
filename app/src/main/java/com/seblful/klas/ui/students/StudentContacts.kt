@@ -63,7 +63,7 @@ internal fun ContactBlock(
                 trailing = {
                     IconButton(onClick = { onTelegram(phone) }) {
                         Icon(
-                            KlasIcons.Filled.Send,
+                            KlasIcons.Outlined.Send,
                             stringResource(R.string.student_write_telegram),
                             tint = MaterialTheme.colorScheme.primary,
                         )
@@ -169,12 +169,12 @@ internal fun StudentOverflowMenu(
         if (phone != null) {
             ContactMenuItem(
                 label = stringResource(R.string.student_call),
-                icon = KlasIcons.Filled.Call,
+                icon = KlasIcons.Outlined.Call,
                 onClick = { close(); onCall(phone) },
             )
             ContactMenuItem(
                 label = stringResource(R.string.student_write_telegram),
-                icon = KlasIcons.Filled.Send,
+                icon = KlasIcons.Outlined.Send,
                 onClick = { close(); onTelegram(phone) },
             )
         }

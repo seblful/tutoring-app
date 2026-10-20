@@ -241,7 +241,6 @@ private fun ClassEditForm(
                         it.formatDate()
                     } ?: "",
                     label = stringResource(R.string.class_date_label),
-                    placeholder = stringResource(R.string.class_pick_date),
                     onClick = { showDatePicker = true },
                     modifier = Modifier.weight(1.4f),
                 )
@@ -253,7 +252,6 @@ private fun ClassEditForm(
                 PickerField(
                     value = form.timeFrom?.timeText() ?: "",
                     label = stringResource(R.string.class_time_from_label),
-                    placeholder = stringResource(R.string.class_pick_time),
                     onClick = { showFromPicker = true },
                     modifier = Modifier.weight(1f),
                     isError = state.conflict != null,

@@ -217,6 +217,17 @@ interface LessonDao {
     @Query("SELECT EXISTS(SELECT 1 FROM lessons LIMIT 1)")
     suspend fun anyExist(): Boolean
 
+    /** Every student's [LessonSpan] at [nowMillis]; a student with no lessons has no row. */
+    @Query(
+        "SELECT a.studentId AS ownerId, $SPAN FROM attendance a JOIN lessons l ON l.id = a.lessonId " +
+            "GROUP BY a.studentId",
+    )
+    fun observeStudentSpans(nowMillis: Long): Flow<List<LessonSpan>>
+
+    /** Every group's [LessonSpan] at [nowMillis]; a group with no lessons has no row. */
+    @Query("SELECT l.groupId AS ownerId, $SPAN FROM lessons l WHERE l.groupId IS NOT NULL GROUP BY l.groupId")
+    fun observeGroupSpans(nowMillis: Long): Flow<List<LessonSpan>>
+
     @Upsert
     suspend fun upsert(lesson: LessonEntity): Long
 
@@ -260,3 +271,15 @@ interface AttendanceDao {
     @Query("DELETE FROM attendance WHERE id = :id")
     suspend fun deleteById(id: Long)
 }
+
+/**
+ * One student's or group's lessons around a moment: the start of the first not yet over, and of the last
+ * already over. Cancelled lessons count for neither; a lesson under way is the next one, not the last.
+ */
+data class LessonSpan(val ownerId: Long, val nextMillis: Long?, val lastMillis: Long?)
+
+private const val SPAN: String =
+    "MIN(CASE WHEN l.status != 'CANCELLED' AND l.startMillis + l.durationMinutes * 60000 > :nowMillis " +
+        "THEN l.startMillis END) AS nextMillis, " +
+        "MAX(CASE WHEN l.status != 'CANCELLED' AND l.startMillis + l.durationMinutes * 60000 <= :nowMillis " +
+        "THEN l.startMillis END) AS lastMillis"

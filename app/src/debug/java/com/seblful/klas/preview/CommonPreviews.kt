@@ -11,7 +11,6 @@ import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.ui.common.Avatar
-import com.seblful.klas.ui.common.AvatarStack
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.CurrencyPicker
 import com.seblful.klas.ui.common.EmptyState
@@ -193,12 +192,7 @@ private fun SegmentedChoicePreview() = PreviewSurface {
 }
 
 /**
- * Monograms: one at full size, and a roster of six overlapping at list-row size.
- *
- * The stack is here for the hairline ring that keeps overlapping faces separable — it is drawn in the
- * *page's* colour, so it is the one part of this component that can only be verified against a real
- * background, and it has much less contrast to work with in dark mode. The palette is by student id, so
- * the ids are spread to show more than one hue.
+ * Monograms at full size. The palette is by student id, so the ids are spread to show more than one hue.
  *
  * The large-text render earns its place here for a reason particular to this component: the circle is a
  * fixed `Dp` and the monogram inside it is `sp`, so the two scale independently and the letter is what
@@ -212,8 +206,4 @@ private fun AvatarPreview() = PreviewSurface {
         Avatar(name = "Борис", studentId = 2)
         Avatar(name = "Вера", studentId = 5)
     }
-    AvatarStack(
-        names = listOf("Аня", "Борис", "Вера", "Галина", "Дмитрий", "Егор"),
-        ids = listOf(0L, 2L, 5L, 6L, 8L, 9L),
-    )
 }

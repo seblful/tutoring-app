@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.homework
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -66,8 +68,12 @@ import com.seblful.klas.ui.theme.klasColors
  * A card's homework, inside the card's own list — a student's or a group's: an add row, the current ones
  * (swiped done, as in the tab), then the done ones under their own heading (swiped back). Tapping one
  * corrects or deletes it. Nested, so rows rather than cards — see [SwipeableHomework].
+ *
+ * @param owner whose card this is. A row names who its homework is for only when that is someone else —
+ * a group's homework on a member's card — not on every row of the group's own card.
  */
 fun LazyListScope.homeworkItems(
+    owner: Assignee?,
     lists: HomeworkLists,
     messages: Messages,
     onAdd: () -> Unit,
@@ -94,6 +100,7 @@ fun LazyListScope.homeworkItems(
             onClick = { onOpen(row) },
             messages = messages,
             nested = true,
+            owner = owner,
             modifier = animateInPlace(),
         )
     }
@@ -117,6 +124,7 @@ fun LazyListScope.homeworkItems(
             onClick = { onOpen(row) },
             messages = messages,
             nested = true,
+            owner = owner,
             modifier = animateInPlace(),
         )
     }
@@ -143,6 +151,7 @@ object HomeworkItemKeys {
  *
  * @param nested whether it stands in a list inside a card (a student's), where a row is a `ListItem` and
  * names who it is for only when that is a group; at the top level (the tab) it is a card of its own.
+ * @param owner the card a nested row stands in; its own homework goes unnamed — see [homeworkItems].
  */
 @Composable
 fun SwipeableHomework(
@@ -152,6 +161,7 @@ fun SwipeableHomework(
     messages: Messages,
     nested: Boolean,
     modifier: Modifier = Modifier,
+    owner: Assignee? = null,
 ) {
     val shape = if (nested) RectangleShape else MaterialTheme.shapes.medium
     SwipeToConfirmBox(
@@ -164,7 +174,11 @@ fun SwipeableHomework(
             stringResource(if (row.isCurrent) R.string.homework_done else R.string.homework_restore),
             onSwipe,
         )
-        if (nested) HomeworkListItem(row, messages, onClick, swipe) else HomeworkCard(row, messages, onClick, swipe)
+        if (nested) {
+            HomeworkListItem(row, named = row.isGroup && row.homework.assignee != owner, messages, onClick, swipe)
+        } else {
+            HomeworkCard(row, messages, onClick, swipe)
+        }
     }
 }
 
@@ -191,11 +205,8 @@ private fun HomeworkCard(row: HomeworkRow, messages: Messages, onClick: () -> Un
     ContentCard(onClick = onClick, modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                // **The kind glyph is part of the name, not a column of its own**, as on the schedule's
-                // card: there it prefixes the name and every line below starts on the card's text edge.
-                // Here it used to be a leading column, so the due line was set in under the name while the
-                // homework text below ran out to the card edge — two left edges on one card, and a
-                // different anatomy from the lesson card the same homework is attached to.
+                // **The kind glyph prefixes the name**, as on the schedule's card, and the lines below start
+                // on the glyph's edge, as they do there.
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     LessonKindIcon(
                         if (row.isGroup) LessonKind.GROUP else LessonKind.INDIVIDUAL,
@@ -225,13 +236,23 @@ private fun HomeworkCard(row: HomeworkRow, messages: Messages, onClick: () -> Un
 }
 
 @Composable
-private fun HomeworkListItem(row: HomeworkRow, messages: Messages, onClick: () -> Unit, modifier: Modifier) {
+private fun HomeworkListItem(
+    row: HomeworkRow,
+    named: Boolean,
+    messages: Messages,
+    onClick: () -> Unit,
+    modifier: Modifier,
+) {
     ListItem(
         leadingContent = { LessonKindIcon(if (row.isGroup) LessonKind.GROUP else LessonKind.INDIVIDUAL) },
         headlineContent = { Text(row.text, maxLines = HomeworkPreviewLines, overflow = TextOverflow.Ellipsis) },
-        supportingContent = { DueLine(row, prefix = row.title.takeIf { row.isGroup }) },
+        supportingContent = { DueLine(row, prefix = row.title.takeIf { named }) },
         trailingContent = if (row.isCurrent) ({ SendHomeworkButton(row, messages) }) else null,
         modifier = Modifier
+            // Edge to edge, under the inset press shape: the swipe's panel lies behind this row, and the
+            // list item's own fill, clipped to that shape, stops 8 dp short of each side — the first pixels
+            // of a drag showed the panel down both edges.
+            .background(ListItemDefaults.containerColor)
             .insetRowPress { Modifier.clickable(it, indication = null, onClick = onClick) }
             .then(modifier),
     )
@@ -443,10 +464,11 @@ fun SendHomeworkButton(row: HomeworkRow, messages: Messages) {
     val chooserTitle = stringResource(R.string.homework_send)
     val failed = stringResource(R.string.student_contact_failed)
     NamedIconButton(
-        KlasIcons.Filled.Share,
+        KlasIcons.Outlined.Share,
         chooserTitle,
         onClick = { externalApps.open(ExternalTarget.ShareText(text, chooserTitle), failed) },
-        tint = MaterialTheme.colorScheme.primary,
+        // Quiet: one on every current card, and a column of accent-coloured buttons outshouts the homework.
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 

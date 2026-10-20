@@ -30,12 +30,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attendance
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.ui.common.ArchiveMenuItem
 import com.seblful.klas.ui.common.ArchivedBadge
 import com.seblful.klas.ui.common.Avatar
+import com.seblful.klas.ui.common.BadgeLine
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DetailCard
 import com.seblful.klas.ui.common.EmptyState
@@ -143,7 +145,7 @@ private fun GroupCard(
         titleSize = TitleSize.Large,
         messages = messages,
         actions = {
-            NamedIconButton(KlasIcons.Filled.Edit, stringResource(R.string.action_edit), onClick = onEdit)
+            NamedIconButton(KlasIcons.Outlined.Edit, stringResource(R.string.action_edit), onClick = onEdit)
             // Retiring and removing the group, behind the overflow — where a student's already were.
             // They used to be a pair of outlined buttons under a «danger zone» heading at the foot of
             // the group's *form*, so the same lifecycle verb lived on the card for one entity and on
@@ -193,6 +195,7 @@ private fun GroupCard(
                 when (shown) {
                     GroupTab.LESSONS -> lessonsTab(state, onLessonClick)
                     GroupTab.HOMEWORK -> homeworkItems(
+                        owner = group?.let { Assignee.Group(it.id) },
                         lists = state.homework,
                         messages = messages,
                         onAdd = { addingHomework = viewModel.homeworkChoice() },
@@ -244,7 +247,7 @@ private fun GroupHeader(state: GroupDetailState, modifier: Modifier = Modifier) 
         Text(
             stringResource(R.string.price_per_hour, group.price.text()),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -264,7 +267,7 @@ private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete
                 },
                 leadingIcon = {
                     Icon(
-                        KlasIcons.Filled.Delete,
+                        KlasIcons.Outlined.Delete,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.error,
                     )
@@ -310,12 +313,13 @@ private fun LazyListScope.studentsTab(
             supportingContent = {
                 // An archived member still explains the group's past lessons, so they stay listed — and
                 // say so, or the card counted three members where the form offered two.
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        pluralStringResource(R.plurals.lessons_count, row.attended, row.attended),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (row.student.archived) ArchivedBadge(Modifier.padding(start = Spacing.inline))
+                val attended = pluralStringResource(R.plurals.lessons_count, row.attended, row.attended)
+                if (row.student.archived) {
+                    BadgeLine(badge = { ArchivedBadge() }, badgeFirst = false) {
+                        Text(attended, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
+                    Text(attended, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
             // The chevron every row that opens a screen carries. Where it goes is said by the click itself:
@@ -351,13 +355,9 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
         ListItem(
             headlineContent = { Text(row.session.start.dateTimeText()) },
             supportingContent = {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.inline),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    // What happened to the lesson, in the pill the schedule and the student card say it
-                    // in — this was the last place a lesson's state was a font style.
-                    StatusBadge(classStatusLabel(status), classStatusColor(status))
+                // What happened to the lesson, in the pill the schedule and the student card say it
+                // in — this was the last place a lesson's state was a font style.
+                BadgeLine(badge = { StatusBadge(classStatusLabel(status), classStatusColor(status)) }) {
                     // How many of the group were in it — the part that speaks for the members, and the
                     // only place their attendance is visible. Said as "who came" only for a lesson that
                     // happened: until then everybody is expected, and a count of that is just the roster.

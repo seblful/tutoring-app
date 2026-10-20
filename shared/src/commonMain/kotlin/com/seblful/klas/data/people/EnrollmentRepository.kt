@@ -41,6 +41,12 @@ class EnrollmentRepository @Inject constructor(
     fun observePricesFor(studentId: Long): Flow<List<Price>> =
         priceDao.observeForStudent(studentId).map { list -> list.map { it.toDomain() } }
 
+    /** Every student's subject ids, keyed by student; one who takes nothing yet has no entry. */
+    fun observeSubjectIds(): Flow<Map<Long, List<Long>>> =
+        priceDao.observeEnrollments().map { rows ->
+            rows.groupBy({ it.studentId }, { it.subjectId })
+        }
+
     /** The student's price for one subject, or null when they don't take it. */
     suspend fun priceFor(studentId: Long, subjectId: Long): Price? =
         priceDao.get(studentId, subjectId)?.toDomain()

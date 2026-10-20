@@ -77,7 +77,8 @@ val md_outlineVariant = Color(0xFFC7C5D0)
  * not this one, which is why every card in the app was reaching for `surfaceVariant` and landing on
  * the same grey: a lesson row, the stat strip above it and the report section holding it were three
  * different *kinds* of thing painted one colour, so the screen had no hierarchy to read. Stated here,
- * they give one: items sit on `surfaceContainerLow`, the sections that hold them on `surfaceContainer`.
+ * they give one: items sit on `surfaceContainerHigh`, the sections that hold them on `surfaceContainerHighest`
+ * (`itemSurface`/`sectionSurface`), clear of the `surfaceContainer` the bar tints to on scroll.
  */
 val md_surfaceDim = Color(0xFFDBD9E0)
 val md_surfaceBright = Color(0xFFFBF8FF)
@@ -90,7 +91,12 @@ val md_surfaceContainerHighest = Color(0xFFE3E1E9)
 // --- Dark ---
 val md_primary_d = Color(0xFFBCC2FF)
 val md_onPrimary_d = Color(0xFF1A2691)
-val md_primaryContainer_d = Color(0xFF3340AA)
+/*
+ * Tone 30 at the dark accents' chroma (HCT 281/36/30), not the seed's. At the seed's chroma 57 (#3340AA)
+ * the add button and the income card were a saturated royal blue among lavender accents of chroma 35 —
+ * the loudest thing on every dark screen, and from another palette.
+ */
+val md_primaryContainer_d = Color(0xFF3C4279)
 val md_onPrimaryContainer_d = Color(0xFFDFE0FF)
 
 val md_secondary_d = Color(0xFFC3C5DD)

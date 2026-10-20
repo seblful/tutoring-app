@@ -46,7 +46,6 @@ class RevealedFocusTest {
                 PickerField(
                     value = "",
                     label = "Цена за час",
-                    placeholder = "Цена не указана",
                     onClick = { revealed = true },
                 )
             }
@@ -57,7 +56,7 @@ class RevealedFocusTest {
     fun theRevealedFieldIsFocusedByTheTapThatRevealedIt() {
         rule.setContent { KlasTheme { FoldedPrice() } }
 
-        rule.onNodeWithText("Цена не указана").performClick()
+        rule.onNodeWithText("Цена за час").performClick()
 
         rule.onNodeWithText("Цена за час").assertIsFocused()
     }
@@ -66,7 +65,7 @@ class RevealedFocusTest {
     fun typingWorksImmediatelyAfterTheOneTap() {
         rule.setContent { KlasTheme { FoldedPrice() } }
 
-        rule.onNodeWithText("Цена не указана").performClick()
+        rule.onNodeWithText("Цена за час").performClick()
         rule.onNodeWithText("Цена за час").performTextInput("1500")
 
         assertEquals("the keystrokes went to the revealed field, with no second tap", "1500", typed)

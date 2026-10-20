@@ -15,10 +15,10 @@ fun balanceDescription(balance: Balance): String = when (balance) {
     is Balance.Credit -> stringResource(R.string.balance_credit, balance.amount.text())
     is Balance.Owed -> stringResource(R.string.balance_owes, balance.amount.text())
 }
-/** Colour for a balance: red for debt, theme primary for credit, muted when settled. */
+/** Colour for a balance: red for debt, ink for credit (an ordinary amount), muted when settled. */
 @Composable
 fun balanceColor(balance: Balance): Color = when (balance) {
     Balance.Settled -> MaterialTheme.colorScheme.onSurfaceVariant
-    is Balance.Credit -> MaterialTheme.colorScheme.primary
+    is Balance.Credit -> MaterialTheme.colorScheme.onSurface
     is Balance.Owed -> MaterialTheme.colorScheme.error
 }

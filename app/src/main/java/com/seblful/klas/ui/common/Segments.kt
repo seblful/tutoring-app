@@ -9,14 +9,17 @@ import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
@@ -178,10 +181,13 @@ private val MinSegmentLabelSize = 10.dp
 private val FallbackSegmentFontSize = 14.sp
 
 /**
- * A screen whose body is **one of a fixed few views**, picked by segments pinned under the bar — «Люди»'s
+ * A screen whose body is **one of a fixed few views**, picked by tabs pinned under the bar — «Люди»'s
  * two sides, «Задания»'s current and archive, the schedule's day, week and month.
  *
- * @param header what else is pinned under the segments — a filter chip, the schedule's pager.
+ * Tabs, not [SegmentedChoice]: moving between views is navigation, and segments are kept for *values* in
+ * forms and sheets, where their outline matches the outlined fields around them.
+ *
+ * @param header what else is pinned under the tabs — a filter chip, the schedule's pager.
  * @param content the body, under the header; it takes the drag's free space, not the header's alone.
  */
 @Composable
@@ -196,16 +202,44 @@ fun <T> SegmentedPage(
 ) {
     Column(modifier.swipeBetweenSegments(options, selected, onSelect)) {
         ScreenHeader {
-            SegmentedChoice(
-                options = options,
-                selected = selected,
-                onSelect = onSelect,
-                modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
-                label = label,
-            )
+            ViewTabs(options, selected, onSelect, label)
             header()
         }
         content()
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> ViewTabs(
+    options: List<T>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    label: @Composable (T) -> String,
+) {
+    val tick = rememberSegmentTickFeedback()
+    PrimaryTabRow(
+        selectedTabIndex = options.indexOf(selected).coerceAtLeast(0),
+        // The header paints the bar's colour behind it, at rest and tinted on scroll alike.
+        containerColor = Color.Transparent,
+        // No rule under the tabs: the header carries on below them (the schedule's pager) as one band.
+        divider = {},
+    ) {
+        options.forEach { option ->
+            val isSelected = option == selected
+            Tab(
+                selected = isSelected,
+                onClick = {
+                    if (!isSelected) {
+                        tick()
+                        onSelect(option)
+                    }
+                },
+                selectedContentColor = MaterialTheme.colorScheme.primary,
+                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = { SegmentLabel(label(option)) },
+            )
+        }
     }
 }
 

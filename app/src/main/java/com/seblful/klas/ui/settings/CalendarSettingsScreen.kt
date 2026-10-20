@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.settings
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -9,6 +10,7 @@ import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 import com.seblful.klas.calendar.rememberCalendarPermissionRequest
 import com.seblful.klas.data.settings.AppSettings
+import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.rememberRejectFeedback
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
@@ -47,44 +49,56 @@ internal fun CalendarSettingsContent(
     onFixCalendar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.verticalScroll(rememberScrollState())) {
-        SwitchRow(
-            title = stringResource(R.string.settings_calendar_sync),
-            description = stringResource(
-                if (delivery == CalendarDelivery.BLOCKED) {
-                    R.string.settings_calendar_sync_blocked
-                } else {
-                    R.string.settings_calendar_sync_desc
-                },
-            ),
-            checked = settings.calendarSyncEnabled,
-            onCheckedChange = onSync,
-        )
-        if (delivery == CalendarDelivery.BLOCKED) {
-            SystemSettingsRow(
-                title = stringResource(R.string.settings_calendar_fix),
-                description = stringResource(R.string.settings_calendar_fix_desc),
-                onClick = onFixCalendar,
+    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter)) {
+        SettingsGroup { CalendarSyncRows(settings, delivery, onSync, onUpdate, onFixCalendar) }
+        SettingsGroup(stringResource(R.string.settings_reminder_timing)) {
+            SharedReminderTimingRow(
+                minutes = settings.reminderLeadMinutes,
+                enabled = settings.canEditReminderLead,
+                onSelect = { minutes -> onUpdate { it.copy(reminderLeadMinutes = minutes) } },
             )
         }
-        SwitchRow(
-            title = stringResource(R.string.settings_email_invites),
-            description = stringResource(
-                if (settings.calendarSyncEnabled) {
-                    R.string.settings_email_invites_desc
-                } else {
-                    R.string.settings_email_invites_disabled
-                },
-            ),
-            checked = settings.emailInvitesEnabled,
-            enabled = settings.calendarSyncEnabled,
-            onCheckedChange = { on -> onUpdate { it.copy(emailInvitesEnabled = on) } },
-        )
-        SectionHeader(stringResource(R.string.settings_reminder_timing))
-        SharedReminderTimingRow(
-            minutes = settings.reminderLeadMinutes,
-            enabled = settings.canEditReminderLead,
-            onSelect = { minutes -> onUpdate { it.copy(reminderLeadMinutes = minutes) } },
+    }
+}
+
+@Composable
+private fun CalendarSyncRows(
+    settings: AppSettings,
+    delivery: CalendarDelivery,
+    onSync: (Boolean) -> Unit,
+    onUpdate: ((AppSettings) -> AppSettings) -> Unit,
+    onFixCalendar: () -> Unit,
+) {
+    SwitchRow(
+        title = stringResource(R.string.settings_calendar_sync),
+        description = stringResource(
+            if (delivery == CalendarDelivery.BLOCKED) {
+                R.string.settings_calendar_sync_blocked
+            } else {
+                R.string.settings_calendar_sync_desc
+            },
+        ),
+        checked = settings.calendarSyncEnabled,
+        onCheckedChange = onSync,
+    )
+    if (delivery == CalendarDelivery.BLOCKED) {
+        SystemSettingsRow(
+            title = stringResource(R.string.settings_calendar_fix),
+            description = stringResource(R.string.settings_calendar_fix_desc),
+            onClick = onFixCalendar,
         )
     }
+    SwitchRow(
+        title = stringResource(R.string.settings_email_invites),
+        description = stringResource(
+            if (settings.calendarSyncEnabled) {
+                R.string.settings_email_invites_desc
+            } else {
+                R.string.settings_email_invites_disabled
+            },
+        ),
+        checked = settings.emailInvitesEnabled,
+        enabled = settings.calendarSyncEnabled,
+        onCheckedChange = { on -> onUpdate { it.copy(emailInvitesEnabled = on) } },
+    )
 }

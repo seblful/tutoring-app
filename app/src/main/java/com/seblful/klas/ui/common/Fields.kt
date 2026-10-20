@@ -1,8 +1,10 @@
 package com.seblful.klas.ui.common
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -24,10 +26,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,10 +43,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
@@ -58,8 +63,9 @@ import com.seblful.klas.ui.theme.KlasIcons
  * Distinct from `Pickers.kt`, which holds the **modals** — a date, a time, a duration, a count. These are
  * what sits on the form itself.
  *
- * Two rules run through them. *Anything hidden behind a tap is drawn as a field* — a `Surface`, not a
- * disabled `OutlinedTextField` with its colours painted back in, which would cost the ripple. And *picking
+ * Two rules run through them. *Anything hidden behind a tap is drawn as a field* — the outlined field's own
+ * decoration around a tappable box, not a disabled `OutlinedTextField` with its colours painted back in,
+ * which would cost the ripple. And *picking
  * one thing looks the same whether or not the thing has a row id*: [DropdownField] (a student, a group, a
  * subject) and [ChoiceField] (a fixed set of values) are the same private [MenuField].
  */
@@ -207,10 +213,13 @@ private fun MenuField(
     }
 }
 /**
- * A field that is not typed into but **tapped** to open a picker — a date, a time, a price, a place.
+ * A field that is not typed into but **tapped** to open a picker — a date, a time.
  *
- * @param value what is currently chosen; empty renders [placeholder] in the muted style a text
- * field's own placeholder uses, so an unfilled picker reads as unfilled rather than as blank.
+ * Drawn by the outlined text field's own decoration, so it is the same field as the dropdowns and the
+ * money input beside it: the label sits inside while there is no value and floats into the border once
+ * there is one. It was a box of its own with the label always on top, which put two kinds of field on
+ * the booking form, a few dp apart, that did not even space alike. It never takes focus — a picker
+ * opens instead — so it never wears the accent outline of a field being typed into.
  */
 @Composable
 fun PickerField(
@@ -219,49 +228,50 @@ fun PickerField(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    placeholder: String = "",
     supportingText: String? = null,
     isError: Boolean = false,
 ) {
-    val border = when {
-        isError -> MaterialTheme.colorScheme.error
-        enabled -> MaterialTheme.colorScheme.outline
-        else -> MaterialTheme.colorScheme.outlineVariant
-    }
-    val contentAlpha = if (enabled) 1f else DisabledAlpha
-    Column(modifier.fillMaxWidth()) {
-        Surface(
-            onClick = onClick,
-            enabled = enabled,
-            modifier = Modifier.fillMaxWidth().heightIn(min = PickerFieldHeight),
-            shape = MaterialTheme.shapes.extraSmall,
-            color = Color.Transparent,
-            border = BorderStroke(1.dp, border),
+    val interactions = remember { MutableInteractionSource() }
+    val colors = OutlinedTextFieldDefaults.colors()
+    // The room an outlined field keeps above its border for the floated label (`OutlinedTextField` pads
+    // itself the same way), so a column of mixed fields spaced evenly gets even gaps.
+    val labelRoom = with(LocalDensity.current) { MaterialTheme.typography.bodySmall.lineHeight.toDp() / 2 }
+    Column(modifier.fillMaxWidth().padding(top = labelRoom)) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = OutlinedTextFieldDefaults.MinHeight)
+                .clickable(
+                    interactionSource = interactions,
+                    indication = ripple(),
+                    enabled = enabled,
+                    role = Role.Button,
+                    onClick = onClick,
+                ),
+            propagateMinConstraints = true,
         ) {
-            Column(
-                Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Text(
-                    label,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
-                )
-                Text(
-                    value.ifEmpty { placeholder },
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = if (value.isEmpty()) {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha)
-                    } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
-                    },
-                )
-            }
+            OutlinedTextFieldDefaults.DecorationBox(
+                value = value,
+                innerTextField = {
+                    Text(
+                        value,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (enabled) colors.unfocusedTextColor else colors.disabledTextColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+                enabled = enabled,
+                singleLine = true,
+                visualTransformation = VisualTransformation.None,
+                interactionSource = interactions,
+                isError = isError,
+                label = { Text(label) },
+                colors = colors,
+            )
         }
-        // Positioned and styled to match an `OutlinedTextField`'s own supporting line, so a form mixing
-        // the two has one place a field explains itself rather than two that look different.
+        // Outside the tappable box, where an `OutlinedTextField` puts its own supporting line, so the press
+        // ripple stays on the field rather than spreading over the sentence under it.
         if (supportingText != null) {
             Text(
                 supportingText,
@@ -280,8 +290,6 @@ fun PickerField(
         }
     }
 }
-
-private val PickerFieldHeight = 56.dp
 /**
  * The focus a **reveal owes the tap that caused it**: an input that appears because something was
  * tapped takes the caret and the keyboard as it arrives, so one tap does what one tap looked like it

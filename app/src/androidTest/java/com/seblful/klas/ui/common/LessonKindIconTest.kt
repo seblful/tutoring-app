@@ -29,13 +29,13 @@ class LessonKindIconTest {
 
     private data class Ink(val width: Int, val height: Int, val color: Color)
 
-    private var primary: Color = Color.Unspecified
+    private var secondaryInk: Color = Color.Unspecified
 
     @Test
     fun bothKindsAreDrawnToTheSameHeightInTheSameColour() {
         composeRule.setContent {
             KlasTheme {
-                primary = MaterialTheme.colorScheme.primary
+                secondaryInk = MaterialTheme.colorScheme.onSurfaceVariant
                 Column(
                     Modifier.background(Color.White).padding(Gap.dp),
                     verticalArrangement = Arrangement.spacedBy(Gap.dp),
@@ -55,7 +55,8 @@ class LessonKindIconTest {
             abs(individual.height - group.height) <= 2,
         )
         assertSameColor("the two kinds are painted differently", individual.color, group.color)
-        assertSameColor("the icons are not the brand colour", primary, individual.color)
+        // Decoration, not an action: the accent is kept for what can be tapped or is selected.
+        assertSameColor("the icons are not the secondary ink", secondaryInk, individual.color)
     }
 
     private fun inkPerKind(): List<Ink> {

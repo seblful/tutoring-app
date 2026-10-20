@@ -71,6 +71,10 @@ fun SwipeToConfirmBox(
     // directly would recompose the row sixty times a second to answer the same yes or no; a `derivedStateOf`
     // notifies only when the *answer* flips, which is twice per gesture at most.
     val armed by remember { derivedStateOf { swipeArmed(dragged, width) } }
+    // The panel exists only while the row is off its rest. A nested row's background stops 8 dp short of
+    // each side (`insetRowPress` clips it), so a panel always drawn behind it showed through as a green bar
+    // down both edges of every student's and group's homework.
+    val moved by remember { derivedStateOf { dragged != 0f } }
 
     // One flag, two ways of saying it: the pop is drawn from `armed` below, the tick fires on its edge.
     // `snapshotFlow` emits on change, which is what makes the tick one per crossing rather than one per
@@ -111,9 +115,9 @@ fun SwipeToConfirmBox(
             },
         propagateMinConstraints = true,
     ) {
-        // Always composed behind the row, so cleared: a screen reader read «Проведено» before every lesson
+        // Cleared: it sits behind a row a screen reader is reading, and would read «Проведено» before a lesson
         // still to come. What the gesture does is offered as the row's own action instead — [swipeAction].
-        Box(Modifier.matchParentSize().clearAndSetSemantics { }) { reveal(armed) }
+        if (moved) Box(Modifier.matchParentSize().clearAndSetSemantics { }) { reveal(armed) }
         // Offset in the layout phase, not by recomposing: the row is moved, not rebuilt, sixty times a
         // second.
         Box(Modifier.offset { IntOffset(dragged.roundToInt(), 0) }) { content() }

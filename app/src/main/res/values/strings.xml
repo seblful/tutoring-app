@@ -181,8 +181,6 @@
       The empty date and start fields. Short: the start field is the narrow half of a 1.4 : 1 row, about
       98 dp of text on a 360 dp phone, and the label above already says which it is.
     -->
-    <string name="class_pick_date">Choose</string>
-    <string name="class_pick_time">Choose</string>
     <!-- %1$s: the student or group, %2$s: the time of the lesson already in the schedule -->
     <string name="class_time_conflict">That time is taken: %1$s, %2$s</string>
     <!-- Shown when the slot was taken between the form opening and the save. -->
@@ -377,7 +375,6 @@
     <string name="group_no_members">No members</string>
     <!-- Spoken only. What a row of overlapping monograms is, for a screen reader — and it names every
          member, not just the four drawn: the "+2" is a concession to the width of a list row. -->
-    <string name="roster_members">Students: %1$s</string>
     <!-- The save kept only the members priced for the group's subject; somebody was left out. -->
     <plurals name="group_members_leaving_confirm">
         <item quantity="one">%1$d member has no price for the group\'s subject and will leave the group. Save?</item>
@@ -425,7 +422,7 @@
     <string name="settings_notifications_title">Notifications</string>
     <string name="settings_calendar_title">Calendar &amp; invitations</string>
     <string name="settings_appearance_title">Language &amp; appearance</string>
-    <string name="settings_section_defaults">New-item defaults</string>
+    <string name="settings_section_lessons">Lessons</string>
     <string name="settings_section_billing">Billing</string>
     <string name="settings_section_daily">Daily summaries</string>
     <string name="settings_section_weekly">Weekly summary</string>
@@ -670,6 +667,13 @@
     -->
     <string name="upkeep_completed_title">Lessons completed automatically</string>
 
+    <!-- A students or groups card's lesson line: %1$s a time, or a date -->
+    <string name="people_next_today">Today %1$s</string>
+    <string name="people_next_tomorrow">Tomorrow %1$s</string>
+    <string name="people_next_weekday">%1$s %2$s</string>
+    <string name="people_last_lesson">Last lesson %1$s</string>
+    <string name="people_no_lessons">No lessons yet</string>
+
     <plurals name="students_count">
         <item quantity="one">%1$d student</item>
         <item quantity="other">%1$d students</item>
@@ -802,9 +806,9 @@
     <!-- The line under whose it is. %1$s: when the lesson it is attached to starts. -->
     <string name="homework_due">Due %1$s</string>
     <!-- %1$s: the time of today's lesson it is attached to -->
-    <string name="homework_due_today">Today at %1$s</string>
+    <string name="homework_due_today">Due today, %1$s</string>
     <!-- %1$s: when the lesson it was attached to started — that lesson is past and it is still not done -->
-    <string name="homework_overdue">Overdue · was due %1$s</string>
+    <string name="homework_overdue">Overdue · %1$s</string>
     <string name="homework_unbooked">No lesson booked</string>
     <!-- In the archive. %1$s: the date it was set -->
     <string name="homework_set_on">Set on %1$s</string>

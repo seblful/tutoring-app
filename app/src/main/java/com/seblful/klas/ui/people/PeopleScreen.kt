@@ -87,7 +87,7 @@ fun PeopleScreen(
             // archive was showing — «Показать архив» was read the same either way.
             HoldToName(stringResource(R.string.students_show_archived)) {
                 IconToggleButton(checked = archived, onCheckedChange = { side.toggleArchived() }) {
-                    Icon(KlasIcons.Filled.Inventory2, stringResource(R.string.students_show_archived))
+                    Icon(KlasIcons.Outlined.Inventory2, stringResource(R.string.students_show_archived))
                 }
             }
         },

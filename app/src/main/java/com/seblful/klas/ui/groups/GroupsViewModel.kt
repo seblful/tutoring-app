@@ -2,6 +2,8 @@ package com.seblful.klas.ui.groups
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.lessons.NearestLessons
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.people.SubjectRepository
@@ -9,9 +11,12 @@ import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.people.NameOrder
 import com.seblful.klas.domain.people.PeopleSearch
+import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.format.minutes
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.ready
+import com.seblful.klas.ui.people.LessonLine
 import com.seblful.klas.ui.people.PeopleSide
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
@@ -25,13 +30,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 
-/**  group as the list shows it: the group, who is in it, and what it is taught. */
+/** A group as the list shows it: the group, who is in it, what it is taught, and when it meets. */
 data class GroupRow(
     val group: Group,
     val memberNames: List<String>,
-    val memberIds: List<Long> = emptyList(),
     val subjectName: String? = null,
+    val lessons: LessonLine = LessonLine.Never,
 )
 
 /**
@@ -46,6 +52,8 @@ class GroupsViewModel @Inject constructor(
     groups: GroupRepository,
     students: StudentRepository,
     subjects: SubjectRepository,
+    classes: ClassRepository,
+    private val clock: WallClock,
     @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel(), PeopleSide {
 
@@ -56,6 +64,12 @@ class GroupsViewModel @Inject constructor(
 
     private val _query = MutableStateFlow("")
     override val query: StateFlow<String> = _query.asStateFlow()
+
+    /**
+     * Each group's nearest lessons, re-read every minute so a card left open moves on from a lesson once it
+     * ends. **A test that collects [rows] must advance time by a stated amount, never `advanceUntilIdle()`.**
+     */
+    private val spans = clock.minutes().flatMapLatest { now -> classes.observeGroupSpans(now).map { it to now } }
 
     /** [Loadable], so "no groups yet" is never said about groups that have not been read — see `Loadable`. */
     val rows: StateFlow<Loadable<List<GroupRow>>> =
@@ -84,9 +98,12 @@ class GroupsViewModel @Inject constructor(
                     GroupRow(
                         group = group,
                         memberNames = members.map { it.name },
-                        memberIds = members.map { it.id },
                         subjectName = group.subjectId?.let { subjectsById[it] },
                     )
+                }
+            }.combine(spans) { rows, (nearest, now) ->
+                rows.map { row ->
+                    row.copy(lessons = LessonLine.of(nearest[row.group.id] ?: NearestLessons.NONE, now, clock.zone))
                 }
             }
         }

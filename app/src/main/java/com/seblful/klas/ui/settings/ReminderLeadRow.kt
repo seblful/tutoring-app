@@ -46,15 +46,7 @@ internal fun ReminderLeadRow(minutes: Int, enabled: Boolean, onSelect: (Int) -> 
             headlineContent = { Text(stringResource(R.string.settings_reminder_lead)) },
             supportingContent = { Text(reminderLeadLabel(minutes)) },
             trailingContent = { Icon(KlasIcons.Filled.ArrowDropDown, contentDescription = null) },
-            colors = if (enabled) {
-                ListItemDefaults.colors()
-            } else {
-                ListItemDefaults.colors(
-                    headlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledAlpha),
-                    supportingColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
-                    trailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
-                )
-            },
+            colors = settingsRowColors(enabled),
             modifier = Modifier.insetRowPress {
                 Modifier.clickable(it, indication = null, enabled = enabled, onClick = { expanded = true })
             },
@@ -102,15 +94,7 @@ internal fun SharedReminderTimingRow(minutes: Int, enabled: Boolean, onSelect: (
         headlineContent = { Text(reminderLeadLabel(minutes)) },
         supportingContent = { Text(description) },
         trailingContent = { Icon(KlasIcons.Filled.ArrowDropDown, contentDescription = null) },
-        colors = if (enabled) {
-            ListItemDefaults.colors()
-        } else {
-            ListItemDefaults.colors(
-                headlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledAlpha),
-                supportingColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
-                trailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
-            )
-        },
+        colors = settingsRowColors(enabled),
         modifier = Modifier.insetRowPress {
             Modifier.clickable(it, indication = null, enabled = enabled, onClick = { editing = true })
         },

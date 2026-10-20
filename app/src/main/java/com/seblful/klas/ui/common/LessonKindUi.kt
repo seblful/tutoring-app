@@ -45,7 +45,7 @@ private fun lessonKindIcon(kind: LessonKind): ImageVector = when (kind) {
 
 @Composable
 private fun lessonKindColor(kind: LessonKind): Color = when (kind) {
-    LessonKind.INDIVIDUAL, LessonKind.GROUP -> MaterialTheme.colorScheme.primary
+    LessonKind.INDIVIDUAL, LessonKind.GROUP -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
 private val KindIconInk = 11.dp

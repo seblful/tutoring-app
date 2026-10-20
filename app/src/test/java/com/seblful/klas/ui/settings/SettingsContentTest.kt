@@ -130,6 +130,19 @@ class SettingsContentTest {
         assertEquals(before.copy(currency = Currency.EUR), settings)
     }
 
+    @Test
+    fun `auto-complete is grouped with the lesson settings and the group rate with billing`() {
+        compose.setContent {
+            KlasTheme { LessonSettingsContent(settings, actions.update, onAutoComplete = {}) }
+        }
+        val order = listOf(
+            "Lessons", "Default lesson duration", "Complete lessons automatically",
+            "Billing", "Currency", "Default group hourly rate",
+        ).map { compose.onNodeWithText(it).fetchSemanticsNode().positionInRoot.y }
+
+        assertEquals(order.sorted(), order)
+    }
+
     private fun chooseCurrency(code: String) {
         compose.onNodeWithText("Currency").performScrollTo().performClick()
         compose.onNode(hasText("($code)", substring = true)).performScrollTo().performClick()

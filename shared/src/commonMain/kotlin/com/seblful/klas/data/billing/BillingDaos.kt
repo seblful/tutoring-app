@@ -12,10 +12,17 @@ import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import kotlinx.coroutines.flow.Flow
 
+/** A student taking a subject — a price row without its amount. */
+data class Enrollment(val studentId: Long, val subjectId: Long)
+
 @Dao
 interface PriceDao {
     @Query("SELECT * FROM prices WHERE studentId = :studentId")
     fun observeForStudent(studentId: Long): Flow<List<PriceEntity>>
+
+    /** Who takes what: one row per student and subject — a few dozen, not a history. */
+    @Query("SELECT studentId, subjectId FROM prices")
+    fun observeEnrollments(): Flow<List<Enrollment>>
 
     @Query("SELECT * FROM prices WHERE studentId = :studentId AND subjectId = :subjectId")
     suspend fun get(studentId: Long, subjectId: Long): PriceEntity?

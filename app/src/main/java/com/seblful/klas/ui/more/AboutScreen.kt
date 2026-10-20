@@ -73,7 +73,7 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
                 Text(
                     stringResource(R.string.about_version, version),
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             SectionCard(Modifier.padding(top = Spacing.itemGap)) {

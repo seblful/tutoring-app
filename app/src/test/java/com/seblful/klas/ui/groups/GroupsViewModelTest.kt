@@ -6,14 +6,18 @@ import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
+import com.seblful.klas.ui.people.LessonLine
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -25,7 +29,9 @@ class GroupsViewModelTest {
     @get:Rule
     val env = TestEnv()
 
-    private fun vm() = GroupsViewModel(env.groupRepo, env.studentRepo, env.subjectRepo, mainRule.dispatcher)
+    private fun vm() = GroupsViewModel(
+        env.groupRepo, env.studentRepo, env.subjectRepo, env.classRepo, env.clock, mainRule.dispatcher,
+    )
 
     @Test
     fun `rows list each group with its members' names`() = runTest(mainRule.dispatcher) {
@@ -36,11 +42,33 @@ class GroupsViewModelTest {
 
         val vm = vm()
         observing(vm.rows)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(listOf("11 «А»", "Выпускники"), vm.rows.current.map { it.group.name })
         assertEquals(listOf("Аня", "Борис"), vm.rows.current.first().memberNames)
         assertEquals(listOf("Борис"), vm.rows.current.last().memberNames)
+    }
+
+    @Test
+    fun `a group's next lesson is its own, not one a member has alone`() = runTest(mainRule.dispatcher) {
+        val maths = env.fixtures.subject("Математика")
+        val ann = env.fixtures.pricedStudent("Аня", maths)
+        val group = env.fixtures.group("11 «А»", maths, setOf(ann))
+        env.fixtures.group("Выпускники", maths)
+        // The clock reads 15:00 on Monday 1 June in Minsk; Аня's own lesson is sooner than the group's.
+        env.fixtures.lesson(maths, listOf(ann), Instant.parse("2026-06-02T07:00:00Z"))
+        env.fixtures.lesson(maths, listOf(ann), Instant.parse("2026-06-05T15:00:00Z"), groupId = group)
+
+        val vm = vm()
+        observing(vm.rows)
+        runCurrent()
+
+        val rows = vm.rows.current.associateBy { it.group.name }
+        assertEquals(
+            LessonLine.Next(LocalDate(2026, 6, 5), LocalTime(18, 0), daysAway = 4, thisYear = 2026),
+            rows.getValue("11 «А»").lessons,
+        )
+        assertEquals(LessonLine.Never, rows.getValue("Выпускники").lessons)
     }
 
     @Test
@@ -52,12 +80,12 @@ class GroupsViewModelTest {
 
         val vm = vm()
         observing(vm.rows)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(listOf(active), vm.rows.current.map { it.group.id })
 
         vm.toggleArchived()
-        advanceUntilIdle()
+        runCurrent()
         assertEquals(setOf(active, retired), vm.rows.current.map { it.group.id }.toSet())
     }
 
@@ -75,7 +103,7 @@ class GroupsViewModelTest {
 
         val vm = vm()
         observing(vm.rows)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(listOf("анна", "Ярослав"), vm.rows.current.single().memberNames)
     }

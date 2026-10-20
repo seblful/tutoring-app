@@ -1,7 +1,6 @@
 package com.seblful.klas.ui.students
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -23,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -33,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonFilter
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.people.Phone
@@ -46,6 +45,7 @@ import com.seblful.klas.queries.students.ArchiveIntent
 import com.seblful.klas.queries.students.ClassRow
 import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.ui.common.AddRow
+import com.seblful.klas.ui.common.BadgeLine
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.ExternalTarget
@@ -186,7 +186,7 @@ private fun StudentCard(
         titleSize = TitleSize.Large,
         messages = messages,
         actions = {
-            NamedIconButton(KlasIcons.Filled.Edit, stringResource(R.string.action_edit), onClick = { editing = true })
+            NamedIconButton(KlasIcons.Outlined.Edit, stringResource(R.string.action_edit), onClick = { editing = true })
             // Archiving is behind the overflow now. It used to be a bare text button in the
             // bar — «Имя [✎] [В архив]» — which put the most consequential thing on the
             // screen beside the pencil, at the width of a word, next to a name that has to
@@ -292,6 +292,7 @@ private fun StudentCard(
                         onDelete = ::deletePaymentWithUndo,
                     )
                     StudentTab.HOMEWORK -> homeworkItems(
+                        owner = student?.let { Assignee.Student(it.id) },
                         lists = state.homework,
                         messages = messages,
                         onAdd = { addingHomework = viewModel.homeworkChoice() },
@@ -465,10 +466,13 @@ private fun LazyListScope.subjectsTab(
             trailingContent = {
                 Row {
                     IconButton(onClick = { onReprice(sp.subject.id) }) {
-                        Icon(KlasIcons.Filled.Edit, stringResource(R.string.price_edit_title))
+                        Icon(KlasIcons.Outlined.Edit, stringResource(R.string.price_edit_title))
                     }
                     IconButton(onClick = { onRemove(sp.subject.id) }) {
-                        Icon(KlasIcons.Filled.Delete, stringResource(R.string.student_subject_remove, sp.subject.name))
+                        Icon(
+                            KlasIcons.Outlined.Delete,
+                            stringResource(R.string.student_subject_remove, sp.subject.name),
+                        )
                     }
                 }
             },
@@ -519,21 +523,21 @@ private fun LazyListScope.classesTab(
                 )
             },
             supportingContent = {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.inline),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    // The status in the pill the schedule says it in — it was coloured text here, the
-                    // one place a lesson's state was a font style.
-                    StatusBadge(classStatusLabel(row.klass.status), classStatusColor(row.klass.status))
+                // The status in the pill the schedule says it in — it was coloured text here, the
+                // one place a lesson's state was a font style.
+                val status = row.klass.status
+                BadgeLine(badge = { StatusBadge(classStatusLabel(status), classStatusColor(status)) }) {
                     // The group's name for a group lesson, since *which* group is the useful half of
-                    // "not individual" — a student in two groups is billed a different rate by each.
-                    Text(
-                        row.groupName ?: stringResource(R.string.lesson_kind_individual_one),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    // "not individual" — a student in two groups is billed a different rate by each. An
+                    // individual lesson says nothing here: «Индивидуальное» repeated the icon on every row.
+                    row.groupName?.let { group ->
+                        Text(
+                            group,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             },
             trailingContent = {
@@ -573,7 +577,7 @@ private fun LazyListScope.paymentsTab(
             supportingContent = { Text(payment.date.formatDate()) },
             trailingContent = {
                 IconButton(onClick = { onDelete(payment) }) {
-                    Icon(KlasIcons.Filled.Delete, stringResource(R.string.payment_delete))
+                    Icon(KlasIcons.Outlined.Delete, stringResource(R.string.payment_delete))
                 }
             },
             // Tapping the row corrects it; the bin still removes it. Editing is the commoner of the

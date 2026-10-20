@@ -8,12 +8,12 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.ui.common.ArchivedBadge
+import com.seblful.klas.ui.common.BadgeLine
 import com.seblful.klas.ui.common.OpensScreenMark
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.SectionTitle
@@ -98,11 +98,7 @@ private fun LessonRow(date: String, status: LessonStatus, amount: String?) {
     ListItem(
         headlineContent = { Text(date) },
         supportingContent = {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.inline),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                StatusBadge(classStatusLabel(status), classStatusColor(status))
+            BadgeLine(badge = { StatusBadge(classStatusLabel(status), classStatusColor(status)) }) {
                 Text(
                     "Английский · индивидуально",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

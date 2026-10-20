@@ -3,16 +3,23 @@ package com.seblful.klas.ui.students
 import androidx.lifecycle.ViewModel
 import com.seblful.klas.data.billing.BalanceRepository
 import com.seblful.klas.data.billing.balanceOf
+import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.lessons.NearestLessons
+import com.seblful.klas.data.people.EnrollmentRepository
 import com.seblful.klas.data.people.StudentRepository
+import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.people.NameOrder
 import com.seblful.klas.domain.people.PeopleSearch
+import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.format.minutes
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.ready
+import com.seblful.klas.ui.people.LessonLine
 import com.seblful.klas.ui.people.PeopleSide
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
@@ -21,13 +28,25 @@ import dev.zacsweers.metro.binding
 import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlin.time.Instant
 
-data class StudentRow(val student: Student, val balance: Money) {
+/**
+ * @param subjects what the student takes, by name in the list's order.
+ * @param lessons their next lesson, or their last — see [LessonLine].
+ */
+data class StudentRow(
+    val student: Student,
+    val balance: Money,
+    val subjects: List<String> = emptyList(),
+    val lessons: LessonLine = LessonLine.Never,
+) {
     /**
      * Where this student stands, as a case rather than a sign — what the row prints and tints.
      *
@@ -52,6 +71,10 @@ enum class StudentSort { NAME, DEBT }
 class StudentsViewModel @Inject constructor(
     private val students: StudentRepository,
     balances: BalanceRepository,
+    classes: ClassRepository,
+    enrollments: EnrollmentRepository,
+    subjects: SubjectRepository,
+    private val clock: WallClock,
     @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel(), PeopleSide {
 
@@ -68,6 +91,22 @@ class StudentsViewModel @Inject constructor(
     private val _sort = MutableStateFlow(StudentSort.NAME)
     val sort: StateFlow<StudentSort> = _sort.asStateFlow()
 
+    private class Facts(val subjects: Map<Long, List<String>>, val lessons: Map<Long, NearestLessons>, val now: Instant)
+
+    /**
+     * Each student's subject names and nearest lessons. Re-read every minute, so a card left open moves on
+     * from a lesson once it ends. **A test that collects [rows] must advance time by a stated amount, never
+     * `advanceUntilIdle()`** — the minutes never run out.
+     */
+    private val facts: Flow<Facts> = run {
+        val names = combine(enrollments.observeSubjectIds(), subjects.observeAll()) { taken, subjectList ->
+            val byId = subjectList.associate { it.id to it.name }
+            taken.mapValues { (_, ids) -> NameOrder.sorted(ids.mapNotNull(byId::get)) { it } }
+        }
+        val lessons = clock.minutes().flatMapLatest { now -> classes.observeStudentSpans(now).map { it to now } }
+        combine(names, lessons) { subjectNames, (spans, now) -> Facts(subjectNames, spans, now) }
+    }
+
     /**
      * The rows to draw. Filtering and sorting happen **here**, not in the composable, so they run on
      * [computation] with the balance arithmetic they depend on rather than on the frame the list is
@@ -77,9 +116,18 @@ class StudentsViewModel @Inject constructor(
         _showArchived.flatMapLatest { archived ->
             val source = if (archived) students.observeAll() else students.observeActive()
             // SQLite sums the balances, so neither a keystroke nor a write re-reads every class ever taught.
-            combine(source, balances.observe(), _query, _sort) { studentList, sums, query, sort ->
+            combine(source, balances.observe(), facts, _query, _sort) { studentList, sums, known, query, sort ->
                 PeopleSearch.filter(studentList, query) { it.name }
-                    .map { student -> StudentRow(student, sums.balanceOf(student.id).balance) }
+                    .map { student ->
+                        StudentRow(
+                            student = student,
+                            balance = sums.balanceOf(student.id).balance,
+                            subjects = known.subjects[student.id].orEmpty(),
+                            lessons = LessonLine.of(
+                                known.lessons[student.id] ?: NearestLessons.NONE, known.now, clock.zone,
+                            ),
+                        )
+                    }
                     // The archive after everyone taught now, as the groups list keeps it: sorting by name
                     // alone threaded the retired through the list, and «Показать архив» turned the page
                     // into one where the current students had to be picked out.
