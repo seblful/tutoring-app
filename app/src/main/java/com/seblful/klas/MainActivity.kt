@@ -1,6 +1,7 @@
 package com.seblful.klas
 
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -47,6 +48,9 @@ class MainActivity : ComponentActivity() {
         splash.setKeepOnScreenCondition { rootViewModel.settings.value == null }
 
         enableEdgeToEdge()
+        // The tab bar draws behind 3-button navigation; the default scrim would tint it. Icon contrast is
+        // `KlasTheme`'s job.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced = false
         setContent {
             // Every `metroViewModel()` below finds the graph's factory here.
             CompositionLocalProvider(LocalMetroViewModelFactory provides appGraph.metroViewModelFactory) {

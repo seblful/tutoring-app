@@ -3,6 +3,7 @@ package com.seblful.klas.ui.common
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -196,6 +197,9 @@ fun KlasScreen(
                 Modifier
                     .fillMaxSize()
                     .padding(insets)
+                    // Scaffold pads but does not consume: without this the IME padding below counts the
+                    // navigation bar a second time on a pushed screen.
+                    .consumeWindowInsets(insets)
                     // Before the cap and before whatever scroll the body adds. See [imeAware].
                     .then(if (imeAware) Modifier.imePadding() else Modifier)
                     .constrainedContent(),
