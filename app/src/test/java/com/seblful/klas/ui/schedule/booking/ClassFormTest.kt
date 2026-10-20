@@ -19,14 +19,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.time.Instant
 
-/**
- * The booking form's model and the answers derived from it — [ClassForm], [ClassFormState] and the
- * clash they report — without the view model around them, so without a dispatcher or a database.
- */
 class ClassFormTest {
     private val zone = TimeZone.of("Europe/Minsk")
-
-    // --- ClassForm validation (pure) ---
 
     @Test
     fun `form is invalid until every required field is set`() {
@@ -45,11 +39,6 @@ class ClassFormTest {
         assertEquals(LocalTime(11, 0), full.ends(zone)?.time)
     }
 
-    /**
-     * A length of zero is a lesson that does not happen, and the form treats it as not filled in rather
-     * than passing it to [Scheduling.Slot], which would throw. Nothing in the app produces one — the
-     * chips are positive and «Другая» will not confirm at zero — so this is the guard, not a path.
-     */
     @Test
     fun `a lesson of no length is not a lesson`() {
         val empty = ClassForm(
@@ -64,11 +53,6 @@ class ClassFormTest {
         assertNull(empty.slot(TimeZone.of("Europe/Minsk")))
     }
 
-    /**
-     * The end is arithmetic on the start *instant*, so a late lesson simply finishes tomorrow. It used to
-     * be a second wall clock on the same date, which made 23:00 + 1 ч read as a negative range: see
-     * `EdgeCaseCombinationsTest`, where the limitation this replaced was pinned.
-     */
     @Test
     fun `a lesson that runs past midnight ends the next day`() {
         val late = ClassForm(
@@ -83,7 +67,6 @@ class ClassFormTest {
         assertEquals(true, late.ends(zone)?.nextDay)
     }
 
-    /** The flag is about passing midnight, not about the clock reading less than the start. */
     @Test
     fun `a lesson ending exactly at midnight is the next day, one ending before it is not`() {
         val toMidnight = ClassForm(timeFrom = LocalTime(23, 0), durationMinutes = 60)
@@ -94,8 +77,6 @@ class ClassFormTest {
         assertEquals(LocalTime(23, 59), justBefore.ends(zone)?.time)
         assertEquals(false, justBefore.ends(zone)?.nextDay)
     }
-
-    // --- Decisions the screen used to make for itself ---
 
     private fun stateWith(
         form: ClassForm = ClassForm(),
@@ -126,11 +107,6 @@ class ClassFormTest {
         who = "Борис",
     )
 
-    /**
-     * A clash is named the way a reminder is announced: by its group, by its student when the group's name
-     * is blank — `groupName ?: studentName` kept a blank name and refused the time with nobody named — and
-     * by nobody only when neither is known.
-     */
     @Test
     fun `a clash is named by its group, or by its student when the group has no name`() {
         val start = Instant.parse("2026-06-20T07:00:00Z")
@@ -148,10 +124,6 @@ class ClassFormTest {
         assertEquals(Scheduling.Slot(start, 60), TimeConflict.of(clash, null, "Аня").slot)
     }
 
-    /**
-     * A clash is now the only thing that can be wrong about a chosen time, so it is also the only thing
-     * that can stop a save. There used to be a `TimeProblem` deciding which of two complaints to show.
-     */
     @Test
     fun `a taken slot stops the save even though the form itself is complete`() {
         val state = stateWith(form = validForm, conflict = someoneElse)
@@ -163,7 +135,6 @@ class ClassFormTest {
 
     @Test
     fun `a half-filled time is incomplete rather than wrong`() {
-        // Only a start picked: nothing to complain about, and nothing to save either.
         val state = stateWith(form = ClassForm(timeFrom = LocalTime(10, 0)))
 
         assertNull(state.conflict)

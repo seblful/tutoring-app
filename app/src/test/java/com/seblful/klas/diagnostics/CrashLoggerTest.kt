@@ -10,7 +10,6 @@ import org.junit.Test
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/** An in-memory [CrashLogStore]; [failing] drives the "storage is broken" branch. */
 private class FakeCrashLogStore(var failing: Boolean = false) : CrashLogStore {
     var content: String = ""
     var writes = 0
@@ -33,10 +32,6 @@ private class FakeCrashLogStore(var failing: Boolean = false) : CrashLogStore {
     override fun isEmpty(): Boolean = content.isEmpty()
 }
 
-/**
- * The crash-logging rules, driven without a device. Before [CrashLogStore] existed these lived
- * behind a `Context`-bound `File` and had no test at all.
- */
 class CrashLoggerTest {
 
     private val store = FakeCrashLogStore()
@@ -89,8 +84,6 @@ class CrashLoggerTest {
         assertEquals("", logger.read())
     }
 
-    // --- The installed handler ---------------------------------------------------------------
-
     @Test
     fun `the installed handler records the crash and then hands off to the previous one`() {
         val previous = RecordingHandler()
@@ -120,7 +113,6 @@ class CrashLoggerTest {
             Thread.setDefaultUncaughtExceptionHandler(previous)
             val handler = logger.install()
 
-            // Must not throw, and must still hand off — a broken log is not worth losing the report.
             handler.uncaughtException(Thread.currentThread(), RuntimeException("boom"))
 
             assertEquals("nothing was written", 0, store.writes)
@@ -137,7 +129,6 @@ class CrashLoggerTest {
             Thread.setDefaultUncaughtExceptionHandler(null)
             val handler = logger.install()
 
-            // No previous handler to chain to — the null-safe hand-off must simply do nothing.
             handler.uncaughtException(Thread.currentThread(), RuntimeException("boom"))
 
             assertTrue(store.content.contains("boom"))

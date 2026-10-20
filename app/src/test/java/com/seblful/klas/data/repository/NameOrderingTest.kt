@@ -12,11 +12,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/**
- * Name ordering as the UI receives it, over the real queries — whose own order is SQLite's, and SQLite
- * folds case for ASCII only. So what these assert is the repositories' own use of `domain/people/NameOrder`,
- * the single place the order is decided, on the device and here alike.
- */
 @RunWith(RobolectricTestRunner::class)
 class NameOrderingTest {
 
@@ -35,7 +30,6 @@ class NameOrderingTest {
 
     @Test
     fun `active students are ordered case-insensitively, including Cyrillic`() = runTest {
-        // «Ярослав» before «анна» is what the old SQL collation produced; it must not any more.
         listOf("Ярослав", "анна", "Борис").forEach { env.studentDao.upsert(StudentEntity(name = it)) }
 
         assertEquals(

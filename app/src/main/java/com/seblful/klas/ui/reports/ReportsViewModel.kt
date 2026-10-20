@@ -62,28 +62,11 @@ class ReportsViewModel @Inject constructor(
     private val clock: WallClock,
 ) : ViewModel() {
 
-    /**
-     * The zone the report's dates are read in — **the injected [WallClock]'s**, like `ScheduleViewModel`'s and
-     * `ClassEditViewModel`'s.
-     *
-     * It was `TimeZone.currentSystemDefault()`, which made this the one view model outside the app's own clock seam
-     * — on the screen where a month boundary decides the money. `di/TimeModule` states the rule and
-     * `domain/billing/PaymentDate` exists entirely because one surface broke it. The cost was visible in the test:
-     * `ReportsViewModelTest` had to re-declare the zone, derive its fixtures from the real current year and
-     * assert the opening period by **re-evaluating the production expression**, which is an assertion that
-     * cannot fail. A report across a year boundary could not be written at all.
-     */
     private val zone: TimeZone get() = clock.zone
 
-    /**
-     * The period on screen, opening on **the year in progress** — re-read from the clock rather than fixed
-     * at construction, so a phone left on this screen over midnight on 31 December does not go on reporting
-     * last year.
-     */
     private val _period = MutableStateFlow(ReportPeriod.currentYear(clock.today()))
     val period: StateFlow<ReportPeriod> = _period.asStateFlow()
 
-    /** Everything a report is assembled from — five flows, so the period can be a sixth. */
     private data class Sources(
         val classes: List<TutoringClass>,
         val students: List<Student>,
@@ -125,11 +108,6 @@ class ReportsViewModel @Inject constructor(
      * Whether [arrival] — the debt digest's tap — is one the screen still owes a scroll for. The screen
      * hands it over every time the tab comes back, and scrolling each time would take the tutor away from
      * wherever they had read to. See [Arrival].
-     *
-     * Asked *before* the scroll and recorded only after it ([debtsScrolled]), because the scroll cannot
-     * happen until a report has been laid out: the tap arrives while the report is still being assembled,
-     * so an arrival recorded on the offer would be spent by leaving the tab at the wrong moment, and the
-     * tutor's tap would do nothing at all on the way back.
      */
     fun owesDebts(arrival: Arrival<Unit>?): Boolean = arrivals.owes(arrival)
 
@@ -148,18 +126,7 @@ class ReportsViewModel @Inject constructor(
 
     val events = UiEvents<ExportEvent>()
 
-    /**
-     * Writes the report to the document the tutor picked.
-     *
-     * The **content** is assembled by the screen and handed in: every line is labelled, the section
-     * headings are string resources, and language is not the view model's to own. What is left here is
-     * the I/O and its outcome.
-     *
-     * In `viewModelScope` rather than the application scope, unlike the app's database writes. The
-     * distinction is what a half-finished one leaves behind: an abandoned export is a short file in a
-     * place the tutor chose and can see, not a row missing from the ledger. `DiagnosticsViewModel`
-     * exports on the same terms.
-     */
+    /** rites the report to the document the tutor picked. */
     fun export(ref: DocumentRef, header: List<String>, lines: List<ReportCsv.Line>) {
         viewModelScope.launch {
             val ok = runCatchingCancellable {
@@ -169,28 +136,10 @@ class ReportsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * The file, both ways out — saved and shared assemble the *same bytes*, which is what
-     * `ReportsViewModelTest` pins.
-     *
-     * The dialect is the app language's ([AppLocale]): the file is read away from the phone but by the tutor
-     * who exported it, in a spreadsheet set up for the numbers they write — see [ReportCsv].
-     */
     private fun csv(header: List<String>, lines: List<ReportCsv.Line>): String =
         ReportCsv.build(header, lines, ReportCsv.Dialect.forDecimal(AppLocale.decimalSeparator))
 
-    /**
-     * Hands the same report to another app, through the system share sheet.
-     *
-     * The screen already had a way to *save* a CSV and no way to *send* one, which is the thing a tutor
-     * actually does with a month: it goes to an accountant, or to their own mail so it is somewhere other
-     * than this phone. `CreateDocument` cannot do that — it puts a file in a folder and the tutor then has
-     * to go and find it in a second app — and it is the same bytes either way, so the gap was one action.
-     *
-     * Same content, same assembly, same scope as [export]: the file is a means, not a record, so an
-     * abandoned share leaves a stale file in the cache and nothing else. [filename] and [subject] are
-     * words and arrive from the screen for the reason the CSV's headings do.
-     */
+    /** ands the same report to another app, through the system share sheet. */
     fun share(filename: String, subject: String, header: List<String>, lines: List<ReportCsv.Line>) {
         viewModelScope.launch {
             val ok = runCatchingCancellable {
@@ -205,11 +154,6 @@ class ReportsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * The report itself is [Reports.of]'s — what a report counts, how it is ordered and which sections
-     * are worth showing are all statements about reports, and none of them is this class's to make. What
-     * is left here is naming: two id→name tables the domain has no database to look up.
-     */
     private fun Sources.report(period: ReportPeriod, today: LocalDate): Reports.Report = Reports.of(
         period = period,
         classes = classes,

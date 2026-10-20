@@ -25,11 +25,6 @@ class MoneyTest {
         assertEquals("-1 300 BYN", Money.ofMajor(-1300).format(Currency.BYN, ',', ' '))
     }
 
-    /**
-     * The separator is the *reader's*, and the amount is the same number either way — which is the whole
-     * point of it being a parameter rather than a constant. See [Money.amountText] for why it has no
-     * default.
-     */
     @Test
     fun `the decimal separator is the caller's`() {
         assertEquals("1,500.50 USD", Money(150050).format(Currency.USD, '.', ','))

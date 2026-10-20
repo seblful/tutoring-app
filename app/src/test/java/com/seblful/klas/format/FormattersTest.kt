@@ -16,15 +16,6 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.time.Instant
 
-/**
- * Covers the month-key encoding and the amount-input formatter not pinned elsewhere.
- *
- * **In Russian, said out loud.** Every expectation below — «пн», «6 – 12 июля», `-0,50` — is a fact about
- * one of the app's two languages, and the formatters read the ambient [com.seblful.klas.format.AppLocale].
- * Without the rule that would be the *build machine's* locale, so this file would assert Russian output on a
- * Russian workstation and fail on an English CI agent. `FormattersLanguageTest` is the other half: that the
- * same functions follow the setting rather than merely producing these strings.
- */
 class FormattersTest {
 
     @get:Rule
@@ -34,7 +25,6 @@ class FormattersTest {
 
     @Test
     fun `month key is decoded with the encoding used by Reports`() {
-        // Reports encodes as year * 12 + (monthValue - 1); decoding must invert it.
         val date = LocalDate(2026, 6, 1)
         val key = date.year * 12 + (date.month.number - 1)
         assertEquals("Июнь", formatMonthName(key))
@@ -85,7 +75,6 @@ class FormattersTest {
 
     @Test
     fun `every week range stays short enough for the navigator`() {
-        // Worst case is a week spanning the two longest month names, or a year boundary.
         val worst = listOf(
             LocalDate(2026, 9, 28) to LocalDate(2026, 10, 4),
             LocalDate(2026, 12, 28) to LocalDate(2027, 1, 3),
@@ -96,7 +85,6 @@ class FormattersTest {
         }
     }
 
-    /** The face a 24-hour phone gets, and the one a report keeps: zero-padded, no marker. */
     @Test
     fun `the 24-hour clock is zero-padded and markerless`() {
         assertEquals("21:00", LocalTime(21, 0).formatTime(hour12 = false))
@@ -104,13 +92,6 @@ class FormattersTest {
         assertEquals("00:30", LocalTime(0, 30).formatTime(hour12 = false))
     }
 
-    /**
-     * The 12-hour face, for a phone whose clock is set that way (`ui/common/timeText` asks).
-     *
-     * Pinned here rather than left to the device, because the marker is the part that varies by platform
-     * — `ru` CLDR has rendered it both «ПП» and "PM" — and because the hours a 12-hour clock has to get
-     * right are the two it renumbers: midnight is 12 AM, not 0 AM, and noon is 12 PM, not 0 PM.
-     */
     @Test
     fun `the 12-hour clock names the half of the day, midnight and noon included`() {
         assertEquals("9:00 PM", LocalTime(21, 0).formatTime(hour12 = true))
@@ -120,7 +101,6 @@ class FormattersTest {
         assertEquals("11:59 PM", LocalTime(23, 59).formatTime(hour12 = true))
     }
 
-    /** The date-and-time label carries the marker through — a group's lesson list prints this one. */
     @Test
     fun `a 12-hour date and time keeps the date and gains the marker`() {
         val at = Instant.parse("2026-07-29T09:00:00Z")
@@ -139,11 +119,6 @@ class FormattersTest {
         }
     }
 
-    /**
-     * A rate is typed, so it can be typed to more precision than money has. Kopecks are the smallest
-     * unit there is, so a third decimal has to go somewhere, and it rounds rather than truncating —
-     * truncating would quietly forgive a kopeck on every such amount.
-     */
     @Test
     fun `an amount typed past two decimals rounds to the nearest kopeck`() {
         assertEquals(Money(200), parseMoneyOrNull("1,999"))
@@ -152,11 +127,6 @@ class FormattersTest {
         assertEquals(Money(5), parseMoneyOrNull("0,05"))
     }
 
-    /**
-     * A balance is the one amount that goes below zero, and between −1 and 0 the whole-ruble part is
-     * "0" — so the sign is the only thing distinguishing a small debt from a small credit, and
-     * formatting the two halves separately used to drop it.
-     */
     @Test
     fun `a negative amount under one ruble keeps its sign`() {
         assertEquals("-0,50", Money(-50).toAmountInput())
@@ -164,10 +134,6 @@ class FormattersTest {
         assertEquals("-1,50", Money(-150).toAmountInput())
     }
 
-    /**
-     * A stat tile is a summary, so a whole number of hours prints as one — «42 ч», not «42,0 ч» — and
-     * anything else rounds to a tenth with a Russian comma.
-     */
     @Test
     fun `hours print whole where they are whole and to a tenth where they are not`() {
         assertEquals("0", formatHours(0))
@@ -176,17 +142,9 @@ class FormattersTest {
         assertEquals("0,5", formatHours(30))
         assertEquals("42", formatHours(2520))
         assertEquals("42,5", formatHours(2550))
-        // 45 minutes is 0.75 h, which rounds to the nearest tenth rather than truncating to 0,7.
         assertEquals("0,8", formatHours(45))
-        // 20 minutes is 0.333… h.
         assertEquals("0,3", formatHours(20))
     }
-
-    // --- The one ceiling on how large an amount can be -------------------------------------------
-    //
-    // Fitting in a Long is not the bar: `ClassRules.chargeFor` computes `rate × minutes`, so a rate
-    // that fits can still bill a wrapped, negative charge. Rejecting the input is the only place the
-    // problem is still legible — see `Money.MAX`.
 
     @Test
     fun `an amount above the ceiling is not an amount`() {
@@ -208,16 +166,11 @@ class FormattersTest {
         assertEquals(Money.ofMajor(2_500), parseMoneyOrNull("2500"))
     }
 
-    // ── bulletJoin ───────────────────────────────────────────────────────────────────────────────
-    // The app's one separator. It was private to `AndroidNotifier`, where the schedule's day summary
-    // could not reach it and so spelled the same " · " for itself.
-
     @Test
     fun `facts about a lesson go on one line, separated by a bullet`() {
         assertEquals("21:00 · Математика · Иван Петров", bulletJoin("21:00", "Математика", "Иван Петров"))
     }
 
-    /** What makes it safe to pass everything that *might* be known — an unnamed group, say. */
     @Test
     fun `a blank part is dropped rather than leaving a stranded separator`() {
         assertEquals("21:00 · Математика", bulletJoin("21:00", "", "Математика"))

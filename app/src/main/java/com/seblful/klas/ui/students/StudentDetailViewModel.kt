@@ -63,12 +63,8 @@ import kotlin.time.Instant
 /**
  * A subject the student takes, with its per-class price and how that price got there.
  *
- * The price is always set: a student's subjects are exactly the subjects they have a price for — the
- * same set that's bookable — so a subject can never appear here without one (see
- * [StudentDetailViewModel]).
- *
  * @param history every recorded change to [price], newest first. Empty means the rate has never
- *   moved, which the card says out loud rather than leaving blank.
+ * moved, which the card says out loud rather than leaving blank.
  */
 data class SubjectPrice(
     val subject: Subject,
@@ -81,8 +77,8 @@ data class SubjectPrice(
  * the group it was one of.
  *
  * @param groupName the group whose lesson this was, or null for an individual one. It is the *name*
- *   rather than a flag because "which group" is the useful half of "not individual": a student in two
- *   groups is billed a different rate by each.
+ * rather than a flag because "which group" is the useful half of "not individual": a student in two
+ * groups is billed a different rate by each.
  */
 data class ClassRow(
     val klass: TutoringClass,
@@ -127,13 +123,7 @@ data class StudentDetailState(
             return allSubjects.filter { it.id !in priced }
         }
 
-    /**
-     * The lessons tab's rows under [filter].
-     *
-     * A filter that isn't on screen doesn't apply. The chips come and go with the data — deleting a
-     * student's last group lesson from the schedule takes them away — and a selection left behind would go
-     * on hiding their remaining lessons with nothing left to say why, or to undo it.
-     */
+    /** he lessons tab's rows under [filter]. */
     fun lessonsShown(filter: LessonFilter): List<ClassRow> =
         if (hasBothKinds) filter.accepted(classes) { it.kind } else classes
 
@@ -144,13 +134,7 @@ data class StudentDetailState(
      */
     val lastPaymentAt: Instant? get() = payments.maxOfOrNull { it.date }
 
-    /**
-     * What the archive action should do, given what this student is carrying.
-     *
-     * The screen used to work it out: it read the balance and the upcoming count, decided whether
-     * either was worth asking about, and then decided again — twenty lines further down — which parts
-     * the question should name. Two spellings of one rule, in a composable, where no test reaches them.
-     */
+    /** hat the archive action should do, given what this student is carrying. */
     val archiveIntent: ArchiveIntent
         get() = when {
             student == null -> ArchiveIntent.Nothing
@@ -163,11 +147,6 @@ data class StudentDetailState(
 /**
  * What tapping archive/restore means here — and, when it means asking first, what the question has to
  * account for.
- *
- * Archiving costs two things, either of which is worth a confirmation: a debt the student still carries
- * leaves the reports (they cover active students only), and their planned lessons are called off (see
- * `StudentRepository.setArchived`). So the parts of the question are a **decision**, made from the state.
- * The words for them are string resources and stay on the screen.
  */
 sealed interface ArchiveIntent {
 
@@ -184,8 +163,8 @@ sealed interface ArchiveIntent {
      * Ask first, and say what it costs.
      *
      * @param openBalance the balance that would leave the reports, or null when it is [Balance.Settled].
-     *   Either case counts: an over-payment is credit the tutor owes back, and it disappears from the
-     *   reports just as a debt does — which is why this is "not settled" rather than "owes".
+     * Either case counts: an over-payment is credit the tutor owes back, and it disappears from the
+     * reports just as a debt does — which is why this is "not settled" rather than "owes".
      * @param upcomingLessons how many planned lessons would be called off; 0 when none would.
      */
     data class Confirm(val openBalance: Balance?, val upcomingLessons: Int) : ArchiveIntent
@@ -200,22 +179,7 @@ sealed interface ArchiveIntent {
     }
 }
 
-/**
- * The student's card.
- *
- * **Every mutator launches into [appScope], never `viewModelScope`** — which here holds only the
- * `stateIn` that reads. This card is where the student's *money* is entered, and each of its writes
- * is tapped in a dialog or a snackbar that closes as it is tapped: recording a payment and going
- * straight back would otherwise cancel the write between the dialog closing and the row landing, and
- * the tutor would have no way to tell that from a payment that saved. See
- * [com.seblful.klas.di.ApplicationScope] for the rule and why reads stay behind.
- *
- * A write that fails says so through [Event.WriteFailed] — a payment that silently did not record is
- * the one failure the tutor must not miss. Every mutator goes through [write] (the homework ones through
- * [HomeworkActions], over the same tail), so neither the scope nor the report can be forgotten by the
- * ninth copy of a tail; they were spelled out per mutator once, and none of the money path's had a
- * test.
- */
+/** he student's card. */
 class StudentDetailViewModel @AssistedInject constructor(
     @Assisted savedStateHandle: SavedStateHandle,
     private val students: StudentRepository,
@@ -298,16 +262,7 @@ class StudentDetailViewModel @AssistedInject constructor(
         )
     }
 
-    /**
-     * The card, in two stages only because `combine` takes at most five typed sources.
-     *
-     * Groups are here for the **names** of the lessons that were a group's: a student's lesson list
-     * mixes both kinds, and «Биология, 18:00» twice over — once billed at 30 and once at 20 — is a
-     * puzzle until it says which of the two was the group's.
-     *
-     * Homework is due as of [days], so a card left open overnight moves tomorrow's onto today. **A test
-     * that collects this must advance time by a stated amount, never `advanceUntilIdle()`** — see [days].
-     */
+    /** he card, in two stages only because `combine` takes at most five typed sources. */
     val state: StateFlow<Loadable<StudentDetailState>> = combine(
         partial,
         payments.observeForStudent(studentId),
@@ -349,12 +304,6 @@ class StudentDetailViewModel @AssistedInject constructor(
         val classes: List<TutoringClass>,
     )
 
-    /**
-     * One write in the application scope, a failure reported as [Event.WriteFailed] — the shared tail
-     * (`ui/common/state/Writes.kt`) with this card's failure filled in. [onWritten] is for the writes that answer
-     * something on success: a refusal or a count coming back is an event of its own, and only a database
-     * error may reach [Event.WriteFailed].
-     */
     private fun <T> write(onWritten: suspend (T) -> Unit = {}, block: suspend () -> T) =
         appScope.write(events, Event.WriteFailed, onWritten, block)
 
@@ -385,9 +334,6 @@ class StudentDetailViewModel @AssistedInject constructor(
      * Removes a subject from the student. [EnrollmentRepository] refuses (and we signal
      * [Event.RemoveBlockedHasClasses]) when the student has any class for it, since those classes
      * (completed ones especially) are billed history that must keep referencing a priced subject.
-     *
-     * The refusal is a *result*, not a failure, so it is read off a successful call; only a database
-     * error reaches [Event.WriteFailed].
      */
     fun removeSubject(subjectId: Long) {
         write(
@@ -406,14 +352,7 @@ class StudentDetailViewModel @AssistedInject constructor(
         write { enrollment.reprice(studentId, subjectId, amount) }
     }
 
-    /**
-     * Records a payment, on the day it was actually made.
-     *
-     * [date] is a parameter because it is the tutor's answer and not the app's: money is entered when
-     * they get round to it, and «она заплатила во вторник» used to have no way in — the payment was
-     * stamped `Instant.now()` and dated today whatever the truth was. The dialog defaults it to today,
-     * which is right most of the time and correctable the rest.
-     */
+    /** ecords a payment, on the day it was actually made. */
     fun addPayment(amount: Money, day: LocalDate) {
         if (amount.isZero) return
         write { payments.record(studentId, amount, day) }
@@ -422,13 +361,7 @@ class StudentDetailViewModel @AssistedInject constructor(
     /** The day the payment dialog opens on — off the same clock that will stamp the save. */
     fun paymentDay(): LocalDate = payments.today()
 
-    /**
-     * Corrects a payment already recorded, keeping its id.
-     *
-     * A wrong amount used to mean deleting the row and entering it again — which is two writes with
-     * the student's balance wrong in between, and a different payment as far as the database is
-     * concerned. Money that was handed over once should stay one row.
-     */
+    /** orrects a payment already recorded, keeping its id. */
     fun editPayment(payment: Payment, amount: Money, day: LocalDate) {
         if (amount.isZero) return
         write { payments.correct(payment, amount, day) }
@@ -438,12 +371,7 @@ class StudentDetailViewModel @AssistedInject constructor(
         write { payments.delete(payment) }
     }
 
-    /**
-     * Re-inserts a just-deleted payment (preserving its id, date and amount) for the undo action.
-     *
-     * In the application scope like every other write here, and this one has the shortest fuse of them
-     * all: the undo is offered by a snackbar, so it is tapped *while* the tutor may be leaving the card.
-     */
+    /** e-inserts a just-deleted payment (preserving its id, date and amount) for the undo action. */
     fun restorePayment(payment: Payment) {
         write { payments.restore(payment) }
     }

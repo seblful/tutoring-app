@@ -91,14 +91,7 @@ fun SettingsScreen(
     // the platform's (no reminders will be shown).
     val rejectFeedback = rememberRejectFeedback()
 
-    /**
-     * Says a reminder cannot appear — **and carries the one place that can be changed.**
-     *
-     * Shared by the two ways of arriving here, which used to be one dead end and one silence: the
-     * platform having nothing left to ask, and a request that came back still denied. On Android 13+
-     * those are nearly the same state, because switching notifications off app-wide revokes
-     * `POST_NOTIFICATIONS` — so asking again is auto-denied and the switch looks like it does nothing.
-     */
+    /** ays a reminder cannot appear — **and carries the one place that can be changed.** */
     val reportBlocked: () -> Unit = {
         // A refusal by the platform, so it is felt like the app's own — the tutor asked for reminders and
         // will not get them, which is exactly the class of answer worth knowing without reading.
@@ -200,14 +193,6 @@ fun SettingsScreen(
     }
 }
 
-/**
- * Every setting, in its sections — the screen's whole body, once the row it draws has been read.
- *
- * Its own composable so that the wait above it can be a `when` with two arms rather than an early return
- * out of a 200-line lambda. What it needs from the screen it takes as **named acts** rather than as the
- * launchers and the message strings themselves: this list asks for a permission and reports a dead end, it
- * does not know that one is an `ActivityResultLauncher` and the other a snackbar with an action.
- */
 @Composable
 private fun SettingsList(
     settings: AppSettings,
@@ -362,7 +347,9 @@ private fun SettingsList(
             title = stringResource(R.string.settings_unfinished_digest),
             description = stringResource(R.string.settings_unfinished_digest_desc),
             checked = settings.unfinishedDigestEnabled,
-            onCheckedChange = { on -> askFor(viewModel.setDigestEnabled(on) { it.copy(unfinishedDigestEnabled = on) }) },
+            onCheckedChange = { on ->
+                askFor(viewModel.setDigestEnabled(on) { it.copy(unfinishedDigestEnabled = on) })
+            },
         )
         TimeRow(
             title = stringResource(R.string.settings_unfinished_digest_time),

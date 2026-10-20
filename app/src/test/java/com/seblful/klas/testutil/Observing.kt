@@ -42,7 +42,7 @@ val <T> StateFlow<Loadable<T>>.current: T
         Loadable.Loading -> error(
             "State is still Loadable.Loading. Nothing has been collected yet, so the view model's " +
                 "`WhileSubscribed` flow has not started — is `observing(…)` missing, or does the " +
-                "scheduler need advancing first?"
+                "scheduler need advancing first?",
         )
         is Loadable.Ready -> state.value
     }

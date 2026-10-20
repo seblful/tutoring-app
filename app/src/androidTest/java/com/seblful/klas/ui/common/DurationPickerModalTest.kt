@@ -14,17 +14,6 @@ import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 
-/**
- * «Другая» returns a **length**, and one that cannot be nonsense.
- *
- * This is the dialog that replaced a clock dial setting the lesson's end time, and the reason the
- * booking form no longer needs a rule for reading "ends at 22:00" on a lesson starting at 23:00. What
- * makes that hold is the shape of the input, so the shape is what is asserted: the fields refuse a day
- * and an hour respectively, so the longest answer is 23 ч 59 мин, and zero cannot be confirmed at all.
- *
- * The two fields are addressed by position rather than by their labels — a text field merges its label
- * into its own semantics, so matching «Часы» would match the field *and* be the thing under test.
- */
 class DurationPickerModalTest {
 
     @get:Rule
@@ -32,7 +21,6 @@ class DurationPickerModalTest {
 
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
-    /** The confirmed length, or null while nothing has been confirmed. */
     private var confirmed: Int? = null
 
     private fun open(initialMinutes: Int) {
@@ -50,20 +38,6 @@ class DurationPickerModalTest {
     private fun hours() = rule.onAllNodes(hasSetTextAction())[0]
     private fun minutes() = rule.onAllNodes(hasSetTextAction())[1]
 
-    /**
-     * The button that closes the modal — «Готово», and **not** «Сохранить».
-     *
-     * Named `confirm` rather than `save` because that distinction is the point: a picker returns a value
-     * to the form it was opened from and writes nothing, so the booking form used to ask the tutor to save
-     * twice in a row, the first of which plausibly read as having committed the booking. All three modals
-     * in `Pickers.kt` were moved onto `action_done` for it.
-     *
-     * Read from resources rather than typed as a literal, which is the whole reason this comment exists:
-     * the label was hard-coded here as «Сохранить», so when the modals moved, this suite went red and
-     * stayed red — instrumented tests need a device, CI only compiles them, and nothing ran the full suite
-     * again until long afterwards. A test that spells a user-facing string by hand is a test that has to be
-     * remembered; this one cannot drift from the button it presses.
-     */
     private fun confirm() = rule.onNodeWithText(context.getString(R.string.action_done))
 
     @Test
@@ -77,7 +51,6 @@ class DurationPickerModalTest {
         assertEquals(125, confirmed)
     }
 
-    /** It opens on the length it was given, so confirming without touching anything changes nothing. */
     @Test
     fun theLengthItOpensOnIsTheOneItReturns() {
         open(initialMinutes = 50)

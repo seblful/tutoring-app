@@ -19,17 +19,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.time.Instant
 
-/**
- * What a mirrored event *shows*, and every table that decides it.
- *
- * These exist because the mirror was reachable from exactly one direction. An event's title is built
- * from the student's, the subject's and the group's name, and its guest from the student's email — four
- * tables — but only a write to `classes` ever triggered a mirror. So renaming anybody left the tutor's
- * calendar asserting the old name indefinitely, and no test noticed, because every test that mirrored
- * anything got there by booking a lesson.
- *
- * The first four tests below are that defect, one per way in.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class CalendarMirrorTest {
@@ -39,7 +28,6 @@ class CalendarMirrorTest {
 
     private val start: Instant = Instant.parse("2026-06-20T10:00:00Z")
 
-    /** Sync on, one named student priced for one named subject, and one scheduled lesson mirrored. */
     private suspend fun mirroredLesson(groupId: Long? = null): Long {
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true, emailInvitesEnabled = true) }
         env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня", email = "anya@example.com"))

@@ -8,7 +8,6 @@ import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
-/** Where a local day starts and stops — what the digests read a day's lessons over. */
 class DayBoundsTest {
 
     @Test
@@ -19,7 +18,6 @@ class DayBoundsTest {
         assertEquals(Instant.parse("2026-06-15T21:00:00Z"), bounds.end)
     }
 
-    /** The reason this is midnight to midnight and not a start plus 24 hours. */
     @Test
     fun `a day the clocks go forward on is 23 hours long`() {
         val bounds = DayBounds.of(LocalDate(2026, 3, 29), TimeZone.of("Europe/Berlin"))

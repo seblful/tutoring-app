@@ -12,16 +12,7 @@ package com.seblful.klas.storage
 @JvmInline
 value class DocumentRef(val value: String)
 
-/**
- * Reads and writes the whole text of a user-picked document.
- *
- * A port, so the two things the app exports — the backup snapshot and the crash log — share one
- * implementation of "open the stream, write it all, close it" instead of restating it each. Both
- * methods **throw** when the document can't be opened or read; deciding what a failure means to the
- * user belongs to the caller, which is the only part that actually differs between them.
- *
- * Implementations move the I/O off the main thread themselves, so callers never have to remember to.
- */
+/** eads and writes the whole text of a user-picked document. */
 interface DocumentStore {
 
     /** The document's entire contents as text. Throws if it cannot be opened or read. */

@@ -16,20 +16,6 @@ import androidx.compose.ui.unit.dp
 /**
  * How a full-width row shows it is being pressed: a soft **rounded** tint inset from the edges, never a
  * flat grey band from one side of the screen to the other.
- *
- * The cards already pressed that way (`ContentCard`, by its own shape) and so did the contact rows and the
- * report's debts (clipped to `shapes.small`), while every `ListItem`, sheet action and settings row lit a
- * hard-cornered grey block the full width of the phone — the same press, two looks, and the blocky one
- * on the surfaces a tutor holds most. This is the rounded one, for rows.
- *
- * The **target** is still the whole row: [press] is applied to it as given, its interaction source handed
- * in so it can pass `indication = null` and leave the drawing here. Only the ripple is inset, so a tap in
- * the row's outer [RowPressInset] still lands; and the row's content is laid out where it was ([bleed]),
- * so its text stays on the gutter rather than stepping in by the inset.
- *
- * ```
- * ListItem(modifier = Modifier.insetRowPress { Modifier.clickable(it, indication = null, onClick = open) })
- * ```
  */
 @Composable
 fun Modifier.insetRowPress(press: (MutableInteractionSource) -> Modifier): Modifier {
@@ -46,7 +32,7 @@ fun Modifier.insetRowPress(press: (MutableInteractionSource) -> Modifier): Modif
  * [insetRowPress] for a row whose content starts **flush** with its column — a radio or a tick at the very
  * edge of a dialog's or a form's content. Insetting the shape there would cut through the control, so the
  * shape reaches *out* by the same distance into the padding around the column instead, and so does the
- * target. The content stays where it was.
+ * target.
  */
 @Composable
 fun Modifier.outsetRowPress(press: (MutableInteractionSource) -> Modifier): Modifier {
@@ -75,5 +61,4 @@ fun Modifier.bleed(by: Dp): Modifier = layout { measurable, constraints ->
     layout((placeable.width - extra).coerceAtLeast(0), placeable.height) { placeable.place(-extra / 2, 0) }
 }
 
-/** How far a row's pressed shape sits in from its edges ([insetRowPress]) or out past them ([outsetRowPress]). */
 private val RowPressInset = 8.dp

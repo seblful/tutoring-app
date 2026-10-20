@@ -19,14 +19,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/**
- * The schedule's page title names the day in full, on every phone.
- *
- * «Понедельник, 21 сент…» was the Day view's title on a 6.1" phone at the default font size: the one
- * thing the stepper is for — which day this is — lost its month to an ellipsis. The title now shrinks to
- * fit first. Font scale is set by the test rather than read from the device, which would otherwise decide
- * whether it holds; it covers the default and 1.3×, where a floor in sp rose with the scale and cut it again.
- */
 class PageTitleFitTest {
 
     @get:Rule
@@ -58,7 +50,6 @@ class PageTitleFitTest {
         assertTrue(complaints.joinToString(prefix = "\n", separator = "\n"), complaints.isEmpty())
     }
 
-    /** Shrinking is a floor for long titles, not an enlargement of short ones. */
     @Test
     fun aShortTitleIsNeverEnlarged() {
         val width = mutableStateOf(NarrowPhone)

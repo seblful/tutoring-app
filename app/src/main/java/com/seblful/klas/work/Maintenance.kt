@@ -21,15 +21,6 @@ import kotlin.time.Instant
 /**
  * Everything the periodic upkeep does, except being periodic: auto-complete the classes whose end
  * time has passed, then re-derive the reminder plan for what is still upcoming.
- *
- * This lives outside [MaintenanceWorker] so the upkeep decisions can be tested without
- * constructing a `CoroutineWorker` with a `Context` and `WorkerParameters`. They used to
- * sit inside that adapter with no test. As ordinary code over the repositories and the
- * [ReminderScheduler] port, a JVM test drives the pass; the worker supplies its firing
- * through WorkManager.
- *
- * The order matters and is fixed here: auto-completion runs **first**, so a lesson that just ended
- * is completed before the plan is derived and therefore isn't given a reminder it no longer needs.
  */
 @SingleIn(AppScope::class)
 class Maintenance @Inject constructor(
@@ -44,9 +35,6 @@ class Maintenance @Inject constructor(
      * How many lessons a pass at [now] **would** auto-complete — the backlog, and deliberately
      * regardless of whether the setting is on: this is what the settings screen puts to the tutor
      * before turning it on, and the sweep only follows if they say yes.
-     *
-     * Here rather than at the call site so it shares this class's clock with [run]. A backlog counted
-     * against one instant and settled against another is a question answered about a different number.
      */
     suspend fun dueForCompletion(now: Instant = clock.now()): Int =
         classes.countDueForCompletion(now)
@@ -55,14 +43,6 @@ class Maintenance @Inject constructor(
      * Runs one upkeep pass, returning **how many lessons it auto-completed** — zero when the setting
      * is off, or when nothing had finished. Counted in lessons, like [dueForCompletion]: a group's
      * hour bills every member but is one lesson settled.
-     *
-     * The count is returned because a pass the tutor **asked for** has to be able to say what it did:
-     * turning auto-completion on settles the whole backlog at once, and an income figure that moves
-     * with nothing accounting for it is the thing that made this feature feel arbitrary.
-     *
-     * [now] defaults to the **injected** clock, never the wall clock: the default is the path
-     * production takes, and a default a test cannot move makes the tested path and the shipped path
-     * two different paths.
      */
     suspend fun run(now: Instant = clock.now()): Settled {
         val s = settings.get()
@@ -114,16 +94,6 @@ class Maintenance @Inject constructor(
     /**
      * One upkeep pass **that nobody is watching** — the periodic tick and the pass after a reboot — which
      * reports what it billed to the notification tray instead of to a screen.
-     *
-     * The distinction between this and [run] is who asked. A pass the tutor triggered by turning
-     * auto-completion on reports back through the switch they are standing in front of
-     * (`SettingsViewModel.swept`), and one on the way into the app reports by the schedule being correct
-     * when they get there. A pass that happens at four in the afternoon with the app closed had nothing to
-     * report to, so it recognised income in silence — the tutor's income figure moved and nothing anywhere
-     * accounted for it, which is the same complaint that made the auto-completion switch ask first.
-     *
-     * Here rather than in [MaintenanceWorker] because a `CoroutineWorker` is reachable only from a device,
-     * and "does an unwatched pass announce itself" is a decision about the tutor's money.
      */
     suspend fun runUnwatched(now: Instant = clock.now()): Settled {
         val settled = run(now)
@@ -136,14 +106,9 @@ class Maintenance @Inject constructor(
     /**
      * What one pass settled: how many **lessons** it auto-completed and what they came to.
      *
-     * Counted in lessons rather than classes, like [dueForCompletion]: a group's hour bills every member
-     * and is one lesson of the tutor's. The money is the other half of the same fact and is carried
-     * alongside because both readers need both — the switch says «завершено N занятий», the tray says what
-     * that added to the income.
-     *
      * @param lastDay the day of the latest lesson settled, or null when nothing was — where a tap on the
-     *   tray's report opens the schedule. The latest rather than the first: a pass after a phone was off
-     *   for days settles a backlog, and the most recent of it is what the tutor still remembers teaching.
+     * tray's report opens the schedule. The latest rather than the first: a pass after a phone was off
+     * for days settles a backlog, and the most recent of it is what the tutor still remembers teaching.
      */
     data class Settled(val lessons: Int, val billed: Money, val lastDay: LocalDate? = null)
 }

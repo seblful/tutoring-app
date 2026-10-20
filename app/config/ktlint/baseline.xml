@@ -1,44 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <baseline version="1.0">
-    <file name="build.gradle.kts">
-        <error line="1" column="1" source="standard:import-ordering" />
-        <error line="65" column="37" source="standard:trailing-comma-on-call-site" />
-    </file>
     <file name="src/androidTest/java/com/seblful/klas/data/backup/BackupRoundTripTest.kt">
-        <error line="78" column="121" source="standard:max-line-length" />
-        <error line="82" column="121" source="standard:max-line-length" />
-        <error line="88" column="121" source="standard:max-line-length" />
+        <error line="73" column="121" source="standard:max-line-length" />
+        <error line="77" column="121" source="standard:max-line-length" />
+        <error line="81" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/androidTest/java/com/seblful/klas/data/local/HomeworkTableMigrationTest.kt">
-        <error line="51" column="121" source="standard:max-line-length" />
-        <error line="137" column="120" source="standard:max-line-length" />
+        <error line="37" column="121" source="standard:max-line-length" />
+        <error line="115" column="120" source="standard:max-line-length" />
     </file>
     <file name="src/androidTest/java/com/seblful/klas/data/local/SchemaCleanupMigrationTest.kt">
-        <error line="57" column="121" source="standard:max-line-length" />
-        <error line="70" column="121" source="standard:max-line-length" />
-        <error line="178" column="97" source="standard:binary-expression-wrapping" />
-        <error line="178" column="114" source="standard:binary-expression-wrapping" />
-        <error line="178" column="121" source="standard:max-line-length" />
-        <error line="235" column="120" source="standard:max-line-length" />
-    </file>
-    <file name="src/androidTest/java/com/seblful/klas/data/repository/AutoCompleteTest.kt">
-        <error line="40" column="37" source="standard:parameter-list-wrapping" />
-        <error line="40" column="59" source="standard:parameter-list-wrapping" />
-        <error line="40" column="74" source="standard:parameter-list-wrapping" />
-        <error line="40" column="89" source="standard:parameter-list-wrapping" />
-        <error line="40" column="113" source="standard:parameter-list-wrapping" />
-        <error line="40" column="121" source="standard:max-line-length" />
-    </file>
-    <file name="src/androidTest/java/com/seblful/klas/data/repository/ClassCalendarSyncTest.kt">
-        <error line="42" column="37" source="standard:parameter-list-wrapping" />
-        <error line="42" column="59" source="standard:parameter-list-wrapping" />
-        <error line="42" column="74" source="standard:parameter-list-wrapping" />
-        <error line="42" column="89" source="standard:parameter-list-wrapping" />
-        <error line="42" column="113" source="standard:parameter-list-wrapping" />
-        <error line="42" column="121" source="standard:max-line-length" />
+        <error line="36" column="121" source="standard:max-line-length" />
+        <error line="49" column="121" source="standard:max-line-length" />
+        <error line="188" column="120" source="standard:max-line-length" />
     </file>
     <file name="src/androidTest/java/com/seblful/klas/data/repository/SubjectDeletionCascadeTest.kt">
-        <error line="116" column="121" source="standard:max-line-length" />
+        <error line="102" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/androidTest/java/com/seblful/klas/ui/common/ClassStatusColorTest.kt">
         <error line="1" column="1" source="standard:filename" />
@@ -53,7 +30,7 @@
         <error line="28" column="1" source="standard:kdoc" />
     </file>
     <file name="src/main/java/com/seblful/klas/calendar/DeviceCalendarSync.kt">
-        <error line="43" column="120" source="standard:max-line-length" />
+        <error line="34" column="120" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/com/seblful/klas/data/Mappers.kt">
         <error line="33" column="121" source="standard:max-line-length" />
@@ -61,27 +38,8 @@
         <error line="38" column="121" source="standard:max-line-length" />
         <error line="40" column="121" source="standard:max-line-length" />
     </file>
-    <file name="src/main/java/com/seblful/klas/data/local/Daos.kt">
-        <error line="151" column="46" source="standard:trailing-comma-on-call-site" />
-        <error line="310" column="72" source="standard:trailing-comma-on-call-site" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/format/Formatters.kt">
-        <error line="25" column="1" source="standard:kdoc" />
-    </file>
     <file name="src/main/java/com/seblful/klas/format/Localization.kt">
         <error line="12" column="1" source="standard:kdoc" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/notifications/ReminderActionReceiver.kt">
-        <error line="26" column="30" source="standard:annotation" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/notifications/ReminderReceiver.kt">
-        <error line="28" column="30" source="standard:annotation" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/notifications/TrayNavigation.kt">
-        <error line="127" column="26" source="standard:wrapping" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/ui/backup/BackupScreen.kt">
-        <error line="199" column="104" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/backup/BackupViewModel.kt">
         <error line="57" column="5" source="standard:kdoc" />
@@ -94,23 +52,15 @@
     </file>
     <file name="src/main/java/com/seblful/klas/ui/common/DomainText.kt">
         <error line="17" column="1" source="standard:kdoc" />
-        <error line="39" column="10" source="standard:trailing-comma-on-call-site" />
-        <error line="59" column="6" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/common/EmptyStates.kt">
         <error line="28" column="1" source="standard:kdoc" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/common/Fields.kt">
         <error line="55" column="1" source="standard:kdoc" />
-        <error line="431" column="39" source="standard:trailing-comma-on-call-site" />
-        <error line="433" column="87" source="standard:function-literal" />
-        <error line="433" column="121" source="standard:max-line-length" />
-        <error line="433" column="122" source="standard:function-literal" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/common/LessonKindUi.kt">
         <error line="19" column="1" source="standard:kdoc" />
-        <error line="30" column="6" source="standard:trailing-comma-on-call-site" />
-        <error line="39" column="6" source="standard:trailing-comma-on-call-site" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/common/Menus.kt">
         <error line="22" column="1" source="standard:kdoc" />
@@ -124,371 +74,117 @@
     <file name="src/main/java/com/seblful/klas/ui/common/Surfaces.kt">
         <error line="26" column="1" source="standard:kdoc" />
     </file>
-    <file name="src/main/java/com/seblful/klas/ui/common/SwipeToConfirm.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/ui/common/UnsavedChanges.kt">
-        <error line="133" column="97" source="standard:trailing-comma-on-call-site" />
-        <error line="134" column="18" source="standard:trailing-comma-on-call-site" />
-        <error line="140" column="95" source="standard:trailing-comma-on-call-site" />
-        <error line="141" column="18" source="standard:trailing-comma-on-call-site" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/ui/common/state/ScreenState.kt">
-        <error line="12" column="1" source="standard:kdoc" />
-    </file>
     <file name="src/main/java/com/seblful/klas/ui/groups/GroupDetailViewModel.kt">
-        <error line="201" column="121" source="standard:max-line-length" />
+        <error line="176" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/main/java/com/seblful/klas/ui/groups/GroupFormScreen.kt">
-        <error line="77" column="85" source="standard:trailing-comma-on-call-site" />
-        <error line="115" column="121" source="standard:max-line-length" />
-        <error line="175" column="57" source="standard:trailing-comma-on-call-site" />
-        <error line="249" column="76" source="standard:trailing-comma-on-call-site" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/ui/groups/GroupFormViewModel.kt">
-        <error line="261" column="1" source="standard:indent" />
-        <error line="261" column="20" source="standard:function-literal" />
-        <error line="261" column="28" source="standard:function-literal" />
-        <error line="378" column="1" source="standard:no-blank-line-before-rbrace" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/ui/homework/HomeworkParts.kt">
-        <error line="331" column="55" source="standard:function-literal" />
-        <error line="331" column="73" source="standard:function-literal" />
-        <error line="331" column="90" source="standard:function-literal" />
-        <error line="331" column="92" source="standard:function-literal" />
-        <error line="331" column="121" source="standard:function-literal" />
-        <error line="331" column="121" source="standard:max-line-length" />
-        <error line="331" column="123" source="standard:function-literal" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/ui/more/SettingsScreen.kt">
-        <error line="365" column="37" source="standard:function-literal" />
-        <error line="365" column="77" source="standard:function-literal" />
-        <error line="365" column="117" source="standard:function-literal" />
-        <error line="365" column="120" source="standard:function-literal" />
-        <error line="365" column="121" source="standard:max-line-length" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/ui/onboarding/OnboardingScreen.kt">
-        <error line="92" column="15" source="standard:trailing-comma-on-declaration-site" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/ui/people/PeopleScreen.kt">
-        <error line="91" column="49" source="standard:trailing-comma-on-call-site" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/ui/schedule/CalendarViews.kt">
-        <error line="244" column="26" source="standard:trailing-comma-on-call-site" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/ui/schedule/booking/ClassEditScreen.kt">
-        <error line="355" column="46" source="standard:trailing-comma-on-call-site" />
-        <error line="440" column="1" source="standard:no-consecutive-blank-lines" />
-        <error line="457" column="18" source="standard:trailing-comma-on-call-site" />
-        <error line="555" column="22" source="standard:trailing-comma-on-call-site" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/ui/students/StudentDetailScreen.kt">
-        <error line="466" column="14" source="standard:trailing-comma-on-call-site" />
-        <error line="607" column="47" source="standard:function-literal" />
-        <error line="607" column="91" source="standard:function-literal" />
-        <error line="607" column="121" source="standard:function-literal" />
-        <error line="607" column="121" source="standard:max-line-length" />
-        <error line="607" column="123" source="standard:function-literal" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/ui/theme/Theme.kt">
-        <error line="150" column="36" source="standard:annotation" />
-    </file>
-    <file name="src/main/java/com/seblful/klas/work/BootReceiver.kt">
-        <error line="33" column="30" source="standard:annotation" />
+        <error line="93" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/data/MappersTest.kt">
-        <error line="236" column="16" source="standard:property-wrapping" />
-        <error line="236" column="121" source="standard:max-line-length" />
+        <error line="229" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/data/backup/BackupIntegrityTest.kt">
-        <error line="244" column="121" source="standard:max-line-length" />
+        <error line="192" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/data/backup/BackupLegacyHomeworkTest.kt">
-        <error line="20" column="120" source="standard:max-line-length" />
-        <error line="21" column="121" source="standard:max-line-length" />
-        <error line="28" column="19" source="standard:property-wrapping" />
-        <error line="28" column="121" source="standard:max-line-length" />
-        <error line="98" column="121" source="standard:max-line-length" />
-    </file>
-    <file name="src/test/java/com/seblful/klas/data/backup/BackupSchemaCoverageTest.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
-        <error line="106" column="121" source="standard:max-line-length" />
-    </file>
-    <file name="src/test/java/com/seblful/klas/data/backup/BackupSerializationTest.kt">
-        <error line="3" column="1" source="standard:import-ordering" />
-        <error line="36" column="121" source="standard:max-line-length" />
-        <error line="45" column="121" source="standard:max-line-length" />
-        <error line="60" column="121" source="standard:max-line-length" />
-        <error line="270" column="121" source="standard:max-line-length" />
-    </file>
-    <file name="src/test/java/com/seblful/klas/data/local/MigrationChainTest.kt">
-        <error line="221" column="57" source="standard:function-literal" />
-        <error line="221" column="121" source="standard:max-line-length" />
-        <error line="221" column="122" source="standard:function-literal" />
-        <error line="260" column="55" source="standard:function-literal" />
-        <error line="260" column="91" source="standard:function-literal" />
-        <error line="260" column="119" source="standard:function-literal" />
-        <error line="260" column="120" source="standard:max-line-length" />
-        <error line="260" column="121" source="standard:function-literal" />
-    </file>
-    <file name="src/test/java/com/seblful/klas/data/local/StoredEnumNamesTest.kt">
-        <error line="140" column="18" source="standard:property-wrapping" />
-        <error line="140" column="121" source="standard:max-line-length" />
-    </file>
-    <file name="src/test/java/com/seblful/klas/data/repository/ClassRepositoryGroupTest.kt">
-        <error line="281" column="94" source="standard:function-literal" />
-        <error line="281" column="95" source="standard:wrapping" />
-        <error line="281" column="108" source="standard:binary-expression-wrapping" />
-        <error line="281" column="121" source="standard:max-line-length" />
-        <error line="281" column="132" source="standard:function-literal" />
-        <error line="316" column="121" source="standard:max-line-length" />
-        <error line="551" column="1" source="standard:indent" />
-        <error line="552" column="1" source="standard:indent" />
-        <error line="553" column="1" source="standard:indent" />
-    </file>
-    <file name="src/test/java/com/seblful/klas/data/repository/ClassRepositoryTest.kt">
-        <error line="289" column="49" source="standard:no-multi-spaces" />
-        <error line="290" column="51" source="standard:no-multi-spaces" />
-        <error line="302" column="25" source="standard:no-multi-spaces" />
-        <error line="303" column="77" source="standard:no-multi-spaces" />
-        <error line="304" column="61" source="standard:no-multi-spaces" />
-        <error line="305" column="67" source="standard:no-multi-spaces" />
-        <error line="306" column="34" source="standard:no-multi-spaces" />
-        <error line="376" column="1" source="standard:indent" />
-        <error line="377" column="1" source="standard:indent" />
-        <error line="378" column="1" source="standard:indent" />
-        <error line="379" column="1" source="standard:indent" />
-        <error line="380" column="1" source="standard:indent" />
-        <error line="381" column="1" source="standard:indent" />
-    </file>
-    <file name="src/test/java/com/seblful/klas/data/repository/GroupRepositoryTest.kt">
-        <error line="147" column="1" source="standard:indent" />
-        <error line="148" column="1" source="standard:indent" />
-        <error line="149" column="1" source="standard:indent" />
-    </file>
-    <file name="src/test/java/com/seblful/klas/data/repository/RateHistoryTest.kt">
-        <error line="201" column="1" source="standard:indent" />
-        <error line="202" column="1" source="standard:indent" />
-        <error line="203" column="1" source="standard:indent" />
-    </file>
-    <file name="src/test/java/com/seblful/klas/data/repository/SubjectRepositoryTest.kt">
-        <error line="43" column="121" source="standard:max-line-length" />
+        <error line="15" column="120" source="standard:max-line-length" />
+        <error line="16" column="121" source="standard:max-line-length" />
         <error line="94" column="121" source="standard:max-line-length" />
     </file>
+    <file name="src/test/java/com/seblful/klas/data/backup/BackupSchemaCoverageTest.kt">
+        <error line="77" column="121" source="standard:max-line-length" />
+    </file>
+    <file name="src/test/java/com/seblful/klas/data/backup/BackupSerializationTest.kt">
+        <error line="35" column="121" source="standard:max-line-length" />
+        <error line="44" column="121" source="standard:max-line-length" />
+        <error line="58" column="121" source="standard:max-line-length" />
+        <error line="235" column="121" source="standard:max-line-length" />
+    </file>
+    <file name="src/test/java/com/seblful/klas/data/local/StoredEnumNamesTest.kt">
+        <error line="85" column="121" source="standard:max-line-length" />
+    </file>
+    <file name="src/test/java/com/seblful/klas/data/repository/ClassRepositoryGroupTest.kt">
+        <error line="284" column="121" source="standard:max-line-length" />
+    </file>
+    <file name="src/test/java/com/seblful/klas/data/repository/SubjectRepositoryTest.kt">
+        <error line="38" column="121" source="standard:max-line-length" />
+        <error line="74" column="121" source="standard:max-line-length" />
+    </file>
     <file name="src/test/java/com/seblful/klas/format/MoneyFieldTest.kt">
-        <error line="158" column="21" source="standard:property-wrapping" />
-        <error line="158" column="121" source="standard:max-line-length" />
-    </file>
-    <file name="src/test/java/com/seblful/klas/notifications/DueReminderTest.kt">
-        <error line="58" column="1" source="standard:indent" />
-        <error line="59" column="1" source="standard:indent" />
-        <error line="60" column="1" source="standard:indent" />
-        <error line="61" column="1" source="standard:indent" />
-        <error line="62" column="1" source="standard:indent" />
-        <error line="63" column="1" source="standard:indent" />
-        <error line="64" column="1" source="standard:indent" />
-    </file>
-    <file name="src/test/java/com/seblful/klas/testutil/Observing.kt">
-        <error line="45" column="50" source="standard:trailing-comma-on-call-site" />
-    </file>
-    <file name="src/test/java/com/seblful/klas/ui/RootViewModelTest.kt">
-        <error line="60" column="33" source="standard:function-literal" />
-        <error line="60" column="121" source="standard:max-line-length" />
-        <error line="60" column="125" source="standard:function-literal" />
-    </file>
-    <file name="src/test/java/com/seblful/klas/ui/common/state/WritesTest.kt">
-        <error line="43" column="77" source="standard:function-literal" />
-        <error line="43" column="86" source="standard:binary-expression-wrapping" />
-        <error line="43" column="118" source="standard:function-literal" />
-        <error line="43" column="120" source="standard:max-line-length" />
-        <error line="43" column="121" source="standard:function-literal" />
-        <error line="43" column="125" source="standard:function-literal" />
+        <error line="128" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/groups/GroupFormViewModelTest.kt">
-        <error line="378" column="121" source="standard:max-line-length" />
+        <error line="346" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/homework/HomeworkViewModelTest.kt">
-        <error line="257" column="121" source="standard:max-line-length" />
+        <error line="240" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/more/SettingsViewModelTest.kt">
-        <error line="68" column="5" source="standard:kdoc" />
-        <error line="213" column="121" source="standard:max-line-length" />
-        <error line="232" column="121" source="standard:max-line-length" />
-        <error line="249" column="121" source="standard:max-line-length" />
-        <error line="302" column="121" source="standard:max-line-length" />
-        <error line="316" column="121" source="standard:max-line-length" />
-        <error line="400" column="121" source="standard:max-line-length" />
-        <error line="417" column="121" source="standard:max-line-length" />
+        <error line="190" column="121" source="standard:max-line-length" />
+        <error line="207" column="121" source="standard:max-line-length" />
+        <error line="224" column="121" source="standard:max-line-length" />
+        <error line="269" column="121" source="standard:max-line-length" />
+        <error line="283" column="121" source="standard:max-line-length" />
+        <error line="361" column="121" source="standard:max-line-length" />
+        <error line="377" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/reports/ReportsViewModelTest.kt">
-        <error line="99" column="1" source="standard:indent" />
-        <error line="100" column="1" source="standard:indent" />
-        <error line="101" column="1" source="standard:indent" />
-        <error line="237" column="121" source="standard:max-line-length" />
-        <error line="348" column="121" source="standard:max-line-length" />
-        <error line="505" column="1" source="standard:no-consecutive-blank-lines" />
+        <error line="213" column="121" source="standard:max-line-length" />
+        <error line="324" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/schedule/ScheduleViewModelTest.kt">
-        <error line="93" column="92" source="standard:trailing-comma-on-call-site" />
-        <error line="99" column="16" source="standard:string-template" />
-        <error line="99" column="94" source="standard:trailing-comma-on-call-site" />
-        <error line="357" column="121" source="standard:max-line-length" />
-        <error line="362" column="121" source="standard:max-line-length" />
-        <error line="363" column="121" source="standard:max-line-length" />
-        <error line="364" column="121" source="standard:max-line-length" />
-        <error line="692" column="1" source="standard:indent" />
-        <error line="693" column="1" source="standard:indent" />
-        <error line="694" column="1" source="standard:indent" />
-        <error line="708" column="57" source="standard:binary-expression-wrapping" />
-        <error line="708" column="90" source="standard:binary-expression-wrapping" />
-        <error line="708" column="121" source="standard:max-line-length" />
-        <error line="719" column="1" source="standard:indent" />
-        <error line="720" column="1" source="standard:indent" />
-        <error line="721" column="1" source="standard:indent" />
-        <error line="754" column="1" source="standard:indent" />
-        <error line="755" column="1" source="standard:indent" />
-        <error line="756" column="1" source="standard:indent" />
-        <error line="758" column="1" source="standard:indent" />
-        <error line="759" column="1" source="standard:indent" />
-        <error line="760" column="1" source="standard:indent" />
-        <error line="761" column="1" source="standard:indent" />
-        <error line="762" column="1" source="standard:indent" />
-        <error line="763" column="1" source="standard:indent" />
-        <error line="785" column="1" source="standard:indent" />
-        <error line="786" column="1" source="standard:indent" />
-        <error line="787" column="1" source="standard:indent" />
-        <error line="833" column="1" source="standard:indent" />
-        <error line="834" column="1" source="standard:indent" />
-        <error line="835" column="1" source="standard:indent" />
-        <error line="838" column="1" source="standard:indent" />
-        <error line="839" column="1" source="standard:indent" />
-        <error line="840" column="1" source="standard:indent" />
-        <error line="860" column="1" source="standard:indent" />
-        <error line="861" column="1" source="standard:indent" />
-        <error line="862" column="1" source="standard:indent" />
-        <error line="885" column="121" source="standard:max-line-length" />
-        <error line="904" column="121" source="standard:max-line-length" />
-        <error line="905" column="121" source="standard:max-line-length" />
-        <error line="934" column="121" source="standard:max-line-length" />
-        <error line="936" column="121" source="standard:max-line-length" />
-        <error line="956" column="1" source="standard:indent" />
-        <error line="957" column="1" source="standard:indent" />
-        <error line="958" column="1" source="standard:indent" />
-        <error line="959" column="1" source="standard:indent" />
-        <error line="984" column="1" source="standard:indent" />
-        <error line="985" column="1" source="standard:indent" />
-        <error line="986" column="1" source="standard:indent" />
-        <error line="987" column="1" source="standard:indent" />
-        <error line="1008" column="1" source="standard:indent" />
-        <error line="1009" column="1" source="standard:indent" />
-        <error line="1010" column="1" source="standard:indent" />
-        <error line="1011" column="1" source="standard:indent" />
-        <error line="1031" column="1" source="standard:indent" />
-        <error line="1032" column="1" source="standard:indent" />
-        <error line="1033" column="1" source="standard:indent" />
-        <error line="1034" column="1" source="standard:indent" />
-        <error line="1051" column="1" source="standard:indent" />
-        <error line="1052" column="1" source="standard:indent" />
-        <error line="1053" column="1" source="standard:indent" />
-        <error line="1054" column="1" source="standard:indent" />
-        <error line="1069" column="121" source="standard:max-line-length" />
-        <error line="1091" column="121" source="standard:max-line-length" />
-        <error line="1092" column="121" source="standard:max-line-length" />
-        <error line="1115" column="121" source="standard:max-line-length" />
-        <error line="1116" column="121" source="standard:max-line-length" />
-        <error line="1140" column="121" source="standard:max-line-length" />
-        <error line="1141" column="121" source="standard:max-line-length" />
-        <error line="1143" column="121" source="standard:max-line-length" />
-        <error line="1170" column="121" source="standard:max-line-length" />
-        <error line="1171" column="121" source="standard:max-line-length" />
-        <error line="1192" column="121" source="standard:max-line-length" />
+        <error line="290" column="121" source="standard:max-line-length" />
+        <error line="295" column="121" source="standard:max-line-length" />
+        <error line="296" column="121" source="standard:max-line-length" />
+        <error line="297" column="121" source="standard:max-line-length" />
+        <error line="794" column="121" source="standard:max-line-length" />
+        <error line="811" column="121" source="standard:max-line-length" />
+        <error line="812" column="121" source="standard:max-line-length" />
+        <error line="836" column="121" source="standard:max-line-length" />
+        <error line="837" column="121" source="standard:max-line-length" />
+        <error line="960" column="121" source="standard:max-line-length" />
+        <error line="981" column="121" source="standard:max-line-length" />
+        <error line="982" column="121" source="standard:max-line-length" />
+        <error line="1005" column="121" source="standard:max-line-length" />
+        <error line="1006" column="121" source="standard:max-line-length" />
+        <error line="1030" column="121" source="standard:max-line-length" />
+        <error line="1031" column="121" source="standard:max-line-length" />
+        <error line="1032" column="121" source="standard:max-line-length" />
+        <error line="1058" column="121" source="standard:max-line-length" />
+        <error line="1059" column="121" source="standard:max-line-length" />
+        <error line="1080" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/schedule/booking/ClassEditViewModelTest.kt">
-        <error line="160" column="105" source="standard:function-literal" />
-        <error line="160" column="115" source="standard:binary-expression-wrapping" />
-        <error line="160" column="121" source="standard:max-line-length" />
-        <error line="160" column="126" source="standard:function-literal" />
-        <error line="197" column="121" source="standard:max-line-length" />
-        <error line="284" column="1" source="standard:indent" />
-        <error line="285" column="1" source="standard:indent" />
-        <error line="286" column="1" source="standard:indent" />
-        <error line="287" column="1" source="standard:indent" />
-        <error line="317" column="121" source="standard:max-line-length" />
-        <error line="552" column="1" source="standard:indent" />
-        <error line="553" column="1" source="standard:indent" />
-        <error line="554" column="1" source="standard:indent" />
-        <error line="595" column="19" source="standard:wrapping" />
-        <error line="601" column="9" source="standard:wrapping" />
-        <error line="632" column="19" source="standard:wrapping" />
-        <error line="638" column="9" source="standard:wrapping" />
-        <error line="1005" column="19" source="standard:wrapping" />
-        <error line="1011" column="9" source="standard:wrapping" />
-        <error line="1032" column="23" source="standard:wrapping" />
-        <error line="1034" column="13" source="standard:wrapping" />
-        <error line="1184" column="1" source="standard:indent" />
-        <error line="1185" column="1" source="standard:indent" />
-        <error line="1186" column="1" source="standard:indent" />
-        <error line="1198" column="121" source="standard:max-line-length" />
-        <error line="1204" column="1" source="standard:indent" />
-        <error line="1205" column="1" source="standard:indent" />
-        <error line="1206" column="1" source="standard:indent" />
-        <error line="1207" column="1" source="standard:indent" />
-        <error line="1323" column="121" source="standard:max-line-length" />
-        <error line="1559" column="121" source="standard:max-line-length" />
-        <error line="1718" column="121" source="standard:max-line-length" />
-        <error line="1725" column="1" source="standard:indent" />
-        <error line="1726" column="1" source="standard:indent" />
-        <error line="1727" column="1" source="standard:indent" />
-        <error line="1728" column="1" source="standard:indent" />
-        <error line="1736" column="19" source="standard:wrapping" />
-        <error line="1738" column="9" source="standard:wrapping" />
+        <error line="195" column="121" source="standard:max-line-length" />
+        <error line="315" column="121" source="standard:max-line-length" />
+        <error line="1125" column="121" source="standard:max-line-length" />
+        <error line="1222" column="121" source="standard:max-line-length" />
+        <error line="1446" column="121" source="standard:max-line-length" />
+        <error line="1597" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/students/StudentDetailViewModelTest.kt">
-        <error line="107" column="121" source="standard:max-line-length" />
-        <error line="108" column="121" source="standard:max-line-length" />
-        <error line="109" column="121" source="standard:max-line-length" />
-        <error line="110" column="121" source="standard:max-line-length" />
-        <error line="139" column="121" source="standard:max-line-length" />
-        <error line="140" column="121" source="standard:max-line-length" />
-        <error line="141" column="121" source="standard:max-line-length" />
-        <error line="164" column="121" source="standard:max-line-length" />
-        <error line="165" column="121" source="standard:max-line-length" />
-        <error line="183" column="121" source="standard:max-line-length" />
-        <error line="184" column="121" source="standard:max-line-length" />
-        <error line="194" column="121" source="standard:max-line-length" />
-        <error line="262" column="121" source="standard:max-line-length" />
-        <error line="267" column="121" source="standard:max-line-length" />
-        <error line="390" column="120" source="standard:max-line-length" />
-        <error line="518" column="1" source="standard:indent" />
-        <error line="519" column="1" source="standard:indent" />
-        <error line="520" column="1" source="standard:indent" />
-        <error line="523" column="1" source="standard:indent" />
-        <error line="524" column="1" source="standard:indent" />
-        <error line="525" column="1" source="standard:indent" />
-        <error line="527" column="1" source="standard:indent" />
-        <error line="528" column="1" source="standard:indent" />
-        <error line="529" column="1" source="standard:indent" />
-        <error line="539" column="121" source="standard:max-line-length" />
-        <error line="550" column="1" source="standard:indent" />
-        <error line="551" column="1" source="standard:indent" />
-        <error line="552" column="1" source="standard:indent" />
-        <error line="587" column="1" source="standard:indent" />
-        <error line="588" column="1" source="standard:indent" />
-        <error line="589" column="1" source="standard:indent" />
-        <error line="610" column="1" source="standard:indent" />
-        <error line="611" column="1" source="standard:indent" />
-        <error line="612" column="1" source="standard:indent" />
+        <error line="98" column="121" source="standard:max-line-length" />
+        <error line="99" column="121" source="standard:max-line-length" />
+        <error line="100" column="121" source="standard:max-line-length" />
+        <error line="101" column="121" source="standard:max-line-length" />
+        <error line="130" column="121" source="standard:max-line-length" />
+        <error line="131" column="121" source="standard:max-line-length" />
+        <error line="132" column="121" source="standard:max-line-length" />
+        <error line="150" column="121" source="standard:max-line-length" />
+        <error line="151" column="121" source="standard:max-line-length" />
+        <error line="168" column="121" source="standard:max-line-length" />
+        <error line="169" column="121" source="standard:max-line-length" />
+        <error line="179" column="121" source="standard:max-line-length" />
+        <error line="243" column="121" source="standard:max-line-length" />
+        <error line="248" column="121" source="standard:max-line-length" />
+        <error line="360" column="120" source="standard:max-line-length" />
+        <error line="489" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/students/StudentFormViewModelTest.kt">
-        <error line="117" column="121" source="standard:max-line-length" />
-        <error line="267" column="74" source="standard:function-literal" />
-        <error line="267" column="102" source="standard:function-literal" />
-        <error line="267" column="108" source="standard:function-literal" />
-        <error line="267" column="121" source="standard:max-line-length" />
-        <error line="267" column="123" source="standard:function-literal" />
+        <error line="108" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/students/StudentsViewModelTest.kt">
-        <error line="61" column="121" source="standard:max-line-length" />
+        <error line="52" column="121" source="standard:max-line-length" />
     </file>
     <file name="src/test/java/com/seblful/klas/ui/subjects/SubjectsViewModelTest.kt">
         <error line="62" column="121" source="standard:max-line-length" />

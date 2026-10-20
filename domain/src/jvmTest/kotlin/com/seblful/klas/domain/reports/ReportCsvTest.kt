@@ -10,11 +10,6 @@ class ReportCsvTest {
 
     private val header = listOf("Раздел", "Название", "Сумма")
 
-    /**
-     * U+FEFF as an escape, never as a literal: a byte-order mark typed into a source file is
-     * invisible in every editor, and lint's `ByteOrderMark` check rejects one on sight. Spelling it
-     * here is also what makes the assertions below say *which* character they are about.
-     */
     private val BOM = "\uFEFF"
 
     private fun build(vararg lines: ReportCsv.Line) =
@@ -35,11 +30,6 @@ class ReportCsvTest {
         assertEquals("klas-report-all.csv", ReportCsv.fileName(ReportPeriod(ReportPeriod.Kind.ALL, june)))
     }
 
-    /**
-     * Which rows the file contains. This used to be worked out in `ReportsScreen`, so the one thing
-     * anybody actually checks about an export — that the sections are all there and in screen order —
-     * was outside the reach of every test.
-     */
     @Test
     fun `the file is the total, then each section in screen order, debts last`() {
         val report = Reports.Report(
@@ -66,10 +56,6 @@ class ReportCsvTest {
         )
     }
 
-    /**
-     * Nobody owing anything is not a debts section with a zero in it. The heading and its total both go,
-     * because a line saying «Всего к получению; 0,00» reads as an assertion rather than as an absence.
-     */
     @Test
     fun `a report nobody owes anything on has no debts section at all`() {
         val report = Reports.Report(
@@ -84,7 +70,6 @@ class ReportCsvTest {
         )
     }
 
-    /** Excel reads a BOM-less UTF-8 file as a legacy code page, which turns Cyrillic into mojibake. */
     @Test
     fun `the file starts with a byte-order mark`() {
         assertTrue(build().startsWith(BOM))
@@ -97,7 +82,6 @@ class ReportCsvTest {
         assertEquals(BOM + "Раздел;Название;Сумма\r\nДоход;Аня;30,00\r\n", csv)
     }
 
-    /** A bare decimal: a currency suffix would make every cell text, and text cannot be summed. */
     @Test
     fun `amounts carry no currency code and always show two places`() {
         val csv = build(
@@ -120,11 +104,6 @@ class ReportCsvTest {
         assertTrue(csv.contains("s;credit;-20,00"), csv)
     }
 
-    /**
-     * The two halves of a dialect **travel together**, which is the whole reason it is one type: Excel's
-     * list separator is `;` in every locale that writes `1500,50` and `,` in every locale that writes
-     * `1500.50`, and either half on its own produces a file no spreadsheet can read.
-     */
     @Test
     fun `an English dialect writes dot decimals in a comma-separated file`() {
         val csv = ReportCsv.build(
@@ -136,7 +115,6 @@ class ReportCsvTest {
         assertEquals(BOM + "Section,Name,Amount\r\nIncome,Anya,1250.50\r\n", csv)
     }
 
-    /** And the escaping follows the delimiter, or a name with a comma in it would shift a column. */
     @Test
     fun `the quoted character is the dialect's own delimiter`() {
         val commas = ReportCsv.build(
@@ -185,7 +163,6 @@ class ReportCsvTest {
         val csv = build(ReportCsv.Line("Доход", "Аня\nПетрова", Money.ofMajor(10)))
 
         assertTrue(csv.contains("\"Аня\nПетрова\""), csv)
-        // Header, one data row, and nothing else: the embedded newline did not start a second row.
         assertEquals(2, csv.trimEnd().split("\r\n").size)
     }
 

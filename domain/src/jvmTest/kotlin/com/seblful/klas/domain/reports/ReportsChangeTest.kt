@@ -5,22 +5,13 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-/**
- * The period-on-period comparison — the line that turns the reports screen's headline number into an
- * answer to the question the screen exists to ask.
- */
 class ReportsChangeTest {
 
-    /** All time has no period before it, so there is nothing to state. */
     @Test
     fun `no previous period means no comparison`() {
         assertNull(Reports.change(Money.ofMajor(100), previous = null))
     }
 
-    /**
-     * Growth from nothing is not a percentage. «+100 %» or «+∞» would be arithmetic theatre; that the
-     * previous period was empty is the actual news.
-     */
     @Test
     fun `a previous period that earned nothing has no baseline`() {
         assertEquals(Reports.Change.NoBaseline, Reports.change(Money.ofMajor(100), Money.ZERO))
@@ -51,7 +42,6 @@ class ReportsChangeTest {
         )
     }
 
-    /** Earning nothing this period against something last is −100 %, not a missing comparison. */
     @Test
     fun `earning nothing after a good period is minus one hundred`() {
         assertEquals(
@@ -60,15 +50,12 @@ class ReportsChangeTest {
         )
     }
 
-    /** Rounded away from zero at the half, so a small real rise does not print as no change. */
     @Test
     fun `a half percent rounds up rather than vanishing`() {
-        // 100,50 against 100,00 — half a percent.
         assertEquals(
             Reports.Change.Percent(1),
             Reports.change(Money(10_050), Money(10_000)),
         )
-        // And the same magnitude downward keeps its sign.
         assertEquals(
             Reports.Change.Percent(-1),
             Reports.change(Money(9_950), Money(10_000)),

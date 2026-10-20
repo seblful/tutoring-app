@@ -5,12 +5,6 @@ import org.junit.Test
 
 class StudentDetailKeysTest {
 
-    /**
-     * Reproduces the crash on opening a student with a balance. Subjects, payments and classes
-     * are keyed in one `LazyColumn`; their ids come from different tables and overlap, so id `1`
-     * appears in all three sections. Compose rejects duplicate keys, so the screen must namespace
-     * them. This asserts the combined keys (in the same render order as the screen) stay unique.
-     */
     @Test
     fun `keys are unique when subject, payment and class ids overlap`() {
         val subjectIds = listOf(1L, 2L, 3L)
@@ -40,12 +34,6 @@ class StudentDetailKeysTest {
         )
     }
 
-    /**
-     * The card's own furniture — the stat row, the sticky tab bar, each tab's add button and empty
-     * state — shares the list with the id-keyed rows, so its fixed names have to be distinct from each
-     * other *and* unable to collide with any row's key. This is the same crash as above, reached from
-     * the other side: a fixed key that happened to read like a row's would take a row's slot.
-     */
     @Test
     fun `the card's fixed keys are distinct from each other and from every row key`() {
         val fixed = listOf(

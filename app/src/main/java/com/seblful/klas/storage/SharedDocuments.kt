@@ -7,7 +7,6 @@ import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 
-/** Files lent through FileProvider; kept separate so their lifetime can be tested without a provider. */
 internal class SharedDocuments(
     private val directory: File,
     private val clock: WallClock = WallClock.system(TimeZone.UTC),

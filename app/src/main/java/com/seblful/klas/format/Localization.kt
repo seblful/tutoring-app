@@ -87,13 +87,6 @@ fun deviceLocales(): List<Locale> = buildList {
     for (index in 0 until system.size()) add(system[index])
 }
 
-/**
- * A context that answers with one language's resources while remaining the context it wrapped.
- *
- * Private because [inLanguage] is the whole of its public purpose. The resources are built once, at
- * construction: `createConfigurationContext` is not free, and this is created per composition of the app
- * root and per notification posted.
- */
 private class LocalizedContext(base: Context, locale: Locale) : ContextWrapper(base) {
 
     private val localized: Resources = base.createConfigurationContext(

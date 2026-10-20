@@ -28,15 +28,7 @@ data class BookingContext(
     val defaultLessonMinutes: Int = DEFAULT_LESSON_MINUTES,
 )
 
-/**
- * Every way the booking form can change — the tutor's edits and the answers the app went to look up.
- *
- * The distinction is [isEdit], and it is the reason this is one type. There used to be eleven mutators,
- * four of which were `selectX` one-liners over a private `applyX` differing *only* in setting `touched`:
- * the tutor picking a group has to mark the form unsaved, the form pre-selecting the group it was opened
- * from must not. That is a property of the change, and it is stated here once instead of being encoded
- * in which of two functions the caller reached for.
- */
+/** very way the booking form can change — the tutor's edits and the answers the app went to look up. */
 sealed interface BookingIntent {
 
     /** Whether this change is the tutor's work, and so makes the form unsaved. */
@@ -73,10 +65,6 @@ sealed interface BookingIntent {
     /**
      * [inner], applied without marking the form unsaved — for a change the app makes on the tutor's
      * behalf: the group the form was opened from, the only student there is.
-     *
-     * A wrapper rather than a second `apply` overload, so "this is setup, not an edit" is said in the
-     * same place for every intent instead of being a flag threaded through the call. It is the whole of
-     * what the four `selectX`/`applyX` pairs used to encode by existing twice.
      */
     data class AsSetup(val inner: BookingIntent) : BookingIntent {
         override val isEdit: Boolean get() = false
@@ -84,13 +72,7 @@ sealed interface BookingIntent {
 
     // ---- Answers, not edits --------------------------------------------------------------------
 
-    /**
-     * What the app went to find out, coming back — never the tutor's work, so never an edit.
-     *
-     * Each carries what it was asked *about*, so it can tell whether the form has moved on since — see the
-     * staleness checks in [BookingForm.change]. These used to be `if` guards inside a
-     * `viewModelScope.launch`, where nothing could reach them.
-     */
+    /** hat the app went to find out, coming back — never the tutor's work, so never an edit. */
     sealed interface Answer : BookingIntent {
         override val isEdit: Boolean get() = false
     }
@@ -98,19 +80,10 @@ sealed interface BookingIntent {
     /**
      * The tutor's usual length, once settings have loaded. A new lesson shows it from the start, so the
      * length it is about to book is on screen before a start is picked.
-     *
-     * Applied only while the form still has no length: a chip the tutor picked while settings were being
-     * read is their choice and stays.
      */
     data class DefaultLength(val minutes: Int) : Answer
 
-    /**
-     * The only student there is, for a new lesson — with several, the tutor picks and nothing is guessed.
-     *
-     * Applied only while the form is still for a student and has none chosen: a choice made in the moment
-     * the list took to read is kept. Carries the row, because the students list may not have emitted yet
-     * and their default class mode is read from it.
-     */
+    /** he only student there is, for a new lesson — with several, the tutor picks and nothing is guessed. */
     data class OnlyStudent(val student: Student) : Answer
 
     /** The lesson being edited, loaded from the database. Not the tutor's work. */
@@ -131,15 +104,7 @@ sealed interface BookingIntent {
     data class OnlySubject(val askedFor: SubjectKey, val subjectId: Long) : Answer
 }
 
-/**
- * Something the form needs from the database because of a change just made to it.
- *
- * Returned as **data** rather than launched, so the cascade is a value a test can read: "choosing this
- * group means going to look up its rate, and then whether it has a single subject". The view model runs
- * them and feeds each answer back as the matching [BookingIntent]. This is the same shape
- * `ClassRepository.write` uses for its post-commit work, and for the same reason — the module that knows
- * what is owed should not also have to be the one that can run it.
- */
+/** omething the form needs from the database because of a change just made to it. */
 sealed interface Lookup {
 
     /** Read [groupId]'s rate, mode and subject — answered with [BookingIntent.GroupLoaded]. */
@@ -161,30 +126,15 @@ data class Applied(val form: BookingForm, val lookups: List<Lookup> = emptyList(
 /**
  * The booking form: what has been filled in, and whether the tutor filled it in.
  *
- * **Pure.** Every rule about how the form moves lives here — the target/student/group/subject cascade
- * that clears what belonged to the previous choice, the default length a start brings with it, the
- * roster ticks, and the three staleness checks that keep a slow answer from landing on a form that has
- * moved on. None of it needs a dispatcher, a `SavedStateHandle` or six repositories to exercise.
- *
- * It was spread across eleven mutators on a thousand-line view model, half of them inside
- * `viewModelScope.launch` blocks. The rules were the same rules; they were simply somewhere a test could
- * only reach them through the whole machine.
- *
  * @param touched whether the form differs from what it was opened with because *the tutor* changed it.
- *   Loading a lesson, pre-selecting the group the form was opened from, filling in the only student or
- *   the only subject: none of those is the tutor's work, so none may make the form look unsaved.
+ * Loading a lesson, pre-selecting the group the form was opened from, filling in the only student or
+ * the only subject: none of those is the tutor's work, so none may make the form look unsaved.
  */
 data class BookingForm(
     val form: ClassForm = ClassForm(),
     val touched: Boolean = false,
 ) {
-    /**
-     * The form after [intent], and anything it now needs looked up.
-     *
-     * Named `change` rather than `apply`: every type already has `apply` from the standard library, and a
-     * caller writing `form.apply { … }` would silently get the scope function instead — the same trap
-     * `LessonFilter.accepted` was renamed away from.
-     */
+    /** he form after [intent], and anything it now needs looked up. */
     fun change(intent: BookingIntent, context: BookingContext): Applied {
         val moved = transform(intent, context)
         // The tutor's edit marks the form unsaved — but only when it moved something. An intent that
@@ -223,11 +173,6 @@ data class BookingForm(
 
     private fun settled(form: ClassForm) = Applied(copy(form = form))
 
-    /**
-     * Switching between a student and a group clears the subject and the price, because both belonged to
-     * the other target — a group's rate and a student's price for a subject have nothing to do with each
-     * other.
-     */
     private fun chooseTarget(target: ClassTarget, context: BookingContext): Applied {
         if (form.target == target) return Applied(this)
         val cleared = form.copy(
@@ -247,10 +192,6 @@ data class BookingForm(
         return Applied(copy(form = cleared), listOf(Lookup.OnlySubjectFor(SubjectKey.of(cleared))))
     }
 
-    /**
-     * Choosing a different student clears the subject and price (they belonged to the previous student)
-     * and pre-fills the class mode from the new student's default.
-     */
     private fun chooseStudent(studentId: Long, known: Student?, context: BookingContext): Applied {
         if (form.studentId == studentId) return Applied(this)
         val student = known ?: context.students.firstOrNull { it.id == studentId }
@@ -264,11 +205,6 @@ data class BookingForm(
         return Applied(copy(form = next), listOf(Lookup.OnlySubjectFor(SubjectKey.of(next))))
     }
 
-    /**
-     * Choosing a different group clears the subject and the roster ticks — a different group is a
-     * different set of people, so the last one's exclusions mean nothing — and then goes to read the
-     * group, because its rate, mode and subject all come from the row.
-     */
     private fun chooseGroup(groupId: Long): Applied {
         if (form.groupId == groupId) return Applied(this)
         val next = form.copy(
@@ -280,12 +216,6 @@ data class BookingForm(
         return Applied(copy(form = next), listOf(Lookup.GroupOf(groupId)))
     }
 
-    /**
-     * The group's own rate, mode and subject.
-     *
-     * Ignored when the form has moved to another group since it was asked for — the read is a database
-     * round trip, and the tutor can pick twice inside one.
-     */
     private fun groupLoaded(group: Group): Applied {
         if (form.groupId != group.id) return Applied(this)
         val next = form.copy(
@@ -301,10 +231,6 @@ data class BookingForm(
         return Applied(copy(form = next), lookups)
     }
 
-    /**
-     * Selecting a subject pre-fills the rate from the student's price for it. A group lesson's rate is
-     * the group's and does not depend on the subject, so there is nothing to pre-fill there.
-     */
     private fun chooseSubject(subjectId: Long): Applied {
         val next = form.copy(subjectId = subjectId)
         val studentId = next.studentId
@@ -316,11 +242,9 @@ data class BookingForm(
         return Applied(copy(form = next), lookups)
     }
 
-    /** Only fills a length that is not there yet — see [BookingIntent.DefaultLength]. */
     private fun defaultLength(minutes: Int): Applied =
         if (form.durationMinutes == null) settled(form.copy(durationMinutes = minutes)) else Applied(this)
 
-    /** Only while nobody has been chosen for an individual lesson — see [BookingIntent.OnlyStudent]. */
     private fun onlyStudent(student: Student, context: BookingContext): Applied =
         if (form.target == ClassTarget.STUDENT && form.studentId == null) {
             chooseStudent(student.id, student, context)
@@ -328,7 +252,6 @@ data class BookingForm(
             Applied(this)
         }
 
-    /** Only auto-fills an empty field while both the student and subject it was asked about are still chosen. */
     private fun priceLoaded(studentId: Long, subjectId: Long, amount: Money?): Applied {
         if (form.target != ClassTarget.STUDENT || form.studentId != studentId || form.subjectId != subjectId) {
             return Applied(this)
@@ -336,23 +259,12 @@ data class BookingForm(
         return settled(form.copy(price = form.price.prefilledWith(amount)))
     }
 
-    /**
-     * The single subject the target offered.
-     *
-     * Applies only while the form still has that target and still has no subject — a target chosen in
-     * quick succession must not receive the previous one's answer.
-     */
     private fun onlySubject(askedFor: SubjectKey, subjectId: Long): Applied {
         if (SubjectKey.of(form) != askedFor) return Applied(this)
         if (!form.hasTarget || form.subjectId != null) return Applied(this)
         return chooseSubject(subjectId)
     }
 
-    /**
-     * Includes or excludes one member for the lesson. Excluding writes no class for them at all, which
-     * is different from booking and then cancelling: there is no cancelled lesson in their history,
-     * because the lesson was never theirs.
-     */
     private fun includeMember(studentId: Long, included: Boolean): Applied {
         val excluded = if (included) form.excludedMemberIds - studentId else form.excludedMemberIds + studentId
         return settled(form.copy(excludedMemberIds = excluded))
@@ -361,29 +273,12 @@ data class BookingForm(
     /**
      * What the start-time picker opens on: the start already chosen, or — for a lesson whose time is
      * still empty — **the next whole hour** after [now].
-     *
-     * It used to offer the current time to the minute, on the reasoning that a booking is written down
-     * as it is arranged. But a lesson is *arranged* at 15:23 and *held* at 16:00: tutoring runs on the
-     * hour, so the minutes were a number the tutor had to spin away every single time, and a start of
-     * 15:23 is one already slightly in the past. Rounding up gives the common case nothing to do.
-     *
-     * Already on the hour stays there — 15:00 opens on 15:00, not 16:00 — because that time is neither
-     * past nor short of the hour. The test is the **minute**, not equality with the truncated time:
-     * seconds are below anything the picker can show, so 15:00:20 is still the 15:00 hour and must not
-     * be pushed an hour on. Late in the evening the next hour wraps to 00:00, which is the hour it is;
-     * the date is a separate field, so nothing is claimed about *which* midnight.
      */
     fun startPickerDefault(now: LocalTime): LocalTime {
         form.timeFrom?.let { return it }
         return if (now.minute == 0) LocalTime(now.hour, 0) else LocalTime((now.hour + 1) % HOURS_IN_DAY, 0)
     }
 
-    /**
-     * Picking or changing the start keeps whatever length the lesson has, and gives a lesson that has
-     * none yet the tutor's default. Moving the start no longer has to move anything else — the end is
-     * derived from the length ([ClassForm.ends]) — so this cannot leave the two disagreeing, which is
-     * what it existed to prevent.
-     */
     private fun startAt(time: LocalTime, context: BookingContext): Applied = settled(
         form.copy(
             timeFrom = time,

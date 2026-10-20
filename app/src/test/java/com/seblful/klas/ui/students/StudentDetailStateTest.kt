@@ -10,7 +10,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import kotlin.time.Instant
 
-/** The rules the student card reads off its state rather than working out in a composable. */
 class StudentDetailStateTest {
 
     private val math = Subject(id = 1, name = "Математика")
@@ -51,7 +50,6 @@ class StudentDetailStateTest {
     fun `a filter whose chips have gone hides nothing`() {
         val alone = row(1)
         val state = StudentDetailState(classes = listOf(alone), lessonKinds = mapOf(LessonKind.INDIVIDUAL to 1))
-        // The group lessons are gone, so are the chips — and the GROUP selection left behind.
         assertEquals(listOf(alone), state.lessonsShown(LessonFilter.GROUP))
     }
 }

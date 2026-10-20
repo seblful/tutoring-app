@@ -7,16 +7,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * **What a choice looks like once there are too many of them to be segments.**
- *
- * A row of segments is a fixed fraction of the screen divided by the number of them, so past four there is
- * no width left to shrink a label into — `SegmentLabel` would produce four illegible words rather than an
- * honest overflow. Two of the app's choices are **lists that grow**: one option per language the app is
- * translated into and one per currency it can label money with. So "how many is too many" has to be a rule
- * the code applies rather than a sentence in a KDoc, or the fifth entry of either would ship as an
- * unreadable row — no compile error, no crash, and nothing on screen that looks deliberate.
- */
 class SegmentsTest {
 
     @Test
@@ -32,11 +22,6 @@ class SegmentsTest {
         assertFalse(fitsInSegments(9))
     }
 
-    /**
-     * The two growing lists, as they stand — and the reason this test exists rather than the bound being
-     * left as a comment. The currency row is **at** the bound today: a fifth currency changes the control,
-     * which is a visible, deliberate change instead of four codes squeezed into 72 dp.
-     */
     @Test
     fun `the app's two growing choices are where they are, and neither is over the bound by accident`() {
         assertEquals("BYN, RUB, USD, EUR — exactly the bound", MaxSegments, Currency.entries.size)

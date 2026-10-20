@@ -19,17 +19,12 @@ class PeopleSearchTest {
         assertTrue(PeopleSearch.matches("аня", "АНЯ"))
     }
 
-    /** Substring, not prefix: the app stores one name field, and surnames are searched for too. */
     @Test
     fun `a surname is found inside a full name`() {
         assertTrue(PeopleSearch.matches("Иван Петров", "петров"))
         assertTrue(PeopleSearch.matches("Иван Петров", "етр"))
     }
 
-    /**
-     * Typing a second word to narrow a result is the reflex a search box invites, and demanding one
-     * contiguous substring would punish it: «пет ив» has to find «Иван Петров».
-     */
     @Test
     fun `every term must match, in any order`() {
         assertTrue(PeopleSearch.matches("Иван Петров", "пет ив"))

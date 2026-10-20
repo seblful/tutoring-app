@@ -60,12 +60,6 @@ class StudentFormViewModel @Inject constructor(
         /**
          * Everything the tutor teaches, to tick a price against — [Loadable], while the rest of this
          * state is not.
-         *
-         * The split is the point. A blank name and an empty phone box are what "add a student" *is*, so
-         * the form is honest before anything has been read and must not be withheld; the subject list is
-         * a read of the database, and empty is a **refusal** on this screen — «Сначала добавьте
-         * предметы», in the error red, which is what a tutor with nine subjects saw for the frame or two
-         * before they arrived. So only the list waits. See [Loadable].
          */
         val allSubjects: Loadable<List<Subject>> = Loadable.Loading,
     ) : LeavableForm {
@@ -77,14 +71,7 @@ class StudentFormViewModel @Inject constructor(
                 form.subjectPrices.isNotEmpty() &&
                 form.subjectPrices.values.all { it.isValid }
 
-        /**
-         * Whether anything has been entered — what leaving without saving would cost.
-         *
-         * A new student's form is compared against a fresh [Form] because nothing else ever sets it:
-         * there is no record to load and no default to prefill, so "as it was opened" and "as the
-         * class declares it" are the same value. The dialled phone prefix is part of that default and
-         * so does not, on its own, make the form dirty.
-         */
+        /** hether anything has been entered — what leaving without saving would cost. */
         override val isDirty: Boolean get() = form != Form()
     }
 
@@ -122,9 +109,6 @@ class StudentFormViewModel @Inject constructor(
      * добавьте предметы», and of a new student taking a subject nobody has been taught yet. The form used
      * to offer no road to a subject but back out of it, so a fresh install's «Добавить ученика» on the
      * schedule led to a refusal.
-     *
-     * Written in the application scope, like [save]; only the tick waits here, and a failure is the same
-     * [Event.SAVE_FAILED] a failed save reports.
      */
     fun addSubject(name: String) {
         val trimmed = name.trim()
@@ -151,19 +135,7 @@ class StudentFormViewModel @Inject constructor(
 
     val events = UiEvents<Event>()
 
-    /**
-     * Creates the student and their priced subjects.
-     *
-     * **One write, in the application scope.** It used to be two calls in `viewModelScope` followed by
-     * navigation, so going back the instant after tapping save could cancel between them and leave a
-     * student with no priced subject — a row this very form refuses to submit, and one nothing can be
-     * booked for. Both halves now land together (`EnrollmentRepository.createStudent`) in a scope that
-     * outlives the screen, and only the navigation stays here.
-     *
-     * The form is read into a snapshot **before** the write, for the reason `ValidForm` gives in the
-     * booking form: a write that outlives its screen must not read state the screen may still be
-     * editing.
-     */
+    /** reates the student and their priced subjects. */
     fun save(onSaved: () -> Unit) {
         val s = state.value
         // Once: a double tap on «Сохранить» created the student twice and popped two screens.
@@ -187,6 +159,5 @@ class StudentFormViewModel @Inject constructor(
         }
     }
 
-    /** Set on the tap and cleared only by a failure — see [save]. */
     private var saving = false
 }

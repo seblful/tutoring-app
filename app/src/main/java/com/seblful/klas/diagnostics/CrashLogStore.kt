@@ -4,10 +4,7 @@ package com.seblful.klas.diagnostics
  * Where the crash log is kept. A seam under [CrashLogger] rather than beside it: everything worth
  * getting wrong about crash logging — the format, the size cap, chaining to the platform's previous
  * handler, never letting the logging itself mask the crash — is in [CrashLogger], and this is only
- * the bytes. With the file behind an interface, all of that is reachable from a JVM test.
- *
- * Implementations are best-effort in the same sense as the rest of the app: they may throw, and
- * [CrashLogger] treats a failure as "no diagnostics", never as a reason to interfere with the crash.
+ * the bytes.
  */
 interface CrashLogStore {
 

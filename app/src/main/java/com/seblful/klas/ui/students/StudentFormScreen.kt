@@ -124,13 +124,6 @@ fun StudentFormContent(
     }
 }
 
-/**
- * The subjects to tick, each with the price this student is charged for it — and the refusal when there
- * are none to tick.
- *
- * Its own composable so the branch above it can be a `when` over three cases rather than an early return
- * out of the form's `Column`. Emits its rows as siblings into that `Column`, so they keep its spacing.
- */
 @Composable
 private fun SubjectPrices(
     subjects: List<Subject>,
@@ -205,13 +198,6 @@ private fun SubjectPrices(
     }
 }
 
-/**
- * How far the rate field is indented under the subject it prices, so its left edge lands under the
- * subject's **name** rather than under its tick: the `Checkbox`'s own 48 dp touch target, plus the same
- * [Spacing.inline] the name is set in from it. A measurement of two other controls, not a gap — see
- * `Spacing`.
- */
 private val PriceFieldIndent = MinTouchTarget + Spacing.inline
 
-/** A tick and a subject name — the row the skeleton stands in for while the subjects are being read. */
 private val SubjectRowHeight = MinTouchTarget

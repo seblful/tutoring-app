@@ -67,14 +67,8 @@ import com.seblful.klas.ui.theme.KlasIcons
 /**
  * Where a class is held, chosen the way every other single answer on a form is: a [ChoiceField].
  *
- * It used to be a bare label above two filter chips. Two chips are a fine control in isolation, but on
- * these forms the mode sits among bordered fields — a student, a subject, a date — and was the only
- * input drawn without a border, so it read as a caption with buttons under it rather than as the fourth
- * field. On the booking form it was worse than inconsistent: folded it was a [PickerField] and tapping
- * it *replaced* that with the label-and-chips, so one input had two different appearances.
- *
  * @param label «Место» on a lesson, «Место занятий» where the default for future lessons is being set —
- *   the same control answering two different questions.
+ * the same control answering two different questions.
  */
 @Composable
 fun ModeField(
@@ -93,9 +87,6 @@ fun ModeField(
 /**
  * A read-only text field that opens a menu of [options] — the app's one way of picking a single
  * row-backed thing (a student, a group, a subject) by id.
- *
- * Shared rather than per-screen because the group form and the booking form must offer a subject the
- * same way; they disagree only on what the list contains and whether it can be changed.
  */
 @Composable
 fun DropdownField(
@@ -126,14 +117,8 @@ fun DropdownField(
  * The same field, for picking one of a **fixed set of values** rather than one of a table's rows — a
  * class mode today, any other small enum a form has to ask about tomorrow.
  *
- * Separate from [DropdownField] because the two answer differently shaped questions: an id-backed
- * choice can be selected without being in the list it offers (a student the form was opened on, before
- * their row has loaded), so its displayed text is passed in, while here [selected] is always one of
- * [options] and the label is derived. What they must never differ on is how they *look*, which is why
- * both are the same [MenuField].
- *
  * @param optionLabel how a value reads to the tutor — `@Composable` because those labels are
- *   `stringResource`s.
+ * `stringResource`s.
  */
 @Composable
 fun <T> ChoiceField(
@@ -165,19 +150,15 @@ fun <T> ChoiceField(
  * The shape both dropdowns share: a bordered, read-only field showing what is chosen, opening a menu of
  * [items] on tap.
  *
- * Private on purpose. It exists so that "pick one thing" cannot end up looking like two different
- * controls depending on whether the thing has a row id — the mistake this file's [PickerField] KDoc
- * describes, made once already with price and place.
- *
  * @param items the menu's contents, given the [dismiss] that closes it — a menu item that selects
- *   without closing would leave the tutor tapping outside to get rid of it.
+ * without closing would leave the tutor tapping outside to get rid of it.
  * @param supportingText what qualifies the choice, in the field's own slot. The group form used to put
- *   this in a standalone `Text` under the subject picker while the rate field beside it used its own
- *   `supportingText` — 20 dp apart, indented differently, on the same form.
+ * this in a standalone `Text` under the subject picker while the rate field beside it used its own
+ * `supportingText` — 20 dp apart, indented differently, on the same form.
  * @param isError whether that supporting line is a **refusal** rather than a note. It has to be
- *   separable: the booking form's subject picker says either «Предмет задан группой» (a fact) or «У
- *   ученика нет предметов с ценой» (the reason nothing can be saved), and folding those two into one
- *   grey line is how the second one stopped being visible.
+ * separable: the booking form's subject picker says either «Предмет задан группой» (a fact) or «У
+ * ученика нет предметов с ценой» (the reason nothing can be saved), and folding those two into one
+ * grey line is how the second one stopped being visible.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -226,17 +207,8 @@ private fun MenuField(
 /**
  * A field that is not typed into but **tapped** to open a picker — a date, a time, a price, a place.
  *
- * Shared rather than private to the booking form, because that form is where its absence showed:
- * price and location were drawn as bare clickable `Text`, sitting directly under five bordered
- * fields. Same kind of input, three presentations, and the two without a border read as labels
- * rather than as things to tap. One component is what makes a form look built rather than assembled.
- *
- * Built on [Surface] rather than on a disabled `OutlinedTextField` whose colours are painted back in.
- * That trick worked visually and cost the ripple: a tap on the most-tapped input in the app produced
- * no feedback at all, so a slow picker read as a tap that had missed.
- *
  * @param value what is currently chosen; empty renders [placeholder] in the muted style a text
- *   field's own placeholder uses, so an unfilled picker reads as unfilled rather than as blank.
+ * field's own placeholder uses, so an unfilled picker reads as unfilled rather than as blank.
  */
 @Composable
 fun PickerField(
@@ -306,20 +278,12 @@ fun PickerField(
         }
     }
 }
-/** Matches an `OutlinedTextField`'s height, so a row mixing the two lines up. */
+
 private val PickerFieldHeight = 56.dp
 /**
  * The focus a **reveal owes the tap that caused it**: an input that appears because something was
  * tapped takes the caret and the keyboard as it arrives, so one tap does what one tap looked like it
  * would.
- *
- * Attach the returned requester with `Modifier.focusRequester(...)` to the field being revealed. The
- * focus is asked for on first composition, which for a field inside an `if` *is* the moment it appears.
- *
- * Shared because this is the same defect twice over. Search had it fixed inline — tapping the icon
- * offered a box that then had to be tapped again — and the booking form's price still had it: the first
- * tap swapped the [PickerField] for a text field and the second one put the cursor in it, for an input
- * whose whole purpose is to be typed into.
  */
 @Composable
 fun rememberRevealedFocus(): FocusRequester {
@@ -330,14 +294,6 @@ fun rememberRevealedFocus(): FocusRequester {
 /**
  * A money amount typed in full — a rate, a payment, a default — with the line under it that says what is
  * wrong with it.
- *
- * Seven fields spelled this out: the text, the red outline, the reason under it, one line, a decimal
- * keyboard. The red outline used to be the whole message; [MoneyField] knows which rule failed and this
- * is it saying so, the same way on every form and dialog.
- *
- * Reports the typed text through [onValueChange] rather than constructing the next [MoneyField].
- * The owners turn keystrokes into fields differently: a form's lives in its view model, a dialog's
- * is `rememberSaveable` text with the field derived from it, so partially typed input survives recreation.
  *
  * @param hint the field's ordinary supporting line; an error wins over it ([supportingTextOf]).
  */
@@ -366,10 +322,6 @@ fun MoneyTextField(
  * A **shortlist with an escape hatch**, as chips: one per preset, then [customLabel], which asks for
  * anything else.
  *
- * The last chip is lit whenever [selected] is not one of the presets — otherwise a lesson booked at 50
- * minutes, or a run of six, would show no chip selected and read as nothing having been set. Two pickers
- * on the booking form follow that rule, and each had its own copy of it.
- *
  * @param selected the value in force, or null while there is none.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -397,23 +349,7 @@ fun <T> PresetChips(
         )
     }
 }
-/**
- * One tappable person in a roster picker — a group's members, or who was at a lesson.
- *
- * Shared because the two are the same act and used to look nothing alike: the group form drew an
- * avatar, a tinted selection and rounded corners, while the booking form drew a bare name and a
- * checkbox. A tutor picking people should not be able to tell which screen they are on from the
- * shape of the row.
- *
- * The whole row is one toggle rather than a row containing a checkbox, so the target is the full
- * width and comfortably past the 48dp minimum — the checkbox itself is `onCheckedChange = null`,
- * which makes it a picture of the state instead of a second, smaller way to change it.
- *
- * **The tick is felt**, and here rather than at the two call sites for the reason the row itself is shared:
- * this is one act, and it changes a stored fact — who is on a roster, who was at a lesson. That is what
- * earns a haptic, whereas the row being *tappable* would not; and because the whole row is the target, a
- * thumb covers the checkbox it just changed, so the buzz is often the only immediate answer.
- */
+/** ne tappable person in a roster picker — a group's members, or who was at a lesson. */
 @Composable
 fun MemberPickRow(
     student: Student,
@@ -428,9 +364,11 @@ fun MemberPickRow(
             .clip(MaterialTheme.shapes.medium)
             .background(
                 if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                else Color.Transparent
+                else Color.Transparent,
             )
-            .toggleable(value = selected, role = Role.Checkbox, onValueChange = { on -> toggleFeedback(on); onToggle(on) })
+            .toggleable(value = selected, role = Role.Checkbox, onValueChange = { on ->
+                toggleFeedback(on); onToggle(on)
+            })
             .heightIn(min = MinTouchTarget)
             .padding(horizontal = Spacing.inline, vertical = Spacing.tight),
         verticalAlignment = Alignment.CenterVertically,
@@ -444,14 +382,7 @@ fun MemberPickRow(
         Checkbox(checked = selected, onCheckedChange = null)
     }
 }
-/**
- * The search field the list screens carry in place of their title while searching.
- *
- * One component for all three lists, because the alternative — each list growing its own — is how
- * three different search boxes happen. It is deliberately not a Material `SearchBar`: that component
- * expands into a full-screen results surface with its own history, which is the right shape for
- * searching *across* things and the wrong one for filtering a list that is already on screen.
- */
+/** he search field the list screens carry in place of their title while searching. */
 @Composable
 fun SearchField(
     query: String,

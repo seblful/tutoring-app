@@ -19,14 +19,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/**
- * A form's title is read whole beside its «Сохранить», on a common phone.
- *
- * «Изменить занят…» was the lesson form's title on a 360 dp phone at the default font size — the noun,
- * the half that says which form this is, lost to an ellipsis. The bar title now shrinks a few steps
- * first. Font scale is set by the test rather than read from the device, which would otherwise decide
- * whether it holds; it covers the default and 1.3×, where the shrink's floor being in sp cut it again.
- */
 class BarTitleFitTest {
 
     @get:Rule
@@ -58,7 +50,6 @@ class BarTitleFitTest {
         assertTrue(complaints.joinToString(prefix = "\n", separator = "\n"), complaints.isEmpty())
     }
 
-    /** Shrinking is a floor for long titles, not an enlargement of short ones. */
     @Test
     fun aShortTitleKeepsTheBarsSize() {
         val width = mutableStateOf(360.dp)

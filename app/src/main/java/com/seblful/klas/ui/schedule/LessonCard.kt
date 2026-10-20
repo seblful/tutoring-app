@@ -37,24 +37,6 @@ import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasColors
 
-/**
- * A lesson card that can be marked **completed** with one swipe.
- *
- * Marking a lesson done is the highest-frequency action in the product and cost two taps and a sheet,
- * every time, forever. A gesture on the row makes it one — and the row is exactly where the tutor is
- * already looking, having just taught it.
- *
- * Three deliberate limits:
- * - **Only where completing is legal.** A lesson already completed, or one whose members are in mixed
- *   states, gets a plain card: [ScheduleRow.canSwipeComplete] decides, from the same rule the sheet's
- *   actions are built from, so the gesture can never do something the menu would refuse.
- * - **It is taken back by sliding home.** The phone ticks at the mark and the lesson is marked only on
- *   the lift, so a swipe begun by accident — or aimed at the row below — costs a thumb moving back and
- *   nothing else. [SwipeToConfirmBox] owns that whole contract.
- * - **One direction, and it never sticks.** The row springs back rather than staying dismissed —
- *   nothing is being removed, and the status badge flipping to «Проведено» is the confirmation. A box
- *   left in its dismissed state would be a row hidden behind its own background until recomposed.
- */
 @Composable
 internal fun LazyItemScope.SwipeToCompleteCard(
     row: ScheduleRow,
@@ -154,16 +136,6 @@ private fun ScheduleCard(
     }
 }
 
-/**
- * A lesson's second line, on its card and atop its sheet: the status, then what is taught and where.
- *
- * **The status leads**, as it does on every other lesson row in the app (the student's and the group's
- * cards). At the trailing edge it took ~90dp off the name's line, so on a 360dp phone «Артём Савиц…» lost
- * the surname — the one thing on the card that says whose lesson this is — to a pill saying something the
- * colour of the time already half-says. The facts after it go through [bulletJoin], which drops a blank
- * one: a lesson whose subject has no name read «· Очно». The card keeps it to one line; the sheet
- * passes [maxLines] through so a long subject name is read whole there.
- */
 @Composable
 internal fun StatusLine(row: ScheduleRow, running: Boolean, maxLines: Int = 1) {
     Row(
@@ -182,15 +154,6 @@ internal fun StatusLine(row: ScheduleRow, running: Boolean, maxLines: Int = 1) {
     }
 }
 
-/**
- * The lesson's status — one of the three, whatever its members have been corrected to individually.
- * Which of them missed it is the lesson's own roster to say, not this badge's.
- *
- * **It pops when it changes**, because it is the answer to a swipe the tutor has just let go of — the row
- * springs home under their thumb and the badge is where the outcome lands, a moment later and 200dp away
- * (see [popsOnChange], which is silent for a badge that merely scrolled into view). It pops for a status
- * corrected from the sheet too: the same fact changed under them, by a different route.
- */
 @Composable
 private fun SessionStatusBadge(row: ScheduleRow, running: Boolean) {
     val status = row.session.status

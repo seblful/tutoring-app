@@ -92,9 +92,6 @@ class ZoneChangeFlowsTest {
 
     private fun changeToNewYork(context: Context) {
         java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/New_York"))
-        // Delivered by hand rather than broadcast, to every receiver of the action but the manifest's
-        // `ClockChangeReceiver`: it injects itself from the application's graph, which this suite's bare
-        // `Application` does not have, and only the flows' own runtime receiver is under test here.
         val changed = Intent(Intent.ACTION_TIMEZONE_CHANGED)
         shadowOf(context as Application).registeredReceivers
             .filter { it.intentFilter.hasAction(changed.action) && it.broadcastReceiver !is ClockChangeReceiver }

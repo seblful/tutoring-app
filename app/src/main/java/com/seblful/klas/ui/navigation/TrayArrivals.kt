@@ -15,24 +15,6 @@ import androidx.navigation.NavHostController
 import com.seblful.klas.notifications.TrayNavigation
 import com.seblful.klas.ui.schedule.ScheduleTarget
 
-/**
- * Sends the tutor where a notification they tapped asks them to go — a lesson's form for a reminder's
- * «Перенести», the lesson's sheet for the reminder itself, the schedule on its day for the agenda, the
- * evening digest and the auto-completion report, and the reports' debts for the weekly digest.
- *
- * A notification cannot show a date picker or list who owes what, so each carries an action and this is
- * where it becomes navigation. **Which** destination an intent asks for is [TrayNavigation.destinationFor]'s
- * and not this composable's: the app is opened by the launcher far more often than by a notification, and
- * getting that wrong would yank the tutor onto a lesson every time they open the app.
- *
- * **Both arrivals, because they are different arrivals.** A cold start has the intent waiting on the
- * activity; an app already running gets it through `onNewIntent`, which is the common case — the tutor
- * pulls the shade down over the app they were just in. Handling only the first would make the button work
- * exactly once per process.
- *
- * The `rememberSaveable` guard is about rotation: the activity is rebuilt and hands back the *same*
- * launch intent, which without it would re-open the lesson the tutor had already navigated away from.
- */
 @Composable
 internal fun OpensWhatTheTrayNames(
     navController: NavHostController,

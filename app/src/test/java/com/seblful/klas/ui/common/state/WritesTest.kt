@@ -12,7 +12,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** The guarded-write tail every view model's writes go through — see `ui/common/state/Writes.kt`. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class WritesTest {
 
@@ -33,20 +32,22 @@ class WritesTest {
         assertEquals(listOf(Event.FAILED), seen)
     }
 
-    /** A refusal or a count coming back from the write is the write's answer, not its failure. */
     @Test
     fun `a write that succeeds hands its answer on and reports no failure`() = runTest(mainRule.dispatcher) {
         val events = UiEvents<Event>()
         val seen = mutableListOf<Event>()
         backgroundScope.launch { events.stream.collect { seen += it } }
 
-        mainRule.appScope.write(events, Event.FAILED, onWritten = { n: Int -> if (n > 0) events.send(Event.ANSWERED) }) { 3 }
+        mainRule.appScope.write(events, Event.FAILED, onWritten = { n: Int ->
+            if (n >
+                0
+            ) events.send(Event.ANSWERED)
+        }) { 3 }
         advanceUntilIdle()
 
         assertEquals(listOf(Event.ANSWERED), seen)
     }
 
-    /** Telling the tutor an action failed while the process was being torn down would be a lie. */
     @Test
     fun `a cancelled write is not reported as a failed one`() = runTest(mainRule.dispatcher) {
         val events = UiEvents<Event>()

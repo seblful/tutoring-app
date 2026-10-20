@@ -74,10 +74,6 @@ class StudentsViewModel @Inject constructor(
      * The rows to draw. Filtering and sorting happen **here**, not in the composable, so they run on
      * [computation] with the balance arithmetic they depend on rather than on the frame the list is
      * being drawn in.
-     *
-     * [Loadable] because an empty list is an answer and the absence of one is not: starting at
-     * `emptyList()` meant a tutor with forty students was invited to add their first for the frame or
-     * two before the query returned.
      */
     val rows: StateFlow<Loadable<List<StudentRow>>> =
         _showArchived.flatMapLatest { archived ->
@@ -102,20 +98,12 @@ class StudentsViewModel @Inject constructor(
             .ready()
             .derive(this, computation, Loadable.Loading)
 
-    /**
-     * Debt first, then by name.
-     *
-     * The tie-break is what makes the debt order usable: everyone settled has a balance of zero, so
-     * without it two thirds of the list would sit in whatever order the query happened to return —
-     * and it would shuffle as balances changed.
-     */
     private val StudentSort.comparator: Comparator<StudentRow>
         get() = when (this) {
             StudentSort.NAME -> byName
             StudentSort.DEBT -> compareByDescending<StudentRow> { it.balance.minor }.then(byName)
         }
 
-    /** The app's one name order, over a row — not a second spelling of it. See [NameOrder.by]. */
     private val byName: Comparator<StudentRow> = NameOrder.by { it.student.name }
 
     override fun toggleArchived() {

@@ -25,15 +25,6 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.math.abs
 
-/**
- * The controls pinned under a bar are **painted with it** ([ScreenHeader]): page-coloured while nothing
- * is under them, the bar's scrolled colour once a list is — and page again when the screen turns to a
- * page that has scrolled nowhere.
- *
- * Read off the drawn pixels, because the failure was a visual one with every modifier in order: on four
- * screens the bar turned `surfaceContainer` above a strip of page-coloured segments, so the rows vanished
- * at an edge nobody had drawn; and «Группы» opened under a bar still tinted for the students list.
- */
 class ScreenHeaderTintTest {
 
     @get:Rule
@@ -60,7 +51,6 @@ class ScreenHeaderTintTest {
         composeRule.onNodeWithTag(LIST).performTouchInput { swipeUp() }
         composeRule.waitForIdle()
 
-        // Another page, opening at its own top without a scroll — «Группы» after a scrolled «Ученики».
         composeRule.runOnIdle { page.intValue = 1 }
         composeRule.waitForIdle()
 
@@ -75,7 +65,6 @@ class ScreenHeaderTintTest {
                 KlasScreen(title = "Люди", page = page.intValue) { modifier ->
                     Column(modifier) {
                         ScreenHeader(Modifier.height(HeaderHeight.dp).testTag(HEADER)) {}
-                        // A page's list is its own: a new page is a new list, at its top.
                         key(page.intValue) {
                             LazyColumn(Modifier.fillMaxWidth().testTag(LIST)) {
                                 items(Rows) { Text("Row $it", Modifier.height(RowHeight.dp)) }
@@ -88,7 +77,6 @@ class ScreenHeaderTintTest {
         composeRule.waitForIdle()
     }
 
-    /** The header's middle, and the bar's empty trailing corner, are both [expected]. */
     private fun assertHeaderAndBar(expected: Color, where: String) {
         val header = composeRule.onNodeWithTag(HEADER).captureToImage().toPixelMap()
         val headerColor = header[header.width / 2, header.height / 2]

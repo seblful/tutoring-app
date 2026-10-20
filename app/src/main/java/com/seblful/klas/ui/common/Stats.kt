@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
  * @param value the number itself, already formatted (money carries its currency, hours do not).
  * @param label what it counts, e.g. «Часов».
  * @param hint an optional second line qualifying the value, e.g. «впереди 3» under a lesson count —
- *   for the part of the picture the headline number deliberately leaves out.
+ * for the part of the picture the headline number deliberately leaves out.
  * @param color an override for the value's colour, e.g. red for a debt. Null uses the inherited one.
  */
 data class Stat(
@@ -41,11 +41,6 @@ data class Stat(
 /**
  * The stat row at the top of a student's or a group's card: two to four [Stat]s sharing one surface,
  * each taking an equal share of the width.
- *
- * Values shrink to fit rather than wrapping or being cut (the same rule and mechanism as the bottom
- * bar's labels): a tile is a fixed fraction of the screen, and «1 250,50 BYN» next to «Заработано» is
- * genuinely wider than a phone's quarter — but a truncated amount is worse than a small one, and a
- * wrapped one would shove the row's tiles to different heights.
  */
 @Composable
 fun StatRow(stats: List<Stat>, modifier: Modifier = Modifier) {
@@ -115,14 +110,7 @@ private fun StatTile(stat: Stat, modifier: Modifier = Modifier) {
     }
 }
 
-/**
- * Two distances measured against the tile rather than taken from `Spacing`: a tile is a fixed
- * *fraction* of the screen (a phone's quarter, at four stats), so the inset is what is left after the
- * value has the room it needs to avoid shrinking, and the value, its label and its hint are one
- * statement on three lines rather than three things in a list.
- */
 private val TileInsetX = 6.dp
 private val ValueToLabel = 1.dp
 
-/** The smallest a stat's value is drawn, on screen — whatever the font scale asked for. */
 private val MinValueSize = 11.dp

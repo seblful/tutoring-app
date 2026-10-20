@@ -19,18 +19,7 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.theme.KlasIcons
 
-/**
- * The overflow section: everything that doesn't earn a tab.
- *
- * Four entries, all of them things a tutor actually goes looking for. «Группы» has left (it is a view
- * inside «Люди» now, not a place), and «Диагностика» has moved to the foot of Settings — it is
- * developer furniture and had no business standing as a peer of «Настройки» in the app's main menu.
- *
- * Every row **goes somewhere**, and now says so. Four rows with a leading icon and nothing trailing
- * read as a settings list — four things to *set* — which is the one thing none of them is: each opens
- * a screen. The chevron is the platform's word for that, and it is the only mark that tells these
- * apart from the switch rows two taps away in Settings.
- */
+/** he overflow section: everything that doesn't earn a tab. */
 @Composable
 fun MoreScreen(
     onSubjects: () -> Unit,
@@ -51,7 +40,6 @@ fun MoreScreen(
     }
 }
 
-/** One entry of the menu: an outlined glyph for what it is, the name, and a chevron saying it opens. */
 @Composable
 private fun NavigationRow(icon: ImageVector, label: String, onClick: () -> Unit) {
     ListItem(

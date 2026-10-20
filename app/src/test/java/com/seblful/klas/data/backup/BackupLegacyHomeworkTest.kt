@@ -10,11 +10,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * [legacyHomework]: a v8 file's homework — text on the lesson, a verdict per student — as the rows v9 keeps
- * it in, by the rules `MIGRATION_8_9` applies to a database. `HomeworkTableMigrationTest` is its twin on a
- * device; this pins the file's half.
- */
 class BackupLegacyHomeworkTest {
 
     private fun lesson(id: Long, start: Long, homework: String, groupId: Long? = null, status: LessonStatus = LessonStatus.COMPLETED) =
@@ -25,7 +20,8 @@ class BackupLegacyHomeworkTest {
 
     @Test
     fun `an individual lesson's homework becomes its student's, given at the lesson's start`() {
-        val rows = legacyHomework(listOf(lesson(4, start = 1_000, homework = "§12")), listOf(member(9, 4, studentId = 3)))
+        val rows =
+            legacyHomework(listOf(lesson(4, start = 1_000, homework = "§12")), listOf(member(9, 4, studentId = 3)))
 
         assertEquals(listOf(HomeworkEntity(studentId = 3, text = "§12", givenAtMillis = 1_000)), rows)
     }

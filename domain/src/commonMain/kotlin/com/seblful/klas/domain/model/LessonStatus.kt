@@ -18,7 +18,8 @@ package com.seblful.klas.domain.model
 enum class LessonStatus {
     SCHEDULED,
     COMPLETED,
-    CANCELLED;
+    CANCELLED,
+    ;
 
     /** Whether the lesson happened, and so whether anybody in it can owe for it (see [Attended.bills]). */
     val isBillable: Boolean get() = this == COMPLETED
@@ -92,7 +93,9 @@ enum class Attended {
      * completed and the student it was for is marked absent-and-billed. A lesson genuinely called off
      * bills nobody, whatever their attendance says.
      */
-    ABSENT_BILLED;
+    ABSENT_BILLED,
+
+    ;
 
     /**
      * Whether this student owes for the lesson **if the lesson happened** — the other half of the

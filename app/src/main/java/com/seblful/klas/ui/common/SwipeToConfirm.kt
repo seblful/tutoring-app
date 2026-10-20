@@ -22,8 +22,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -46,33 +46,6 @@ import kotlin.math.roundToInt
 /**
  * A row that runs [onConfirm] when it is dragged past the mark **and let go there** — ticking at the mark,
  * and taking the action back if the finger slides home again.
- *
- * The gesture is a promise made and then kept, so it is three moments rather than one:
- * - **the mark** — [swipeArmed] becomes true, the phone ticks ([rememberArmedFeedback]), the [reveal] is
- *   told so, and from here letting go will act;
- * - **the way back** — dragging under the mark again disarms it, in silence, and the row is just a row;
- * - **the lift** — the answer at that instant is the one that counts: confirm buzz plus [onConfirm], or
- *   nothing at all.
- *
- * **The mark is felt and seen, off one flag.** A buzz alone is deniable — a thumb rests on the row, the
- * phone may have haptics turned off, and the tutor is left guessing whether the promise was made. So
- * `armed` is handed to the [reveal], which draws it with [armedPop]; both the tick and the pop read the one
- * flag, so no phone setting can leave the gesture saying nothing, and nothing can pop where the release
- * would decline.
- *
- * The row always springs home, so the [reveal] behind it is a promise of what will happen and never the
- * aftermath of it: nothing is being removed from the list, and the caller's own state — a status badge —
- * is what says the thing is done.
- *
- * **Why not `SwipeToDismissBox`.** Material's box decides on release with a *velocity* path as well as a
- * positional one: a fast flick commits from anywhere, having never crossed the mark. Its live
- * `targetValue` is a third thing again — the closest anchor, so half the width. The tick would then fire
- * where the release does not act, and the release would act where nothing ticked, which is precisely the
- * promise this gesture exists to make. Here one function answers both, so they cannot disagree, and a
- * flick that travels nowhere does nothing: marking a lesson taught is what *bills* it, and that is worth a
- * deliberate drag.
- *
- * One direction, towards the end of the line, because the app is drawn in Russian and reads one way.
  */
 @Composable
 fun SwipeToConfirmBox(
@@ -151,13 +124,8 @@ fun SwipeToConfirmBox(
  * What a [SwipeToConfirmBox] promises, drawn behind its row: a filled panel with the act's glyph and its
  * word — «Проведено» behind a lesson, «Сделано» or «Вернуть» behind homework.
  *
- * The glyph is the tick's visible half: it grows at the mark ([armedPop]) and stays grown while letting go
- * would act. It sits at the leading edge, which the thumb has already moved off. No description of its
- * own — the box clears everything behind the row from the tree, and the row's [swipeAction] is what a
- * screen reader is offered instead.
- *
  * @param horizontalPadding where the glyph starts — the gutter of whatever the row sits in, which is not
- *   one value: a sheet's is wider than a page's.
+ * one value: a sheet's is wider than a page's.
  */
 @Composable
 fun SwipeReveal(
@@ -187,33 +155,9 @@ fun SwipeReveal(
 fun Modifier.swipeAction(label: String, onAction: () -> Unit): Modifier =
     semantics { customActions = listOf(CustomAccessibilityAction(label) { onAction(); true }) }
 
-/**
- * Whether letting go now would confirm: the row has been dragged at least [CommitFraction] of its own
- * width.
- *
- * **The only copy of the rule.** The tick at the mark and the action on release both read it, so the phone
- * cannot promise something the release then declines. An unmeasured row (width 0, before layout) arms
- * nothing — every offset is past a mark at zero, and a card confirming itself into existence would be a
- * lesson billed by scrolling.
- *
- * Pure and un-composable on purpose, so `SwipeToConfirmTest` can ask it on the JVM: a rule that lives
- * inside a `@Composable` is a rule only a device can check.
- */
 internal fun swipeArmed(dragged: Float, width: Float): Boolean =
     width > 0f && dragged >= width * CommitFraction
 
-/**
- * How far the row travels before the mark: **a third of its own width**.
- *
- * Material's half is a long drag for something done after every lesson, and the mark has to be crossable
- * with a thumb on a 360dp phone without the hand leaving the row.
- */
 private const val CommitFraction = 0.33f
 
-/**
- * The spring the row rides home on — the same one whether it confirmed or was taken back.
- *
- * **Not bouncy**, which the default damping gives us: a row that overshot on the way home would cross the
- * mark a second time and tick at nobody, the finger having already left.
- */
 private val SpringHome = spring<Float>(stiffness = Spring.StiffnessMediumLow)

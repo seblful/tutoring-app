@@ -19,22 +19,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/**
- * A backup whose rows cannot be read back is refused **before** anything is written.
- *
- * The bug these are about: the import writes entity rows verbatim, and the text columns holding an
- * enum were only interpreted later, on the read path, inside the `Flow`s the screens collect. A file
- * with an unknown status therefore imported cleanly and then broke every screen that lists a lesson —
- * permanently, because the bad row was now the saved data, and silently, because a dead collector
- * draws nothing rather than reporting anything. Those columns are typed now, so an unknown name is
- * refused as the file is parsed; what is left for [BackupIntegrity] is what a type cannot say (a length,
- * an amount, an owner).
- *
- * Most of these describe the **v1–v5 flat class** ([LegacyClass]), which is where a file this build has
- * to refuse is most likely to come from — those files are the ones already written. They are checked
- * through the same split that would import them, so the two shapes cannot disagree about what is
- * readable; the v6 rows are checked directly, below.
- */
 @RunWith(RobolectricTestRunner::class)
 class BackupIntegrityTest {
 
@@ -64,17 +48,11 @@ class BackupIntegrityTest {
     private fun refusalFor(data: BackupData): MalformedBackupException? =
         runCatching { BackupIntegrity.check(data) }.exceptionOrNull() as? MalformedBackupException
 
-    // --- What passes ------------------------------------------------------------------------------
-
     @Test
     fun `a backup of readable rows passes`() {
         BackupIntegrity.check(backup())
     }
 
-    /**
-     * The check is about readability, not plausibility. A backup is allowed to be strange — the tutor's
-     * data is theirs — so nothing here may start refusing lessons at odd hours or unpriced rates.
-     */
     @Test
     fun `strange but readable data is not refused`() {
         val odd = validClass.copy(
@@ -87,26 +65,11 @@ class BackupIntegrityTest {
         BackupIntegrity.check(backup(classes = listOf(odd)))
     }
 
-    // --- What is refused --------------------------------------------------------------------------
-
-    /**
-     * A lesson of zero or negative length ends at or before it starts, so `Slot.overlaps` matches
-     * nothing and the one-lesson-at-a-time rule silently stops holding. Worth refusing at the door
-     * rather than discovering as a double-booked evening.
-     */
     @Test
     fun `a lesson of no length is refused`() {
         assertTrue(refusalFor(backup(classes = listOf(validClass.copy(durationMinutes = 0)))) != null)
         assertTrue(refusalFor(backup(classes = listOf(validClass.copy(durationMinutes = -30)))) != null)
     }
-
-    // --- An unknown enum name: refused as the file is parsed ---------------------------------------
-    //
-    // The rows' enum columns are typed, so a name no constant has cannot become a row at all, and the
-    // check above never sees one. What these pin is that the file is still refused — before anything is
-    // written, as the same failure the tutor was shown when the check found it — and that the refusal
-    // still says what was wrong. (Not *which row*: the decoder names the value and its enum, not the id
-    // the check used to quote. The tutor never saw either — `BackupFailure.Malformed` carries no text.)
 
     private fun parseFailure(file: String): Throwable? =
         runCatching { env.backupManager.parse(file) }.exceptionOrNull()
@@ -160,10 +123,6 @@ class BackupIntegrityTest {
         )
     }
 
-    /**
-     * The half the old shape could not carry, and so the half a hand-edited v6 file is likeliest to get
-     * wrong: an attendance the app cannot read is a class it cannot decide whether to bill.
-     */
     @Test
     fun `an unknown attendance is refused, naming it`() {
         assertRefusedAsMalformed(
@@ -172,7 +131,6 @@ class BackupIntegrityTest {
         )
     }
 
-    /** Case matters, as it does to `LessonStatus.parse`: no build ever wrote a lower-case name. */
     @Test
     fun `a near-miss name is refused too`() {
         assertRefusedAsMalformed(
@@ -181,11 +139,6 @@ class BackupIntegrityTest {
         )
     }
 
-    /**
-     * Why the version is read before the rows. A later build that adds a status writes it into its files;
-     * decoding the rows first would call such a file broken, where the truth — and the advice the tutor
-     * needs — is that it is newer than this app.
-     */
     @Test
     fun `a newer file naming a status this build lacks is refused as newer, not as broken`() {
         val newer = BackupData.CURRENT_VERSION + 1
@@ -199,7 +152,6 @@ class BackupIntegrityTest {
         assertEquals(BackupFailure.UnsupportedVersion(newer, BackupData.CURRENT_VERSION), failure)
     }
 
-    /** A file of this build's version, or older, is parsed whole — the version only refuses what is newer. */
     @Test
     fun `a supported file with readable names parses`() {
         val parsed = env.backupManager.parse(
@@ -226,8 +178,6 @@ class BackupIntegrityTest {
         assertEquals("the tutor's data is untouched", listOf("Физика"), env.stored().subjects.map { it.name })
     }
 
-    // --- The v6 rows, checked as themselves --------------------------------------------------------
-
     @Test
     fun `a v6 lesson of no length is refused`() {
         val data = BackupData(
@@ -238,15 +188,9 @@ class BackupIntegrityTest {
         assertTrue(refusalFor(data) != null)
     }
 
-    // --- Homework ---------------------------------------------------------------------------------
-
     private val taughtLesson =
         BackupLesson(4, subjectId = 1, startMillis = 1L, durationMinutes = 60, status = LessonStatus.COMPLETED, homework = "§12")
 
-    /**
-     * A v8 file's verdict is only read as "it had one" — done, now — so a name this build never had cannot
-     * fail anything, and is no reason to refuse the file.
-     */
     @Test
     fun `a v8 verdict passes whatever it says`() {
         BackupIntegrity.check(
@@ -289,12 +233,6 @@ class BackupIntegrityTest {
         )
     }
 
-    // --- Through the manager: refused before anything is written -----------------------------------
-
-    /**
-     * The whole point of checking before the transaction rather than relying on it: the existing data
-     * survives, and the refusal keeps its reason instead of becoming whatever the first bad row threw.
-     */
     @Test
     fun `importing a file with an unreadable row changes nothing`() = runTest {
         env.subjectDao.upsert(SubjectEntity(7, "Физика"))
@@ -312,22 +250,12 @@ class BackupIntegrityTest {
         assertEquals("the tutor's data is untouched", listOf("Физика"), env.stored().subjects.map { it.name })
     }
 
-    /**
-     * And it reaches the tutor as «this file isn't a Klas backup» rather than as «couldn't open the
-     * file», which is the advice that used to be given for it — a file that opened perfectly.
-     */
     @Test
     fun `an unreadable row classifies as malformed, not as an unreadable file`() {
         val failure = BackupFailure.of(MalformedBackupException("lesson 1 lasts 0 minutes"))
 
         assertEquals(BackupFailure.Malformed, failure)
     }
-
-    // --- Amounts the money arithmetic has to survive ---------------------------------------------
-    //
-    // A rate is a bare `Long` of kopecks, so nothing about it fails to *load* — what fails is
-    // `rate × minutes`, which wraps past Long.MAX_VALUE and bills a negative charge. The typed-input
-    // gate (`parseMoneyOrNull`) holds every amount to `Money.MAX`; a file is the other way in.
 
     @Test
     fun `a rate too large to bill is refused`() {
@@ -346,7 +274,6 @@ class BackupIntegrityTest {
 
     @Test
     fun `a negative amount is refused`() {
-        // The money fields reject one, so a stored negative can only be a hand-edit or corruption.
         val data = BackupData(classes = listOf(validClass.copy(priceMinor = -1)))
 
         assertTrue(assertThrows(data).contains("-1"))
@@ -371,7 +298,6 @@ class BackupIntegrityTest {
         )
     }
 
-    /** The largest accepted amount is accepted — the bound is inclusive, not merely near. */
     @Test
     fun `the ceiling itself passes`() {
         BackupIntegrity.check(
@@ -386,20 +312,16 @@ class BackupIntegrityTest {
             ?.reason
             ?: error("expected the backup to be refused")
 
-    // --- The parse the whole thing rests on -------------------------------------------------------
-
     @Test
     fun `parsing a stored enum name is total`() {
         assertEquals(LessonStatus.COMPLETED, LessonStatus.parse("COMPLETED"))
         assertEquals(ClassMode.REMOTE, ClassMode.parse("REMOTE"))
-        // No throw, unlike valueOf — including for the near misses a hand-edit produces.
         assertNull(LessonStatus.parse("MISSED"))
         assertNull(LessonStatus.parse("completed"))
         assertNull(LessonStatus.parse(""))
         assertNull(ClassMode.parse("IN PERSON"))
     }
 
-    /** Both owners would read back as the student's, taking it from the group without a word. */
     @Test
     fun `homework for a student and a group at once is refused`() {
         val data = BackupData(

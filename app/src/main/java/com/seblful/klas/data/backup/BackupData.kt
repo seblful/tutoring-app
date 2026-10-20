@@ -252,22 +252,9 @@ fun List<LegacyClass>.splitIntoLessons(): Pair<List<LessonEntity>, List<Attendan
     return lessons.sortedBy { it.id } to attendance.sortedBy { it.id }
 }
 
-/**
- * The lesson's status: **scheduled if any member still is**, else completed if any is, else cancelled —
- * [LessonStatus.PRECEDENCE], which is where that order is stated and pinned. It used to be
- * `entries.firstOrNull`, i.e. the order the constants happen to be declared in.
- *
- * `first` cannot miss: [members] is never empty, and each of them holds one of the three.
- */
 private fun lessonStatusOf(members: List<LegacyClass>): LessonStatus =
     LessonStatus.PRECEDENCE.first { status -> members.any { it.status == status } }
 
-/**
- * A member's attendance, from their old status and their lesson's. Present if they were completed;
- * expected if they were scheduled — or if the lesson was called off, since nobody was absent from an hour
- * that did not happen; absent if their own class was cancelled inside a lesson that went ahead, which is
- * exactly the correction the old model could only express that way.
- */
 private fun attendedOf(own: LessonStatus, lesson: LessonStatus): Attended = when {
     own == LessonStatus.COMPLETED -> Attended.PRESENT
     own == LessonStatus.SCHEDULED -> Attended.EXPECTED

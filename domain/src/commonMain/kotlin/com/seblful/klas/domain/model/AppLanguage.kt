@@ -33,7 +33,8 @@ enum class AppLanguage(val tag: String?) {
     RUSSIAN("ru"),
 
     /** `values/`, which is also where any other phone language lands. */
-    ENGLISH("en");
+    ENGLISH("en"),
+    ;
 
     /**
      * The language to actually display in, as a tag, given the phone's [preferred] languages (BCP 47 tags,

@@ -20,13 +20,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.time.Instant
 
-/**
- * The rate log, through the two repositories that actually set a rate.
- *
- * The behaviour worth pinning is what *doesn't* get logged: both callers save whole objects and are
- * routinely handed an amount that hasn't moved, so a log that recorded every save would bury the
- * changes the tutor came to read under "25 → 25" rows.
- */
 @RunWith(RobolectricTestRunner::class)
 class RateHistoryTest {
 
@@ -38,17 +31,10 @@ class RateHistoryTest {
 
     private suspend fun subject(name: String = "Алгебра"): Long = env.fixtures.subject(name)
 
-    /**
-     * A group whose rate log is still empty — written straight to the table, because the repository logs
-     * a group's opening rate as it creates it, and the tests of the rule itself need the log to start
-     * from nothing. It has to exist all the same: a rate change names its group by foreign key.
-     */
     private suspend fun unloggedGroup(): Long = env.groupDao.upsert(GroupEntity(name = "11 «А»"))
 
     private suspend fun changesFor(studentId: Long, subjectId: Long) =
         history.observeFor(RateOwner.StudentSubject(studentId, subjectId)).first()
-
-    // ---- the rule itself -----------------------------------------------------------------------
 
     @Test
     fun `an unchanged rate is not logged`() = runTest {
@@ -81,11 +67,6 @@ class RateHistoryTest {
         )
     }
 
-    /**
-     * An undated row — a rate that predates the log, as a restored backup can carry — must sort
-     * **below** every dated change: "it was already this much" is the oldest thing the log knows,
-     * whatever order it was written in.
-     */
     @Test
     fun `a rate that predates the log sorts below the dated changes`() = runTest {
         val owner = RateOwner.GroupRate(unloggedGroup())
@@ -110,8 +91,6 @@ class RateHistoryTest {
         assertEquals(Money.ofMajor(40), changesFor(sid, subj).single().to)
         assertEquals(Money.ofMajor(25), history.observeFor(group).first().single().to)
     }
-
-    // ---- through EnrollmentRepository ----------------------------------------------------------
 
     @Test
     fun `enrolling logs the price it was enrolled at`() = runTest {
@@ -148,10 +127,6 @@ class RateHistoryTest {
         assertEquals(1, changesFor(sid, subj).size)
     }
 
-    /**
-     * `setEnrollments` is what the add-student form and onboarding save through, and it re-writes every
-     * price on every save. One change to one subject must log exactly one row.
-     */
     @Test
     fun `saving a student's whole set of subjects logs only the prices that moved`() = runTest {
         val sid = student()
@@ -188,19 +163,15 @@ class RateHistoryTest {
         assertEquals(1, changesFor(sid, algebra).size)
     }
 
-    /**
-     * A refused un-enrollment must leave the log alone as well as the price — the refusal exists
-     * because those classes are billed history, and the rate behind them is part of that record.
-     */
     @Test
     fun `a blocked un-enrollment keeps the rate history`() = runTest {
         val sid = student()
         val subj = subject()
         env.enrollmentRepo.enroll(sid, subj, Money.ofMajor(30))
         env.fixtures.storedClass(
-                studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60,
-                status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor,
-            )
+            studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60,
+            status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor,
+        )
 
         assertEquals(EnrollmentRepository.Unenroll.HasClasses, env.enrollmentRepo.unenroll(sid, subj))
         assertEquals(1, changesFor(sid, subj).size)
@@ -210,7 +181,6 @@ class RateHistoryTest {
     fun `a price seeded straight into the table has no log, and the next change starts one`() = runTest {
         val sid = student()
         val subj = subject()
-        // What a restore from a pre-log backup looks like: a price with no log at all.
         env.priceDao.upsert(PriceEntity(sid, subj, Money.ofMajor(30).minor))
         assertTrue(changesFor(sid, subj).isEmpty())
 
@@ -219,8 +189,6 @@ class RateHistoryTest {
         assertEquals("the previous amount is known from the price row", Money.ofMajor(30), change.from)
         assertEquals(Money.ofMajor(35), change.to)
     }
-
-    // ---- through GroupRepository ---------------------------------------------------------------
 
     @Test
     fun `creating a group logs the rate it was created at`() = runTest {
@@ -244,10 +212,6 @@ class RateHistoryTest {
         assertEquals(Money.ofMajor(30), changes.first().to)
     }
 
-    /**
-     * Renaming or re-staffing a group goes through the same `save`. Neither is a price change, and
-     * neither may leave a row behind.
-     */
     @Test
     fun `renaming or re-staffing a group logs nothing`() = runTest {
         val anya = student("Аня")
@@ -269,13 +233,6 @@ class RateHistoryTest {
         assertEquals(1, history.observeFor(RateOwner.GroupRate(id)).first().size)
     }
 
-    // --- currentRate: where a baseline comes from ---
-
-    /**
-     * The baseline read used to sit in each caller, against a different DAO — `GroupDao` in one,
-     * `PriceDao` in the other — for a log with one definition of what counts as a change. These pin
-     * both halves of the discriminator now that the module resolves it.
-     */
     @Test
     fun `currentRate reads a group's rate from the group row`() = runTest {
         val sid = student()

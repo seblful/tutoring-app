@@ -65,7 +65,8 @@ object ReportCsv {
         COMMA_DECIMAL(',', ';'),
 
         /** `1500.50` in `a,b,c` — English. */
-        DOT_DECIMAL('.', ',');
+        DOT_DECIMAL('.', ','),
+        ;
 
         companion object {
             /** The dialect for a reader who writes decimals with [decimal] — see `format/AppLocale`. */
@@ -119,13 +120,6 @@ object ReportCsv {
 
     private const val NEWLINE = "\r\n"
 
-    /**
-     * Excel's cue that the file is UTF-8. See the class note.
-     *
-     * Written as an escape rather than as the character itself: a literal U+FEFF sitting inside a
-     * source file is invisible in every editor and is exactly what lint's `ByteOrderMark` check
-     * exists to catch — the point here is to *emit* one, not to contain one.
-     */
     private const val BOM = "\uFEFF"
 
     /**
@@ -151,30 +145,12 @@ object ReportCsv {
         }
     }
 
-    /**
-     * The amount as a bare decimal — no currency code.
-     *
-     * A currency suffix would make every cell text, and a column of text cannot be summed, which is
-     * the first thing anyone does to a column of money. The code belongs in the file name or the
-     * header, not in fifty cells.
-     *
-     * Always two decimal places, unlike [Money.amountText] on screen, which drops `,00`: a column where
-     * some cells have a fraction and some do not is still a column of numbers, but the export is what gets
-     * summed and reformatted, and a consistent scale is what makes that predictable.
-     */
     private fun amountText(amount: Money, dialect: Dialect): String {
         val sign = if (amount.minor < 0) "-" else ""
         val abs = kotlin.math.abs(amount.minor)
         return "$sign${abs / 100}${dialect.decimal}${(abs % 100).toString().padStart(2, '0')}"
     }
 
-    /**
-     * RFC 4180 quoting: a field containing the separator, a quote or a line break is wrapped in
-     * quotes, and its own quotes are doubled.
-     *
-     * Not theoretical — a student's name is free text, and a group called «5"А"» or a note pasted in
-     * with a newline would otherwise silently shift every following column by one.
-     */
     private fun escape(field: String, dialect: Dialect): String =
         if (field.any { it == dialect.delimiter || it == '"' || it == '\n' || it == '\r' }) {
             "\"" + field.replace("\"", "\"\"") + "\""

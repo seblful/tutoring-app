@@ -16,10 +16,6 @@ import kotlin.test.assertNull
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * [HomeworkRules]: which lesson a piece of homework is attached to, where that leaves it today, and the
- * orders the lists and the add dialog draw it in.
- */
 class HomeworkRulesTest {
 
     private val zone: TimeZone = TimeZone.of("Europe/Minsk")
@@ -34,7 +30,6 @@ class HomeworkRulesTest {
 
     private var nextId = 1L
 
-    /** One student's class; [lessonId] shared makes a group lesson of several. */
     private fun klass(
         studentId: Long,
         start: Instant,
@@ -60,8 +55,6 @@ class HomeworkRulesTest {
         id: Long = nextId++,
     ) = Homework(id = id, assignee = assignee, text = "§ $id", givenAt = givenAt, doneAt = doneAt)
 
-    // ---- Which lesson ------------------------------------------------------------------------------
-
     @Test
     fun `homework is attached to its student's first lesson after it was given`() {
         val before = klass(1, mon)
@@ -81,7 +74,6 @@ class HomeworkRulesTest {
         assertEquals(anyasOwn, HomeworkRules.attachedTo(homework(anya, mon), listOf(borisesSooner, anyasOwn)))
     }
 
-    /** Nothing was checked at an hour that did not happen, so the homework waits for the one after. */
     @Test
     fun `a cancelled lesson is skipped`() {
         val cancelled = klass(1, wed, status = LessonStatus.CANCELLED)
@@ -90,7 +82,6 @@ class HomeworkRulesTest {
         assertEquals(next, HomeworkRules.attachedTo(homework(anya, mon), listOf(cancelled, next)))
     }
 
-    /** Set during a lesson, it is for the next one — not the one already under way. */
     @Test
     fun `a lesson under way when it was given is not the one it is for`() {
         val underWay = klass(1, mon)
@@ -99,7 +90,6 @@ class HomeworkRulesTest {
         assertEquals(next, HomeworkRules.attachedTo(homework(anya, mon.plus(1800.seconds)), listOf(underWay, next)))
     }
 
-    /** A student's next lesson is whichever they are in — a group's included. */
     @Test
     fun `a student's homework can be attached to a group lesson they are in`() {
         val groupLesson = klass(1, wed, groupId = 10)
@@ -120,8 +110,6 @@ class HomeworkRulesTest {
     fun `with no lesson booked it is attached to none`() {
         assertNull(HomeworkRules.attachedTo(homework(anya, fri), listOf(klass(1, mon))))
     }
-
-    // ---- Where it stands today ---------------------------------------------------------------------
 
     @Test
     fun `due reads the lesson's day against today`() {
@@ -186,12 +174,6 @@ class HomeworkRulesTest {
         assertEquals(listOf(anyas), taught)
     }
 
-    // ---- A lesson's own ----------------------------------------------------------------------------
-
-    /**
-     * A group lesson's sheet gathers the group's homework and a member's own whose next lesson it is — and
-     * leaves out the member's older homework, which was for the lesson before.
-     */
     @Test
     fun `a lesson's homework is whatever is attached to it, done or not`() {
         val earlier = klass(1, mon)
@@ -216,9 +198,9 @@ class HomeworkRulesTest {
     fun `whoever's lesson is nearest now comes first, either side of it`() {
         val now = wed
         val classes = listOf(
-            klass(1, mon),                         // Аня, two days back
-            klass(2, wed.minus(3600.seconds)),      // Борис, an hour ago
-            klass(3, wed.plus(7200.seconds)),       // Вера, in two hours
+            klass(1, mon), // Аня, two days back
+            klass(2, wed.minus(3600.seconds)), // Борис, an hour ago
+            klass(3, wed.plus(7200.seconds)), // Вера, in two hours
         )
         val vera = Assignee.Student(3)
 
@@ -241,13 +223,12 @@ class HomeworkRulesTest {
     @Test
     fun `distance is to the lesson's hour, not its start`() {
         val now = Instant.parse("2026-09-23T16:05:00Z")
-        val justTaught = klass(1, Instant.parse("2026-09-23T15:00:00Z"))   // 15:00–16:00, over 5 minutes ago
-        val bookedNext = klass(2, Instant.parse("2026-09-23T16:30:00Z"))   // in 25 minutes
+        val justTaught = klass(1, Instant.parse("2026-09-23T15:00:00Z")) // 15:00–16:00, over 5 minutes ago
+        val bookedNext = klass(2, Instant.parse("2026-09-23T16:30:00Z")) // in 25 minutes
 
         assertEquals(listOf(anya, boris), HomeworkRules.byNearestLesson(listOf(boris, anya), listOf(bookedNext, justTaught), now))
     }
 
-    /** During a group's lesson the group and every member are as near as can be; the group's is the one set there. */
     @Test
     fun `on a group lesson the group comes before its members`() {
         val lesson = listOf(klass(1, wed, groupId = 10, lessonId = 700), klass(2, wed, groupId = 10, lessonId = 700))
@@ -256,8 +237,6 @@ class HomeworkRulesTest {
 
         assertEquals(listOf(eleventh, anya, boris), order)
     }
-
-    // ---- The tab's filter --------------------------------------------------------------------------
 
     @Test
     fun `narrowed to a student, the tab shows theirs and their groups'`() {

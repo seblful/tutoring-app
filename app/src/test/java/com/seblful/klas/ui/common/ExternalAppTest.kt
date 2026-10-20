@@ -7,11 +7,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/**
- * What each [ExternalTarget] asks Android for. The screens name only the target now, so this is the one
- * place left that says the dialler is opened with `ACTION_DIAL` (never a call placed), a mail with
- * `ACTION_SENDTO` (mail apps only, not every app that views a link) — what the screens built by hand before.
- */
 @RunWith(RobolectricTestRunner::class)
 class ExternalAppTest {
 

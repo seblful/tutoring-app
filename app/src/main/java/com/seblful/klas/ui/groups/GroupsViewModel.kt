@@ -26,16 +26,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 
-/**
- * A group as the list shows it: the group, who is in it, and what it is taught.
- *
- * [memberNames] and [memberIds] are parallel and in the same order, because the row draws the roster
- * as overlapping monograms and [com.seblful.klas.ui.common.Avatar] colours by **id** — so a member
- * keeps their colour between this list, their own card and the group's.
- *
- * [subjectName] is null for a group made before subjects were fixed on the group — the row then says
- * nothing about a subject rather than claiming one.
- */
+/**  group as the list shows it: the group, who is in it, and what it is taught. */
 data class GroupRow(
     val group: Group,
     val memberNames: List<String>,

@@ -15,7 +15,6 @@ class ClockChangeReceiverTest {
         assertFalse(ClockChangeReceiver.handles(null))
     }
 
-    /** A receiver the manifest does not register for an action never hears it — the quiet failure. */
     @Test
     fun `the manifest registers the receiver for every action it handles`() {
         val manifest = ProjectFiles.moduleFile("src/main/AndroidManifest.xml").readText()

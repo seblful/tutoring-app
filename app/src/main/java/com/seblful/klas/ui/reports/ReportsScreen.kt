@@ -84,26 +84,7 @@ import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.flow.first
 
-/**
- * The money screen: what the chosen period earned, where it came from, and who still owes.
- *
- * **The period is the frame**, so it stays pinned above the report and every income number below reads
- * inside it — an all-time total stops answering "how am I doing" the moment there is a second year of
- * history.
- *
- * **Each number is drawn in the one shape that says something the number does not**, and in plain text
- * otherwise. A picture on every row is not a chart, it is wallpaper: ten students at a tenth each would
- * be ten identical slivers, and a bar beside a debt invites the tutor to admire a proportion instead of
- * collecting it. So:
- * - **a column chart** where the order is *time* — a year's shape is a fact about the order its months
- *   come in, which sorting by size destroys and no list of amounts can show;
- * - **one stacked bar** where two parts make the whole (individual vs group), because the question
- *   there is how the whole divides, and two bars side by side hide that they are halves of one thing;
- * - **ranked bars** where several rows are compared with each other, each drawn against the *largest*
- *   row rather than against the total, so the picture is the ranking — and dropped entirely when a
- *   section has one row, which has nothing to be ranked against;
- * - **plain text** for the totals, the counts, the per-month amounts and the debts.
- */
+/** he money screen: what the chosen period earned, where it came from, and who still owes. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportsScreen(
@@ -235,13 +216,6 @@ fun ReportsScreen(
     }
 }
 
-/**
- * The report's shape before its numbers: the hero card, then the section cards under it.
- *
- * Sized like the real thing rather than as uniform rows — the income card is much taller than a
- * breakdown, and a skeleton that ignores that reflows the screen on the first real frame, which is the
- * jump it exists to prevent.
- */
 @Composable
 private fun ReportsSkeleton() {
     Column(
@@ -253,18 +227,12 @@ private fun ReportsSkeleton() {
     }
 }
 
-/** Roughly `IncomeCard`: a label, a headline amount and the comparison line, at 20dp padding. */
 private val IncomeCardHeight = 116.dp
 
-/** Roughly a `ReportCard` with a title and two or three rows. */
 private val SectionCardHeight = 132.dp
 
 private const val CSV_MIME_TYPE = "text/csv"
 
-/**
- * The section headings the export is labelled with — the words, and nothing else. Which rows the file
- * contains is [ReportCsv.linesFor]'s.
- */
 @Composable
 private fun csvHeadings(period: ReportPeriod): ReportCsv.Headings = ReportCsv.Headings(
     total = stringResource(R.string.reports_total_income),
@@ -326,11 +294,6 @@ private fun LazyListScope.rankedSection(title: String, lines: List<Reports.Line>
     item { RankedCard(title, lines) }
 }
 
-/**
- * ‹ «2026 год» › — the period being read, with the two ways to change it: step to the one beside it,
- * or tap the title for another width. All time disables the arrows rather than hiding them, so the
- * row keeps its shape and the title keeps its place.
- */
 @Composable
 private fun PeriodNavigator(
     period: ReportPeriod,
@@ -369,7 +332,6 @@ private fun PeriodNavigator(
     }
 }
 
-/** The period's own name: «Июль 2026», «2026 год», «Всё время». */
 @Composable
 private fun periodTitle(period: ReportPeriod): String = when (period.kind) {
     ReportPeriod.Kind.MONTH -> formatMonth(period.anchor)
@@ -383,18 +345,6 @@ private fun periodKindLabel(kind: ReportPeriod.Kind): Int = when (kind) {
     ReportPeriod.Kind.ALL -> R.string.reports_period_all
 }
 
-/**
- * The screen's answer, in the loudest colour it has: what the chosen period earned — and whether that
- * is more or less than last time.
- *
- * The comparison is the line that turns the number into an answer. This screen's whole purpose is
- * "how am I doing", and «45 000 BYN» on its own does not address it: without a baseline the biggest
- * figure on the screen is a fact the tutor still has to interpret. One signed percentage, naming the
- * period it is measured against, is the cheapest thing that closes the gap.
- *
- * Drawn as a [HeroCard], which is what makes the filled accent surface a device the system owns rather
- * than a flourish on one screen. Its only sibling is the student card's balance.
- */
 @Composable
 private fun IncomeCard(state: Reports.Report) {
     HeroCard(
@@ -405,7 +355,6 @@ private fun IncomeCard(state: Reports.Report) {
     }
 }
 
-/** «+12 % к периоду "Июнь 2026"», or a note that there is nothing to compare against. */
 @Composable
 private fun ColumnScope.ComparisonLine(state: Reports.Report) {
     val change = state.change ?: return
@@ -451,13 +400,6 @@ private fun ColumnScope.ComparisonLine(state: Reports.Report) {
     }
 }
 
-/**
- * A percentage with its sign, using a real minus (−, U+2212) rather than a hyphen.
- *
- * The card's headline is set in a proportional face at 28sp; a hyphen beside it is a short mark at
- * roughly x-height and reads as a dash, not as "less than". Money is the one place on the screen
- * where the difference between −8 % and 8 % is the entire message.
- */
 @Composable
 private fun signedPercent(value: Int): String = when {
     value > 0 -> stringResource(R.string.reports_percent_signed_up, value)
@@ -465,13 +407,6 @@ private fun signedPercent(value: Int): String = when {
     else -> stringResource(R.string.reports_percent_signed_same)
 }
 
-/**
- * The trend: bars for the shape, then the same buckets as rows for the exact amounts.
- *
- * Both, because they answer different questions — the chart says which part of the year was busy,
- * the rows say what a given month came to — and neither substitutes for the other at this width: a
- * bar narrow enough that twelve fit across a phone has no room for the number it stands for.
- */
 @Composable
 private fun TrendCard(trend: Reports.Trend) {
     val months = stringArrayResource(R.array.month_short_names)
@@ -490,12 +425,6 @@ private fun TrendCard(trend: Reports.Trend) {
     }
 }
 
-/**
- * One column per bucket, oldest on the left, each drawn as a fraction of the best one — so the chart
- * is about *relative* size and never needs a value axis. Every bucket keeps a faint full-height slot,
- * which is what makes a month with no lessons read as a gap in the year rather than as an absence the
- * neighbouring bars close over. The best bucket is the solid one.
- */
 @Composable
 private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) -> String) {
     val peak = trend.peak ?: return
@@ -535,11 +464,6 @@ private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) 
     }
 }
 
-/**
- * The income as **one** bar of two segments, because individual and group teaching are the two halves
- * of the same whole and the question is how that whole divides. Two separate ranked bars would say
- * "63 %" and "38 %" of something the eye is left to reconstruct.
- */
 @Composable
 private fun KindSplitCard(lines: List<Reports.KindLine>) {
     ReportCard(stringResource(R.string.reports_by_kind)) {
@@ -576,11 +500,6 @@ private fun KindSplitCard(lines: List<Reports.KindLine>) {
     }
 }
 
-/**
- * A ranked breakdown. Each bar's fraction — against the section's largest line, absent for a
- * section of one — arrives on the line itself ([Reports.Line.share]): both rules are statements
- * about a report, and they are decided and tested where the report is.
- */
 @Composable
 private fun RankedCard(title: String, lines: List<Reports.Line>) {
     ReportCard(title) {
@@ -610,7 +529,6 @@ private fun RankedCard(title: String, lines: List<Reports.Line>) {
     }
 }
 
-/** A track filled to [fraction] of the best line in its section. */
 @Composable
 private fun RankedBar(fraction: Float, modifier: Modifier = Modifier) {
     Box(
@@ -629,11 +547,6 @@ private fun RankedBar(fraction: Float, modifier: Modifier = Modifier) {
     }
 }
 
-/**
- * Who owes money — the one section the period does not touch (see [ReportsViewModel]), and the one
- * kept deliberately plain: a debt is a number to collect, and drawing it as a share of the arrears
- * would dress up the thing to act on as a statistic.
- */
 @Composable
 private fun DebtsCard(state: Reports.Report, onStudentClick: (Long) -> Unit) {
     // «Текущий баланс, за всё время» belongs to the title: it says why this card ignores the period. As
@@ -676,13 +589,6 @@ private fun DebtsCard(state: Reports.Report, onStudentClick: (Long) -> Unit) {
     }
 }
 
-/**
- * A titled surface for one section of the report.
- *
- * A *section*, so it sits on `surfaceContainer` — one rung above the item cards elsewhere in the app
- * (see [com.seblful.klas.ui.common.SectionCard]). The title needs no explicit weight now that the
- * type scale states `titleSmall` as semi-bold like the titles above it.
- */
 @Composable
 private fun ReportCard(
     title: String,
@@ -714,8 +620,8 @@ private fun ReportCard(
  * A label on the left, its amount on the right — the shape every number on this screen is read in.
  *
  * @param onClick makes the row a target. Only the debts pass one: those name a person to go and talk
- *   to, while «Июль · 12 400» names a month, which is not somewhere to be taken. A row that leads
- *   somewhere gets a chevron and a full-height touch target so it says so before it is tapped.
+ * to, while «Июль · 12 400» names a month, which is not somewhere to be taken. A row that leads
+ * somewhere gets a chevron and a full-height touch target so it says so before it is tapped.
  */
 @Composable
 private fun AmountRow(
@@ -771,14 +677,8 @@ private fun AmountRow(
     }
 }
 
-/**
- * The hairline between a stacked bar's segments and between a ranked bar's rows — off the `Spacing`
- * scale on purpose: the gap is there so the bar still reads as **one shape**, and 4 dp between twelve
- * month columns would take a quarter of the chart's width.
- */
 private val BarGap = 3.dp
 
-/** Tall enough to tell a busy month from a quiet one, short enough to leave the list in view. */
 private val ChartHeight = 116.dp
 private val BarShape = RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)
 private val AxisFontSize = 9.sp

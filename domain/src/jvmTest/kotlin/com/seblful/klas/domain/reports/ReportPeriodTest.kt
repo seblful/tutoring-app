@@ -45,18 +45,14 @@ class ReportPeriodTest {
     @Test
     fun `the last moment of a month is inside it and the first of the next is not`() {
         val may = ReportPeriod(ReportPeriod.Kind.MONTH, may2026)
-        // 23:59 local on the 31st is still May; the next minute is June.
         assertTrue(may.contains(Instant.parse("2026-05-31T20:59:00Z"), zone))
         assertFalse(may.contains(Instant.parse("2026-05-31T21:00:00Z"), zone))
-        // 20:30 UTC on 30 April is 23:30 local — still April, so still out.
         assertFalse(may.contains(Instant.parse("2026-04-30T20:30:00Z"), zone))
     }
 
-    /** The boundary is the local day, not UTC: a late evening lesson belongs to the day it was taught. */
     @Test
     fun `a lesson late on the last evening of the year counts in that year`() {
         val year = ReportPeriod(ReportPeriod.Kind.YEAR, YearMonth(2026, 1))
-        // 22:00 UTC on 31 December is already 1 January in Minsk (UTC+3), so it is the *next* year's.
         assertFalse(year.contains(Instant.parse("2026-12-31T22:00:00Z"), zone))
         assertTrue(year.contains(Instant.parse("2026-12-31T20:00:00Z"), zone))
     }

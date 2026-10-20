@@ -77,20 +77,6 @@ object BackupIntegrity {
         checkAmount(g.priceMinor, "group ${g.id}'s rate")
     }
 
-    /**
-     * An amount has to be one the app's arithmetic survives: typed amounts use `0..`[Money.MAX],
-     * while a derived charge uses the maximum charge an accepted rate and stored duration can produce.
-     *
-     * This is the second way in, and until it was checked the only one left open. A rate is not read
-     * back through a parser — it is a bare `Long` of kopecks, so nothing about it can fail to *load*.
-     * What fails is the arithmetic on it: a charge is `rate × minutes`, which wraps past
-     * `Long.MAX_VALUE` and comes back **negative**, and a negative charge reads as the tutor owing the
-     * student. A negative amount is refused for the same reason from the other direction — the money
-     * fields reject one, so a stored one can only have come from a hand-edited or corrupt file.
-     *
-     * It belongs here with the duration check because it is the same kind of fact: a column
-     * this build cannot make sense of, caught before it becomes the saved data.
-     */
     private fun checkAmount(minor: Long, what: String, maximum: Long = Money.MAX.minor) {
         if (minor < 0 || minor > maximum) {
             refuse("$what is $minor kopecks, outside 0..$maximum")
@@ -102,11 +88,6 @@ object BackupIntegrity {
     private val maximumChargeMinor =
         com.seblful.klas.domain.lesson.ClassRules.chargeFor(Money.MAX, Int.MAX_VALUE).minor
 
-    /**
-     * A rate change is about a (student, subject) price or a group's rate. A row that is about neither
-     * has no [com.seblful.klas.domain.model.RateOwner] to come back as, and the mapper says so with an
-     * `error(...)` — which, on the read path, is the crash this check exists to move forward in time.
-     */
     private fun checkRateChange(r: RateChangeEntity) {
         val isStudentPrice = r.studentId != null && r.subjectId != null
         val isGroupRate = r.groupId != null
@@ -115,11 +96,6 @@ object BackupIntegrity {
         }
     }
 
-    /**
-     * Homework is for a student or a group, never neither and never both. Neither has no `Assignee` to
-     * come back as (the mapper fails, as for [checkRateChange]'s row); both would read back as the
-     * student's, quietly taking it away from the group — a guess this build will not make on a restore.
-     */
     private fun checkHomework(h: HomeworkEntity) {
         if ((h.studentId == null) == (h.groupId == null)) {
             refuse("homework ${h.id} is for neither a student nor a group, or for both")

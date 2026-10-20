@@ -28,23 +28,7 @@ import androidx.compose.ui.semantics.Role
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.ui.theme.KlasIcons
 
-/**
- * A header that **stays** while a list scrolls under it — and only looks like a band while it does.
- *
- * It used to be a band from the start: a full-width `surfaceContainer` strip with a divider under it,
- * drawn the moment the card opened. Everything else on a detail card is an inset, rounded shape on the
- * gutter, so the one edge-to-edge grey bar read as a toolbar wedged between the stat row and the list —
- * an edge drawn for content that, on opening, was not passing under it at all.
- *
- * So at rest it is part of the page: the page's own colour, no rule, its control on the gutter like the
- * cards above it. Once it is **pinned** — at the top of the list, rows travelling beneath — it takes the
- * colour the collapsed app bar has by then (`surfaceContainer`, Material's scrolled bar colour), so the
- * bar and the header become one block with one lower edge for the rows to disappear behind. That edge is
- * the thing the band existed to provide, and now it is there exactly when something crosses it.
- *
- * Pinned is read off where the header was placed: a sticky header sits at the very top of the list's
- * viewport while it is held there, and lower down while it is not.
- */
+/**  header that **stays** while a list scrolls under it — and only looks like a band while it does. */
 @Composable
 fun PinnedHeader(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     var pinned by remember { mutableStateOf(false) }
@@ -64,11 +48,6 @@ fun PinnedHeader(modifier: Modifier = Modifier, content: @Composable ColumnScope
 /**
  * A detail card's lists as **one pinned control naming the list on screen**, with the others behind it —
  * the student's card, which has four.
- *
- * Four tabs across a 360dp phone were four words competing for a glance on every visit, when a visit is
- * nearly always about one of them; this shows that one, large, and keeps the rest a tap away. The menu
- * gives each its [count] so nothing is hidden from a tutor who wants to know what is there, and ticks the
- * one being shown.
  *
  * @param count how many rows [option] holds, or null to say nothing.
  */

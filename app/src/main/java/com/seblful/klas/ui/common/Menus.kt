@@ -27,14 +27,6 @@ import com.seblful.klas.ui.theme.KlasIcons
 /**
  * A menu entry that may be **the one in force** — a sort order, a report's period, a filter, a card's list.
  *
- * The tick is a picture; `selected` is what a screen reader says — «выбрано» — about the entry. Four menus
- * drew the tick and two of them stopped there, so «Сортировка» and the report's period read every entry
- * the same way to somebody who could not see which one was ticked. Both halves live here so the next menu
- * that ticks cannot draw one without the other (`TickedMenuSurfaceTest`).
- *
- * The trailing slot is there whether or not the entry is ticked, so every entry's text ends at one edge
- * and only the selected one fills the column.
- *
  * @param leadingIcon an entry's glyph, where a menu mixes kinds (a student, a group) or names views.
  */
 @Composable
@@ -58,7 +50,7 @@ fun TickedMenuItem(
  * step back from the pencil rather than beside it.
  *
  * @param items the entries, given the `close` that shuts the menu: an entry that acted and left the menu
- *   open would leave the tutor tapping beside it to get rid of it.
+ * open would leave the tutor tapping beside it to get rid of it.
  */
 @Composable
 fun OverflowMenu(items: @Composable ColumnScope.(close: () -> Unit) -> Unit) {

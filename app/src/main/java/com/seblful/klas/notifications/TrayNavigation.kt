@@ -124,10 +124,11 @@ object TrayNavigation {
         ACTION_SHOW_LESSON -> lessonIdOrNull(classId)?.let { Destination.LessonOnSchedule(it) }
         ACTION_OPEN_DEBTS -> Destination.Debts
         ACTION_OPEN_TODAY -> Destination.Today
-        ACTION_OPEN_DAY -> epochDay
-            ?.let { runCatching { LocalDate.fromEpochDays(it) }.getOrNull() }
-            ?.let { Destination.Day(it) }
-            ?: Destination.Today
+        ACTION_OPEN_DAY ->
+            epochDay
+                ?.let { runCatching { LocalDate.fromEpochDays(it) }.getOrNull() }
+                ?.let { Destination.Day(it) }
+                ?: Destination.Today
         else -> null
     }
 }

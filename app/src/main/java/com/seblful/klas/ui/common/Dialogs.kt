@@ -28,15 +28,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.window.DialogProperties
 import com.seblful.klas.R
 
-/**
- * The app's dialogs, and the one rule they share.
- *
- * A dialog the tutor **types into** does not close on a stray tap beside it ([KeepTypedInput]): losing a
- * half-typed price to a mis-tap is worse than an extra tap on «Отмена». It is `internal` rather than private
- * precisely because four dialogs elsewhere in the app need it — while it was private, two of them pointed at
- * it in a comment and re-spelled the properties by hand, which is a named rule kept only by whoever
- * remembered to read the comment.
- */
+/** he app's dialogs, and the one rule they share. */
 
 @Composable
 fun ConfirmDialog(
@@ -59,13 +51,7 @@ fun ConfirmDialog(
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
-/**
- * Dialog behaviour for every dialog the tutor **types into**: a tap outside no longer closes it.
- *
- * The full-screen forms answer the same problem by asking «Сохранить изменения?» on the way out (see
- * `ui/common/UnsavedChanges.kt`). A dialog does not need the question — it already shows «Отмена» and
- * «Сохранить», so leaving it is a deliberate tap — it only needs to stop being closed *by accident*.
- */
+
 internal val KeepTypedInput = DialogProperties(dismissOnClickOutside = false)
 /**
  * A dialog with a single text field. Used for naming subjects, entering amounts, etc.
@@ -73,7 +59,7 @@ internal val KeepTypedInput = DialogProperties(dismissOnClickOutside = false)
  * @param keyboardType numeric for amounts, text otherwise.
  * @param capitalization how the keyboard starts a word — a subject's name is written as one.
  * @param validate gates the confirm button (in addition to non-blank). For amounts this prevents
- *   silently dismissing on an unparseable value — the action stays disabled until the input is valid.
+ * silently dismissing on an unparseable value — the action stays disabled until the input is valid.
  */
 @Composable
 fun TextFieldDialog(
@@ -119,9 +105,6 @@ fun TextFieldDialog(
 /**
  * A dialog that **tells** rather than asks: what happened, and «ОК» — a booking that skipped some dates,
  * an hour already taken, the typeface's licence.
- *
- * One button, because there is nothing to decide: the thing it reports has already happened or been
- * refused, and a «Отмена» beside «ОК» would offer to cancel a fact.
  */
 @Composable
 fun NoticeDialog(
@@ -141,13 +124,7 @@ fun NoticeDialog(
 fun NoticeDialog(text: String, onDismiss: () -> Unit, title: String? = null) {
     NoticeDialog(onDismiss = onDismiss, title = title) { Text(text) }
 }
-/**
- * One option of a one-of-many choice inside a dialog — a weekday, a subject to add.
- *
- * The **row** is the control and the radio only its picture: a 20 dp radio is not a touch target, and a
- * second target of its own made TalkBack stop twice on every option. The radio sits flush with the
- * dialog's text, so the press reaches out past it ([outsetRowPress]) rather than cutting through it.
- */
+/** ne option of a one-of-many choice inside a dialog — a weekday, a subject to add. */
 @Composable
 fun DialogRadioRow(label: String, selected: Boolean, onClick: () -> Unit) {
     Row(

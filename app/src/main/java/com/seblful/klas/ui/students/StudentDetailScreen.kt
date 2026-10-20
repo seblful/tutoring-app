@@ -76,17 +76,6 @@ import com.seblful.klas.ui.homework.homeworkUndo
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
-/**
- * The four things a student's card is *about*, each its own list — **one shown at a time**, picked from a
- * menu ([StickyViewMenu]) rather than a row of four tabs.
- *
- * They used to be three stacked sections in one scroll, which meant reaching a payment scrolled past
- * every subject and every lesson — and the lesson list, the longest of the three by far, had to be
- * capped behind a "show all" toggle to stay navigable. Then four tabs, which showed one list at full
- * length but put four words side by side on every visit. Now the list the card opens on is the lessons —
- * what a tutor opens a student for most — and the other three are a tap away, in this order: the money,
- * the homework, and the subjects and rates, which are set once and rarely looked at again.
- */
 private enum class StudentTab(val labelRes: Int, val icon: ImageVector) {
     CLASSES(R.string.student_classes_title, KlasIcons.Outlined.CalendarMonth),
     PAYMENTS(R.string.student_payments_title, KlasIcons.Outlined.Payments),
@@ -99,17 +88,11 @@ private enum class StudentTab(val labelRes: Int, val icon: ImageVector) {
     SUBJECTS(R.string.student_subjects_title, KlasIcons.Outlined.MenuBook),
 }
 
-/**
- * The card, once there is a student to draw one for.
- *
- * The wait is a screen of its own rather than a card full of zeroes: `StudentDetailState()` — the initial
- * value this used to open on — is a student with no name, no debt and no lessons, so the card stated
- * «Долг 0» about somebody before it had read them. See [Loadable].
- */
+/** he card, once there is a student to draw one for. */
 @Composable
 fun StudentDetailScreen(
     onBack: () -> Unit,
-    /** Opens a lesson, as tapping it on the schedule — or on a group's card — does. */
+
     onLessonClick: (Long) -> Unit,
     viewModel: StudentDetailViewModel = assistedMetroViewModel(),
 ) {
@@ -409,19 +392,6 @@ private fun StudentCard(
     }
 }
 
-/**
- * The two numbers that **qualify** the balance above them: what has been taught, and what it earned.
- *
- * **Two, because the money left.** It was the first of three tiles, and it is the thing the card exists
- * to answer — so it is a [HeroCard] now (see [BalanceHero]) and the row keeps what supports it. Two
- * tiles also gives each of them half a phone instead of a third: on a 360dp screen four tiles left about
- * 80dp each, at which point the value text shrank to 11sp and «1 250,50 BYN» was present but not
- * readable, which is the worst of both.
- *
- * Hours ride along as the lesson tile's **hint** rather than taking a tile: they are the one number
- * derivable from the other two at a glance. `lessonsStat` prefers «впереди N» where there are lessons
- * still to come — that is something to act on, and it outranks a total.
- */
 @Composable
 private fun studentStats(state: StudentDetailState): List<Stat> {
     val totals = state.totals
@@ -435,26 +405,6 @@ private fun studentStats(state: StudentDetailState): List<Stat> {
     )
 }
 
-/**
- * What the student owes, as the card's **hero**.
- *
- * It was the first of three stat tiles: red text in a grey row, at whatever size «1 250,50 BYN» had to
- * shrink to in a third of a phone. That is the number the card exists to answer — the tutor opens a
- * student to find out where they stand — and the report's total, its exact counterpart, has had a filled
- * accent card to itself all along. Two uses is a system; one was an accident. See [HeroCard].
- *
- * **Tonal, not the primary fill.** «Долг 240» in the app's happiest colour would be congratulating the
- * tutor on money they have not been paid; the report's income earns that colour and this does not.
- *
- * Debt and credit swap label rather than printing a negative: «Долг −50» is a puzzle, «Переплата 50» is
- * the fact. A settled balance still reads «Долг 0» — the card always answers the same question in the
- * same place, and «0» is an answer.
- *
- * The `when` is over [Balance] and exhaustive, so that last rule is now *stated*: [Balance.Settled] is
- * listed beside [Balance.Owed] under the debt label because that is the decision, where before it was a
- * two-armed `isNegative` check that produced it by omission. The sign flip is [Balance]'s and is gone
- * from here.
- */
 @Composable
 private fun BalanceHero(state: StudentDetailState, modifier: Modifier = Modifier) {
     val balance = state.balance
@@ -463,7 +413,7 @@ private fun BalanceHero(state: StudentDetailState, modifier: Modifier = Modifier
             when (balance) {
                 is Balance.Credit -> R.string.stat_credit
                 Balance.Settled, is Balance.Owed -> R.string.stat_debt
-            }
+            },
         ),
         value = balance.amount.text(),
         modifier = modifier,
@@ -479,16 +429,6 @@ private fun BalanceHero(state: StudentDetailState, modifier: Modifier = Modifier
     }
 }
 
-/**
- * The subjects the student takes, each with its rate.
- *
- * **The rate's history is not here any more.** Every subject used to carry a «История цены ⌄» strip
- * below its row — a 28dp toggle, under the 48dp minimum, on a list where the common case is a rate
- * that has never moved and the strip says so at the cost of a line per subject. Two subjects turned a
- * two-row list into six rows of furniture. It now lives inside the reprice dialog, which is both the
- * one place the question "what did this cost before?" actually comes up and the place where the
- * answer changes something.
- */
 private fun LazyListScope.subjectsTab(
     state: StudentDetailState,
     onAdd: () -> Unit,
@@ -532,14 +472,6 @@ private fun LazyListScope.subjectsTab(
     }
 }
 
-/**
- * Read-only: lessons are booked and edited from the schedule, not from the student's card.
- *
- * This is the one list in the app that genuinely **mixes** individual lessons with a group's, so it is
- * where the distinction has to be drawn: each row is marked with its kind and names the group it
- * belonged to, and a student who is taught both ways gets chips to see one kind at a time. Without
- * that, two lessons of the same subject an hour apart, billed at different amounts, look like a bug.
- */
 private fun LazyListScope.classesTab(
     state: StudentDetailState,
     filter: LessonFilter,
@@ -604,15 +536,13 @@ private fun LazyListScope.classesTab(
             },
             // Opens the lesson, as the schedule and the group's card do: a tutor reading a student's
             // history is the one most likely to spot the lesson to correct.
-            modifier = Modifier.insetRowPress { Modifier.clickable(it, indication = null) { onLessonClick(row.klass.id) } },
+            modifier = Modifier.insetRowPress {
+                Modifier.clickable(it, indication = null) { onLessonClick(row.klass.id) }
+            },
         )
     }
 }
 
-/**
- * The money the student has handed over. Each row can be **corrected**, not only deleted: a mistyped
- * amount used to mean removing the payment and entering it again.
- */
 private fun LazyListScope.paymentsTab(
     state: StudentDetailState,
     onAdd: () -> Unit,

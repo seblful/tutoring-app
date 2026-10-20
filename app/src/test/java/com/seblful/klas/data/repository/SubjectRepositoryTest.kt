@@ -17,11 +17,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/**
- * What stops a subject being deleted. Both refusals exist because the database would otherwise decide
- * the matter itself — `classes.subjectId` cascades and `student_groups.subjectId` restricts — and
- * neither of those answers reaches the tutor as anything but lost history or a crash.
- */
 @RunWith(RobolectricTestRunner::class)
 class SubjectRepositoryTest {
 
@@ -46,12 +41,6 @@ class SubjectRepositoryTest {
         assertEquals("the subject is still there", 1, env.stored().subjects.size)
     }
 
-    /**
-     * A group that is *taught* the subject is enough, with no lesson of its own yet. The foreign key
-     * is `RESTRICT`, so before this was checked the delete reached SQLite and threw a constraint
-     * violation out of the `launch` it was called in — a crash where the tutor should have been told
-     * the subject is still in use.
-     */
     @Test
     fun `a subject a group is taught is refused`() = runTest {
         val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
@@ -65,10 +54,6 @@ class SubjectRepositoryTest {
         assertEquals("the subject is still there", 1, env.stored().subjects.size)
     }
 
-    /**
-     * A student priced for it is enough, with no lesson yet: the price cascades with the subject, so the
-     * delete used to go through and take the subject off the student without a word.
-     */
     @Test
     fun `a subject a student takes is refused`() = runTest {
         val id = env.fixtures.subject("Физика")
@@ -82,11 +67,6 @@ class SubjectRepositoryTest {
         assertEquals("and still priced", 1, env.stored().prices.size)
     }
 
-    /**
-     * A subject with **both** blockers names the classes, not the group. Either message is true; the
-     * classes are the one the tutor has to deal with first, since changing the group's subject would
-     * leave the lessons still pointing at it.
-     */
     @Test
     fun `classes are named ahead of a group when both block`() = runTest {
         val student = env.studentDao.upsert(StudentEntity(name = "Аня"))
@@ -100,7 +80,6 @@ class SubjectRepositoryTest {
         )
     }
 
-    /** A group with no subject of its own constrains nothing. */
     @Test
     fun `a subject no group is bound to is deleted even while groups exist`() = runTest {
         val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
@@ -110,7 +89,6 @@ class SubjectRepositoryTest {
         assertTrue(env.stored().subjects.isEmpty())
     }
 
-    /** The check and the write share one transaction, so a double tap cannot run two checks first. */
     @Test
     fun `a name already taken is refused, in the same transaction as the write`() = runTest {
         assertTrue(env.subjectRepo.saveUnlessTaken(Subject(name = "Математика")))

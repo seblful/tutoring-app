@@ -9,13 +9,6 @@ import androidx.compose.ui.unit.dp
 /**
  * Every icon the app draws: [Material Symbols](https://fonts.google.com/icons), Outlined family,
  * weight 400, grade 0, 24 dp — [Filled] at fill 1, [Outlined] at fill 0.
- *
- * Copied in rather than taken from `material-icons-extended`: that library stopped shipping with
- * Compose 1.7 and still draws the older Material Icons, and as code these build for iOS as they are.
- * The paths are Google's own SVGs (Apache 2.0), from
- * `github.com/google/material-design-icons/symbols/web/<name>/materialsymbolsoutlined/`
- * (`<name>_fill1_24px.svg` for [Filled]); to add an icon, copy its `d` attribute from there.
- * A mirrored icon (`autoMirror`) points the other way in a right-to-left layout.
  */
 object KlasIcons {
     object Filled {
@@ -632,7 +625,6 @@ object KlasIcons {
     }
 }
 
-/** One Symbols glyph. Its 960-unit viewport starts at y = -960, hence the group moving it down. */
 private fun symbol(name: String, vararg pathData: String, autoMirror: Boolean = false): ImageVector =
     ImageVector.Builder(
         name = name,

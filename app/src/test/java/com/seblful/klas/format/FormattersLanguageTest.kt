@@ -13,19 +13,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Locale
 
-/**
- * **The formatters follow the app's language**, which is the thing adding a second language had to buy.
- *
- * `FormattersTest` pins the Russian output. This asks the question that file cannot: whether the same
- * functions produce a *different* answer when the setting moves — because the failure mode being guarded
- * against is not a wrong month name, it is an app whose strings are in English and whose dates are in
- * Russian. That was the state before [AppLocale] existed: the formatters were module-level `val`s built once
- * at class load against a pinned `ru`, and no setting could reach them.
- *
- * The locale is moved directly rather than through a settings row, which is the seam [AppLocale] exists to
- * be: `SettingsRepository` publishes it and everything below reads it, so the two halves are tested apart —
- * `SettingsRepositoryTest` that the row publishes, this that the formatters obey.
- */
 class FormattersLanguageTest {
 
     private fun inLanguage(locale: Locale, body: () -> Unit) {
@@ -48,7 +35,6 @@ class FormattersLanguageTest {
         }
     }
 
-    /** English capitalises its month names already, so the heading rule is a no-op there and not a bug. */
     @Test
     fun `a month heading is capitalised in both languages`() {
         listOf(AppLocaleRule.RUSSIAN, AppLocaleRule.ENGLISH).forEach { locale ->
@@ -72,12 +58,6 @@ class FormattersLanguageTest {
         }
     }
 
-    /**
-     * The week label has to stay short enough to sit between the navigator's arrows in **either**
-     * language, which is a real constraint and not a formality: it is asserted at 26 characters for
-     * Russian, and English's own worst case (two September/December dates and two years) has to clear the
-     * same bar.
-     */
     @Test
     fun `a week range stays short enough for the navigator in English too`() {
         inLanguage(AppLocaleRule.ENGLISH) {
@@ -92,11 +72,6 @@ class FormattersLanguageTest {
         }
     }
 
-    /**
-     * The **decimal separator** is the same setting, which is why it lives beside the dates rather than
-     * beside the currency: `1500,50 USD` is a Russian reader's dollars and `1500.50 BYN` an English
-     * reader's rubles, and both are correct. What must never happen is one screen writing each way.
-     */
     @Test
     fun `money is written with the language's decimal separator, whatever the currency`() {
         inLanguage(AppLocaleRule.RUSSIAN) {

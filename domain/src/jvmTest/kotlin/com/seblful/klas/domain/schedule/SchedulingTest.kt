@@ -46,8 +46,6 @@ class SchedulingTest {
         assertEquals(emptyList<Subject>(), Scheduling.assignableSubjects(emptyList(), setOf(1L)))
     }
 
-    // --- Conflicts: one tutor cannot teach two lessons at once ---
-
     private val tenToEleven = Scheduling.Slot(Instant.parse("2026-09-01T10:00:00Z"), 60)
 
     private fun klass(
@@ -81,7 +79,6 @@ class SchedulingTest {
 
     @Test
     fun `every kind of overlap is a conflict`() {
-        // Identical, starting inside, ending inside, and wholly containing the slot.
         listOf(
             klass(1, "2026-09-01T10:00:00Z"),
             klass(2, "2026-09-01T10:30:00Z"),
@@ -119,7 +116,6 @@ class SchedulingTest {
         val ann = klass(1, "2026-09-01T10:00:00Z", studentId = 1, groupId = 7)
         val bob = klass(2, "2026-09-01T10:00:00Z", studentId = 2, groupId = 7)
 
-        // Passing only the tapped member's id leaves the lesson colliding with its own other member.
         assertEquals(listOf(2L), Scheduling.conflicts(tenToEleven, listOf(ann, bob), setOf(1L)).map { it.first.id })
         assertEquals(
             emptyList<ClassSession>(),
@@ -141,42 +137,22 @@ class SchedulingTest {
         assertEquals(3, clashes.single().size)
     }
 
-    // --- The window: which classes the rule above ever gets asked about ---
-
-    /**
-     * These pin the window's **magnitude**, which is what nothing did while it was a private helper on
-     * `ClassRepository`. Its existence was covered — deleting it broke three tests — but shrinking the
-     * lead-in from a day to an hour left all 647 green, and the app would then have stopped detecting
-     * exactly the containing overlap `every kind of overlap is a conflict` was written to catch: the
-     * scan filters on a class's *start*, so a lesson already under way when the slot opens is simply
-     * never offered to [Scheduling.conflicts] and the hour reads as free.
-     */
     @Test
     fun `the window reaches back the length of the longest lesson there can be`() {
         val window = Scheduling.windowFor(tenToEleven)
 
-        // Deliberately a literal, not `Scheduling.LONGEST_LESSON`: asserting the window against the
-        // constant it is derived from restates the implementation and holds for any value of it, which
-        // is the shape of the gap this whole section exists to close.
         assertEquals(1.days, (tenToEleven.start - window.from))
     }
 
     @Test
     fun `a lesson already under way when the slot opens is inside the window`() {
         val window = Scheduling.windowFor(tenToEleven)
-        // The 08:00 four-hour lesson from `every kind of overlap is a conflict`, which that test hands
-        // to the rule directly — so only this one says it would ever be read from the database.
         val containing = klass(4, "2026-09-01T08:00:00Z", minutes = 240)
 
         assertTrue(containing.start >= window.from, "it must be read")
         assertEquals(listOf(4L), Scheduling.conflicts(tenToEleven, listOf(containing)).map { it.first.id })
     }
 
-    /**
-     * The picker returns at most 1 439 minutes, so any such lesson still running when the slot
-     * opens began after `start - LONGEST_LESSON`. This checks that boundary; it does not cover
-     * longer durations accepted by backup validation.
-     */
     @Test
     fun `the window covers even the longest lesson a single date could hold`() {
         val window = Scheduling.windowFor(tenToEleven)
@@ -195,15 +171,6 @@ class SchedulingTest {
         assertTrue(after.start >= window.toExclusive, "not read, and not a clash either")
     }
 
-    /**
-     * The many-slot window — what booking a whole term reads over, `ClassRepository.bookSeries`' one
-     * read for twelve occurrences.
-     *
-     * It used to be spelled by hand at that call site, so the **write** path shaped its own window while
-     * only the read path used this module's. They agreed on the figure and not on the shape, which is the
-     * half a later change to [Scheduling.windowFor] would have broken silently — and silently on the path
-     * that persists.
-     */
     @Test
     fun `one window covers every slot of a term, reaching back from the first`() {
         val week = 7.days
@@ -213,7 +180,6 @@ class SchedulingTest {
 
         assertEquals(1.days, ((term.first().start) - window.from))
         assertEquals(term.last().end, window.toExclusive)
-        // And it is a superset of each occurrence's own window, which is what makes one read enough.
         term.forEach { slot ->
             val own = Scheduling.windowFor(slot)
             assertTrue(window.from <= own.from && window.toExclusive >= own.toExclusive, "covers ${slot.start}")
@@ -230,16 +196,6 @@ class SchedulingTest {
         assertFailsWith<IllegalArgumentException> { Scheduling.windowFor(emptyList()) }
     }
 
-    /**
-     * A slot of no length is now refused outright, rather than tolerated and asked about.
-     *
-     * This test used to pin the tolerant behaviour — a zero-length slot inside a lesson did report the
-     * clash, so the rule looked total. It wasn't: `overlaps` needs `other.start < end`, and for a
-     * zero-length slot `end == start`, so the same query placed at a lesson's *own* start instant found
-     * nothing. The rule held mid-hour and failed open at the edge, which is the direction that lets a
-     * lesson be booked over one already there. There is nothing in the app that wants a zero-length
-     * slot, so it stopped being a value that can be made.
-     */
     @Test
     fun `a slot of no length cannot be built at all`() {
         val at = Instant.parse("2026-09-01T10:30:00Z")
@@ -252,12 +208,6 @@ class SchedulingTest {
         }
     }
 
-    /**
-     * The row that should not exist, met on the read path: a stored class of no length is skipped by
-     * the conflict scan rather than allowed to throw. One malformed row must not stop the overlap
-     * check being made for every other lesson — which is what asking `slotOf` about it would do,
-     * inside the flow a booking form collects.
-     */
     @Test
     fun `a stored class of no length is skipped rather than throwing`() {
         val existing = listOf(
@@ -267,7 +217,6 @@ class SchedulingTest {
 
         val clashes = Scheduling.conflicts(tenToEleven, existing)
 
-        // The good row is still found; the bad one is simply not in anybody's way.
         assertEquals(listOf(2L), clashes.map { it.first.id })
     }
 }

@@ -7,30 +7,12 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/**
- * **v6 → v7 on a real database**: a lesson gains its note, and the settings row gains the evening digest.
- *
- * The sibling of [SettingsLanguageMigrationTest] and written for the same reason. `MigrationChainTest`
- * proves on the JVM that the step exists and is wired in; whether it *works* needs SQLite, and this step
- * has three `DEFAULT`s that have to match three `defaultValue`s exactly — `''`, `0` and `1260`. Room
- * validates that the instant the upgrade finishes, which without a test here means finding out as a crash
- * on first launch after a Play update.
- *
- * It also covers the half a settings migration does not: this one touches **`lessons`**, a table with a
- * tutor's history in it, and the view over it (`classes`) has to come back projecting the new column or
- * every read of a lesson fails. Room drops and recreates its views after the migrations run, so that is
- * exactly the kind of thing that is true by construction until it is not.
- */
 @RunWith(AndroidJUnit4::class)
 class LessonNotesMigrationTest {
 
     @get:Rule
     val helper = migrationTestHelper(TEST_DB)
 
-    /**
-     * A v6 lesson with a student in it, migrated — and still readable **through the view**, which is what
-     * every screen in the app reads a lesson with.
-     */
     @Test
     fun aLessonKeepsItsHourAndGainsAnEmptyNote() {
         helper.createDatabase(6).use { db ->
@@ -60,14 +42,11 @@ class LessonNotesMigrationTest {
             "",
             lesson["notes"],
         )
-        // The columns beside it, which is what says the row was altered rather than replaced.
         assertEquals(1750000000000L, lesson["startMillis"])
         assertEquals(90L, lesson["durationMinutes"])
         assertEquals("COMPLETED", lesson["status"])
         assertEquals("REMOTE", lesson["mode"])
 
-        // The `classes` view is what every read above storage goes through, and it now projects
-        // `lessons.notes`. Room recreates its views after the migrations; this is that actually happening.
         val viewed = migrated.row(
             "SELECT notes, chargeMinor, status FROM classes WHERE lessonId = 7",
             missing = "the view came back without the lesson in it",
@@ -77,13 +56,6 @@ class LessonNotesMigrationTest {
         assertEquals("the lesson's half too", "COMPLETED", viewed["status"])
     }
 
-    /**
-     * The settings half, on a row that already exists — so the two new columns arrive with the tutor's
-     * other answers intact and the evening digest **off**.
-     *
-     * Off is the decision rather than the absence of one: an install being upgraded has never been offered
-     * this notification, so acquiring one by updating the app would be the app asking on its own behalf.
-     */
     @Test
     fun theSettingsRowGainsTheEveningDigestSwitchedOff() {
         helper.createDatabase(6).use { db ->
@@ -112,7 +84,6 @@ class LessonNotesMigrationTest {
             row["unfinishedDigestEnabled"],
         )
         assertEquals("21:00 as minutes past local midnight", 1260L, row["unfinishedMinuteOfDay"])
-        // The answers the tutor did give, still theirs.
         assertEquals("ENGLISH", row["language"])
         assertEquals("RUB", row["currency"])
         assertEquals("DARK", row["themeMode"])
@@ -121,12 +92,6 @@ class LessonNotesMigrationTest {
         assertEquals(600L, row["debtMinuteOfDay"])
     }
 
-    /**
-     * The other v6 state, and the more common one: **no settings row and no lessons at all.**
-     *
-     * `ALTER TABLE … ADD COLUMN` on an empty table is exactly where a wrong `DEFAULT` hides — there is no
-     * row for it to be visible on, and only Room's schema validation catches it.
-     */
     @Test
     fun anEmptyDatabaseStillValidates() {
         helper.createDatabase(6).close()

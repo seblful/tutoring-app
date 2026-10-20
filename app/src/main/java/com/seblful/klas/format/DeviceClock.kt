@@ -15,10 +15,6 @@ import kotlinx.datetime.TimeZone
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-/**
- * The device's clock, read in the device's **current** zone — not the zone captured when a repository or
- * form was constructed.
- */
 internal class DeviceClock(private val context: Context, private val time: Clock = Clock.System) : WallClock {
     override fun now(): Instant = time.now()
 

@@ -18,10 +18,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/**
- * The seam under every repository and view-model test is the database the app ships, not a likeness of
- * it — the things the in-memory fakes could not do, done by SQLite.
- */
 @RunWith(RobolectricTestRunner::class)
 class TestDatabaseTest {
 
@@ -32,8 +28,6 @@ class TestDatabaseTest {
 
     @Test
     fun `foreign keys are enforced, as on a device`() = runTest {
-        // Room turns `PRAGMA foreign_keys` on when it opens a schema that declares any; a test database
-        // that left them off would accept every orphan the app's would refuse.
         val refused = runCatching { db.groupDao().addMember(GroupMemberCrossRef(groupId = 99, studentId = 99)) }
         assertTrue(
             "a member of a group that does not exist is refused: ${refused.exceptionOrNull()}",
@@ -76,8 +70,6 @@ class TestDatabaseTest {
 
         db.subjectDao().upsert(SubjectEntity(name = "Алгебра"))
 
-        // No `advanceUntilIdle()`: the invalidation runs inline on the query context (see TestDatabase),
-        // which is the timing every test written against the in-memory fakes assumed.
         assertEquals(listOf(emptyList(), listOf("Алгебра")), seen)
         assertEquals(listOf("Алгебра"), db.subjectDao().observeAll().first().map { it.name })
     }

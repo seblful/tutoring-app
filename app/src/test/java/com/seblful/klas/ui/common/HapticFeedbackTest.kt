@@ -8,32 +8,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
-/**
- * **A buzz is the phone's to give.** `LocalHapticFeedback` ends at `View.performHapticFeedback`, which
- * honours the system's touch-feedback setting and the device's haptic strength; `Vibrator` and
- * `VibrationEffect` do not — they vibrate a phone whose owner turned vibration off, for a duration this
- * app would have had to invent. The `VIBRATE` permission is the tell that it happened, so the manifest is
- * checked too.
- *
- * And it is performed in one file (`ui/common/Haptics.kt`) rather than at each gesture, so *which* effect a
- * moment gets is a decision with one home — the same argument as [timeText] having the only copy of "which
- * clock is this phone on". There are five moments, and the list is deliberately short: the mark a drag
- * crosses ([rememberArmedFeedback]), an action landing ([rememberConfirmFeedback]), a refusal
- * ([rememberRejectFeedback]), a stored fact toggling ([rememberToggleFeedback]) and moving between the
- * segments of a fixed choice ([rememberSegmentTickFeedback]).
- *
- * **What is not on the list is the point of the list.** An ordinary button, a list row, a tab, a navigation —
- * none of them buzz. The platform reserves haptics for state changes, gesture thresholds and confirmations
- * and leaves a plain tap to its ripple; a phone that buzzes at everything is one where no buzz means
- * anything.
- */
 class HapticFeedbackTest {
 
-    /**
-     * Read off the *code* rather than the whole file, because the file that documents this rule names the
-     * APIs it forbids — and a scan that cannot tell a call from a KDoc link would be answered by deleting
-     * the explanation.
-     */
     private fun code(file: File): String = file.readLines()
         .filterNot { line ->
             val trimmed = line.trimStart()
@@ -81,7 +57,6 @@ class HapticFeedbackTest {
         )
     }
 
-    /** So the scans above cannot pass by the app having stopped buzzing at all. */
     @Test
     fun `every buzz exists and is used`() {
         val haptics = ProjectFiles.sourceFile("ui/common/Haptics.kt").readText()
@@ -98,11 +73,6 @@ class HapticFeedbackTest {
         )
     }
 
-    /**
-     * The **confirm and the refusal are a pair**, and the refusal is the one that was missing: a lesson
-     * marked taught buzzed twice while an hour refused because it was already booked — the app's one hard
-     * "no" — said nothing at all. If the app can say yes without words it has to be able to say no.
-     */
     @Test
     fun `a refusal is felt wherever the schedule refuses an hour`() {
         val schedule = ProjectFiles.sourceFile("ui/schedule/ScheduleScreen.kt").readText()
@@ -113,11 +83,6 @@ class HapticFeedbackTest {
         )
     }
 
-    /**
-     * The same "no" from the booking form: a save refused because the hour was taken while the form was
-     * open. It arrives as a one-shot event rather than as state, so it is felt through `ShowMessagesFor`'s
-     * `refused`, not through an effect keyed on a conflict.
-     */
     @Test
     fun `a refusal is felt wherever the booking form refuses an hour`() {
         val form = SourceText.code(ProjectFiles.sourceFile("ui/schedule/booking/ClassEditScreen.kt").readText())

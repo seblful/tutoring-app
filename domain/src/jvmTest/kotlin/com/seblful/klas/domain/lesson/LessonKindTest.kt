@@ -10,12 +10,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
-/**
- * Which kind of lesson a class is, and the narrowing a mixed list offers.
- *
- * The one trap worth a test of its own: a single member's class read as a session of one — the shape
- * a per-member correction uses — must still be a **group** lesson, because it is.
- */
 class LessonKindTest {
 
     private val start = Instant.parse("2026-06-20T10:00:00Z")
@@ -39,11 +33,6 @@ class LessonKindTest {
 
     private val lessonIds = mutableMapOf<Pair<Long, Any>, Long>()
 
-    /**
-     * The lesson a fixture's class belongs to: one per (group, start) for a group's, its own id for an
-     * individual class. A convention of the test — storage has a column for it — and it has to be stated
-     * because that column is the whole of what makes classes one lesson (`SessionRules.sessions`).
-     */
     private fun lessonIdFor(groupId: Long?, start: Any, id: Long): Long =
         if (groupId == null) id else lessonIds.getOrPut(groupId to start) { 1_000L + lessonIds.size }
 
@@ -135,7 +124,8 @@ class LessonKindTest {
 
     @Test
     fun `the class-list form agrees with it`() {
-        val individual = TutoringClass(id = 1, studentId = 1, subjectId = 1, start = Instant.fromEpochMilliseconds(0), durationMinutes = 60)
+        val individual =
+            TutoringClass(id = 1, studentId = 1, subjectId = 1, start = Instant.fromEpochMilliseconds(0), durationMinutes = 60)
         val group = individual.copy(id = 2, groupId = 7)
         val classes = listOf(individual, group)
 

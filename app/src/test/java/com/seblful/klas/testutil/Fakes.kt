@@ -41,7 +41,6 @@ import org.junit.rules.TestRule
 import java.io.Closeable
 import kotlin.time.Instant
 
-/** Records reminder-refresh requests and armed plans so tests can assert side effects fired. */
 class RecordingReminderScheduler : ReminderScheduler {
     var refreshCount = 0
         private set
@@ -69,10 +68,6 @@ class RecordingReminderScheduler : ReminderScheduler {
     }
 }
 
-/**
- * Records the digest plans arranged, so a test can assert *when* each digest was set for — and, just as
- * importantly, that a switched-off one was arranged for nothing at all.
- */
 class RecordingDigestScheduler : DigestScheduler {
 
     /** Every plan handed over, newest last. */
@@ -86,12 +81,7 @@ class RecordingDigestScheduler : DigestScheduler {
     }
 }
 
-/**
- * Records calendar writes. [available] controls whether [upsert] returns an id (mimicking a
- * writable calendar) or null (no calendar / permission), so tests can drive both branches.
- */
 class FakeCalendarSync(var available: Boolean = true) : CalendarSync {
-    /** One recorded mirror, with every argument, so a test can assert the guest as well as the class. */
     data class Upsert(
         val klass: TutoringClass,
         val title: String,
@@ -99,7 +89,6 @@ class FakeCalendarSync(var available: Boolean = true) : CalendarSync {
         val reminderLeadMinutes: Int,
     )
 
-    /** One recorded refresh: the lesson as it now stands, and the title it is being retitled to. */
     data class Refresh(val klass: TutoringClass, val title: String)
 
     val calls = mutableListOf<Upsert>()
@@ -132,8 +121,6 @@ class FakeCalendarSync(var available: Boolean = true) : CalendarSync {
      */
     override suspend fun refresh(klass: TutoringClass, title: String) {
         if (!available) return
-        // The real adapter no-ops without an event id, and a fake that recorded the call anyway would
-        // let a test claim the calendar was touched where the device would have done nothing.
         if (klass.calendarEventId == null) return
         refreshes += Refresh(klass, title)
     }
@@ -143,7 +130,6 @@ class FakeCalendarSync(var available: Boolean = true) : CalendarSync {
     }
 }
 
-/** Records everything posted to the tray, so tests can assert what the app announced and to whom. */
 class RecordingNotifier : Notifier {
     data class Posted(
         val klass: TutoringClass,
@@ -197,10 +183,6 @@ class RecordingNotifier : Notifier {
         this.debts += debts
     }
 
-    /**
-     * What each unattended upkeep pass reported billing. Empty is the assertion that matters most often:
-     * a pass the tutor asked for reports through the screen instead, and must post nothing here.
-     */
     data class AutoCompleted(val lessons: Int, val billed: Money, val day: LocalDate)
 
     val autoCompleted = mutableListOf<AutoCompleted>()
@@ -210,17 +192,6 @@ class RecordingNotifier : Notifier {
     }
 }
 
-/**
- * The production [Transactor] — a real Room transaction, see [TestDatabase] — counted, which is what a
- * test asserts beyond atomicity itself: that a lesson's rows are written in **one** transaction rather
- * than several, and that they are not nested.
- *
- * [failAt] makes that numbered transaction throw after its block has run but before it commits, so
- * SQLite rolls the block's writes back exactly as it would on a device; it is a `var` so a test can seed
- * its data over successful transactions and then arm the failure for the one it is actually about.
- * Both halves of atomicity are then observable: the rows are as they were, and the calendar and the
- * reminder scheduler were never told.
- */
 class RecordingTransactor(private val delegate: Transactor, var failAt: Int? = null) : Transactor {
     var count = 0
         private set
@@ -247,20 +218,10 @@ class RecordingTransactor(private val delegate: Transactor, var failAt: Int? = n
     }
 }
 
-/** Stands in for the device's calendar permission; flip [granted] to drive either branch. */
 class FakeCalendarPermission(var granted: Boolean = true) : CalendarPermission {
     override fun isGranted(): Boolean = granted
 }
 
-/**
- * Stands in for whether a reminder would actually be shown. [granted] false is a fresh Android 13+
- * install — the setting on, the permission never asked for — which is the case the settings row exists
- * to stop being silent about.
- *
- * @param canAsk whether the platform has a prompt to show. **False is a real state**, not a degenerate
- *   one: notifications switched off for the whole app in system settings leave nothing to request, and
- *   the app has to say so rather than show a dialog that closes itself.
- */
 class FakeNotificationPermission(
     var granted: Boolean = true,
     override var canAsk: Boolean = true,
@@ -268,11 +229,6 @@ class FakeNotificationPermission(
     override fun isGranted(): Boolean = granted
 }
 
-/**
- * Records what was armed and what was cancelled, in order — the two halves of the reminder replacement
- * discipline, which is what `ReminderAlarms` exists to get right and what `AlarmManager` cannot be asked
- * about. [exact] is which of the port's two set methods was taken.
- */
 class RecordingAlarmClock : AlarmClock {
 
     data class Armed(val classId: Long, val atMillis: Long, val exact: Boolean)
@@ -299,13 +255,6 @@ class RecordingAlarmClock : AlarmClock {
     }
 }
 
-/**
- * The armed-id record, in memory.
- *
- * Deliberately its own object rather than a field on [RecordingAlarmClock]: the point of the split is that
- * the record outlives the process, so a test hands the *same* store to a second `ReminderAlarms` to stand in
- * for a restart.
- */
 class FakeArmedReminders(private var ids: Set<Long> = emptySet()) : ArmedReminders {
     override fun read(): Set<Long> = ids
     override fun write(ids: Set<Long>) {
@@ -313,23 +262,10 @@ class FakeArmedReminders(private var ids: Set<Long> = emptySet()) : ArmedReminde
     }
 }
 
-/**
- * Stands in for whether an alarm may be set for an exact instant.
- *
- * [granted] false is the default state of a fresh Android 14+ install: reminders are shown, but through
- * an inexact alarm Doze may hold until its next window, so the hour's warning can land during the lesson.
- * Defaults to true here because that is what every version below Android 12 reports and what most tests
- * are not about.
- */
 class FakeExactAlarmPermission(var granted: Boolean = true) : ExactAlarmPermission {
     override fun isGranted(): Boolean = granted
 }
 
-/**
- * An in-memory [DocumentStore]. [docs] is the "file system": seed it to drive a read, inspect it
- * after a write. Set [failing] to make both operations throw, which is how the error branch of an
- * export or import is reached without a device.
- */
 class FakeDocumentStore(var failing: Boolean = false) : DocumentStore {
     val docs = mutableMapOf<String, String>()
 
@@ -344,13 +280,6 @@ class FakeDocumentStore(var failing: Boolean = false) : DocumentStore {
     }
 }
 
-/**
- * Records what was handed to the share sheet.
- *
- * The real adapter writes a file and starts a chooser, neither of which exists on the JVM — but what the
- * app *decides* does: the filename, the type that picks who is offered it, the subject line and the
- * bytes. That is the whole of what a test can be wrong about here.
- */
 class RecordingDocumentSharing(var failing: Boolean = false) : DocumentSharing {
     data class Shared(
         val filename: String,
@@ -376,14 +305,6 @@ class RecordingDocumentSharing(var failing: Boolean = false) : DocumentSharing {
  */
 val RussianMinskPhone: List<java.util.Locale> = listOf(java.util.Locale.forLanguageTag("ru-BY"))
 
-/**
- * The real repositories over a real database ([TestDatabase]), for repository, backup and view-model
- * tests. Only the ports to the device are doubles — calendar, permissions, notifier, reminder and digest
- * scheduling, the clock — so mapping, repository side effects and the SQL under them all run for real.
- *
- * A [TestRule] so the database is closed after the test: declare it `@get:Rule val env = TestEnv()` in a
- * class run by `RobolectricTestRunner`. A second one opened inside a test is closed with `use {}`.
- */
 class TestEnv(
     val database: TestDatabase = TestDatabase(),
     val deviceLocales: List<java.util.Locale> = RussianMinskPhone,
@@ -450,8 +371,6 @@ class TestEnv(
     val rateHistoryRepo = RateHistoryRepository(rateHistoryDao, groupDao, priceDao, clock)
     val paymentRepo = PaymentRepository(paymentDao, clock)
 
-    // Declared before the four repositories below it, all of which ask it whether anything is still
-    // taught somewhere rather than counting rows in the class table themselves.
     val classRepo = ClassRepository(
         dao = classDao,
         lessons = lessonDao,
@@ -465,8 +384,6 @@ class TestEnv(
     val subjectRepo = SubjectRepository(subjectDao, classRepo, groupRepo, studentDao, calendarMirror, transactor)
     val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classRepo, rateHistoryRepo, transactor)
 
-    // Archiving a student has to call off their planned lessons, so this reaches for the class
-    // repository rather than restating any of what a class change owes.
     val studentRepo = StudentRepository(studentDao, classRepo, calendarMirror)
 
     val homeworkRepo = HomeworkRepository(homeworkDao, classRepo, clock)

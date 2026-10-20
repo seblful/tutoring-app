@@ -17,8 +17,6 @@ class RecurrenceTest {
     private val atFour = LocalTime(16, 0)
     private val minsk: TimeZone = TimeZone.of("Europe/Minsk")
 
-    // --- What a run of dates is -----------------------------------------------------------------
-
     @Test
     fun `a booking that does not repeat is the one day it was booked for`() {
         assertEquals(listOf(monday), Recurrence.dates(monday, Repeat.NONE, count = 4))
@@ -26,8 +24,6 @@ class RecurrenceTest {
 
     @Test
     fun `the count is ignored while nothing is being repeated`() {
-        // Otherwise a form that left `repeatCount` at its default while «Повторять» said «Нет» could
-        // still write four lessons — the two fields would be able to disagree.
         assertEquals(listOf(monday), Recurrence.dates(monday, Repeat.NONE, count = 52))
     }
 
@@ -63,11 +59,8 @@ class RecurrenceTest {
         )
     }
 
-    // --- The bounds -----------------------------------------------------------------------------
-
     @Test
     fun `a run is never empty, whatever the count says`() {
-        // The one thing this must not do is book nothing while reporting success.
         listOf(0, -1, Int.MIN_VALUE).forEach { count ->
             assertEquals(listOf(monday), Recurrence.dates(monday, Repeat.WEEKLY, count))
         }
@@ -81,8 +74,6 @@ class RecurrenceTest {
 
     @Test
     fun `the last date is the one the run actually ends on`() {
-        // What the form prints as «по 24 сентября» — read off the same rule the write uses, so the
-        // promise on screen cannot differ from the lessons written.
         assertEquals(
             Recurrence.dates(monday, Repeat.WEEKLY, count = 8).last(),
             Recurrence.lastDate(monday, Repeat.WEEKLY, count = 8),
@@ -94,8 +85,6 @@ class RecurrenceTest {
         assertEquals(monday, Recurrence.lastDate(monday, Repeat.NONE, count = 4))
     }
 
-    // --- Instants: the wall clock is the promise ------------------------------------------------
-
     @Test
     fun `every occurrence starts at the wall-clock time that was picked`() {
         Recurrence.startsFor(monday, atFour, Repeat.WEEKLY, count = 6, zone = minsk).forEach {
@@ -105,10 +94,6 @@ class RecurrenceTest {
 
     @Test
     fun `a run through a daylight-saving change keeps its hour rather than its interval`() {
-        // Europe/Brussels puts the clocks back on 25 October 2026, so the Sunday lesson on the 25th is
-        // 169 hours after the one on the 18th rather than 168. Adding a fixed week of *elapsed* time
-        // would keep the interval and slide the rest of the term to 15:00 — but a lesson is arranged at
-        // four o'clock, not at 604800 seconds.
         val brussels = TimeZone.of("Europe/Brussels")
         val sunday = LocalDate.parse("2026-10-11")
         val starts = Recurrence.startsFor(sunday, atFour, Repeat.WEEKLY, count = 4, zone = brussels)

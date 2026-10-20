@@ -8,13 +8,7 @@ import com.seblful.klas.R
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.ui.common.text
 
-/**
- * Human-readable balance line: debt, credit, or settled.
- *
- * Takes the case and not the amount: which of the three it is was decided by [Balance.of] and tested there,
- * so this holds only the sentence. Both arms print [Balance.Credit.amount] and [Balance.Owed.amount] as
- * given — they are already positive, so nothing here flips a sign.
- */
+/** uman-readable balance line: debt, credit, or settled. */
 @Composable
 fun balanceDescription(balance: Balance): String = when (balance) {
     Balance.Settled -> stringResource(R.string.balance_settled)

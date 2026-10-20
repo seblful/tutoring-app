@@ -40,11 +40,6 @@ import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlin.time.Instant
 
-/**
- * The types a backup file can arrive as: plenty of file managers hand a `.json` over as
- * octet-stream or plain text, so the picker has to accept those too. Shared with the first-run
- * restore so both pickers offer the same files.
- */
 internal val BACKUP_MIME_TYPES = arrayOf("application/json", "application/octet-stream", "text/plain")
 
 @Composable
@@ -150,22 +145,8 @@ fun ConfirmRestoreDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     )
 }
 
-/**
- * The height [LastExportCard] comes to: an icon beside a `titleSmall` over a `bodySmall`, at
- * [Spacing.gutter] all round. Measured off that card rather than set to the spacing scale, for the reason
- * `Skeleton.kt`'s own row heights are — it stands in for something whose size is not its own choice.
- */
 private val LastExportCardHeight = 84.dp
 
-/**
- * «Последняя копия: 20 июня 2026» — or «Копий ещё не было», which is the version that matters.
- *
- * A [SectionCard] rather than a third `ListItem`: the two rows below it are things to *do* and this is a
- * statement of fact, and a row that looks like the others but does nothing when tapped is a worse lie
- * than a paragraph. Tinted when there has never been a backup — not the error red, because nothing is
- * broken and the tutor may have decided this deliberately, but not the same grey as the rest of the
- * screen either: it is the one thing here they might want to act on today.
- */
 @Composable
 private fun LastExportCard(at: Instant?) {
     val never = at == null
@@ -196,7 +177,7 @@ private fun LastExportCard(at: Instant?) {
                 )
                 Text(
                     stringResource(
-                        if (never) R.string.backup_never_detail else R.string.backup_last_export_detail
+                        if (never) R.string.backup_never_detail else R.string.backup_last_export_detail,
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

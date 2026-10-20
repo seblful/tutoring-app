@@ -17,7 +17,6 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.time.Instant
 
-/** An in-memory crash log, so the view model can be driven without a device. */
 private class FakeCrashLogStore : CrashLogStore {
     var content: String = ""
     override fun read(): String = content
@@ -26,10 +25,6 @@ private class FakeCrashLogStore : CrashLogStore {
     override fun isEmpty(): Boolean = content.isEmpty()
 }
 
-/**
- * The diagnostics screen's view model. Reachable from a JVM test only since the SAF write moved
- * behind `DocumentStore` and the log file behind `CrashLogStore` — it used to inject a `Context`.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 class DiagnosticsViewModelTest {
 

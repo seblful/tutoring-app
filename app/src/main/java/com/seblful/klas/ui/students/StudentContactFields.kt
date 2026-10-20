@@ -20,14 +20,6 @@ import com.seblful.klas.ui.common.supportingTextOf
 /**
  * Who a student is and how to reach them — name, phone, email, note, and where they are usually taught —
  * asked the same way by the add form and by the card's edit dialog.
- *
- * Written twice before this, and the copies had already parted: the form said a blank name was required
- * and the dialog only greyed its «Сохранить», leaving the tutor to guess which of five fields it meant.
- * Said as a **hint, not an error**: a blank name on a form that has just opened is incomplete rather than
- * wrong.
- *
- * Each field's keyboard says what goes in it, and «Далее» walks down the fields: a name capitalised as
- * one, a note as sentences. Emitted as siblings, so they take the caller's spacing.
  */
 @Composable
 fun StudentContactFields(

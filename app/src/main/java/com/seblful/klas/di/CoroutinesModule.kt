@@ -71,22 +71,6 @@ object CoroutinesModule {
     /**
      * `SupervisorJob` so one failed write cannot cancel the scope and take every later write with
      * it — each is independent, and the app has no notion of "all saving has stopped".
-     *
-     * **And a handler, because `SupervisorJob` alone does not stop a crash.** It scopes *cancellation*,
-     * not failure: an exception from a `launch` here still reaches the scope's
-     * [CoroutineExceptionHandler], and with none installed that is the thread's default one — which
-     * kills the process. So the whole point of the scope, that a write outlives its screen, was being
-     * paid for with the app dying on any write that failed: a constraint violation, a full disk, a
-     * calendar provider that threw. `ScheduleViewModel`'s status, move and delete actions launch
-     * straight into this scope, so the crash was one tap away from an ordinary failure.
-     *
-     * A failure is recorded to the same on-device log a crash goes to, so it is still diagnosable from
-     * **Ещё → Диагностика** rather than merely swallowed. Telling the *tutor* is the caller's job and
-     * is done where there is a screen to say it on — a view model that awaits its write reports the
-     * refusal itself (see `ClassEditViewModel.save`); this is the floor under the ones that don't.
-     *
-     * `runCatching` around the recording for the reason [CrashLogger.install] gives: the reporting of
-     * a failure must never become a second failure.
      */
     @Provides
     @SingleIn(AppScope::class)

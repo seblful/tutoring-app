@@ -22,11 +22,6 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlin.time.Duration.Companion.minutes
 
-/**
- * Writes [DemoTutor] into the app's database **through the repositories**, the way the tutor would have
- * typed it: a lesson is booked, then marked taught, so every charge, balance and report total on the
- * screenshots is the production rule's answer rather than a number put there for the picture.
- */
 internal class DemoSeeder @Inject constructor(
     private val settings: SettingsRepository,
     private val subjects: SubjectRepository,
@@ -37,7 +32,6 @@ internal class DemoSeeder @Inject constructor(
     private val homework: HomeworkRepository,
 ) {
 
-    /** Who is in the tutor's book, by name: what the lessons, payments and homework are written against. */
     class Roster(
         private val subjectIds: Map<DemoSubject, Long>,
         private val studentIds: Map<String, Long>,
@@ -48,7 +42,6 @@ internal class DemoSeeder @Inject constructor(
         fun studentId(name: String): Long = studentIds.getValue(name)
     }
 
-    /** One student's lessons or the group's, with the ids they are booked under. */
     private class Course(val weekly: Weekly, val subjectId: Long, val studentIds: List<Long>, val groupId: Long?) {
         val price: Money get() = Money.ofMajor(weekly.rate)
 
@@ -56,7 +49,6 @@ internal class DemoSeeder @Inject constructor(
         val callsOff: Boolean get() = groupId == null
     }
 
-    /** A taught lesson's charge to one student, which is what a payment settles. */
     private data class Charge(val studentId: Long, val day: LocalDate, val amount: Money)
 
     /** The tutor's half-year, written in; what the promo video then changes, through [Seeded]. */
@@ -75,7 +67,6 @@ internal class DemoSeeder @Inject constructor(
         return Seeded(tutor, roster)
     }
 
-    /** The seeded book, for the changes the promo video shows made to it once the stills are shot. */
     inner class Seeded(private val tutor: DemoTutor, private val roster: Roster) {
 
         /** The homework the video types, set for the student whose lesson is on now ([DemoTutor.onNow]). */
@@ -99,7 +90,6 @@ internal class DemoSeeder @Inject constructor(
                 mapOf(subjectIds.getValue(s.subject) to Money.ofMajor(s.rate)),
             )
         }
-        // Each member also takes the subject one to one, at what the tutor's other students of it pay.
         val subject = subjectIds.getValue(tutor.group.subject)
         val oneToOne = Money.ofMajor(tutor.students.first { it.subject == tutor.group.subject }.rate)
         val memberIds = tutor.group.members.associateWith { name ->
@@ -118,10 +108,6 @@ internal class DemoSeeder @Inject constructor(
     private fun course(group: DemoGroup, roster: Roster) =
         Course(group, roster.subjectId(group.subject), roster.memberIds.values.toList(), roster.groupId)
 
-    /**
-     * Every weekly slot of [courses] from [DemoTutor.FIRST_DAY] on, booked, and those over by
-     * [DemoTutor.NOW] marked taught — now and then called off; returns the charges of those taught.
-     */
     private suspend fun teach(courses: List<Course>): List<Charge> {
         val charges = mutableListOf<Charge>()
         var oneToOne = 0
@@ -164,11 +150,6 @@ internal class DemoSeeder @Inject constructor(
         }
     }
 
-    /**
-     * Most students pay at the end of each lesson. Two stopped a few weeks ago (the debts), one paid a
-     * block of lessons ahead at the start of the month (the credit), and one member of the group has
-     * missed the last fortnight.
-     */
     private suspend fun pay(tutor: DemoTutor, roster: Roster, charges: List<Charge>) {
         val monthStart = LocalDate(DemoTutor.TODAY.year, DemoTutor.TODAY.month, 1)
         val stopsPaying = buildMap {

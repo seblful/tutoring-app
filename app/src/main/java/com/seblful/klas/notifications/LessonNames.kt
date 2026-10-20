@@ -6,16 +6,6 @@ import com.seblful.klas.data.repository.SubjectRepository
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.reminders.Reminders
 
-/**
- * The words a tray entry names a lesson by — who it is with and what it is in — read by id as it posts.
- *
- * A reminder and the two lesson-listing digests name a lesson in the same sentence, and each looked the
- * names up for itself: the same three repository reads and the same [Reminders.announcedBy] call, twice.
- * A notification reads rows at the moment it fires rather than holding whole-table lists, which is why
- * this is lookups by id and not a `Captions`.
- *
- * Unknown ids read as blank, like `Captions`: the entry is still worth posting by its time alone.
- */
 internal class LessonNames(
     private val students: StudentRepository,
     private val subjects: SubjectRepository,

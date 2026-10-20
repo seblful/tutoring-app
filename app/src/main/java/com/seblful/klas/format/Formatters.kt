@@ -22,34 +22,8 @@ import java.util.Locale
 import kotlin.time.Instant
 import kotlin.time.toJavaInstant
 
-/**
- * Shared display formatting for dates, times and money in the language the app is set to. Lives in a
- * neutral module (not `ui`) so non-UI callers — notifications, workers, view models — use the
- * same formats without depending on the UI layer.
- *
- * **The locale is [AppLocale.current], read per call.** These used to be module-level `val`s built against
- * a pinned `ru`, which was right while `values/` was the only string folder there was: a formatter built
- * once at class-load cannot follow a setting. It is one lookup and one `Map` read per format now, against a
- * cache keyed by locale — a `DateTimeFormatter` is immutable and thread-safe, so the sets are still built
- * once each, just once *per language* and on demand rather than once per process.
- */
-
-/**
- * Every formatter this file needs, for one locale. Grouped rather than kept as nine parallel maps so that
- * "the formats for a language" is a single thing to build, look up and reason about — and so a tenth format
- * cannot be added to eight of the nine languages.
- */
 private class Formats(val locale: Locale) {
-    /**
-     * A month as it reads after a day number — «24 сентября», «5 мая» — in full and short, taken from
-     * `java.text` rather than asked of a `MMMM`/`MMM` pattern.
-     *
-     * On a phone `java.time` is core-library desugaring's, which fills the *format* month names with the
-     * *stand-alone* ones, so a pattern printed «24 сентябрь» and «5 май» there while the JDK behind the unit
-     * tests printed the right thing. `DateFormatSymbols` is the platform's own and is not desugared, and on
-     * the JDK it agrees with `java.time` month for month. Pinned on a device by `MonthNameCaseTest`.
-     * `LLLL` — a month on its own, as [month] prints it — is the one the desugared tables do have right.
-     */
+
     private val symbols = DateFormatSymbols.getInstance(locale)
     private val monthOfDay = monthNames(symbols.months)
     private val shortMonthOfDay = monthNames(symbols.shortMonths)
@@ -86,45 +60,19 @@ private class Formats(val locale: Locale) {
     private fun build(parts: DateTimeFormatterBuilder.() -> Unit): DateTimeFormatter =
         DateTimeFormatterBuilder().apply(parts).toFormatter(locale)
 
-    /** January to December by month number, from a `java.text` array (which carries a thirteenth, empty). */
     private fun monthNames(names: Array<String>): Map<Long, String> =
         (1..12).associate { it.toLong() to names[it - 1] }
 }
 
-/**
- * The formats for [AppLocale.current], built on first use of each language and kept.
- *
- * A plain synchronized map rather than a `ConcurrentHashMap`: there are two languages, this is read on
- * whichever thread is drawing, and building a duplicate set would be harmless anyway — the entries are
- * immutable and interchangeable.
- */
 private val cache = java.util.Collections.synchronizedMap(mutableMapOf<Locale, Formats>())
 
 private val formats: Formats get() = cache.getOrPut(AppLocale.current) { Formats(AppLocale.current) }
 
-/**
- * The zone an instant is **rendered** in: the phone's, read per call so a device that changes zone
- * mid-session prints the new one.
- *
- * Deliberately ambient, and deliberately *unlike* [hour12], which has no default at all. The distinction is
- * whether there is a second possible answer. Which clock face to use is the phone owner's preference and the
- * app must not guess it, so no surface may pick one by saying nothing. "Where is this phone" has exactly one
- * answer at render time, and threading it through seventeen display functions would be ceremony with no
- * decision behind it. The app's **language** is ambient for the same reason and by the same argument — see
- * [AppLocale], which is where that one is written down.
- *
- * It is also not the ambient read that mattered. `ScheduleViewModel.moveTo` and `ReportsViewModel` both used
- * to read `TimeZone.currentSystemDefault()` themselves, and both are **write** paths — deciding which instant to
- * store, deciding which period the money is counted in — where the shipped path has to be the tested one
- * and a fixture has to be able to pin it. Those read the injected `Clock`'s zone now. This is a projection
- * of an instant onto a screen, and there is nothing here for a test to pin that a `Clock` would help with.
- */
 private val zone: TimeZone get() = TimeZone.currentSystemDefault()
 
 fun Instant.toLocalDate(): LocalDate = toLocalDateTime(zone).date
 fun Instant.toLocalTime(): LocalTime = toLocalDateTime(zone).time
 
-/** The `java.time` formatters below read the phone's own zone, so the instant is handed over in it. */
 private fun Instant.javaZoned(): ZonedDateTime = toJavaInstant().atZone(zone.toJavaZoneId())
 
 fun Instant.formatDate(): String = javaZoned().format(formats.date)
@@ -193,7 +141,6 @@ fun parseMoneyOrNull(text: String): Money? {
     }
 }
 
-/** An amount as a person writes one: digits, optionally a separator and more digits — `500`, `45.5`, `.5`. */
 private val PLAIN_AMOUNT = Regex("""\d+(\.\d*)?|\.\d+""")
 
 /**
@@ -269,15 +216,5 @@ fun formatWeekRange(start: LocalDate, end: LocalDate): String {
     }
 }
 
-/**
- * A display string with its first letter raised — for the places a name is used as a **heading**.
- *
- * CLDR gives Russian its month and weekday names in lower case («июнь», «понедельник»), because that is how
- * the language writes them mid-sentence; English capitalises them already. Upper-casing the first character
- * is therefore a no-op in English and the correction in Russian, which is why it is applied unconditionally
- * rather than under a `when` over the language. Cased in the **formatting locale**, not the JVM default, so
- * the app's own answer is what decides — the difference is real (Turkish's dotless i), even if neither of
- * the app's two languages is where it bites.
- */
 private fun String.capitalizedForDisplay(): String =
     replaceFirstChar { it.titlecase(formats.locale) }

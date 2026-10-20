@@ -41,39 +41,17 @@ import com.seblful.klas.ui.theme.KlasIcons
 /**
  * Every screen in the app, from the app bar down.
  *
- * Fifteen screens each spelled this out — a scaffold, an app bar, a back arrow, a snackbar host, a
- * nested-scroll connection, a width cap. That came to eight hand-written back arrows, four hand-written
- * save buttons ([SaveAction] now) and two near-identical search toggles. None of them was wrong; what
- * was missing was anything that made a *new* screen match — and two of the fifteen (`MoreScreen`,
- * `BackupScreen`) had already drifted off the scroll behaviour every other screen had.
- * `KlasScreenSurfaceTest` makes writing the long form a failing test rather than a review note.
- *
- * ### What it owns
- *
- * - The single `Scaffold`. There is exactly one per tree — the root is a `NavigationSuiteScaffold` and
- *   nesting a second one applied the status-bar inset twice.
- * - **The insets and the width cap.** [content] is handed a `Modifier` rather than a `PaddingValues`,
- *   which is what lets this be the place `padding(insets)`, `imePadding()` and `constrainedContent()`
- *   are composed *in the right order* — the screen decides only where its scroll goes.
- * - **`imePadding()` before the scroll** ([imeAware]). Under edge-to-edge the IME is an inset rather
- *   than a resize, so a form without this has its bottom fields covered with nothing to scroll. It is a
- *   rule about ordering, and a rule about ordering cannot be honoured fifteen times.
- * - **The scroll behaviour**, chosen by [titleSize] rather than restated: pinned for the tonal change
- *   that separates bar from page, exit-until-collapsed where the title *is* the subject of the screen.
- * - **The search toggle**, including the rule that closing it clears the query — a filter left applied
- *   behind a closed box is a list missing rows for no visible reason. Two screens had their own copy.
- *
  * @param title the bar's text. `null` for a screen whose body names itself (the welcome step, a detail
- *   card that has not read its subject yet) — inventing a placeholder is the one thing a loading bar
- *   must not do.
+ * card that has not read its subject yet) — inventing a placeholder is the one thing a loading bar
+ * must not do.
  * @param onBack the back arrow, or `null` on a tab. A form passes its `leaveGuard`, not `onBack`.
  * @param search when non-null, the bar grows a search icon and becomes a search field when it is
- *   tapped. The toggle is state, and it is *this* function's.
+ * tapped. The toggle is state, and it is *this* function's.
  * @param messages the screen's [Messages]; its host is mounted here so no screen mounts its own.
  * @param page which page of the screen is up — a tab of «Люди», a view of the schedule — for a screen
- *   whose body is swapped for another *without scrolling*. The bar keeps count of how far content has
- *   scrolled beneath it, and a page that opens at its top has scrolled nowhere: without this, «Группы»
- *   opened under a bar (and a [ScreenHeader]) still tinted for the students list scrolled a moment ago.
+ * whose body is swapped for another *without scrolling*. The bar keeps count of how far content has
+ * scrolled beneath it, and a page that opens at its top has scrolled nowhere: without this, «Группы»
+ * opened under a bar (and a [ScreenHeader]) still tinted for the students list scrolled a moment ago.
  * @param content given the modifier for the screen's top-level scrollable, insets and cap applied.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -229,15 +207,6 @@ fun KlasScreen(
 /**
  * The controls a screen pins **under its bar** — «Ученики | Группы», the schedule's view and pager, the
  * report's period — painted as part of the bar.
- *
- * They were page-coloured whatever happened, so the moment a list scrolled the bar turned
- * `surfaceContainer` above a strip that did not: a grey bar, a pale band of controls, then the rows
- * vanishing at an edge nobody had drawn. Four screens, two of them with a hairline under the strip and
- * two without. Now there is one rule, the one [PinnedHeader] already follows on the detail cards: at
- * rest the header is page, no rule under it; once content passes beneath, bar and header tint together
- * and their shared lower edge is the line the rows disappear behind.
- *
- * Only under a compact bar: a large bar collapses, and its screens pin their header inside the list.
  */
 @Composable
 fun ScreenHeader(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
@@ -250,20 +219,11 @@ fun ScreenHeader(modifier: Modifier = Modifier, content: @Composable ColumnScope
     )
 }
 
-/** The compact bar's current colour, read at draw time; null under a large bar. See [ScreenHeader]. */
 private val LocalBarColor = staticCompositionLocalOf<(() -> Color)?> { null }
 
-/** How much of the bar content must overlap before it counts as scrolled — Material's own threshold. */
 private const val OverlapThreshold = 0.01f
 
-/**
- * «Сохранить», in the app bar — the one way a form commits.
- *
- * Written out four times before this, once per form, and the four agreed only by accident: whether the
- * button is a `TextButton` or a `Button`, and whether it is gated on `canSave` or on field validity, are
- * decisions a tutor should not be able to tell apart between the student form and the booking form.
- * [enabled] is always the form's own `canSave` — see `LeavableForm`.
- */
+/** Сохранить», in the app bar — the one way a form commits. */
 @Composable
 fun SaveAction(enabled: Boolean, onSave: () -> Unit) {
     TextButton(onClick = onSave, enabled = enabled) {
@@ -283,15 +243,11 @@ enum class TitleSize { Compact, Large }
 /**
  * A screen's search box: what is in it, what it is for, and where the typing goes.
  *
- * Deliberately carries no `active` flag. Whether the box is open is [KlasScreen]'s state, because the
- * one rule worth holding — closing it clears the query — is the shell's to enforce, and a screen that
- * owned the flag could close the box without clearing.
- *
  * @param onClose what "cleared" means, defaulting to emptying the box. It is separate from
- *   [onQueryChange] because on People the box is *shared by two lists*: `onQueryChange` writes to
- *   whichever side is on top, so clearing through it would leave the other side's query applied behind
- *   a shut box — a list missing rows for no visible reason, which is the exact thing this rule exists
- *   to prevent. That screen clears both.
+ * [onQueryChange] because on People the box is *shared by two lists*: `onQueryChange` writes to
+ * whichever side is on top, so clearing through it would leave the other side's query applied behind
+ * a shut box — a list missing rows for no visible reason, which is the exact thing this rule exists
+ * to prevent. That screen clears both.
  */
 class ScreenSearch(
     val query: String,
@@ -302,5 +258,4 @@ class ScreenSearch(
 
 private const val LargeTitleLines = 2
 
-/** How far a bar title may shrink, on screen, before it is cut short — still clearly a title. */
 private val MinTitleSize = 18.dp

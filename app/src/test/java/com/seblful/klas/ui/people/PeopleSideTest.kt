@@ -14,13 +14,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/**
- * The bar above «Люди» works one [PeopleSide]; the two view models are its adapters. What the seam
- * promises is exactly what having two view models is *for*: each side holds its own search and its
- * own archive toggle, so acting on the side on top leaves the other untouched — switching tabs
- * brings a side back exactly as it was left. The screen used to dispatch this by hand, per button,
- * where no test could flip the tab.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class PeopleSideTest {
@@ -57,8 +50,6 @@ class PeopleSideTest {
         students.setQuery("пет")
         groups.setQuery("11")
 
-        // What the bar's close button does — see PeopleScreen: a filter left applied behind a
-        // closed box is a list missing rows for no visible reason.
         students.setQuery("")
 
         assertEquals("", students.query.value)

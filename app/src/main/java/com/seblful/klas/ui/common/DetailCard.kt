@@ -15,11 +15,6 @@ object DetailCard {
 /**
  * A student's or a group's card under its bar: [identity], then the [stats], then the pinned view menu,
  * then the [view] it has selected.
- *
- * Both cards are this shape and used to build it each on their own, which is how they drifted: the same
- * stat row sat [Spacing.tight] under the student's identity and [Spacing.inline] under the group's. The
- * order, the stat row's rhythm and the pinned menu are the pattern; what differs — who the card is about,
- * which numbers, which views — is passed in.
  */
 fun <T> LazyListScope.detailCard(
     identity: LazyListScope.() -> Unit,

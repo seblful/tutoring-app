@@ -27,9 +27,6 @@ import kotlin.reflect.KClass
  * What the app's own entry points need from its object graph — the pieces Android creates itself and so
  * cannot be handed their dependencies: the application, the activity's view models, WorkManager's workers
  * and the manifest's receivers.
- *
- * An interface apart from the graph Metro generates ([KlasGraph]) so that a test can stand up a graph of
- * its own with some bindings swapped and hand it to the same activity — see `StoreScreenshots`.
  */
 interface AppGraph : ViewModelGraph {
     val notifier: Notifier

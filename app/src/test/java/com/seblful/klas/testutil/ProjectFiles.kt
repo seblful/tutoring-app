@@ -78,17 +78,10 @@ object ProjectFiles {
         }
     }
 
-    /** The pure-Kotlin module holding `com.seblful.klas.domain`, next to `app` in the repo root. */
     private const val DOMAIN_MODULE = "domain"
 
-    /** The domain is Kotlin Multiplatform: its rules are all in `commonMain`. */
     private const val DOMAIN_SOURCE_ROOT = "src/commonMain/kotlin/com/seblful/klas"
 
-    /**
-     * A path relative to another module of the repo, or null when it does not exist. Only the
-     * `<module>/` form is tried while walking up: the bare path would find `app`'s own file whenever
-     * the working directory is `app`, which is the usual case under Gradle.
-     */
     private fun siblingModuleFileOrNull(module: String, relative: String): File? {
         var dir: File? = File(System.getProperty("user.dir") ?: ".").absoluteFile
         while (dir != null) {

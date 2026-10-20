@@ -29,10 +29,7 @@ data class DiagnosticsUiState(
 class DiagnosticsViewModel @Inject constructor(
     private val crashLogger: CrashLogger,
     private val documents: DocumentStore,
-    /**
-     * True only for a debuggable (non-release) build. Gates the "force test crash" action so it can
-     * never reach a published build.
-     */
+
     @param:DebugBuild val isDebugBuild: Boolean,
 ) : ViewModel() {
 

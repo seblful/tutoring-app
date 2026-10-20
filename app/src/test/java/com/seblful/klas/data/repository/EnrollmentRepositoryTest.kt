@@ -67,7 +67,6 @@ class EnrollmentRepositoryTest {
         val result = repo.unenroll(studentId = 1, subjectId = 2)
 
         assertEquals(EnrollmentRepository.Unenroll.HasClasses, result)
-        // The link and price must survive — the class is billed history that needs a priced subject.
         assertEquals(listOf(2L), env.studentDao.getSubjectIds(1))
         assertEquals(Money.ofMajor(30), env.priceDao.get(1, 2)?.amountMinor?.let { Money(it) })
     }

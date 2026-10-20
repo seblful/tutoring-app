@@ -9,10 +9,6 @@ import com.seblful.klas.domain.people.Phone
  * and note trimmed, the phone through [Phone.stored] — or null when the name is blank, since a student
  * nobody can name cannot be listed, searched or booked.
  *
- * The add form and the card's edit dialog each used to spell this out, so a rule added to one — the phone
- * normalisation was — could miss the other and store the same student two ways depending on where they
- * were last saved.
- *
  * @param onto the student being edited, keeping their id and archive state; a new one by default.
  */
 fun typedStudent(

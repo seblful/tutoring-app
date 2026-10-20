@@ -68,14 +68,6 @@ import com.seblful.klas.ui.subjects.SubjectNameDialog
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
-/**
- * The first run, as a sequence.
- *
- * [number] is what the step indicator counts: the welcome screen is not a step of the setup, it is
- * the offer of one, so the setup reads «Шаг 1 из 2» and «Шаг 2 из 2» rather than making the tutor
- * guess how much is left. The count comes from the enum, so adding a step cannot leave the label
- * saying otherwise.
- */
 private enum class Step(val number: Int) {
     WELCOME(0),
 
@@ -89,7 +81,8 @@ private enum class Step(val number: Int) {
      */
     LOCALE(1),
     SUBJECTS(2),
-    STUDENT(3);
+    STUDENT(3),
+    ;
 
     companion object {
         /** How many steps the setup actually has — the welcome screen is not one of them. */
@@ -100,10 +93,7 @@ private enum class Step(val number: Int) {
 /**
  * First run. It opens on a welcome step that offers three ways out — walk the setup (step 1: language and
  * currency, step 2: subjects, step 3: the first student with subjects + prices), restore a backup, or skip
- * it — so setup is offered rather than imposed. Finishing or skipping marks onboarding complete;
- * [onFinished] lets the host refresh. A **restore** ends first run through
- * `BackupRestore` instead, which is why this screen has nothing to do on success: the flag it flips
- * swaps this screen for the main tabs.
+ * it — so setup is offered rather than imposed.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -404,7 +394,6 @@ fun OnboardingScreen(
     }
 }
 
-/** The one-line explanation under a welcome-step action. */
 @Composable
 private fun Caption(text: String) {
     Text(
@@ -415,13 +404,10 @@ private fun Caption(text: String) {
     )
 }
 
-/** A subject's row in step 2 — what the skeleton stands in for while the list is being read. */
 private val SubjectRowHeight = MinTouchTarget
 
-/** A label over a segmented control, which is taller than a plain row: step 1's skeleton. */
 private val LocaleRowHeight = 88.dp
 
-/** One thing the app does, on the welcome screen: an icon and a line, left-aligned as a list. */
 @Composable
 private fun ValueLine(icon: ImageVector, text: String) {
     Row(

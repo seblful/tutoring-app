@@ -46,10 +46,14 @@ class BillingTest {
     fun `only completed classes add debt`() {
         val classes = listOf(
             completed(5000),
-            TutoringClass(studentId = 1, subjectId = 1, start = Instant.fromEpochMilliseconds(0), durationMinutes = 60,
-                status = LessonStatus.CANCELLED, charge = Money.ZERO),
-            TutoringClass(studentId = 1, subjectId = 1, start = Instant.fromEpochMilliseconds(0), durationMinutes = 60,
-                status = LessonStatus.SCHEDULED),
+            TutoringClass(
+                studentId = 1, subjectId = 1, start = Instant.fromEpochMilliseconds(0), durationMinutes = 60,
+                status = LessonStatus.CANCELLED, charge = Money.ZERO,
+            ),
+            TutoringClass(
+                studentId = 1, subjectId = 1, start = Instant.fromEpochMilliseconds(0), durationMinutes = 60,
+                status = LessonStatus.SCHEDULED,
+            ),
         )
         val balance = Billing.balanceOf(1, classes, emptyList())
         assertEquals(Money(5000), balance.balance) // only the completed class counts
@@ -63,18 +67,14 @@ class BillingTest {
         assertNull(Billing.billedOrNull(emptyList()))
         assertNull(Billing.billedOrNull(listOf(scheduled)))
         assertNull(Billing.billedOrNull(listOf(cancelled)))
-        // Taught, but this student was marked absent and not charged: no amount, not «0».
         assertNull(Billing.billedOrNull(listOf(missed)))
     }
 
     @Test
     fun `billedOrNull is what a billed lesson earned, zero included`() {
         assertEquals(Money(5000), Billing.billedOrNull(listOf(completed(5000))))
-        // A late cancellation bills the hour.
         assertEquals(Money(5000), Billing.billedOrNull(listOf(completed(5000).copy(attended = Attended.ABSENT_BILLED))))
-        // A taught lesson at a zero rate did earn — zero — and says so.
         assertEquals(Money.ZERO, Billing.billedOrNull(listOf(completed(0))))
-        // A group lesson: only the members it billed count.
         val room = listOf(completed(2000), completed(2000).copy(attended = Attended.ABSENT, charge = Money.ZERO))
         assertEquals(Money(2000), Billing.billedOrNull(room))
     }
@@ -85,7 +85,6 @@ class BillingTest {
         val classes = listOf(
             completed(5000).copy(studentId = 1),
             completed(3000).copy(studentId = 2),
-            // student 3 has no classes
         )
         val payments = listOf(payment(2000).copy(studentId = 1))
 

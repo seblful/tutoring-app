@@ -29,18 +29,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
-/**
- * The settings screen.
- *
- * Every setting goes through one [update], and what a change owes besides being stored — the
- * calendar re-earned, the reminder plan re-derived, the finished lessons settled — is discharged
- * there, from the classification the store hands back ([SettingsChange]). Two settings used to have
- * named methods carrying their tails by hand, and the third that owed one rode the generic path in
- * silence: changing the reminder lead left every already-mirrored event at the old lead until that
- * lesson happened to be edited. The two methods left with a name exist for what they **refuse or
- * ask** — [setCalendarSyncEnabled] for the permission gate, [setAutoCompleteEnabled] for the
- * question — not for their tails.
- */
+/** he settings screen. */
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class SettingsViewModel @Inject constructor(
@@ -54,17 +43,7 @@ class SettingsViewModel @Inject constructor(
     @param:ApplicationScope private val appScope: CoroutineScope,
 ) : ViewModel() {
 
-    /**
-     * The settings row, as the screen draws it.
-     *
-     * [Loadable] rather than `AppSettings()`, because **every row on this screen is a stored value and
-     * the class's defaults are not a neutral placeholder — they are a different tutor's settings.** A
-     * default `AppSettings` says reminders are on, sync is off, the currency is BYN and the lesson is an
-     * hour, so for the frame or two before the row was read, a tutor who had turned reminders off watched
-     * the switch flip itself off, and one on RUB watched «Валюта» change under them. A settings screen
-     * that lies for a frame is worse than one that waits for a frame: the flip looks like the app doing
-     * something. See [Loadable].
-     */
+    /** he settings row, as the screen draws it. */
     val state: StateFlow<Loadable<AppSettings>> = settings.observe()
         .ready()
         .hold(this, Loadable.Loading)
@@ -80,27 +59,14 @@ class SettingsViewModel @Inject constructor(
     /**
      * The size of a backlog the tutor has been asked about and has not yet answered for — null while
      * nothing is being asked. See [setAutoCompleteEnabled] for why the question exists.
-     *
-     * State rather than a one-shot event, because it must survive a rotation: a question the screen
-     * forgot halfway would leave the switch off with the tutor believing they had turned it on.
      */
     val pendingSweep: StateFlow<Int?> = _pendingSweep.asStateFlow()
 
-    /** Bumped by [refreshPermissions] to re-ask the platform; a permission is not observable. */
     private val permissionChecks = MutableStateFlow(0)
 
     /**
      * What will actually happen to a reminder — **both** platform answers, next to the tutor's intent in
      * [AppSettings.notificationsEnabled]. See [ReminderDelivery] for why there are two.
-     *
-     * All three facts are needed because they can disagree, and for a long time only the first was on
-     * screen. The setting is on by default; neither permission is granted by default. So a fresh install
-     * showed «Напоминания» switched on while no reminder could appear at all — and once that was fixed, an
-     * Android 14 install showed it working while every reminder was arriving whenever Doze got round to
-     * it.
-     *
-     * Not a `Flow` from the platform, because there is no such thing: a permission changes while the app
-     * is away, in system settings. The screen re-asks on resume through [refreshPermissions].
      */
     val reminderDelivery: StateFlow<ReminderDelivery> =
         combine(settings.observe(), permissionChecks) { s, _ ->
@@ -114,45 +80,13 @@ class SettingsViewModel @Inject constructor(
     /**
      * What is actually happening to the calendar mirror — the platform's answer, beside the tutor's intent
      * in [AppSettings.calendarSyncEnabled]. See [CalendarDelivery].
-     *
-     * The notification row already did this and this one did not, though the permission behind it is
-     * revocable from exactly the same place: system settings, while the app is away. Revoking it leaves
-     * the switch **on** and the mirror silently dead — `CalendarContractSync` no-ops without the grant —
-     * which is the same defect the reminder row was fixed for, on the feature whose whole promise is that
-     * the lessons are also somewhere else.
-     *
-     * Note what this is *not*: the reason sync cannot be **enabled** without the grant. That rule is
-     * [setCalendarSyncEnabled]'s and is a refusal; this is a report. Off is off either way, so it only has
-     * something to say while the setting is on — which [CalendarDelivery.of] decides, rather than the row
-     * weighing the two booleans itself.
-     *
-     * Re-asked on resume through [refreshPermissions], like its counterpart: a permission is not a `Flow`.
      */
     val calendarDelivery: StateFlow<CalendarDelivery> =
         combine(settings.observe(), permissionChecks) { s, _ ->
             CalendarDelivery.of(enabled = s.calendarSyncEnabled, permitted = calendarPermission.isGranted())
         }.hold(this, CalendarDelivery.OFF)
 
-    /**
-     * Turns reminders [on] — **storing the setting and saying what that owes the platform, in one call.**
-     *
-     * Three outcomes, and the screen used to work them out in a nest of three `if`s inside the toggle's
-     * `onCheckedChange`: turning it off asks nothing, turning it on with the permission already granted
-     * asks nothing, turning it on without it asks the platform — unless the platform has nothing to ask,
-     * which means notifications are off for the whole app in system settings and only the tutor can undo
-     * it. That last arm is the one worth naming: it looks like the permission case and behaves like a
-     * dead end, and getting it wrong shows a dialog that can never appear. All three past the first are
-     * [unblockNotifications], because the blocked row owes the tutor the same answer this does.
-     *
-     * **The store and the ask used to be two calls the screen had to make, in order, over the same
-     * argument** — `update { it.copy(notificationsEnabled = on) }` and then `notificationsIntent(on)` —
-     * with nothing binding them. Either half could be omitted: asking without storing requests a permission
-     * for a setting that was never saved, and storing without asking leaves reminders reading «включено»
-     * with no permission and no dialog, which is precisely the defect [reminderDelivery] was added to
-     * report. An ordering constraint that lives only in a composable is also one no test can reach, and
-     * `SettingsViewModelTest` could exercise either half and never the pair. Its sibling
-     * [setCalendarSyncEnabled] had the right shape all along: one call, one outcome.
-     */
+    /** urns reminders [on] — **storing the setting and saying what that owes the platform, in one call.** */
     fun setNotificationsEnabled(on: Boolean): NotificationsIntent {
         update { it.copy(notificationsEnabled = on) }
         // Turning it off asks nothing; turning it on owes exactly what the blocked row owes, so the two
@@ -174,22 +108,6 @@ class SettingsViewModel @Inject constructor(
     /**
      * How the platform can be asked to let a reminder through — **what the [ReminderDelivery.BLOCKED] row
      * does when tapped**, and what [setNotificationsEnabled] returns once it has stored an `on`.
-     *
-     * This exists because the setting is **on by default and the permission is not**, which left no path
-     * through the app that ever requested `POST_NOTIFICATIONS`. The only caller was the switch, and a switch
-     * already reading «включено» cannot be turned on — so a fresh install had reminders enabled, every
-     * notification dropped by `AndroidNotifier`'s permission check, and a row that *described* the dead end
-     * without offering a way out. [reminderDelivery] was added to report that state; nothing was added to
-     * leave it. This is that, and it is the same shape [ReminderDelivery.LATE] already had: the report and
-     * the way out, together, or the report is just a better-worded silence.
-     *
-     * **Stores nothing**, unlike its sibling. The tutor is unblocking the setting they already have rather
-     * than changing it, so there is nothing here to write — which is also why this is safe to call from a
-     * row that is only drawn while the setting is on.
-     *
-     * Asked of the port directly rather than read off [reminderDelivery], for the reason
-     * [setCalendarSyncEnabled] asks directly too: this is a decision made at the moment of the tap, and a
-     * `WhileSubscribed` flow's `.value` is only as fresh as its last collection.
      */
     fun unblockNotifications(): NotificationsIntent = when {
         notificationPermission.isGranted() -> NotificationsIntent.Nothing
@@ -208,9 +126,6 @@ class SettingsViewModel @Inject constructor(
     /**
      * The calendar prompt closed: sync goes on through [setCalendarSyncEnabled] — the one place its refusal
      * lives — if the permission is now held, and stays off otherwise.
-     *
-     * The platform is asked again rather than the prompt's answer read: a partial grant and a request
-     * dismissed unseen are both "not held", and [setCalendarSyncEnabled] already asks exactly that.
      */
     fun calendarPermissionAnswered(): CalendarSyncToggle {
         refreshPermissions()
@@ -219,16 +134,7 @@ class SettingsViewModel @Inject constructor(
 
     /**
      * Stores a changed setting, e.g. `update { it.copy(currency = Currency.RUB) }` — and discharges
-     * whatever the change owes the world outside the row. Which changes owe what is decided by
-     * [SettingsChange], beside the fields themselves, so a setting cannot lose its tail by lacking
-     * a named method here: turning invites off withdraws the invitations already sent, moving the
-     * reminder lead re-mirrors the events carrying the old one and re-derives the alarm plan.
-     *
-     * **In the application scope**, tail and all: switching sync on backfills the whole history and a
-     * language change re-mirrors it, and in `viewModelScope` a back press straight after the switch
-     * cancelled that half-way — the switch said on while the calendar held half the lessons, and turning
-     * invites off could leave invitations behind. A failure is [failed], not a crash — the shared
-     * guarded-write tail (`ui/common/state/Writes.kt`).
+     * whatever the change owes the world outside the row.
      */
     fun update(transform: (AppSettings) -> AppSettings) {
         appScope.write(failed, Unit) { apply(transform) }
@@ -260,26 +166,6 @@ class SettingsViewModel @Inject constructor(
     /**
      * Turns auto-completion on or off — **asking first** whenever switching it on would complete a past
      * lesson, however few.
-     *
-     * Turning it on completes every lesson that has already finished, however long ago, and completing
-     * a lesson bills it. That is what the setting says it does and generally what a tutor turning it on
-     * wants, but it is still recognized income moving off one tap, so the number is put to them first.
-     *
-     * **However few, and not above some size.** There was a threshold here, on the argument that a
-     * couple of stale lessons are not worth a dialog. It is the wrong shape for this: the tutor cannot
-     * see the backlog before they flip the switch, so "small enough not to mention" is a judgement made
-     * on their behalf about *their* money, and the number that gets billed unasked is exactly the number
-     * they had no way to check. Zero is the only backlog worth not asking about, and that case asks
-     * nothing because there is nothing to say.
-     *
-     * **Declining leaves the setting off**, which is the only honest answer available: the sweep has no
-     * lower bound, so with the setting on that backlog would be settled by the next upkeep pass
-     * regardless — a "no" that only postponed it would be a lie. Wanting auto-completion *without* the
-     * backlog is therefore not expressible here, and deliberately so; the tutor cancels the old lessons
-     * they do not want billed, then turns it on.
-     *
-     * The **background** pass asks nobody and sweeps whatever has finished, as it always has. Nothing
-     * can be asked from a worker, and once the switch is on that is the arrangement the tutor agreed to.
      */
     fun setAutoCompleteEnabled(on: Boolean) {
         if (!on) {
@@ -308,11 +194,7 @@ class SettingsViewModel @Inject constructor(
     /**
      * Toggles calendar sync. The backfill on enabling and the withdrawal on disabling are [update]'s
      * to discharge, like every other consequence of a settings change; what this method owns is the
-     * **refusal**. Enabling is refused unless the calendar permission is already held — checked here
-     * rather than trusted to the caller, because this flag is what the whole mirror keys off and a
-     * screen that forgot the check would leave sync switched on with nothing able to write. A caller
-     * that gets [CalendarSyncToggle.PERMISSION_NEEDED] should request the permission and call again.
-     * Disabling never needs permission — clearing up after ourselves must always be possible.
+     * **refusal**.
      */
     fun setCalendarSyncEnabled(enabled: Boolean): CalendarSyncToggle {
         if (enabled && !calendarPermission.isGranted()) return CalendarSyncToggle.PERMISSION_NEEDED
@@ -406,13 +288,7 @@ enum class CalendarDelivery {
     }
 }
 
-/**
- * What turning the reminder setting on owes the platform.
- *
- * Storing the setting always happens; this is the rest of it. Kept as a value rather than as branches in
- * the toggle's callback so the dead end — notifications switched off for the whole app, where asking
- * would show a dialog that can never appear — is a named outcome instead of an `else`.
- */
+/** hat turning the reminder setting on owes the platform. */
 sealed interface NotificationsIntent {
 
     /** Nothing to ask: it was switched off, or the permission is already granted. */

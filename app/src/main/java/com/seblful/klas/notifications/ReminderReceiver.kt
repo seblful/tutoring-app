@@ -25,7 +25,8 @@ class ReminderReceiver : BroadcastReceiver() {
 
     @Inject lateinit var due: DueReminder
 
-    @Inject @ApplicationScope lateinit var appScope: CoroutineScope
+    @Inject @ApplicationScope
+    lateinit var appScope: CoroutineScope
 
     override fun onReceive(context: Context, intent: Intent) {
         context.appGraph.inject(this)

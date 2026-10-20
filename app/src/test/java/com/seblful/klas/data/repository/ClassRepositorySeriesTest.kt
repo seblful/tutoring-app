@@ -22,14 +22,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.time.Instant
 
-/**
- * Booking a run of lessons — [ClassRepository.bookSeries].
- *
- * What is under test is the *shape* of the write rather than the arithmetic of the dates, which is
- * `RecurrenceTest`'s: that a term goes in as one transaction with one reminder refresh, that an
- * occurrence whose hour is taken is reported instead of refusing the whole term or vanishing, and that
- * every lesson written is an ordinary lesson afterwards.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class ClassRepositorySeriesTest {
@@ -68,8 +60,6 @@ class ClassRepositorySeriesTest {
         groupId = groupId,
     )
 
-    // --- The ordinary case ----------------------------------------------------------------------
-
     @Test
     fun `a term of lessons is written, one lesson per occurrence`() = runTest {
         val written = bookSeries(weekly(4))
@@ -101,24 +91,18 @@ class ClassRepositorySeriesTest {
 
     @Test
     fun `the lessons of a run are separate lessons, not one lesson repeated`() = runTest {
-        // Nothing ties them together afterwards — the whole point of materialising. A shared lesson id
-        // would make the run one row that every read had to expand.
         bookSeries(weekly(4))
         assertEquals(4, repo.getAll().map { it.lessonId }.distinct().size)
     }
 
     @Test
     fun `a single-occurrence run is an ordinary booking`() = runTest {
-        // The form takes this path for every lesson now, repeating or not, so the one-lesson case is the
-        // one that must not regress.
         val written = bookSeries(weekly(1))
 
         assertEquals(1, written.lessons)
         assertTrue(written.skipped.isEmpty())
         assertEquals(1, repo.getAll().size)
     }
-
-    // --- One transaction, one refresh, one mirror ------------------------------------------------
 
     @Test
     fun `a whole term goes in as one transaction`() = runTest {
@@ -147,12 +131,9 @@ class ClassRepositorySeriesTest {
         )
     }
 
-    // --- A taken hour is reported, not refused ---------------------------------------------------
-
     @Test
     fun `an occurrence whose hour is taken is skipped, and the rest are booked`() = runTest {
         val starts = weekly(4)
-        // Somebody else's lesson, right across the third Monday.
         repo.book(
             subjectId = SUBJECT,
             start = starts[2],
@@ -206,8 +187,6 @@ class ClassRepositorySeriesTest {
         assertTrue(written.wroteNothing)
         assertEquals(0, written.bookedIds.size)
         assertEquals(3, written.skipped.size)
-        // Nothing committed means nothing owed: re-deriving the reminder plan to arrive back where it
-        // started is work a refused booking must not do.
         assertEquals(refreshesBefore, env.reminders.refreshCount)
         assertEquals("one transaction checks the refusal", transactionsBefore + 1, env.transactor.count)
     }
@@ -258,16 +237,10 @@ class ClassRepositorySeriesTest {
 
         val written = bookSeries(weekly(4), studentIds = listOf(ann, bob), groupId = group)
 
-        // Four evenings for the tutor, eight classes to bill — the count the tutor reads is lessons.
         assertEquals(4, written.lessons)
         assertEquals(8, written.bookedIds.size)
         assertEquals(4, SessionRules.sessions(repo.getAll()).size)
     }
-
-    // --- What a caller may not ask for -----------------------------------------------------------
-
-    // `assertThrows` takes a non-suspending block, so a refused suspend call is caught rather than
-    // asserted around — the idiom the rest of the suite uses for the same reason.
 
     @Test
     fun `a run with no occurrences is a caller's bug, not an empty booking`() = runTest {

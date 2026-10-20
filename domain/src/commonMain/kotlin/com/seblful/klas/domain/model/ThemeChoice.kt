@@ -15,7 +15,8 @@ package com.seblful.klas.domain.model
 enum class ThemeChoice {
     LIGHT,
     DARK,
-    SYSTEM;
+    SYSTEM,
+    ;
 
     companion object {
         /**

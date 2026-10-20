@@ -37,7 +37,6 @@ class DiagnosticsTest {
         val b = Diagnostics.formatEntry(Instant.parse("2026-02-01T00:00:00Z"), "1.0", 30, "B", "trace-B")
         val c = Diagnostics.formatEntry(Instant.parse("2026-03-01T00:00:00Z"), "1.0", 30, "C", "trace-C")
 
-        // Cap that can't hold all three: the oldest (A) is dropped, B and C survive intact.
         val log = Diagnostics.appendBounded(existing = a + b, entry = c, max = b.length + c.length + 10)
 
         assertTrue("oldest entry dropped", !log.contains("trace-A"))

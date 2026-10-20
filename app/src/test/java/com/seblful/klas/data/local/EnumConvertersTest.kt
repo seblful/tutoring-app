@@ -10,22 +10,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * [EnumConverters]: every constant goes in as its name and comes back as itself, and text that is not a
- * name comes back as the answer its column can afford — a fallback where the column carries no money, a
- * named failure where it does. Which names are stored is `StoredEnumNamesTest`'s; this is how they travel.
- *
- * The converters run inside the `Flow`s every screen collects, so what they do with an unreadable column
- * decides whether that screen draws at all.
- */
 class EnumConvertersTest {
 
     private val converters = EnumConverters()
 
-    /** What a hand-edit, an older build or a careless migration could leave in a text column. */
     private val unreadable = listOf("HYBRID", "MISSED", "completed", "in_person", "", " SYSTEM")
-
-    // --- Round trips -----------------------------------------------------------------------------
 
     @Test
     fun `every status round-trips through its name`() {
@@ -75,12 +64,6 @@ class EnumConvertersTest {
         }
     }
 
-    // --- Text that is not a name: no money, so a fallback ----------------------------------------
-
-    /**
-     * A mode is a label and a calendar location, so an unreadable one costs a wrong word rather than a
-     * screen: the row is still read, which is what matters — the rest of the lesson is intact.
-     */
     @Test
     fun `an unreadable mode falls back to in person rather than failing the read`() {
         unreadable.forEach { assertEquals("\"$it\"", ClassMode.IN_PERSON, converters.toMode(it)) }
@@ -101,14 +84,6 @@ class EnumConvertersTest {
         unreadable.forEach { assertEquals("\"$it\"", ThemeChoice.SYSTEM, converters.toTheme(it)) }
     }
 
-    // --- Text that is not a name: money, so a named failure --------------------------------------
-
-    /**
-     * A status is what makes a lesson count as income, so there is no fallback that doesn't move money:
-     * `SCHEDULED` un-bills a lesson that earned, `COMPLETED` invents one that didn't. It fails instead,
-     * saying what it read — and a backup naming such a status is refused as it is parsed, so this should
-     * be unreachable from anything but a hand-edited database.
-     */
     @Test
     fun `an unreadable status fails the read, naming what it found`() {
         unreadable.forEach { stored ->
@@ -119,7 +94,6 @@ class EnumConvertersTest {
         }
     }
 
-    /** And so does an attendance, for the same reason: it is the other half of what bills. */
     @Test
     fun `an unreadable attendance fails the read, naming what it found`() {
         unreadable.forEach { stored ->

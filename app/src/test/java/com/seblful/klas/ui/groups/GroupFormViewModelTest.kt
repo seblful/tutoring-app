@@ -51,13 +51,6 @@ class GroupFormViewModelTest {
         return ann to bob
     }
 
-    /**
-     * **An existing group's form waits for the group.** The state used to start at `UiState()`, and the
-     * form is drawn from it the moment the screen appears while `init` reads the row in a coroutine — so
-     * editing «11 А» opened on a blank name with «Обязательное поле» under it, a rate of nothing, and «У
-     * вас нет учеников» in the error red, and then filled itself in. That is the [Loadable] defect on a
-     * record that *exists*, which is the worst place for it.
-     */
     @Test
     fun `an existing group's form is Loading until the group has been read`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
@@ -203,17 +196,10 @@ class GroupFormViewModelTest {
             observing(vm.state)
             advanceUntilIdle()
 
-            // 0 means "not set": pre-filling it would invent an amount, so the field stays empty and
-            // the form stays invalid until the tutor says what the group costs.
             assertEquals("", vm.state.current.form.price.text)
             assertFalse(vm.state.current.canSave)
         }
 
-    /**
-     * What back consults. Everything this form fills in for the tutor — a loaded group, the default
-     * rate for a new one — arrives from the database *after* the screen is up, so a naive "has the
-     * form changed since construction" would report unsaved work on a form nobody has touched.
-     */
     @Test
     fun `a prefilled default rate is not unsaved work`() = runTest(mainRule.dispatcher) {
         seedStudents()
@@ -227,7 +213,6 @@ class GroupFormViewModelTest {
         assertFalse("the app filled that in, not the tutor", vm.state.current.isDirty)
     }
 
-    /** Typing before the default lands must survive it — and must still count as unsaved work. */
     @Test
     fun `a rate typed before the default arrives stays, and stays dirty`() = runTest(mainRule.dispatcher) {
         seedStudents()
@@ -286,8 +271,6 @@ class GroupFormViewModelTest {
     @Test
     fun `any active student may join a group, priced for something or not`() =
         runTest(mainRule.dispatcher) {
-            // Neither student has a single price row: a group bills its own rate, so there is no
-            // per-student price to arrange before they can be put in one.
             val (ann, bob) = seedStudents()
 
             val vm = vm()
@@ -310,13 +293,6 @@ class GroupFormViewModelTest {
         assertEquals(listOf(ann), vm.state.current.candidates.map { it.id })
     }
 
-    /**
-     * A group with a subject keeps only the members priced for it, and the form now says, **before** the
-     * save, how many that leaves out — so the screen can ask. The tutor need not have touched the roster:
-     * un-enrolling a member from the subject one-to-one is allowed, and the next save — **a rename is
-     * enough**, since every save re-intersects — is what drops them. It used to happen in silence, and
-     * then with a snackbar sent as the form closed, which went with it.
-     */
     @Test
     fun `a save that leaves out an unpriced member says so first`() = runTest(mainRule.dispatcher) {
         val (ann, bob) = seedStudents()
@@ -327,15 +303,12 @@ class GroupFormViewModelTest {
             Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)),
             setOf(ann, bob),
         ).id
-        // The tutor stops teaching Аня Химия one-to-one; the group still teaches it, and Борис is
-        // still priced, so the form stays saveable — which is what makes the drop silent.
         env.enrollmentRepo.unenroll(ann, chem)
 
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()
 
-        // Nothing but the name changes.
         vm.update { it.copy(name = "Химия, вечер") }
         assertEquals("one member would leave, and the form knows before saving", 1, vm.state.current.leavingOnSave)
 
@@ -345,11 +318,6 @@ class GroupFormViewModelTest {
         assertEquals("and they really were dropped", listOf(bob), env.groupRepo.getMemberIds(id))
     }
 
-    /**
-     * When the subject rule strands **everybody**, the form goes invalid instead — the save button is
-     * disabled and there is nothing to announce, because nothing is written. Worth pinning next to the
-     * case above so the two are not confused: one is a silent drop, the other is a visible dead end.
-     */
     @Test
     fun `a group whose every member lost the price cannot be saved at all`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
@@ -389,7 +357,6 @@ class GroupFormViewModelTest {
         assertEquals(listOf(ann), env.groupRepo.getMemberIds(id))
     }
 
-    /** A double tap on «Сохранить» saved a new group twice and popped two screens. */
     @Test
     fun `a second tap while saving saves nothing more`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
@@ -418,7 +385,6 @@ class GroupFormViewModelTest {
             observing(vm.state)
             advanceUntilIdle()
 
-            // No subject yet: everyone is a candidate.
             assertEquals(setOf(ann, bob), vm.state.current.candidates.map { it.id }.toSet())
 
             vm.setSubject(algebra)
@@ -443,7 +409,6 @@ class GroupFormViewModelTest {
             advanceUntilIdle()
             assertEquals(2, vm.state.current.selectedMemberIds.size)
 
-            // Bob isn't priced for algebra, so he stops counting the moment the subject is chosen.
             vm.setSubject(algebra)
             advanceUntilIdle()
             assertEquals(setOf(ann), vm.state.current.selectedMemberIds)
@@ -471,18 +436,10 @@ class GroupFormViewModelTest {
             vm.setSubject(algebra)
             advanceUntilIdle()
 
-            // Nobody is priced for algebra, so there is no roster to book and nothing to save.
             assertFalse(vm.state.current.hasStudents)
             assertFalse(vm.state.current.canSave)
         }
 
-    /**
-     * **The rate's log belongs beside the box the rate is typed into**, which is here.
-     *
-     * It used to be an expander on the group's *card* — the one screen that cannot change the number it
-     * was annotating. The student's reprice dialog already made the argument in its own KDoc: history is
-     * the context for the decision being made, «было 25, стало 30» while a new number is being typed.
-     */
     @Test
     fun `the form carries the group's rate history, newest first`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
@@ -511,20 +468,10 @@ class GroupFormViewModelTest {
         assertTrue(vm.state.current.rateHistory.isEmpty())
     }
 
-    /**
-     * **A rename must not un-retire the group.**
-     *
-     * Archiving moved to the card, so the form no longer sets the flag — but it still *writes* it, because
-     * a save writes the whole `Group` row. A form that dropped it would quietly bring a retired group back
-     * the next time its name was corrected, which is silent data loss with no error and no undo. The test
-     * that used to cover this territory (`archiving does not leave the form looking unsaved`) went to
-     * `GroupDetailViewModelTest` with the behaviour, and left this uncovered.
-     */
     @Test
     fun `saving the form keeps the group retired`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
         val id = env.groupRepo.save(Group(name = "Выпускники", price = Money.ofMajor(20)), setOf(ann)).id
-        // Retired from the card, which is the only place that can do it now.
         env.groupRepo.setArchived(env.groupRepo.getById(id)!!, true)
 
         val vm = vm(id)

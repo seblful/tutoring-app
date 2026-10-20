@@ -44,29 +44,7 @@ import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.supportingTextOf
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
-/**
- * Create or edit one group: **subject**, name, note, hourly rate, default mode and roster.
- *
- * Subject comes before the roster because it decides it: pick one and the member list narrows to the
- * students priced for it, since a group only ever teaches that subject. Leaving it unset is allowed
- * only so that a group without one keeps working; those list every active student instead.
- *
- * **The form is a `LazyColumn`.** Every other form in the app is a `verticalScroll`, and rightly so —
- * they are a fixed handful of fields. This one ends in a list as long as the tutor's student list, and
- * a `forEach` inside a scroll composes and measures all of it: forty students meant forty
- * `MemberPickRow`s with forty avatars, none recycled, most off-screen, on every frame. The fields are
- * `item`s and the roster is `items`, which is the only part that grows.
- *
- * **What that costs, said out loud because it is a real cost.** A lazy item scrolled out of the viewport
- * is *disposed*, and the fields sit above a roster long enough to scroll them off — so scrolling down to
- * tick the fortieth member while «Название» holds the caret drops the focus and the keyboard, which a
- * `verticalScroll` would not have done. What it cannot do is lose or corrupt a value: every one lives in
- * `GroupFormViewModel`, not in the field, and text cannot arrive in a box that is not focused — reaching
- * one again means tapping it, which is also what places the caret. So the trade is a dropped keyboard on
- * a long scroll against composing the whole roster on every frame of it, made deliberately that way
- * round. **The fields must stay value-driven from the view model for that to hold**: a field keeping its
- * own `TextFieldValue` in a plain `remember` would lose the caret position here rather than the focus.
- */
+/** reate or edit one group: **subject**, name, note, hourly rate, default mode and roster. */
 @Composable
 fun GroupFormScreen(
     onBack: () -> Unit,
@@ -74,7 +52,7 @@ fun GroupFormScreen(
 ) {
     val screenState by viewModel.state.collectAsState()
     val title = stringResource(
-        if (viewModel.isNew) R.string.group_add_title else R.string.group_edit_title
+        if (viewModel.isNew) R.string.group_add_title else R.string.group_edit_title,
     )
 
     // An existing group's form waits rather than drawing itself from a blank [GroupFormViewModel.Form]:
@@ -172,7 +150,7 @@ private fun GroupForm(
                     onSelect = { id -> viewModel.setSubject(id.takeIf { it != 0L }) },
                     supportingText = stringResource(
                         if (form.subjectId == null) R.string.group_subject_none_hint
-                        else R.string.group_subject_hint
+                        else R.string.group_subject_hint,
                     ),
                 )
             }
@@ -246,7 +224,7 @@ private fun GroupForm(
                         !state.hasStudents -> Text(
                             stringResource(
                                 if (form.subjectId == null) R.string.group_no_students
-                                else R.string.group_no_students_for_subject
+                                else R.string.group_no_students_for_subject,
                             ),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyMedium,

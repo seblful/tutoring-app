@@ -69,14 +69,6 @@ import com.seblful.klas.ui.homework.homeworkUndo
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
-/**
- * The three things a group's card is about, one shown at a time and picked from the same menu a
- * student's card uses ([StickyViewMenu]) — the two cards are read the same way. Lessons first, as on the
- * student's, then its homework, then the roster, which is set once and changed on the form.
- *
- * Payments are **not** among them: a balance belongs to a student and spans all of their lessons, so it
- * is read on the student's card — which is exactly where a member row leads.
- */
 private enum class GroupTab(val labelRes: Int, val icon: ImageVector) {
     LESSONS(R.string.group_lessons_title, KlasIcons.Outlined.CalendarMonth),
 
@@ -88,13 +80,6 @@ private enum class GroupTab(val labelRes: Int, val icon: ImageVector) {
 /**
  * A group's card: what it is taught and for how much, how much of it has happened, who is in it and
  * which lessons they attended.
- *
- * Opening a group used to open its **edit form**, which answered "how do I change this?" and nothing
- * about "how is this going?". Editing now sits behind the pencil, where it does for a student.
- *
- * Booking is **not** offered here. A lesson is booked from the schedule, which is the one place that
- * knows what else the hour holds — there is one tutor, so a booking is a claim on their day rather
- * than an entry in a group's ledger. The schedule's add button asks who the lesson is for.
  *
  * @param onEdit opens the group form — the only place a group's roster, subject or rate changes.
  * @param onMemberClick opens a member's own card, which is where their money lives.
@@ -240,18 +225,6 @@ private fun GroupCard(
     }
 }
 
-/**
- * What the group is: its subject, whether it is retired, its note and its rate.
- *
- * A group with no subject says so rather than showing an empty line: groups made before the subject
- * was fixed on the group genuinely have none, and «Предмет не выбран» is the prompt to set one.
- *
- * **The rate's history is not here any more.** It was an «История цены ⌄» expander under the rate — a
- * 28 dp toggle held up to the touch minimum, on the one screen that cannot change the number it was
- * annotating. History is context for the number being *typed*, which is the argument the student's
- * reprice dialog already made in its own KDoc; the group's rate is typed on the group's form, so that
- * is where the log went.
- */
 @Composable
 private fun GroupHeader(state: GroupDetailState, modifier: Modifier = Modifier) {
     val group = state.group ?: return
@@ -277,13 +250,6 @@ private fun GroupHeader(state: GroupDetailState, modifier: Modifier = Modifier) 
     }
 }
 
-/**
- * Retiring or removing the group — the same overflow the student's card carries, in the same place.
- *
- * Delete is tinted with the error colour and sits below archive, because archiving is the one the app
- * pushes you towards: a group with lessons cannot be deleted at all (its classes must keep naming it),
- * and the refusal says so.
- */
 @Composable
 private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete: (() -> Unit)?) {
     OverflowMenu { close ->
@@ -310,21 +276,12 @@ private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete
     }
 }
 
-/**
- * What the group has cost the tutor's week, and what it paid: lessons and hours count **sessions**
- * (a lesson for three is one lesson, not three), while the money sums every member's charge — see
- * `Taught.byGroup`.
- */
 @Composable
 private fun groupStats(state: GroupDetailState): List<Stat> {
     val totals = state.totals
     return listOf(lessonsStat(totals), hoursStat(totals.minutes), earnedStat(totals.earned))
 }
 
-/**
- * The roster, each member with how many of the group's lessons they were actually in — which a list
- * of names alone does not say, since someone left out week after week is still a member.
- */
 private fun LazyListScope.studentsTab(
     state: GroupDetailState,
     onMemberClick: (Long) -> Unit,
@@ -377,10 +334,6 @@ private fun LazyListScope.studentsTab(
     }
 }
 
-/**
- * The group's lessons, newest first — one row per **lesson**, not per member's class, which is what
- * the schedule shows too. Tapping one opens it, as tapping it in the schedule would.
- */
 private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Long) -> Unit) {
     if (state.lessons.isEmpty()) {
         item(key = GroupDetailKeys.LESSONS_EMPTY) {
@@ -436,12 +389,6 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
     }
 }
 
-/**
- * Stable keys for the group card's one `LazyColumn`. Same rule as the student card's
- * (see [com.seblful.klas.ui.students.StudentDetailKeys]): a student id and a class id both start
- * at 1, so keys are namespaced by kind, and the card's own furniture gets fixed names of its own.
- * Homework's are `HomeworkItemKeys`, shared with the student's card.
- */
 private object GroupDetailKeys {
     const val HEADER = "header"
     const val STATS = DetailCard.STATS_KEY

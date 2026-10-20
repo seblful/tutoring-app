@@ -1,6 +1,6 @@
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
-import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -11,8 +11,7 @@ plugins {
     alias(libs.plugins.roborazzi)
 }
 
-// Release signing is configured only when keystore.properties exists (gitignored). This keeps debug
-// builds, CI and contributors without the upload key working — the release build is simply unsigned.
+// Configure release signing only when keystore.properties exists.
 val keystorePropsFile = rootProject.file("keystore.properties")
 val keystoreProps = Properties().apply {
     if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
@@ -20,10 +19,8 @@ val keystoreProps = Properties().apply {
 
 android {
     namespace = "com.seblful.klas"
-    // NOTE: the app was renamed from «Репетит» (com.seblful.repetit) before any Play upload, so the
-    // application id could still change. It cannot again — Play keys a listing to it forever.
-    // Latest androidx (core-ktx 1.19, lifecycle 2.11) require compiling against API 37; targetSdk
-    // stays at 36 (a stable runtime behavior target) — compileSdk and targetSdk move independently.
+    // A published application ID cannot be changed.
+    // Current AndroidX dependencies require API 37; the runtime target remains API 36.
     compileSdk = 37
 
     defaultConfig {
@@ -49,10 +46,7 @@ android {
 
     buildTypes {
         debug {
-            // Its own application id, so a debug build installs *alongside* the signed release the
-            // tutor actually uses instead of being refused for having a different signature — and,
-            // more to the point, so testing never touches their real students, classes or payments.
-            // The two apps keep separate databases, reminders and calendar events.
+            // Keep debug data and device integrations separate from release.
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
         }
@@ -62,7 +56,7 @@ android {
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
@@ -77,55 +71,29 @@ android {
     }
     bundle {
         language {
-            // The language is chosen **inside the app** (Settings → Язык), not by the phone: an English
-            // phone can be told to speak Russian, and a Russian one English. A per-language split would
-            // install only the phone's own `values-*`, so switching in the app would find the other
-            // language's strings missing. Every language ships in the base APK instead.
+            // Settings can switch languages independently of the phone locale.
             enableSplit = false
         }
     }
     lint {
-        // lintVitalAnalyzeRelease hits a file-locking bug in AGP 9.2.1's lint-jar migration on
-        // Windows; lint still runs on debug builds (`lintDebug`), so skip it during release assembly.
+        // AGP 9.2.1 release lint hits a Windows file-locking bug; lintDebug still runs.
         checkReleaseBuilds = false
     }
-    // Deliberately no `unitTests.isReturnDefaultValues`. It makes an unmocked android.jar call return
-    // null/0 instead of throwing, which turns "this test reached the Android framework" — something a
-    // JVM test in this project should never do — into a silent pass on a zero value. The domain is
-    // pure and every Android edge sits behind a port (CalendarSync, Notifier, DocumentStore,
-    // ReminderScheduler, Transactor), so a test that needs the framework has found a missing port
-    // rather than a reason to turn this back on.
-    //
-    // Robolectric tests are the exception that proves it: they get a real framework rather than the
-    // stub android.jar, so they never reach a default value either. `isIncludeAndroidResources` is what
-    // hands them the merged resources — the app's theme, strings and Golos Text font — without which a
-    // screenshot would be of a theme-less, font-less component. It changes nothing for the plain JVM
-    // tests, which never ask for a resource.
-    //
-    // Room's exported schema JSONs (see `ksp { room.schemaLocation }`) are shipped as androidTest assets so
-    // `MigrationTestHelper` can stand a v5 database up on a device and validate the migration against the
-    // bundled v6 schema — see `SettingsLanguageMigrationTest`. This wiring was deleted with the squashed
-    // migration chain and is back because v6 owes a real migration from a released version; the JVM half
-    // (`MigrationChainTest`) reads the same files off the tree and only proves the chain *exists*.
+    // Keep unmocked Android calls failing in JVM tests; defaults hide missing test boundaries.
+    // Robolectric gets merged resources. Device migration tests need Room’s exported schemas.
     sourceSets {
         getByName("androidTest").assets.directories.add("$projectDir/schemas")
     }
     testOptions {
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
-            // Roborazzi's advice for Robolectric native graphics: copy pixels through the hardware
-            // renderer, which draws what a phone does (elevation shadows, rounded clips) rather than the
-            // software path's approximation. Only a screenshot ever reads it.
+            // Match device rendering for screenshot tests.
             it.systemProperty("robolectric.pixelCopyRenderMode", "hardware")
-            // The Play listing's raw screenshots (`store.StoreScreenshots`) are taken only when asked for
-            // with `-PstoreScreenshots`; without the property that test skips itself. docs/store-listing.md.
             if (project.hasProperty("storeScreenshots")) {
                 it.systemProperty("klas.store.out", rootProject.file("store/build/raw").absolutePath)
                 it.outputs.upToDateWhen { false }
             }
-            // Robolectric reaches into JDK internals (a FileDescriptor's raw int, the font and text
-            // classes) that JDK 17+ closes to reflection; without these every Robolectric test fails in
-            // setup. The list is Robolectric's own documented one for JDK 17+ (robolectric.org/getting-started).
+            // Robolectric needs these JDK 17+ reflective accesses.
             it.jvmArgs(
                 "--add-opens=java.base/java.lang=ALL-UNNAMED",
                 "--add-opens=java.base/java.util=ALL-UNNAMED",
@@ -141,7 +109,6 @@ android {
     }
 }
 
-// Kotlin compiler options moved out of the deprecated android.kotlinOptions block (removed in AGP 9).
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_11
@@ -149,42 +116,28 @@ kotlin {
 }
 
 ksp {
-    // Export each DB version's schema to /schemas so migrations can be tested (and reviewed in git).
+    // Export schemas for migration tests.
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
-// Screenshot tests: every @Preview in the app is drawn under Robolectric and compared with a committed
-// golden — see docs/testing.md. Nothing here is a test to write: the plugin generates one test class
-// that scans for previews, so a new @Preview is a new screenshot on the next record.
-// Both the compare directory and the preview generation are still marked experimental by Roborazzi.
+// Generate screenshot tests for every @Preview.
 @OptIn(ExperimentalRoborazziApi::class)
 roborazzi {
-    // Goldens are source, reviewed in the diff like any other: not build output that `clean` deletes.
     outputDir.set(file("src/test/screenshots"))
-    // Where a failed verify leaves `*_compare.png` (golden | diff | new): build output, uploaded by CI,
-    // never committed.
     compare {
         outputDir.set(layout.buildDirectory.dir("outputs/roborazzi"))
     }
     generateComposePreviewRobolectricTests {
         enable = true
         packages = listOf("com.seblful.klas")
-        // The previews are private on purpose — they are not API — so the scan has to see private ones.
         includePrivatePreviews = true
-        // xhdpi rather than Robolectric's mdpi default: an 11sp status pill drawn 11px high is not
-        // something a reviewer can judge a diff of. The values are pasted into a @Config annotation as
-        // source, hence the quotes inside the string.
         robolectricConfig = mapOf("qualifiers" to "\"xhdpi\"")
-        // Ours, for the compare tolerance that lets a golden recorded on Windows pass on CI's Linux.
         testerQualifiedClassName = "com.seblful.klas.screenshot.KlasPreviewTester"
-        // That tester keeps Roborazzi's own scan (it only changes the capture), and the default scan
-        // already honours `includePrivatePreviews`; this tells the plugin so rather than refusing it.
         useScanOptionParametersInTester = true
     }
 }
 
 dependencies {
-    // The pure-Kotlin rules. `implementation`, not `api`: nothing depends on an application module.
     implementation(project(":domain"))
 
     implementation(libs.androidx.core.ktx)
@@ -201,35 +154,24 @@ dependencies {
     implementation(libs.androidx.material3.adaptive.navigation.suite)
     implementation(libs.androidx.navigation.compose)
 
-    // Room
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.sqlite.bundled)
 
-    // Metro (the compiler plugin brings its runtime)
     implementation(libs.metrox.viewmodel.compose)
 
-    // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
 
-    // Coroutines & serialization
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
 
-    // Core library desugaring (java.time on API < 26)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 
-    // Unit tests
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
-    // Screenshot tests (Robolectric + Roborazzi), and the Robolectric runtime other framework-backed
-    // JVM tests can share.
     testImplementation(libs.robolectric)
-    // Repository, backup and view-model tests run on a real in-memory Room database (testutil/TestDatabase):
-    // Robolectric supplies the Context Room asks for, the bundled driver the SQLite.
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.sqlite.bundled.jvm)
-    // KlasGraphTest builds each worker through the graph's WorkerFactory, as WorkManager would.
     testImplementation(libs.androidx.work.testing)
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
@@ -237,10 +179,8 @@ dependencies {
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.roborazzi.compose.preview.scanner.support)
     testImplementation(libs.composable.preview.scanner)
-    // The store screenshots run the whole app — MainActivity and its graph — under Robolectric.
     testImplementation(libs.androidx.espresso.core)
 
-    // Instrumented tests
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -253,9 +193,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 }
 
-// The unit tests take their SQLite from `sqlite-bundled-jvm` (above). The Android artifact the app ships
-// holds the same classes with natives built for phones, so on the same classpath whichever came first would
-// load — and the phone's would fail to on the build machine.
+// Use the bundled JVM SQLite driver and exclude Android native libraries from unit tests.
 configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configureEach {
     exclude(group = "androidx.sqlite", module = "sqlite-bundled-android")
 }

@@ -352,7 +352,7 @@ private fun ClassEditForm(
                 },
                 label = stringResource(
                     if (form.target == ClassTarget.GROUP) R.string.class_group_price_label
-                    else R.string.price_label
+                    else R.string.price_label,
                 ),
             )
 
@@ -437,8 +437,6 @@ private fun ClassEditForm(
     }
 }
 
-
-/** Student-or-group chooser for a new booking. */
 @Composable
 private fun TargetSelector(selected: ClassTarget, onSelect: (ClassTarget) -> Unit) {
     // Segments, not chips. Every other mutually-exclusive choice in the app is a segmented row — the
@@ -454,23 +452,12 @@ private fun TargetSelector(selected: ClassTarget, onSelect: (ClassTarget) -> Uni
                 when (target) {
                     ClassTarget.STUDENT -> R.string.class_target_student
                     ClassTarget.GROUP -> R.string.class_target_group
-                }
+                },
             )
         },
     )
 }
 
-/**
- * How long the lesson runs, as chips.
- *
- * The chips are the primary answer and «Другая» asks for the rest in hours and minutes — a 50-minute
- * lesson is unusual, not impossible. The end is shown beside the label rather than as a field of its
- * own: it is a *consequence* of the choice, worth confirming and not worth a picker.
- *
- * Always live. The chips used to be disabled until a start was chosen, because the end they set was
- * `start + minutes` and there was nothing to add to; a length stands on its own, so «1,5 ч» can be
- * answered before «Начало» like every other field on this form. [ends] is what waits for a start.
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DurationPicker(
@@ -504,19 +491,6 @@ private fun DurationPicker(
     }
 }
 
-/**
- * Whether this booking writes one lesson or a run of them.
- *
- * **Deliberately the same shape as [DurationPicker] one field above**: a label carrying the consequence
- * of the choice beside it, then the control. The two questions are neighbours in the tutor's head — how
- * long, and how often — and answering them in two different-looking ways on one form is the kind of drift
- * `ui/common` exists to stop.
- *
- * Segments for the frequency, chips for the count, because that is what each *is*: «Повторять» is a
- * choice between a fixed, mutually exclusive few, and the count is a shortlist with an escape hatch. The
- * count only appears once something is being repeated — asking "how many lessons?" of a booking that is
- * one lesson is a field with a single legal answer.
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RepeatPicker(
@@ -552,7 +526,7 @@ private fun RepeatPicker(
                         Repeat.NONE -> R.string.class_repeat_none
                         Repeat.WEEKLY -> R.string.class_repeat_weekly
                         Repeat.FORTNIGHTLY -> R.string.class_repeat_fortnightly
-                    }
+                    },
                 )
             },
         )
@@ -573,13 +547,6 @@ private fun RepeatPicker(
     }
 }
 
-/**
- * What a partly-booked run says: how many lessons went in, then which dates did not and why.
- *
- * The counts are `SeriesOutcome`'s and the dates are its own; all this owns is the wording — including
- * that the skipped dates are **listed** rather than counted, since finding those Mondays is the thing the
- * tutor now has to do.
- */
 @Composable
 private fun seriesOutcomeText(outcome: SeriesOutcome): String {
     val booked = pluralStringResource(R.plurals.class_series_booked, outcome.booked, outcome.booked)
@@ -591,12 +558,6 @@ private fun seriesOutcomeText(outcome: SeriesOutcome): String {
     return "$booked\n\n$skipped ${outcome.skipped.joinToString { it.formatDate() }}"
 }
 
-/**
- * «до 20:00», and «до 00:00 (след. день)» for a lesson that runs past midnight.
- *
- * The marker is the whole reason [ClassForm.Ending] carries a flag: a bare «до 00:00» under a date of
- * «29 июль» is the one end that could be read as the start of the day being booked rather than its end.
- */
 @Composable
 private fun endsAtText(ends: ClassForm.Ending): String {
     val time = ends.time.timeText()

@@ -63,8 +63,6 @@ import com.seblful.klas.ui.theme.klasColors
  * A card's homework, inside the card's own list — a student's or a group's: an add row, the current ones
  * (swiped done, as in the tab), then the done ones under their own heading (swiped back). Tapping one
  * corrects or deletes it. Nested, so rows rather than cards — see [SwipeableHomework].
- *
- * Its keys are [HomeworkItemKeys], namespaced apart from whatever else the card's list holds.
  */
 fun LazyListScope.homeworkItems(
     lists: HomeworkLists,
@@ -138,10 +136,10 @@ object HomeworkItemKeys {
  * One piece of homework that is **swiped to change lists** — current to done, or done back to current —
  * the gesture a lesson is marked taught with, for the same reason: it is done after every lesson, and
  * the row is where the tutor is already looking. [SwipeToConfirmBox] owns the whole contract (a tick at
- * the mark, taken back by sliding home). Tapping it opens it, to correct or delete.
+ * the mark, taken back by sliding home).
  *
  * @param nested whether it stands in a list inside a card (a student's), where a row is a `ListItem` and
- *   names who it is for only when that is a group; at the top level (the tab) it is a card of its own.
+ * names who it is for only when that is a group; at the top level (the tab) it is a card of its own.
  */
 @Composable
 fun SwipeableHomework(
@@ -167,10 +165,6 @@ fun SwipeableHomework(
     }
 }
 
-/**
- * What the swipe promises, behind the row: «Сделано» in the green a taught lesson's panel uses, or
- * «Вернуть» in a quiet tone for one coming back out of the archive.
- */
 @Composable
 private fun HomeworkReveal(done: Boolean, armed: Boolean, shape: Shape) {
     val (fill, ink) = if (done) {
@@ -189,7 +183,6 @@ private fun HomeworkReveal(done: Boolean, armed: Boolean, shape: Shape) {
     )
 }
 
-/** The tab's card: who it is for, when it is for, the text — and the button that sends it. */
 @Composable
 private fun HomeworkCard(row: HomeworkRow, messages: Messages, onClick: () -> Unit, modifier: Modifier) {
     ContentCard(onClick = onClick, modifier = modifier) {
@@ -228,10 +221,6 @@ private fun HomeworkCard(row: HomeworkRow, messages: Messages, onClick: () -> Un
     }
 }
 
-/**
- * A student card's row: the text first, since the card already says whose it is — and the group's name
- * beside the day when it is a group's, since that is the one thing the card does not say.
- */
 @Composable
 private fun HomeworkListItem(row: HomeworkRow, messages: Messages, onClick: () -> Unit, modifier: Modifier) {
     ListItem(
@@ -245,14 +234,8 @@ private fun HomeworkListItem(row: HomeworkRow, messages: Messages, onClick: () -
     )
 }
 
-/** How much of a piece of homework a list shows before it ellipsises — the dialog shows the rest. */
 private const val HomeworkPreviewLines = 4
 
-/**
- * When it is for, as the case it is in — [HomeworkRow.due] decides, this only words it: overdue in the
- * error colour, since that is the one of the four that asks for something; done ones say when they were
- * set instead.
- */
 @Composable
 private fun DueLine(row: HomeworkRow, prefix: String? = null) {
     val at = row.lessonAt
@@ -276,16 +259,12 @@ private fun DueLine(row: HomeworkRow, prefix: String? = null) {
 /**
  * Setting homework, or correcting it.
  *
- * **Who, what, and — for a new one — where it will go.** The line under the text names the lesson it will
- * be attached to, so the rule («к следующему занятию») is visible at the moment it applies rather than
- * something to trust. Editing leaves out that line: when it was given stays, so the lesson does too.
- *
  * @param choices who it can be for, whoever is being taught about now at the top
- *   (`HomeworkRules.byNearestLesson`). Never empty. **Nobody is preselected for a new one** — a name
- *   already in the field is one a quick «Сохранить» sends the homework to, so the tutor picks every time.
+ * (`HomeworkRules.byNearestLesson`). Never empty. **Nobody is preselected for a new one** — a name
+ * already in the field is one a quick «Сохранить» sends the homework to, so the tutor picks every time.
  * @param editing the homework being corrected, or null for a new one.
  * @param canChangeAssignee false where the screen already says who (a student's card): the field is shown
- *   filled and fixed, since there is nothing to pick.
+ * filled and fixed, since there is nothing to pick.
  * @param onDelete offered only while [editing].
  */
 @Composable
@@ -328,7 +307,9 @@ fun HomeworkDialog(
                     label = { Text(stringResource(R.string.homework_text_label)) },
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                     minLines = HomeworkDialogLines,
-                    supportingText = selected?.takeIf { editing == null }?.let { choice -> { Text(attachedText(choice)) } },
+                    supportingText = selected?.takeIf {
+                        editing == null
+                    }?.let { choice -> { Text(attachedText(choice)) } },
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(if (focus != null) Modifier.focusRequester(focus) else Modifier),
@@ -358,10 +339,6 @@ fun HomeworkDialog(
 /**
  * The two homework writes every list of it lets the tutor take back — a swipe between current and done,
  * and a delete — each followed by the message that carries «Отменить».
- *
- * The tab and both cards each spelled out the pair, and the undo is the half that matters: a swipe takes
- * the row off the list it was on, so a mis-swipe with nothing to take it back is a row the tutor has to go
- * and find on the other side. Build one with [homeworkUndo].
  */
 class HomeworkUndo internal constructor(
     private val messages: Messages,
@@ -383,7 +360,6 @@ class HomeworkUndo internal constructor(
         messages.show(words.deleted, words.undo) { restore(item) }
     }
 
-    /** Resolved in composition, since a message is shown from a callback that is not. */
     internal class Words(val done: String, val restored: String, val deleted: String, val undo: String)
 }
 
@@ -412,9 +388,6 @@ fun homeworkUndo(
 /**
  * A student's or a group's card's homework dialogs: giving a new piece to whoever the card is about, and
  * correcting or deleting one opened from its list.
- *
- * **Fixed to whoever it is for**, a group included: the card is one student's or one group's, and moving a
- * piece of homework onto somebody else is the tab's to do. Both cards drew this pair identically.
  *
  * @param adding who a new piece is for, taken as the dialog opened — or null while none is being given.
  * @param opened the piece being corrected, or null.
@@ -449,21 +422,16 @@ fun CardHomeworkDialogs(
     }
 }
 
-/** Which lesson a new piece of homework will be attached to — or that there is none to attach it to yet. */
 @Composable
 private fun attachedText(choice: AssigneeChoice): String =
     choice.nextLessonAt?.let { stringResource(R.string.homework_attached_to, it.dateTimeText()) }
         ?: stringResource(R.string.homework_attached_none)
 
-/** An assignment and a line of what to watch for, before the field starts to grow. */
 private const val HomeworkDialogLines = 3
 
 /**
  * «Отправить»: the homework, worded for the student, into the phone's share sheet — a messenger, in
  * practice, which is where a tutor sends it.
- *
- * Through the share sheet rather than at the student's phone number: which messenger a family uses is
- * theirs, and the sheet already knows every one on the phone.
  */
 @Composable
 fun SendHomeworkButton(row: HomeworkRow, messages: Messages) {

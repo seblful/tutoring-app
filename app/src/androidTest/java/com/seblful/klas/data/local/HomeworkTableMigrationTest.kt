@@ -8,21 +8,12 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/**
- * **v8 → v9 on a real database**: homework moves off the lessons into its own table, and the note goes.
- *
- * The sibling of [HomeworkMigrationTest] and [LessonNotesMigrationTest], for the reasons they give — and
- * this step more than either needs SQLite, since it is the first that *moves* rows: an `INSERT … SELECT`
- * per kind of lesson, then `UPDATE`s emptying the columns it read, then the view rebuilt over them.
- * `BackupLegacyHomeworkTest` holds a v8 backup file to the same rules on the JVM.
- */
 @RunWith(AndroidJUnit4::class)
 class HomeworkTableMigrationTest {
 
     @get:Rule
     val helper = migrationTestHelper(TEST_DB)
 
-    /** One row of `homework`, as the assertions read it back. */
     private data class Row(
         val studentId: Long?,
         val groupId: Long?,
@@ -31,11 +22,6 @@ class HomeworkTableMigrationTest {
         val doneAtMillis: Long?,
     )
 
-    /**
-     * Аня alone twice (homework checked «частично», and homework not checked yet), her group twice
-     * (everybody checked, and one member not), and Борис's lesson that was called off with homework on it
-     * — plus the note on her first lesson.
-     */
     private fun SQLiteConnection.seedV8() {
         execSQL("INSERT INTO subjects (id, name) VALUES (1, 'Алгебра')")
         execSQL(
@@ -88,11 +74,6 @@ class HomeworkTableMigrationTest {
                 )
             }
 
-    /**
-     * One row per lesson that set homework: a student's for their own lesson, the group's for its lesson,
-     * given at the lesson's start — and done if it had been checked at all, for a group once everybody had.
-     * The called-off lesson's is gone, as v8 already ignored it.
-     */
     @Test
     fun everyLessonsHomeworkMovesIntoItsOwnTable() {
         val db = migrated()
@@ -108,7 +89,6 @@ class HomeworkTableMigrationTest {
         )
     }
 
-    /** The columns it was read from are emptied, the note with them — nothing left to ride a backup. */
     @Test
     fun theNoteAndTheOldHomeworkColumnsAreEmptied() {
         val db = migrated()
@@ -117,7 +97,6 @@ class HomeworkTableMigrationTest {
         assertEquals(0L, db.long("SELECT count(*) FROM attendance WHERE homeworkResult IS NOT NULL"))
     }
 
-    /** No lesson or class went anywhere, and the view — rebuilt without the three columns — reads them all. */
     @Test
     fun theViewStillReadsEveryClass() {
         val db = migrated()
@@ -129,7 +108,6 @@ class HomeworkTableMigrationTest {
         assertEquals("evt-9", viewed["calendarEventId"])
     }
 
-    /** New homework after the upgrade goes into the table Room declared, owners and all. */
     @Test
     fun homeworkWrittenAfterTheUpgradeReadsBack() {
         val db = migrated()
@@ -139,10 +117,6 @@ class HomeworkTableMigrationTest {
         assertEquals(Row(2, null, "§14", 7000, null), db.homework().last())
     }
 
-    /**
-     * A released install is at v7, so the upgrade it actually takes is both steps: its notes are emptied
-     * and no homework appears — v7 had none to move.
-     */
     @Test
     fun aReleasedV7DatabaseUpgradesThroughBothSteps() {
         helper.createDatabase(7).use { db ->
@@ -168,7 +142,6 @@ class HomeworkTableMigrationTest {
         assertEquals(1L, db.long("SELECT count(*) FROM classes"))
     }
 
-    /** No lessons at all — where a wrong `CREATE TABLE` hides, having no row to be visible on. */
     @Test
     fun anEmptyDatabaseStillValidates() {
         helper.createDatabase(8).close()

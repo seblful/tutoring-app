@@ -24,13 +24,6 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * The «Задания» tab's state: its two lists captioned, the add dialog's choices, the writes, and "today"
- * moving at midnight.
- *
- * **Never `advanceUntilIdle()` here**: [HomeworkViewModel.state] sleeps until the next midnight in a loop,
- * so the scheduler is never idle. Time is advanced by stated amounts instead.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class HomeworkViewModelTest {
@@ -38,7 +31,6 @@ class HomeworkViewModelTest {
     @get:Rule
     val mainRule = MainDispatcherRule()
 
-    // 15:00 in Minsk on Monday the 1st of June — the environment's clock.
     @get:Rule
     val env = TestEnv()
     private val fixtures = env.fixtures
@@ -121,10 +113,6 @@ class HomeworkViewModelTest {
         assertTrue(vm.state.current.lists.archive.isEmpty())
     }
 
-    /**
-     * The dialog offers whoever is being taught about now first, preselected, and says which lesson the
-     * homework will go to — here Борис, whose lesson was an hour ago, over Аня's tomorrow.
-     */
     @Test
     fun `the dialog puts the nearest lesson's student first, with the lesson it will go to`() =
         runTest(mainRule.dispatcher) {
@@ -190,7 +178,6 @@ class HomeworkViewModelTest {
         assertEquals(env.clock.now(), stored.givenAt)
     }
 
-    /** Left open overnight, the tab calls tomorrow's lesson today's without anything else changing. */
     @Test
     fun `at midnight tomorrow's homework becomes today's`() = runTest(mainRule.dispatcher) {
         val maths = fixtures.subject()
@@ -201,7 +188,6 @@ class HomeworkViewModelTest {
         observing(vm.state)
         assertEquals(HomeworkRules.Due.LATER, vm.state.current.lists.current.single().due)
 
-        // 15:00 to a minute past midnight, on both the clock and the scheduler the flow sleeps on.
         val untilMidnight = 9.hours + 1.minutes
         env.clock.advanceBy(untilMidnight.inWholeMilliseconds)
         advanceTimeBy(untilMidnight.inWholeMilliseconds)
@@ -209,15 +195,12 @@ class HomeworkViewModelTest {
         assertEquals(HomeworkRules.Due.TODAY, vm.state.current.lists.current.single().due)
     }
 
-    /** Before the tab has loaded there is no answer — not "nobody to set it for". */
     @Test
     fun `there are no choices to offer before the tab has loaded`() = runTest(mainRule.dispatcher) {
         fixtures.student("Аня")
 
         assertNull(vm().choices())
     }
-
-    // --- The filter --------------------------------------------------------------------------------
 
     @Test
     fun `without homework the filter is empty but everybody can receive a first assignment`() =
@@ -313,7 +296,6 @@ class HomeworkViewModelTest {
         assertNull(vm.state.current.filterName)
     }
 
-    /** Narrowed to a student: theirs and their group's, in both lists — and the chip names them. */
     @Test
     fun `filtered to a student, the tab shows theirs and their group's`() = runTest(mainRule.dispatcher) {
         val maths = fixtures.subject()

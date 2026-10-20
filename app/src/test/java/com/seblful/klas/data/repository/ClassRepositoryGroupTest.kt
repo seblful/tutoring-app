@@ -25,10 +25,6 @@ import org.robolectric.RobolectricTestRunner
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * Group lessons at the repository seam: one lesson is *n* per-student classes, billed individually,
- * moved and re-billed together, with the calendar mirrored per class and reminders refreshed once.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class ClassRepositoryGroupTest {
@@ -48,7 +44,6 @@ class ClassRepositoryGroupTest {
         ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        // The group's own rate — 20, below either student's individual rate — is what its lessons bill.
         groupId = env.groupRepo.save(Group(name = "11 «А»", price = groupRate), setOf(ann, bob)).id
     }
 
@@ -85,7 +80,6 @@ class ClassRepositoryGroupTest {
             session.classes.associate { it.studentId to it.price },
         )
         assertEquals(groupRate, session.sharedPrice)
-        // Every member's class shares the lesson's time, subject and mode.
         assertTrue(session.classes.all { it.start == start && it.subjectId == algebra })
         assertTrue(session.classes.all { it.status == LessonStatus.SCHEDULED })
     }
@@ -103,8 +97,6 @@ class ClassRepositoryGroupTest {
     fun `an empty roster cannot be booked`() = runTest {
         seed()
 
-        // `assertThrows` takes a non-suspending block, so a refused suspend call is caught rather than
-        // asserted around — the idiom the rest of the suite uses for the same reason.
         val failure = runCatching {
             repo.book(
                 subjectId = algebra,
@@ -144,17 +136,10 @@ class ClassRepositoryGroupTest {
         val updated = repo.setStatus(repo.getSessionFor(ids.first())!!, LessonStatus.COMPLETED).written()
 
         assertEquals(2, updated.size)
-        // One rate, but still a charge each: the group says how much, the students still owe it.
         val charged = repo.getSessionFor(ids.first())!!.classes.associate { it.studentId to it.charge }
         assertEquals(mapOf(ann to groupRate, bob to groupRate), charged)
     }
 
-    /**
-     * The absentee of a lesson that went ahead: **their attendance**, not their own status.
-     *
-     * This used to be `setStatus` on a session fabricated out of one class, which cancelled it — the only
-     * way to stop charging them, and the reason the lesson itself ended up holding two statuses at once.
-     */
     @Test
     fun `one absentee is marked absent while the lesson stays taught`() = runTest {
         seed()
@@ -171,10 +156,6 @@ class ClassRepositoryGroupTest {
         assertEquals(groupRate, after.classes.single { it.studentId == ann }.charge)
     }
 
-    /**
-     * The thing the old model could not say at all: absent, and charged for it anyway. A late
-     * cancellation costs the hour it was too late to fill.
-     */
     @Test
     fun `an absentee can be charged anyway`() = runTest {
         seed()
@@ -189,10 +170,6 @@ class ClassRepositoryGroupTest {
         assertEquals("but still owes for it", groupRate, after.classes.single { it.studentId == bob }.charge)
     }
 
-    /**
-     * Completing the lesson afterwards leaves that correction standing: the tutor's tap is about the hour,
-     * and who was in it has already been answered.
-     */
     @Test
     fun `completing a lesson with an absentee leaves the absence standing`() = runTest {
         seed()
@@ -210,17 +187,6 @@ class ClassRepositoryGroupTest {
         assertEquals(Money.ZERO, after.classes.single { it.studentId == bob }.charge)
     }
 
-    /**
-     * **Archiving a member takes their invitation with them.**
-     *
-     * Their class is *excused*, not cancelled — the lesson goes ahead for everybody else and stays
-     * `SCHEDULED` — so the event was left standing in the tutor's calendar and in the student's inbox,
-     * and a re-sync (`CalendarMirror.resyncAll`) put it back after they had deleted it. A member who is
-     * not coming is not invited, whichever way they stopped coming.
-     *
-     * The student who *is* coming keeps their own event and its id: this is a per-member correction, and
-     * the lesson it belongs to is untouched.
-     */
     @Test
     fun `archiving a member withdraws their event from a lesson that still goes ahead`() = runTest {
         seed()
@@ -278,7 +244,13 @@ class ClassRepositoryGroupTest {
 
         val after = repo.getSessionFor(ids.first())!!
         assertEquals(2, after.size)
-        assertTrue("the lesson stays completed when it stays in the past", after.classes.all { it.status == LessonStatus.COMPLETED })
+        assertTrue(
+            "the lesson stays completed when it stays in the past",
+            after.classes.all {
+                it.status ==
+                    LessonStatus.COMPLETED
+            },
+        )
         assertEquals(
             mapOf(ann to Money.ofMajor(60), bob to Money.ofMajor(60)),
             after.classes.associate { it.studentId to it.charge },
@@ -291,9 +263,6 @@ class ClassRepositoryGroupTest {
     @Test
     fun `re-pricing a legacy lesson brings its members onto one rate`() = runTest {
         seed()
-        // A lesson from before groups had a rate: each member billed their own. The repository can
-        // no longer write one — a second booking into a held hour is refused — so Bob's row is
-        // seeded through the DAO, the documented way to a state only a pre-v3 backup can reach.
         val annIds = repo.book(
             groupId = groupId,
             subjectId = algebra,
@@ -303,7 +272,6 @@ class ClassRepositoryGroupTest {
             studentIds = listOf(ann),
             price = Money.ofMajor(30),
         ).written()
-        // Борис joins the same lesson at his own rate — a lesson from before groups priced themselves.
         val annRow = env.classDao.getById(annIds.single())!!
         val ids = annIds + env.attendanceDao.upsert(
             AttendanceEntity(
@@ -344,8 +312,6 @@ class ClassRepositoryGroupTest {
         assertTrue(after.classes.all { it.charge == Money.ZERO })
     }
 
-    // --- correcting who was in a lesson (roster on apply) ---
-
     @Test
     fun `dropping a member from a booked lesson deletes their class and its event`() = runTest {
         seed()
@@ -364,7 +330,6 @@ class ClassRepositoryGroupTest {
 
         val after = repo.getSessionFor(ids.first())!!
         assertEquals("only Ann is left in the lesson", listOf(ann), after.classes.map { it.studentId })
-        // The row is gone, not cancelled: they were never in the lesson, rather than having missed it.
         assertEquals(1, env.classes().size)
         assertTrue(env.calendar.deletes.contains(bobsEvent))
     }
@@ -385,7 +350,6 @@ class ClassRepositoryGroupTest {
 
         val after = repo.getSessionFor(ids.first())!!
         assertEquals(listOf(ann), after.classes.map { it.studentId })
-        // Ann's own charge is untouched — the correction was about who was there, not about the rate.
         assertEquals(groupRate, after.classes.single().charge)
         assertTrue("Bob has no class left to bill", env.classes().none { it.studentId == bob })
     }
@@ -548,9 +512,9 @@ class ClassRepositoryGroupTest {
     fun `an individual class loads as a one-member session, so the same actions apply`() = runTest {
         seed()
         val id = env.fixtures.storedClass(
-                studentId = ann, subjectId = algebra, startMillis = start.toEpochMilliseconds(),
-                durationMinutes = 60, status = LessonStatus.SCHEDULED,
-            )
+            studentId = ann, subjectId = algebra, startMillis = start.toEpochMilliseconds(),
+            durationMinutes = 60, status = LessonStatus.SCHEDULED,
+        )
 
         val session = repo.getSessionFor(id)!!
 

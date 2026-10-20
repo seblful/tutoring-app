@@ -52,19 +52,10 @@ jobs:
       # No local.properties here (it is gitignored, holding a machine-specific SDK path); the runner
       # exports ANDROID_HOME, which Gradle falls back to.
       # :domain is Kotlin Multiplatform, so its suite is the JVM target's `jvmTest`, not a per-variant
-      # `testDebugUnitTest`; compiling it also checks its shared code against the common standard library.
-      # verifyRoborazziDebug *is* testDebugUnitTest, run with screenshot comparison switched on: the
-      # whole unit suite plus every @Preview compared with its golden in app/src/test/screenshots. One
-      # run rather than two, since a plain testDebugUnitTest would draw the same previews and compare
-      # nothing. Goldens are recorded on Windows and checked here on Linux, which is what the small
-      # tolerance in KlasPreviewTester is for — see docs/testing.md.
+      # Includes unit tests and screenshot comparisons for every @Preview.
       - name: Unit and screenshot tests
         run: ./gradlew :domain:jvmTest :app:verifyRoborazziDebug --stacktrace
 
-      # What a failed screenshot looks like: `*_compare.png` (golden | diff | new) and `*_actual.png`
-      # beside it, plus Roborazzi's HTML report. The actual images are also how a golden that only
-      # differs by platform would be replaced with this runner's render, if the tolerance ever proves
-      # too tight.
       - name: Upload screenshot diffs
         if: failure()
         uses: actions/upload-artifact@v4
@@ -81,17 +72,14 @@ jobs:
         # AGP 9.2.1 file-locking bug on Windows, so debug is where lint actually runs.
         run: ./gradlew :app:lintDebug --stacktrace
 
-      # Unqualified task names, so every module is checked, not just :app. Findings that predate the
-      # linters sit in each module's config/{ktlint,detekt}/baseline.xml; anything new fails here.
+      # Unqualified task checks every module; each module has its own baseline.
       - name: Formatting (ktlint)
         run: ./gradlew ktlintCheck --stacktrace
 
       - name: Static analysis (detekt)
         run: ./gradlew detekt --stacktrace
 
-      # The instrumented tests need a device and there is no emulator in this project's workflow, but
-      # compiling them still catches the breakage that matters most often: a schema or entity change
-      # that leaves a test referring to something that no longer exists.
+      # Compile device tests and schema checks; running them requires an emulator.
       - name: Compile instrumented tests
         run: ./gradlew :app:assembleDebugAndroidTest --stacktrace
 

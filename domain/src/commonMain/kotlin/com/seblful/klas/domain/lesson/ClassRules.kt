@@ -27,10 +27,6 @@ data class ClassEdit(
 /** Rules governing a class's status: transitions, billing on completion, auto-completion. */
 object ClassRules {
 
-    /**
-     * Status changes the tutor (or the auto-complete job) may apply. A status is never listed as a
-     * transition to itself, so [availableTransitions] only ever offers a *different* status.
-     */
     private val allowed: Map<LessonStatus, Set<LessonStatus>> = mapOf(
         LessonStatus.SCHEDULED to setOf(LessonStatus.COMPLETED, LessonStatus.CANCELLED),
         // A wrongly auto-completed class can be cancelled (which voids its charge); it is not sent

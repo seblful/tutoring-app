@@ -24,7 +24,6 @@ class ReportsTest {
 
     private val zone = TimeZone.of("Europe/Minsk")
 
-    /** The epoch-month key the trend and `incomeByMonth` bucket by. */
     private fun keyOf(year: Int, month: Int) = year * 12 + (month - 1)
 
     private fun klass(
@@ -45,18 +44,9 @@ class ReportsTest {
 
     private val lessonIds = mutableMapOf<Pair<Long, Any>, Long>()
 
-    /**
-     * The lesson a fixture's class belongs to: one per (group, start) for a group's, its own id for an
-     * individual class. A convention of the test — storage has a column for it — and it has to be stated
-     * because that column is the whole of what makes classes one lesson (`SessionRules.sessions`).
-     */
     private fun lessonIdFor(groupId: Long?, start: Any, id: Long): Long =
         if (groupId == null) id else lessonIds.getOrPut(groupId to start) { 1_000L + lessonIds.size }
 
-    /**
-     * A whole report of [classes], with one student who is never archived and no payments — read long
-     * after the period, unless [today] says otherwise, so a comparison is of whole periods.
-     */
     private fun reportOf(
         classes: List<TutoringClass>,
         period: ReportPeriod,
@@ -72,13 +62,6 @@ class ReportsTest {
         today = today,
     )
 
-    /**
-     * The kind split is only a section when there is a split to see. A tutor who teaches one way would
-     * otherwise get a heading over a single line repeating the total right above it — and the line would
-     * be «100 %», which says nothing at all.
-     *
-     * This rule used to sit at the call site in `ReportsViewModel`, where nothing tested it.
-     */
     @Test
     fun `one kind of teaching is not a section`() {
         val period = ReportPeriod(ReportPeriod.Kind.YEAR, YearMonth(2026, 5))
@@ -120,23 +103,12 @@ class ReportsTest {
             klass(2, 1, "2026-06-01T10:00:00Z", 4000),
         )
         val byMonth = Reports.incomeByMonth(classes, zone)
-        // newest month first
         assertEquals(2026 * 12 + 5, byMonth[0].monthKey) // June (monthValue 6 -> index 5)
         assertEquals(Money(4000), byMonth[0].total)
         assertEquals(2026 * 12 + 4, byMonth[1].monthKey) // May
         assertEquals(Money(8000), byMonth[1].total)
     }
 
-    /**
-     * Rescheduling a lesson that already earned must not *move* its income into the month it was
-     * pushed to. [ClassRules.move] re-plans it instead — scheduled again, charge voided — so the month
-     * it was taught in stops claiming it and no other month starts. It is recognized again when the
-     * rescheduled lesson completes.
-     *
-     * Asserted through the report rather than on the class, because the month a charge lands in is
-     * what a tutor actually reads, and "the charge is zero" alone does not say the old month released
-     * it.
-     */
     @Test
     fun `moving a completed lesson forward takes its income out of the month, without relocating it`() {
         val may = klass(1, 1, "2026-05-10T10:00:00Z", 5000)
@@ -179,22 +151,18 @@ class ReportsTest {
             klass(2, 10, "2026-05-11T18:00:00Z", 2000, groupId = 7),
             klass(3, 10, "2026-05-11T18:00:00Z", 2000, groupId = 7),
             klass(4, 10, "2026-05-11T18:00:00Z", 2000, groupId = 7),
-            // Neither of these was billed, so neither kind may count it.
             klass(1, 10, "2026-05-12T10:00:00Z", 5000, LessonStatus.CANCELLED),
             klass(2, 10, "2026-05-12T18:00:00Z", 2000, LessonStatus.SCHEDULED, groupId = 7),
         )
 
         val lines = Reports.incomeByKind(classes)
 
-        // A group lesson's money is the sum of its members' charges — the group sets the rate, each
-        // member owes their share of it — so three at 20 outweighs one at 50.
         assertEquals(listOf(LessonKind.GROUP, LessonKind.INDIVIDUAL), lines.map { it.kind })
         assertEquals(Money(6000), lines[0].total)
         assertEquals(Money(5000), lines[1].total)
         assertEquals(Reports.totalIncome(classes), lines.fold(Money.ZERO) { a, l -> a + l.total })
     }
 
-    /** A tutor who teaches one way should not be shown a "split" that only restates the total. */
     @Test
     fun `a kind that earned nothing is left out rather than printed as zero`() {
         val onlyIndividual = listOf(
@@ -221,7 +189,6 @@ class ReportsTest {
 
         val byGroup = Reports.incomeByGroup(classes)
 
-        // A group's line is the sum of its members' charges — the group set the rate, each owes a share.
         assertEquals(Money(4000), byGroup[GroupId(7)])
         assertEquals(Money(3000), byGroup[GroupId(8)])
         assertEquals(
@@ -238,11 +205,9 @@ class ReportsTest {
         assertEquals(50, Reports.percentOf(Money(50), Money(100)))
         assertEquals(100, Reports.percentOf(Money(4000), Money(4000)))
         assertEquals(0, Reports.percentOf(Money(0), Money(4000)))
-        // Nothing to be a share of: 0, not a division by zero.
         assertEquals(0, Reports.percentOf(Money(4000), Money.ZERO))
     }
 
-    /** Rounded shares are allowed not to add up — see [Reports.percentOf]. */
     @Test
     fun `three equal shares each report a third, not a forced hundred`() {
         val third = Reports.percentOf(Money(1000), Money(3000))
@@ -303,7 +268,6 @@ class ReportsTest {
         val trend = Reports.trend(classes, ReportPeriod(ReportPeriod.Kind.ALL, YearMonth(2026, 7)), zone)
 
         assertEquals(Reports.Trend.Bucket.YEARS, trend.bucket)
-        // 2025 earned nothing but is still a bar: a fallow year is part of the shape.
         assertEquals(listOf(2024, 2025, 2026), trend.bars.map { it.key })
         assertEquals(listOf(Money(1000), Money.ZERO, Money(4000)), trend.bars.map { it.total })
         assertEquals(2026, trend.peak?.key)
@@ -329,7 +293,6 @@ class ReportsTest {
         assertTrue(Reports.trend(emptyList(), ReportPeriod(ReportPeriod.Kind.ALL, YearMonth(2026, 5)), zone).isEmpty)
     }
 
-    /** The chart is drawn under the total, so it may never count something the total does not. */
     @Test
     fun `the trend adds up to the period's income`() {
         val classes = listOf(
@@ -404,11 +367,6 @@ class ReportsTest {
         assertEquals(1, trend.bars[1].monthIndex, "the key's encoding is the module's to unpack")
     }
 
-    /**
-     * The screen opens on the year in progress, and its income so far used to be set against the whole of
-     * the year before: in September, a tutor out-earning every month of last year read a fall. While the
-     * period is going, both sides are its first N days.
-     */
     @Test
     fun `a year in progress is compared with the same days of the year before`() {
         val classes = listOf(
@@ -439,7 +397,6 @@ class ReportsTest {
         assertEquals(false, report.changeToDate)
     }
 
-    /** A month in progress, the same way — and a lesson later today is not part of "so far" yet. */
     @Test
     fun `a month in progress is compared with the same days of the month before`() {
         val classes = listOf(

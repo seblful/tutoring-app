@@ -5,14 +5,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-/**
- * What «follow the phone» means, and what a stored word reads back as.
- *
- * The interesting half is [AppLanguage.localeFor]: it is the *one* place the app resolves SYSTEM, and it has
- * to be, because the strings and the date formatters both take the answer. Two resolutions that disagreed
- * would be an app whose words and months were in different languages, which is the defect the whole
- * arrangement exists to make unrepresentable.
- */
 class AppLanguageTest {
 
     private fun locales(vararg tags: String) = tags.toList()
@@ -23,11 +15,6 @@ class AppLanguageTest {
         assertEquals(AppLanguage.ENGLISH, AppLanguage.of(locales("en-US")))
     }
 
-    /**
-     * Matched on the **language**, not the locale: a region is not a language, and there is no
-     * `values-ru-rBY/`. A Minsk phone falling through to English for want of one would be the app's own
-     * audience getting the fallback.
-     */
     @Test
     fun `a region does not change the language`() {
         assertEquals(AppLanguage.RUSSIAN, AppLanguage.of(locales("ru-RU")))
@@ -37,11 +24,6 @@ class AppLanguageTest {
         assertEquals(AppLanguage.RUSSIAN, AppLanguage.of(locales("RU-by")), "a tag's case is not its language")
     }
 
-    /**
-     * The fallback has to be English because `values/` is: Android loads the default resource folder for an
-     * unmatched locale, so any other answer here would put the strings and the dates in different languages
-     * on the same phone.
-     */
     @Test
     fun `a phone speaking neither language falls back to English`() {
         assertEquals(AppLanguage.ENGLISH, AppLanguage.of(locales("fr-FR")))
@@ -50,7 +32,6 @@ class AppLanguageTest {
         assertEquals(AppLanguage.ENGLISH, AppLanguage.FALLBACK)
     }
 
-    /** Most-wanted first: a phone listing several is answered by the first one the app can serve. */
     @Test
     fun `the phone's order decides which of several is used`() {
         assertEquals(AppLanguage.ENGLISH, AppLanguage.of(locales("en-US", "ru-RU")))

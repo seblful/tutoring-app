@@ -37,21 +37,12 @@ import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
-/** The tab's two lists: what is set and not done yet, and what is done. */
 private enum class HomeworkSide(val labelRes: Int) {
     CURRENT(R.string.homework_side_current),
     ARCHIVE(R.string.homework_side_archive),
 }
 
-/**
- * «Задания» — every student's and group's homework: **what is current, and the archive**.
- *
- * Set here, with the button, for whoever it is for: the dialog lists the student being taught about now
- * first — preselecting nobody — and says which lesson it will be attached to. Swiped done, it goes to the archive; swiped there,
- * it comes back. Tapped, it opens to be corrected or deleted. That is the whole of it — the first version
- * asked for a verdict per student and split the open ones into «Проверить» and «Выдано», and the tutor
- * wanted neither.
- */
+/** Задания» — every student's and group's homework: **what is current, and the archive**. */
 @Composable
 fun HomeworkScreen(
     /** The way out of «Сначала добавьте ученика» — the step it names, as the schedule's message carries. */
@@ -157,10 +148,8 @@ fun HomeworkScreen(
     }
 }
 
-/** A piece of homework opened to be corrected, with who it could be moved to, taken as it opened. */
 private data class Opened(val row: HomeworkRow, val choices: List<AssigneeChoice>)
 
-/** A side's name, with how many are current once there is a count to give; the archive only grows. */
 @Composable
 private fun sideLabel(side: HomeworkSide, lists: HomeworkLists?): String {
     val name = stringResource(side.labelRes)

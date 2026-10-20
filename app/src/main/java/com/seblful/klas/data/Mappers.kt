@@ -42,13 +42,7 @@ fun Group.toEntity() =
 fun PriceEntity.toDomain() = Price(studentId = studentId, subjectId = subjectId, amount = Money(amountMinor))
 fun Price.toEntity() = PriceEntity(studentId = studentId, subjectId = subjectId, amountMinor = amount.minor)
 
-/**
- * The one place `price_history`'s nullable owner columns are turned back into a [RateOwner].
- *
- * A row is either about a (student, subject) price or a group's rate; a row that is about neither
- * cannot be produced by [RateChange.toEntity] and could only come from a hand-edited database or a
- * backup file, so it fails loudly here instead of being silently attributed to the wrong owner.
- */
+/** he one place `price_history`'s nullable owner columns are turned back into a [RateOwner]. */
 fun RateChangeEntity.toDomain() = RateChange(
     id = id,
     owner = when {
@@ -101,10 +95,6 @@ fun ClassRow.toDomain() = TutoringClass(
 /**
  * The two rows a class is stored as. Which of them a write is allowed to touch is the model's whole
  * point, so the two directions are separate functions rather than one `toEntity`:
- *
- * - [toLessonEntity] is the **lesson's** facts, written once however many students are in it. Writing it
- *   per class would put the app back where it was, with *n* copies of one status.
- * - [toAttendanceEntity] is this student's own: whether they were there, at what rate, for what charge.
  */
 fun TutoringClass.toLessonEntity() = LessonEntity(
     id = lessonId,

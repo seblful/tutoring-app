@@ -12,11 +12,6 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * The stat row's arithmetic. The interesting half is [Taught.byGroup]: a group's card counts the
- * tutor's **lessons**, not its members' classes, and getting that wrong reports a three-member group
- * as three times as busy as it was.
- */
 class TaughtTest {
 
     private val start = Instant.parse("2026-06-20T10:00:00Z")
@@ -39,19 +34,12 @@ class TaughtTest {
         durationMinutes = minutes,
         status = status,
         attended = attended,
-        // Only a billable class carries recognized income, so mirror that here rather than letting a
-        // scheduled class or an absentee contribute a charge the app would never have stored.
         charge = if (status.isBillable && attended.bills) charge else Money.ZERO,
         groupId = groupId,
     )
 
     private val lessonIds = mutableMapOf<Pair<Long, Any>, Long>()
 
-    /**
-     * The lesson a fixture's class belongs to: one per (group, start) for a group's, its own id for an
-     * individual class. A convention of the test — storage has a column for it — and it has to be stated
-     * because that column is the whole of what makes classes one lesson (`SessionRules.sessions`).
-     */
     private fun lessonIdFor(groupId: Long?, start: Any, id: Long): Long =
         if (groupId == null) id else lessonIds.getOrPut(groupId to start) { 1_000L + lessonIds.size }
 
@@ -69,7 +57,7 @@ class TaughtTest {
                 klass(2, at = start.plus((86_400).seconds), minutes = 90, charge = Money.ofMajor(45)),
                 klass(3, at = start.plus((172_800).seconds), status = LessonStatus.SCHEDULED),
                 klass(4, at = start.plus((259_200).seconds), status = LessonStatus.CANCELLED),
-            )
+            ),
         )
         assertEquals(2, totals.lessons)
         assertEquals(1, totals.upcoming)
@@ -98,7 +86,7 @@ class TaughtTest {
                 klass(1, studentId = 1, groupId = 7, charge = Money.ofMajor(20)),
                 klass(2, studentId = 2, groupId = 7, charge = Money.ofMajor(20)),
                 klass(3, studentId = 3, groupId = 7, charge = Money.ofMajor(20)),
-            )
+            ),
         )
         assertEquals(1, totals.lessons)
         assertEquals(60, totals.minutes)
@@ -114,7 +102,7 @@ class TaughtTest {
                 klass(2, studentId = 2, groupId = 7, minutes = 90),
                 klass(3, studentId = 1, at = second, groupId = 7, minutes = 60),
                 klass(4, studentId = 2, at = second, groupId = 7, minutes = 60),
-            )
+            ),
         )
         assertEquals(2, totals.lessons)
         assertEquals(150, totals.minutes)
@@ -130,7 +118,7 @@ class TaughtTest {
             listOf(
                 klass(1, studentId = 1, groupId = 7, charge = Money.ofMajor(20)),
                 klass(2, studentId = 2, groupId = 7, attended = Attended.ABSENT),
-            )
+            ),
         )
         assertEquals(1, totals.lessons)
         assertEquals(0, totals.cancelled)
@@ -144,7 +132,7 @@ class TaughtTest {
             listOf(
                 klass(1, studentId = 1, groupId = 7, status = LessonStatus.CANCELLED),
                 klass(2, studentId = 2, groupId = 7, status = LessonStatus.CANCELLED),
-            )
+            ),
         )
         assertEquals(0, totals.lessons)
         assertEquals(1, totals.cancelled)
@@ -157,7 +145,7 @@ class TaughtTest {
             listOf(
                 klass(1, studentId = 1, groupId = 7, status = LessonStatus.SCHEDULED),
                 klass(2, studentId = 2, groupId = 7, status = LessonStatus.SCHEDULED),
-            )
+            ),
         )
         assertEquals(0, totals.lessons)
         assertEquals(1, totals.upcoming)
@@ -174,7 +162,7 @@ class TaughtTest {
             listOf(
                 klass(1, studentId = 1, groupId = 7),
                 klass(2, studentId = 2, at = moved, groupId = 7),
-            )
+            ),
         )
         assertEquals(2, totals.lessons)
         assertEquals(120, totals.minutes)
@@ -194,7 +182,7 @@ class TaughtTest {
                 klass(3, studentId = 3, at = evening, minutes = 90, groupId = 7),
                 klass(4, studentId = 4, at = evening, minutes = 90, groupId = 7),
                 klass(5, studentId = 5, at = evening, minutes = 90, groupId = 7),
-            )
+            ),
         )
 
         assertEquals(3, totals.lessons, "two individual lessons plus one group lesson")
@@ -213,11 +201,6 @@ class TaughtTest {
         assertEquals(Taught.byGroup(group), Taught.overall(group))
     }
 
-    /**
-     * `bySessions` exists so the group card can stop collapsing the same classes twice per emission —
-     * once to list the lessons, once inside `byGroup`. It has to be the same answer, or the card's
-     * header and its list would disagree about the same evening.
-     */
     @Test
     fun `bySessions agrees with byGroup over the same classes`() {
         val classes = listOf(
@@ -229,10 +212,6 @@ class TaughtTest {
         assertEquals(Taught.byGroup(classes), Taught.bySessions(SessionRules.sessions(classes)))
     }
 
-    // ── Totals.hint ──────────────────────────────────────────────────────────────────────────────
-    // The one line under the «Занятий» count. This lived in a @Composable shared by the student and the
-    // group card, so the rule both cards depend on was the one neither could assert.
-
     private fun totals(upcoming: Int = 0, cancelled: Int = 0) =
         Taught.Totals(lessons = 4, upcoming = upcoming, cancelled = cancelled, minutes = 240, earned = Money.ZERO)
 
@@ -241,7 +220,6 @@ class TaughtTest {
         assertEquals(Taught.Hint.Upcoming(3), totals(upcoming = 3).hint)
     }
 
-    /** «впереди 3» is something to act on; «отменено 3» is not. Only one line fits, so upcoming wins. */
     @Test
     fun `upcoming beats cancelled when there is both`() {
         assertEquals(Taught.Hint.Upcoming(2), totals(upcoming = 2, cancelled = 5).hint)
@@ -252,7 +230,6 @@ class TaughtTest {
         assertEquals(Taught.Hint.Cancelled(5), totals(cancelled = 5).hint)
     }
 
-    /** A card with neither says nothing rather than printing a zero. */
     @Test
     fun `neither leaves the hint unsaid`() {
         assertNull(totals().hint)

@@ -11,8 +11,6 @@ class AvatarPaletteTest {
 
     @Test
     fun `the first students each get their own colour`() {
-        // The reported bug: the student added during onboarding (id 1) wore the same colour as the
-        // second student (id 2). Sequential ids must never collide inside one palette's worth.
         val used = (1L..size).map { AvatarPalette.indexFor(it, size) }
         assertEquals(size, used.toSet().size, "every one of the first $size students is a distinct colour")
     }
@@ -29,7 +27,6 @@ class AvatarPaletteTest {
 
     @Test
     fun `the palette wraps once it runs out of colours`() {
-        // Unavoidable with a fixed palette — asserted so the wrap is a decision, not a surprise.
         assertEquals(AvatarPalette.indexFor(3, size), AvatarPalette.indexFor(3L + size, size))
     }
 

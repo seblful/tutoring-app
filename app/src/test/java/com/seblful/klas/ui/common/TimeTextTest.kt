@@ -12,15 +12,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.util.Locale
 
-/**
- * A lesson's time follows the **phone's** clock, not the app's language — in every window.
- *
- * With the phone's 12/24-hour switch on "automatic", Android answers from a context's locale. The app's
- * screens draw under a context localized to the app's language (`ProvideLocalizedResources`), but a bottom
- * sheet or a dialog is its own window with the phone's context — so a Russian app on an English phone printed
- * a lesson at 16:30 in the schedule and at 4:30 PM in that lesson's sheet. Both are now the phone's answer,
- * as the time picker and the reminders already were.
- */
 @RunWith(RobolectricTestRunner::class)
 class TimeTextTest {
 

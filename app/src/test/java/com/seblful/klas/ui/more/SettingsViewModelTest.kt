@@ -42,14 +42,6 @@ class SettingsViewModelTest {
         env.calendarPermission, env.notificationPermission, env.exactAlarmPermission, mainRule.appScope,
     )
 
-    /**
-     * **A settings row is never drawn from a default**, because `AppSettings()`'s defaults are a different
-     * tutor's settings: reminders on, sync off, BYN, hour-long lessons. The state used to start there, so
-     * a tutor who had switched reminders off opened the screen on a switch that was on and then watched it
-     * flip — which reads as the app doing something rather than as the app catching up.
-     *
-     * Both halves are asserted, as `LoadableTest` argues: `Loading` alone could be a state nothing leaves.
-     */
     @Test
     fun `the settings are Loading until the row is read, and then say what is stored`() =
         runTest(mainRule.dispatcher) {
@@ -70,7 +62,6 @@ class SettingsViewModelTest {
      * "ask the platform" and "the platform has nothing to ask" look identical from the setting's side and
      * behave completely differently. This was three nested `if`s inside a composable's callback.
      */
-    /** A digest is a notification: switched on, it asks for what a reminder would; switched off, nothing. */
     @Test
     fun `turning a digest on asks for the notification permission reminders would`() =
         runTest(mainRule.dispatcher) {
@@ -117,21 +108,10 @@ class SettingsViewModelTest {
                 vm.setNotificationsEnabled(on = true),
             )
 
-            // Notifications off for the whole app: there is no permission to request, so asking would
-            // show a dialog that can never be granted. Say so instead.
             env.notificationPermission.canAsk = false
             assertEquals(NotificationsIntent.BlockedBySystem, vm.setNotificationsEnabled(on = true))
         }
 
-    /**
-     * **The setting is stored by the same call that asks.**
-     *
-     * This is the assertion that could not be written before: storing and asking were two calls the screen
-     * made in sequence over one argument, so a test could exercise either and never the pair. Both halves
-     * failing silently is what made it worth binding — asking without storing requests a permission for a
-     * setting nobody saved, and storing without asking leaves reminders reading «включено» with no
-     * permission and no dialog, which is the very state `reminderDelivery` exists to report.
-     */
     @Test
     fun `asking for the permission and storing the setting are one act`() = runTest(mainRule.dispatcher) {
         val vm = vm()
@@ -151,7 +131,6 @@ class SettingsViewModelTest {
             vm.reminderDelivery.value,
         )
 
-        // And off again: no request, and the setting follows.
         assertEquals(NotificationsIntent.Nothing, vm.setNotificationsEnabled(on = false))
         advanceUntilIdle()
         assertFalse(vm.state.current.notificationsEnabled)
@@ -188,10 +167,8 @@ class SettingsViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        // Null is "not set", so a new group's rate is left blank rather than pre-filled with a guess.
         assertNull(vm.state.current.defaultGroupPrice)
 
-        // And clearing it again is expressible.
         vm.update { it.copy(defaultGroupPrice = Money(2000)) }
         advanceUntilIdle()
         vm.update { it.copy(defaultGroupPrice = null) }
@@ -219,8 +196,6 @@ class SettingsViewModelTest {
             advanceUntilIdle()
 
             assertFalse(env.settingsRepo.get().emailInvitesEnabled)
-            // Re-mirrored, carrying the address marked uninvited — that is what withdraws the
-            // invitation the student already has, rather than only sparing future lessons.
             assertEquals(Guest("anya@example.com", invited = false), env.calendar.lastGuest)
         }
 
@@ -252,18 +227,10 @@ class SettingsViewModelTest {
             vm.update { it.copy(emailInvitesEnabled = false) }
             advanceUntilIdle()
 
-            // The preference is remembered for when sync is switched on, but there are no events to
-            // invite anyone to — so the resync stays a no-op and needs no calendar permission.
             assertFalse(env.settingsRepo.get().emailInvitesEnabled)
             assertTrue(env.calendar.calls.isEmpty())
         }
 
-    /**
-     * The setting the generic path used to drop: the lead is baked into every mirrored event's
-     * email reminder and into every armed alarm, so changing it owes both a refresh. Until this
-     * went through [SettingsChange] the mirror kept the old lead indefinitely — the tail existed
-     * only for the two settings that happened to have named methods.
-     */
     @Test
     fun `changing the reminder lead re-mirrors the calendar and re-plans the reminders`() =
         runTest(mainRule.dispatcher) {
@@ -320,7 +287,6 @@ class SettingsViewModelTest {
         assertEquals(CalendarSyncToggle.PERMISSION_NEEDED, vm.setCalendarSyncEnabled(true))
         advanceUntilIdle()
 
-        // The flag the whole mirror keys off stays off, and nothing was written.
         assertFalse(env.settingsRepo.get().calendarSyncEnabled)
         assertTrue(env.calendar.upserts.isEmpty())
     }
@@ -367,7 +333,6 @@ class SettingsViewModelTest {
         val vm = vm()
         assertEquals(CalendarSyncToggle.PERMISSION_NEEDED, vm.setCalendarSyncEnabled(true))
 
-        // What the dialog closing with «Разрешить» amounts to.
         env.calendarPermission.granted = true
         val answer = vm.calendarPermissionAnswered()
         advanceUntilIdle()
@@ -376,10 +341,6 @@ class SettingsViewModelTest {
         assertTrue(env.settingsRepo.get().calendarSyncEnabled)
     }
 
-    /**
-     * Refused, refused in part, or dismissed unseen — the platform is asked again rather than the dialog's
-     * answer read, and all three leave the permission not held.
-     */
     @Test
     fun `a calendar request that leaves the permission not held leaves sync off`() =
         runTest(mainRule.dispatcher) {
@@ -413,7 +374,6 @@ class SettingsViewModelTest {
     fun `disabling calendar sync clears the events we created`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        // A class already carrying a mirrored event id.
         env.fixtures.storedClass(studentId = sid, subjectId = subj, startMillis = 1, durationMinutes = 60, status = LessonStatus.SCHEDULED, calendarEventId = "evt-1")
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
 
@@ -423,22 +383,9 @@ class SettingsViewModelTest {
 
         assertFalse(env.settingsRepo.get().calendarSyncEnabled)
         assertEquals(listOf("evt-1"), env.calendar.deletes)
-        // The event id is cleared off the class.
         assertEquals(null, env.classes().single().calendarEventId)
     }
 
-    // --- Turning auto-completion on ----------------------------------------------------------------
-    //
-    // The switch used to be wired straight to the generic `update`, so it stored a flag and owed
-    // nothing: the backlog sat there until an app restart, the half-hourly tick, or *any* lesson write
-    // happened to run the upkeep pass. It read as a switch that did nothing, and then marking one old
-    // lesson completed by hand completed every other old lesson too — that tap was simply what finally
-    // ran the pass, and it credited the lot at once.
-    //
-    // It now runs the pass itself, having asked. The **background** pass is not represented here and asks
-    // nobody: nothing can be asked from a worker, and by then the tutor has agreed to the arrangement.
-
-    /** Lessons that finished before the environment's clock, so a pass at `now` is due to settle them. */
     private suspend fun finishedLessons(count: Int): List<Long> {
         val subjectId = env.fixtures.subject("Математика")
         val studentId = env.fixtures.pricedStudent(subjectId = subjectId, rate = Money.ofMajor(30))
@@ -454,14 +401,6 @@ class SettingsViewModelTest {
 
     private suspend fun statuses(ids: List<Long>) = ids.map { env.classRepo.getById(it)?.status }
 
-    /**
-     * The switch asks before it bills anything, and **nothing is stored** until the tutor answers — so a
-     * question left hanging cannot half-apply.
-     *
-     * Three lessons, deliberately: there was a size threshold here, and a backlog this small went through
-     * without a word. The tutor cannot see the backlog before flipping the switch, so a threshold decides
-     * on their behalf that some amount of their money may be recognized unasked.
-     */
     @Test
     fun `a backlog of any size is asked about before anything is stored`() =
         runTest(mainRule.dispatcher) {
@@ -491,7 +430,6 @@ class SettingsViewModelTest {
         assertEquals(List(3) { LessonStatus.COMPLETED }, statuses(ids))
     }
 
-    /** And says what it did, rather than leaving the tutor to trust the number it asked with. */
     @Test
     fun `and says how many it settled`() = runTest(mainRule.dispatcher) {
         finishedLessons(3)
@@ -507,7 +445,6 @@ class SettingsViewModelTest {
         assertEquals(listOf(3), reported)
     }
 
-    /** Zero is the one backlog worth not asking about: there is nothing to say and nothing to bill. */
     @Test
     fun `nothing waiting means nothing to ask`() = runTest(mainRule.dispatcher) {
         val vm = vm()
@@ -522,11 +459,6 @@ class SettingsViewModelTest {
         assertTrue("and nothing is reported", reported.isEmpty())
     }
 
-    /**
-     * **Declining leaves the setting off**, which is the only honest answer available: the sweep has no
-     * lower bound, so with the setting on the next upkeep pass would settle that backlog anyway — a "no"
-     * that merely postponed it would be a lie.
-     */
     @Test
     fun `declining leaves the switch off and the lessons alone`() = runTest(mainRule.dispatcher) {
         val ids = finishedLessons(3)
@@ -542,7 +474,6 @@ class SettingsViewModelTest {
         assertTrue(statuses(ids).all { it == LessonStatus.SCHEDULED })
     }
 
-    /** Asked again on the next attempt — a "no" refuses this sweep, it does not remember a preference. */
     @Test
     fun `declining and trying again asks again`() = runTest(mainRule.dispatcher) {
         finishedLessons(3)
@@ -557,7 +488,6 @@ class SettingsViewModelTest {
         assertEquals(3, vm.pendingSweep.value)
     }
 
-    /** One-directional: switching a preference off is not a reason to un-bill anything, or to bill it. */
     @Test
     fun `turning auto-completion off settles nothing`() = runTest(mainRule.dispatcher) {
         env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
@@ -571,22 +501,10 @@ class SettingsViewModelTest {
         assertTrue(statuses(ids).all { it == LessonStatus.SCHEDULED })
     }
 
-    // --- Intent and platform truth are two facts ---------------------------------------------------
-
-    /**
-     * The state a fresh Android 13+ install is in: the setting on by default, the permission never
-     * granted, `AndroidNotifier` no-opping in silence. The switch read on while no reminder could ever
-     * appear, and nothing anywhere said so.
-     *
-     * Deliberately *not* modelled as the calendar rule — see `NotificationPermission`. Saying yes is the
-     * tutor's to say; whether the platform will honour it is a separate fact the screen shows next to it.
-     */
     @Test
     fun `the platform's answer is reported apart from the tutor's intent`() = runTest(mainRule.dispatcher) {
         env.notificationPermission.granted = false
         val vm = vm()
-        // Both, because the point is the two disagreeing — and the tutor's own answer is now a read that
-        // has to have happened before it can be asserted about.
         observing(vm.state, vm.reminderDelivery)
         advanceUntilIdle()
 
@@ -598,12 +516,6 @@ class SettingsViewModelTest {
         )
     }
 
-    /**
-     * The other half of the platform's answer, and the half that was missing: the reminder *will* be
-     * shown, and not necessarily when it says. A fresh Android 14+ install is in exactly this state,
-     * because `SCHEDULE_EXACT_ALARM` is not granted by default there — so the app's one time-critical
-     * promise was quietly approximate on every new install, with the row underneath reporting it as fine.
-     */
     @Test
     fun `a reminder that can only be inexact is reported as late, not as working`() =
         runTest(mainRule.dispatcher) {
@@ -615,11 +527,6 @@ class SettingsViewModelTest {
             assertEquals(ReminderDelivery.LATE, vm.reminderDelivery.value)
         }
 
-    /**
-     * Precedence, which is the whole reason this is a named answer rather than two booleans: a reminder
-     * nothing can post has nothing to be late about, so the blocked state wins and the tutor is given one
-     * problem to fix instead of two.
-     */
     @Test
     fun `nothing postable outranks nothing punctual`() = runTest(mainRule.dispatcher) {
         env.notificationPermission.granted = false
@@ -639,7 +546,6 @@ class SettingsViewModelTest {
         advanceUntilIdle()
         assertEquals(ReminderDelivery.BLOCKED, vm.reminderDelivery.value)
 
-        // What returning from the system dialog — or from system settings — amounts to.
         env.notificationPermission.granted = true
         vm.refreshPermissions()
         advanceUntilIdle()
@@ -647,15 +553,6 @@ class SettingsViewModelTest {
         assertEquals(ReminderDelivery.ON_TIME, vm.reminderDelivery.value)
     }
 
-    /**
-     * **The defect the blocked row exists for**, stated as the state every fresh Android 13+ install was in.
-     *
-     * `notificationsEnabled` defaults to true and `POST_NOTIFICATIONS` defaults to denied, and the only
-     * caller that ever requested it was the switch — which cannot be turned on when it is already on. So
-     * there was no path through the app that asked, ever: reminders read «включено», `AndroidNotifier`
-     * dropped every notification at its permission check, and the row said so and offered nothing. The fix
-     * is not a new rule but a second caller for the one that was already there.
-     */
     @Test
     fun `a fresh install can ask for the permission without touching the switch`() =
         runTest(mainRule.dispatcher) {
@@ -664,7 +561,6 @@ class SettingsViewModelTest {
             observing(vm.state, vm.reminderDelivery)
             advanceUntilIdle()
 
-            // Precisely the untouched state: nobody has flipped anything.
             assertTrue("reminders are on by default", vm.state.current.notificationsEnabled)
             assertEquals(ReminderDelivery.BLOCKED, vm.reminderDelivery.value)
 
@@ -675,11 +571,6 @@ class SettingsViewModelTest {
             )
         }
 
-    /**
-     * Nothing left to ask — notifications off for the whole app, or denied for good. A dialog here would
-     * close itself, so the row has to send the tutor to the page instead. Same last arm
-     * [setNotificationsEnabled] has, which is the point of the two sharing one definition.
-     */
     @Test
     fun `the blocked row says so when there is nothing left to ask`() = runTest(mainRule.dispatcher) {
         env.notificationPermission.granted = false
@@ -691,12 +582,6 @@ class SettingsViewModelTest {
         assertEquals(NotificationsIntent.BlockedBySystem, vm.unblockNotifications())
     }
 
-    /**
-     * **Unblocking stores nothing** — the distinction from [setNotificationsEnabled], which is why it is a
-     * second method rather than the switch's call reused. The tutor is clearing the platform's refusal of a
-     * setting they already have; writing the row again on the way past would make a permission prompt into
-     * a settings write, and the row is only ever drawn while the setting is on.
-     */
     @Test
     fun `unblocking does not write the setting`() = runTest(mainRule.dispatcher) {
         env.notificationPermission.granted = false
@@ -711,7 +596,6 @@ class SettingsViewModelTest {
         assertEquals("no write went out", before, env.settingsRepo.get())
     }
 
-    /** Once granted there is nothing to unblock, so a stale tap does nothing rather than re-asking. */
     @Test
     fun `a granted permission has nothing to unblock`() = runTest(mainRule.dispatcher) {
         val vm = vm()
@@ -721,7 +605,6 @@ class SettingsViewModelTest {
         assertEquals(NotificationsIntent.Nothing, vm.unblockNotifications())
     }
 
-    /** And revoked the same way: a permission can be taken away while the app is in the background. */
     @Test
     fun `revoking the permission is picked up too`() = runTest(mainRule.dispatcher) {
         val vm = vm()
@@ -736,11 +619,6 @@ class SettingsViewModelTest {
         assertEquals(ReminderDelivery.BLOCKED, vm.reminderDelivery.value)
     }
 
-    /**
-     * Switching reminders off says nothing about the platform. Both grants are missing here and the answer
-     * is still [ReminderDelivery.OFF] — the row must not lecture a tutor about a permission for a feature
-     * they have just turned off.
-     */
     @Test
     fun `a reminder switched off reports nothing about the platform`() = runTest(mainRule.dispatcher) {
         env.notificationPermission.granted = false
@@ -754,7 +632,6 @@ class SettingsViewModelTest {
         assertEquals(ReminderDelivery.OFF, vm.reminderDelivery.value)
     }
 
-    /** Turning reminders off is never blocked — nothing to ask for, nothing to warn about. */
     @Test
     fun `the setting can always be turned off`() = runTest(mainRule.dispatcher) {
         env.notificationPermission.granted = false

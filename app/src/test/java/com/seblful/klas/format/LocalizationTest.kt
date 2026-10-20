@@ -6,10 +6,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.util.Locale
 
-/**
- * Where the phone's `Locale`s become the domain's tags and currency codes — the half of `AppLanguageTest`
- * and `CurrencyTest` that needs the platform's tables.
- */
 class LocalizationTest {
 
     private fun locales(vararg tags: String) = tags.map(Locale::forLanguageTag)

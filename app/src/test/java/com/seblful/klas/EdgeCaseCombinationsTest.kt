@@ -48,18 +48,6 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
-/**
- * Edge cases that combinations of individually-legal data reach. Each one is a *combination*: no
- * single value in it is wrong, and the app was happy with each step on its own.
- *
- * The first three are **regressions**. Each was a live bug found by asking what two ordinary
- * operations do next to each other — a cancelled lesson re-booked and then restored, a group made for
- * a subject that is then deleted, a rate typed larger than the charge arithmetic can hold — and each
- * states the invariant the app claims rather than the mechanics of its fix.
- *
- * The rest pin down behaviour that *looks* like a bug and is in fact decided, so the decision has a
- * test and not only a paragraph of prose.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class EdgeCaseCombinationsTest {
@@ -71,16 +59,6 @@ class EdgeCaseCombinationsTest {
     val env = TestEnv()
     private val zone: TimeZone = TimeZone.currentSystemDefault()
 
-    // ---- Regressions ---------------------------------------------------------------------------
-
-    /**
-     * Cancel Аня's lesson, re-book the freed hour for Борис, then put Аня's lesson back on the
-     * schedule. A cancelled class gives its slot back on purpose, so the re-booking is legitimate —
-     * which makes un-cancelling the one way back into an hour somebody else now holds. The refusal
-     * is the **repository's own** ([LessonWrite]): every way into an hour is checked by the module
-     * that writes it, so this case no longer depends on any caller remembering it — un-cancelling
-     * was exactly the way in that once was forgotten.
-     */
     @Test
     fun `restoring a cancelled lesson into an hour taken since does not double-book the tutor`() =
         runTest(mainRule.dispatcher) {
@@ -98,13 +76,11 @@ class EdgeCaseCombinationsTest {
                 LessonStatus.CANCELLED,
             )
 
-            // The hour is free again, so this is an ordinary booking that the form allows.
             env.classRepo.book(
                 subjectId = subj, start = at, durationMinutes = 60,
                 mode = ClassMode.IN_PERSON, studentIds = listOf(bob), price = Money.ofMajor(30),
             ).written()
 
-            // «Вернуть в расписание» — the one status change that re-occupies time.
             val outcome = env.classRepo.setStatus(
                 env.classRepo.getSessionFor(annIds.single())!!,
                 LessonStatus.SCHEDULED,
@@ -122,12 +98,6 @@ class EdgeCaseCombinationsTest {
             )
         }
 
-    /**
-     * `student_groups.subjectId` is `ON DELETE RESTRICT`, so the database refuses to delete a subject
-     * a group is taught. The repository has to refuse it first: it only counts *classes*, so it
-     * reports the deletion as done and lets the constraint throw instead — on a real database, out of
-     * the `viewModelScope.launch` in `SubjectsViewModel.delete`, where nothing catches it.
-     */
     @Test
     fun `a subject a group is taught cannot be deleted`() = runTest(mainRule.dispatcher) {
         val chem = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
@@ -143,16 +113,6 @@ class EdgeCaseCombinationsTest {
         )
     }
 
-    /**
-     * A typed rate used to be capped only by what fits in a `Long` of kopecks, while the charge is
-     * `rate × minutes` — which wraps well before that. A negative charge then read as income the tutor
-     * never earned, in reverse: the student's card showed «Переплата».
-     *
-     * Fixed at the **input**, which is the only place the problem is still legible: `parseMoneyOrNull`
-     * refuses anything above [Money.MAX], a ceiling chosen so the multiplications downstream cannot
-     * wrap (see its KDoc). Both halves are pinned here — the field says no, and the largest amount it
-     * *does* accept still bills a positive charge over the longest lesson there can be.
-     */
     @Test
     fun `a rate the money field accepts never bills a negative charge`() {
         val absurd = MoneyField(text = "2000000000000000", kind = MoneyField.Kind.RATE)
@@ -162,18 +122,6 @@ class EdgeCaseCombinationsTest {
         assertFalse("the largest accepted rate cannot bill a negative amount", charge.isNegative)
     }
 
-    // ---- Decided behaviour, pinned ------------------------------------------------------------
-
-    /**
-     * A late lesson is an ordinary lesson. It was not always: the form held the end as a second
-     * wall clock on the lesson's date, so 23:30 + 60 min wrapped to 00:30 and read as *minus* twenty-three
-     * hours — the form refused a booking it had made itself (`TimeProblem.RangeInvalid`), and the only way
-     * out was a lesson short enough to finish by 23:59.
-     *
-     * Now the form holds the length the database row holds, and the end is arithmetic on the start
-     * *instant*. Pinned here because it is where the old limitation was pinned, and because the lesson
-     * ending on the following day is the part that has to keep working.
-     */
     @Test
     fun `a lesson may cross midnight`() {
         val form = ClassForm(
@@ -195,13 +143,6 @@ class EdgeCaseCombinationsTest {
         )
     }
 
-    /**
-     * `GroupRepository.save` re-intersects the roster with the students priced for the group's subject
-     * on **every** save, a rename included. So un-enrolling a member from that subject one-to-one
-     * (allowed while the group has taught no lesson) makes the next rename drop them from the group.
-     * Deliberate — a member who is not priced for the subject could never be billed for its lessons —
-     * and the group form does show the shortened candidate list, but nothing says why they left.
-     */
     @Test
     fun `saving a group re-staffs it to the students priced for its subject`() =
         runTest(mainRule.dispatcher) {
@@ -220,12 +161,6 @@ class EdgeCaseCombinationsTest {
             assertEquals(emptyList<Long>(), env.groupRepo.getMemberIds(groupId))
         }
 
-    /**
-     * An all-time trend enumerates every year between the first and last earning one, and the *data*
-     * sets both ends — so one class with a stored start of 0 (which `BackupIntegrity` allows: it
-     * checks that a duration is positive and a status readable, not that a date is plausible) draws
-     * every year since 1970. Unreachable through the app; a restored file can carry it.
-     */
     @Test
     fun `an all-time trend spans as many years as the data does`() {
         val classes = listOf(
@@ -238,12 +173,6 @@ class EdgeCaseCombinationsTest {
         assertTrue("a bar per year since 1970", trend.bars.size > 50)
     }
 
-    /**
-     * A group lesson is *n* classes that share a duration by construction, so the group card reads it
-     * off the session's first class. A restored backup can carry a session whose classes disagree;
-     * the answer is then the lowest-id member's, not a sum — which is the safe direction (a group's
-     * hours can't be inflated) and the reason this is not a bug.
-     */
     @Test
     fun `a group session's length is its first class's, not the sum of its members'`() {
         val at = Instant.parse("2026-03-02T09:00:00Z")
@@ -295,7 +224,6 @@ class EdgeCaseCombinationsTest {
             ).written()
             val session = env.classRepo.getSessionFor(ids.single())!!
 
-            // What the form's save reaches with every tick cleared — refused before the repository.
             val refusal = runCatching {
                 GroupRules.rosterChange(session, emptySet(), edit(subj), at)
             }.exceptionOrNull()

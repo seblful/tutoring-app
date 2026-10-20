@@ -19,10 +19,6 @@ class CalendarLayoutTest {
 
     private val zone = TimeZone.of("Europe/Minsk")
 
-    /**
-     * A class of its own — distinct [id], no group. Ids matter here: sessions key an individual class
-     * by its id, so a fixture leaving them all at 0 would collapse a day's classes into one lesson.
-     */
     private fun klass(
         start: String,
         status: LessonStatus = LessonStatus.SCHEDULED,
@@ -36,17 +32,11 @@ class CalendarLayoutTest {
 
     private val lessonIds = mutableMapOf<Pair<Long, Any>, Long>()
 
-    /**
-     * The lesson a fixture's class belongs to: one per (group, start) for a group's, its own id for an
-     * individual class. A convention of the test — storage has a column for it — and it has to be stated
-     * because that column is the whole of what makes classes one lesson (`SessionRules.sessions`).
-     */
     private fun lessonIdFor(groupId: Long?, start: Any, id: Long): Long =
         if (groupId == null) id else lessonIds.getOrPut(groupId to start) { 1_000L + lessonIds.size }
 
     private var nextId = 1L
 
-    /** The [size] classes one group lesson is stored as: same group, same start, one per member. */
     private fun groupLesson(
         start: String,
         size: Int,
@@ -81,7 +71,6 @@ class CalendarLayoutTest {
 
     @Test
     fun `padding cells come from the neighbouring months`() {
-        // July 2026 starts on a Wednesday, so the first row leads with 29-30 June.
         val grid = CalendarLayout.monthGrid(YearMonth(2026, 7))
 
         assertEquals(LocalDate(2026, 6, 29), grid.firstDate)
@@ -109,7 +98,6 @@ class CalendarLayoutTest {
 
     @Test
     fun `a long month starting late in the week needs six rows`() {
-        // 31 days starting on a Sunday is the worst case: 6 leading pad days + 31 = 37 cells.
         val grid = CalendarLayout.monthGrid(YearMonth(2026, 3))
 
         assertEquals(DayOfWeek.SUNDAY, LocalDate(2026, 3, 1).dayOfWeek)
@@ -125,7 +113,6 @@ class CalendarLayoutTest {
 
     @Test
     fun `a week is seven days anchored on its Monday`() {
-        // 15 July 2026 is a Wednesday.
         val week = CalendarLayout.week(LocalDate(2026, 7, 15))
 
         assertEquals(CalendarLayout.DAYS_IN_WEEK, week.size)
@@ -145,7 +132,6 @@ class CalendarLayoutTest {
 
     @Test
     fun `a week spanning a month and a year boundary stays contiguous`() {
-        // 31 December 2026 is a Thursday, so its week runs 28 Dec 2026 – 3 Jan 2027.
         val week = CalendarLayout.week(LocalDate(2026, 12, 31))
 
         assertEquals(LocalDate(2026, 12, 28), week.first())
@@ -168,10 +154,6 @@ class CalendarLayoutTest {
         grid.weeks.forEach { row -> assertEquals(row, CalendarLayout.week(row.first())) }
     }
 
-    /**
-     * There is no separate list of weekday headers to keep in step: the header row reads its names off the
-     * grid's first week (`ui/schedule/WeekdayHeader`), so this is the only place a week start is decided.
-     */
     @Test
     fun `a Sunday-first month grid is laid out Sunday to Saturday`() {
         val grid = CalendarLayout.monthGrid(YearMonth(2026, 7), DayOfWeek.SUNDAY)
@@ -181,7 +163,6 @@ class CalendarLayoutTest {
             assertEquals(DayOfWeek.SUNDAY, row.first().dayOfWeek)
             assertEquals(DayOfWeek.SATURDAY, row.last().dayOfWeek)
         }
-        // Every day of July still has a cell — a different week start pads the page, it never drops a day.
         val cells = grid.weeks.flatten()
         assertTrue(cells.containsAll((1..31).map { LocalDate(2026, 7, it) }))
     }
@@ -216,12 +197,6 @@ class CalendarLayoutTest {
         assertEquals(2, loads.getValue(LocalDate(2026, 7, 15)).total)
     }
 
-    /**
-     * A cell counts lessons, in the three statuses a lesson can be in. A group whose absentee was
-     * cancelled on their own used to be counted in a fourth, null bucket and printed as its own number —
-     * a count of «Разные», which is not a status anything can be in. Such a lesson cannot even be
-     * described any more: its members share its status and differ only in whether they were there.
-     */
     @Test
     fun `a group lesson with an absent member counts under the lesson's own status`() {
         val loads = CalendarLayout.dayLoads(
@@ -262,7 +237,6 @@ class CalendarLayoutTest {
 
     @Test
     fun `day loads bucket a class by its local date, not UTC`() {
-        // 22:30 UTC is already the next day in Minsk (UTC+3).
         val loads = CalendarLayout.dayLoads(listOf(klass("2026-07-15T22:30:00Z")), zone)
 
         assertEquals(setOf(LocalDate(2026, 7, 16)), loads.keys)
@@ -275,7 +249,7 @@ class CalendarLayoutTest {
                 LessonStatus.CANCELLED to 1,
                 LessonStatus.COMPLETED to 4,
                 LessonStatus.SCHEDULED to 2,
-            )
+            ),
         )
 
         assertEquals(

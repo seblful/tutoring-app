@@ -46,22 +46,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-/**
- * Creating or editing a group: its **subject**, name, note, hourly rate, default lesson mode and roster.
- *
- * The subject is chosen here rather than per lesson, and it is what bounds the roster: only students
- * priced for it can be members, because a group's lessons are all that subject and a member who isn't
- * priced for it could never be billed for one. Picking a subject therefore narrows the candidate list
- * on the spot, and `GroupRepository.save` drops anyone left over.
- *
- * The subject is **optional**, because a group can also arrive without one — from a backup written
- * before the format carried a group's subject (`BackupData` v3 and older). Such a group keeps the
- * old behaviour — any active student may join and the subject is chosen when booking — until the
- * tutor sets one here.
- *
- * A new group's rate is pre-filled from `AppSettings.defaultGroupPrice` when the tutor has set
- * one, so the common case is one less thing to type.
- */
+/** reating or editing a group: its **subject**, name, note, hourly rate, default lesson mode and roster. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class GroupFormViewModel @AssistedInject constructor(
     @Assisted savedStateHandle: SavedStateHandle,
@@ -109,14 +94,7 @@ class GroupFormViewModel @AssistedInject constructor(
         val candidates: List<Student> = emptyList(),
         /** Everything the tutor could teach this group, for the subject picker. */
         val subjects: List<Subject> = emptyList(),
-        /**
-         * Every recorded change to this group's hourly rate, newest first.
-         *
-         * Here rather than on the card, which is where it used to be: an inline «История цены ⌄»
-         * expander under the rate, on a screen that only *reads* the rate. History is context for the
-         * number being **typed** — the argument the student's reprice dialog already made — and the
-         * number is typed here.
-         */
+        /** very recorded change to this group's hourly rate, newest first. */
         val rateHistory: List<RateChange> = emptyList(),
         /**
          * Whether the group is retired. Read-only now: archiving and deleting a group moved to its
@@ -133,9 +111,6 @@ class GroupFormViewModel @AssistedInject constructor(
         /**
          * Whether the form differs from the group as it was loaded (or, for a new one, from the
          * prefilled blank) — what leaving without saving would throw away.
-         *
-         * Archiving is deliberately **not** part of it: that button writes to the database there and
-         * then, so it is already saved by the time back is pressed.
          */
         override val isDirty: Boolean = false,
     ) : LeavableForm {
@@ -161,13 +136,6 @@ class GroupFormViewModel @AssistedInject constructor(
         /**
          * Members the form is holding but will **not** save: ticked, or loaded with the group, and no
          * longer priced for its subject.
-         *
-         * The exclusion above is right, and doing it in silence was not — this is the same fact said out
-         * loud (see [leavingOnSave]). The tutor need not have touched the roster
-         * to get here: un-enrolling somebody from the subject one-to-one is allowed while the group has
-         * taught no lesson, and the next save of the group — a rename is enough — is what drops them.
-         * Keeping them in [Form.memberIds] is what lets flipping the subject back restore the roster,
-         * so this is a report rather than a reason to prune.
          */
         val strandedMemberIds: Set<Long> get() = form.memberIds - selectedMemberIds
 
@@ -175,9 +143,6 @@ class GroupFormViewModel @AssistedInject constructor(
          * How many of the roster the save would take off it, for want of a price for the subject — asked
          * about **before** the save, not reported after it. The report was a snackbar sent as the form
          * closed, so it went with the screen and the roster shrank in silence after all.
-         *
-         * Not [strandedMemberIds]: an archived member is out of the candidates but still priced, and the
-         * save keeps them.
          */
         val leavingOnSave: Int get() = pricedIds?.let { (form.memberIds - it).size } ?: 0
 
@@ -197,36 +162,10 @@ class GroupFormViewModel @AssistedInject constructor(
     private val form = MutableStateFlow(Form())
     private val archived = MutableStateFlow(false)
 
-    /**
-     * The form as it was last put there by the app rather than by the tutor: the loaded group, or a
-     * new group's prefilled rate. Anything the form holds beyond this is unsaved work.
-     *
-     * A snapshot rather than a "touched" flag because both of those assignments arrive **after** the
-     * screen is already on display (they wait on the database), so a flag would have to be un-set
-     * again — and a snapshot also forgives a round trip: typing a name and deleting it again leaves
-     * nothing to save, and back should not ask about it.
-     */
     private val pristine = MutableStateFlow(Form())
 
-    /**
-     * Whether the app has finished putting values into the form — what makes [state] [Loadable.Ready].
-     *
-     * A new group is filled in from the moment it exists: there is no record to read, and the prefilled
-     * rate is written into a blank field that is honest without it. An **existing** group is not, and the
-     * gap was visible: `init` reads it in a coroutine, so the screen was already up, drawing `UiState()`
-     * — a blank name with «Обязательное поле» under it, a rate of nothing, and «У вас нет учеников» in
-     * the error red — over a group with six of them. That is the same defect [Loadable] was added for on
-     * the list screens, in the one place where the wrong answer is about a record that *does* exist.
-     *
-     * Separate from [pristine], which asks a different question: this one is "has the app finished", that
-     * one is "what did the app put there", and only the second survives the tutor typing over it.
-     */
     private val filled = MutableStateFlow(isNew)
 
-    /**
-     * Ids priced for the chosen subject, or null while there is no subject (meaning "no restriction").
-     * Re-queried whenever the subject changes, so enrolling a student elsewhere shows up here at once.
-     */
     private val pricedForSubject: Flow<Set<Long>?> = form
         .map { it.subjectId }
         .distinctUntilChanged()
@@ -235,7 +174,6 @@ class GroupFormViewModel @AssistedInject constructor(
             else students.observeIdsForSubject(subjectId).map { it.toSet() }
         }
 
-    /** The form together with whether it has been edited — one source, since `combine` takes five. */
     private val edited: Flow<Pair<Form, Boolean>> =
         combine(form, pristine) { f, p -> f to (f != p) }
 
@@ -258,7 +196,9 @@ class GroupFormViewModel @AssistedInject constructor(
         // A sixth source, appended rather than folded in: `combine` takes five, and a new group has no
         // history to observe at all.
         .combine(if (isNew) flowOf(emptyList()) else rateHistory.observeFor(RateOwner.GroupRate(groupId))) {
-            state, changes ->
+                state,
+                changes,
+            ->
             state.copy(rateHistory = changes)
         }
         // Nothing above this line can emit before the students and the subjects have been read — a
@@ -316,28 +256,17 @@ class GroupFormViewModel @AssistedInject constructor(
 
     /**
      * Changes what the group is taught. Ticks on students who aren't priced for the new subject are
-     * left in [Form.memberIds] rather than pruned here — recovering them is the point. Flipping back
-     * to the previous subject restores the roster you had, while [UiState.selectedMemberIds] keeps
-     * them out of anything that counts or saves in the meantime.
+     * left in [Form.memberIds] rather than pruned here — recovering them is the point.
      */
     fun setSubject(subjectId: Long?) {
         form.value = form.value.copy(subjectId = subjectId)
     }
 
-    /** Set on the tap and cleared only by a failure — see [save]. */
     private var saving = false
 
     /**
      * Saves the group and its roster in one step (see `GroupRepository.save`) and reports the group's
      * id, so a freshly created group can go straight on to booking its first lesson.
-     *
-     * A group with a subject only keeps the members priced for it; the screen asks first when that would
-     * leave somebody out ([UiState.leavingOnSave]). The tutor need not have touched the roster at all:
-     * un-enrolling somebody from the subject one-to-one is allowed, and the next save of the group — a
-     * rename included — is what drops them.
-     *
-     * **In the application scope, once.** A back press straight after the tap used to cancel the write,
-     * a database error closed the app, and a double tap saved a new group twice and popped two screens.
      */
     fun save(onSaved: (Long) -> Unit) {
         if (saving) return
@@ -375,5 +304,4 @@ class GroupFormViewModel @AssistedInject constructor(
                 }
         }
     }
-
 }

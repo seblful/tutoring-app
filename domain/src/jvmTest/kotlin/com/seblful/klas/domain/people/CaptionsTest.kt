@@ -13,13 +13,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.time.Instant
 
-/**
- * Turning a lesson's ids back into words.
- *
- * The rule worth pinning is **which name titles a lesson** — a group's by its group, an individual's by
- * its student — which was written out in three view models and reachable, on the schedule, only through
- * 1,352 lines of its view model's test.
- */
 class CaptionsTest {
 
     private val start = Instant.parse("2026-06-20T15:00:00Z")
@@ -50,10 +43,6 @@ class CaptionsTest {
         assertEquals(listOf("Аня Смирнова", "Иван Петров"), captions.membersOf(session))
     }
 
-    /**
-     * A caller is drawing a row, and a row with a hole in it is worse than one with a gap: an archived
-     * student, a subject deleted between two emissions, a group id from a lesson the query outran.
-     */
     @Test
     fun `a name it has never heard of comes back blank rather than missing`() {
         val stranger = ClassSession.of(klass(id = 1, studentId = 99, subjectId = 99))
@@ -62,10 +51,6 @@ class CaptionsTest {
         assertEquals("", captions.subjectOf(stranger))
     }
 
-    /**
-     * The rule the schedule, the reminder and the booking form share ([Captions.title]): a group lesson
-     * with no name to go by is titled by a student, never by a blank. The schedule used to print nothing.
-     */
     @Test
     fun `a group lesson whose group name is unknown or blank is titled by its first student`() {
         val unknownGroup = ClassSession(
@@ -95,10 +80,6 @@ class CaptionsTest {
         assertEquals("11 «А»", captions.groupOf(klass(id = 1, studentId = 1, groupId = 7)))
     }
 
-    /**
-     * The one place null is preferred to a blank: the caller draws a label only when there is one, and an
-     * empty label is visible furniture saying nothing.
-     */
     @Test
     fun `a group whose name is unknown reads as no group at all`() {
         assertNull(captions.groupOf(klass(id = 1, studentId = 1, groupId = 99)))

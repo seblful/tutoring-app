@@ -148,7 +148,7 @@ interface RateHistoryDao {
 
     @Query(
         "SELECT * FROM price_history WHERE studentId = :studentId AND subjectId = :subjectId " +
-            "ORDER BY atMillis DESC, id DESC"
+            "ORDER BY atMillis DESC, id DESC",
     )
     fun observeForStudentSubject(studentId: Long, subjectId: Long): Flow<List<RateChangeEntity>>
 
@@ -307,7 +307,7 @@ interface LessonDao {
     /** Lessons still planned whose end time is at or before [nowMillis] — due for auto-completion. */
     @Query(
         "SELECT * FROM lessons WHERE status = 'SCHEDULED' " +
-            "AND (startMillis + durationMinutes * 60000) <= :nowMillis"
+            "AND (startMillis + durationMinutes * 60000) <= :nowMillis",
     )
     suspend fun dueForCompletion(nowMillis: Long): List<LessonEntity>
 

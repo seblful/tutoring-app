@@ -1,10 +1,10 @@
 package com.seblful.klas.data.backup
 
 import com.seblful.klas.data.local.AttendanceEntity
-import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.GroupEntity
 import com.seblful.klas.data.local.GroupMemberCrossRef
 import com.seblful.klas.data.local.HomeworkEntity
+import com.seblful.klas.data.local.LessonEntity
 import com.seblful.klas.data.local.PaymentEntity
 import com.seblful.klas.data.local.PriceEntity
 import com.seblful.klas.data.local.RateChangeEntity
@@ -25,7 +25,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Verifies the JSON backup format reproduces every field of every row exactly (criterion 6). */
 class BackupSerializationTest {
 
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
@@ -55,10 +54,8 @@ class BackupSerializationTest {
             PriceEntity(2, 1, amountMinor = 4550), // 45,50 BYN — kopecks survive
         ),
         rateHistory = listOf(
-            // A student's price: where it started (no previous amount), then a rise.
             RateChangeEntity(1, studentId = 1, subjectId = 1, toMinor = 4000, atMillis = 1_890_000_000_000),
             RateChangeEntity(2, studentId = 1, subjectId = 1, fromMinor = 4000, toMinor = 5000, atMillis = 1_895_000_000_000),
-            // A group's rate, and a row that predates the log at all — both nulls must survive.
             RateChangeEntity(3, groupId = 7, fromMinor = 1800, toMinor = 2050, atMillis = 1_896_000_000_000),
             RateChangeEntity(4, groupId = 8, toMinor = 0, atMillis = null),
         ),
@@ -73,8 +70,6 @@ class BackupSerializationTest {
             ),
         ),
         attendance = listOf(
-            // The taught lesson, with one of its two members absent — the pair of facts a v5 file could
-            // not carry, and so the pair a round trip most needs to prove survives.
             BackupAttendance(
                 id = 1, lessonId = 1, studentId = 1, state = Attended.PRESENT,
                 priceMinor = 2000, chargeMinor = 5000, calendarEventId = "evt-123",
@@ -86,7 +81,6 @@ class BackupSerializationTest {
             PaymentEntity(1, studentId = 1, dateMillis = 1_899_000_000_000, amountMinor = 3000),
         ),
         homework = listOf(
-            // One student's, done — and a group's, current: both owners, and the null that means current.
             HomeworkEntity(
                 1, studentId = 1, text = "§12, упр. 4–7",
                 givenAtMillis = 1_900_000_000_000, doneAtMillis = 1_900_100_000_000,
@@ -101,11 +95,6 @@ class BackupSerializationTest {
         assertEquals(sample, restored)
     }
 
-    /**
-     * The enum columns are typed, and the file still carries each as the bare constant name — the JSON
-     * written before they were typed, and the JSON every file already on somebody's disk holds. A round trip
-     * alone could not show it: a serializer that wrote something else would read its own output back fine.
-     */
     @Test
     fun `enum columns are written as their constant names, as they always were`() {
         val tree = json.parseToJsonElement(json.encodeToString(sample)).jsonObject
@@ -132,10 +121,6 @@ class BackupSerializationTest {
         assertEquals(BackupData.CURRENT_VERSION, restored.version)
     }
 
-    /**
-     * A backup written before groups existed must still import: no groups, no group id on its
-     * classes, and the retired `recurringGroupId` key simply ignored.
-     */
     @Test
     fun `a version 1 backup still parses, without groups`() {
         val v1 = """
@@ -161,11 +146,6 @@ class BackupSerializationTest {
         assertEquals(null, parsed.classes.single().groupId)
     }
 
-    /**
-     * A v2 backup — groups, but from before a group had a rate of its own — must still import, with
-     * its groups coming back at 0 for the tutor to re-price, rather than inventing an amount for a
-     * group whose members were billed individually.
-     */
     @Test
     fun `a version 2 backup still parses, its groups left unpriced`() {
         val v2 = """
@@ -187,16 +167,9 @@ class BackupSerializationTest {
 
         assertTrue(BackupData.isSupported(parsed.version))
         assertEquals(0L, parsed.groups.single().priceMinor)
-        // The lesson keeps the rate it was actually billed at — history is never rewritten.
         assertEquals(3000L, parsed.classes.single().priceMinor)
     }
 
-    /**
-     * A v4 backup predates the rate log, so it arrives with an empty one. Seeding it from the prices
-     * in the file is deliberately *not* done: a restore reproduces the file it was given, and
-     * inventing "начальная цена" rows for a file that never recorded them would put dates and
-     * amounts in a history that nothing attests to.
-     */
     @Test
     fun `a version 4 backup still parses, with no rate history`() {
         val v4 = """
@@ -217,10 +190,6 @@ class BackupSerializationTest {
         assertEquals("the price itself is intact", 5000L, parsed.prices.single().amountMinor)
     }
 
-    /**
-     * A v7 backup predates homework: it restores with none, and without its notes — the one thing an older
-     * file carries that this build no longer has anywhere to put.
-     */
     @Test
     fun `a version 7 backup still restores, with no homework and no notes`() {
         val v7 = """
@@ -245,10 +214,6 @@ class BackupSerializationTest {
         assertTrue(snapshot.homework.isEmpty())
     }
 
-    /**
-     * A v9 file as a v9 build wrote it — the three dead columns present and blank, since that build still
-     * had them — restores exactly as one written now, which leaves them out (`BackupSchemaCoverageTest`).
-     */
     @Test
     fun `a version 9 backup carrying the dropped columns blank restores the same rows`() {
         val v9 = """

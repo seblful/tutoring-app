@@ -5,13 +5,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-/**
- * Which currency a phone starts on, and what a stored word reads back as.
- *
- * The rule worth stating is that it comes off the **region** and not the language, because the case it gets
- * right is the app's own audience: a tutor in Minsk whose phone is in English is paid in rubles, and reading
- * the currency off "English" would hand them dollars.
- */
 class CurrencyTest {
 
     @Test
@@ -29,7 +22,6 @@ class CurrencyTest {
         assertNull(Currency.forCode(null), "a locale with no region has no currency")
     }
 
-    /** The region's currency, not the language's: an English phone in Minsk is still paid in rubles. */
     @Test
     fun `the first region the app recognises wins, and dollars are the last resort`() {
         assertEquals(Currency.BYN, Currency.preferredFor(listOf("BYN", "RUB")))

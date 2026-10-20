@@ -7,7 +7,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** The add form and the card's edit dialog store a student's typed fields through this one rule. */
 class StudentFieldsTest {
 
     @Test
@@ -31,7 +30,6 @@ class StudentFieldsTest {
         assertNull(typedStudent("   ", "", "", "", ClassMode.IN_PERSON))
     }
 
-    /** An edit keeps who the student is — their id and whether they are archived — and changes the rest. */
     @Test
     fun `an edit keeps the student's identity`() {
         val current = Student(id = 7, name = "Аня", note = "старое", archived = true)

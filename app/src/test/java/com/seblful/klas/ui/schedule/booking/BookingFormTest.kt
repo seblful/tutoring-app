@@ -13,16 +13,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * The booking form's own rules, exercised without a dispatcher, a `SavedStateHandle` or six
- * repositories.
- *
- * These rules were the same rules before — they simply lived across eleven mutators on a thousand-line
- * view model, half of them inside `viewModelScope.launch` blocks, so reaching any one of them meant
- * standing up the whole machine. The three staleness checks in particular (a group's rate arriving after
- * the tutor has picked another group; a price arriving after the subject changed; the only-subject answer
- * arriving after the target moved) were `if` guards inside a coroutine that nothing could reach at all.
- */
 class BookingFormTest {
     private val zone = TimeZone.of("Europe/Minsk")
 
@@ -50,8 +40,6 @@ class BookingFormTest {
         }
         return last
     }
-
-    // ---- Opening a new lesson ----------------------------------------------------------------------
 
     @Test
     fun `the default length fills an empty form without marking it unsaved`() {
@@ -90,8 +78,6 @@ class BookingFormTest {
         )
     }
 
-    // ---- The cascade -------------------------------------------------------------------------------
-
     @Test
     fun `switching target clears what belonged to the other one`() {
         val filled = BookingForm().after(
@@ -119,7 +105,6 @@ class BookingFormTest {
         assertEquals(ClassMode.REMOTE, chosen.form.mode)
     }
 
-    /** The auto-selection reads the row itself, at a point where the students list may not have emitted. */
     @Test
     fun `a student handed in directly is used for the mode`() {
         val empty = BookingContext(students = emptyList())
@@ -241,7 +226,6 @@ class BookingFormTest {
         assertNull("Boris's subjects are not Anya's", stale.form.subjectId)
     }
 
-    /** And a subject already chosen is never overwritten by one that merely happened to be the only one. */
     @Test
     fun `the only-subject answer does not overwrite a subject already chosen`() {
         val chosen = BookingForm().after(
@@ -254,8 +238,6 @@ class BookingFormTest {
 
         assertEquals(4L, applied.form.subjectId)
     }
-
-    // ---- Time ---------------------------------------------------------------------------------------
 
     @Test
     fun `a start with no length yet takes the default lesson`() {
@@ -280,11 +262,6 @@ class BookingFormTest {
         assertEquals(LocalTime(15, 30), lesson.form.ends(zone)?.time)
     }
 
-    /**
-     * A length is an answer on its own — it does not need a start to be added to, which is what it needed
-     * back when setting it meant writing an end time. So the two can be answered in either order and the
-     * form ends up the same, and the screen no longer has to disable the chips until a start exists.
-     */
     @Test
     fun `a length may be chosen before the start`() {
         val early = BookingForm().after(BookingIntent.LastsFor(90))
@@ -303,7 +280,6 @@ class BookingFormTest {
         )
     }
 
-    /** A lesson that runs into the next day is an ordinary lesson: 23:00 for an hour ends at 00:00. */
     @Test
     fun `a length that runs past midnight is kept as a length`() {
         val late = BookingForm().after(
@@ -315,8 +291,6 @@ class BookingFormTest {
         assertEquals(LocalTime(0, 0), late.form.ends(zone)?.time)
         assertEquals(true, late.form.ends(zone)?.nextDay)
     }
-
-    // ---- Whose work it was --------------------------------------------------------------------------
 
     @Test
     fun `the tutor's choices make the form unsaved`() {
@@ -351,7 +325,6 @@ class BookingFormTest {
         )
     }
 
-    /** An edit stays an edit, even when a lookup answers after it. */
     @Test
     fun `an answer arriving after an edit does not make the form clean again`() {
         val edited = BookingForm().after(

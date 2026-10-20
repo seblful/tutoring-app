@@ -14,11 +14,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.time.Instant
 
-/**
- * What a reminder's «Проведено» does. All of it would otherwise live inside a `BroadcastReceiver`, which
- * can only be driven from a device — and it is a button that **bills**, so it is the last thing that
- * should be reachable only by holding a phone.
- */
 @RunWith(RobolectricTestRunner::class)
 class ReminderActionsTest {
 
@@ -30,7 +25,6 @@ class ReminderActionsTest {
 
     private val start: Instant = Instant.parse("2026-07-25T10:00:00Z")
 
-    /** A booked lesson for as many students as asked; the ids are its classes. */
     private suspend fun lesson(students: Int = 1, asGroup: Boolean = false): List<Long> {
         val subject = env.fixtures.subject()
         val people = (1..students).map { env.fixtures.student(name = "Ученик $it") }
@@ -53,7 +47,6 @@ class ReminderActionsTest {
         assertTrue(actions.complete(id))
 
         assertEquals(LessonStatus.COMPLETED, statusOf(id))
-        // An hour at the fixture's rate — through the production rule, not this test's arithmetic.
         assertEquals(Money.ofMajor(30), chargeOf(id))
     }
 
@@ -61,8 +54,6 @@ class ReminderActionsTest {
     fun `a group lesson is settled as the whole room`() = runTest {
         val ids = lesson(students = 3, asGroup = true)
 
-        // One notification named the group, so the tap answers for everyone in it — whichever member's
-        // class the reminder happened to be planned against.
         assertTrue(actions.complete(ids.first()))
 
         assertEquals(3, ids.size)
@@ -92,8 +83,6 @@ class ReminderActionsTest {
 
         assertFalse(actions.complete(id))
 
-        // The one the notification's staleness makes real: the tray still shows a lesson that was called
-        // off after it was announced, and tapping its button must not bill the student for it.
         assertEquals(LessonStatus.CANCELLED, statusOf(id))
         assertEquals(Money.ZERO, chargeOf(id))
         assertEquals(listOf(id), notifier.cancelled)

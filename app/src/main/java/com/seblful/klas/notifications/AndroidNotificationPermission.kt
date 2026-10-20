@@ -36,7 +36,6 @@ class AndroidNotificationPermission @Inject constructor(
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
 
-    /** The app-wide switch in system settings, which no runtime permission covers. */
     private fun notificationsAllowed(): Boolean =
         NotificationManagerCompat.from(context).areNotificationsEnabled()
 

@@ -12,14 +12,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/**
- * What switching to a tab does, on the real graph builder and the real `navigateToTab`: the tab already
- * showing is left alone, everything else still switches, and a screen pushed over the tab asked for is
- * closed by it — where one pushed over another tab waits with that tab.
- *
- * The fade a re-tap used to disturb is pinned on pixels by `TabReselectFadeTest` (a device test); this is
- * the contract around the guard, where a mistake would not be a glitch but a tab that cannot be reached.
- */
 @RunWith(RobolectricTestRunner::class)
 class NavigateToTabTest {
 
@@ -28,7 +20,6 @@ class NavigateToTabTest {
 
     private lateinit var navController: NavHostController
 
-    /** The route of every destination the controller has arrived at, in order. */
     private val arrivals = mutableListOf<String?>()
 
     private fun showTabs() {
@@ -49,10 +40,8 @@ class NavigateToTabTest {
         }
     }
 
-    /** What is on the back stack, bottom first, by route — the screens pushed over a tab by what they are. */
     private fun stack(): List<String> = navController.currentBackStack.value.mapNotNull { it.destination.routeName() }
 
-    /** The tab showing, or null for a screen pushed over one. */
     private fun showing(): TopDestination? = navController.currentDestination?.let(TopDestination::of)
 
     private fun tap(tab: TopDestination) = onUiThread { navController.navigateToTab(tab) }
@@ -97,7 +86,6 @@ class NavigateToTabTest {
         assertEquals(TopDestination.HOMEWORK, showing())
     }
 
-    /** The tray's case: «Сегодня» tapped while a booking form, opened from the schedule, is on top of it. */
     @Test
     fun `a tap on the schedule closes a form opened from it`() {
         showTabs()
@@ -108,7 +96,6 @@ class NavigateToTabTest {
         assertEquals(listOf("Schedule"), stack())
     }
 
-    /** The debt digest, tapped while a student's card, opened from the reports, is on top of them. */
     @Test
     fun `a tap on the reports closes a card opened from them`() {
         showTabs()
@@ -121,7 +108,6 @@ class NavigateToTabTest {
         assertEquals(TopDestination.REPORTS, showing())
     }
 
-    /** What did not need fixing, kept as it was: a screen over *another* tab waits with that tab. */
     @Test
     fun `a screen pushed over another tab waits with it and comes back with it`() {
         showTabs()

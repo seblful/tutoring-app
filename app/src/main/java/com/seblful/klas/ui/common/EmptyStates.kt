@@ -36,23 +36,17 @@ import com.seblful.klas.ui.theme.KlasIcons
 /**
  * What a list says when it has nothing in it.
  *
- * Three parts, and the third is the point: an **icon** so the space reads as designed rather than as
- * a failure to load, a **line** saying what would be here, and — where there is one obvious thing to
- * do about it — the **action itself**, as a real button. A tutor who has just skipped onboarding
- * meets several of these in a row; a screen that names a problem and then makes them go and find the
- * fix is the difference between an app that is empty and an app that looks broken.
- *
  * @param title the one-line statement of what is missing.
  * @param detail an optional second line, for when *why* it is empty is not obvious from the title.
  * @param icon a glyph for the thing that is missing. Decorative — the title carries the meaning.
  * @param actionLabel with [onAction], the primary way out of the empty state.
  * @param compact for an empty state **inside** something — a detail card's tab — rather than one owning
- *   the screen. Smaller icon, no `fillMaxSize`, a quieter line, an outlined action.
+ * the screen. Smaller icon, no `fillMaxSize`, a quieter line, an outlined action.
  *
- *   The tabs used to draw a bare grey `Text` instead, through a private `TabEmptyState` that was
- *   defined **twice, identically**, in the two card files. So a tutor met a designed empty state on five
- *   screens and an unstyled sentence on five tabs — and the sentence had nowhere to put an action, which
- *   is the part of this component that matters.
+ * The tabs used to draw a bare grey `Text` instead, through a private `TabEmptyState` that was
+ * defined **twice, identically**, in the two card files. So a tutor met a designed empty state on five
+ * screens and an unstyled sentence on five tabs — and the sentence had nowhere to put an action, which
+ * is the part of this component that matters.
  */
 @Composable
 fun EmptyState(
@@ -141,19 +135,7 @@ fun NoSearchResults(modifier: Modifier = Modifier) {
         modifier = modifier,
     )
 }
-/**
- * The one way to add to a tab's list, sitting at its top where a section header's action used to.
- *
- * Held to the [MinTouchTarget] floor: a bare `TextButton` measures to its text, which on these rows
- * came out around 36 dp — under the minimum, on the only control that adds anything to the tab.
- *
- * In `ui/common/` rather than private to the student's card, because it was private to the student's
- * card and that is what made the two cards disagree: a student's subjects tab offered «Добавить
- * предмет» and the group's roster tab named its emptiness and offered nothing. The group's way out
- * turned out to belong in its **empty state** instead (a roster is changed on the form, not appended to
- * from here), so both callers are still the student's — but the next tab that needs a top-of-list add
- * no longer has to reach into another screen's file for one.
- */
+/** he one way to add to a tab's list, sitting at its top where a section header's action used to. */
 @Composable
 fun AddRow(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     TextButton(
@@ -167,10 +149,7 @@ fun AddRow(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 private val EmptyStateIconSize = 56.dp
-/** Inside a tab there is a card's worth of chrome above already, so the glyph is scenery at half size. */
+
 private val CompactIconSize = 32.dp
-/**
- * An empty state is deliberately inset further than the app's gutter: it is one centred sentence on an
- * otherwise blank screen, and the extra margin is what stops the line running the full width.
- */
+
 private val EmptyStateInset = 32.dp

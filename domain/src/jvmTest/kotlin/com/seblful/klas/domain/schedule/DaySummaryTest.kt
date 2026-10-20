@@ -22,13 +22,6 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
-/**
- * What the line under a day's heading says.
- *
- * The two rules it rests on are the ones a screen would have got wrong: a day's money is what its
- * lessons **come to** rather than what they have billed (so tomorrow reads as itself and not as zero),
- * and a group lesson is **one** lesson of the tutor's however many are in the room.
- */
 class DaySummaryTest {
 
     private val zone: TimeZone = TimeZone.of("Europe/Minsk")
@@ -56,8 +49,6 @@ class DaySummaryTest {
         price = rate,
         status = status,
         attended = attended,
-        // The stored charge is deliberately left at zero even for a completed class, so a test that
-        // passes can only be reading the rate — see the KDoc on [DaySummary.money].
         charge = Money.ZERO,
         groupId = groupId,
     )
@@ -80,12 +71,10 @@ class DaySummaryTest {
 
         assertEquals(2, summary.lessons)
         assertEquals(150, summary.minutes)
-        // 30 for the hour, 60 for the hour and a half.
         assertEquals(Money.ofMajor(90), summary.money)
         assertEquals(0, summary.cancelled)
     }
 
-    /** The whole reason this is not [Taught.Totals]: a day still to come is worth what it will bill. */
     @Test
     fun `a lesson not yet taught still counts towards the day`() {
         val scheduled = summaryOf(klass(at = at(9), lessonId = 1, status = LessonStatus.SCHEDULED))
@@ -108,8 +97,6 @@ class DaySummaryTest {
             ),
         )
 
-        // `ClassRules.rebill` is what a completed class's stored charge comes from, so the day's money
-        // and the ledger's cannot disagree — this pins that they are the same arithmetic.
         assertEquals(ClassRules.chargeFor(Money.ofMajor(30), 90), taught.money)
         assertEquals(Money.ofMajor(45), taught.money)
     }
@@ -146,7 +133,6 @@ class DaySummaryTest {
 
         assertEquals(1, summary.lessons, "Three in the room is one lesson")
         assertEquals(90, summary.minutes, "And ninety minutes of the tutor's evening, not four and a half hours")
-        // 20/h for 90 minutes is 30 each.
         assertEquals(Money.ofMajor(90), summary.money)
     }
 
@@ -175,7 +161,6 @@ class DaySummaryTest {
     // ── parts ────────────────────────────────────────────────────────────────────────────────────
     // Which clauses the sentence has. These rules used to sit inside `format/daySummaryText`, which
     // takes `Resources` — so the two surfaces that must agree about a day (the schedule's heading and
-    // the morning digest) rested on a function no JVM test could call.
 
     private fun summary(lessons: Int, minutes: Int, money: Money, cancelled: Int) =
         DaySummary(lessons = lessons, minutes = minutes, money = money, cancelled = cancelled)
@@ -202,10 +187,6 @@ class DaySummaryTest {
         assertEquals(4, parts.size)
     }
 
-    /**
-     * There are no hours and no money on a day that was entirely called off, and printing zeroes for
-     * them would dress a cancelled day up as a counted one.
-     */
     @Test
     fun `a day that was entirely called off says only that`() {
         val parts = summary(0, 0, Money.ZERO, cancelled = 3).parts
@@ -213,13 +194,11 @@ class DaySummaryTest {
         assertEquals(listOf(DaySummary.Part.Cancelled(3)), parts)
     }
 
-    /** Nothing on and nothing called off is nothing to say — not «0 занятий · 0 ч». */
     @Test
     fun `an empty day has no parts at all`() {
         assertEquals(emptyList<DaySummary.Part>(), DaySummary.NONE.parts)
     }
 
-    /** A day whose lessons earn nothing still counts them: free lessons are lessons. */
     @Test
     fun `a day that earned nothing still names its lessons and hours`() {
         val parts = summary(1, 60, Money.ZERO, cancelled = 0).parts
@@ -235,9 +214,6 @@ class DaySummaryTest {
     }
 }
 
-/**
- * Where the "you are here" mark goes, which is only ever interesting at a boundary.
- */
 class NowMarkerTest {
 
     private val zone: TimeZone = TimeZone.of("Europe/Minsk")
@@ -280,7 +256,6 @@ class NowMarkerTest {
         assertEquals(lessons.size, positionAt(at(23)))
     }
 
-    /** A lesson that has started has started: the mark belongs below it, not above. */
     @Test
     fun `a lesson beginning exactly now counts as begun`() {
         assertEquals(1, positionAt(at(9)))
@@ -292,16 +267,11 @@ class NowMarkerTest {
         assertNull(positionAt(at(10), on = day.plus(1, DateTimeUnit.DAY)))
     }
 
-    /** An empty today still has a "now" — the day is simply free, and the caller may say so or not. */
     @Test
     fun `an empty today marks position zero rather than nothing`() {
         assertEquals(0, NowMarker.positionIn(emptyList(), day, at(10), zone))
     }
 
-    /**
-     * The zone is the app's, not UTC: 00:30 in Minsk is the previous day's 21:30 in UTC, and reading the
-     * date off the wrong one puts the mark on the wrong day for the two hours after midnight.
-     */
     @Test
     fun `the day is read in the app's zone`() {
         val justAfterMidnight = day.atTime(0, 30).toInstant(zone)

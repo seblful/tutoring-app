@@ -45,11 +45,6 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
-/**
- * **Never `advanceUntilIdle()` here**: the report's "today" is `WallClock.days()`, which sleeps until the next
- * midnight in a loop, so the scheduler is never idle. `runCurrent()` settles the reads, and time is
- * advanced by stated amounts.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class ReportsViewModelTest {
@@ -61,22 +56,12 @@ class ReportsViewModelTest {
     val env = TestEnv()
     private val zone: TimeZone = TimeZone.of("Europe/Minsk")
 
-    /**
-     * **The clock is pinned, not read.** The view model takes a [WallClock] now, so the year the screen opens
-     * on is a fact of this test rather than of the day it runs. It used to read `TimeZone.currentSystemDefault()`
-     * and `LocalDate.now()` itself, which forced everything here to be relative to *today*: fixtures
-     * anchored to the current year, a shift computed from the current month, and — worst — the opening
-     * period asserted by re-evaluating the production expression, an assertion that could not fail.
-     */
     private val clock: WallClock = WallClock.fixed(Instant.parse("2026-06-15T09:00:00Z"), zone)
 
-    /** The year the screen opens on, from the pinned clock. Mid-June, so there are months either side. */
     private val thisYear = clock.today().year
 
-    /** The report's CSV export writes here; the report assertions below never touch it. */
     private val documents = FakeDocumentStore()
 
-    /** Where a shared report goes instead of the system share sheet. */
     private val sharing = RecordingDocumentSharing()
 
     private fun vm() =
@@ -85,7 +70,6 @@ class ReportsViewModelTest {
             documents, sharing, mainRule.dispatcher, clock,
         )
 
-    /** Local midnight on a date, as the millis a class entity stores. */
     private fun at(year: Int, month: Int, day: Int = 10): Long =
         LocalDate(year, month, day).atStartOfDayIn(zone).toEpochMilliseconds()
 
@@ -96,18 +80,12 @@ class ReportsViewModelTest {
         major: Long,
         groupId: Long? = null,
     ) = env.fixtures.storedClass(
-            studentId = studentId, subjectId = subjectId, startMillis = millis, durationMinutes = 60,
-            status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(major).minor, groupId = groupId,
-        )
+        studentId = studentId, subjectId = subjectId, startMillis = millis, durationMinutes = 60,
+        status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(major).minor, groupId = groupId,
+    )
 
-    /**
-     * A month still going is compared over its first N days against the previous month's first N — and N
-     * grows at midnight. It was read once per emission, so a tab left open overnight compared one day short
-     * until something was written.
-     */
     @Test
     fun `the month-to-date comparison takes in a new day at midnight`() = runTest(mainRule.dispatcher) {
-        // 23:00 on 15 June in Minsk.
         val lateEvening = MutableClock(Instant.parse("2026-06-15T20:00:00Z"), zone)
         val subj = env.fixtures.subject("Математика")
         val sid = env.fixtures.pricedStudent("Аня", subj)
@@ -138,8 +116,6 @@ class ReportsViewModelTest {
         observing(vm.state)
         runCurrent()
 
-        // A literal, not `ReportPeriod.currentYear(Clock.System.todayIn(zone))`: asserting the opening period by
-        // re-running the production expression is an assertion that holds whatever the expression says.
         assertEquals(ReportPeriod.currentYear(LocalDate(2026, 6, 15)), vm.state.current.period)
         assertEquals(2026, vm.state.current.period.anchor.year)
         assertEquals(ReportPeriod.Kind.YEAR, vm.period.value.kind)
@@ -502,8 +478,7 @@ class ReportsViewModelTest {
             )
         }
 
-
-    /**
+/**
      * Sharing hands over **the same bytes** the export writes, as a CSV.
      *
      * Two things can go wrong here and neither is visible on a device without another app installed: the

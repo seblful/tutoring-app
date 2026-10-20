@@ -6,17 +6,7 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlin.time.Instant
 
-/**
- * On-device crash diagnostics — offline, no backend, in keeping with the app's local-only stance.
- *
- * [install] sets a last-resort uncaught-exception handler that appends each crash to a capped log,
- * then **delegates to the platform's previous handler** so the process still dies normally and
- * Google Play still receives the crash (Android Vitals). The saved log is surfaced — and can be
- * exported — from the Diagnostics screen, so the tutor can send it on without any network.
- *
- * Both Android-bound halves are injected ([CrashLogStore] for the bytes, [DeviceInfo] for the header
- * facts), so the part that can actually be got wrong is ordinary code a JVM test can drive.
- */
+/** n-device crash diagnostics — offline, no backend, in keeping with the app's local-only stance. */
 @SingleIn(AppScope::class)
 class CrashLogger @Inject constructor(
     private val store: CrashLogStore,

@@ -38,14 +38,6 @@ import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.theme.KlasIcons
 
-/**
- * Who the student is and how to reach them.
- *
- * The phone and the email are **actions**, not text. The tutor's next move after "who owes me money"
- * is "message them", and these used to be unselectable labels — so the number had to be read off the
- * screen and typed into the dialler by hand. Telegram is offered beside the phone because for a
- * Belarusian tutor that, not a voice call, is usually the real job.
- */
 @Composable
 internal fun ContactBlock(
     student: Student,
@@ -91,16 +83,6 @@ internal fun ContactBlock(
     }
 }
 
-/**
- * Where the student's lessons happen, in the rows' own anatomy: glyph, then text on the line the phone
- * and the email start on.
- *
- * It was a bare «Место занятий: Очно» flush on the gutter under two icon rows whose text began 34dp
- * further in, so the block had two left edges and the one fact that is *not* a way to reach the student
- * looked like a stray caption. Not tappable, so neither primary-coloured nor a full touch target's height
- * of its own beyond the row rhythm; the glyph is grey for the same reason. A reader hears the label the
- * picture stands in for.
- */
 @Composable
 private fun ModeRow(mode: ClassMode) {
     val label = classModeLabel(mode)
@@ -129,16 +111,8 @@ private fun ModeRow(mode: ClassMode) {
     }
 }
 
-/** A contact row's glyph — smaller than an action icon, because the row, not the glyph, is the target. */
 private val ContactGlyph = 18.dp
 
-/**
- * One tappable way of reaching the student, at a full-height target.
- *
- * Its glyph sits on the block's edge, where the note above it starts, and the press reaches out into the
- * gutter instead ([outsetRowPress]) — it used to step the row in by its own ripple room, so the block had
- * two left edges.
- */
 @Composable
 private fun ContactRow(
     icon: ImageVector,
@@ -173,7 +147,6 @@ private fun ContactRow(
     }
 }
 
-/** Archiving, one step back from the pencil it used to sit beside. */
 @Composable
 internal fun StudentOverflowMenu(
     student: Student,
@@ -219,7 +192,6 @@ internal fun StudentOverflowMenu(
     }
 }
 
-/** One way of reaching the student, in the overflow. Filled glyph: it is an action, not art. */
 @Composable
 private fun ContactMenuItem(
     label: String,

@@ -29,11 +29,6 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * **Never `advanceUntilIdle()` here**: the card's homework is due as of `Clock.days()`, which sleeps until
- * the next midnight in a loop, so the scheduler is never idle. `runCurrent()` settles the writes, and time
- * is advanced by stated amounts.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class GroupDetailViewModelTest {
@@ -45,7 +40,6 @@ class GroupDetailViewModelTest {
     val env = TestEnv()
     private val fixtures get() = env.fixtures
 
-    /** The group's rate throughout, so a lesson's charge is this scaled by its duration. */
     private val rate = Money.ofMajor(20)
 
     private fun vm(id: Long) = GroupDetailViewModel(
@@ -60,11 +54,6 @@ class GroupDetailViewModelTest {
         clock = env.clock,
     )
 
-    /**
-     * Key *n* gets its own two-hour block. These tests are about counting, not scheduling, but they
-     * seed through the repository — which holds one lesson at a time, so back-to-back keys must not
-     * contest an hour.
-     */
     private fun at(key: Long): Instant = Instant.fromEpochMilliseconds(key * 7_200)
 
     @Test
@@ -112,17 +101,12 @@ class GroupDetailViewModelTest {
         )
     }
 
-    /**
-     * The roster says who is *in* the group; this count says who is actually turning up. Someone left
-     * out of lesson after lesson is still a member, and the card should show that rather than hide it.
-     */
     @Test
     fun `a member's count is of the group's lessons they were in`() = runTest(mainRule.dispatcher) {
         val algebra = fixtures.subject("Алгебра")
         val anya = fixtures.student("Аня")
         val boris = fixtures.student("Борис")
         val id = fixtures.group("11 «А»", members = setOf(anya, boris), rate = rate)
-        // Two lessons; Boris was only in the first.
         fixtures.completedLesson(algebra, listOf(anya, boris), at(1_000), rate = rate, groupId = id)
         fixtures.completedLesson(algebra, listOf(anya), at(2_000), rate = rate, groupId = id)
 
@@ -164,20 +148,10 @@ class GroupDetailViewModelTest {
         val lessons = vm.state.current.lessons
         assertEquals("four classes are two lessons", 2, lessons.size)
         assertEquals("newest first", at(2_000), lessons.first().session.start)
-        // The row publishes the case rather than the two counts: with nobody marked absent, a lesson of
-        // two reads as its whole roster and never as «2 из 2». See [Attendance].
         assertEquals(Attendance.All(2), lessons.first().attendance)
         assertEquals("both members' charges", Money.ofMajor(40), lessons.first().charge)
     }
 
-    /**
-     * The stat row's numbers are the tutor's, not the members': one lesson of an hour and a half is
-     * ninety minutes however many people were in the room, while the money is every member's charge.
-     *
-     * The money used to be asserted as 40 — two members at the group's flat hourly rate — because the
-     * test wrote the charge into the row itself and ignored the duration it had asked for. Booked and
-     * completed the way the app does it, ninety minutes at 20 an hour bills each member 30.
-     */
     @Test
     fun `the stats count the tutor's lessons and hours but every member's money`() = runTest(mainRule.dispatcher) {
         val algebra = fixtures.subject("Алгебра")
@@ -198,7 +172,6 @@ class GroupDetailViewModelTest {
         assertEquals(Money.ofMajor(60), totals.earned)
     }
 
-    /** Another group's lessons must not appear here, however similar their times. */
     @Test
     fun `only this group's lessons are counted`() = runTest(mainRule.dispatcher) {
         val algebra = fixtures.subject("Алгебра")
@@ -232,15 +205,6 @@ class GroupDetailViewModelTest {
         assertEquals(Money.ZERO, vm.state.current.totals.earned)
     }
 
-    /**
-     * **Retiring a group is the card's, not the form's.**
-     *
-     * Archiving and deleting used to sit in a «danger zone» at the foot of the group's *edit form*,
-     * which put the same lifecycle verb on the card for a student and on the form for a group — and
-     * meant reaching it involved scrolling past the whole roster. These three moved here with it.
-     *
-     * The roster is untouched by archiving: a retired group is still a record of who was in it.
-     */
     @Test
     fun `archiving a group keeps it and its roster`() = runTest(mainRule.dispatcher) {
         val anya = fixtures.student("Аня")
@@ -275,11 +239,6 @@ class GroupDetailViewModelTest {
         assertNull(env.groupRepo.getById(id))
     }
 
-    /**
-     * A group with lessons is refused, because its classes must keep naming it — and the refusal is
-     * *said*, through the same one-shot event channel every other refusal in the app uses. The card
-     * offers archiving instead.
-     */
     @Test
     fun `deleting is refused while the group has lessons`() = runTest(mainRule.dispatcher) {
         val algebra = fixtures.subject("Алгебра")
@@ -308,9 +267,6 @@ class GroupDetailViewModelTest {
         assertNotNull("the group survives so its lessons still name it", env.groupRepo.getById(id))
     }
 
-    // --- Homework -----------------------------------------------------------------------------------
-
-    /** The group's own homework, current and done — not a member's. */
     @Test
     fun `the card lists the group's homework, current and done`() = runTest(mainRule.dispatcher) {
         val maths = fixtures.subject()
@@ -346,7 +302,6 @@ class GroupDetailViewModelTest {
         assertEquals(tomorrow, row.lessonAt)
     }
 
-    /** Like the student's card: one left open overnight moves tomorrow's homework onto today. */
     @Test
     fun `at midnight the card's homework for tomorrow becomes today's`() = runTest(mainRule.dispatcher) {
         val maths = fixtures.subject()
@@ -359,7 +314,6 @@ class GroupDetailViewModelTest {
         runCurrent()
         assertEquals(HomeworkRules.Due.LATER, vm.state.current.homework.current.single().due)
 
-        // The environment's 15:00 in Minsk to a minute past midnight, on the clock and on the scheduler.
         val untilMidnight = 9.hours + 1.minutes
         env.clock.advanceBy(untilMidnight.inWholeMilliseconds)
         advanceTimeBy(untilMidnight.inWholeMilliseconds)

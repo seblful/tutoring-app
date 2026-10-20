@@ -31,23 +31,16 @@ import kotlin.math.abs
 /**
  * **One control for a choice between a fixed, mutually exclusive few**, wherever the app asks for one.
  *
- * The app had settled on `SingleChoiceSegmentedButtonRow` in seven places — the schedule's view mode,
- * the lesson status in the action sheet, People's two sides, and four settings rows — and then the
- * booking form asked "student or group?" with a pair of `FilterChip`s. A two-way exclusive switch at the
- * very top of the app's most-used form should look like the other two-way exclusive switches; chips are
- * for a *shortlist with an escape hatch*, which is exactly what the duration chips below it are and
- * exactly what this was not.
- *
  * @param options the values, in the order they should appear. Two to [MaxSegments]; past that a row of
- *   segments is narrower per label than a phone can render, and a growing list of options wants
- *   [ChoiceRow], which changes control rather than shrinking past legibility.
+ * segments is narrower per label than a phone can render, and a growing list of options wants
+ * [ChoiceRow], which changes control rather than shrinking past legibility.
  * @param label how a value reads to the tutor. Drawn through [SegmentLabel], so every segmented control
- *   in the app shrinks its text the same way instead of only the one that happened to need it first.
+ * in the app shrinks its text the same way instead of only the one that happened to need it first.
  * @param enabled whether a particular option may be chosen. The default lets everything be picked; the
- *   lesson-status row uses it, since which statuses a lesson may move to is `GroupRules`'.
+ * lesson-status row uses it, since which statuses a lesson may move to is `GroupRules`'.
  * @param onReselect a tap on the segment already selected, for the one kind of segment that is a door
- *   rather than a value — Settings' «Другое», which opens a picker. Without it a custom reminder lead
- *   could not be changed to another custom one: the tap on the segment showing «20 мин» did nothing.
+ * rather than a value — Settings' «Другое», which opens a picker. Without it a custom reminder lead
+ * could not be changed to another custom one: the tap on the segment showing «20 мин» did nothing.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,37 +89,10 @@ fun <T> SegmentedChoice(
  */
 const val MaxSegments = 4
 
-/**
- * Whether a choice of [optionCount] values is asked with segments, or with a field instead.
- *
- * A named answer rather than an `if` inside the composable, for the reason every other one in this app is:
- * a `@Composable` can only be exercised on a device, and this is the rule that decides what a *growing*
- * list of options looks like — the language and the currency both gain an entry whenever the app learns one.
- * `SegmentsTest` pins the boundary on the JVM; `ChoiceRowTest` pins that each side really draws the control
- * it names.
- */
+/** hether a choice of [optionCount] values is asked with segments, or with a field instead. */
 fun fitsInSegments(optionCount: Int): Boolean = optionCount <= MaxSegments
 
-/**
- * A labelled row for **picking one of a fixed few** — the shape a *setting* takes.
- *
- * Here rather than private to `SettingsScreen`, which is where it was written: first-run setup asks two of
- * the same questions Settings does — the language and the currency — and a choice that looks like a setting
- * on one screen and like something else on the other would be the app disagreeing with itself about what
- * kind of question it is asking. The same argument moved `AddRow` into this package.
- *
- * **Which control it draws is decided by how many options there are**, and that is the point of the row
- * existing rather than each screen reaching for [SegmentedChoice] itself. Up to [MaxSegments] it is
- * segments; past that it is a [ChoiceField], because a row of segments is a fixed fraction of the screen
- * divided by the number of them and at five there is no width left to shrink a label into. This app has two
- * settings that are *lists which grow* — the language and the currency, one entry per translation and per
- * currency the app learns — so without this the fifth of either would have silently produced an unreadable
- * row rather than a compile error or a visibly different control. The other five call sites are choices with
- * a fixed arity (a theme, a lesson length, two sides of a tab) and never reach the bound.
- *
- * Both controls are already the app's own answers to their respective questions, so this switches between
- * two established shapes rather than inventing a third: see *one control per kind of question*.
- */
+/**  labelled row for **picking one of a fixed few** — the shape a *setting* takes. */
 @Composable
 fun <T> ChoiceRow(
     title: String,
@@ -179,17 +145,7 @@ fun <T> ChoiceRow(
     }
 }
 
-/**
- * A segment's label on **one line**, shrinking a step at a time rather than wrapping.
- *
- * The same rule and mechanism as the bottom bar's tab labels: a segment is a fixed fraction of the
- * screen, so on a narrow phone or at a large font scale the longest word genuinely does not fit — and a
- * wrapped label makes the row uneven, which is worse than a slightly smaller one. Capped at the
- * inherited size so a label with room to spare is drawn untouched.
- *
- * Public, and in `ui/common/`, because it was private to `ScheduleScreen.kt` — so the schedule's own
- * segments shrank and the settings rows, People's two sides and the booking form's target did not.
- */
+/**  segment's label on **one line**, shrinking a step at a time rather than wrapping. */
 @Composable
 fun SegmentLabel(text: String) {
     OneLineLabel(text, floor = MinSegmentLabelSize, fallbackSize = FallbackSegmentFontSize)
@@ -199,11 +155,6 @@ fun SegmentLabel(text: String) {
  * A label held to **one line**, shrinking a step at a time — never below [floor] — before it ellipsizes:
  * the rule a segment's label and a bottom-bar tab's share. They differ only in how small they may go and
  * in the size their style is assumed to ask for when it says nothing.
- *
- * The floor is in **dp**, not sp: the system font scale is already in the size this starts from, and
- * multiplying the floor by it too left a long word no room to shrink into at 1.3× — «Расписа…» on a 6.1"
- * phone at a setting many people use. The ceiling is the inherited style's size, because autosize grows
- * text as readily as it shrinks it, and a label that fits must look untouched.
  *
  * @param fallbackSize the ceiling when the inherited style leaves the size unspecified.
  */
@@ -222,21 +173,13 @@ fun OneLineLabel(text: String, floor: Dp, fallbackSize: TextUnit) {
     )
 }
 
-/** The smallest a segment's label is drawn, on screen — whatever the font scale asked for. */
 private val MinSegmentLabelSize = 10.dp
 
-/** Material's label size for a segmented button; used only if the style leaves the size unspecified. */
 private val FallbackSegmentFontSize = 14.sp
 
 /**
  * A screen whose body is **one of a fixed few views**, picked by segments pinned under the bar — «Люди»'s
  * two sides, «Задания»'s current and archive, the schedule's day, week and month.
- *
- * The three wrote out the same three parts: a body that turns on a sideways drag
- * ([swipeBetweenSegments]), a [ScreenHeader] painted with the bar, and the [SegmentedChoice] inside it. They
- * had drifted on the one number they shared — the segments sat [Spacing.inline] from the bar on two of
- * them and [Spacing.tight] on the schedule — so the control moved by four dp switching tabs. It is
- * [Spacing.inline] on all three now.
  *
  * @param header what else is pinned under the segments — a filter chip, the schedule's pager.
  * @param content the body, under the header; it takes the drag's free space, not the header's alone.
@@ -268,34 +211,6 @@ fun <T> SegmentedPage(
 
 /**
  * **The other way to move between segments: drag the page sideways.**
- *
- * Applied to a screen's body, so the tutor changes what they are looking at from wherever their thumb
- * already is instead of reaching back up to the control. Drag left for the next option, right for the
- * previous — the direction the app is read in. It is offered on the two screens whose whole content is one
- * of a fixed few views of the same thing: «Люди» (Ученики ⇄ Группы) and «Расписание» (День → Неделя →
- * Месяц).
- *
- * **The segments stay, and stay primary.** This adds a shortcut, never the only way in: a gesture has no
- * affordance, announces nothing to a screen reader and cannot be discovered by looking, so the control it
- * duplicates is what makes the screen usable and this is what makes it quick. That is also why the tick is
- * [rememberSegmentTickFeedback] — the same effect a tap on the control gives, because it is the same move,
- * and the app's rule is that one act feels the same whichever way it was made.
- *
- * **A child that wants the drag keeps it, and that is the design rather than a limitation.** The schedule's
- * lesson cards own their own horizontal gesture ([SwipeToConfirmBox], which *bills* a lesson), and a child
- * consumes past touch slop before an ancestor is ever offered the event. So the page turns from the free
- * space around the cards — the gutters, the gaps, the headers, the calendar grid, an empty day — and a drag
- * that starts on a lesson still marks that lesson taught. Neither gesture had to be given up for the other,
- * and neither needs to know the other exists. A vertical scroll is unaffected for the mirror-image reason:
- * a `LazyColumn` reaches *its* slop first and consumes, so a flick down the list never changes the view.
- *
- * **The content does not follow the finger, and cannot.** The obvious shape for this is a `HorizontalPager`,
- * with the incoming view sliding in under the thumb. The schedule assembles only the active view's lessons
- * and markers — both flows are `flatMapLatest`-keyed on the view mode, deliberately, so no off-screen view
- * holds a live query — so the neighbouring page has nothing to draw until the switch has already happened.
- * A pager would drag a skeleton into view and fill it in afterwards, which is a worse answer than not
- * moving at all. The same gesture is used on both screens rather than the nicer one on the one screen that
- * could support it: a drag that tracks the finger here and jumps there is two gestures wearing one name.
  *
  * @param options the segments, in the order they are drawn — the same list handed to [SegmentedChoice].
  * @param selected which one the screen is on now.
@@ -343,33 +258,10 @@ fun <T> Modifier.swipeBetweenSegments(
     }
 }
 
-/**
- * Where a swipe lands: the neighbour of [selected] in [options], or **null at either end**.
- *
- * **It does not wrap**, which is the whole of the rule and the reason it is a function. A segmented control
- * is a row of detents and not a carousel: the pill sits somewhere along a line the tutor can see, so
- * dragging on past «Месяц» and arriving at «День» would be the selection jumping the full width of the
- * control in the direction opposite to the thumb. Running out is the honest answer, and it is the same
- * answer tapping the segment you are already on gives — nothing, in silence.
- *
- * Pure and outside the [Modifier], for the reason [swipeArmed] is: a rule that lives inside a gesture
- * callback is a rule only a device can ask about. Null for a [selected] that is not in [options] rather
- * than an assumed first — a swipe is not the place to discover that a caller's two lists disagree.
- */
 internal fun <T> segmentAfterSwipe(options: List<T>, selected: T, forward: Boolean): T? {
     val at = options.indexOf(selected)
     if (at < 0) return null
     return options.getOrNull(if (forward) at + 1 else at - 1)
 }
 
-/**
- * How far the page has to travel before it turns.
- *
- * A **fixed distance**, not a fraction of the screen the way [swipeArmed]'s mark is a fraction of its row:
- * that mark is about a row the thumb has to cross, whereas this is one act — "next view" — and it should
- * not cost twice the drag on a tablet that it costs on a phone. 56dp sits past the touch slop that starts
- * the drag, so a sideways wobble while scrolling the schedule cannot turn the page, and well inside a
- * thumb's reach on a 360dp phone, since this is a shortcut and a shortcut that needs the whole hand is not
- * one.
- */
 private val SegmentSwipeDistance = 56.dp

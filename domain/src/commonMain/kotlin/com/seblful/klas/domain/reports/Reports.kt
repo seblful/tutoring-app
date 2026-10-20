@@ -455,11 +455,6 @@ object Reports {
     fun totalOutstanding(balances: List<StudentBalance>): Money =
         debts(balances).fold(Money.ZERO) { acc, d -> acc + d.amount }
 
-    /**
-     * Billable charges summed per key. A **null** key means "this class has no such thing" and drops
-     * the class from the result — which is how [incomeByGroup] states its filter once, in the key it
-     * groups by, rather than as a `filter` and a matching `!!` that have to be kept in step.
-     */
     private inline fun <K> sumChargesBy(classes: List<TutoringClass>, key: (TutoringClass) -> K?): Map<K, Money> =
         Billing.billable(classes)
             .mapNotNull { c -> key(c)?.let { it to c } }

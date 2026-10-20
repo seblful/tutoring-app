@@ -10,22 +10,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/**
- * Splitting a v1–v5 file's flat `classes` list into `lessons` + `attendance` — the test `splitIntoLessons`
- * has always cited and never had.
- *
- * **Why this matters more than its size suggests.** This is now the **only** implementation of the split:
- * its SQL twin, `MIGRATION_1_2`, went with the migration squash (no database is below the schema baseline
- * any more — see `AppDatabase.BASELINE_VERSION`), while a v1–v5 backup *file* is still a thing that exists
- * on somebody's disk and still has to import. Until this file existed the output was asserted nowhere at
- * all — the three legacy-version cases in `BackupSerializationTest` check only that such a file parses, and
- * never call `toSnapshot()`; the function otherwise ran only inside `BackupIntegrity.check`, whose whole
- * purpose is to decide whether to **refuse** the rows.
- *
- * And the rule it applies decides money. A group lesson with one scheduled member and one completed one
- * is *scheduled* — the hour has not happened — and reading it the other way round recognises income the
- * app never earned, silently, on the one path a tutor reaches for after losing a phone.
- */
 @RunWith(RobolectricTestRunner::class)
 class BackupSplitTest {
 
@@ -55,15 +39,6 @@ class BackupSplitTest {
         groupId = groupId,
     )
 
-    // --- the precedence, and the two places it is stated ---
-
-    /**
-     * The precedence itself, as a literal. Deliberately not derived from `LessonStatus.entries`: the
-     * whole point of [LessonStatus.PRECEDENCE] is that it stopped *being* the declaration order, and a
-     * test that read the enum back would pin nothing. Reordering the constants is an ordinary refactor
-     * that `StoredEnumNamesTest` compares as a set and therefore cannot see — and it would make every
-     * old backup import a mixed group lesson as **completed**, recognising income the app never earned.
-     */
     @Test
     fun `the lesson-status precedence is scheduled, then completed, then cancelled`() {
         assertEquals(
@@ -71,8 +46,6 @@ class BackupSplitTest {
             LessonStatus.PRECEDENCE,
         )
     }
-
-    // --- what the split produces ---
 
     @Test
     fun `an individual class becomes its own lesson, keeping every id`() {
@@ -84,8 +57,6 @@ class BackupSplitTest {
         assertEquals(5L, lessons.single().id)
         assertEquals(LessonStatus.COMPLETED, lessons.single().status)
         assertEquals(t0, lessons.single().startMillis)
-        // The class's own id survives as its attendance id, so a calendar event or a charge still points
-        // where it did; the row is tied to the lesson that its class became.
         assertEquals(5L, attendance.single().id)
         assertEquals(5L, attendance.single().lessonId)
         assertEquals(Attended.PRESENT, attendance.single().state)

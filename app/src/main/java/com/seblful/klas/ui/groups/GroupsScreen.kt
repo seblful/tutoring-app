@@ -37,9 +37,6 @@ import com.seblful.klas.ui.theme.KlasIcons
  * The groups list — a **body**, sharing a scaffold with the students list (see
  * `ui/people/PeopleScreen.kt`). A group is students seen as a roster, so the two are one tab.
  *
- * As the students list, three states: a group list that has not been read is a skeleton, not an
- * invitation to create the first group. See [Loadable].
- *
  * @param searching whether an empty list means "nothing matched" rather than "there are none".
  */
 @Composable
@@ -153,9 +150,4 @@ fun GroupsList(
     }
 }
 
-/**
- * The widest the trailing rate may grow before it starts eating the group's name. Room for
- * «1 250,50 BYN/час» at the default scale; anything longer ellipsises rather than taking the width
- * from the one thing on the row that identifies it. A measurement, not a gap — see `Spacing`.
- */
 private val TrailingRateWidth = 132.dp

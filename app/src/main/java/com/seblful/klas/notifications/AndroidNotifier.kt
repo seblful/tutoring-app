@@ -32,29 +32,10 @@ import kotlinx.datetime.LocalDate
 @SingleIn(AppScope::class)
 class AndroidNotifier @Inject constructor(
     @param:ApplicationContext private val context: Context,
-    /**
-     * "May a reminder be shown" has one definition, and it is the port's — this class used to keep a
-     * private copy that checked the runtime permission only, so with notifications switched off for
-     * the whole app in system settings it went on building and posting notifications that could never
-     * appear, while the settings row correctly said they were blocked.
-     */
+
     private val permission: NotificationPermission,
 ) : Notifier {
 
-    /**
-     * The context every **word** in this class is read from: the application's, in the language the tutor
-     * chose ([com.seblful.klas.format.inAppLanguage]).
-     *
-     * [context] itself cannot be it. The application's base context is pinned to whatever language the
-     * *phone* asks for, because the settings row cannot be read before a context exists (`KlasApp`), and a
-     * notification is the one surface with no composition to be handed a localized one by — so this is where
-     * the app's own answer arrives. It matters for the plural rules as much as for the words: a quantity's
-     * form comes from the configuration's locale, not from the folder the string was loaded from.
-     *
-     * Read per use rather than held, so a language changed in Settings applies to the next notification
-     * without this singleton having to be told. Everything that is *not* a word — the system service, the
-     * `PendingIntent`s, the builders — stays on [context], which is the one the platform expects.
-     */
     private val words: Context get() = context.inAppLanguage()
 
     override fun ensureChannels() {
@@ -108,15 +89,6 @@ class AndroidNotifier @Inject constructor(
         )
     }
 
-    /**
-     * Vibration and sound are left to the channel's importance — **the phone's answer, not this app's.**
-     *
-     * No `setVibrationPattern` and no `setSound` anywhere here, for the same reason `ui/common/Haptics`
-     * refuses to touch `Vibrator`: a duration this app invented would override the device's own haptic
-     * strength and whatever the tutor has already chosen for it. `IMPORTANCE_HIGH` and
-     * `IMPORTANCE_DEFAULT` vibrate by default; `IMPORTANCE_LOW` does not. That is the whole of the app's
-     * opinion on the subject, and it is expressed in the one vocabulary system settings also speaks.
-     */
     @androidx.annotation.RequiresApi(Build.VERSION_CODES.O)
     private fun channel(id: String, nameRes: Int, descRes: Int, importance: Int): NotificationChannel =
         NotificationChannel(id, words.getString(nameRes), importance)
@@ -174,17 +146,6 @@ class AndroidNotifier @Inject constructor(
         NotificationManagerCompat.from(context).cancel(classId.toInt())
     }
 
-    /**
-     * The tray entry several reminders collapse under.
-     *
-     * A group needs one or the members are drawn as ordinary separate notifications on Android 7 through
-     * 11 — the grouping is silently ignored without it. It carries no actions and no time of its own,
-     * because it is not about a lesson: «Проведено» on a summary of three lessons could only guess which.
-     *
-     * Re-posted with every reminder rather than tracked, since posting the same id twice updates in place,
-     * and it is `setOnlyAlertOnce` so a second reminder arriving does not make the summary buzz again on
-     * top of it. It is not cancelled anywhere: the platform removes a summary once its last child is gone.
-     */
     private fun remindersSummary() {
         val summary = builder(CHANNEL_REMINDERS, R.string.reminder_title)
             .setGroup(GROUP_REMINDERS)
@@ -278,28 +239,18 @@ class AndroidNotifier @Inject constructor(
         post(ID_UPKEEP, notification)
     }
 
-    /**
-     * Whether anything may be posted, making sure the channels exist when it may — how every `show…`
-     * opens. Channels are created per post rather than once: creating one that exists is a no-op, and one
-     * deleted in system settings comes back with the next entry.
-     */
     private fun mayPost(): Boolean {
         if (!permission.isGranted()) return false
         ensureChannels()
         return true
     }
 
-    /** What every entry here starts from: the app's tray icon, a title, and gone once tapped. */
     private fun builder(channel: String, titleRes: Int): NotificationCompat.Builder =
         NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_reminder)
             .setContentTitle(words.getString(titleRes))
             .setAutoCancel(true)
 
-    /**
-     * A digest's lessons as an `InboxStyle` list, a line each, with «ещё N» for those [posting] left out —
-     * the morning agenda and the evening list are drawn alike.
-     */
     private fun lessonList(posting: TrayContent.AgendaPosting): NotificationCompat.InboxStyle {
         val style = NotificationCompat.InboxStyle()
         val hour12 = hour12()
@@ -312,10 +263,6 @@ class AndroidNotifier @Inject constructor(
         return style
     }
 
-    /**
-     * Posts [notification], defending against the permission being revoked between the check at the top of
-     * each method and the post at the bottom of it.
-     */
     private fun post(id: Int, notification: android.app.Notification) {
         try {
             NotificationManagerCompat.from(context).notify(id, notification)
@@ -324,16 +271,8 @@ class AndroidNotifier @Inject constructor(
         }
     }
 
-    /** The phone's clock, asked here because a notification has no composition to ask it in. */
     private fun hour12(): Boolean = !DateFormat.is24HourFormat(context)
 
-    /**
-     * Opening the app from a tray entry, **at the screen the entry is about** — see [TrayNavigation].
-     *
-     * `FLAG_ACTIVITY_SINGLE_TOP` so a notification never stacks a second copy of the one activity on top
-     * of the app the tutor already has open. [action] is required: an entry that opened the app on
-     * whatever tab it had been left on was the tutor being handed the app and told to find it.
-     */
     private fun openApp(requestCode: Int, action: String, extras: Intent.() -> Unit = {}): PendingIntent {
         val intent = Intent(context, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -342,19 +281,11 @@ class AndroidNotifier @Inject constructor(
         return PendingIntent.getActivity(context, requestCode, intent, FLAGS)
     }
 
-    /** The schedule on [day] — see [TrayNavigation.Destination.Day]. */
     private fun openDay(requestCode: Int, day: LocalDate): PendingIntent =
         openApp(requestCode, TrayNavigation.ACTION_OPEN_DAY) {
             putExtra(TrayNavigation.EXTRA_DAY, day.toEpochDays())
         }
 
-    /**
-     * «Проведено» — marks the lesson taught without opening anything, which is the whole point of
-     * having it here: the tutor is walking out of the lesson, not sitting down with the app.
-     *
-     * A broadcast rather than an activity, so nothing is drawn; [ReminderActionReceiver] hands it to
-     * [ReminderActions], which decides whether the change is still legal.
-     */
     private fun completeAction(classId: Long): NotificationCompat.Action {
         val intent = Intent(context, ReminderActionReceiver::class.java)
             .setAction(ReminderActionReceiver.ACTION_COMPLETE)
@@ -365,11 +296,6 @@ class AndroidNotifier @Inject constructor(
         )
     }
 
-    /**
-     * «Перенести» — opens the lesson, because a new time cannot be picked from a notification. The
-     * tutor lands on the lesson's own screen with its date and time, which is where the app moves a
-     * lesson anyway; see [TrayNavigation] for the rule that reads this back.
-     */
     private fun rescheduleAction(classId: Long): NotificationCompat.Action =
         action(
             R.string.class_move,
@@ -378,10 +304,6 @@ class AndroidNotifier @Inject constructor(
             },
         )
 
-    /**
-     * Icon 0 on purpose: since Android N the platform draws action *labels* only, and every device this
-     * app runs on is N or later (minSdk 24). A drawable here would be one nobody ever sees.
-     */
     private fun action(labelRes: Int, intent: PendingIntent): NotificationCompat.Action =
         NotificationCompat.Action.Builder(0, words.getString(labelRes), intent).build()
 
@@ -392,26 +314,14 @@ class AndroidNotifier @Inject constructor(
         const val CHANNEL_DEBTS = "debt_digest"
         const val CHANNEL_UPKEEP = "upkeep_report"
 
-        /** What several lesson reminders collapse under in the tray. */
         private const val GROUP_REMINDERS = "com.seblful.klas.REMINDERS"
 
-        /**
-         * The ids of the notifications there is only ever one of, kept **negative** so they cannot
-         * collide with a reminder's — a reminder is identified by its class id, and those are positive
-         * `AUTOINCREMENT` row ids. Nothing else needs saying about the numbers themselves; what matters is
-         * that the space they come from is disjoint from the one the database allocates.
-         */
         private const val ID_REMINDERS_SUMMARY = -1
         private const val ID_AGENDA = -2
         private const val ID_DEBTS = -3
         private const val ID_UPKEEP = -4
         private const val ID_UNFINISHED = -5
 
-        /**
-         * `UPDATE_CURRENT` so a re-posted reminder carries the lesson's current id in its extras rather
-         * than a stale one: the request code is the class id, but a `PendingIntent`'s identity ignores
-         * extras entirely, so this is what keeps the buttons pointed at the right lesson.
-         */
         private const val FLAGS = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
     }
 }

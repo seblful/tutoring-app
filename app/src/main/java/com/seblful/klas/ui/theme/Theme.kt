@@ -90,16 +90,6 @@ private val DarkColorScheme = darkColorScheme(
 /**
  * The colour roles this app needs and [androidx.compose.material3.ColorScheme] has no slot for — currently
  * one: **the green a taught lesson is said in**.
- *
- * Handed down from [KlasTheme] in a `CompositionLocal` rather than read from `isSystemInDarkTheme()` where
- * it is used, because the light/dark answer here is *the tutor's* and not the phone's (`ThemeChoice`, see
- * `AppRoot`): a light app forced onto a dark phone would otherwise pick the dark green and paint it on
- * white. The Material slots already arrive this way, through the scheme; these travel with them.
- *
- * **Unaffected by dynamic colour**, deliberately. Wallpaper-derived schemes fill the Material roles and
- * have nothing to say about this one, and green is not a matter of taste here — it is what "this lesson
- * happened" means, in the same way `error` red is what a debt means. A tutor who turns on the wallpaper's
- * colours is asking for the app's *chrome* to follow their phone, not for its answers to change hue.
  */
 @Immutable
 data class KlasColors(
@@ -109,12 +99,7 @@ data class KlasColors(
     val successContainer: Color,
     /** What is legible on [successContainer]. */
     val onSuccessContainer: Color,
-    /**
-     * The amber a lesson **in progress** is badged «Идёт» in (`classPhaseColor`).
-     *
-     * Here rather than in the Material scheme for [success]'s reason, and unaffected by dynamic colour
-     * for the same one: "the tutor is in this lesson right now" is an answer, not a matter of taste.
-     */
+    /** he amber a lesson **in progress** is badged «Идёт» in (`classPhaseColor`). */
     val live: Color,
     /**
      * Whether the theme in force is the dark one — *the tutor's* answer, for a colour the app mixes itself
@@ -147,16 +132,12 @@ private val LocalKlasColors = staticCompositionLocalOf { LightKlasColors }
  * `MaterialTheme.colorScheme`, and read the same way at the point of use.
  */
 val klasColors: KlasColors
-    @Composable @ReadOnlyComposable get() = LocalKlasColors.current
+    @Composable @ReadOnlyComposable
+    get() = LocalKlasColors.current
 
 /**
  * Whether this phone can derive a scheme from the wallpaper at all — Material You arrived in Android 12,
  * and `minSdk` here is 24.
- *
- * Public, and the **only** place the version is checked, because two answers to "is this offered" is one
- * more than the app can keep straight: Settings uses it to decide whether to draw the switch at all, and
- * [KlasTheme] uses it to decide whether to honour it. A row that could be switched on where the theme
- * would ignore it is a setting that lies, and that is exactly the shape the bug would take.
  */
 val dynamicColorAvailable: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 

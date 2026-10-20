@@ -74,25 +74,6 @@ import java.util.Locale
 import javax.imageio.ImageIO
 import kotlin.time.Duration.Companion.seconds
 
-/**
- * The raw phone screenshots for the Play listing: the real app, its real screens, on [DemoTutor]'s data.
- *
- * **Not a test of anything** — it is the camera, and it lives in the unit suite only because that is where
- * the app can be run without a phone: Robolectric draws `MainActivity` with native graphics, [StoreGraph]
- * is the production graph over the production database, and only the clock, the phone's locale and the
- * WorkManager-backed schedulers are swapped (a stopped clock is what makes «on now» land on the same
- * lesson every run). Skipped unless asked for, so `testDebugUnitTest` and CI never pay for it:
- *
- * ```
- * ./gradlew :app:testDebugUnitTest --tests "*StoreScreenshots*" -PstoreScreenshots
- * ```
- *
- * Each language writes `<out>/<lang>/<shot>.png` and a `shots.json` beside them naming the colours at
- * the top and bottom edge — what `store/render.mjs` paints the frame's status and gesture bars with, so
- * the phone around the screenshot is continuous with what is on it — and, for the promo video
- * (`store/video.mjs`), where on a shot the things it zooms to or taps are. The video's own moments are
- * shot last ([filmTour]). See docs/store-listing.md.
- */
 @OptIn(ExperimentalRoborazziApi::class)
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -104,10 +85,8 @@ class StoreScreenshots {
 
     private var tutor: DemoTutor = DemoTutor.english
 
-    /** Built per language in [shoot], once the tutor — and so the phone's locale and week — is known. */
     private lateinit var graph: StoreGraph
 
-    /** The tutor's book once the seeder has written it, for the promo video's changes to it. */
     private lateinit var seeded: DemoSeeder.Seeded
 
     private val settings get() = graph.settings
@@ -144,8 +123,6 @@ class StoreScreenshots {
         out = File(root!!, tutor.locale.toLanguageTag()).apply { deleteRecursively(); mkdirs() }
 
         this.tutor = tutor
-        // The whole phone speaks the language, not just the app's resources: `MainActivity` and the week's
-        // first day read the phone's default locale, as they would on a Russian or an American phone.
         Locale.setDefault(tutor.locale)
         RuntimeEnvironment.setQualifiers("+$qualifier")
         graph = createGraphFactory<StoreGraph.Factory>().create(
@@ -155,7 +132,6 @@ class StoreScreenshots {
             deviceLocales = listOf(tutor.locale),
             reminders = RecordingReminderScheduler(),
             digests = RecordingDigestScheduler(),
-            // The device calendar has nothing behind it under Robolectric; the settings only need it to answer.
             calendar = FakeCalendarSync(),
             calendarPermission = FakeCalendarPermission(granted = true),
         )
@@ -166,14 +142,6 @@ class StoreScreenshots {
         writeManifest()
     }
 
-    /**
-     * Opens the app and takes the tour once the schedule shows a lesson «on now».
-     *
-     * Under Robolectric the schedule's once-a-minute clock now and then never reaches a freshly started
-     * screen — about one run in four, never twice in a row, and not something a phone does — which leaves
-     * every lesson «planned» and no «now» line. A new activity is a new set of view models and a new clock,
-     * so the first screen gets [LAUNCH_ATTEMPTS] tries rather than a longer wait.
-     */
     private fun launchOnToday() {
         val onNow = string(R.string.class_status_in_progress)
         for (attempt in 1..LAUNCH_ATTEMPTS) {
@@ -186,10 +154,6 @@ class StoreScreenshots {
         }
     }
 
-    /**
-     * Scrolls the screen's list until the row reading [text] sits at its top. `performScrollTo` scrolls only
-     * as far as it must, which leaves a row just inside the bottom edge and half of another under the bar.
-     */
     private fun scrollToTop(text: String) {
         val list = compose.onNode(hasScrollAction())
         val listTop = list.fetchSemanticsNode().boundsInRoot.top
@@ -211,16 +175,13 @@ class StoreScreenshots {
         false
     }
 
-    /** Every screen worth showing, in the order a tutor would meet them. */
     private fun tour() {
         val student = tutor.debtor.name
         val group = tutor.group.name
 
-        // The schedule opens on today: taught, on now, still to come.
         waitFor(string(R.string.class_status_in_progress))
         capture("schedule-day", marks = mapOf("onNow" to row(tutor.onNow.name)))
 
-        // A lesson's sheet: what it is, who is in it, the homework riding on it.
         click(group)
         settle()
         capture("lesson-sheet")
@@ -263,7 +224,6 @@ class StoreScreenshots {
         settle()
         capture("more")
 
-        // Reminders and the calendar, switched on as a tutor who uses them has them.
         switchOnReminders()
         click(string(R.string.settings_title))
         waitFor(string(R.string.settings_notifications_desc))
@@ -283,12 +243,6 @@ class StoreScreenshots {
         filmTour()
     }
 
-    /**
-     * The month's report, and the same report scrolled to its last breakdowns for the video to scroll
-     * through — the two shots overlap, and «Income by student» is on both, so it can tell how far the
-     * list moved. The month rather than the year it opens on: the year's total is the one figure on these
-     * screens that would run past a thousand.
-     */
     private fun reportsTour() {
         val label = string(R.string.reports_total_income)
         val byStudent = string(R.string.reports_by_student)
@@ -298,7 +252,6 @@ class StoreScreenshots {
         click(string(R.string.reports_period_month))
         settle()
         val list = hasScrollAction()
-        // The figure under the label: the one the video counts up.
         val total = hasAnySibling(hasText(label)) and hasText(tutor.currency.name, substring = true)
         capture(
             "reports",
@@ -307,28 +260,19 @@ class StoreScreenshots {
         )
         scrollToTop(byStudent)
         capture("film-reports-end", marks = mapOf("list" to list, "anchor" to hasText(byStudent)))
-        // Back to the top, where the dark-theme shot of the same screen expects it.
         compose.onNode(list).performScrollToIndex(0)
         settle()
     }
 
-    /**
-     * The theme switched to dark from Settings, as the video shows it, then the same day after dark for
-     * the listing's dark-theme shot; light again after.
-     */
     private fun darkTour() {
         val dark = hasText(string(R.string.theme_dark)) and isSelectable()
         tab(R.string.nav_more)
         click(string(R.string.settings_title))
         waitFor(string(R.string.settings_notifications_desc))
-        // Brought into view first: the section is most of the screen's length down, and a scroll that far
-        // in one step leaves the list where it was.
         compose.onNode(dark).performScrollTo()
         scrollToTop(string(R.string.settings_section_appearance))
         capture("film-theme", marks = mapOf("dark" to dark))
         compose.onNode(dark).performClick()
-        // The choice is saved off the main thread, which the test clock does not wait for: wait for it to
-        // come back as the selected segment, as the dark theme does.
         compose.waitUntil(TIMEOUT_MS) { compose.onAllNodes(dark and isSelected()).fetchSemanticsNodes().isNotEmpty() }
         settle()
         capture("film-theme-dark", dark = true, marks = mapOf("dark" to dark))
@@ -344,26 +288,10 @@ class StoreScreenshots {
         runBlocking { settings.update { it.copy(themeMode = ThemeChoice.LIGHT) } }
     }
 
-    /**
-     * The promo video's moments, which a still cannot show. Last, because they change the books every
-     * screen above was shot on.
-     *
-     * The day again, with a lesson earlier on that was never marked: swiped taught — just short of the
-     * swipe's mark, past it, and let go. Then the day's last lesson called off from its sheet: the sheet
-     * as it opens, the day once «Cancelled» is tapped (which closes it), and the sheet opened again, to
-     * show «Cancelled» chosen — the app closes the sheet on the tap, so it is never seen chosen there.
-     * Then a piece of homework swiped done the same way, and the homework list once the tutor has set the
-     * student whose lesson is on now some more for next time.
-     *
-     * The homework is saved through the repository, not typed into the app's dialog: under Robolectric
-     * that dialog never lets Compose go idle, so nothing on screen can be found or shot while it is open.
-     * The video types it in a card of its own and lands it on this list.
-     */
     private fun filmTour() {
         val student = tutor.onNow.name
         val unmarked = row(runBlocking { seeded.bookUnmarkedLesson() })
         val last = tutor.lastToday.name
-        // The sheet's segment, not the badges on the schedule behind it.
         val cancelled = hasText(string(R.string.class_status_cancelled)) and isSelectable()
         tab(R.string.nav_schedule)
         waitFor(string(R.string.class_status_in_progress))
@@ -391,21 +319,13 @@ class StoreScreenshots {
         capture("film-homework-done", marks = mapOf("add" to add))
 
         runBlocking { seeded.giveTypedHomework() }
-        // The «moved to the archive» message still up: it stays ten seconds, longer than the typing takes.
         waitFor(tutor.typedHomework)
         capture("film-homework", marks = mapOf("added" to row(tutor.typedHomework)))
-        // What the video types, and for whom: the words of the row it lands on.
         File(out, "film.json").writeText(
             "{ \"student\": ${json(student)}, \"homework\": ${json(tutor.typedHomework)} }\n",
         )
     }
 
-    /**
-     * Swipes the row [matcher] finds towards the end of the line, as a thumb would, and shoots it on the
-     * way: `<name>-unarmed` just short of the mark (a third of the row), `<name>-armed` well past it — what
-     * shows behind the row before and after the swipe promises to act — then lets go, which acts. Each
-     * shot's `swipe` mark is the row where the drag has it, so the video knows how far it had gone.
-     */
     private fun swipe(matcher: SemanticsMatcher, name: String) {
         val row = compose.onNode(matcher)
         val home = row.fetchSemanticsNode().positionOnScreen.x
@@ -415,7 +335,6 @@ class StoreScreenshots {
             while (dragged() < width * fraction) row.performTouchInput { moveBy(Offset(step, 0f)) }
         }
         row.performTouchInput { down(Offset(width * SWIPE_FROM, height / 2f)) }
-        // In small steps, so the last one before the mark stops just short of it.
         dragTo(SWIPE_MARK - SHORT_OF_MARK, SWIPE_STEP)
         capture("$name-unarmed", marks = mapOf("swipe" to matcher))
         dragTo(SWIPE_ARMED, SWIPE_STEP * 4)
@@ -424,11 +343,6 @@ class StoreScreenshots {
         settle()
     }
 
-    /**
-     * Calendar sync, its invitations, the morning agenda and the weekly debt summary on, and every
-     * permission they need granted — what a tutor sees once they have set reminders up, rather than the
-     * warnings a fresh install shows.
-     */
     private fun switchOnReminders() {
         val app = ApplicationProvider.getApplicationContext<Application>()
         shadowOf(app).grantPermissions(
@@ -450,12 +364,6 @@ class StoreScreenshots {
         settle()
     }
 
-    /**
-     * Posts what the tray would hold today through the app's own path — the reminder for the group's
-     * lesson (with the homework riding on it), the morning agenda and the weekly debt summary — and writes
-     * what `AndroidNotifier` put in each to `notifications.json`, so the lock-screen picture carries the
-     * app's own words rather than ones written for it.
-     */
     private fun recordNotifications() {
         val now = DemoTutor.NOW
         val reminderAt = runBlocking {
@@ -471,7 +379,6 @@ class StoreScreenshots {
         }
 
         val app = ApplicationProvider.getApplicationContext<Application>()
-        // A group's summary is Android's bookkeeping for a stack of reminders, never shown as a card of its own.
         val tray = shadowOf(app.getSystemService(NotificationManager::class.java)).allNotifications
             .filterNot { it.flags and Notification.FLAG_GROUP_SUMMARY != 0 }
         val entries = tray.joinToString(",\n") { n ->
@@ -484,7 +391,6 @@ class StoreScreenshots {
                 """"lines": ${lines.joinToString(", ", "[", "]") { json(it) }}, """ +
                 """"actions": ${actions.joinToString(", ", "[", "]") { json(it) }} }"""
         }
-        // The lock screen reads the moment the reminder arrives.
         val lockTime = reminderAt.toLocalDateTime(DemoTutor.ZONE).time
         val date = now.toJavaLocalDateTime().format(DateTimeFormatter.ofPattern("EEEE, d MMMM", tutor.locale))
             .replaceFirstChar { it.titlecase(tutor.locale) }
@@ -492,7 +398,6 @@ class StoreScreenshots {
             DateTimeFormatter.ofPattern(if (tutor.locale.language == "en") "h:mm" else "HH:mm", tutor.locale),
         )
         File(out, "notifications.json").writeText(
-            // The release build's name: this is the debug build, whose English label says so.
             "{\n  \"app\": \"Klas\", \"now\": ${json(string(R.string.schedule_now))}, \"date\": ${json(date)}, " +
                 "\"clock\": ${json(clockText)},\n  \"notifications\": [\n$entries\n  ]\n}\n",
         )
@@ -511,11 +416,6 @@ class StoreScreenshots {
         append('"')
     }
 
-    /**
-     * Saves the screen as [name], noting where each of [marks] is on it: a name the video refers to, and
-     * the one node it means. Each of [texts] is a line of text the video redraws, noted with how the app
-     * set it.
-     */
     private fun capture(
         name: String,
         dark: Boolean = false,
@@ -538,14 +438,8 @@ class StoreScreenshots {
         )
     }
 
-    /** The tappable row holding [text]: the whole row, not just the words. */
     private fun row(text: String) = hasText(text, substring = true) and hasClickAction()
 
-    /**
-     * Where the one node [matcher] finds is, in the capture's pixels — left, top, right, bottom, and the
-     * radius of its corners, so the video can lift a card off the screen in the card's own shape. On the
-     * screen rather than in its window, so a mark on a sheet or a dialog lands where it is drawn.
-     */
     private fun bounds(shot: String, mark: String, matcher: SemanticsMatcher): List<Int> {
         val nodes = compose.onAllNodes(matcher).fetchSemanticsNodes()
         check(nodes.size == 1) { "«$shot» mark «$mark» matches ${nodes.size} nodes, not one" }
@@ -557,11 +451,6 @@ class StoreScreenshots {
         return listOf(at.x, at.y, at.x + size.width, at.y + size.height, corner).map { it.toInt() }
     }
 
-    /**
-     * The one line of text [matcher] finds, as JSON: its words, and the size, weight, colour, letter
-     * spacing and baseline the app laid it out with, in the capture's pixels — so the video can draw it
-     * changing (an amount counting up) in the app's own type.
-     */
     private fun textStyle(shot: String, mark: String, matcher: SemanticsMatcher): String {
         val nodes = compose.onAllNodes(matcher).fetchSemanticsNodes()
         check(nodes.size == 1) { "«$shot» text «$mark» matches ${nodes.size} nodes, not one" }
@@ -588,13 +477,8 @@ class StoreScreenshots {
             "\"baseline\": ${at.y + layout.firstBaseline} }"
     }
 
-    /**
-     * Every amount on screen is at most [MAX_AMOUNT]: the listing shows a private tutor's week, and a
-     * five-figure total reads as a business's books. Fails rather than shooting a screen that breaks it.
-     */
     private fun checkAmounts(name: String) {
         val symbols = DecimalFormatSymbols.getInstance(tutor.locale)
-        // A backslash makes either separator literal, even inside a character class.
         val group = "\\" + symbols.groupingSeparator
         val decimal = "\\" + symbols.decimalSeparator
         val amount = Regex("""(-?\d[\d\s$group]*(?:$decimal\d+)?)\s${tutor.currency.name}""")
@@ -643,8 +527,6 @@ class StoreScreenshots {
     }
 
     private fun back() {
-        // Espresso's back goes to the focused window, which is what closes a bottom sheet — a sheet is a
-        // window of its own, out of the activity's back dispatcher's reach.
         Espresso.pressBack()
         settle()
     }
@@ -662,7 +544,6 @@ class StoreScreenshots {
         }
     }
 
-    /** Lets the cross-fades, the sheet's slide and the skeleton's grace all finish. */
     private fun settle() {
         compose.mainClock.advanceTimeBy(SETTLE_MS)
         compose.waitForIdle()

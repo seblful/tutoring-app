@@ -125,13 +125,6 @@ class DueDigest @Inject constructor(
         return true
     }
 
-    /**
-     * One line about one lesson — when it was, what it was, and who it was with.
-     *
-     * Shared by the morning and evening digests because it is the same sentence: the agenda listed the
-     * day's lessons this way first, and an evening list that named them differently would be the app
-     * describing one lesson two ways in one day.
-     */
     private suspend fun entryFor(session: ClassSession): Digests.Agenda.Entry = Digests.Agenda.Entry(
         start = session.start,
         subject = names.subject(session.first),
@@ -140,7 +133,6 @@ class DueDigest @Inject constructor(
         who = names.who(session.first),
     )
 
-    /** Every class starting on [day] in the injected clock's zone, read once as the digest posts. */
     private suspend fun classesOn(day: LocalDate): List<TutoringClass> {
         val bounds = DayBounds.of(day, clock.zone)
         return classes.getBetween(bounds.start, bounds.end)

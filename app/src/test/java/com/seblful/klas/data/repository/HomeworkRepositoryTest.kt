@@ -15,10 +15,6 @@ import org.robolectric.RobolectricTestRunner
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * [HomeworkRepository]: what a write stores and what it leaves alone, the reads that pair homework with
- * its lessons, and that none of it reaches the calendar or the reminders.
- */
 @RunWith(RobolectricTestRunner::class)
 class HomeworkRepositoryTest {
 
@@ -27,7 +23,6 @@ class HomeworkRepositoryTest {
     private val repo = env.homeworkRepo
     private val fixtures = env.fixtures
 
-    // The environment's clock reads 2026-06-01T12:00Z.
     private val now: Instant = env.clock.now()
     private val tomorrow: Instant = Instant.parse("2026-06-02T12:00:00Z")
     private val nextWeek: Instant = Instant.parse("2026-06-08T12:00:00Z")
@@ -45,7 +40,6 @@ class HomeworkRepositoryTest {
         assertNull(stored.doneAt)
     }
 
-    /** What the rules attach it to is the student's next lesson from the minute it was given. */
     @Test
     fun `homework given now is attached to the next lesson from now`() = runTest {
         val maths = fixtures.subject()
@@ -61,10 +55,6 @@ class HomeworkRepositoryTest {
         assertEquals(next, current.lesson?.id)
     }
 
-    /**
-     * Homework left undone for months is still attached to the lesson it was for — so the window reaches
-     * back to it, whatever the caller asked for.
-     */
     @Test
     fun `the lessons read reach back to the oldest current homework`() = runTest {
         val maths = fixtures.subject()
@@ -78,7 +68,6 @@ class HomeworkRepositoryTest {
         assertEquals(lessonInMarch, HomeworkRules.lists(loaded.homework, loaded.classes).current.single().lesson?.id)
     }
 
-    /** Correcting the text neither moves it to a later lesson nor un-does it. */
     @Test
     fun `an edit keeps when it was given and whether it is done`() = runTest {
         val anya = fixtures.student("Аня")
@@ -95,7 +84,6 @@ class HomeworkRepositoryTest {
         assertEquals(given.doneAt, stored.doneAt)
     }
 
-    /** An edit written from a dialog opened before the swipe must not put the swipe back. */
     @Test
     fun `an edit from a stale copy does not undo a swipe made since`() = runTest {
         val anya = fixtures.student("Аня")
@@ -131,7 +119,6 @@ class HomeworkRepositoryTest {
         assertEquals(listOf(given), repo.observeAll().first())
     }
 
-    /** A student's card lists their group's homework — for as long as they are in the group. */
     @Test
     fun `a student's homework includes their groups', while they are members`() = runTest {
         val maths = fixtures.subject()
@@ -148,7 +135,6 @@ class HomeworkRepositoryTest {
         assertEquals(listOf(own), repo.observeForStudent(anya).first())
     }
 
-    /** The reminder names what is still to be done, and a group lesson's gathers a member's own too. */
     @Test
     fun `a lesson's current homework is the group's and its members' own, not what is done`() = runTest {
         val maths = fixtures.subject()

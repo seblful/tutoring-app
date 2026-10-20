@@ -10,13 +10,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Test
 
-/**
- * How the schedule's day and pages move, without a view model. `ScheduleViewModelTest` still covers the
- * same behaviour through the screen's flows; these pin the rules where they now live.
- */
 class SchedulePagesTest {
 
-    /** A Thursday, so a Monday week and a Sunday week start on different days. */
     private val thursday = LocalDate(2026, 10, 15)
 
     private val pages = SchedulePages.on(thursday, DayOfWeek.MONDAY)
@@ -87,10 +82,6 @@ class SchedulePagesTest {
         assertEquals(thursday.plus(5, DateTimeUnit.DAY), browsed.dayChanged(friday).selected)
     }
 
-    /**
-     * A selection moved off today and then back onto the *new* today follows it from then on — the
-     * comparison is with the today last seen, not the one the schedule opened on.
-     */
     @Test
     fun `following is judged against the today last seen`() {
         val friday = thursday.plus(1, DateTimeUnit.DAY)

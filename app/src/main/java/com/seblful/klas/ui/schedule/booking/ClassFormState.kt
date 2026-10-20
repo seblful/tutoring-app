@@ -36,18 +36,7 @@ enum class SubjectNotice {
 data class ClassFormState(
     val form: ClassForm = ClassForm(),
     val ending: ClassForm.Ending? = null,
-    /**
-     * What the three pickers **say** — the chosen row's name, resolved, or blank where nothing is chosen.
-     *
-     * Carried rather than looked up, which is the same argument `ScheduleRow.title` and
-     * `StudentFilter.name` make. The screen used to run
-     * `students.firstOrNull { it.id == form.studentId }?.name ?: ""` in the composable, three times, which
-     * made the picker *lists* load-bearing for display and put an id→name lookup where no test can reach
-     * it. It also had a consequence: the student list is `observeActive()`, so an **archived** student's
-     * lesson — still openable, since editing is allowed in any status — drew a blank «Ученик» over a
-     * lesson that has one, with `canSave` still true. Groups were already spared that, by re-adding the
-     * edited lesson's group to their own list; students were not.
-     */
+    /** hat the three pickers **say** — the chosen row's name, resolved, or blank where nothing is chosen. */
     val studentName: String = "",
     val groupName: String = "",
     val subjectName: String = "",
@@ -64,21 +53,9 @@ data class ClassFormState(
     /**
      * The lesson already sitting where this one wants to be, and the only thing that can now be wrong
      * about a chosen time: a start and a length cannot describe an impossible one.
-     *
-     * There used to be a `TimeProblem` here deciding which of two complaints won — an at-or-before-start
-     * end beat a clash, since the tutor could fix their own typing but not somebody else's lesson. The
-     * first of those stopped existing when the form started holding a length ([ClassForm]).
      */
     val conflict: TimeConflict? = null,
-    /**
-     * Whether the tutor has changed anything — what leaving without saving would throw away.
-     *
-     * This form tracks having been *touched* rather than differing from a snapshot, unlike the group
-     * form: it fills itself in as it goes (the only student, the only subject, the group's rate, the
-     * default length once a start is picked), each arriving asynchronously after the screen is up, so
-     * there is no one moment when "as it was opened" is settled. The cost is that typing something and
-     * undoing it still counts as a change; back then asks a question whose answer is harmless either way.
-     */
+    /** hether the tutor has changed anything — what leaving without saving would throw away. */
     override val isDirty: Boolean = false,
 ) : LeavableForm {
     /** Whether the lesson yet has somebody to be for. Until then most of the form means nothing. */
@@ -130,13 +107,7 @@ data class ClassFormState(
     override val canSave: Boolean
         get() = form.isValid && conflict == null && !allMembersExcluded && !groupHasNoMembers
 
-    /**
-     * What tapping save should do: save, or ask about the income it would destroy first.
-     *
-     * The gate was a `state.billedDrops > 0` in the composable, next to an `Int` of screen state held
-     * only to remember the count the question needed. Both are one answer to one question, and this is
-     * where it can be tested.
-     */
+    /** hat tapping save should do: save, or ask about the income it would destroy first. */
     val saveIntent: SaveIntent
         get() = billedDrops.let { if (it > 0) SaveIntent.ConfirmBilledDrops(it) else SaveIntent.Save }
 }
@@ -160,15 +131,5 @@ sealed interface SaveIntent {
     data class ConfirmBilledDrops(val billedLessons: Int) : SaveIntent
 }
 
-/**
- * What a repeating booking came to, when it could not book all of it.
- *
- * Only ever built for a **partial** result: everything booked is an ordinary save and nothing booked is a
- * refusal, so this exists precisely for the outcome that is neither and that a form would otherwise have
- * to swallow. [booked] counts **lessons**, matching `SeriesWrite.lessons` — a group's evening is one
- * lesson to the tutor however many students are in the room.
- *
- * [skipped] carries the dates rather than their number because the count alone gives the tutor nothing to
- * act on: the thing they now have to do is find those Mondays and book them somewhere else.
- */
+/** hat a repeating booking came to, when it could not book all of it. */
 data class SeriesOutcome(val booked: Int, val skipped: List<LocalDate>)

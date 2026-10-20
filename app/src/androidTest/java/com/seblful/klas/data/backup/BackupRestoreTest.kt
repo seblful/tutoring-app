@@ -34,10 +34,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.time.Instant
 
-/**
- * The restore path as a whole: replacing the data also ends first run (so a tutor restoring onto a
- * fresh install isn't asked to set the app up again) and re-plans reminders.
- */
 @RunWith(AndroidJUnit4::class)
 class BackupRestoreTest {
 
@@ -66,8 +62,6 @@ class BackupRestoreTest {
         .setDriver(BundledSQLiteDriver())
         .build()
 
-    // The real RoomTransactor, not a fake: these tests run against real Room, so the import's
-    // all-or-nothing transaction is one of the things being exercised.
     private fun managerFor(db: AppDatabase) = BackupManager(RoomTransactor(db), db.snapshotDao())
 
     @Before fun setUp() {
@@ -91,7 +85,6 @@ class BackupRestoreTest {
         target.close()
     }
 
-    /** A backup of one lesson, exported from [source]. */
     private suspend fun snapshot(): String {
         source.snapshotDao().insert(
             DatabaseSnapshot(

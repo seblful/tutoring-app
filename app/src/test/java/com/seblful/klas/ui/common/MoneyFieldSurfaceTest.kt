@@ -7,15 +7,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * **A typed amount is a [MoneyTextField], and a dialog's survives** (docs/ui-conventions.md → Screen state).
- *
- * Seven money inputs spelled the field out by hand, and three of the dialogs among them held their
- * `MoneyField` in a plain `remember` — so the half-typed rate in «Изменить цену», the payment being
- * entered and the default group price were lost whenever the dialog was recreated, while every other typed
- * dialog field in the app is `rememberSaveable`. The field is one composable now; a dialog keeps the
- * *text* saveable and derives the field from it.
- */
 class MoneyFieldSurfaceTest {
 
     private fun uiSources() = ProjectFiles.sources().filter { "ui" in it.path.split(java.io.File.separator) }
@@ -52,7 +43,6 @@ class MoneyFieldSurfaceTest {
         )
     }
 
-    /** And the forms and dialogs do type amounts through it, so the scans above have something to scan. */
     @Test
     fun `the forms and the money dialogs use it`() {
         val users = uiSources()
@@ -67,7 +57,6 @@ class MoneyFieldSurfaceTest {
                     "ClassEditScreen.kt",
                     "GroupFormScreen.kt",
                     "StudentFormScreen.kt",
-                    // The student card's money dialogs, and settings' amount row.
                     "StudentDialogs.kt",
                     "SettingsRows.kt",
                 ),

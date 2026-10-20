@@ -90,11 +90,6 @@ class SubjectsViewModel @Inject constructor(
         ) { repository.delete(subject) }
     }
 
-    /**
-     * The guarded-write tail (`ui/common/state/Writes.kt`): in the application scope, so a rename outlives a
-     * quick back, and a database error reported as [Event.WRITE_FAILED] rather than thrown out of a bare
-     * `launch`, where nothing caught it and the app closed.
-     */
     private fun <T> write(onWritten: suspend (T) -> Unit = {}, block: suspend () -> T) =
         appScope.write(events, Event.WRITE_FAILED, onWritten, block)
 }

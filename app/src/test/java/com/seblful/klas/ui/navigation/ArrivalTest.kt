@@ -6,10 +6,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * One tap in the tray is acted on once, however many times the tab it asked for comes back — and a second
- * tap on the same notification is a second tap, though it says exactly the same thing.
- */
 class ArrivalTest {
 
     @Test

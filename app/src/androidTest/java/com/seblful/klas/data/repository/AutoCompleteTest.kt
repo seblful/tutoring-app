@@ -32,12 +32,16 @@ import org.junit.runner.RunWith
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/** Criterion 1: a class whose end has passed auto-completes and adds its then-current price to debt. */
 @RunWith(AndroidJUnit4::class)
 class AutoCompleteTest {
 
     private val noCalendar = object : CalendarSync {
-        override suspend fun upsert(klass: TutoringClass, title: String, guest: Guest?, reminderLeadMinutes: Int): String? = null
+        override suspend fun upsert(
+            klass: TutoringClass,
+            title: String,
+            guest: Guest?,
+            reminderLeadMinutes: Int,
+        ): String? = null
         override suspend fun refresh(klass: TutoringClass, title: String) = Unit
         override suspend fun delete(eventId: String) = Unit
     }
@@ -70,7 +74,6 @@ class AutoCompleteTest {
     @After fun tearDown() = db.close()
 
     @Test fun pastClassAutoCompletesAtBookedPriceAndBecomesDebt() = runTest {
-        // A scheduled class that ended an hour ago, booked at 50 BYN.
         val start = Instant.parse("2026-06-18T10:00:00Z")
         db.snapshotDao().insert(
             DatabaseSnapshot(
@@ -88,7 +91,6 @@ class AutoCompleteTest {
         val klass = repo.getById(1)!!
         assertEquals(LessonStatus.COMPLETED, klass.status)
         assertEquals(Money(5000), klass.charge) // billed its booked price
-        // ...and it shows up as the student's debt.
         val balance = Billing.balanceOf(1, repo.getAll(), emptyList()).balance
         assertEquals(Money(5000), balance)
     }

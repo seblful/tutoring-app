@@ -23,11 +23,8 @@ import com.seblful.klas.ui.common.lessonKindLabel
  * Narrows a list holding both kinds of lesson, and says how many of each there are while doing it —
  * so the split is legible without selecting anything, which is the question a mixed list raises first.
  *
- * Scrolls sideways rather than wrapping: three counted labels are wider than a phone at a large font
- * scale, and a chip row that reflows to two lines pushes the list it belongs to off the screen.
- *
  * @param tally how many lessons each kind has; a kind with none shows a 0 rather than vanishing,
- *   because a chip row whose chips come and go cannot be aimed at.
+ * because a chip row whose chips come and go cannot be aimed at.
  */
 @Composable
 fun LessonFilterChips(

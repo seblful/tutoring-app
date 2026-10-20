@@ -13,6 +13,6 @@
     <ID>ReturnCount:ReportPeriod.kt:ReportPeriod$fun daysElapsed: Long?</ID>
     <ID>ReturnCount:Reports.kt:Reports$fun change: Change?</ID>
     <ID>TooManyFunctions:Reports.kt:Reports</ID>
-    <ID>VariableNaming:ReportCsvTest.kt:ReportCsvTest$/** * U+FEFF as an escape, never as a literal: a byte-order mark typed into a source file is * invisible in every editor, and lint's `ByteOrderMark` check rejects one on sight. Spelling it * here is also what makes the assertions below say *which* character they are about. */ private val BOM = "\uFEFF"</ID>
+    <ID>VariableNaming:ReportCsvTest.kt:ReportCsvTest$private val BOM = "\uFEFF"</ID>
   </CurrentIssues>
 </SmellBaseline>

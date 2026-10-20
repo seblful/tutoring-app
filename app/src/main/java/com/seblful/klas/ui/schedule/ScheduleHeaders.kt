@@ -94,14 +94,6 @@ internal fun MonthNavigator(
     )
 }
 
-/**
- * ‹ title › with a "jump to today" button — the day stepper, the week's and the month's ([PageStepper]).
- *
- * The title takes the space the arrows leave and shrinks to fit before it ellipsizes: «Понедельник, 21
- * сентября» lost its month to an ellipsis on a 6.1" phone at the default font size. Its floor is in **dp**,
- * like the bar title's and the tab labels': the font scale is already in the size it starts from, and an sp
- * floor rose with it and left the day nothing to shrink into at 1.3×.
- */
 @Composable
 internal fun PageNavigator(
     title: String,
@@ -137,27 +129,13 @@ internal fun PageNavigator(
     }
 }
 
-/**
- * The smallest a page title is drawn, on screen, before it ellipsizes — `labelSmall`'s size at the default
- * scale, the app's smallest text. What it takes for «Понедельник, 30 сентября» to fit a 320dp phone beside
- * three icon buttons; pinned by `PageTitleFitTest`.
- */
 private val NavigatorTitleMinSize = 11.dp
 
-/**
- * Names the day the list below belongs to, since the calendar's title is the month. The week agenda's
- * heading for the selected day, exactly — the same day named two ways on two views was two styles for
- * one fact.
- */
 @Composable
 internal fun SelectedDayHeader(date: LocalDate, summary: DaySummary) {
     DaySectionHeader(date = date, isSelected = true, summary = summary)
 }
 
-/**
- * Divides one day's classes from the next in the week agenda. The selected day is tinted so the
- * strip's selection stays traceable in the list below it.
- */
 @Composable
 internal fun DaySectionHeader(date: LocalDate, isSelected: Boolean, summary: DaySummary) {
     Column(
@@ -178,20 +156,6 @@ internal fun DaySectionHeader(date: LocalDate, isSelected: Boolean, summary: Day
     }
 }
 
-/**
- * What the day comes to: «4 занятия · 5 ч · 240 BYN».
- *
- * The screen listed a day's lessons and left the tutor to add them up — including the money, which is
- * what the app is for. It goes wherever a day is *named*: under the stepper in the day view, under the
- * selected-day heading in the month view, and on each heading of the week agenda. One rule, no
- * exceptions to remember.
- *
- * The arithmetic is [DaySummary]'s and the **wording is [daySummaryText]'s** — shared with the morning
- * digest, which summarises the same day into the notification tray. Two copies of this sentence could
- * add one day up two ways, and both numbers would look right. A **cancelled** lesson is named apart
- * rather than folded in: it counts towards nothing, and a day of four lessons and one cancellation must
- * not read as five.
- */
 @Composable
 internal fun DaySummaryLine(summary: DaySummary, modifier: Modifier = Modifier) {
     // Null is "nothing to say about this day" — the empty state below already says it at length, and a
@@ -210,16 +174,6 @@ internal fun DaySummaryLine(summary: DaySummary, modifier: Modifier = Modifier) 
     )
 }
 
-/**
- * The hairline that says **where now is** in today's list.
- *
- * A day is a column of times with nothing marking which of them have been — so the next lesson, the one
- * row the tutor can still act on, has to be found by reading the clock and then reading the list. The
- * mark is drawn only on today ([NowMarker] decides, not this) and it moves as the clock does.
- *
- * A dot and a rule in the brand colour, with the word: a bare tinted line among lesson cards would read
- * as a divider, and the label is also the only part of this a screen reader can announce.
- */
 @Composable
 internal fun NowLine(modifier: Modifier = Modifier) {
     Row(
@@ -244,5 +198,4 @@ internal fun NowLine(modifier: Modifier = Modifier) {
     }
 }
 
-/** The mark's dot: a measurement of a drawn shape, not a gap — see `Spacing`. */
 private val NowDotSize = 6.dp

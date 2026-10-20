@@ -24,7 +24,6 @@ class PhoneTest {
         assertEquals("", Phone.stored("   "))
     }
 
-    /** A card built from a row an earlier build saved as «+375» has no number to offer. */
     @Test
     fun `a prefix-only phone already kept is not a contact`() {
         assertNull(Phone.contactOf("+375"))

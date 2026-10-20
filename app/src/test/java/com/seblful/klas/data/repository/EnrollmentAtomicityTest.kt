@@ -15,17 +15,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.time.Instant
 
-/**
- * The other two invariant owners write in **one transaction** each, for the same reason
- * `ClassRepository` does: what they hold together spans several tables.
- *
- * `ClassRepository` was made transactional first because a torn *lesson* is the loudest version of the
- * problem, but it was never the only one. `EnrollmentRepository` exists to keep a subject link and its
- * price in step across three tables, and `GroupRepository.save` is the only writer of membership — for
- * both, a write that stopped halfway would break precisely the invariant the class was written to
- * hold. So what is asserted is the transaction *count*, that a failed write reports itself as a failure
- * rather than a success, and that it left nothing behind — the database rolls it back, as a phone's would.
- */
 @RunWith(RobolectricTestRunner::class)
 class EnrollmentAtomicityTest {
 
@@ -46,8 +35,6 @@ class EnrollmentAtomicityTest {
         }
     }
 
-    // --- Enrollment: a link, a price and a log entry ---------------------------------------------
-
     @Test
     fun `enrolling links the subject and prices it in one transaction`() = runTest {
         val f = Fixture()
@@ -61,11 +48,6 @@ class EnrollmentAtomicityTest {
         assertEquals("nothing left open", 0, f.env.transactor.depth)
     }
 
-    /**
-     * The widest of them: three subjects arriving, one leaving, each touching all three tables. This
-     * is the save the add-student form makes, and the one where "stopped halfway" would leave the
-     * tutor with a student taking a subject at no price and no way to tell which.
-     */
     @Test
     fun `replacing a student's enrollments wholesale is a single transaction`() = runTest {
         val f = Fixture()
@@ -110,17 +92,11 @@ class EnrollmentAtomicityTest {
         assertEquals(emptyList<Any>(), f.env.stored().rateHistory)
     }
 
-    /**
-     * A refusal is not a rolled-back write — it is a decision made before any write. The count check
-     * is what says the guard still sits outside the transaction, so refusing costs nothing.
-     */
     @Test
     fun `a refused un-enrollment opens no transaction at all`() = runTest {
         val f = Fixture()
         f.seed()
         f.env.enrollmentRepo.enroll(f.ivan, f.algebra, Money.ofMajor(30))
-        // Booked and completed the way the app does it, so the class this guard refuses over is one
-        // the app could actually have produced.
         f.env.fixtures.completedLesson(
             subjectId = f.algebra,
             students = listOf(f.ivan),
@@ -150,8 +126,6 @@ class EnrollmentAtomicityTest {
         assertEquals("no price without its link", emptyList<Any>(), stored.prices)
     }
 
-    // --- Groups: the row, its rate log and the whole roster --------------------------------------
-
     @Test
     fun `saving a group writes it with its roster in one transaction`() = runTest {
         val f = Fixture()
@@ -167,11 +141,6 @@ class EnrollmentAtomicityTest {
         assertEquals(setOf(ann, bob), f.env.groupDao.getMemberIds(id).toSet())
     }
 
-    /**
-     * The case the transaction is really for: an edit that both adds and removes members. Half of it
-     * landing is a roster the tutor never asked for, and it is the roster that decides who a lesson
-     * bills.
-     */
     @Test
     fun `re-staffing a group adds and removes members in the same transaction`() = runTest {
         val f = Fixture()

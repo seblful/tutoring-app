@@ -14,25 +14,6 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import kotlin.time.Instant
 
-/**
- * Seeds a test's starting state in the vocabulary the app uses — a student, a lesson, a group with a
- * roster — by going through the **repositories**.
- *
- * Tests used to seed by writing entities straight to the DAOs. Two things followed from that.
- *
- * The first is that the invariant each repository exists to hold was skipped on the way in, so a test
- * could set up a state the app cannot reach and then assert something about it. The second is that
- * every test built the rows itself, and they disagreed. "A completed class" existed in three versions:
- * one set `chargeMinor` and left `priceMinor` at zero, one hard-coded `priceMinor = 20` regardless of
- * the charge it was passed, and one set `priceMinor` and omitted `chargeMinor` entirely. All three
- * passed, because each asserted only the field it had remembered to fill in.
- *
- * Here a completed lesson is booked and then completed, exactly as the app does it, so its charge is
- * whatever `ClassRules` says it is rather than whatever the test thought to type.
- *
- * Reach for [TestEnv]'s DAOs directly only to construct something the repositories deliberately
- * refuse — a malformed row on a read path, say. That is a real need, and it should look unusual.
- */
 class Fixtures(private val env: TestEnv) {
 
     /** A student, with an optional email so the calendar's guest handling can be driven. */
@@ -160,10 +141,6 @@ class Fixtures(private val env: TestEnv) {
         calendarEventId: String? = null,
         lessonId: Long = 0,
     ): Long {
-        // Which rows are one lesson, the flat shape's own way: a group's members share a `(groupId,
-        // startMillis)` pair. That was the *only* answer before the lesson had a row, so a call describing
-        // a second member of an already-seeded group lesson means to join it rather than to hold the same
-        // hour twice. An individual class is always its own lesson.
         val existing = lessonId.takeIf { it != 0L }
             ?: groupId?.let { g ->
                 env.stored().lessons
@@ -180,14 +157,11 @@ class Fixtures(private val env: TestEnv) {
                 mode = mode,
             ),
         )
-        // Joining an existing lesson is an update, which `@Upsert` answers with -1 rather than the id.
         val lesson = upsertedId(lessonRow, current = existing ?: 0)
         return env.attendanceDao.upsert(
             AttendanceEntity(
                 lessonId = lesson,
                 studentId = studentId,
-                // The attendance a status implies, so a test that only cares about the status does not
-                // have to know about attendance at all — and the pair still bills what it should.
                 state = state ?: if (status == LessonStatus.COMPLETED) {
                     Attended.PRESENT
                 } else {

@@ -17,8 +17,6 @@ class ClassRulesTest {
         start = Instant.parse("2026-06-18T10:00:00Z"), durationMinutes = 60,
     )
 
-    // --- Auto-completion ---
-
     @Test
     fun `class auto-completes once its end time passes`() {
         val justBeforeEnd = Instant.parse("2026-06-18T10:59:59Z")
@@ -38,8 +36,6 @@ class ClassRulesTest {
         val cancelled = scheduled.copy(status = LessonStatus.CANCELLED)
         assertFalse(ClassRules.shouldAutoComplete(cancelled, Instant.parse("2026-06-19T00:00:00Z")))
     }
-
-    // --- Billing on status change ---
 
     private val priced = scheduled.copy(price = Money.ofMajor(50))
 
@@ -216,8 +212,6 @@ class ClassRulesTest {
 
     @Test
     fun `rebill re-attributes a completed class's charge when its owner changes`() {
-        // Editing a completed class to a new student and subject derives the charge from the current
-        // price rather than carrying the old snapshot — so income credits the new owner correctly.
         val completed = ClassRules.applyStatus(priced, LessonStatus.COMPLETED)
         val reassigned = completed.copy(studentId = 2, subjectId = 99, price = Money.ofMajor(40))
         val rebilled = ClassRules.rebill(reassigned)
@@ -233,11 +227,8 @@ class ClassRulesTest {
         assertEquals(Money.ZERO, ClassRules.rebill(completed.copy(status = LessonStatus.CANCELLED)).charge)
     }
 
-    // --- edit: applies field changes and resolves status + charge in one step ---
-
     @Test
     fun `edit re-bills a completed class kept in the past from its new price and duration`() {
-        // Completed at 50/h for 60 min (charge 50), then re-attributed and re-priced to 30/h for 90 min.
         val completed = ClassRules.applyStatus(priced, LessonStatus.COMPLETED)
         val now = Instant.parse("2026-06-30T00:00:00Z")
         val pastStart = Instant.parse("2026-06-25T10:00:00Z")
@@ -269,17 +260,16 @@ class ClassRulesTest {
 
     @Test
     fun `edit equals move then rebill`() {
-        // edit is exactly rebill(move(...)) with the field changes applied first — the obligation
-        // the two callers used to chain by hand, now bundled so it can't be forgotten.
         val now = Instant.parse("2026-06-19T00:00:00Z")
         val start = Instant.parse("2026-06-25T10:00:00Z")
-        val changes = ClassEdit(studentId = 3, subjectId = 7, durationMinutes = 45, price = Money.ofMajor(40), mode = priced.mode)
+        val changes =
+            ClassEdit(studentId = 3, subjectId = 7, durationMinutes = 45, price = Money.ofMajor(40), mode = priced.mode)
         val viaEdit = ClassRules.edit(priced, changes, start, now)
         val byHand = ClassRules.rebill(
             ClassRules.move(
                 priced.copy(studentId = 3, subjectId = 7, durationMinutes = 45, price = Money.ofMajor(40)),
                 start, now,
-            )
+            ),
         )
         assertEquals(byHand, viaEdit)
     }

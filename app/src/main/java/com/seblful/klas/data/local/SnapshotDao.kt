@@ -107,7 +107,6 @@ abstract class SnapshotDao {
         insertHomework(snapshot.homework)
     }
 
-    /** Empties every table, **children before parents**, so no foreign key is ever left dangling. */
     private suspend fun clear() {
         clearHomework()
         clearPayments()

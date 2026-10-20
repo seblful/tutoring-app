@@ -22,24 +22,11 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.math.abs
 
-/**
- * The two lesson-kind icons stand side by side down every list of lessons, so they have to read as one
- * pair: same colour, same size. Neither followed from merely asking for both. `Person` fills 16 of its
- * 24-unit viewport vertically and `Groups` only 12, so at one nominal size the person came out a third
- * taller — 40px against 30px — and the individual icon was additionally tinted grey against the group's
- * brand colour, which made the pair read as a ranking rather than as two kinds.
- *
- * Measured off the drawn pixels, not the declared modifiers: the declared size is precisely what was
- * already equal while the icons plainly were not. The two icons are drawn in **one** composition and
- * read out of **one** capture — a screenshot costs a round trip to the host window, and doing it twice
- * per test made this flaky when the activity went away between the two.
- */
 class LessonKindIconTest {
 
     @get:Rule
     val composeRule = createComposeRule()
 
-    /** What was actually painted for one kind: the glyph's bounding box, and the colour of its body. */
     private data class Ink(val width: Int, val height: Int, val color: Color)
 
     private var primary: Color = Color.Unspecified
@@ -49,8 +36,6 @@ class LessonKindIconTest {
         composeRule.setContent {
             KlasTheme {
                 primary = MaterialTheme.colorScheme.primary
-                // White behind them so "not the background" is a sound test for "ink", and a gap wider
-                // than either glyph so the two never merge into one band of rows.
                 Column(
                     Modifier.background(Color.White).padding(Gap.dp),
                     verticalArrangement = Arrangement.spacedBy(Gap.dp),
@@ -64,7 +49,6 @@ class LessonKindIconTest {
         val (individual, group) = inkPerKind()
 
         assertTrue("nothing was drawn: $individual, $group", individual.height > 8 && group.height > 8)
-        // A pixel either way is antialiasing, not a difference in size.
         assertTrue(
             "the person glyph is ${individual.height}px tall and the group glyph ${group.height}px — " +
                 "they are not drawn to the same size",
@@ -74,15 +58,6 @@ class LessonKindIconTest {
         assertSameColor("the icons are not the brand colour", primary, individual.color)
     }
 
-    /**
-     * The glyphs in the order [LessonKind.entries] drew them, read out of a single screenshot: rows
-     * holding any ink, grouped into one band per icon.
-     *
-     * A glyph is not one unbroken run of rows — `Person` leaves clear pixels between the head and the
-     * shoulders, and would otherwise count as two icons. So runs closer together than half the gap the
-     * column puts between the icons belong to the same glyph, which is the whole point of making that gap
-     * wider than either of them.
-     */
     private fun inkPerKind(): List<Ink> {
         val pixels = composeRule.onRoot().captureToImage().toPixelMap()
         val inked = { x: Int, y: Int -> distanceFromBackground(pixels[x, y]) > BackgroundTolerance }
@@ -135,10 +110,6 @@ class LessonKindIconTest {
                 counts[color] = (counts[color] ?: 0) + 1
             }
         }
-        // Whichever colour sits furthest from the background is the glyph's body; every value between it
-        // and the background is the antialiased rim, which is more numerous than any single body shade
-        // and so would win a plain vote. Relative rather than a fixed threshold, because the tint is
-        // light on a dark theme and dark on a light one.
         val body = counts.keys.maxOf { distanceFromBackground(it) }
         return Ink(
             width = right - left + 1,
@@ -151,7 +122,6 @@ class LessonKindIconTest {
         )
     }
 
-    /** Equal to within one step of 8-bit colour, which is all a round trip through a bitmap promises. */
     private fun assertSameColor(message: String, expected: Color, actual: Color) {
         listOf(
             "red" to (expected.red to actual.red),

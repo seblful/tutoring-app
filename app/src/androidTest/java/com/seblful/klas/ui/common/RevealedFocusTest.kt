@@ -22,26 +22,13 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
-/**
- * **One tap.** A field that is revealed by tapping is focused by that same tap.
- *
- * The subject is `rememberRevealedFocus`, exercised through the wiring the booking form's price uses: a
- * [PickerField] that swaps itself for a text field. That form's own price took two taps — one to unfold
- * the field, one to put the cursor in it — for an input that exists to be typed into, and the fix is
- * only worth anything if a *keystroke* lands after the first tap, which is what is asserted here rather
- * than the focus flag alone.
- *
- * A device test because focus and the soft keyboard are the platform's, not Compose's.
- */
 class RevealedFocusTest {
 
     @get:Rule
     val rule = createComposeRule()
 
-    /** What has been typed into the revealed field. */
     private var typed = ""
 
-    /** The booking form's fold, reduced to the part under test. */
     @Composable
     private fun FoldedPrice() {
         var revealed by remember { mutableStateOf(false) }

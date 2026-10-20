@@ -20,19 +20,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
-/**
- * **A list whose content is swapped draws the new content on the next frame, and nothing of the old.**
- *
- * The schedule's glitch, at its smallest: with Compose's default `animateItem()`, a row leaving a lazy list
- * keeps drawing at its last place while it fades out, and the row taking that place fades in under it — so
- * a day tap printed one day's names over the next for a quarter of a second, and a view switch laid the
- * departing lesson cards across the month grid. [animateInPlace] takes the fades away.
- *
- * Asserted on **pixels**, on a paused frame clock, because that is where the ghost lives: a departing row
- * is no longer in the semantics tree while it is still being drawn, so a node assertion passes either way.
- * Each page is one solid colour; one frame after the swap, the first row must be the new page's colour
- * exactly — not the old one fading over it.
- */
 class ItemMotionTest {
 
     @get:Rule

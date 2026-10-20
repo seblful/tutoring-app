@@ -12,12 +12,9 @@ trim_trailing_whitespace = true
 trim_trailing_whitespace = false
 
 [*.{kt,kts}]
-# Kotlin's own coding conventions — what `kotlin.code.style=official` makes the IDE formatter produce —
-# rather than ktlint_official, which would rewrite signatures, chains and blank lines the whole codebase
-# already agrees on.
+# Match the existing Kotlin formatting; ktlint_official would reflow established signatures and chains.
 ktlint_code_style = intellij_idea
-# The code is written to about 110 columns (KDoc wraps there); 120 leaves room for a long call without
-# turning the limit into a reflow of every comment.
+# Keep room for long calls without reflowing KDoc.
 max_line_length = 120
 # Composables are nouns in PascalCase (`StudentCard`), not verbs in camelCase.
 ktlint_function_naming_ignore_when_annotated_with = Composable
@@ -34,7 +31,7 @@ ktlint_standard_class-signature = disabled
 # `onClick = { close(); onCall(phone) }`: short multi-statement lambdas stay on one line.
 ktlint_standard_statement-wrapping = disabled
 # A two-branch `if` used as an expression wraps without braces; `when` branches are not padded with
-# blank lines; adjacent one-line declarations (Hilt @Provides, KDoc'd fields) are not either.
+# Do not require blank lines around adjacent commented or annotated declarations.
 ktlint_standard_multiline-if-else = disabled
 ktlint_standard_blank-line-between-when-conditions = disabled
 ktlint_standard_spacing-between-declarations-with-comments = disabled

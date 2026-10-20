@@ -4,14 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/**
- * Which calendar a lesson is mirrored into, and what an event's guest list owes the student.
- *
- * Both were private to `DeviceCalendarSync` — 200 lines of `ContentResolver` with no test in either
- * source set — and the first of them has already shipped wrong: demanding OWNER matched nothing on
- * devices that report a synced Google calendar as EDITOR or CONTRIBUTOR, so every event those phones
- * thought they mirrored silently no-opped.
- */
 class CalendarChoiceTest {
 
     private fun row(
@@ -26,7 +18,6 @@ class CalendarChoiceTest {
         assertNull(CalendarChoice.preferred(emptyList()))
     }
 
-    /** The whole of the shipped bug: a contributor-level calendar is writable and must be found. */
     @Test
     fun `a contributor calendar is writable`() {
         assertEquals(7L, CalendarChoice.preferred(listOf(row(7, access = CalendarChoice.MIN_ACCESS_LEVEL))))
@@ -121,7 +112,6 @@ class GuestActionTest {
         )
     }
 
-    /** Turning invites off withdraws what was already sent — see [Guest]. */
     @Test
     fun `an uninvited student already on the event is removed`() {
         assertEquals(
@@ -138,10 +128,6 @@ class GuestActionTest {
         )
     }
 
-    /**
-     * The property that keeps a re-sync from clearing the tutor's own calendar: no answer here ever
-     * names an address other than the student's.
-     */
     @Test
     fun `guests the tutor added are never named by any answer`() {
         val others = listOf(tutorsOwnGuest, "mama@example.com")

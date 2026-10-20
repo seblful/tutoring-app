@@ -13,16 +13,6 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.time.Instant
 
-/**
- * **A new piece of homework opens on nothing.** Who it is for comes first, so the dialog used to be
- * wrong from its first frame: the caret in «Задание» and the keyboard up, asking for the homework before
- * the tutor had said whose it was, and covering the dialog while doing it. Nor is «Для кого» opened for
- * them — it is a tap away, and a menu over the dialog on arrival would be the same interruption.
- *
- * Correcting one is the other way round: who is settled, and the text is the thing being corrected.
- *
- * A device test because focus and the soft keyboard are the platform's, not Compose's.
- */
 class HomeworkDialogFocusTest {
 
     @get:Rule
@@ -46,7 +36,6 @@ class HomeworkDialogFocusTest {
         }
     }
 
-    /** «Задание» — a text field merges its label into its own node, so this finds the field. */
     private fun task() = rule.onNodeWithText(context.getString(R.string.homework_text_label))
 
     @Test
@@ -60,7 +49,6 @@ class HomeworkDialogFocusTest {
     fun aNewOneDoesNotOpenWhoItIsFor() {
         open()
 
-        // Nobody is preselected, so the names appear only in the open menu.
         rule.onNodeWithText(ann.name).assertDoesNotExist()
         rule.onNodeWithText(group.name).assertDoesNotExist()
     }

@@ -26,12 +26,6 @@ import dev.zacsweers.metro.Provides
 import kotlinx.datetime.DayOfWeek
 import java.util.Locale
 
-/**
- * The production graph for [StoreScreenshots], less what a screenshot cannot use: the device clock and the
- * phone's locale and week ([TimeModule], [LocaleModule]), WorkManager ([WorkScheduler]) and the device
- * calendar. Each is handed to the factory instead; everything else — the database, the repositories, every
- * view model — is the app's own.
- */
 @DependencyGraph(
     AppScope::class,
     excludes = [
@@ -65,7 +59,6 @@ internal interface StoreGraph : AppGraph {
     }
 }
 
-/** What the store screenshots run as: an application whose graph the test builds once it knows the tutor. */
 class StoreApp : Application(), AppGraph.Holder {
     override lateinit var graph: AppGraph
 }

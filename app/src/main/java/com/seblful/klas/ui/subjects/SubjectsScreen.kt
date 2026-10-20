@@ -190,9 +190,4 @@ fun SubjectNameDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit, renami
     )
 }
 
-/**
- * A subject's card — a name beside a pair of 48 dp icon buttons, 12 dp in from its top and bottom — which
- * is what the skeleton stands in for. It said 56, a `ListItem`'s, from before the rows were cards, and the
- * list jumped when the subjects arrived.
- */
 private val SubjectRowHeight = 72.dp

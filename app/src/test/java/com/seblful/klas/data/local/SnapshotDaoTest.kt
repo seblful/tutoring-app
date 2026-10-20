@@ -11,15 +11,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.time.Instant
 
-/**
- * What `replace` means — because the word is the whole guarantee a restore rests on.
- *
- * The instrumented round-trip proves an import into an **empty** database reproduces the file. That is
- * the easy direction, and it is silent about the one that can go wrong: restoring onto a phone that
- * already has data. If `replace` only inserted, the tutor would be left holding two databases at once —
- * every subject twice, or a primary-key collision, depending on the ids in the file. Nothing in the
- * suite noticed the wipe missing, so this is here to.
- */
 @RunWith(RobolectricTestRunner::class)
 class SnapshotDaoTest {
 
@@ -39,8 +30,6 @@ class SnapshotDaoTest {
 
     @Test
     fun `replace throws away what was there rather than merging into it`() = runTest {
-        // Taken from a different database entirely: same shape, none of the same rows — but the same
-        // ids, so a `replace` that merged would collide on every primary key rather than pass quietly.
         val taken = TestEnv().use { other ->
             seedALesson("Алгебра", "Аня", into = other)
             other.snapshotDao.read()
@@ -56,7 +45,6 @@ class SnapshotDaoTest {
         assertEquals(1, after.attendance.size)
     }
 
-    /** And a table the snapshot has nothing for comes back empty, not left as it was. */
     @Test
     fun `replace empties a table the snapshot has no rows for`() = runTest {
         seedALesson("Алгебра", "Аня")
@@ -72,7 +60,6 @@ class SnapshotDaoTest {
         assertEquals(emptyList<RateChangeEntity>(), after.rateHistory)
     }
 
-    /** [SnapshotDao.read] reports every table, so nothing is quietly left out of a backup. */
     @Test
     fun `read carries every table the snapshot names`() = runTest {
         val subjectId = env.fixtures.subject("Алгебра")

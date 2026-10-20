@@ -24,10 +24,6 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * The upkeep pass, driven without WorkManager. Before [Maintenance] existed these decisions sat in
- * `MaintenanceWorker.doWork` and could only run on a device, so none of them had a test.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class MaintenanceTest {
@@ -39,14 +35,8 @@ class MaintenanceTest {
     val env = TestEnv()
     private val now: Instant = Instant.parse("2026-06-15T12:00:00Z")
 
-    /** The environment's own — the same instance the settings screen's switch runs. */
     private fun maintenance() = env.maintenance
 
-    /**
-     * One lesson, booked through the repository — so its price and charge are what the app would have
-     * written, not what this test remembered to fill in. It used to set `priceMinor` and omit
-     * `chargeMinor`, one of three disagreeing hand-built versions of the same row (see [Fixtures]).
-     */
     private suspend fun seedClass(start: Instant, status: LessonStatus = LessonStatus.SCHEDULED): Long {
         val subjectId = env.fixtures.subject("Математика")
         val studentId = env.fixtures.pricedStudent(subjectId = subjectId, rate = Money.ofMajor(30))
@@ -68,7 +58,6 @@ class MaintenanceTest {
     @Test
     fun `leaves a finished class alone when auto-complete is off`() = runTest(mainRule.dispatcher) {
         val id = seedClass(now.minus(7200.seconds))
-        // Off is the default; state it anyway, since this is the whole point of the test.
         env.settingsRepo.update { it.copy(autoCompleteEnabled = false) }
 
         maintenance().run(now)
@@ -101,8 +90,6 @@ class MaintenanceTest {
     @Test
     fun `a class auto-completed in this same pass is not then given a reminder`() =
         runTest(mainRule.dispatcher) {
-            // Ends in the past, so it auto-completes; a completed lesson is never announced. This
-            // pins the ordering inside run(): complete first, then derive the plan.
             seedClass(now.minus(7200.seconds))
             env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
 
@@ -111,16 +98,6 @@ class MaintenanceTest {
             assertTrue(env.reminders.armed.isEmpty())
         }
 
-    /**
-     * The horizon is where the plan stops, and it is now also where the **query** stops: `run` asks
-     * the repository for the classes starting within it instead of reading every class ever taught.
-     *
-     * The two bounds disagree by one millisecond on purpose — `ClassDao.getBetween` excludes its upper
-     * bound while `Reminders.plan` keeps a lesson starting exactly on the horizon — so this is the case
-     * that fails if the compensation in `ClassRepository.notEndedWithin` is ever tidied away. It fails
-     * the quiet way, too: the lesson simply never gets a reminder, which is indistinguishable from
-     * there being no lesson.
-     */
     @Test
     fun `a lesson exactly on the horizon still earns a reminder`() = runTest(mainRule.dispatcher) {
         val id = seedClass(now.plus(Reminders.DEFAULT_HORIZON))
@@ -130,11 +107,6 @@ class MaintenanceTest {
         assertEquals(listOf(id), env.reminders.armed.map { it.classId })
     }
 
-    /**
-     * A lesson in progress keeps its reminder owed through a pass, so an inexact alarm Doze has held past
-     * the start is left to fire. The plan said so all along; the window the pass fetched began at `now`,
-     * so the running lesson never reached the plan and its alarm was withdrawn at the first pass.
-     */
     @Test
     fun `a lesson in progress stays owed through a pass`() = runTest(mainRule.dispatcher) {
         val id = seedClass(now.minus(600.seconds))
@@ -153,12 +125,6 @@ class MaintenanceTest {
         assertTrue(env.reminders.armed.isEmpty())
     }
 
-    // --- What a pass did, and what one would do -----------------------------------------------------
-    //
-    // Both counts exist for the settings switch: it asks the tutor about the backlog before turning
-    // auto-completion on, and reports what it settled afterwards. Both are in **lessons**, because that
-    // is what the tutor is being asked about — an evening's group lesson is one hour to confirm.
-
     @Test
     fun `a pass reports how many lessons it settled`() = runTest(mainRule.dispatcher) {
         seedClass(now.minus(7200.seconds))
@@ -169,11 +135,6 @@ class MaintenanceTest {
         assertEquals(2, maintenance().run(now).lessons)
     }
 
-    /**
-     * The count the switch reports is lessons, not billed classes. A group of three finishing an hour
-     * is **one** «Завершено 1 занятие» — reporting three would name a number the tutor cannot find
-     * anywhere in their schedule.
-     */
     @Test
     fun `a group lesson counts once, however many it billed`() = runTest(mainRule.dispatcher) {
         val subjectId = env.fixtures.subject("Математика")
@@ -187,10 +148,6 @@ class MaintenanceTest {
         assertEquals("billed to all three of them", 3, session.size)
     }
 
-    /**
-     * What a pass reports as billed is what it **billed** (`Billing.charged`), not every charge it
-     * touched: a member excused before the hour was over is completed with the rest and owes nothing.
-     */
     @Test
     fun `what a pass billed leaves out a member excused from the lesson`() = runTest(mainRule.dispatcher) {
         val subjectId = env.fixtures.subject("Математика")
@@ -206,15 +163,9 @@ class MaintenanceTest {
     @Test
     fun `a pass that settles nothing reports nothing`() = runTest(mainRule.dispatcher) {
         seedClass(now.minus(7200.seconds))
-        // The setting is off, so the finished lesson is left for the tutor to confirm by hand.
         assertEquals(0, maintenance().run(now).lessons)
     }
 
-    /**
-     * The backlog is counted **regardless of the setting** — that is the whole point of it. It is what
-     * the settings screen puts to the tutor *before* switching auto-completion on, at which moment the
-     * setting is by definition still off.
-     */
     @Test
     fun `the backlog is countable while auto-completion is still off`() = runTest(mainRule.dispatcher) {
         seedClass(now.minus(7200.seconds))
@@ -225,13 +176,6 @@ class MaintenanceTest {
         assertEquals("and counting it settled nothing", 0, maintenance().run(now).lessons)
     }
 
-    // --- Who the pass reports to --------------------------------------------------------------------
-    //
-    // Completing a lesson **bills** it, so a pass that settles anything has moved the tutor's income.
-    // Which pass says so is decided by who asked for it: the switch reports through the screen the tutor
-    // is standing in front of, and the pass that runs at four in the afternoon with the app closed had
-    // nothing to report to at all — so it recognised income in silence.
-
     @Test
     fun `an unwatched pass says what it billed`() = runTest(mainRule.dispatcher) {
         seedClass(now.minus(7200.seconds))
@@ -240,18 +184,12 @@ class MaintenanceTest {
 
         maintenance().runUnwatched(now)
 
-        // Two hours at 30, and the count is in lessons; 12:00Z is 15:00 in Minsk, the same day.
         assertEquals(
             listOf(RecordingNotifier.AutoCompleted(2, Money.ofMajor(60), LocalDate(2026, 6, 15))),
             env.notifier.autoCompleted,
         )
     }
 
-    /**
-     * The report opens the schedule on a day, and a backlog spans several — a phone that was off since
-     * Friday settles Friday's lessons and Sunday's in one pass. The latest is the one the tutor still
-     * remembers teaching, and the one a tap should show.
-     */
     @Test
     fun `an unwatched pass names the latest day it settled`() = runTest(mainRule.dispatcher) {
         seedClass(now.minus(3.days))
@@ -263,21 +201,14 @@ class MaintenanceTest {
         assertEquals(LocalDate(2026, 6, 14), env.notifier.autoCompleted.single().day)
     }
 
-    /** Nothing settled, nothing to announce — a notification whose content is "no news". */
     @Test
     fun `an unwatched pass that settles nothing stays quiet`() = runTest(mainRule.dispatcher) {
         seedClass(now.minus(7200.seconds))
-        // The setting is off, so nothing is completed and nothing was billed.
         maintenance().runUnwatched(now)
 
         assertTrue(env.notifier.autoCompleted.isEmpty())
     }
 
-    /**
-     * The pass the tutor **asked for** must not also post. It reports through `SettingsViewModel.swept`,
-     * in the snackbar under the switch they just flipped; announcing it in the tray as well would be the
-     * app telling them something they had just been told.
-     */
     @Test
     fun `a watched pass reports to the screen and not to the tray`() = runTest(mainRule.dispatcher) {
         seedClass(now.minus(7200.seconds))
@@ -289,13 +220,6 @@ class MaintenanceTest {
         assertTrue("nothing posted", env.notifier.autoCompleted.isEmpty())
     }
 
-    // --- The digests are re-planned by the same pass -------------------------------------------------
-
-    /**
-     * Every trigger that re-derives the reminder plan re-plans the digests too, from the same settings
-     * read: an app start, a reboot, a periodic tick, a settings change. Otherwise a digest whose hour was
-     * changed while the app was closed would keep its old one until something happened to touch it.
-     */
     @Test
     fun `a pass plans the digests the tutor has switched on`() = runTest(mainRule.dispatcher) {
         env.settingsRepo.update {
@@ -311,13 +235,10 @@ class MaintenanceTest {
         maintenance().run(now)
 
         val planned = env.digestScheduler.planned
-        // `now` is Monday 15 June 2026, 12:00 UTC — 15:00 in Europe/Minsk, so nine has gone for today and
-        // for this Monday. Both roll forward rather than firing immediately.
         assertEquals(Instant.parse("2026-06-16T06:00:00Z"), planned.agendaAt)
         assertEquals(Instant.parse("2026-06-22T06:00:00Z"), planned.debtsAt)
     }
 
-    /** A digest switched off is planned for nothing, which is what cancels work already enqueued. */
     @Test
     fun `a pass plans nothing for a digest that is off`() = runTest(mainRule.dispatcher) {
         maintenance().run(now)
@@ -330,15 +251,11 @@ class MaintenanceTest {
 
     @Test
     fun `the lead time comes from settings`() = runTest(mainRule.dispatcher) {
-        // 90 minutes ahead: inside a 120-minute lead (so it is already too late to announce) but
-        // outside the default 60-minute one.
         val id = seedClass(now.plus((90 * 60).seconds))
         env.settingsRepo.update { it.copy(reminderLeadMinutes = 120) }
 
         maintenance().run(now)
 
-        // The tutor's own lead puts the moment half an hour behind us, so there is nothing left to arm —
-        // and the lesson comes back *owed* rather than dropped, so an alarm already set for it stays put.
         val planned = env.reminders.armed.single()
         assertEquals(id, planned.classId)
         assertTrue("its lead moment has already passed", planned.due)

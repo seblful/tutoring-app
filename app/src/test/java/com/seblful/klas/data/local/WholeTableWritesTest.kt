@@ -5,23 +5,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * **Emptying a table happens in one file.** `SnapshotDao` is that file.
- *
- * Backup and restore need what nothing else does: whole tables, ids preserved, no rule applied. Those
- * 25 methods used to live on the same eight DAOs the repositories use, so every repository that was
- * handed a DAO to hold an invariant with was also handed the `deleteAll()` that voids it. Nothing but
- * the *type* of the injected parameter stood between `SubjectRepository` and an empty subjects table —
- * no calendar events withdrawn, no reminders re-planned, no foreign key considered.
- *
- * The split is the fix; this is what keeps it split. A wipe added back to `Daos.kt` is invisible in
- * review — it is two lines that look like every other query — and it silently widens the surface again.
- * Room's own annotations are not retained at runtime, so the source is read, exactly as
- * `StoredEnumNamesTest` reads it for the status literals.
- */
 class WholeTableWritesTest {
 
-    /** `DELETE FROM x` with no `WHERE` — every row in the table, whatever it was. */
     private val unqualifiedDelete = Regex("""DELETE FROM (\w+)\s*"""")
 
     @Test

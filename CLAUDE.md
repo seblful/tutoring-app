@@ -22,6 +22,10 @@ Before executing, raise a concern if the request:
 
 State the concern in one sentence, name the specific tension, then proceed or ask — don't lecture. If the user confirms anyway, comply and move on.
 
+### Comments and KDoc
+
+Document non-obvious contracts, boundaries, platform behavior, and workarounds in the fewest words. Prefer clear names and tests over narration. Remove stale explanations and refactor history; keep rationale that guides future decisions.
+
 ### 3. Goal-Driven Execution
 
 **Define success criteria. Loop until verified.**

@@ -29,18 +29,6 @@ import java.util.Locale
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * The tutor the store screenshots show: half a year of teaching, told once and spoken in either language.
- *
- * **Everything is fiction and has to look like a working week.** A store screenshot of an empty app sells
- * nothing, and one of `Student 1 … Student 5` reads as a mock-up — so the names, subjects, prices and
- * homework are what a tutor in each market would actually type, and the history is long enough for
- * the reports to have a trend. The week is the same in both languages (same days, hours, who owes and
- * who is in credit), so the two listings show one app, not two.
- *
- * The clock stops on a Wednesday afternoon ([NOW]), mid-lesson, so the schedule opens on a full day with
- * a lesson «on now» between the taught ones and the planned ones.
- */
 internal data class DemoTutor(
     val language: AppLanguage,
     /** The phone the shots are taken on: its strings, its plural rules and its 12/24-hour clock. */
@@ -234,7 +222,6 @@ internal data class DemoTutor(
 
 internal enum class DemoSubject { MATH, PHYSICS, LANGUAGE }
 
-/** A weekly lesson: the day, the start time and how long it runs. */
 internal data class Slot(val day: DayOfWeek, val hour: Int, val minute: Int, val minutes: Int) {
     val time: LocalTime get() = LocalTime(hour, minute)
 
@@ -247,7 +234,6 @@ internal data class Slot(val day: DayOfWeek, val hour: Int, val minute: Int, val
         at.time.toSecondOfDay() < time.toSecondOfDay() + minutes * 60
 }
 
-/** What is taught every week from [from] on: the same lessons, on the same [slots], at the same [rate]. */
 internal sealed interface Weekly {
     val subject: DemoSubject
     val mode: ClassMode

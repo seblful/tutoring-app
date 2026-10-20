@@ -18,22 +18,11 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * When a digest fires — the whole of it, on the JVM.
- *
- * Every interesting case here is a boundary that on a device could only be reached by waiting: the chosen
- * minute having already gone today, the chosen weekday *being* today, a clock that springs forward over
- * the hour the tutor picked. That is the argument for the firing instant being computed in a pure function
- * rather than inside the worker that arms it.
- */
 class DigestsTest {
 
     private val minsk = TimeZone.of("Europe/Minsk")
 
-    /** Minsk is UTC+3 all year — no DST — so 09:00 local is 06:00 UTC. */
     private val nine = 9 * 60
-
-    // --- The daily one ------------------------------------------------------------------------------
 
     @Test
     fun `before the hour, the digest is today's`() {
@@ -52,11 +41,6 @@ class DigestsTest {
         )
     }
 
-    /**
-     * **Strictly** after, and this is the case that matters: the worker that has just fired at nine asks
-     * for the next one, and an inclusive comparison would hand back the instant it is standing on — so the
-     * digest would post again, and again, until the minute had passed.
-     */
     @Test
     fun `at the hour exactly, the next one is tomorrow`() {
         assertEquals(
@@ -65,11 +49,6 @@ class DigestsTest {
         )
     }
 
-    /**
-     * A wall-clock promise, not an elapsed-time one. Warsaw springs forward at 02:00 on 29 March 2026, so
-     * the day is 23 hours long — and a digest set for nine still lands at nine, 22 hours after the nine
-     * before it rather than 24.
-     */
     @Test
     fun `a day that loses an hour still gets its digest at the chosen time`() {
         val warsaw = TimeZone.of("Europe/Warsaw")
@@ -81,20 +60,9 @@ class DigestsTest {
             next.toLocalDateTime(warsaw).time,
             "nine in the morning, whatever that costs in elapsed hours",
         )
-        // CEST (+2) by then, so nine local is 07:00 UTC rather than 08:00.
         assertEquals(Instant.parse("2026-03-29T07:00:00Z"), next)
     }
 
-    /**
-     * A time inside the hour a spring-forward deletes cannot happen at all, and `java.time` resolves it by
-     * **shifting it forward by the length of the gap** — 02:30 becomes 03:30. The digest therefore lands an
-     * hour later than its stored minute on that one day a year, and on every other day at the minute
-     * asked for.
-     *
-     * What this test is really for is that it **resolves rather than throwing**: this runs on a background
-     * path where an exception reports nothing to anybody, so the alternative failure mode is the digest
-     * silently never happening again.
-     */
     @Test
     fun `a time inside a spring-forward gap resolves rather than throwing`() {
         val warsaw = TimeZone.of("Europe/Warsaw")
@@ -104,15 +72,8 @@ class DigestsTest {
         assertEquals(LocalTime(3, 30), next.toLocalDateTime(warsaw).time)
     }
 
-    // --- The weekly one -----------------------------------------------------------------------------
-
-    /**
-     * The chosen day being **today** is the ordinary case for half of every Monday, and jumping to next
-     * week would make switching the digest on that morning silently cost the tutor a week.
-     */
     @Test
     fun `the chosen day being today counts, if the hour is still ahead`() {
-        // Monday 15 June 2026, 05:00 UTC = 08:00 local.
         assertEquals(
             Instant.parse("2026-06-15T06:00:00Z"),
             Digests.nextWeekly(
@@ -153,7 +114,6 @@ class DigestsTest {
 
     @Test
     fun `a day already gone is next week's`() {
-        // Wednesday, asking about Monday.
         assertEquals(
             Instant.parse("2026-06-22T06:00:00Z"),
             Digests.nextWeekly(
@@ -164,12 +124,6 @@ class DigestsTest {
             ),
         )
     }
-
-    // --- Reading stored values ----------------------------------------------------------------------
-    //
-    // Both are total, for the reason every other read of stored state in this app is (`ClassStatus.parse`,
-    // `Currency.parse`): they run on a background path where a throw reports nothing to anybody, so an
-    // impossible value would make the digest quietly stop happening rather than say anything.
 
     @Test
     fun `a minute of day is read as a wall clock time`() {
@@ -193,8 +147,6 @@ class DigestsTest {
         assertEquals(DayOfWeek.MONDAY, Digests.dayOfWeekOf(8))
     }
 
-    // --- The plan -----------------------------------------------------------------------------------
-
     @Test
     fun `a switched-off digest is planned for nothing`() {
         val plan = Digests.plan(
@@ -214,16 +166,9 @@ class DigestsTest {
         assertEquals(null, plan.unfinishedAt, "and the same for the evening one")
     }
 
-    /**
-     * The evening digest is a second *daily* one, so it rolls forward exactly as the morning's does — and
-     * the two are planned from the same read, each at its own hour. Nine and nine is not the interesting
-     * case; nine and twenty-one is, because it is the one where passing the two minute values in each
-     * other's place would still produce a plausible-looking plan.
-     */
     @Test
     fun `the morning and evening digests are planned at their own hours`() {
         val plan = Digests.plan(
-            // 15:00 UTC = 18:00 in Minsk: the morning's has gone, the evening's has not.
             now = Instant.parse("2026-06-15T15:00:00Z"),
             zone = minsk,
             agendaEnabled = true,
@@ -239,17 +184,11 @@ class DigestsTest {
         assertEquals(Instant.parse("2026-06-15T18:00:00Z"), plan.unfinishedAt, "tonight at nine")
     }
 
-    // --- Whether a digest is worth sending ----------------------------------------------------------
-
     @Test
     fun `an empty day is not announced`() {
         assertFalse(Digests.Agenda(Day, DaySummary.NONE, lessons = emptyList()).isWorthPosting)
     }
 
-    /**
-     * A day whose only lesson was called off is **not** worth posting, though [DaySummary] counts it as
-     * non-empty. The digest's promise is what is on today, and the tutor is the one who cancelled it.
-     */
     @Test
     fun `a day of nothing but cancellations is not announced`() {
         val allOff = DaySummary(lessons = 0, minutes = 0, money = Money.ZERO, cancelled = 2)
@@ -264,10 +203,6 @@ class DigestsTest {
         assertTrue(Digests.Agenda(Day, oneOn, lessons = emptyList()).isWorthPosting)
     }
 
-    /**
-     * An evening with nothing left unmarked posts nothing — which is the ordinary evening for a tutor who
-     * marks lessons as they go, and the whole reason this is a nudge rather than a nightly report.
-     */
     @Test
     fun `an evening with nothing unmarked is not announced`() {
         assertFalse(Digests.Unfinished(Day, lessons = emptyList()).isWorthPosting)
@@ -293,8 +228,6 @@ class DigestsTest {
         assertTrue(Digests.Debts(students = 1, total = Money.ofMajor(30)).isWorthPosting)
     }
 
-    // --- What an adapter is handed: the delay, and whether to leave a due run alone ---
-
     @Test
     fun `the delay to a future instant is the distance to it`() {
         val now = Instant.parse("2026-09-01T06:00:00Z")
@@ -305,10 +238,6 @@ class DigestsTest {
         )
     }
 
-    /**
-     * A plan read some moments ago can name an instant that has since passed. Zero, not negative: "this one
-     * is due now" is the honest reading, and a negative delay is not a thing to hand a scheduler.
-     */
     @Test
     fun `the delay to an instant already past is zero, not negative`() {
         val now = Instant.parse("2026-09-01T06:00:00Z")
@@ -317,13 +246,6 @@ class DigestsTest {
         assertEquals(Duration.ZERO, Digests.delayUntil(at = now, now = now))
     }
 
-    /**
-     * **The case that turned a late digest into a missing one.**
-     *
-     * `plan` looks strictly forward and `Maintenance` re-plans on every app start, every thirty minutes,
-     * after a reboot and behind every write — so a 09:00 agenda WorkManager had not run yet at 09:12 was
-     * re-planned for tomorrow, and applying that plan cancelled the pending run. Today's never arrived.
-     */
     @Test
     fun `a due digest that has not happened is still owed`() {
         val nine = Instant.parse("2026-09-01T09:00:00Z")
@@ -339,7 +261,6 @@ class DigestsTest {
         val now = Instant.parse("2026-09-01T08:00:00Z")
         val nine = Instant.parse("2026-09-01T09:00:00Z")
 
-        // Nothing is owed yet, so a new plan simply applies — which is what corrects drift.
         assertFalse(Digests.stillOwed(arranged = nine, planned = nine.plus(3600.seconds), now = now))
     }
 
@@ -357,10 +278,6 @@ class DigestsTest {
         assertFalse(Digests.stillOwed(arranged = null, planned = now.plus(3600.seconds), now = now))
     }
 
-    /**
-     * The plan must be *later* than what is arranged. An equal or earlier plan is not the schedule rolling
-     * past a missed firing — it is a different arrangement, and it applies.
-     */
     @Test
     fun `a plan that is not later than the arrangement replaces it`() {
         val nine = Instant.parse("2026-09-01T09:00:00Z")
@@ -370,14 +287,8 @@ class DigestsTest {
         assertFalse(Digests.stillOwed(arranged = nine, planned = nine.minus(60.seconds), now = past))
     }
 
-    // ── arrangementFor ───────────────────────────────────────────────────────────────────────────
-    // What should happen to the queue. These three were `if`s inside `WorkScheduler.arrange`, under a
-    // KDoc claiming nothing there was a decision — 160 lines of WorkManager with no test in either
-    // source set, holding the two branches that had already produced a defect.
-
     private val daily = 1.days
 
-    /** A digest that is off must have its pending run taken away, not merely be left un-renewed. */
     @Test
     fun `no plan means take down what is enqueued`() {
         val now = Instant.parse("2026-09-01T09:10:00Z")
@@ -388,7 +299,6 @@ class DigestsTest {
         )
     }
 
-    /** Switching it off cancels even a run that is already due — see [Digests.stillOwed]. */
     @Test
     fun `no plan cancels a due run too`() {
         val nine = Instant.parse("2026-09-01T09:00:00Z")
@@ -400,10 +310,6 @@ class DigestsTest {
         )
     }
 
-    /**
-     * The arm that turns *late* into *arrived*. A 09:00 agenda WorkManager had not run yet at 09:12 was
-     * re-planned for tomorrow and the pending run cancelled on the way, so today's never came.
-     */
     @Test
     fun `a run already due is left exactly where it is`() {
         val nine = Instant.parse("2026-09-01T09:00:00Z")
@@ -426,7 +332,6 @@ class DigestsTest {
         )
     }
 
-    /** The repeat interval is the caller's — a week for the debt digest, not this module's business. */
     @Test
     fun `the repeat interval is carried through untouched`() {
         val now = Instant.parse("2026-09-01T07:00:00Z")
@@ -442,10 +347,6 @@ class DigestsTest {
         assertEquals(Digests.Arrangement.Enqueue(delay = 1.hours, every = weekly), arrangement)
     }
 
-    /**
-     * A plan the caller read a few moments ago can already be past. A negative delay is not a thing to
-     * hand a scheduler, so [Digests.delayUntil] clamps and this reports "due now".
-     */
     @Test
     fun `a plan that has just gone past is enqueued with no delay`() {
         val now = Instant.parse("2026-09-01T09:00:05Z")

@@ -12,14 +12,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.coroutines.cancellation.CancellationException
 
-/**
- * [runCatchingCancellable] must let a cancellation through while still catching real failures.
- *
- * Plain `runCatching` catches `Throwable`, and cancellation *is* one — so guarding a suspend call
- * with it converts "this coroutine is dead" into an ordinary failed `Result`. The caller then reports
- * a cancelled operation to the user as one that ran and failed, and carries on inside a coroutine
- * that is no longer supposed to be running.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CoroutinesTest {
 
@@ -49,10 +41,6 @@ class CoroutinesTest {
         assertEquals("and never became a Result", null, captured)
     }
 
-    /**
-     * The behaviour that matters in the app: a coroutine cancelled while suspended inside a guarded
-     * call must actually stop, rather than fall through to the code that reports a failure.
-     */
     @Test
     fun `a cancelled coroutine does not run the code after a guarded call`() = runTest {
         var reportedFailure = false
@@ -60,10 +48,8 @@ class CoroutinesTest {
 
         val job: Job = CoroutineScope(this.coroutineContext).launch {
             val result = runCatchingCancellable {
-                // Suspends forever, so the only way out is cancellation.
                 suspendCancellableCoroutine<Unit> { }
             }
-            // Neither line may be reached: the cancellation should have left this coroutine already.
             reportedFailure = result.isFailure
             completed = true
         }

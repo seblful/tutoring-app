@@ -18,33 +18,12 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/**
- * **v9 → v10 on a real database**: three tables rebuilt to drop their dead columns, and the `classes` view
- * dropped.
- *
- * The first step that *rebuilds* tables rather than altering them, so it is the first that could lose a
- * row: every lesson and every charge the tutor has is copied into a new table, and the old one dropped.
- * So this seeds what a working tutor's v9 database holds — individual and group lessons in every status,
- * attendance in every state (a no-show billed anyway among them), payments, the rate log, homework, a
- * settings row a tutor has made their own — and holds **every row and every value** of every table to
- * having come through, not a sample of them.
- *
- * `MigrationChainTest` checks on the JVM that the step's DDL is v10's and that the old tables go in a safe
- * order. Whether SQLite agrees is the question here — above all with foreign keys **on**, where dropping
- * the old `lessons` too early would cascade `attendance` away.
- */
 @RunWith(AndroidJUnit4::class)
 class SchemaCleanupMigrationTest {
 
     @get:Rule
     val helper = migrationTestHelper(TEST_DB)
 
-    /**
-     * Аня (two subjects, a lesson taught, one missed but billed) and Борис (one called off, one coming
-     * up) in their own lessons and in their group's — one taught with Борис absent, one coming up — and
-     * Вера, archived, with a lesson from before. A lesson and a class that were booked and deleted, so
-     * the autoincrement high-water marks sit above every id still there.
-     */
     private fun SQLiteConnection.seedV9() {
         execSQL("INSERT INTO subjects (id, name) VALUES (1, 'Алгебра'), (2, 'Физика')")
         execSQL(
@@ -92,7 +71,6 @@ class SchemaCleanupMigrationTest {
                 "(211, 21, 2, 'EXPECTED', 2000, 0, 'evt-211', NULL), " +
                 "(999, 99, 2, 'EXPECTED', 2800, 0, NULL, NULL)",
         )
-        // Booked and taken back: the ids stay used, as far as AUTOINCREMENT is concerned.
         execSQL("DELETE FROM attendance WHERE id = 999")
         execSQL("DELETE FROM lessons WHERE id = 99")
         execSQL(
@@ -105,7 +83,6 @@ class SchemaCleanupMigrationTest {
                 "(2, NULL, 7, 'Задачи 31–35', 1750300000000, NULL), " +
                 "(3, 2, NULL, 'Повторить', 1750200000000, NULL)",
         )
-        // Every answer moved off its default, so a column copied from the wrong place cannot pass.
         execSQL(
             """
             INSERT INTO settings (
@@ -122,33 +99,20 @@ class SchemaCleanupMigrationTest {
         )
     }
 
-    // ---- reading a database back whole ------------------------------------------------------------
-
-    /** Every table the app owns — not SQLite's, Android's or Room's bookkeeping — by name. */
     private fun SQLiteConnection.tables(): Set<String> =
         rows("SELECT name FROM sqlite_master WHERE type = 'table'").mapTo(HashSet()) { it.getValue("name") as String } -
             setOf("android_metadata", "sqlite_sequence", "room_master_table")
 
-    /** The whole database: every table, every row, every value, the rows in a stable order. */
     private fun SQLiteConnection.everything(): Map<String, List<Map<String, Any?>>> =
         tables().associateWith { table -> rows("SELECT * FROM `$table`").sortedBy { it.toString() } }
 
-    /** What `PRAGMA foreign_key_check` finds: a row per reference to nothing. Empty is the only right answer. */
     private fun SQLiteConnection.orphans(): List<String> =
         rows("PRAGMA foreign_key_check").map { "${it["table"]} row ${it["rowid"]} -> ${it["parent"]}" }
 
-    /** The v9 database [everything] describes, less exactly the four columns v10 drops. */
     private fun Map<String, List<Map<String, Any?>>>.withoutDroppedColumns() = mapValues { (table, rows) ->
         rows.map { row -> row - DROPPED.getOrDefault(table, emptySet()) }.sortedBy { it.toString() }
     }
 
-    // ---- the upgrade ------------------------------------------------------------------------------
-
-    /**
-     * **Nothing is lost**: every table, every row, every value is what it was, less the four dead columns —
-     * and the schema is v10's exactly (`runMigrationsAndValidate`). The `_v9` copies are gone too: the
-     * comparison is of every table, so one left over is a table [before] did not have.
-     */
     @Test
     fun everyRowAndValueSurvivesTheUpgrade() {
         val before = helper.createDatabase(9).use { db ->
@@ -160,13 +124,11 @@ class SchemaCleanupMigrationTest {
         val migrated = helper.runMigrationsAndValidate(10, listOf(Migrations.MIGRATION_9_10))
 
         assertEquals(before.withoutDroppedColumns(), migrated.everything())
-        // Not vacuous: the database held what the seed put there.
         assertEquals(7, before.getValue("lessons").size)
         assertEquals(9, before.getValue("attendance").size)
         assertEquals(1, before.getValue("settings").size)
     }
 
-    /** The dropped columns are gone from the tables themselves, and so is the view. */
     @Test
     fun theDeadColumnsAndTheViewAreGone() {
         helper.createDatabase(9).use { it.seedV9() }
@@ -175,12 +137,14 @@ class SchemaCleanupMigrationTest {
 
         for ((table, dropped) in DROPPED) {
             val columns = migrated.prepare("SELECT * FROM `$table` LIMIT 0").use { it.getColumnNames().toSet() }
-            assertEquals("`$table` still has ${columns intersect dropped}", emptySet<String>(), columns intersect dropped)
+            assertEquals(
+                "`$table` still has ${columns intersect dropped}", emptySet<String>(),
+                columns intersect dropped,
+            )
         }
         assertEquals(0L, migrated.long("SELECT count(*) FROM sqlite_master WHERE type = 'view'"))
     }
 
-    /** The upgrade leaves no row pointing at nothing — `attendance` at `lessons` above all. */
     @Test
     fun noRowPointsAtNothingAfterTheUpgrade() {
         helper.createDatabase(9).use { it.seedV9() }
@@ -190,13 +154,6 @@ class SchemaCleanupMigrationTest {
         assertEquals(emptyList<String>(), migrated.orphans())
     }
 
-    /**
-     * **With foreign keys on**, nothing cascades. This is the hazard the rebuild order exists for: `DROP
-     * TABLE` deletes every row first and fires `ON DELETE`, and `attendance` is `CASCADE` from `lessons` —
-     * drop the old lessons while anything points at them and every charge goes with them. Room may well run
-     * migrations with the keys off, so `runMigrationsAndValidate` alone would not show it; this runs the
-     * step by hand, inside a transaction as Room does, on a connection that has them on.
-     */
     @Test
     fun withForeignKeysOnNothingCascades() {
         helper.createDatabase(9).use { db ->
@@ -214,10 +171,6 @@ class SchemaCleanupMigrationTest {
         }
     }
 
-    /**
-     * An id used once and deleted is not handed out again: the autoincrement high-water mark moves to the
-     * rebuilt table, where a plain copy would reset it to the highest id still there.
-     */
     @Test
     fun aDeletedIdIsNotReused() {
         helper.createDatabase(9).use { it.seedV9() }
@@ -236,7 +189,6 @@ class SchemaCleanupMigrationTest {
         assertEquals("and the next class id past 999", 1000L, migrated.long("SELECT max(id) FROM attendance"))
     }
 
-    /** No lessons, no settings row — the install that never got going. */
     @Test
     fun anEmptyDatabaseStillValidates() {
         helper.createDatabase(9).close()
@@ -247,11 +199,6 @@ class SchemaCleanupMigrationTest {
         assertEquals(0L, migrated.long("SELECT count(*) FROM settings"))
     }
 
-    /**
-     * **The app's own way in**: Room opening the v9 file, running the chain, validating it against the
-     * entities, and the DAOs reading it — every class through `ClassDao`'s join, which replaced the view,
-     * and the settings row through the entity that no longer has `showGroupsTab`.
-     */
     @Test
     fun roomOpensTheUpgradedDatabaseAndReadsItThroughTheDaos() = runTest {
         helper.createDatabase(9).use { it.seedV9() }

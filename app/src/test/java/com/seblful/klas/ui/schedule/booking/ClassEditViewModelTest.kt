@@ -87,14 +87,6 @@ class ClassEditViewModelTest {
         return studentId to subjectId
     }
 
-    // --- Whether the form has arrived ---
-
-    /**
-     * **A lesson being edited waits for itself.** The state used to start at `ClassFormState(isNew)`,
-     * which the screen draws the instant it appears while [ClassEditViewModel.loadExisting] is still a
-     * coroutine — so «Перенести» on Борис's Tuesday opened with no student, no subject, today's date and
-     * the default length, then replaced all four. See `ui/common/state/Loadable.kt`.
-     */
     @Test
     fun `an existing lesson's form is Loading until the lesson has been read`() = runTest(mainRule.dispatcher) {
         val date = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
@@ -157,7 +149,13 @@ class ClassEditViewModelTest {
         val state = vm.state.current
         assertEquals(studentId, state.form.studentId)
         assertEquals("Аня", state.studentName)
-        assertTrue("and is still offered, so the picker can show its own selection", state.students.any { it.id == studentId })
+        assertTrue(
+            "and is still offered, so the picker can show its own selection",
+            state.students.any {
+                it.id ==
+                    studentId
+            },
+        )
     }
 
     /**
@@ -281,10 +279,10 @@ class ClassEditViewModelTest {
             val (studentId, subjectId) = seedStudentWithPricedSubject()
             val start = LocalDate(2026, 6, 22).atTime(10, 0).toInstant(zone)
             val classId = env.fixtures.storedClass(
-                    studentId = studentId, subjectId = subjectId,
-                    startMillis = start.toEpochMilliseconds(), durationMinutes = 60,
-                    priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED,
-                )
+                studentId = studentId, subjectId = subjectId,
+                startMillis = start.toEpochMilliseconds(), durationMinutes = 60,
+                priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED,
+            )
 
             val vm = vm(id = classId)
             observing(vm.state)
@@ -549,9 +547,9 @@ class ClassEditViewModelTest {
         val (studentId, subjectId) = seedStudentWithPricedSubject()
         val start = Instant.parse("2026-06-15T07:00:00Z")
         val id = env.fixtures.storedClass(
-                studentId = studentId, subjectId = subjectId, startMillis = start.toEpochMilliseconds(),
-                durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED,
-            )
+            studentId = studentId, subjectId = subjectId, startMillis = start.toEpochMilliseconds(),
+            durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED,
+        )
         val vm = vm(id)
         advanceUntilIdle()
 
@@ -560,16 +558,8 @@ class ClassEditViewModelTest {
         assertEquals(60, vm.durationPickerDefault())
     }
 
-    /**
-     * The disagreement the form's second wall clock caused, pinned from the other end: «Перенести» moves a
-     * lesson to any time it likes, so a 23:00 lesson can be sitting in the database, and opening one used
-     * to reconstruct `timeTo = 00:00` and refuse to save the lesson it had just loaded — its price could
-     * not be corrected without shortening it first.
-     */
     @Test
     fun `a lesson that starts at 23 00 opens ready to save`() = runTest(mainRule.dispatcher) {
-        // Booked through the repository, which has never had anything against a late lesson — the
-        // refusal was the form's alone. «Перенести» reaches the same state by moving one there.
         val (_, id) = seedLesson(Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY), LocalTime(23, 0))
         val vm = vm(id)
         observing(vm.state)
@@ -582,8 +572,6 @@ class ClassEditViewModelTest {
         assertTrue("a lesson already in the schedule is one the form can save", state.canSave)
     }
 
-    // --- Save: create ---
-
     @Test
     fun `saving a new class persists it with the chosen fields and signals done`() = runTest(mainRule.dispatcher) {
         val (studentId, subjectId) = seedStudentWithPricedSubject()
@@ -592,13 +580,15 @@ class ClassEditViewModelTest {
         advanceUntilIdle()
 
         val date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY)
-        vm.change(BookingIntent.Edit {
-            it.copy(
-                studentId = studentId, subjectId = subjectId, date = date,
-                timeFrom = LocalTime(10, 0), durationMinutes = 90,
-                price = MoneyField("30"), mode = ClassMode.REMOTE,
-            )
-        })
+        vm.change(
+            BookingIntent.Edit {
+                it.copy(
+                    studentId = studentId, subjectId = subjectId, date = date,
+                    timeFrom = LocalTime(10, 0), durationMinutes = 90,
+                    price = MoneyField("30"), mode = ClassMode.REMOTE,
+                )
+            },
+        )
         var done = false
         vm.save { done = true }
         advanceUntilIdle()
@@ -613,15 +603,6 @@ class ClassEditViewModelTest {
         assertEquals(ClassMode.REMOTE, saved.mode)
     }
 
-    /**
-     * The write runs in the injected application scope, not in `viewModelScope` — so that going back
-     * the instant after tapping save cannot cut it in half, between the rows it commits and the
-     * calendar mirror and reminder refresh that follow them.
-     *
-     * Asserted from the other side, by cancelling the application scope: nothing is written. Were the
-     * save launched into `viewModelScope` instead, that scope would still be live here and the lesson
-     * would be booked regardless — which is what makes this a tripwire rather than a restatement.
-     */
     @Test
     fun `the save is launched into the application scope, not the view model's`() = runTest(mainRule.dispatcher) {
         val (studentId, subjectId) = seedStudentWithPricedSubject()
@@ -629,13 +610,15 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        vm.change(BookingIntent.Edit {
-            it.copy(
-                studentId = studentId, subjectId = subjectId,
-                date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY),
-                timeFrom = LocalTime(10, 0), durationMinutes = 60, price = MoneyField("30"),
-            )
-        })
+        vm.change(
+            BookingIntent.Edit {
+                it.copy(
+                    studentId = studentId, subjectId = subjectId,
+                    date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY),
+                    timeFrom = LocalTime(10, 0), durationMinutes = 60, price = MoneyField("30"),
+                )
+            },
+        )
         mainRule.appScope.cancel()
 
         var done = false
@@ -763,7 +746,6 @@ class ClassEditViewModelTest {
 
         assertNull("its own hour is not a conflict", vm.state.current.conflict)
 
-        // Lengthen it in place — the overlap with its own old span must not block the save.
         vm.change(BookingIntent.Edit { it.copy(durationMinutes = 90) })
         advanceUntilIdle()
         assertNull(vm.state.current.conflict)
@@ -779,9 +761,6 @@ class ClassEditViewModelTest {
     @Test
     fun `a group lesson does not clash with its own members when re-saved`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
-        // A fixed 10:00 rather than the current time, so nothing here turns on when the suite runs.
-        // It used to be load-bearing: loading a lesson rebuilt an end time from its length, so a run
-        // after 23:00 opened this one as a negative range and the save quietly did nothing.
         val start = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone)
         val ids = env.classRepo.book(
             groupId = groupId, subjectId = env.stored().subjects.first().id, start = start,
@@ -794,7 +773,6 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        // Every member's class is excluded, not just the one that was opened.
         assertNull(vm.state.current.conflict)
         var done = false
         vm.save { done = true }
@@ -804,7 +782,6 @@ class ClassEditViewModelTest {
         assertEquals(2, env.classes().size)
     }
 
-    /** Every clash [vm]'s screen would draw from now on, in order. */
     private fun TestScope.clashesDrawnBy(vm: ClassEditViewModel): List<TimeConflict> {
         val drawn = mutableListOf<TimeConflict>()
         backgroundScope.launch {
@@ -813,11 +790,6 @@ class ClassEditViewModelTest {
         return drawn
     }
 
-    /**
-     * **A lesson just saved is not in its own way.** The clash check is live, so the moment the booking
-     * committed it found the new lesson at the form's own time and drew «Занято» in red under it — for as
-     * long as the screen took to close, and for the whole of a first booking's permission dialog.
-     */
     @Test
     fun `a lesson just booked is never shown clashing with itself`() = runTest(mainRule.dispatcher) {
         val (ann, subject) = seedStudentWithPricedSubject()
@@ -836,11 +808,6 @@ class ClassEditViewModelTest {
         assertEquals("no clash was drawn at any point", emptyList<TimeConflict>(), clashes)
     }
 
-    /**
-     * The edit path's version of the same flash: ticking a member back into a booked group lesson writes
-     * them a class with a new id, which the lesson's own exclusions — its ids as it was opened — do not
-     * cover.
-     */
     @Test
     fun `a member ticked into a booked lesson is not shown clashing with it once saved`() =
         runTest(mainRule.dispatcher) {
@@ -867,11 +834,6 @@ class ClassEditViewModelTest {
             assertEquals("no clash was drawn at any point", emptyList<TimeConflict>(), clashes)
         }
 
-    /**
-     * A second tap before the screen has closed is the same save, not a second booking — which the
-     * repository would turn down as the hour the first tap had just taken, saying «время занято» about
-     * a lesson that was booked perfectly well.
-     */
     @Test
     fun `tapping save twice books the lesson once and refuses nothing`() = runTest(mainRule.dispatcher) {
         val (ann, subject) = seedStudentWithPricedSubject()
@@ -933,8 +895,6 @@ class ClassEditViewModelTest {
 
             val vm = vm()
             advanceUntilIdle()
-            // Fill the form *without* collecting `conflict`, mimicking the race the button can't
-            // catch: the slot was free when the form opened and is taken by the time save runs.
             vm.fillFor(carl, physics, date, LocalTime(10, 0), minutes = 60)
             advanceUntilIdle()
 
@@ -950,13 +910,6 @@ class ClassEditViewModelTest {
             )
         }
 
-    /**
-     * A save that *fails* is not a save that was refused, and used to be neither: the write is handed
-     * to the application scope as an `async`, so an exception crossed the `await` back into
-     * `viewModelScope`, where nothing catches it — the app died on the one tap the tutor is most
-     * certain of. The scope's own handler cannot help, because `async` holds a failure in its
-     * `Deferred` rather than reporting it.
-     */
     @Test
     fun `a save that fails to commit is reported and does not navigate`() =
         runTest(mainRule.dispatcher) {
@@ -978,8 +931,6 @@ class ClassEditViewModelTest {
 
             assertTrue("the failed attempt rolled back whole", env.classes().isEmpty())
 
-            // The tutor can try again, and since nothing of the failed attempt was left behind to hold the
-            // hour, the retry goes through as the first save would have.
             val sent = mutableListOf<ClassEditViewModel.Event>()
             backgroundScope.launch { vm.events.stream.collect(sent::add) }
             vm.save { done = true }
@@ -989,11 +940,9 @@ class ClassEditViewModelTest {
             assertEquals(listOf(ann), env.classes().map { it.studentId })
         }
 
-    /** Nobody to tick is not a form that can be saved and then refused for having nobody ticked. */
     @Test
     fun `a group whose members are all archived cannot be booked`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
-        // Through the repository, as the card archives them.
         env.studentRepo.setArchived(env.studentDao.getById(ann)!!.toDomain(), true)
         env.studentRepo.setArchived(env.studentDao.getById(bob)!!.toDomain(), true)
         val vm = vm()
@@ -1002,13 +951,15 @@ class ClassEditViewModelTest {
 
         vm.change(BookingIntent.ChooseTarget(ClassTarget.GROUP))
         vm.change(BookingIntent.ChooseGroup(groupId))
-        vm.change(BookingIntent.Edit {
-            it.copy(
-                date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY),
-                timeFrom = LocalTime(10, 0),
-                durationMinutes = 60,
-            )
-        })
+        vm.change(
+            BookingIntent.Edit {
+                it.copy(
+                    date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY),
+                    timeFrom = LocalTime(10, 0),
+                    durationMinutes = 60,
+                )
+            },
+        )
         advanceUntilIdle()
 
         assertTrue(vm.state.current.groupHasNoMembers)
@@ -1029,9 +980,11 @@ class ClassEditViewModelTest {
             vm.change(BookingIntent.IncludeMember(ann, included = false))
             vm.change(BookingIntent.IncludeMember(bob, included = false))
             val date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY)
-            vm.change(BookingIntent.Edit {
-                it.copy(date = date, timeFrom = LocalTime(10, 0), durationMinutes = 60)
-            })
+            vm.change(
+                BookingIntent.Edit {
+                    it.copy(date = date, timeFrom = LocalTime(10, 0), durationMinutes = 60)
+                },
+            )
             advanceUntilIdle()
 
             var done = false
@@ -1046,14 +999,6 @@ class ClassEditViewModelTest {
             )
         }
 
-    // --- Asking to be allowed to remind, at the first booking ---
-
-    /**
-     * **Where the notification permission is finally asked for.** It is on by default and the permission
-     * is not, and the only caller used to be the settings switch — which cannot be turned on when it is
-     * already on, so nothing ever asked and every reminder was dropped in silence. The first lesson is the
-     * moment the promise stops being abstract: the tutor has just written down a time they mean to keep.
-     */
     @Test
     fun `the first booking asks to be allowed to show reminders`() = runTest(mainRule.dispatcher) {
         env.notificationPermission.granted = false
@@ -1070,11 +1015,6 @@ class ClassEditViewModelTest {
         assertEquals(1, asked.size)
     }
 
-    /**
-     * **Only the first.** On Android 13+ a second denial is permanent, after which no dialog can ever
-     * appear again — so a tutor who said no once is not asked by every booking afterwards. The row in
-     * Settings is the way back, and it is somewhere they go on purpose.
-     */
     @Test
     fun `a later booking does not ask again`() = runTest(mainRule.dispatcher) {
         env.notificationPermission.granted = false
@@ -1096,7 +1036,6 @@ class ClassEditViewModelTest {
         )
     }
 
-    /** Nothing to ask for once it is granted — the dialog would close itself. */
     @Test
     fun `a granted permission is not asked for again`() = runTest(mainRule.dispatcher) {
         val (ann, subject) = seedStudentWithPricedSubject()
@@ -1112,10 +1051,6 @@ class ClassEditViewModelTest {
         assertTrue(asked.isEmpty())
     }
 
-    /**
-     * Reminders switched off means the tutor has said they do not want them, and a permission for a
-     * feature nobody asked for is exactly the unprompted dialog this rule exists to avoid.
-     */
     @Test
     fun `reminders switched off ask for nothing`() = runTest(mainRule.dispatcher) {
         env.notificationPermission.granted = false
@@ -1133,7 +1068,6 @@ class ClassEditViewModelTest {
         assertTrue(asked.isEmpty())
     }
 
-    /** Nothing to ask for when the platform has no prompt — notifications off for the whole app. */
     @Test
     fun `a first booking does not ask when the platform has no prompt to show`() =
         runTest(mainRule.dispatcher) {
@@ -1152,11 +1086,6 @@ class ClassEditViewModelTest {
             assertTrue(asked.isEmpty())
         }
 
-    /**
-     * Every permission request the view model made, newest last — collected in the background because
-     * `UiEvents.stream` is a channel flow, so `first()` on one that never emits waits for ever and the
-     * three assertions below are all about nothing being emitted.
-     */
     private fun TestScope.asksOf(vm: ClassEditViewModel): List<Unit> {
         val asked = mutableListOf<Unit>()
         backgroundScope.launch { vm.askForNotifications.stream.collect { asked += it } }
@@ -1174,16 +1103,14 @@ class ClassEditViewModelTest {
         assertTrue(env.classes().isEmpty())
     }
 
-    // --- Save: edit an existing class (move + rebill) ---
-
     @Test
     fun `editing loads the existing class into the form`() = runTest(mainRule.dispatcher) {
         val (studentId, subjectId) = seedStudentWithPricedSubject()
         val start = Instant.parse("2026-06-15T07:00:00Z")
         val id = env.fixtures.storedClass(
-                studentId = studentId, subjectId = subjectId, startMillis = start.toEpochMilliseconds(),
-                durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED,
-            )
+            studentId = studentId, subjectId = subjectId, startMillis = start.toEpochMilliseconds(),
+            durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED,
+        )
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()
@@ -1197,19 +1124,16 @@ class ClassEditViewModelTest {
     @Test
     fun `editing a completed class into the future re-plans it back to scheduled and voids the charge`() = runTest(mainRule.dispatcher) {
         val (studentId, subjectId) = seedStudentWithPricedSubject()
-        // A fixed 10:00 so the status assertion cannot turn on the clock the suite runs at — and, back
-        // when the form kept an end time, on that end having wrapped past midnight.
         val past = Clock.System.todayIn(zone).minus(1, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone)
         val id = env.fixtures.storedClass(
-                studentId = studentId, subjectId = subjectId, startMillis = past.toEpochMilliseconds(),
-                durationMinutes = 60, priceMinor = Money.ofMajor(30).minor,
-                status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor,
-            )
+            studentId = studentId, subjectId = subjectId, startMillis = past.toEpochMilliseconds(),
+            durationMinutes = 60, priceMinor = Money.ofMajor(30).minor,
+            status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor,
+        )
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()
 
-        // Move it to the future and save.
         vm.change(BookingIntent.Edit { it.copy(date = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)) })
         vm.save { }
         advanceUntilIdle()
@@ -1217,20 +1141,9 @@ class ClassEditViewModelTest {
         val saved = env.classes().single { it.id == id }
         assertEquals(LessonStatus.SCHEDULED, saved.status)
         assertEquals(0L, saved.chargeMinor)
-        // Still one row — an edit is an in-place update, never a duplicate insert.
         assertEquals(1, env.classes().size)
     }
 
-    /**
-     * **A save does not un-teach a lesson that was taught underneath the form.**
-     *
-     * The form holds the lesson as it was when it opened, and the lesson's *state* moves on while it is
-     * up: the upkeep pass completes one whose hour has passed — and completing is what bills it — and the
-     * reminder's «Проведено» does the same by hand. `apply` starts every class from the state it is
-     * handed, so a save that wrote the snapshot back left a lesson the tutor had taught reading
-     * «Запланировано», its attendance back to expected and its charge voided, over an edit that only meant
-     * to change a price. The lesson is read again at the moment of writing for exactly this.
-     */
     @Test
     fun `an edit saved over a lesson completed underneath the form keeps it taught and billed`() =
         runTest(mainRule.dispatcher) {
@@ -1244,10 +1157,8 @@ class ClassEditViewModelTest {
             observing(vm.state)
             advanceUntilIdle()
 
-            // Taught, and so billed, with the form still open on it.
             env.classRepo.setStatus(env.classRepo.getSessionFor(id)!!, LessonStatus.COMPLETED)
 
-            // The tutor changes the price — the one thing the form is actually holding an opinion about.
             vm.change(BookingIntent.Edit { it.copy(price = MoneyField("45")) })
             vm.save { }
             advanceUntilIdle()
@@ -1263,11 +1174,6 @@ class ClassEditViewModelTest {
             assertEquals("still one row, not a second booking", 1, env.classes().size)
         }
 
-    /**
-     * Deleted with the form still open on it — from a report, or by a restore. The save has nothing to
-     * write into: it must neither report success and close as though the edit landed, nor put the lesson
-     * back as a new one.
-     */
     @Test
     fun `a save over a lesson deleted underneath the form writes nothing and says it is gone`() =
         runTest(mainRule.dispatcher) {
@@ -1293,15 +1199,8 @@ class ClassEditViewModelTest {
             assertTrue("nothing was booked in its place", env.classRepo.getAll().isEmpty())
         }
 
-    // --- Group lessons ---
-
-    /** The group's own hourly rate — deliberately unlike either member's individual price. */
     private val groupRate = Money.ofMajor(20)
 
-    /**
-     * Two students in one group. Both also carry an individual price for the subject, set to something
-     * *other* than [groupRate], so any test that accidentally billed a member's own rate would fail.
-     */
     private suspend fun seedGroup(
         annPrice: Money = Money.ofMajor(30),
         bobPrice: Money = Money.ofMajor(25),
@@ -1334,8 +1233,6 @@ class ClassEditViewModelTest {
     @Test
     fun `a group can be booked for any subject, priced for its members or not`() = runTest(mainRule.dispatcher) {
         val (groupId, _, _) = seedGroup()
-        // Nobody in the group has a Physics price. The lesson bills the group's rate, so that is no
-        // longer a reason to withhold the subject.
         env.subjectDao.upsert(SubjectEntity(name = "Физика"))
 
         val vm = vm(groupId = groupId)
@@ -1457,7 +1354,6 @@ class ClassEditViewModelTest {
         val saved = env.classes()
         assertEquals(1, saved.size)
         assertEquals(ann, saved.single().studentId)
-        // Excluding is not cancelling: there is no class of Bob's in any state.
         assertTrue("no cancelled leftover", saved.none { it.studentId == bob })
         assertEquals("the group keeps him", setOf(ann, bob), env.groupRepo.getMemberIds(groupId).toSet())
     }
@@ -1478,7 +1374,6 @@ class ClassEditViewModelTest {
         vm.save { }
         advanceUntilIdle()
 
-        // A lesson nobody attends is not a lesson; nothing is written rather than an ownerless row.
         assertTrue(env.classes().isEmpty())
     }
 
@@ -1514,7 +1409,6 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        // A group with no subject keeps choosing per lesson.
         assertEquals(2, vm.state.current.subjects.size)
         assertFalse(vm.state.current.subjectFixedByGroup)
     }
@@ -1530,7 +1424,6 @@ class ClassEditViewModelTest {
             price = groupRate,
         ).written()
 
-        // Opening it by *one* member's class must still edit the whole lesson.
         val vm = vm(id = ids.first())
         observing(vm.state)
         advanceUntilIdle()
@@ -1539,7 +1432,6 @@ class ClassEditViewModelTest {
         assertEquals("the rate the lesson was booked at", groupRate, vm.state.current.form.price.amount)
         assertEquals(listOf(ann, bob), vm.state.current.members.map { it.id })
 
-        // Re-price the lesson and lengthen it; both members' classes must be updated in place.
         vm.change(BookingIntent.Edit { it.copy(price = MoneyField("28"), durationMinutes = 90) })
         vm.save { }
         advanceUntilIdle()
@@ -1550,11 +1442,6 @@ class ClassEditViewModelTest {
         assertTrue("one rate applies to the whole lesson", saved.all { it.priceMinor == Money.ofMajor(28).minor })
     }
 
-    /**
-     * The list offered on an old lesson is the group as it is *now* plus whoever the lesson covers —
-     * that is what makes a correction possible either way — but only the lesson's own members start
-     * ticked, so opening it and saving it again is a no-op.
-     */
     @Test
     fun `editing an old lesson offers the current roster but ticks only its own members`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
@@ -1565,7 +1452,6 @@ class ClassEditViewModelTest {
             studentIds = listOf(ann, bob),
             price = groupRate,
         ).written()
-        // Bob leaves the group and a new student joins, *after* the lesson was booked.
         val carl = env.studentDao.upsert(StudentEntity(name = "Вова"))
         env.priceDao.upsert(PriceEntity(carl, algebra, Money.ofMajor(20).minor))
         env.groupRepo.save(Group(id = groupId, name = "11 «А»"), setOf(ann, carl))
@@ -1574,13 +1460,10 @@ class ClassEditViewModelTest {
         observing(vm.state)
         advanceUntilIdle()
 
-        // Bob is still listed though he left the group — he is in this lesson and can be taken out
-        // of it. Carl is listed because he could be added to it, but unticked because he wasn't there.
         assertEquals(listOf(ann, bob, carl), vm.state.current.members.map { it.id })
         assertEquals(setOf(carl), vm.state.current.form.excludedMemberIds)
         assertFalse("loading a lesson is not the tutor's edit", vm.state.current.isDirty)
 
-        // Re-saving must not create a class for the newcomer, nor drop the departed member's.
         vm.save { }
         advanceUntilIdle()
         assertEquals(2, env.classes().size)
@@ -1659,7 +1542,6 @@ class ClassEditViewModelTest {
         assertEquals("both classes are still there", 2, env.classes().size)
     }
 
-    /** Removing somebody who has already been billed is worth a question, so the form counts them. */
     @Test
     fun `unticking a billed member is counted, an unbilled one is not`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
@@ -1670,7 +1552,6 @@ class ClassEditViewModelTest {
             studentIds = listOf(ann, bob),
             price = groupRate,
         ).written()
-        // Only Ann's class has billed; Bob was not there, so his was not charged.
         val session = env.classRepo.getSessionFor(ids.first())!!
         env.classRepo.setStatus(session, LessonStatus.COMPLETED)
         val bobsClass = env.classRepo.getSessionFor(ids.first())!!.classes.single { it.studentId == bob }
@@ -1691,8 +1572,6 @@ class ClassEditViewModelTest {
         vm.change(BookingIntent.IncludeMember(ann, false))
         advanceUntilIdle()
         assertEquals(1, vm.state.current.billedDrops)
-        // The gate and the count the question needs, together. Both were in the composable, where the
-        // count was also kept as a second copy in screen state.
         assertEquals(SaveIntent.ConfirmBilledDrops(1), vm.state.current.saveIntent)
     }
 
@@ -1722,10 +1601,10 @@ class ClassEditViewModelTest {
         // the charge assertion fail for the time of day rather than for the rule.
         val past = Clock.System.todayIn(zone).minus(7, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone)
         val id = env.fixtures.storedClass(
-                studentId = studentId, subjectId = subjectId, startMillis = past.toEpochMilliseconds(),
-                durationMinutes = 60, priceMinor = Money.ofMajor(30).minor,
-                status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor,
-            )
+            studentId = studentId, subjectId = subjectId, startMillis = past.toEpochMilliseconds(),
+            durationMinutes = 60, priceMinor = Money.ofMajor(30).minor,
+            status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor,
+        )
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()
@@ -1733,9 +1612,11 @@ class ClassEditViewModelTest {
         // Keep it in the past (its own date), change price to 40/h and duration to 90 min → charge 60.
         val pastDate = past.toLocalDateTime(zone).date
         val from = past.toLocalDateTime(zone).time
-        vm.change(BookingIntent.Edit {
-            it.copy(date = pastDate, timeFrom = from, durationMinutes = 90, price = MoneyField("40"))
-        })
+        vm.change(
+            BookingIntent.Edit {
+                it.copy(date = pastDate, timeFrom = from, durationMinutes = 90, price = MoneyField("40"))
+            },
+        )
         vm.save { }
         advanceUntilIdle()
 

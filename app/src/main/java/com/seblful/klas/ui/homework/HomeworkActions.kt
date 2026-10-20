@@ -11,10 +11,6 @@ import kotlinx.coroutines.CoroutineScope
  * The homework writes the «Задания» tab and the student and group cards all offer — give, correct, tick,
  * undo a swipe, delete, put back — each a guarded write into [appScope] that reports a failure as
  * [failure] on the view model's own [events].
- *
- * One delegate rather than six one-liners per view model, because the three sets were the same set: a
- * swipe takes the row off the list it was on wherever that list is drawn, and none of them may let the
- * write be cut short by the row going away, nor a failure pass unsaid.
  */
 class HomeworkActions<E>(
     private val homework: HomeworkRepository,

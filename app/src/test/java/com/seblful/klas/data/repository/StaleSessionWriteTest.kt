@@ -21,11 +21,6 @@ import org.robolectric.RobolectricTestRunner
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * A lesson write starts from the lesson as the database holds it **inside** its transaction, not from
- * what its caller read before: each test lets another write land between the caller's read and the
- * transaction, and asserts that the late write did not put the earlier state back.
- */
 @RunWith(RobolectricTestRunner::class)
 class StaleSessionWriteTest {
     @get:Rule
@@ -112,10 +107,6 @@ class StaleSessionWriteTest {
         return subject to env.fixtures.pricedStudent(subjectId = subject, rate = rate)
     }
 
-    /**
-     * Runs [write] on a repository whose transaction opens only once [meanwhile] — a competing write
-     * through the real repository — has committed, and returns what [write] returned.
-     */
     private suspend fun <T> interleave(
         write: suspend (ClassRepository) -> T,
         meanwhile: suspend () -> Unit,

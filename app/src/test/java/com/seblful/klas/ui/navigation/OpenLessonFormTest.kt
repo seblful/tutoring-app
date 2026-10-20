@@ -12,13 +12,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/**
- * What a tap on «Перенести» does to what is already open, on the real route and `openLessonForm`.
- *
- * The lesson form asks before it is left with something typed into it, but only when it is left with
- * Back — a tap in the tray goes round that. So the form being edited must not be *replaced*: it has to
- * wait under the one the tray named, where Back finds it again with what was typed.
- */
 @RunWith(RobolectricTestRunner::class)
 class OpenLessonFormTest {
 
@@ -46,7 +39,6 @@ class OpenLessonFormTest {
 
     private fun open(classId: Long) = onUiThread { navController.openLessonForm(classId) }
 
-    /** The forms open, bottom first, as the lesson each is for — everything else by its route. */
     private fun stack(): List<String> = navController.currentBackStack.value.mapNotNull { entry ->
         if (entry.destination.hasRoute(Routes.ClassEdit::class)) {
             "form ${entry.toRoute<Routes.ClassEdit>().id}"

@@ -20,18 +20,7 @@ import kotlinx.coroutines.flow.map
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
-/**
- * Homework and the lessons it is attached to — the only writer of the `homework` table.
- *
- * **No write here owes anything after the commit**, which is why none goes through `ClassRepository`'s
- * three phases: homework is on no calendar event, and a lesson's reminder reads what is attached to it as
- * it fires (`notifications/DueReminder`), so there is nothing to mirror and nothing to re-plan. Each write
- * is one statement, so there is no transaction to open either.
- *
- * The clock is here, not in the callers, for the reason `PaymentRepository` holds it: when homework was
- * given decides which lesson it is attached to, and that must be the same clock the rest of the app runs
- * on — a view model's own `Instant.now()` would be a second one.
- */
+/** omework and the lessons it is attached to — the only writer of the `homework` table. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @SingleIn(AppScope::class)
 class HomeworkRepository @Inject constructor(
@@ -56,9 +45,6 @@ class HomeworkRepository @Inject constructor(
     /**
      * Every piece of homework, with the classes from **the earliest current one's giving — or [since], if
      * that is earlier — onwards, open-ended**: every lesson any of them could be attached to.
-     *
-     * [since] is how far back the caller needs lessons for reasons of its own (the add dialog's picker
-     * ranks by the nearest lesson either side of now).
      */
     fun observeWithLessons(since: Instant): Flow<WithLessons> =
         observeAll().withLessonsFrom { earliestCurrent(it, since) }
@@ -93,21 +79,9 @@ class HomeworkRepository @Inject constructor(
         return HomeworkRules.attachedToLesson(session, current, lessons)
     }
 
-    /**
-     * [this] paired with the classes from [start] of each list onwards — **from one upstream**, so a list
-     * never arrives beside the lessons read for the one before it. Two collections of the same query did
-     * exactly that when the window had to widen (an older piece brought back): for a frame it was attached
-     * to whatever lesson the old window held. The classes are re-read per change of homework, which is a
-     * query per swipe over a window that is usually weeks long.
-     */
     private fun Flow<List<Homework>>.withLessonsFrom(start: (List<Homework>) -> Instant): Flow<WithLessons> =
         flatMapLatest { list -> classes.observeBetween(start(list), Forever).map { WithLessons(list, it) } }
 
-    /**
-     * What could be attached to [session] at all: given before it, for its group or one of the students in
-     * it. Everything else is somebody else's, and leaving it out keeps the lesson window from reaching back
-     * to the first homework the app ever held.
-     */
     private fun candidatesFor(session: ClassSession, homework: List<Homework>): List<Homework> =
         homework.filter { hw -> hw.givenAt < session.start && session.classes.any { hw.assignee.takes(it) } }
 
@@ -153,7 +127,6 @@ class HomeworkRepository @Inject constructor(
     private fun earliestCurrent(homework: List<Homework>, since: Instant): Instant =
         homework.filterNot { it.isDone }.minOfOrNull { it.givenAt }?.coerceAtMost(since) ?: since
 
-    /** From the earliest homework given, or [fallback] when there is none — a window with nothing to find. */
     private fun earliestGiven(homework: List<Homework>, fallback: Instant): Instant =
         homework.minOfOrNull { it.givenAt } ?: fallback
 

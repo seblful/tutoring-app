@@ -7,17 +7,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * **A lesson's state is a [StatusBadge], never a font style** (docs/ui-conventions.md → Lists).
- *
- * The schedule said «Проведено» in a pill, and so did the student card once it was brought into line —
- * but the group card's lessons still said it as green text, so the same lesson read two ways depending on
- * which card it was opened from. Each card was fixed on its own, which is how the third was missed: the
- * rule lived in a comment beside the fix rather than anywhere that fails.
- *
- * The status words are the two `@Composable`s in `DomainText.kt`; handing either to a bare `Text` is the
- * font-style form. Comments are stripped first (see [SourceText.code]), so a KDoc may still name the rule.
- */
 class StatusBadgeSurfaceTest {
 
     private fun uiSources() = ProjectFiles.sources().filter { "ui" in it.path.split(java.io.File.separator) }

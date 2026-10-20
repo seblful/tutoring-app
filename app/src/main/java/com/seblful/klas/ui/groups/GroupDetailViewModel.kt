@@ -51,26 +51,15 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.days
 
-/**
- * One member of the group, with how much of the group they have actually attended.
- *
- * The count is of the group's **lessons they were in**, not of their classes overall: a member's own
- * card is where their whole history lives, and this list is about the group. It is also the honest
- * answer to "who is actually coming", which a roster alone does not give — someone excluded from
- * lesson after lesson is still on the roster.
- *
- * Deliberately no balance: a member's debt spans every lesson they have ever had, group and
- * individual, so a number here would look like the group's and be neither. Money owed is the student
- * card's subject; tapping through is what this row is for.
- */
+/** ne member of the group, with how much of the group they have actually attended. */
 data class GroupMemberRow(val student: Student, val attended: Int)
 
 /**
  * One of the group's lessons: the classes of a single session, plus what it came to.
  *
  * @param charge the whole lesson's recognized income — the sum over its members, since each of them
- *   is billed the group's rate separately (see `Group.price`) — or null where it billed nobody. See
- *   `Billing.billedOrNull`.
+ * is billed the group's rate separately (see `Group.price`) — or null where it billed nobody. See
+ * `Billing.billedOrNull`.
  */
 data class GroupLessonRow(
     val session: ClassSession,
@@ -103,20 +92,7 @@ data class GroupDetailState(
     val canDelete: Boolean get() = lessons.isEmpty()
 }
 
-/**
- * A group's card: who is in it, what it has been taught, and **the whole of its lifecycle**.
- *
- * Editing the group's *contents* — name, subject, rate, roster — stays in [GroupFormViewModel], so
- * there is still exactly one place a roster changes. Retiring or removing the group does not: those
- * are lifecycle verbs and they belong on the entity's **card**, behind the overflow, which is where a
- * student's already were. They used to sit in a "danger zone" at the foot of the group's *form*,
- * meaning the same act was reached two different ways depending on which entity it was — and reaching
- * the group's meant scrolling past every candidate on the roster, fifteen of them for a large group.
- *
- * **Payments and debt are deliberately absent.** Money owed is per student and spans all of their
- * lessons, so any total here would describe neither the group nor the person; the member rows link
- * through to the student cards, which is where a balance means something.
- */
+/**  group's card: who is in it, what it has been taught, and **the whole of its lifecycle**. */
 class GroupDetailViewModel @AssistedInject constructor(
     @Assisted savedStateHandle: SavedStateHandle,
     private val groups: GroupRepository,
@@ -153,7 +129,6 @@ class GroupDetailViewModel @AssistedInject constructor(
 
     val groupId: Long = checkNotNull(savedStateHandle["id"])
 
-    /** The card without its homework, and the group's classes it is attached by — five sources is `combine`'s most. */
     private data class Base(val state: GroupDetailState, val classes: List<TutoringClass>)
 
     private val base = combine(
@@ -218,9 +193,6 @@ class GroupDetailViewModel @AssistedInject constructor(
     /**
      * Deletes the group and leaves, or reports [Event.DELETE_BLOCKED_HAS_LESSONS] — a group with
      * lessons is refused (its classes must keep naming it) and the card offers archiving instead.
-     *
-     * Reported through [events] rather than a `(Boolean) -> Unit`, so a refusal here reaches the tutor
-     * the same way every other refusal in the app does.
      */
     fun delete(onDeleted: () -> Unit) {
         viewModelScope.launch {

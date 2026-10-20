@@ -90,71 +90,23 @@ class ClassEditViewModel @AssistedInject constructor(
     private val zone: TimeZone get() = clock.zone
     private val classId: Long = savedStateHandle["id"] ?: 0L
 
-    /** Non-zero when the form was opened from a group, to book that group straight away. */
     private val preselectedGroupId: Long = savedStateHandle["group"] ?: 0L
 
-    /**
-     * The day the schedule was on when its add button was tapped — the new booking's initial date.
-     * Null from anywhere else.
-     */
     private val openedOnDay: LocalDate? = savedStateHandle.get<String>("day")?.let(LocalDate::parse)
 
     val isNew: Boolean = classId == 0L
 
-    /**
-     * The lesson length the tutor set in Settings. A flow rather than a plain field because the
-     * duration chips are built from it: it arrives asynchronously, after the screen is already up, so
-     * a screen reading it once would draw the wrong set and never correct itself.
-     */
     private val defaultMinutes = MutableStateFlow(DEFAULT_LESSON_MINUTES)
 
-    /**
-     * The lengths offered as chips, shortest first.
-     *
-     * The form used to ask for an **end time**, through a clock dial, in a second modal. That is
-     * arithmetic the tutor was doing in their head: a lesson is arranged as "an hour and a half", and
-     * "ends at 15:30" is a derived fact about it. Four chips answer it in one tap and take the
-     * booking flow from six taps to three.
-     *
-     * The tutor's own default is folded into the set, so the length they use most is always one of
-     * the offered ones even if it is not a round number — and the set stays sorted and distinct so it
-     * does not sprout a duplicate 60 for the common case.
-     */
+    /** he lengths offered as chips, shortest first. */
     val durationOptions: StateFlow<List<Int>> = defaultMinutes
         .map { (COMMON_DURATIONS + it).distinct().sorted() }
         .hold(this, (COMMON_DURATIONS + DEFAULT_LESSON_MINUTES).distinct().sorted())
 
-    /**
-     * The lesson being edited, if any. A group lesson is loaded as the whole session (every member's
-     * class), never as the single class the user happened to tap, so saving can't update one member
-     * and leave the rest behind. Null while booking something new.
-     *
-     * A flow rather than a plain field because [conflict] has to react to it: the lesson being edited
-     * is the one lesson allowed to occupy the time the form is pointing at.
-     */
     private val session = MutableStateFlow<ClassSession?>(null)
 
-    /**
-     * Whether a save is under way or done: set on the tap, cleared only when the save is turned down.
-     * Once written the screen is leaving, so it stays set.
-     *
-     * [conflict] goes quiet while it is set. The lesson being saved is not in [session]'s ids — a new
-     * one has none yet, and a member ticked into a group lesson gets a class with a new id — so the
-     * moment the write committed, the live check found it at the form's own time and drew «Занято» in
-     * red under the lesson the tutor had just booked, until the screen closed. [save] also ignores a
-     * second tap while it is set, which would otherwise book again and be refused by the first.
-     */
     private val saving = MutableStateFlow(false)
 
-    /**
-     * Whether the app has finished putting the lesson into the form.
-     *
-     * A **new** lesson is ready as it stands: an empty form is the honest picture of a booking nobody has
-     * filled in yet, and everything `init` does to it afterwards is a prefill into a blank field. An
-     * **edited** one is not — [loadExisting] is a coroutine, so the screen was already up and drawing a
-     * blank `ClassForm`: no student, no subject, today's date, the default length, and «Нет групп» in the
-     * error red, over a lesson that has all five. See [Loadable].
-     */
     private val filled = MutableStateFlow(isNew)
 
     private val _gone = MutableStateFlow(false)
@@ -166,35 +118,12 @@ class ClassEditViewModel @AssistedInject constructor(
      */
     val gone: StateFlow<Boolean> = _gone.asStateFlow()
 
-    /**
-     * The form and every rule about how it moves — see [BookingForm], which is pure. This class holds
-     * it, feeds it the picker contents it needs, and runs the lookups it asks for; it decides nothing
-     * about the form itself.
-     */
     private val booking = MutableStateFlow(BookingForm(form = ClassForm(date = openedOnDay.takeIf { isNew })))
 
-    /**
-     * The form as it stands, for the flows below to narrow. A plain `Flow` on purpose: a `stateIn` here
-     * would hold the *initial* form until something subscribed, and the synchronous reads want the
-     * current one — see [currentForm].
-     */
     private val form: Flow<ClassForm> = booking.map { it.form }
 
-    /** The form right now, without waiting for a collector. */
     private val currentForm: ClassForm get() = booking.value.form
 
-    /**
-     * The students offered in the picker: the active ones, **plus the student of the lesson being
-     * edited** — the same allowance [groups] gets below, and for the same reason. A retired student's
-     * lesson is still openable (editing is allowed in any status, and archiving only *cancels* what was
-     * planned), so leaving them out left the lesson unable to name its own student: the field drew blank
-     * over a lesson that has one, with `canSave` still true.
-     *
-     * [Loadable] rather than a list starting empty because the form cannot be drawn against a list that
-     * has merely not been read yet: it would offer an empty picker over a lesson that has a student. A
-     * `combine` over `StateFlow`s cannot wait for them — a placeholder is an emission — so the waiting
-     * has to be in the value.
-     */
     private val students: StateFlow<Loadable<List<Student>>> =
         combine(studentsRepo.observeAll(), form.map { it.studentId }.distinctUntilChanged()) { all, selected ->
             all.offered(selected, Student::archived, Student::id)
@@ -202,10 +131,6 @@ class ClassEditViewModel @AssistedInject constructor(
             .ready()
             .derive(this, computation, Loadable.Loading)
 
-    /**
-     * The groups offered in the picker: the active ones, plus the group of the lesson being edited so
-     * an archived group's existing lesson can still name itself.
-     */
     private val groups: StateFlow<Loadable<List<Group>>> =
         combine(groupsRepo.observeAll(), form.map { it.groupId }.distinctUntilChanged()) { all, selected ->
             all.offered(selected, Group::archived, Group::id)
@@ -213,15 +138,6 @@ class ClassEditViewModel @AssistedInject constructor(
             .ready()
             .derive(this, computation, Loadable.Loading)
 
-    /**
-     * Who the lesson may cover, listed under the group with a tick each. While **booking**, the
-     * group's bookable roster (archived students left out). While **editing**, that roster *plus*
-     * whoever the lesson already covers — so a member archived, or dropped from the group, since it
-     * was booked is still listed, and can still be taken out of a lesson they are in.
-     *
-     * Offering the current roster on an old lesson is the point rather than a leak: the group is who
-     * is taught, and a lesson recorded without somebody who was there is a mistake worth fixing.
-     */
     private val members: StateFlow<Loadable<List<Student>>> =
         combine(form.map { it.groupId }.distinctUntilChanged(), session) { groupId, booked ->
             MembersKey(groupId, booked?.classes?.map { it.studentId }?.toSet())
@@ -232,30 +148,14 @@ class ClassEditViewModel @AssistedInject constructor(
             .ready()
             .derive(this, computation, Loadable.Loading)
 
-    /** [bookedIds] is null while booking something new, and the lesson's members while editing one. */
     private data class MembersKey(val groupId: Long?, val bookedIds: Set<Long>?)
 
-    /**
-     * The subjects this lesson may be booked for. For a **student**: those with a price set for them,
-     * so the class can be billed at completion. For a **group** that has a subject: only that one —
-     * the group is taught it, and every member is priced for it. For a group without one: all of
-     * them, because nothing on the group says otherwise.
-     */
     private val subjects: StateFlow<Loadable<SubjectChoice>> =
         form.map { SubjectKey.of(it) }.distinctUntilChanged()
             .flatMapLatest { subjectsFor(it) }
             .ready()
             .derive(this, computation, Loadable.Loading)
 
-    /**
-     * The subject question, answered whole: which subjects this lesson may be booked for, **and** whether
-     * the group has already decided which.
-     *
-     * One value because it is one read. `fixedByGroup` used to be a flow of its own, keyed on the same
-     * `groupId` and calling the same `observeById` — two live queries onto one column, deriving the two
-     * complementary halves of one answer, and a fifth thing the form had to wait for before it could draw
-     * anything at all.
-     */
     private data class SubjectChoice(
         val subjects: List<Subject> = emptyList(),
         /**
@@ -266,12 +166,6 @@ class ClassEditViewModel @AssistedInject constructor(
         val fixedByGroup: Boolean = false,
     )
 
-    /**
-     * The bookable subjects for one target, as a flow. The shared [subjects] and the one-shot
-     * subject lookup read **one** derivation. Collecting [subjects] for auto-selection throughout the
-     * view model's life would have kept its `WhileSubscribed` timeout from ever firing and quietly
-     * held the queries behind it open.
-     */
     private fun subjectsFor(key: SubjectKey): Flow<SubjectChoice> = when {
         key.target == ClassTarget.STUDENT && key.studentId != null ->
             combine(
@@ -297,27 +191,6 @@ class ClassEditViewModel @AssistedInject constructor(
         else -> flowOf(SubjectChoice())
     }
 
-    /**
-     * The lesson already booked at the time the form points at, or null when that time is free. Live,
-     * so a clash shows up the moment a date or time is picked instead of on save — the tutor is one
-     * person and cannot teach two lessons at once.
-     *
-     * The lesson being **edited** is excluded by every one of its class ids, not just the one that was
-     * tapped: a group lesson would otherwise be found colliding with its own other members.
-     *
-     * The one flow here **not** wrapped in [Loadable], and deliberately: its null is the absence of a
-     * warning rather than a claim about the tutor's data, and the repository refuses a taken hour on save
-     * regardless (`LessonWrite.HourTaken`), so an unread answer cannot let a double booking through.
-     *
-     * **It answers about the lesson on the form, which for a repeating booking is the first occurrence
-     * only.** That is the honest scope for a live warning: the form shows one date and one time, and
-     * flagging a clash three Mondays away would point at a field that does not say that. The rest of the
-     * run is answered where it is decided — `bookSeries` books every free hour and reports the ones it
-     * could not ([SeriesOutcome]), so a later clash is named after the fact rather than guessed at before
-     * it.
-     *
-     * Silent while [saving]: the form is then the lesson being written, not a question about the hour.
-     */
     private val conflict: StateFlow<TimeConflict?> =
         saving.flatMapLatest { underWay -> if (underWay) flowOf(null) else liveConflict() }
             .derive(this, computation, null)
@@ -344,10 +217,6 @@ class ClassEditViewModel @AssistedInject constructor(
                 }
             }
 
-    /**
-     * The whole form, as one value. Assembled in two stages only because `combine` takes at most
-     * five typed sources — the split is arithmetic, not meaning.
-     */
     private data class Pickers(
         val students: List<Student>,
         val groups: List<Group>,
@@ -355,16 +224,6 @@ class ClassEditViewModel @AssistedInject constructor(
         val subject: SubjectChoice,
     )
 
-    /**
-     * The four pickers as one value, once **all four** have been read.
-     *
-     * `return@combine` on the first one missing rather than four nested `when`s: the answer is the same
-     * whichever it is, and there is no partly-drawable form — a subject list that has arrived is no use
-     * while the student list it names the lesson's student from has not.
-     *
-     * It was five. The fifth was a boolean about the group's subject, read by a second query onto the
-     * column [SubjectChoice] already answers from.
-     */
     private val pickers: Flow<Loadable<Pickers>> =
         combine(students, groups, members, subjects) { s, g, m, subj ->
             Loadable.Ready(
@@ -416,7 +275,6 @@ class ClassEditViewModel @AssistedInject constructor(
         }
             .derive(this, computation, Loadable.Loading)
 
-    /** Archived students and groups are looked up too — a past lesson still occupied that hour. */
     private fun describe(clash: ClassSession, students: List<Student>, groups: List<Group>): TimeConflict =
         TimeConflict.of(
             clash = clash,
@@ -505,68 +363,30 @@ class ClassEditViewModel @AssistedInject constructor(
     private suspend fun groupRate(groupId: Long?): Money? =
         groupId?.let { groupsRepo.getById(it)?.price }
 
-    /**
-     * Who a lesson of [groupId]'s may be offered to, live — [GroupRules.offeredRoster] over the group's
-     * membership and everybody. [alreadyIn] is the lesson's own members while editing one, and null
-     * while booking something new.
-     *
-     * The rule itself is the domain's; this is the two queries it reads over. Both this and
-     * [offeredRosterNow] used to spell the union themselves, in two shapes, and disagree about where the
-     * archiving half of it applied.
-     */
     private fun offeredRoster(groupId: Long, alreadyIn: Set<Long>?): Flow<List<Student>> =
         combine(groupsRepo.observeMemberIds(groupId), studentsRepo.observeAll()) { ids, all ->
             GroupRules.offeredRoster(all, ids.toSet(), alreadyIn.orEmpty())
         }
 
-    /**
-     * [offeredRoster] as a one-shot read, for a save. Read straight from the repository rather than from
-     * [members], so a save doesn't depend on whether anything is collecting that flow yet.
-     */
     private suspend fun offeredRosterNow(groupId: Long, alreadyIn: Set<Long> = emptySet()): Set<Long> =
         GroupRules.offeredRoster(studentsRepo.observeAll().first(), groupsRepo.getMemberIds(groupId).toSet(), alreadyIn)
             .mapTo(mutableSetOf()) { it.id }
 
     // ---- The one way the form changes ----------------------------------------------------------
 
-    /**
-     * Applies one change to the form, and goes to look up whatever the change asks for.
-     *
-     * This is the whole mutable surface. There used to be eleven mutators, four of them `selectX`
-     * one-liners over a private `applyX` that differed only in marking the form unsaved, and half of the
-     * rules ran inside `viewModelScope.launch` blocks with staleness guards no test could reach. All of
-     * that is [BookingForm] now: it returns the new form *and* the reads it wants, and answers come back
-     * through this same function as their own intents — so the staleness checks are in the pure module
-     * with the rules they protect.
-     */
+    /** pplies one change to the form, and goes to look up whatever the change asks for. */
     fun change(intent: BookingIntent) {
         val applied = booking.value.change(intent, bookingContext())
         booking.value = applied.form
         applied.lookups.forEach { run(it) }
     }
 
-    /**
-     * What [BookingForm] may look things up in synchronously — the picker contents as they stand.
-     *
-     * A list that has not been read is passed as an empty one, which is what it was before [Loadable] and
-     * is right here rather than a lie: this context answers "is the student I was just handed in the
-     * list", and the form already copes with the answer being no — `init` passes the only student along as
-     * `known` for exactly that reason. The distinction that matters is about what the *screen draws*, and
-     * that is [state]'s.
-     */
     private fun bookingContext() = BookingContext(
         students = students.value.valueOrNull().orEmpty(),
         groups = groups.value.valueOrNull().orEmpty(),
         defaultLessonMinutes = defaultMinutes.value,
     )
 
-    /**
-     * Answers one [Lookup] and feeds the answer back through [apply].
-     *
-     * Nothing here decides anything: whether an answer still applies is [BookingForm]'s, which is why
-     * each intent carries what it was asked about. A lookup with no answer — a target with several
-     * subjects, a student with no price — simply sends nothing.
-     */
     private fun run(lookup: Lookup) {
         viewModelScope.launch {
             when (lookup) {
@@ -642,17 +462,6 @@ class ClassEditViewModel @AssistedInject constructor(
 
     val events = UiEvents<Event>()
 
-    /**
-     * A repeating booking that went through with **some** of its occurrences left out, and what to say
-     * about it. Null when there is nothing to report — which is every single booking and every series
-     * that got every date it asked for.
-     *
-     * **State, and not a [UiEvents] message, because the form is leaving.** A successful save navigates
-     * back, and a snackbar raised on a screen that is being popped is shown to nobody. What is owed here
-     * is more than a passing note anyway: a skipped occurrence is a lesson the tutor believes they have
-     * booked and has not, so it is a dialog they dismiss, and the save holds the navigation until they do
-     * ([acknowledgeSeries]).
-     */
     private val _seriesOutcome = MutableStateFlow<SeriesOutcome?>(null)
     val seriesOutcome: StateFlow<SeriesOutcome?> = _seriesOutcome.asStateFlow()
 
@@ -664,7 +473,6 @@ class ClassEditViewModel @AssistedInject constructor(
         _seriesOutcome.value = null
     }
 
-    /** What a save attempt settled on: written, or turned down for a reason worth saying. */
     private sealed interface SaveOutcome {
         data object Saved : SaveOutcome
 
@@ -673,13 +481,7 @@ class ClassEditViewModel @AssistedInject constructor(
 
         data class Refused(val reason: Event) : SaveOutcome
 
-        /**
-         * The lesson was removed while the form was open, so there is nothing to write into.
-         *
-         * Not a [Refused]: nothing the tutor can change about it, and nothing to say — the screen has
-         * already turned into the "that lesson is gone" state it draws from `gone` ([save] returns early
-         * once it is set, so this is the one save that can raise it *after* being asked for).
-         */
+        /** he lesson was removed while the form was open, so there is nothing to write into. */
         data object Gone : SaveOutcome
     }
 
@@ -690,28 +492,10 @@ class ClassEditViewModel @AssistedInject constructor(
      */
     val askForNotifications = UiEvents<Unit>()
 
-    /** Emits the request, or nothing at all when there is nothing to ask for. */
     private suspend fun askToBeAllowedToRemind() {
         if (shouldAskForNotifications()) askForNotifications.send(Unit)
     }
 
-    /**
-     * Whether a first booking owes the notification prompt.
-     *
-     * **Why here and not on first launch.** A reminder is the app's promise to warn the tutor before a
-     * lesson, and until a lesson exists that promise is abstract — the permission dialog over an empty
-     * schedule asks about a feature they have not met, which is what `docs/calendar-and-reminders.md`
-     * means by *asked for where reminders are*. The booking is where it stops being abstract: they have
-     * just written down a time they intend to be somewhere, and the app is offering to remind them of it.
-     *
-     * **Why only the first.** On Android 13+ a second denial is permanent, after which the dialog never
-     * appears again and even the Settings row can only open the system page. So this asks once, at the
-     * best moment there is, and every later chance is the row in Settings — which is a place the tutor
-     * goes deliberately, not a dialog thrown at them for booking a lesson.
-     *
-     * Silent when reminders are switched off: the tutor has said they do not want them, and a permission
-     * for a feature nobody asked for is the dialog this whole rule exists to avoid.
-     */
     private suspend fun shouldAskForNotifications(): Boolean =
         settingsRepo.get().notificationsEnabled &&
             !notificationPermission.isGranted() &&
@@ -721,11 +505,6 @@ class ClassEditViewModel @AssistedInject constructor(
      * Saves the form as one lesson. Booking a student and booking a group differ only in **who** the
      * classes are written for — one student, or the group's roster — so both go through the same two
      * repository writes: [ClassRepository.book] for a new lesson, [ClassRepository.apply] for an edit.
-     * The rules (re-plan on a move, then rebill) run inside those, so this can't leave a class carrying
-     * a stale charge.
-     *
-     * Does nothing — [onDone] is not called — when the form is incomplete or its time is already
-     * taken; [conflict] is what tells the tutor which lesson is in the way.
      */
     fun save(onDone: () -> Unit) {
         // A lesson that is gone has nothing to save into, and booking one in its place is not what was asked.
@@ -774,11 +553,6 @@ class ClassEditViewModel @AssistedInject constructor(
         }
     }
 
-    /**
-     * Books or updates the lesson [valid] describes. Runs outside [viewModelScope] (see [save]), so
-     * it takes the form as an already-validated snapshot rather than reading [form] as it goes: the
-     * screen may be gone, and a write must not depend on state that is still moving.
-     */
     private suspend fun write(valid: ValidForm): SaveOutcome {
         // **The lesson is re-read here, not taken from [session].** That snapshot was read when the form
         // opened, and a lesson's *state* moves on underneath an open form: the upkeep pass completes one
@@ -835,19 +609,6 @@ class ClassEditViewModel @AssistedInject constructor(
         }
     }
 
-    /**
-     * Books what [valid] describes — one lesson, or the whole run of them «Повторять» asked for.
-     *
-     * **One path for both**, because a single booking is a series of one ([ValidForm.starts]): the branch
-     * that used to exist here would otherwise have had to be re-made in the outcome mapping below, and
-     * the one-lesson case is the one that must not regress.
-     *
-     * The three answers [SeriesWrite] can carry map to three different things to say. Nothing written is
-     * a refusal and keeps the tutor on the form — worded as "this time is taken" for a single lesson,
-     * because that is what the sentence is about, and as "none of them could be booked" for a series.
-     * Everything written is an ordinary save. Some written is the case this feature adds, and it is the
-     * one the form cannot silently swallow.
-     */
     private suspend fun book(valid: ValidForm): SaveOutcome {
         val studentIds: Collection<Long> = when (val target = valid.target) {
             is ValidForm.Target.Group -> offeredRosterNow(target.groupId) - valid.excludedMemberIds
@@ -883,10 +644,6 @@ class ClassEditViewModel @AssistedInject constructor(
         }
     }
 
-    /**
-     * Who [session] is for after this save: everyone the form offers who is still ticked — the same
-     * union [members] lists, so unticking a member who has since been archived still removes them.
-     */
     private suspend fun rosterFor(
         session: ClassSession,
         groupId: Long,

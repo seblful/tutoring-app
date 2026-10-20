@@ -47,31 +47,17 @@ import com.seblful.klas.ui.common.state.valueOrNull
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 
-/** The tallest a cell needs: the day-number disc plus its tally row, six rows still fitting a phone. */
 private val CellHeight = 46.dp
 
-/** The disc hugs the day number only, leaving the tally row the cell's full width to print in. */
 private val NumberDiscSize = 28.dp
 
-/** [NumberDiscSize] against `bodyMedium`'s 20 sp line — how much wider than its number a disc is. */
 private const val DiscToLineHeight = 1.4f
 
-/** Reserved for the tally row whether or not the day has classes — `labelSmall`'s line height. */
 private val TallyRowHeight = 16.dp
 
-/**
- * Two hairline distances inside a cell, deliberately off the app's `Spacing` scale: seven cells share
- * a phone's width, so these are measured against the glyphs either side of them rather than set to the
- * app's rhythm. 4 dp between three tally digits would cost a two-digit count its room.
- */
 private val TallySpacing = 3.dp
 private val DiscToTally = 1.dp
 
-/**
- * The bar standing in for a day's counts before they have been read: about one `labelSmall` digit wide,
- * and faint enough to read as "not filled in yet" rather than as a mark of its own. Off the spacing scale
- * for [TallySpacing]'s reason — it is measured against the glyph it replaces.
- */
 private val TallyPlaceholderWidth = 10.dp
 private val TallyPlaceholderHeight = 4.dp
 private const val TallyPlaceholderAlpha = 0.18f
@@ -145,12 +131,6 @@ fun WeekStrip(
     }
 }
 
-/**
- * The Пн…Вс above the cells, **read off the week it labels** rather than assembled from a week start of
- * its own. The row and the grid under it are then the same seven days by construction, so a tutor whose
- * phone starts the week on Sunday cannot be shown Sunday's lessons under «Пн» — which is what a second
- * copy of "where does a week start" would eventually do.
- */
 @Composable
 private fun WeekdayHeader(week: List<LocalDate>) {
     Row(Modifier.fillMaxWidth()) {
@@ -241,7 +221,7 @@ private fun DayCell(
                             Modifier.border(1.dp, scheme.primary, CircleShape)
                         } else {
                             Modifier
-                        }
+                        },
                     )
                     // Last in the chain so the ripple lands *over* a selected day's fill, and
                     // tinted like the number so it stays visible on every disc state.
@@ -260,21 +240,6 @@ private fun DayCell(
     }
 }
 
-/**
- * How many lessons the day holds, split into one number per status and tinted with that status's
- * colour, so a mixed day states its makeup instead of collapsing to a single dominant hue. Sitting
- * *below* the day-number disc rather than inside it is what keeps those colours readable on the
- * selected day and leaves room for a two-digit count. Always reserves its row's height so day
- * numbers stay on the same baseline whether or not the day has classes.
- *
- * **A day with no counts yet is not a day with no lessons**, and in a grid the difference is invisible
- * unless something is drawn: an empty cell is how this calendar says «свободно», so until the query
- * answers, one dim bar stands where the numbers will be. That bar is deliberately **not** a
- * `SkeletonBlock` — the pulse is an `rememberInfiniteTransition` each, and a month grid would start
- * thirty-five of them to animate something the size of a digit. It does wait like one, though
- * ([rememberPlaceholderShown]): a month answered in a few frames used to blink a bar under every date
- * on its way to the numbers. The grid decides that once and hands each cell [placeholderShown].
- */
 @Composable
 private fun DayTallies(load: Loadable<CalendarLayout.DayLoad?>, placeholderShown: State<Boolean>) {
     if (load is Loadable.Loading) {
@@ -314,7 +279,6 @@ private fun DayTallies(load: Loadable<CalendarLayout.DayLoad?>, placeholderShown
     }
 }
 
-/** Weekends are muted so the working week reads first. */
 @Composable
 private fun weekdayColor(day: DayOfWeek): Color =
     if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) {

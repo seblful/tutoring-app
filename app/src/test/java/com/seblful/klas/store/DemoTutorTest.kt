@@ -6,11 +6,6 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * What the store screenshots and the promo video take for granted about [DemoTutor]: if an edit to the
- * week breaks one of these, the captures still run but show the wrong moment, or one listing differs
- * from the other.
- */
 class DemoTutorTest {
 
     private val tutors = listOf(DemoTutor.english, DemoTutor.russian)

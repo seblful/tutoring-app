@@ -9,11 +9,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * Which settings owe the world something when they move — the classification `update` hands back.
- * Pure, so each obligation is one assertion rather than a fake calendar to inspect; the discharge
- * itself is covered in `SettingsViewModelTest`.
- */
 class SettingsChangeTest {
 
     private val base = AppSettings()
@@ -44,7 +39,6 @@ class SettingsChangeTest {
 
     @Test
     fun `moving the invite switch while not synced owes the calendar nothing`() {
-        // The preference is remembered; there are no events to re-earn until sync is on.
         val c = change(after = base.copy(emailInvitesEnabled = true))
         assertEquals(CalendarWork.NONE, c.calendarWork)
     }
@@ -59,17 +53,11 @@ class SettingsChangeTest {
 
     @Test
     fun `the lead re-plans the alarms even while the calendar is off`() {
-        // The alarms are the app's own; the calendar is only a mirror of them.
         val c = change(after = base.copy(reminderLeadMinutes = 30))
         assertEquals(CalendarWork.NONE, c.calendarWork)
         assertTrue(c.replansReminders)
     }
 
-    /**
-     * A mirrored event's **location** is the app's own word for «Очно» or "Remote", written at mirror time.
-     * So a language change leaves every event already in the tutor's calendar in the language it was written
-     * in, indefinitely — the same defect the reminder lead had, and the reason this class exists.
-     */
     @Test
     fun `changing the language while synced owes a resync`() {
         val synced = base.copy(calendarSyncEnabled = true)
@@ -80,7 +68,6 @@ class SettingsChangeTest {
 
     @Test
     fun `changing the language while not synced owes the calendar nothing`() {
-        // Every other surface builds its words at the moment it shows them; only the mirror stores them.
         val c = change(after = base.copy(language = AppLanguage.ENGLISH))
         assertEquals(CalendarWork.NONE, c.calendarWork)
     }
@@ -94,11 +81,6 @@ class SettingsChangeTest {
         assertFalse(c.replansReminders)
     }
 
-    /**
-     * The currency is the near-miss worth pinning: it is printed into *notifications* and into a report, but
-     * never stored in anything the app has to go back and rewrite — a calendar event's title and location
-     * carry no money. So unlike the language beside it, it owes nothing.
-     */
     @Test
     fun `changing the currency owes the calendar nothing, even while synced`() {
         val synced = base.copy(calendarSyncEnabled = true)

@@ -26,14 +26,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.time.Instant
 
-/**
- * What the backup screen is told when an export or an import doesn't work.
- *
- * Every failure used to arrive as one `ERROR`, and one message telling the tutor to check their file.
- * These pin the three cases apart, because the advice differs: a copy from a newer build needs an app
- * update, a file that isn't a backup needs a different file, and a file that wouldn't open needs
- * neither.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class BackupViewModelTest {
@@ -46,7 +38,6 @@ class BackupViewModelTest {
     private val documents = FakeDocumentStore()
     private val ref = DocumentRef("content://backup.json")
 
-    /** A fixed instant, so the export receipt below is a value rather than "whenever the test ran". */
     private val exportedAt: Instant = Instant.parse("2026-06-20T18:30:00Z")
 
     private fun vm() = BackupViewModel(
@@ -54,7 +45,6 @@ class BackupViewModelTest {
         restore = env.backupRestore,
         documents = documents,
         settings = env.settingsRepo,
-        // The receipt is a database write, so it outlives the screen — see [BackupViewModel.export].
         appScope = mainRule.appScope,
         clock = WallClock.fixed(exportedAt, TimeZone.of("Europe/Minsk")),
     )
@@ -91,14 +81,6 @@ class BackupViewModelTest {
             assertEquals("and it records that it happened", exportedAt, env.settingsRepo.get().lastExportAt)
         }
 
-    /**
-     * A **failed** export leaves the receipt alone.
-     *
-     * The backup screen leads with «Последняя копия: …», so a stamp written for an export that did not
-     * happen is the app telling the tutor they have a copy of their students that they do not have. That
-     * is the one wrong answer this feature can give, and it is why the stamp is written after the file
-     * rather than beside it.
-     */
     @Test
     fun `an export that failed records no backup`() =
         runTest(mainRule.dispatcher) {
@@ -111,13 +93,6 @@ class BackupViewModelTest {
             assertNull(env.settingsRepo.get().lastExportAt)
         }
 
-    /**
-     * Never exported is a state the screen says out loud, so it has to survive being asked for — and it
-     * must be **said only about a row that was read**. «Копий ещё не было» is the sentence this screen
-     * exists to make, and an initial `null` made it to every tutor for the frame or two before the row
-     * arrived, including the ones who exported yesterday. `Loading` and never-exported are the same value
-     * without [Loadable], and only one of them is a warning.
-     */
     @Test
     fun `nothing exported yet reads as never, and only once the row has been read`() = runTest(mainRule.dispatcher) {
         val vm = vm()
@@ -148,8 +123,6 @@ class BackupViewModelTest {
             advanceUntilIdle()
             job.cancel()
 
-            // The two numbers are the point: the message tells the tutor what they have and what
-            // this build reads, which a bare "failed" cannot.
             assertEquals(
                 BackupResult.Failed(
                     BackupFailure.UnsupportedVersion(found = newer, supported = BackupData.CURRENT_VERSION),
@@ -188,7 +161,6 @@ class BackupViewModelTest {
             assertEquals(BackupResult.Failed(BackupFailure.FileUnavailable), received)
         }
 
-    /** A restore says it is running for as long as it runs, and stops saying so when it ends. */
     @Test
     fun `a restore is shown as under way until it has finished`() =
         runTest(mainRule.dispatcher) {
@@ -217,7 +189,6 @@ class BackupViewModelTest {
             val vm = vm()
             env.studentDao.upsert(StudentEntity(name = "Аня"))
             documents.docs[ref.value] = env.backupManager.exportJson()
-            // Then the phone is emptied, so whatever comes back came from the file.
             env.snapshotDao.replace(DatabaseSnapshot())
             var received: BackupResult? = null
             val job = backgroundScope.launch { vm.events.stream.collect { received = it } }

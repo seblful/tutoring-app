@@ -21,13 +21,6 @@ import org.robolectric.RobolectricTestRunner
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * Exercises the side effects [ClassRepository] owns — calendar mirroring and reminder refresh —
- * which the instrumented tests can only check on a device. A real in-memory database under fake ports.
- *
- * Every write takes a lesson, so an individual class is booked and changed as a session of one; the
- * group cases live in `ClassRepositoryGroupTest`.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class ClassRepositoryTest {
@@ -49,18 +42,8 @@ class ClassRepositoryTest {
         check(env.fixtures.student("Боря") == OTHER)
     }
 
-    /**
-     * The moment these tests treat as "now" — two hours after [defaultStart], so a lesson booked at
-     * the default start is in the past.
-     *
-     * Pinned, and passed explicitly to every write whose rules consult the clock, rather than left to
-     * `Instant.now()`. A test that says `Instant.now().minus(3600.seconds)` decides on the hour the
-     * suite happens to run at: it passes at 14:00 and can fail on a boundary, and when it does fail it
-     * indicts the time of day rather than the behaviour it was written for.
-     */
     private val now: Instant = Instant.parse("2026-06-20T12:00:00Z")
 
-    /** Books one individual lesson at 30/h for an hour, and returns its class id. */
     private suspend fun book(start: Instant = defaultStart): Long = repo.book(
         subjectId = 1,
         start = start,
@@ -70,7 +53,6 @@ class ClassRepositoryTest {
         price = Money.ofMajor(30),
     ).written().single()
 
-    /** The lesson class [id] belongs to — a session of one, for an individual class. */
     private suspend fun session(id: Long) = repo.getSessionFor(id)!!
 
     private fun edit(price: Money = Money.ofMajor(30)) = SessionEdit(
@@ -111,8 +93,6 @@ class ClassRepositoryTest {
 
     @Test
     fun `syncing alone mails nobody — invites are off until the tutor opts in`() = runTest {
-        // Turning sync on is a statement about the tutor's own calendar, not about writing to their
-        // students' inboxes, so the mirror must leave the guest uninvited on a fresh install.
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня", email = "anya@example.com"))
 
@@ -193,10 +173,6 @@ class ClassRepositoryTest {
         assertTrue(env.calendar.deletes.isEmpty())
     }
 
-    /**
-     * Moving a lesson that has already been taught — correcting the hour it was actually at — carries
-     * its event with it. Under the old rule the database moved and the calendar stayed where it was.
-     */
     @Test
     fun `correcting a completed lesson's hour carries its event`() = runTest {
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
@@ -286,8 +262,8 @@ class ClassRepositoryTest {
 
     @Test
     fun `autoCompleteDue completes only scheduled classes whose end has passed`() = runTest {
-        val due = book(now.minus(7200.seconds))     // ended an hour ago
-        val future = book(now.plus(7200.seconds))   // not yet started
+        val due = book(now.minus(7200.seconds)) // ended an hour ago
+        val future = book(now.plus(7200.seconds)) // not yet started
 
         val completed = repo.autoCompleteDue(now)
 
@@ -299,11 +275,11 @@ class ClassRepositoryTest {
 
     @Test
     fun `every write asks for a reminder refresh, exactly once`() = runTest {
-        val id = book()                                                       // 1
-        repo.apply(session(id), edit(), newStart = defaultStart, now = now)    // 2
-        repo.setStatus(session(id), LessonStatus.CANCELLED)                     // 3
-        repo.move(session(id), now.plus(3600.seconds), now = now)               // 4
-        repo.delete(session(id))                                              // 5
+        val id = book() // 1
+        repo.apply(session(id), edit(), newStart = defaultStart, now = now) // 2
+        repo.setStatus(session(id), LessonStatus.CANCELLED) // 3
+        repo.move(session(id), now.plus(3600.seconds), now = now) // 4
+        repo.delete(session(id)) // 5
         assertEquals(5, env.reminders.refreshCount)
     }
 
@@ -364,21 +340,15 @@ class ClassRepositoryTest {
         assertEquals(defaultStart.plus((10 * 60).seconds), repo.getById(id)?.start)
     }
 
-    /**
-     * A stored class with no positive duration occupies no time by its own arithmetic, so it can
-     * stand in nobody's way — and `Scheduling.Slot` refuses to exist for it, so asking would throw.
-     * Only a hand-made row can hold one (the backup gate refuses them), which is why it is seeded
-     * through the DAO: the repositories cannot create the state this guards against.
-     */
     @Test
     fun `a status change on a zero-length stored row is an answer, not a crash`() = runTest {
         val id = env.fixtures.storedClass(
-                studentId = STUDENT,
-                subjectId = 1,
-                startMillis = defaultStart.toEpochMilliseconds(),
-                durationMinutes = 0,
-                status = LessonStatus.CANCELLED,
-            )
+            studentId = STUDENT,
+            subjectId = 1,
+            startMillis = defaultStart.toEpochMilliseconds(),
+            durationMinutes = 0,
+            status = LessonStatus.CANCELLED,
+        )
 
         val outcome = repo.setStatus(session(id), LessonStatus.SCHEDULED)
 

@@ -18,11 +18,6 @@ val LocalCurrency = compositionLocalOf { Currency.BYN }
 /**
  * Formats this amount in the currency currently provided by [LocalCurrency], with the app language's
  * decimal separator.
- *
- * The separator is not a second composition local: it is a property of the language the whole app is set
- * to, published where the settings row is read (`format/AppLocale`), and every reader of it — this, a
- * notification, a money field being seeded — has to agree. A local would have made the screens agree with
- * each other and with nothing else.
  */
 @Composable
 @ReadOnlyComposable

@@ -91,7 +91,6 @@ object Migrations {
         }
     }
 
-    /** The `classes` view as v7 declares it, frozen for [MIGRATION_6_7]; checked against `7.json`. */
     private const val CLASSES_VIEW_V7: String =
         "SELECT a.id AS id, a.lessonId AS lessonId, a.studentId AS studentId, " +
             "a.state AS state, a.priceMinor AS priceMinor, a.chargeMinor AS chargeMinor, " +
@@ -122,7 +121,6 @@ object Migrations {
         }
     }
 
-    /** The `classes` view as v8 declares it, frozen for [MIGRATION_7_8]; checked against `8.json`. */
     private const val CLASSES_VIEW_V8: String =
         "SELECT a.id AS id, a.lessonId AS lessonId, a.studentId AS studentId, " +
             "a.state AS state, a.priceMinor AS priceMinor, a.chargeMinor AS chargeMinor, " +
@@ -186,10 +184,6 @@ object Migrations {
         }
     }
 
-    /**
-     * The `classes` view as v9 declares it, frozen for [MIGRATION_8_9]; checked against `9.json`. The last
-     * one: [MIGRATION_9_10] drops the view for good.
-     */
     private const val CLASSES_VIEW_V9: String =
         "SELECT a.id AS id, a.lessonId AS lessonId, a.studentId AS studentId, " +
             "a.state AS state, a.priceMinor AS priceMinor, a.chargeMinor AS chargeMinor, " +
@@ -245,7 +239,6 @@ object Migrations {
         }
     }
 
-    /** A table [MIGRATION_9_10] rebuilds: its v10 DDL, the columns it keeps, and its indices. */
     private class Rebuilt(
         val table: String,
         val createSql: String,
@@ -253,11 +246,6 @@ object Migrations {
         val indices: List<String>,
     )
 
-    /**
-     * The three tables, **in the order they are rebuilt** — `lessons` before `attendance`, which points at
-     * it. Each statement is Room's own for v10, verbatim; `MigrationChainTest` holds them, the columns
-     * copied and the indices to `10.json`.
-     */
     private val V10_REBUILDS = listOf(
         Rebuilt(
             table = "lessons",
@@ -313,12 +301,6 @@ object Migrations {
         ),
     )
 
-    /**
-     * [table] renamed aside, created again as v10 declares it, and refilled — ids and the autoincrement
-     * high-water mark included. The old copy is left for the caller to drop, in foreign-key order, and the
-     * indices for after that: an index keeps its name when its table is renamed, so creating it now would
-     * find the name taken (by the old table's) and quietly do nothing.
-     */
     private fun rebuild(connection: SQLiteConnection, table: Rebuilt) {
         val old = "${table.table}_v9"
         val columns = table.columns.joinToString { "`$it`" }
@@ -329,12 +311,6 @@ object Migrations {
         connection.execSQL("UPDATE sqlite_sequence SET name = '${table.table}' WHERE name = '$old'")
     }
 
-    /**
-     * Fails the step if a row of [tables] points at a row that does not exist — the check
-     * `defer_foreign_keys` postponed, run here so the failure names what it found instead of surfacing as a
-     * bare constraint error at commit (or, with foreign keys off, not at all). Thrown inside the migration,
-     * it rolls the whole upgrade back.
-     */
     private fun requireNoOrphans(connection: SQLiteConnection, vararg tables: String) {
         val orphans = tables.flatMap { table ->
             connection.prepare("PRAGMA foreign_key_check($table)").use { row ->

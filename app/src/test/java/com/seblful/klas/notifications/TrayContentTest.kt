@@ -9,13 +9,6 @@ import org.junit.Test
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * How much of a day's agenda actually reaches the tray.
- *
- * This was arithmetic inside `AndroidNotifier` — 355 lines behind a `Context`, with no test in either
- * source set — even though [Notifier]'s own contract puts every other decision about a digest on the pure
- * side of the seam.
- */
 class TrayContentTest {
 
     private val start = Instant.parse("2026-06-20T07:00:00Z")
@@ -40,7 +33,6 @@ class TrayContentTest {
         assertEquals("nothing was dropped", 0, posting.more)
     }
 
-    /** The boundary: exactly what fits is still "nothing left over", not "+0 more". */
     @Test
     fun `a day of exactly the cap is named in full`() {
         val posting = TrayContent.agenda(agenda(TrayContent.MAX_AGENDA_LINES))
@@ -57,7 +49,6 @@ class TrayContentTest {
         assertEquals(4, posting.more)
     }
 
-    /** The lessons that survive are the first ones, so a capped agenda still starts at the morning. */
     @Test
     fun `the lessons it keeps are the earliest ones, in order`() {
         val posting = TrayContent.agenda(agenda(TrayContent.MAX_AGENDA_LINES + 2))

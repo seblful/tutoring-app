@@ -142,7 +142,11 @@ object HomeworkRules {
      *
      * [classes] has to reach back to the earliest of them and up to [session] itself.
      */
-    fun attachedToLesson(session: ClassSession, homework: List<Homework>, classes: List<TutoringClass>): List<Homework> =
+    fun attachedToLesson(
+        session: ClassSession,
+        homework: List<Homework>,
+        classes: List<TutoringClass>,
+    ): List<Homework> =
         homework
             .filter { attachedTo(it, classes)?.lessonId == session.lessonId }
             .sortedBy { it.givenAt }
@@ -171,7 +175,6 @@ object HomeworkRules {
         )
     }
 
-    /** How far [now] is from [klass]'s hour — nothing while it is on. */
     private fun distanceFrom(now: Instant, klass: TutoringClass): Duration = when {
         now < klass.start -> (klass.start - now)
         now > klass.end -> (now - klass.end)

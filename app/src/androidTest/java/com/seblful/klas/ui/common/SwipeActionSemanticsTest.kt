@@ -18,13 +18,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
-/**
- * **A swipe a screen reader can make.** TalkBack cannot drag, so a lesson marked taught — or homework
- * swiped done — only by a gesture was out of reach for anyone using it; and the panel behind the row, always
- * composed, was read before every row as though it had already happened («Проведено» before a lesson still
- * to come). [swipeAction] puts the gesture on the row's own node as a named action, and [SwipeToConfirmBox]
- * clears the panel from the tree.
- */
 class SwipeActionSemanticsTest {
 
     @get:Rule

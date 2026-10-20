@@ -80,33 +80,17 @@ class ScheduleViewModelTest {
     private fun startMillisOn(date: LocalDate, time: LocalTime): Long =
         date.atTime(time).toInstant(zone).toEpochMilliseconds()
 
-    /**
-     * The day's content the screen would be drawing, insisted upon — `current`'s counterpart for a day
-     * read out of the week the view model assembles (see [day]).
-     *
-     * A test that reads this before the week holding the selected day has arrived fails naming the
-     * reason, where an empty default would have let it assert happily about a day nobody had read.
-     */
     private val ScheduleViewModel.dayContent: ScheduleContent.Day
         get() = content.value.day(selectedDate.value).valueOrNull() ?: error(
             "The selected day ${selectedDate.value} has not been read: the content is ${content.value}. " +
-                "Is `observing(vm.content)` missing, or does the scheduler need advancing?"
+                "Is `observing(vm.content)` missing, or does the scheduler need advancing?",
         )
 
-    /** [dayContent]'s counterpart for the week agenda. */
     private val StateFlow<Loadable<ScheduleContent.Week>>.weekContent: ScheduleContent.Week
         get() = value.valueOrNull() ?: error(
-            "The week has not been read: its content is ${value}. Is `observing(…)` missing?"
+            "The week has not been read: its content is $value. Is `observing(…)` missing?",
         )
 
-    /**
-     * The day is [Loadable.Loading] until its lessons have been read.
-     *
-     * The initial value used to be `ScheduleContent.Day(emptyList())` — *a day with no lessons* — which
-     * is indistinguishable from a genuinely free day, so every cold start drew «Нет занятий» and a
-     * book-a-lesson button over the tutor's actual morning until the query returned. This is the app's
-     * opening screen, so it was also the first thing anybody saw.
-     */
     @Test
     fun `the day is Loading until its lessons have been read`() = runTest(mainRule.dispatcher) {
         val vm = vm()
@@ -117,23 +101,12 @@ class ScheduleViewModelTest {
         observing(vm.content)
         advanceUntilIdle()
 
-        // Read, and genuinely empty — which is the only state the empty prompt is honest in. A day with
-        // no lessons summarises to nothing, which is what stops the summary line being drawn at all.
         assertEquals(
             Loadable.Ready(ScheduleContent.Day(vm.selectedDate.value, emptyList(), DaySummary.NONE)),
             vm.content.value.day(vm.selectedDate.value),
         )
     }
 
-    /**
-     * **A step into the next week does not blink the day through Loading** — the day on screen stays up,
-     * named by its own date, until the next one is read.
-     *
-     * Every change of day used to emit Loading first, so the list went to a skeleton and back on each tap,
-     * and the summary line under the day's name vanished with it and jumped the list. Within a week a day
-     * is now a lookup; across a week boundary the previous day is what the screen keeps drawing, which is
-     * only honest because it says which day it is.
-     */
     @Test
     fun `stepping into the next week goes straight from one day to the next`() = runTest(mainRule.dispatcher) {
         val sid = env.fixtures.student()
@@ -160,12 +133,6 @@ class ScheduleViewModelTest {
         assertEquals(1, shown.rows.size)
     }
 
-    /**
-     * A week answers for a day it holds — the day's section, or a free day — and for no other day.
-     *
-     * Without it «Неделя» → «День» drew an empty list for the frames the day took to re-read, though the
-     * week in hand already held every lesson on it.
-     */
     @Test
     fun `a week answers for the days it holds and no others`() {
         val monday = LocalDate(2026, 7, 13)
@@ -192,7 +159,6 @@ class ScheduleViewModelTest {
         assertEquals(Loadable.Loading, week.day(monday.minus(1, DateTimeUnit.DAY)))
     }
 
-    /** A week that has not arrived answers for no day, so a cold open is not mistaken for a free one. */
     @Test
     fun `a week that has not arrived answers for no day`() {
         val nothing: Loadable<ScheduleContent.Week> = Loadable.Loading
@@ -200,15 +166,9 @@ class ScheduleViewModelTest {
         assertEquals(Loadable.Loading, nothing.day(LocalDate(2026, 7, 15)))
     }
 
-    /** A fixed day at [hour], for tests that only need distinct lesson times. */
     private fun at(hour: Int): Instant =
         LocalDate(2026, 5, 18).atTime(hour, 0).toInstant(zone)
 
-    /**
-     * The day carries what it adds up to, so the header can print it without doing arithmetic in a
-     * composable. The rules themselves are `DaySummaryTest`'s; what this pins is that the schedule
-     * actually applies them to the day it is showing.
-     */
     @Test
     fun `the selected day carries its own summary`() = runTest(mainRule.dispatcher) {
         val subj = env.fixtures.subject("Математика")
@@ -233,27 +193,14 @@ class ScheduleViewModelTest {
         assertEquals("the cancelled one is not a lesson the day holds", 1, summary.lessons)
         assertEquals(1, summary.cancelled)
         assertEquals(90, summary.minutes)
-        // 30/h for 90 minutes, and nothing for the hour that was given back.
         assertEquals(Money.ofMajor(45), summary.money)
     }
 
-    /**
-     * The **"you are here"** mark moves with the clock.
-     *
-     * Both halves matter and only the second needs a schedule: [com.seblful.klas.domain.schedule.NowMarker] decides
-     * *where* the mark goes and is tested on the JVM, but nothing else says the view model keeps asking.
-     * A mark computed once is a mark that is wrong for the rest of the day, on a screen a tutor leaves
-     * open all of it.
-     *
-     * As `today rolls over at midnight`: **no `advanceUntilIdle()`**. The minute tick has no last
-     * emission, so "until idle" never arrives and the test would hang rather than fail.
-     */
     @Test
     fun `the now mark follows the clock past a lesson`() = runTest(mainRule.dispatcher) {
         val subj = env.fixtures.subject("Математика")
         val sid = env.fixtures.pricedStudent("Аня", subj)
         val day = LocalDate(2026, 5, 18)
-        // 08:59, one minute before the day's only lesson.
         val clock = MutableClock(day.atTime(8, 59).toInstant(zone), zone)
         env.fixtures.lesson(
             subjectId = subj,
@@ -269,29 +216,17 @@ class ScheduleViewModelTest {
 
         assertEquals("before the lesson, the mark is above it", 0, vm.nowMark.value)
 
-        // Past nine now. Both clocks move: the wall clock is what the mark is read from, the scheduler
-        // is what the tick is waiting on.
         clock.advanceBy(minute)
         advanceTimeBy(minute)
 
         assertEquals("once it has started, the mark is below it", 1, vm.nowMark.value)
     }
 
-    /**
-     * «Идёт» arrives and leaves on its own — which is the whole claim of not storing it.
-     *
-     * The badge is drawn from this set, so what the schedule says about a lesson in progress is decided
-     * here, once a minute, against the injected clock. A test that only checked the middle of the lesson
-     * would miss the half that matters: nothing writes an end, so the word has to *stop* by itself too.
-     *
-     * As `the now mark follows the clock past a lesson`: **no `advanceUntilIdle()`**, the tick never ends.
-     */
     @Test
     fun `a lesson is marked as running only while it is running`() = runTest(mainRule.dispatcher) {
         val subj = env.fixtures.subject("Математика")
         val sid = env.fixtures.pricedStudent("Аня", subj)
         val day = LocalDate(2026, 5, 18)
-        // 08:59, one minute before an hour-long lesson at nine.
         val clock = MutableClock(day.atTime(8, 59).toInstant(zone), zone)
         env.fixtures.lesson(
             subjectId = subj,
@@ -312,13 +247,11 @@ class ScheduleViewModelTest {
         advanceTimeBy(minute)
         assertEquals("on now", setOf(lessonId), vm.running.value)
 
-        // Through to the far side of the hour: nothing wrote an end, so the word has to stop by itself.
         clock.advanceBy(60 * minute)
         advanceTimeBy(60 * minute)
         assertEquals("over, and unmarked rather than running", emptySet<Long>(), vm.running.value)
     }
 
-    /** A day that is not today has no "now" in it, and must not have one drawn at either end. */
     @Test
     fun `another day gets no now mark`() = runTest(mainRule.dispatcher) {
         val day = LocalDate(2026, 5, 18)
@@ -487,7 +420,6 @@ class ScheduleViewModelTest {
         assertEquals("no arrival is nobody asking", today.plus(3, DateTimeUnit.DAY), vm.selectedDate.value)
     }
 
-    /** A digest tapped after midnight is still about its own day, not the one it is tapped on. */
     @Test
     fun `a day's arrival opens that day`() = runTest(mainRule.dispatcher) {
         val vm = vm()
@@ -525,7 +457,6 @@ class ScheduleViewModelTest {
         assertNull("shown once, not again on the next page load", vm.askedSheet.value)
     }
 
-    /** The sheet waits for a row, and a row the filter narrows away is never drawn — so the filter goes. */
     @Test
     fun `a reminder for somebody the schedule is not showing lifts the filter`() = runTest(mainRule.dispatcher) {
         val today = Clock.System.todayIn(zone)
@@ -547,7 +478,6 @@ class ScheduleViewModelTest {
         assertEquals(bobs, vm.askedSheet.value?.klass?.id)
     }
 
-    /** The tray named a lesson; a schedule with no sign of it would read as the app having lost it. */
     @Test
     fun `a reminder for a lesson since deleted says so`() = runTest(mainRule.dispatcher) {
         val vm = vm()
@@ -613,7 +543,6 @@ class ScheduleViewModelTest {
     fun `opening a calendar view snaps its page back to the selected day`() = runTest(mainRule.dispatcher) {
         val vm = vm()
         vm.selectDate(LocalDate(2026, 11, 20))
-        // Browse both pages away, then reopen each view.
         vm.goToNextMonth()
         vm.goToNextWeek()
 
@@ -654,11 +583,6 @@ class ScheduleViewModelTest {
         assertEquals(LocalDate(2026, 7, 19), days.last())
     }
 
-    /**
-     * A phone set to start the week on Sunday moves **every** page, not just the strip: the week the agenda
-     * opens on, the seven days in it, and the month grid's first cell. They are three readers of one
-     * answer, which is what the calendar looked wrong in three different ways for when it was hardcoded.
-     */
     @Test
     fun `a week that starts on Sunday anchors every calendar page on Sunday`() = runTest(mainRule.dispatcher) {
         val vm = vm(weekStart = DayOfWeek.SUNDAY)
@@ -681,7 +605,6 @@ class ScheduleViewModelTest {
         val monday = LocalDate(2026, 7, 13)
         val thursday = LocalDate(2026, 7, 16)
         val nextWeek = LocalDate(2026, 7, 20)
-        // Monday out of time order, so section rows must come back sorted.
         listOf(
             Triple(monday, LocalTime(15, 0), sid),
             Triple(monday, LocalTime(9, 0), other),
@@ -689,9 +612,9 @@ class ScheduleViewModelTest {
             Triple(nextWeek, LocalTime(9, 0), sid),
         ).forEach { (day, time, student) ->
             env.fixtures.storedClass(
-                    studentId = student, subjectId = subj, startMillis = startMillisOn(day, time),
-                    durationMinutes = 60, status = LessonStatus.SCHEDULED,
-                )
+                studentId = student, subjectId = subj, startMillis = startMillisOn(day, time),
+                durationMinutes = 60, status = LessonStatus.SCHEDULED,
+            )
         }
 
         val vm = vm()
@@ -705,7 +628,10 @@ class ScheduleViewModelTest {
         assertEquals(monday, sections[0].date)
         assertEquals(thursday, sections[1].date)
         assertEquals(2, sections[0].rows.size)
-        assertTrue("rows within a day are time-sorted", sections[0].rows[0].klass.start < sections[0].rows[1].klass.start)
+        assertTrue(
+            "rows within a day are time-sorted",
+            sections[0].rows[0].klass.start < sections[0].rows[1].klass.start,
+        )
         assertEquals("Пётр", sections[0].rows[0].title)
         assertEquals("Математика", sections[0].rows[0].subjectName)
     }
@@ -716,9 +642,9 @@ class ScheduleViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val nextWeek = LocalDate(2026, 7, 20)
         env.fixtures.storedClass(
-                studentId = sid, subjectId = subj, startMillis = startMillisOn(nextWeek, LocalTime(9, 0)),
-                durationMinutes = 60, status = LessonStatus.SCHEDULED,
-            )
+            studentId = sid, subjectId = subj, startMillis = startMillisOn(nextWeek, LocalTime(9, 0)),
+            durationMinutes = 60, status = LessonStatus.SCHEDULED,
+        )
 
         val vm = vm()
         observing(vm.content)
@@ -733,34 +659,23 @@ class ScheduleViewModelTest {
         assertEquals(listOf(nextWeek), vm.content.weekContent.sections.map { it.date })
     }
 
-    /**
-     * **Every view reads the one week that holds the selected day**, so switching view inside it reads
-     * nothing at all.
-     *
-     * The views used to assemble their own — a day for «День», a week for «Неделя» — and every switch
-     * re-keyed the query: «Неделя» → «День» stood empty for the frames the re-read took, although every
-     * lesson on that day was already in hand.
-     */
     @Test
     fun `switching view inside the week reads nothing new`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val today = Clock.System.todayIn(zone)
-        // One class today, one on another day of the same week. Picked by excluding today rather
-        // than as startOfWeek + 6: on the last day of the week that *is* today, and both lessons
-        // would land on the selected day — failing for the calendar, not for the behaviour.
         val otherDay = CalendarLayout.week(CalendarLayout.startOfWeek(today)).first { it != today }
         env.fixtures.storedClass(
-                studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime(9, 0)),
-                durationMinutes = 60, status = LessonStatus.SCHEDULED,
-            )
+            studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime(9, 0)),
+            durationMinutes = 60, status = LessonStatus.SCHEDULED,
+        )
         env.fixtures.storedClass(
-                studentId = sid,
-                subjectId = subj,
-                startMillis = startMillisOn(otherDay, LocalTime(9, 0)),
-                durationMinutes = 60,
-                status = LessonStatus.SCHEDULED,
-            )
+            studentId = sid,
+            subjectId = subj,
+            startMillis = startMillisOn(otherDay, LocalTime(9, 0)),
+            durationMinutes = 60,
+            status = LessonStatus.SCHEDULED,
+        )
 
         val vm = vm()
         observing(vm.content)
@@ -782,21 +697,16 @@ class ScheduleViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val day = LocalDate(2026, 7, 15)
         env.fixtures.storedClass(
-                studentId = sid, subjectId = subj, startMillis = startMillisOn(day, LocalTime(9, 0)),
-                durationMinutes = 60, status = LessonStatus.SCHEDULED,
-            )
+            studentId = sid, subjectId = subj, startMillis = startMillisOn(day, LocalTime(9, 0)),
+            durationMinutes = 60, status = LessonStatus.SCHEDULED,
+        )
 
         val vm = vm()
-        // A cell with no tally is this calendar saying «свободно», so the counts must not start at an
-        // empty map — a fortnight off and a fortnight unread would draw the same grid. See [Loadable].
         assertEquals(Loadable.Loading, vm.dayLoads.value)
 
         observing(vm.dayLoads)
         vm.selectDate(day)
         advanceUntilIdle()
-        // Still Loading, and that is the assertion: the day view queries no markers, and «no markers» is
-        // not an answer it may leave behind. `Ready(emptyMap())` was — and it outlived the switch, so
-        // «Месяц» re-appeared over a grid claiming a free month until its own query returned.
         assertEquals(
             "the day view draws no calendar, so it queries none — and claims none",
             Loadable.Loading,
@@ -823,21 +733,20 @@ class ScheduleViewModelTest {
     fun `day markers cover the whole page, padding days included`() = runTest(mainRule.dispatcher) {
         val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        // July 2026 starts on a Wednesday, so 30 June is a padding cell on the first row.
         val padding = LocalDate(2026, 6, 30)
         val inMonth = LocalDate(2026, 7, 15)
         val otherMonth = LocalDate(2026, 9, 1)
         listOf(padding to LocalTime(9, 0), inMonth to LocalTime(9, 0), inMonth to LocalTime(15, 0))
             .forEach { (day, time) ->
                 env.fixtures.storedClass(
-                        studentId = sid, subjectId = subj, startMillis = startMillisOn(day, time),
-                        durationMinutes = 60, status = LessonStatus.SCHEDULED,
-                    )
+                    studentId = sid, subjectId = subj, startMillis = startMillisOn(day, time),
+                    durationMinutes = 60, status = LessonStatus.SCHEDULED,
+                )
             }
         env.fixtures.storedClass(
-                studentId = sid, subjectId = subj, startMillis = startMillisOn(otherMonth, LocalTime(9, 0)),
-                durationMinutes = 60, status = LessonStatus.CANCELLED,
-            )
+            studentId = sid, subjectId = subj, startMillis = startMillisOn(otherMonth, LocalTime(9, 0)),
+            durationMinutes = 60, status = LessonStatus.CANCELLED,
+        )
 
         val vm = vm()
         observing(vm.dayLoads)
@@ -857,9 +766,9 @@ class ScheduleViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val august = LocalDate(2026, 8, 12)
         env.fixtures.storedClass(
-                studentId = sid, subjectId = subj, startMillis = startMillisOn(august, LocalTime(9, 0)),
-                durationMinutes = 60, status = LessonStatus.COMPLETED,
-            )
+            studentId = sid, subjectId = subj, startMillis = startMillisOn(august, LocalTime(9, 0)),
+            durationMinutes = 60, status = LessonStatus.COMPLETED,
+        )
 
         val vm = vm()
         observing(vm.dayLoads)
@@ -893,8 +802,6 @@ class ScheduleViewModelTest {
         assertEquals(Money.ofMajor(45).minor, saved.chargeMinor) // 30/h * 90 min
     }
 
-    // --- Move: the destination hour has to be free ---
-
     @Test
     fun `a lesson cannot be moved onto an hour another lesson already holds`() = runTest(mainRule.dispatcher) {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
@@ -919,11 +826,6 @@ class ScheduleViewModelTest {
         assertNull(vm.timeConflict.value)
     }
 
-    /**
-     * Cancelling gives the hour back on purpose, so re-booking it is legitimate — which makes
-     * un-cancelling the way back into an hour somebody else now holds. The status path used to write
-     * unconditionally, and the schedule simply drew both lessons at once.
-     */
     @Test
     fun `a cancelled lesson cannot be returned to an hour taken since`() = runTest(mainRule.dispatcher) {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
@@ -932,7 +834,6 @@ class ScheduleViewModelTest {
         val day = LocalDate(2026, 7, 15)
         val at = startMillisOn(day, LocalTime(10, 0))
         val cancelled = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.CANCELLED)
-        // The freed hour, re-booked for somebody else.
         env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED)
 
         val vm = vm()
@@ -953,10 +854,10 @@ class ScheduleViewModelTest {
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val day = LocalDate(2026, 7, 15)
         val cancelled = env.fixtures.storedClass(
-                studentId = ann, subjectId = subj,
-                startMillis = startMillisOn(day, LocalTime(10, 0)),
-                durationMinutes = 60, status = LessonStatus.CANCELLED,
-            )
+            studentId = ann, subjectId = subj,
+            startMillis = startMillisOn(day, LocalTime(10, 0)),
+            durationMinutes = 60, status = LessonStatus.CANCELLED,
+        )
 
         val vm = vm()
         vm.setStatus(env.classRepo.getSessionFor(cancelled)!!, LessonStatus.SCHEDULED)
@@ -966,25 +867,16 @@ class ScheduleViewModelTest {
         assertEquals(LessonStatus.SCHEDULED, env.classes().single().status)
     }
 
-    // --- A write that fails is said out loud, not crashed on -------------------------------------
-
-    /**
-     * These actions are tapped in a sheet that closes as it is tapped, and the write is handed to the
-     * application scope so it outlives the screen. What that scope does not give is a reply: a plain
-     * `launch` reported a failure only to the scope's handler, so the tutor saw the sheet shut and the
-     * lesson not change, with nothing to explain it. Before the handler existed it was worse — the
-     * exception reached the thread's default handler and killed the process.
-     */
     @Test
     fun `a status change that fails to commit is reported`() = runTest(mainRule.dispatcher) {
         val env = TestEnv()
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val id = env.fixtures.storedClass(
-                studentId = ann, subjectId = subj,
-                startMillis = startMillisOn(LocalDate(2026, 7, 15), LocalTime(10, 0)),
-                durationMinutes = 60, status = LessonStatus.SCHEDULED,
-            )
+            studentId = ann, subjectId = subj,
+            startMillis = startMillisOn(LocalDate(2026, 7, 15), LocalTime(10, 0)),
+            durationMinutes = 60, status = LessonStatus.SCHEDULED,
+        )
         val vm = ScheduleViewModel(
             env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, mainRule.appScope,
             mainRule.dispatcher, WallClock.system(),
@@ -1005,10 +897,10 @@ class ScheduleViewModelTest {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val id = env.fixtures.storedClass(
-                studentId = ann, subjectId = subj,
-                startMillis = startMillisOn(LocalDate(2026, 7, 15), LocalTime(10, 0)),
-                durationMinutes = 60, status = LessonStatus.SCHEDULED,
-            )
+            studentId = ann, subjectId = subj,
+            startMillis = startMillisOn(LocalDate(2026, 7, 15), LocalTime(10, 0)),
+            durationMinutes = 60, status = LessonStatus.SCHEDULED,
+        )
         val vm = ScheduleViewModel(
             env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, mainRule.appScope,
             mainRule.dispatcher, WallClock.system(),
@@ -1028,10 +920,10 @@ class ScheduleViewModelTest {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val id = env.fixtures.storedClass(
-                studentId = ann, subjectId = subj,
-                startMillis = startMillisOn(LocalDate(2026, 7, 15), LocalTime(10, 0)),
-                durationMinutes = 60, status = LessonStatus.SCHEDULED,
-            )
+            studentId = ann, subjectId = subj,
+            startMillis = startMillisOn(LocalDate(2026, 7, 15), LocalTime(10, 0)),
+            durationMinutes = 60, status = LessonStatus.SCHEDULED,
+        )
         val vm = vm()
         val seen = mutableListOf<ScheduleViewModel.Event>()
         backgroundScope.launch { vm.events.stream.collect { seen += it } }
@@ -1042,16 +934,15 @@ class ScheduleViewModelTest {
         assertTrue("nothing failed, so nothing to announce", seen.isEmpty())
     }
 
-    /** Completing occupies no new time, so it must not be checked against the hour it already holds. */
     @Test
     fun `marking a lesson completed is never refused`() = runTest(mainRule.dispatcher) {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
         val id = env.fixtures.storedClass(
-                studentId = ann, subjectId = subj,
-                startMillis = startMillisOn(LocalDate(2026, 7, 15), LocalTime(10, 0)),
-                durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
-            )
+            studentId = ann, subjectId = subj,
+            startMillis = startMillisOn(LocalDate(2026, 7, 15), LocalTime(10, 0)),
+            durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
+        )
 
         val vm = vm()
         vm.setStatus(env.classRepo.getSessionFor(id)!!, LessonStatus.COMPLETED)
@@ -1069,7 +960,6 @@ class ScheduleViewModelTest {
         val id = env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(day, LocalTime(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
 
         val vm = vm()
-        // Ten minutes later overlaps where it currently is — it must not block itself.
         vm.moveTo(env.classRepo.getSessionFor(id)!!, day, LocalTime(9, 10))
         advanceUntilIdle()
 
@@ -1139,7 +1029,6 @@ class ScheduleViewModelTest {
         val at = startMillisOn(today, LocalTime(12, 0))
         env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED, groupId = groupId)
         env.fixtures.storedClass(studentId = bob, subjectId = subj, startMillis = at, durationMinutes = 60, status = LessonStatus.SCHEDULED, groupId = groupId)
-        // Plus an unrelated individual class earlier the same day.
         env.fixtures.storedClass(studentId = ann, subjectId = subj, startMillis = startMillisOn(today, LocalTime(9, 0)), durationMinutes = 60, status = LessonStatus.SCHEDULED)
 
         val vm = vm()
@@ -1155,7 +1044,6 @@ class ScheduleViewModelTest {
         assertTrue(group.isGroup)
         assertEquals("11 «А»", group.title)
         assertEquals("Алгебра", group.subjectName)
-        // The row names who is in the room; the lesson itself is what the schedule acts on.
         assertEquals(listOf("Аня", "Борис"), group.members)
         assertEquals("both members' classes are the one lesson", 2, group.classes.size)
     }
@@ -1233,11 +1121,6 @@ class ScheduleViewModelTest {
             )
         }
 
-    /**
-     * "Billed" is the billing rule's, not "completed": a lesson that went ahead with every student marked
-     * absent earned nothing, so deleting it takes no income — and warning that it does would be a false
-     * alarm about money. One absentee in a group is not enough: the others still billed.
-     */
     @Test
     fun `a completed lesson nobody was billed for does not warn about income`() =
         runTest(mainRule.dispatcher) {
@@ -1261,13 +1144,6 @@ class ScheduleViewModelTest {
             assertEquals(DeleteWarning(DeleteWarning.Kind.BILLED_GROUP, classes = 2), warningFor(someone))
         }
 
-    /**
-     * `deleteWarning`'s three siblings: what the sheet's segments enable, whether the swipe gesture
-     * is offered, and whether the card recedes. All were decided inside `ScheduleScreen`, so the rule
-     * gating the product's highest-frequency gesture could be exercised only by swiping on a phone —
-     * the group lesson whose absentee was cancelled in particular, which must still offer the swipe
-     * (the members who are coming have not been taught yet) and must not recede.
-     */
     @Test
     fun `the row answers what is legal — segments, the swipe, and receding`() =
         runTest(mainRule.dispatcher) {
@@ -1279,8 +1155,6 @@ class ScheduleViewModelTest {
             val scheduled = env.fixtures.lesson(subject, listOf(anya), at(9))
             val completed = env.fixtures.completedLesson(subject, listOf(anya), at(10))
             val cancelled = env.fixtures.cancelledLesson(subject, listOf(anya), at(11))
-            // A planned group lesson one of whose members has already said they cannot come — the lesson
-            // still reads «Запланировано», because it is still to come for the one who can.
             val mixed = env.fixtures.lesson(subject, listOf(anya, boris), at(12), groupId = group)
             val borisClass = env.classRepo.getSessionFor(mixed.first())!!
                 .classes.single { it.studentId == boris }
@@ -1313,16 +1187,6 @@ class ScheduleViewModelTest {
             assertFalse("and does not recede — it is not off", corrected.recedes)
         }
 
-    /**
-     * The swipe and the badge cannot contradict each other, and nothing has to enforce it.
-     *
-     * The worry is a card badged «Проведено» that still invites completing. It used to be a real
-     * possibility: the status was per member, so a taught lesson could hold a cancelled one, and
-     * `statusChoices` was the *union* over the members — which offered «Проведено» for that member on a
-     * card that already said the lesson was taught. Both halves of that are gone. The lesson has one
-     * status, its choices are that status's own, and who was in the room is attendance — so an absentee
-     * is a fact about them that cannot re-open the lesson.
-     */
     @Test
     fun `a taught lesson with an absentee offers no swipe`() = runTest(mainRule.dispatcher) {
         val subject = env.fixtures.subject("Математика")
@@ -1351,12 +1215,6 @@ class ScheduleViewModelTest {
         assertFalse("so a lesson that reads as taught offers no swipe", row.canSwipeComplete)
     }
 
-    // --- Narrowing the schedule to one student ---------------------------------------------------
-
-    /**
-     * Two students with a lesson each on the same day, and a group lesson holding one of them.
-     * Returns the pair of student ids.
-     */
     private suspend fun seedTwoStudentsOn(day: LocalDate): Pair<Long, Long> {
         val subj = env.fixtures.subject("Математика")
         val ann = env.fixtures.pricedStudent("Аня", subj)
@@ -1422,13 +1280,6 @@ class ScheduleViewModelTest {
         assertEquals(2, vm.dayContent.rows.size)
     }
 
-    /**
-     * **A filter narrows which lessons are shown, never what a lesson is.**
-     *
-     * Keeping only the filtered student's own class would leave a group lesson drawn as a session of one
-     * — a group row with a roster of one — and, worse, the sheet's «Проведено» would then act on a
-     * session the lesson does not consist of. See `SessionRules.lessonsWith`.
-     */
     @Test
     fun `a group lesson the student is in stays a whole lesson`() = runTest(mainRule.dispatcher) {
         val today = Clock.System.todayIn(zone)
@@ -1475,10 +1326,6 @@ class ScheduleViewModelTest {
         assertTrue(vm.dayContent.rows.isEmpty())
     }
 
-    /**
-     * The calendar's tallies follow the filter too. A cell counting lessons the list under it does not
-     * show would be the calendar contradicting the day it is a picker for.
-     */
     @Test
     fun `the month's markers are narrowed with the list`() = runTest(mainRule.dispatcher) {
         val today = Clock.System.todayIn(zone)

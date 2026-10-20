@@ -37,21 +37,7 @@ import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.theme.KlasIcons
 
-/**
- * What the app is and which build of it this is.
- *
- * Every published app has one of these, and this one had none — so the version, the first thing any
- * bug report needs and the only way to tell two installs apart, was not stated anywhere in the UI.
- *
- * It also says the thing the app's whole architecture is built around and never told the person using
- * it: **the data is on this device and nowhere else.** That is a promise worth making explicitly, and
- * it comes with an obligation the tutor has to know about — nothing is syncing, so a lost phone is
- * lost data unless they have exported a copy.
- *
- * And it now carries the way to *do* that. The screen raised the lost-phone point and then offered
- * nothing about it, which leaves a warning as a warning: the tutor has to go back, find «Резервная
- * копия» in the menu and remember why. The button is directly under the sentence that earns it.
- */
+/** hat the app is and which build of it this is. */
 @Composable
 fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
     val context = LocalContext.current

@@ -7,16 +7,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * **A press is never a grey block** (docs/ui-conventions.md → *Shell*).
- *
- * Held, Material's sheet handle lit a hard-cornered grey square with an English «Drag handle» tooltip, and
- * every full-width `ListItem` — settings, «Ещё», a card's lessons and payments — lit a flat grey band
- * across the whole phone, while the cards and contact rows pressed as rounded shapes. A row takes its
- * press through [insetRowPress] (or [outsetRowPress]), and a sheet draws [SheetHandle] itself rather than
- * handing Material a `dragHandle` it would wrap in a button. Comments are stripped first
- * ([SourceText.code]), so a KDoc may still name the forms it forbids.
- */
 class PressSurfaceTest {
 
     private fun uiSources() = ProjectFiles.sources().filter { "ui" in it.path.split(java.io.File.separator) }
@@ -54,7 +44,6 @@ class PressSurfaceTest {
         )
     }
 
-    /** And the rows really do take it, so the first test cannot pass by there being no tappable rows. */
     @Test
     fun `the menus, settings and cards press their rows through it`() {
         val users = uiSources().filter { SourceText.code(it.readText()).contains("RowPress {") }.map { it.name }.toSet()

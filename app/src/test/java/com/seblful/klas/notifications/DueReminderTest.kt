@@ -17,10 +17,6 @@ import org.robolectric.RobolectricTestRunner
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * What a reminder does when it comes due. All of this used to sit inside `ReminderWorker`, where it
- * could only be reached from a device — so none of it was tested at any level.
- */
 @RunWith(RobolectricTestRunner::class)
 class DueReminderTest {
 
@@ -41,7 +37,6 @@ class DueReminderTest {
 
     private val now: Instant = Instant.parse("2026-07-25T10:00:00Z")
 
-    /** A lesson starting half an hour from [now], so it is still ahead of us. */
     private val soon = now.plus(1800.seconds)
 
     private suspend fun student(name: String = "Аня") = env.studentDao.upsert(StudentEntity(name = name))
@@ -55,13 +50,13 @@ class DueReminderTest {
         groupId: Long? = null,
         durationMinutes: Int = 60,
     ) = env.fixtures.storedClass(
-            studentId = studentId,
-            subjectId = subjectId,
-            startMillis = start.toEpochMilliseconds(),
-            durationMinutes = durationMinutes,
-            status = status,
-            groupId = groupId,
-        )
+        studentId = studentId,
+        subjectId = subjectId,
+        startMillis = start.toEpochMilliseconds(),
+        durationMinutes = durationMinutes,
+        status = status,
+        groupId = groupId,
+    )
 
     @Test
     fun `an upcoming class is announced by the student, subject and time`() = runTest {
@@ -116,7 +111,6 @@ class DueReminderTest {
 
     @Test
     fun `a lesson that has already ended is not announced — the reminder fired too late`() = runTest {
-        // Started two hours ago and ran for one, so it is over.
         val id = scheduledClass(student(), subject(), start = now.minus(7200.seconds))
 
         assertFalse(due.post(id, now))
@@ -125,7 +119,6 @@ class DueReminderTest {
 
     @Test
     fun `a lesson still running is announced — it is not over until it ends`() = runTest {
-        // Started ten minutes ago, runs for an hour.
         val id = scheduledClass(student(), subject(), start = now.minus(600.seconds))
 
         assertTrue(due.post(id, now))
@@ -138,12 +131,6 @@ class DueReminderTest {
         assertTrue(notifier.posted.isEmpty())
     }
 
-    /**
-     * This used to post a reminder for a class whose student row was missing — a state only the old
-     * in-memory fake DAOs could hold. The database refuses it: attendance names its student by a
-     * `RESTRICT` foreign key, so a class cannot be written for a student who does not exist, nor can a
-     * student with classes be deleted. That refusal is what lets a reminder always name somebody.
-     */
     @Test
     fun `a class cannot name a student who does not exist, so a reminder always has someone to name`() = runTest {
         val subj = subject("Физика")

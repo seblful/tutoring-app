@@ -13,10 +13,6 @@ import org.robolectric.RobolectricTestRunner
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * The reminder's second line: the current homework attached to the lesson. Read as the reminder fires,
- * which is why setting homework or ticking it done does not have to re-plan anything.
- */
 @RunWith(RobolectricTestRunner::class)
 class DueReminderHomeworkTest {
 
@@ -36,7 +32,6 @@ class DueReminderHomeworkTest {
         clock = env.clock,
     )
 
-    // The homework is given at the environment's clock, 2026-06-01; the lesson is the next one after it.
     private val now: Instant = Instant.parse("2026-07-25T10:00:00Z")
     private val soon: Instant = now.plus(1800.seconds)
 
@@ -52,7 +47,6 @@ class DueReminderHomeworkTest {
         assertEquals("§12, упр. 4–7", notifier.posted.single().homeworkToCheck)
     }
 
-    /** Done already — sent in early, say — so there is nothing for the lesson to bring. */
     @Test
     fun `homework already done is not mentioned`() = runTest {
         val maths = fixtures.subject()
@@ -65,7 +59,6 @@ class DueReminderHomeworkTest {
         assertNull(notifier.posted.single().homeworkToCheck)
     }
 
-    /** Homework whose lesson was an earlier one is that lesson's, not this one's. */
     @Test
     fun `homework attached to an earlier lesson is not this one's`() = runTest {
         val maths = fixtures.subject()

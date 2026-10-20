@@ -28,11 +28,6 @@ import org.robolectric.RobolectricTestRunner
 import java.util.Locale
 import kotlin.time.Instant
 
-/**
- * The settings row. Previously untested — its eleven setters were each too small to look worth it,
- * which left the two things that actually matter unasserted: that a missing row reads as defaults,
- * and that changing one setting doesn't disturb the others.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class SettingsRepositoryTest {
@@ -65,18 +60,8 @@ class SettingsRepositoryTest {
         assertEquals("follow the phone until the tutor says otherwise", AppLanguage.SYSTEM, settings.language)
     }
 
-    /**
-     * **A row that does not exist is a tutor who has chosen nothing**, so the currency they see is the one
-     * their phone names rather than the first currency the app ever had.
-     *
-     * This is where "default as phone" is actually implemented, and it is here rather than in first-run setup
-     * because it has to hold on every path: a tutor who skips the setup entirely, or flips any switch before
-     * reaching it, still gets their own currency — the first write persists whatever this substituted. There
-     * is nothing to substitute for the language, `AppLanguage.SYSTEM` being a live rule rather than a value.
-     */
     @Test
     fun `a phone with no row is captioned in its own currency`() = runTest {
-        // One empty table for all three: reading a missing row writes nothing.
         val american = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-US")))
         val german = SettingsRepository(dao, listOf(Locale.forLanguageTag("de-DE")))
         val unknown = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-GB")))
@@ -86,24 +71,15 @@ class SettingsRepositoryTest {
         assertEquals("nothing the app offers, so the fallback", Currency.USD, unknown.get().currency)
     }
 
-    /** And the very first write is what makes that stick, rather than it being re-derived every launch. */
     @Test
     fun `the first write persists the currency the phone named`() = runTest {
         val repo = SettingsRepository(dao, listOf(Locale.forLanguageTag("de-DE")))
 
-        // Anything at all — here the flag that ends first run, which is what «Пропустить» writes.
         repo.update { it.copy(onboardingComplete = true) }
 
         assertEquals(Currency.EUR, dao.get()?.currency)
     }
 
-    /**
-     * **Reading the row publishes the app's display locale**, which is what keeps the words and the dates in
-     * the same language: every consumer — the UI, the workers, the notifier — arrives through here, so
-     * `AppLocale.current` is already the new one before the new `AppSettings` reaches any of them.
-     *
-     * Asserted on both read paths, because a worker uses [SettingsRepository.get] and never observes.
-     */
     @Test
     fun `reading the row publishes the locale everything formats in`() = runTest {
         repo.update { it.copy(language = AppLanguage.ENGLISH) }
@@ -112,7 +88,6 @@ class SettingsRepositoryTest {
         repo.update { it.copy(language = AppLanguage.RUSSIAN) }
         assertEquals(Locale.forLanguageTag("ru"), AppLocale.current)
 
-        // «Follow the phone» resolves against the device, not to nothing: this fixture's phone is Russian.
         repo.update { it.copy(language = AppLanguage.SYSTEM) }
         assertEquals(Locale.forLanguageTag("ru"), AppLocale.current)
 
@@ -121,7 +96,6 @@ class SettingsRepositoryTest {
         assertEquals("observing publishes it too", Locale.forLanguageTag("ru"), AppLocale.current)
     }
 
-    /** SYSTEM is a rule and not a value, so it answers with *this* phone rather than with a constant. */
     @Test
     fun `system resolves against the phone the app is on`() = runTest {
         val american = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-US")))
@@ -139,7 +113,6 @@ class SettingsRepositoryTest {
         val settings = repo.get()
         assertEquals(Currency.RUB, settings.currency)
         assertEquals(30, settings.reminderLeadMinutes)
-        // Everything else still reads as it did.
         assertEquals(AppSettings().notificationsEnabled, settings.notificationsEnabled)
         assertEquals(AppSettings().defaultLessonMinutes, settings.defaultLessonMinutes)
         assertEquals(AppSettings().themeMode, settings.themeMode)
@@ -165,13 +138,6 @@ class SettingsRepositoryTest {
 
         repo.update { wanted }
 
-        // Every field survives AppSettings -> SettingsEntity -> AppSettings. A field forgotten in
-        // either mapper shows up here rather than as a setting that silently resets.
-        //
-        // Every field has to be given a **non-default** value for that to be true, which is the part
-        // that is easy to lose: `lastExportAt` was added to the class and not to this list, so for a
-        // while the assertion compared null to null and would have passed on a mapper that dropped it
-        // outright. If a new setting is added below, it belongs here too.
         assertEquals(wanted, repo.get())
     }
 
@@ -190,13 +156,6 @@ class SettingsRepositoryTest {
         assertEquals(AppSettings(), repo.observe().first())
     }
 
-    // --- Two updates at once ----------------------------------------------------------------------
-
-    /**
-     * A settings DAO whose read suspends, as Room's does on a device — its suspend queries hand off to
-     * its own executor. The test database answers inline on the asking thread (see [TestDatabase]), so
-     * its `get()` never yields and cannot express the interleaving this is about.
-     */
     private class SuspendingSettingsDao : SettingsDao {
         val row = MutableStateFlow<SettingsEntity?>(null)
 
@@ -212,21 +171,11 @@ class SettingsRepositoryTest {
         }
     }
 
-    /**
-     * Two settings changed at once must both survive. The row is written **whole**, so an unguarded
-     * read-modify-write loses one: both coroutines read the same settings, both write their own copy,
-     * and the second copy carries the first one's change reverted inside it.
-     *
-     * This is what the settings screen does — one `launch` per switch — so it took no more than
-     * flipping two switches quickly, and the setting that reverted did so with nothing on screen to
-     * say it had.
-     */
     @Test
     fun `two concurrent updates do not lose one another`() = runTest {
         val dao = SuspendingSettingsDao()
         val repo = SettingsRepository(dao, RussianMinskPhone)
 
-        // Interleaved at the read: both are in flight before either writes.
         val first = launch { repo.update { it.copy(currency = Currency.RUB) } }
         val second = launch { repo.update { it.copy(reminderLeadMinutes = 30) } }
         first.join()
@@ -237,7 +186,6 @@ class SettingsRepositoryTest {
         assertEquals(30, settings.reminderLeadMinutes)
     }
 
-    /** The same, for the toggle that holds its update open across other work. */
     @Test
     fun `an update is not lost by one that started while it was reading`() = runTest {
         val dao = SuspendingSettingsDao()

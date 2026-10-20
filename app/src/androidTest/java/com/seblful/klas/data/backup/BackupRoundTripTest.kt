@@ -55,8 +55,6 @@ class BackupRoundTripTest {
     }
 
     @Test fun exportThenImportOnEmptyDbReproducesIdenticalData() = runTest {
-        // Seed the source database. `insert` orders the tables for the foreign keys, so this says what
-        // is in the database rather than in what order to put it there.
         db.snapshotDao().insert(
             DatabaseSnapshot(
                 subjects = listOf(SubjectEntity(1, "Математика"), SubjectEntity(2, "Физика")),
@@ -70,9 +68,6 @@ class BackupRoundTripTest {
                 groups = listOf(GroupEntity(7, "11 «А»", note = "вечер", defaultMode = ClassMode.REMOTE)),
                 groupMembers = listOf(GroupMemberCrossRef(7, 1), GroupMemberCrossRef(7, 2)),
                 prices = listOf(PriceEntity(1, 1, 5000), PriceEntity(2, 1, 4550)),
-                // The rate log, in all three of its shapes: a student's price starting, that price
-                // rising, and a group's rate that predates the log (no previous amount, no date — both
-                // must survive as null rather than come back as 0 and 1970).
                 rateHistory = listOf(
                     RateChangeEntity(1, studentId = 1, subjectId = 1, toMinor = 4000, atMillis = 1_890_000_000_000),
                     RateChangeEntity(2, studentId = 1, subjectId = 1, fromMinor = 4000, toMinor = 5000, atMillis = 1_895_000_000_000),
@@ -82,8 +77,6 @@ class BackupRoundTripTest {
                     LessonEntity(1, 1, 1_900_000_000_000, 90, LessonStatus.COMPLETED, groupId = 7, mode = ClassMode.REMOTE),
                     LessonEntity(2, 1, 1_900_100_000_000, 60, LessonStatus.SCHEDULED),
                 ),
-                // The taught lesson with one of its two members absent: the pair of facts a pre-v6 file
-                // could not carry, and so the pair the round trip most needs to prove survives.
                 attendance = listOf(
                     AttendanceEntity(1, 1, 1, Attended.PRESENT, priceMinor = 5000, chargeMinor = 5000, calendarEventId = "evt-1"),
                     AttendanceEntity(2, 1, 2, Attended.ABSENT, priceMinor = 5000),
@@ -96,7 +89,6 @@ class BackupRoundTripTest {
         val original = manager.export()
         val jsonText = manager.exportJson()
 
-        // Import the JSON into a completely fresh, empty database.
         val emptyDb = newDb()
         val reproduced = try {
             val emptyManager = managerFor(emptyDb)

@@ -21,13 +21,6 @@ import org.robolectric.RobolectricTestRunner
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * That a payment's instant is derived by the module that writes it.
- *
- * This repository had **no behavioural test at all**: five public methods, five one-line delegates to a
- * `PaymentDao` of the same shape, with the one rule it was documented as owning — a payment's own date —
- * applied by the view model on the way in. The rule is here now, so it can be asserted here.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class PaymentRepositoryTest {

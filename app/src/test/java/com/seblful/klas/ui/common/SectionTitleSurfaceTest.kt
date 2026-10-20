@@ -7,15 +7,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * **A section title is a [SectionTitle]** (docs/ui-conventions.md → *Section titles and dialogs*).
- *
- * The rule was written down and then spelled out by hand at every use, and it drifted the way
- * hand-spelled rules do: the lesson sheet titled «Статус» in grey `labelMedium`, the booking form one tap
- * further titled «Длительность» in `labelLarge` and «Участники» in `titleSmall`, and only some of them
- * were headings a screen reader could jump to. A `Text` given both `titleSmall` and `heading()` is the
- * hand-spelled form; comments are stripped first (see [SourceText.code]), so a KDoc may still name it.
- */
 class SectionTitleSurfaceTest {
 
     private fun uiSources() = ProjectFiles.sources().filter { "ui" in it.path.split(java.io.File.separator) }
@@ -39,7 +30,6 @@ class SectionTitleSurfaceTest {
         )
     }
 
-    /** And the screens with sections do use it, so the test above cannot pass by there being none left. */
     @Test
     fun `the forms, the sheet, the cards and settings title their sections with it`() {
         val users = uiSources()
@@ -54,7 +44,6 @@ class SectionTitleSurfaceTest {
                     "ClassEditScreen.kt",
                     "StudentFormScreen.kt",
                     "GroupFormScreen.kt",
-                    // The lesson sheet, and settings' section headers.
                     "ClassActionsSheet.kt",
                     "ReportsScreen.kt",
                     "SettingsRows.kt",

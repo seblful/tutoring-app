@@ -32,15 +32,6 @@ class StudentFormViewModelTest {
 
     private fun vm() = StudentFormViewModel(env.subjectRepo, env.enrollmentRepo, mainRule.appScope, mainRule.dispatcher)
 
-    /**
-     * **The form is usable at once; only its subject list waits.**
-     *
-     * Empty is a *refusal* on this screen — «Сначала добавьте предметы», in the error red — so an initial
-     * `emptyList()` said it to a tutor with nine subjects for the frame or two before they were read. But
-     * the fields around it are legitimately blank (this screen only ever *adds* a student), so wrapping the
-     * whole state would make «Добавить ученика» open on a skeleton for no reason. Hence the split: the
-     * state is a plain value and [StudentFormViewModel.UiState.allSubjects] carries its own answer.
-     */
     @Test
     fun `only the subject list waits to be read`() = runTest(mainRule.dispatcher) {
         env.fixtures.subject("Математика")
@@ -156,7 +147,6 @@ class StudentFormViewModelTest {
         assertEquals(listOf("Физика"), vm.state.value.allSubjects.valueOrNull()?.map { it.name })
     }
 
-    /** Typing the name of a subject that exists ticks that one rather than making a twin of it. */
     @Test
     fun `a subject added by a name that exists ticks the existing one`() = runTest(mainRule.dispatcher) {
         val math = env.fixtures.subject("Математика")
@@ -200,7 +190,6 @@ class StudentFormViewModelTest {
         assertEquals(1, env.stored().students.size)
     }
 
-    /** The form opens on the dialling code; a student saved without a number has none, not «+375». */
     @Test
     fun `a phone left on its dialling code is saved as no phone`() = runTest(mainRule.dispatcher) {
         val mathId = env.fixtures.subject("Математика")
@@ -216,10 +205,6 @@ class StudentFormViewModelTest {
         assertEquals("", env.stored().students.single().phone)
     }
 
-    /**
-     * What back has to consult. The phone prefix the form opens with is a default, not typed input,
-     * so it must not on its own make leaving ask a question.
-     */
     @Test
     fun `an untouched form is clean, and clearing an edit makes it clean again`() = runTest(mainRule.dispatcher) {
         val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
@@ -238,14 +223,6 @@ class StudentFormViewModelTest {
         assertTrue("a ticked subject is unsaved work even before it is priced", vm.state.value.isDirty)
     }
 
-    // --- A student and their prices are one act ---------------------------------------------------
-
-    /**
-     * The form refuses to submit a student with no priced subject, because nothing could be booked for
-     * one. Its own save used to be able to produce exactly that: two writes in `viewModelScope`, then
-     * navigation, so going back in between cancelled the second. One transaction is what makes the
-     * invariant the form checks the invariant the database ends up with.
-     */
     @Test
     fun `a student and their priced subjects are written in one transaction`() = runTest(mainRule.dispatcher) {
         val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
@@ -264,7 +241,12 @@ class StudentFormViewModelTest {
         assertEquals("one flat transaction, not one per table", 1, env.transactor.count - before)
         assertEquals(1, env.stored().students.size)
         val studentId = env.stored().students.single().id
-        assertEquals(listOf(mathId), env.stored().studentSubjects.filter { it.studentId == studentId }.map { it.subjectId })
+        assertEquals(
+            listOf(mathId),
+            env.stored().studentSubjects.filter {
+                it.studentId == studentId
+            }.map { it.subjectId },
+        )
         assertEquals(Money.ofMajor(30).minor, env.stored().prices.single().amountMinor)
     }
 
@@ -286,11 +268,6 @@ class StudentFormViewModelTest {
         assertEquals(StudentFormViewModel.Event.SAVE_FAILED, vm.events.stream.first())
     }
 
-    /**
-     * The write outlives the screen: the form hands it to the application scope and keeps only the
-     * navigation, so leaving the moment after tapping «Сохранить» abandons the *navigation* and not
-     * the student.
-     */
     @Test
     fun `the write survives the screen going away`() = runTest(mainRule.dispatcher) {
         val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
@@ -301,7 +278,6 @@ class StudentFormViewModelTest {
         vm.setPriceText(mathId, "30")
 
         vm.save { }
-        // Whatever the screen does next, the student and their price are already the scope's business.
         advanceUntilIdle()
 
         assertEquals(1, env.stored().students.size)

@@ -27,7 +27,6 @@ class RemindersTest {
     ) = TutoringClass(
         id = id,
         lessonId = lessonIdFor(groupId, start, id),
-        // Each member of a group lesson is a different student; irrelevant for individual classes.
         studentId = id,
         subjectId = 1,
         start = start,
@@ -38,11 +37,6 @@ class RemindersTest {
 
     private val lessonIds = mutableMapOf<Pair<Long, Any>, Long>()
 
-    /**
-     * The lesson a fixture's class belongs to: one per (group, start) for a group's, its own id for an
-     * individual class. A convention of the test — storage has a column for it — and it has to be stated
-     * because that column is the whole of what makes classes one lesson (`SessionRules.sessions`).
-     */
     private fun lessonIdFor(groupId: Long?, start: Any, id: Long): Long =
         if (groupId == null) id else lessonIds.getOrPut(groupId to start) { 1_000L + lessonIds.size }
 
@@ -51,15 +45,11 @@ class RemindersTest {
         val start = now.plus(3.hours) // 13:00
         val plans = Reminders.plan(now, listOf(klass(1, start)), lead, horizon)
         assertEquals(1, plans.size)
-        // fires at 12:00 — one lead before the 13:00 start
         assertEquals(now.plus(2.hours), plans.first().fireAt)
     }
 
     @Test
     fun `a class nearer than the lead is owed rather than armed`() {
-        // Booking a lesson for the next hour must not announce it on the spot: the plan is re-derived
-        // on every change, so arming an instant already behind us would repeat with each one. It is
-        // still *stated*, so that an alarm already set for it is not taken away — see `ReminderAlarms`.
         val start = now.plus(20.minutes) // within the 60-min lead
         val plan = Reminders.plan(now, listOf(klass(1, start)), lead, horizon).single()
 
@@ -71,31 +61,22 @@ class RemindersTest {
     fun `re-planning after a reminder has come due keeps it owed and never arms it again`() {
         val klass = klass(1, now.plus(70.minutes))
 
-        // Planned for 10 minutes out, and still to be armed...
         val planned = Reminders.plan(now, listOf(klass), lead, horizon).single()
         assertEquals(now.plus(10.minutes), planned.fireAt)
         assertFalse(planned.due)
 
-        // ...and once that moment has passed (a later class change re-plans everything) it comes back
-        // owed: the alarm that plan set is still waiting, and the adapter has to leave it alone.
         val later = now.plus(15.minutes)
         val replanned = Reminders.plan(later, listOf(klass), lead, horizon).single()
         assertEquals(now.plus(10.minutes), replanned.fireAt)
         assertTrue(replanned.due)
     }
 
-    /**
-     * A lesson the tutor is in the middle of is still worth being told about — [Reminders.shouldPost]
-     * keeps posting until it ends — so its reminder stays owed while it runs, and the alarm waiting to
-     * deliver it is not taken away underneath it.
-     */
     @Test
     fun `a lesson that has started is still owed its reminder`() {
         val running = klass(1, now.minus(5.minutes))
         assertTrue(Reminders.plan(now, listOf(running), lead, horizon).single().due)
     }
 
-    /** Once the lesson is over there is nothing left to warn about, and its alarm may finally go. */
     @Test
     fun `a lesson that has ended leaves the plan`() {
         val ended = klass(1, now.minus(70.minutes))
@@ -171,17 +152,12 @@ class RemindersTest {
     fun `a group reminder points at a member who is still scheduled`() {
         val start = now.plus(3.hours)
         val classes = listOf(
-            // The lowest-id member has been cancelled (didn't come); the lesson still happens.
             klass(1, start, LessonStatus.CANCELLED, groupId = 7),
             klass(2, start, groupId = 7),
         )
         assertEquals(listOf(2L), Reminders.plan(now, classes, lead, horizon).map { it.classId })
     }
 
-    /**
-     * A reminder that fires late still posts while its lesson is on — the lesson phases that are still
-     * worth hearing about ([LessonPhase.UPCOMING], [LessonPhase.IN_PROGRESS]) — and never once it is over.
-     */
     @Test
     fun `a due reminder posts until its lesson ends, and only while reminders are on`() {
         val upcoming = klass(1, now.plus(30.minutes))

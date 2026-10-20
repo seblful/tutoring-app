@@ -20,20 +20,10 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * The production graph, built: what Metro checks at compile time is that every binding it is asked for
- * exists; what it cannot know is which classes *Android* will ask for at runtime, by name. A view model
- * that forgets `@ContributesIntoMap`, or a worker its `Factory`, compiles and then fails as its screen
- * opens or its job runs — «Unknown model class», or a worker WorkManager cannot construct.
- *
- * So the sources are the list: every `ViewModel` and `CoroutineWorker` declared in the app has to be one
- * the graph can make, and every manifest receiver has to come out of `inject` with its fields set.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = KlasGraphTest.GraphApp::class)
 class KlasGraphTest {
 
-    /** An application holding the production graph, so [appGraph] resolves the way it does on a phone. */
     class GraphApp : Application(), AppGraph.Holder {
         override val graph: AppGraph by lazy { createGraphFactory<KlasGraph.Factory>().create(this) }
     }
@@ -64,8 +54,6 @@ class KlasGraphTest {
         for ((name, className) in workers) {
             @Suppress("UNCHECKED_CAST")
             val type = Class.forName(className) as Class<out ListenableWorker>
-            // Without the graph's factory this builder falls back to reflection, which cannot construct a
-            // worker that takes anything but a context and its parameters — so building one is the proof.
             val worker = runCatching {
                 TestListenableWorkerBuilder.from(context, type).setWorkerFactory(graph.workerFactory).build()
             }.getOrNull()

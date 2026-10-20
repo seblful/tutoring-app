@@ -30,10 +30,6 @@ class CalendarEventTest {
         assertEquals("Иван — Математика", CalendarEvent.title("Иван", "Математика", null))
     }
 
-    /**
-     * A lesson carries none of the tutor's text any more, and an invited student reads the event — so the
-     * description is written empty, which is also what clears a note or homework an older build put there.
-     */
     @Test
     fun `the description is always empty`() {
         assertEquals("", CalendarEvent.DESCRIPTION)

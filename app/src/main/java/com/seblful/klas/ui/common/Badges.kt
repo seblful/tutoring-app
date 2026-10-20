@@ -21,17 +21,7 @@ import com.seblful.klas.ui.theme.klasColors
  * shape the lesson statuses use, and emphasis carries nothing to a screen reader.
  */
 
-/**
- * A small tonal pill — e.g. a class status. The tint is derived from [color].
- *
- * Kept deliberately tight (8dp of side padding, one line) because of where it sits: on a lesson card
- * it shares a row with the lesson's *name*, and every dp the pill takes is a dp the name loses. A
- * status is a two-word fact; the name is the thing being read.
- *
- * On a light page the word is [color] taken a tenth of the way to black: the strong tone on its own tint
- * came to 4.1 : 1 for «В плане» on a section card, under AA at 11sp. The pill keeps its hue; only its ink
- * deepens. The dark tones already clear it.
- */
+/**  small tonal pill — e.g. a class status. The tint is derived from [color]. */
 @Composable
 fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
     Box(
@@ -52,13 +42,7 @@ fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
     }
 }
 
-/**
- * «в архиве» — a retired student, a retired group, or a member who has left.
- *
- * Grey, deliberately: archiving is not one of the three lesson statuses (`classStatusColor`), and a
- * retired student must not borrow the red a debt is written in. It was an italic grey word on all four
- * rows that say it; the pill was what was missing, not the colour.
- */
+/** в архиве» — a retired student, a retired group, or a member who has left. */
 @Composable
 fun ArchivedBadge(modifier: Modifier = Modifier) {
     StatusBadge(

@@ -42,7 +42,6 @@ fun NavGraphBuilder.klasGraph(
     }
 }
 
-/** The five tabs, and where each of them leads. */
 private fun NavGraphBuilder.tabs(
     navController: NavHostController,
     scheduleArrival: () -> Arrival<ScheduleTarget>?,
@@ -85,7 +84,6 @@ private fun NavGraphBuilder.tabs(
     }
 }
 
-/** A student's and a group's card and form. */
 private fun NavGraphBuilder.peopleCards(navController: NavHostController) {
     screen<Routes.StudentAdd> {
         StudentFormScreen(onBack = { navController.popBackStack() })
@@ -115,7 +113,6 @@ private fun NavGraphBuilder.peopleCards(navController: NavHostController) {
     }
 }
 
-/** What «Ещё» opens: subjects, backup, settings and what settings opens, about. */
 private fun NavGraphBuilder.moreScreens(navController: NavHostController) {
     screen<Routes.Subjects> {
         SubjectsScreen(onBack = { navController.popBackStack() })
@@ -175,11 +172,6 @@ fun NavController.navigateToTab(tab: TopDestination) {
 /**
  * Opens lesson [classId]'s form for a tray tap, **over whatever is open** — and not twice: a second tap on the
  * same notification finds the form already on top and leaves it.
- *
- * It used to be `launchSingleTop`, which also *replaces* the form on top when it is for another lesson. A
- * form being edited asks before it is left, but only through Back, so a tap in the tray went round the
- * question and threw away what had been typed. Pushed over it instead, the form being edited waits
- * underneath and Back finds it again.
  */
 fun NavController.openLessonForm(classId: Long) {
     val top = currentBackStackEntry

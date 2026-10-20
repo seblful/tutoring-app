@@ -19,13 +19,6 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * What each digest says when it comes due — driven without WorkManager.
- *
- * The rows are this environment's real ones read by the production repositories, so these are assertions
- * about what a tutor would actually be told rather than about a fixture agreeing with itself. Only the
- * `Notifier` is a double.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class DueDigestTest {
@@ -36,7 +29,6 @@ class DueDigestTest {
     @get:Rule
     val env = TestEnv()
 
-    /** Monday 15 June 2026. The environment's zone is Europe/Minsk (UTC+3), so this is 09:00 local. */
     private val morning: Instant = Instant.parse("2026-06-15T06:00:00Z")
 
     private fun at(hour: Int): Instant = Instant.parse("2026-06-15T%02d:00:00Z".format(hour - 3))
@@ -50,10 +42,7 @@ class DueDigestTest {
     private suspend fun enableUnfinished() =
         env.settingsRepo.update { it.copy(unfinishedDigestEnabled = true) }
 
-    /** Monday 15 June 2026, 21:00 in Minsk — the evening digest's default hour. */
     private val evening: Instant = at(21)
-
-    // --- The morning agenda -------------------------------------------------------------------------
 
     @Test
     fun `the agenda names the day's lessons in order, with who and what`() = runTest(mainRule.dispatcher) {
@@ -328,7 +317,6 @@ class DueDigestTest {
         val anya = env.fixtures.pricedStudent("Аня", subject, rate = Money.ofMajor(30))
         val boris = env.fixtures.pricedStudent("Боря", subject, rate = Money.ofMajor(40))
         // The rate is booked **per lesson** and only pre-filled from the student's price, so it is stated
-        // here: what a student owes comes from the rate their lesson was booked at, not from their price now.
         env.fixtures.completedLesson(subject, listOf(anya), start = at(11), rate = Money.ofMajor(30))
         env.fixtures.completedLesson(subject, listOf(boris), start = at(14), rate = Money.ofMajor(40))
 
@@ -337,7 +325,6 @@ class DueDigestTest {
         assertEquals(Digests.Debts(students = 2, total = Money.ofMajor(70)), env.notifier.debts.single())
     }
 
-    /** A lesson that was paid for leaves nobody owing, so there is nothing to send. */
     @Test
     fun `a settled week says nothing`() = runTest(mainRule.dispatcher) {
         enableDebts()
@@ -350,11 +337,6 @@ class DueDigestTest {
         assertTrue(env.notifier.debts.isEmpty())
     }
 
-    /**
-     * **Active students only**, by the rule reports follow: archiving is how a tutor says they have stopped
-     * teaching somebody, and a weekly reminder about a retired student's balance would make that a decision
-     * with a cost. The debt does not vanish — it stops being chased here.
-     */
     @Test
     fun `an archived student's debt is not chased`() = runTest(mainRule.dispatcher) {
         enableDebts()

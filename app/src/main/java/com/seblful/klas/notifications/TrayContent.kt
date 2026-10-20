@@ -50,7 +50,6 @@ object TrayContent {
      */
     fun unfinished(unfinished: Digests.Unfinished): AgendaPosting = capped(unfinished.lessons)
 
-    /** [lessons] cut to [MAX_AGENDA_LINES], with how many that left out. */
     private fun capped(lessons: List<Digests.Agenda.Entry>): AgendaPosting = AgendaPosting(
         lines = lessons.take(MAX_AGENDA_LINES),
         more = (lessons.size - MAX_AGENDA_LINES).coerceAtLeast(0),

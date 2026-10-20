@@ -27,13 +27,7 @@ import androidx.compose.ui.graphics.graphicsLayer
  * dragged.
  */
 
-/**
- * Held enlarged while [armed] — a drag past its mark, which letting go would act on.
- *
- * Held rather than flashed, because it answers a question the tutor can ask at any point of the drag: *will
- * this do it if I let go now?* A one-off flash answers it only for whoever was watching at the instant it
- * crossed, and the crossing is the moment a thumb is most in the way.
- */
+/** eld enlarged while [armed] — a drag past its mark, which letting go would act on. */
 @Composable
 fun Modifier.armedPop(armed: Boolean): Modifier {
     val scale by animateFloatAsState(
@@ -47,11 +41,6 @@ fun Modifier.armedPop(armed: Boolean): Modifier {
 /**
  * A pop each time [value] changes — for a fact that changes *under* the tutor: a status badge flipping to
  * «Проведено» because a row was just swiped, or corrected from the sheet.
- *
- * **Silent on arrival.** The first composition sets the baseline rather than animating, so a badge popping
- * means "this just changed", not "this just scrolled into view" — in a `LazyColumn` an item off screen is
- * disposed, and a list that fired every animation as it was scrolled would be noise with no information in
- * it.
  */
 @Composable
 fun Modifier.popsOnChange(value: Any?): Modifier {
@@ -69,14 +58,11 @@ fun Modifier.popsOnChange(value: Any?): Modifier {
     return this.graphicsLayer { scaleX = scale.value; scaleY = scale.value }
 }
 
-/** Bouncy on purpose: the overshoot is what reads as a pop rather than a resize. */
 private val PopSpring = spring<Float>(
     dampingRatio = Spring.DampingRatioMediumBouncy,
     stiffness = Spring.StiffnessMediumLow,
 )
 
-/** Enough to be seen in peripheral vision beside a moving thumb, not enough to crowd its row. */
 private const val ArmedScale = 1.3f
 
-/** Smaller than [ArmedScale]: this one lands on a pill of text, where a big jump reads as a glitch. */
 private const val ChangeScale = 1.18f

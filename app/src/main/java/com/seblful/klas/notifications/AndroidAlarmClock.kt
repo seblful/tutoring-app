@@ -52,11 +52,6 @@ class AndroidAlarmClock @Inject constructor(
         armed?.let { alarmManager.cancel(it) }
     }
 
-    /**
-     * The intent an alarm fires. The request code is the class id, which is what makes one lesson's alarm
-     * addressable on its own; `FLAG_UPDATE_CURRENT` keeps the extras current, since a `PendingIntent`'s
-     * identity ignores them entirely.
-     */
     private fun arming(classId: Long): PendingIntent = PendingIntent.getBroadcast(
         context,
         classId.toInt(),

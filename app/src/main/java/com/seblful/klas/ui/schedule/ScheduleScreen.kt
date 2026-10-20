@@ -112,22 +112,7 @@ fun ScheduleScreen(
     // whether the tutor is looking at a quiet week or a narrowed one. See [ScheduleEmpty].
     val emptyReason by viewModel.emptyReason.collectAsState()
 
-    /**
-     * **A change of view is a new page, and a page starts at the top.**
-     *
-     * The three views share one `LazyColumn`, and switching between them changes what its *first item* is:
-     * the month grid and the week strip are `item`s in the list, so «Месяц» prepends one and «День» takes
-     * it away. A `LazyColumn` keeps the item that was on top on top — it re-finds it by key across a
-     * content change, which is what stops a list jumping when a row is inserted above — so the grid was
-     * inserted *above the viewport* and «Месяц» opened on the lesson list, with only the hairline under
-     * the calendar showing where a month had been drawn off-screen.
-     *
-     * The scroll position is therefore per page, and this is the only thing in this screen that says so;
-     * no view of the schedule has ever reset it. Note what does **not** fix it: the day's flow going back
-     * to `Loadable.Loading` on a new key does replace the anchor row with a skeleton, but `stateIn`
-     * conflates, so when the re-query answers inside the frame the composition never sees the `Loading`
-     * at all and the anchor survives. Waiting is about *what is drawn*; this is about *where*.
-     */
+    /** *A change of view is a new page, and a page starts at the top.** */
     val listState = rememberLazyListState()
     // Keyed on the view the list was last put at the top *for*, and saved with it: an effect keyed on the
     // mode alone also ran on every return to the screen, so scrolling the week to Friday, editing a lesson
@@ -493,10 +478,6 @@ fun ScheduleScreen(
     }
 }
 
-/**
- * «Занято: Мария Петрова 14:00 – 15:30» — which lesson holds the hour a booking or a move asked for. Said by
- * the booking form under its time and by the schedule's refusal dialog, so the two name a clash one way.
- */
 @Composable
 internal fun timeConflictText(conflict: TimeConflict): String = stringResource(
     R.string.class_time_conflict,
@@ -504,18 +485,8 @@ internal fun timeConflictText(conflict: TimeConflict): String = stringResource(
     "${conflict.slot.start.timeText()} – ${conflict.slot.end.timeText()}",
 )
 
-/** Whether an empty stretch of schedule is one day or a whole week — all that differs in the wording. */
 private enum class ScheduleEmptySpan { DAY, WEEK }
 
-/**
- * What the schedule says when it has nothing to show — the **words** for a [ScheduleEmpty], and nothing
- * else. Which of the three applies is the view model's ([ScheduleViewModel.emptyReason]); a day whose
- * lessons have not been read yet is not an empty day at all, and that is `Loadable`'s.
- *
- * One composable for all three views. The day and month views used to weigh three cases here and the week
- * view two, twenty lines apart, and they had already drifted: the week never grew the no-students arm, so
- * a tutor with nothing set up met «Добавить ученика» on «День» and a dead end on «Неделя».
- */
 @Composable
 private fun ScheduleEmptyState(
     reason: Loadable<ScheduleEmpty>,
@@ -566,7 +537,6 @@ private fun ScheduleEmptyState(
     }
 }
 
-/** The selected day's classes, or an empty state. Shared by the day and month views. */
 private fun LazyListScope.dayList(
     view: ScheduleViewMode,
     state: Loadable<ScheduleContent.Day>,
@@ -616,31 +586,11 @@ private fun LazyListScope.dayList(
     }
 }
 
-/**
- * A lesson's list key: the lesson, **on this page** — the view, and for the day and month views the day.
- *
- * The id alone was the same key in all three views, so Compose read a change of view or of day as the
- * same lessons *moving*: switching «День» to «Месяц» slid every card down across the month grid as it
- * was drawn, with the ones leaving fading out over it. A new page is a new set of items, swapped in
- * whole; only a change *within* a page — a lesson moved to another hour — is a move, and slides.
- */
 private fun lessonKey(view: ScheduleViewMode, row: ScheduleRow, day: LocalDate? = null): String =
     "$view/${day ?: ""}/${row.klass.id}"
 
-/**
- * The mark's list key — one per page, for [lessonKey]'s reason. Within the page it is constant, so the
- * item keeps its identity as its *position* changes: the stable key is what makes the move an existing
- * item changing place rather than one item being removed and another added, and [animateInPlace] at both
- * call sites is what makes that visible — the mark slides past a lesson as it begins instead of blinking
- * from one gap to the next. One per page is also what keeps it unique, and a duplicate key crashes
- * composition.
- */
 private fun nowKey(view: ScheduleViewMode, day: LocalDate): String = "$view/$day/now"
 
-/**
- * Lesson cards that have not arrived yet, at the gutter and gap the real ones use — so the first real
- * frame changes colour rather than layout.
- */
 @Composable
 private fun LessonsSkeleton() {
     ListSkeleton(rows = 3, contentPadding = PaddingValues(0.dp))

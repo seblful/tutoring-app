@@ -30,21 +30,8 @@ import com.seblful.klas.ui.theme.KlasIcons
 /**
  * The students list — a **body**, without a scaffold of its own.
  *
- * It shares one with the groups list (see `ui/people/PeopleScreen.kt`): the two are views of the same
- * set of people, so they sit under one app bar and one segmented control rather than in two tabs.
- *
- * Takes its rows already filtered and sorted. The screen used to hold no state at all and now has a
- * search behind it, which is exactly the point at which "the composable will just filter it" starts
- * running string comparisons on the frame it is drawing — so that work stays in the view model, on
- * the computation dispatcher, beside the balance arithmetic it travels with.
- *
- * Three states, not two. «Пока нет учеников» is an invitation and it must only ever be extended to a
- * tutor who genuinely has none — so a list that has not been read yet draws a skeleton instead. The
- * distinction arrives as a type ([Loadable]) rather than being inferred from emptiness, which is what it
- * used to be: the initial `emptyList()` and a genuinely empty database were the same value.
- *
  * @param searching whether the empty list is empty because nothing matched, or because there is
- *   nothing. The two need different words and only one of them has an action.
+ * nothing. The two need different words and only one of them has an action.
  */
 @Composable
 fun StudentsList(

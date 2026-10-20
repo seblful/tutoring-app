@@ -91,13 +91,6 @@ fun StudentEditDialog(
     )
 }
 
-/**
- * Changing one subject's rate, with what it has been before.
- *
- * The history belongs *here* rather than on the list: it is the context for the decision being made
- * — «было 25, стало 30» is the thing worth knowing while typing a new number — and on the list it was
- * a permanent strip answering a question nobody had yet asked.
- */
 @Composable
 internal fun RepriceDialog(
     subjectPrice: SubjectPrice,
@@ -137,13 +130,6 @@ internal fun RepriceDialog(
     )
 }
 
-/**
- * Recording or correcting one payment: how much, and **when**.
- *
- * The date is the addition. A payment used to be stamped with the moment it was typed, so a tutor
- * writing up the week on Sunday recorded five Sunday payments — the amounts were right and the
- * history was fiction. Defaulted to today, which is right most of the time.
- */
 @Composable
 internal fun PaymentDialog(
     title: String,
@@ -202,12 +188,7 @@ internal fun PaymentDialog(
         )
     }
 }
-/**
- * Adds one subject to the student together with its price — the two are set in lock-step, so a
- * student's subjects are always exactly their priced (bookable) subjects. Offers only subjects the
- * student isn't already priced for; the save button stays disabled until a subject and a valid price
- * are both chosen.
- */
+
 @Composable
 internal fun AddSubjectPriceDialog(
     addableSubjects: List<Subject>,

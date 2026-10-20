@@ -22,16 +22,6 @@ import org.robolectric.RobolectricTestRunner
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/**
- * A lesson's rows are written as **one** transaction, and the calendar is mirrored only after it
- * commits.
- *
- * A group lesson is *n* rows, so without a transaction a failure halfway through leaves a torn
- * lesson: some members dropped, others still at the old time, joiners missing — a shape the domain
- * has no name for. These are the tests that keep the phases in [ClassRepository] in that order: the
- * *count* of transactions, that a write which fails to commit leaves every row as it was, and that the
- * calendar and the reminder scheduler are left untouched when it does.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class ClassRepositoryAtomicityTest {
@@ -42,7 +32,6 @@ class ClassRepositoryAtomicityTest {
     private val start = Instant.parse("2026-09-01T09:00:00Z")
     private val groupRate = Money.ofMajor(20)
 
-    /** A three-member group, so a lesson is unambiguously several rows rather than one. */
     private inner class Fixture {
         val env: TestEnv get() = this@ClassRepositoryAtomicityTest.env
 
@@ -236,7 +225,6 @@ class ClassRepositoryAtomicityTest {
         env.studentDao.upsert(StudentEntity(id = 1, name = "Аня"))
         env.subjectDao.upsert(SubjectEntity(id = 1, name = "Алгебра"))
 
-        // One of each shape of write: an insert, an in-place update, and a delete.
         val id = repo.book(
             subjectId = 1,
             start = start,

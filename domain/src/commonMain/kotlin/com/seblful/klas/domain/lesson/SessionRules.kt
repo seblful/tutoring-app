@@ -14,15 +14,6 @@ import kotlin.time.Instant
  */
 object SessionRules {
 
-    /**
-     * The per-class edit that [changes] implies for [c]: the lesson's shared fields as given — its
-     * one [SessionEdit.price] included — and the class's own student, or [SessionEdit.studentId] when
-     * an individual class is being re-attributed to somebody else.
-     *
-     * Private: it is a step of [editsFor], and calling it directly walks past the one thing [editsFor]
-     * refuses — re-attributing a lesson of more than one class. It was public with no caller but its
-     * own test, which is a hole in this module's guarantee kept open by nothing.
-     */
     private fun editFor(c: TutoringClass, changes: SessionEdit): ClassEdit = ClassEdit(
         studentId = changes.studentId ?: c.studentId,
         subjectId = changes.subjectId,

@@ -32,13 +32,6 @@ import kotlin.time.Instant
 /**
  * What a lesson write settled on: [Written], carrying what the caller asked for, or [HourTaken] —
  * the hour is already another lesson's, and nothing was written.
- *
- * One tutor cannot teach two lessons at once, and this is the invariant's home: every write that
- * would (re)occupy time makes the check itself, so no way into an hour — booking, editing, moving,
- * or «вернуть в расписание» — depends on its caller remembering to ask first. The callers used to
- * remember for it, three of them, each with its own copy of the ignoring set, and the way in that
- * was forgotten shipped as a double booking. The clash comes back as **data**: wording the refusal
- * is the screen's job, but what it names is the lesson in the way.
  */
 sealed interface LessonWrite<out T> {
 
@@ -66,18 +59,10 @@ sealed interface LessonWrite<out T> {
  * What booking a repeating lesson settled on: the occurrences that were written, and the ones that were
  * not because their hour was already somebody's.
  *
- * **It reports rather than refuses**, which is the difference between this and [LessonWrite]. A single
- * booking has one hour and one answer about it; a term of twelve has twelve, and over three months a
- * holiday or an already-booked evening is the normal case, not the exception. Turning the whole term down
- * because of one Monday would be unusable, and skipping quietly would be worse — the tutor would find out
- * in March. So every free hour is booked and the write **says what it did**, which is the shape
- * `GroupRepository.Saved(id, dropped)` already uses for the same reason: the form reports the write
- * instead of predicting it with a second check of its own.
- *
  * @param bookedIds the new class ids, over every occurrence — a group's lesson contributes one per member.
  * @param lessons how many **lessons** were written. Not `bookedIds.size`, which counts classes: booking a
- *   group of four for a month is four lessons and sixteen classes, and the sentence the tutor reads is
- *   about the evenings they will be teaching.
+ * group of four for a month is four lessons and sixteen classes, and the sentence the tutor reads is
+ * about the evenings they will be teaching.
  * @param skipped the occurrences left out, each naming the lesson that holds the hour.
  */
 data class SeriesWrite(
@@ -123,14 +108,6 @@ class ClassRepository @Inject constructor(
      * The lessons already occupying [slot] — [Scheduling.conflicts] over the classes around it — so a
      * booking form can show the clash as the tutor picks a time. [editing] is the lesson **being
      * edited**, which must not be found colliding with itself; null while booking something new.
-     *
-     * It takes the lesson rather than a set of class ids because that derivation is the invariant, not
-     * the caller's arithmetic — see [ClassSession.ids]. Handing over ids let the one caller here restate
-     * the fourth copy of a rule whose earlier three shipped as a double booking.
-     *
-     * This is a **read**, for saying the clash out loud while the form is still open. The writes
-     * below make the same check again themselves and refuse ([LessonWrite.HourTaken]) — the form's
-     * live answer can be stale by the time save is tapped, and the invariant cannot hang on it.
      */
     fun observeConflicts(slot: Scheduling.Slot, editing: ClassSession? = null): Flow<List<ClassSession>> {
         val window = Scheduling.windowFor(slot)
@@ -141,52 +118,22 @@ class ClassRepository @Inject constructor(
     /**
      * [observeConflicts] as a one-shot read — the check every (re)occupying write below makes
      * against the database it is about to write.
-     *
-     * A `suspend` query rather than `observeConflicts(...).first()`: collecting a Room `Flow` for a
-     * single value registers an invalidation observer and opens a channel only to close both again,
-     * and this runs behind every save, every move and every un-cancel.
      */
     suspend fun conflictsWith(slot: Scheduling.Slot, ignoring: Set<Long> = emptySet()): List<ClassSession> {
         val window = Scheduling.windowFor(slot)
         return Scheduling.conflicts(slot, getBetween(window.from, window.toExclusive), ignoring)
     }
 
-    /**
-     * The lesson already holding the hour [session] is being written into, if any — asked by every write
-     * that would (re)occupy time, inside the same transaction that reserves it. A preflight read outside
-     * the transaction lets two writers both see a free hour.
-     *
-     * **It derives its own exclusions.** The classes [session] consists of cannot stand in their own way,
-     * and that set is [ClassSession.ids]' to state. Every caller used to assemble it by hand alongside a
-     * start-and-length pair of its own choosing — three copies here and a fourth in a view model, for one
-     * question — so a fifth write could get any of the three arguments wrong and be refused nothing.
-     *
-     * A non-positive [minutes] answers "nobody" rather than asking: such a row occupies no time by
-     * its own arithmetic — `Scheduling.Slot` refuses to exist for it, and [Scheduling.conflicts]
-     * skips such rows on the read path for the same reason. A stored row like that should not exist
-     * (`BackupIntegrity` refuses a backup carrying one), but a status change on it has to come back
-     * as an answer, not a crash.
-     */
     private suspend fun holdingHour(session: ClassSession, start: Instant, minutes: Int): ClassSession? =
         if (minutes <= 0) null
         else conflictsWith(Scheduling.Slot(start, minutes), session.ids).firstOrNull()
 
-    /** The hour [session] already holds — for a write that re-occupies its time without moving it. */
     private suspend fun holdingHour(session: ClassSession): ClassSession? =
         holdingHour(session, session.start, session.durationMinutes)
 
     /**
      * The classes still running at [now] or starting within [horizon] of it — what a reminder plan is
      * derived from, rather than every class ever taught (see `work/Maintenance`).
-     *
-     * **Running ones included.** [Reminders.plan] keeps a lesson in progress as owed, so its inexact
-     * alarm, held by Doze past the start, is left to fire rather than cancelled; a window starting at
-     * [now] handed it only lessons still to come, and the first pass after the start withdrew the alarm.
-     *
-     * The window runs a millisecond past [horizon] because the two bounds disagree by design: the query
-     * excludes its upper bound, while a reminder horizon includes it ([Reminders.plan] keeps a lesson
-     * starting exactly on it). Handing over a superset is the safe direction — `plan` applies the real
-     * filter — and this keeps the boundary lesson in it.
      */
     suspend fun notEndedWithin(now: Instant, horizon: Duration): List<TutoringClass> =
         dao.notEndedBefore(now.toEpochMilliseconds(), (now + horizon + 1.milliseconds).toEpochMilliseconds())
@@ -243,12 +190,6 @@ class ClassRepository @Inject constructor(
     /**
      * Whether the tutor has booked **anything, ever** — asked on the way into a booking, so that the one
      * that finds this false is knowably their first.
-     *
-     * Not a guard like the three above it: nothing is refused on the strength of this answer. It exists
-     * because a lesson is the first moment a *reminder* becomes a real thing about to happen, which is
-     * when the app asks to be allowed to show one — see `ClassEditViewModel.save`. Asking earlier means
-     * asking before the tutor has met the feature, and asking never is what left the permission denied on
-     * every install (`SettingsViewModel.unblockNotifications`).
      */
     suspend fun anyLessons(): Boolean = lessons.anyExist()
 
@@ -261,13 +202,6 @@ class ClassRepository @Inject constructor(
     // Every one of them also goes through [write], which is the three phases themselves — so what
     // follows is a statement about that function, not a convention each write below has to remember.
 
-    /**
-     * A committed set of rows, and what the world outside the database still owes because of it.
-     *
-     * [value] is whatever the caller wanted back. [mirror] and [drop] are phase 3 expressed as *data*
-     * rather than as two more statements at the end of each write, which is what lets [write] run them
-     * in the one order they may happen in.
-     */
     private class Committed<T>(
         val value: T,
         val mirror: List<TutoringClass> = emptyList(),
@@ -280,26 +214,9 @@ class ClassRepository @Inject constructor(
     /**
      * The three phases of a lesson write, in the one order they may happen in:
      *
-     *   1. the caller shapes the edit with pure rules;
-     *   2. conflict guards and every row the lesson touches share [Transactor.transaction] — [rows];
-     *   3. the calendar is mirrored and reminders refreshed, *after* the commit — from [Written].
-     *
-     * This used to be a comment, and then twelve hand-written stacks of the same three steps. The
-     * order is not decoration: a group lesson is n rows, so without (2) a failure or a cancellation
-     * halfway through leaves a torn lesson — some members dropped, others still at the old time,
-     * joiners missing — and the database has no notion of the lesson those rows were meant to make up.
-     * (3) sits outside the transaction because the calendar is a `ContentProvider` across an IPC call,
-     * and holding SQLite's write lock across it invites an ANR; it is also simply the right order, the
-     * calendar being a best-effort mirror of committed data rather than a participant in the write.
-     * Nothing in [Transactor]'s own interface says any of that, which is why a write that quietly
-     * omitted (3), or ran it inside (2), looked exactly like one that didn't.
-     *
-     * Reminders refresh **once** per call, not once per class: one lesson earns one reminder, so a
-     * per-class refresh would repeat the same derivation n times.
-     *
      * @param refreshesReminders false only where the caller owns what follows — see [autoCompleteDue],
-     *   whose caller re-derives the plan itself. Opting out is an argument here rather than a missing
-     *   line there, so it has to be justified at the point it is taken.
+     * whose caller re-derives the plan itself. Opting out is an argument here rather than a missing
+     * line there, so it has to be justified at the point it is taken.
      */
     private suspend fun <T> write(
         refreshesReminders: Boolean = true,
@@ -319,24 +236,7 @@ class ClassRepository @Inject constructor(
      * Books one lesson: a class per entry in [studentIds], every one of them at [price] — the group's
      * hourly rate for a group lesson, the student's own for an individual one. [groupId] names the
      * group and is null for an individual lesson; that, and how many students there are, is the only
-     * difference between the two. Returns the new class ids.
-     *
-     * Taking the shared fields once — the rate included, now that a lesson has exactly one — rather
-     * than a list of classes is what makes a lesson whose members disagree about their start, subject
-     * or price unrepresentable.
-     *
-     * Refuses an hour another lesson already holds — [LessonWrite.HourTaken] names it.
-     * Refuses an empty roster: a lesson with nobody in it would be an invisible row that bills no one.
-     * Refuses a non-positive length for the reason `Scheduling.Slot` gives — such a lesson would occupy
-     * no time, and so would stand in no other lesson's way. The last two throw rather than return,
-     * because no form can submit them: they are a caller's bug, not a schedule that moved.
-     *
-     * **A run of one**, delegating to [bookSeries] rather than checking the hour and writing the rows a
-     * second time. The two had the same body, and the difference between them is only how many answers
-     * come back: one hour has one, so a skipped occurrence *is* [LessonWrite.HourTaken]. Keeping both
-     * implementations would have left the app booking through one of them and most of the suite through
-     * the other — the shape `LessonFilter.accepted` was named away from, with the tested copy and the
-     * shipped copy free to drift apart.
+     * difference between the two.
      */
     suspend fun book(
         subjectId: Long,
@@ -361,28 +261,7 @@ class ClassRepository @Inject constructor(
             ?: LessonWrite.Written(written.bookedIds)
     }
 
-    /**
-     * Books the same lesson at each of [starts] — the whole of what «Повторять» writes.
-     *
-     * Every occurrence is an ordinary lesson; what this owns is that they are decided and written
-     * **together**, in the three phases [write] states:
-     *
-     *   1. shape the windows with pure rules;
-     *   2. classify free and taken occurrences and write the free ones inside one transaction;
-     *   3. one calendar mirror and one reminder refresh for the lot.
-     *
-     * A loop over [book] would have been the obvious implementation and is the thing to avoid: it would
-     * re-derive the whole reminder plan twelve times and hand the calendar twelve separate batches, which
-     * is exactly what [write]'s "refresh once per lesson write, not once per class" exists to prevent —
-     * only worse, because the unit here is a term rather than a lesson.
-     *
-     * **The occurrences are checked against the schedule as it stands, and not against each other.** They
-     * can't collide: [Recurrence] spaces them a week or more apart and a lesson runs at most 23 h 59 m.
-     *
-     * Refuses an empty roster and a non-positive length for the reasons [book] gives, and an empty
-     * [starts] for the same kind of reason — a booking with no occurrences would write nothing and report
-     * success.
-     */
+    /** ooks the same lesson at each of [starts] — the whole of what «Повторять» writes. */
     suspend fun bookSeries(
         subjectId: Long,
         starts: List<Instant>,
@@ -429,15 +308,6 @@ class ClassRepository @Inject constructor(
         }
     }
 
-    /**
-     * Writes one lesson's rows — the lesson, then a class per student — and hands back the classes with
-     * the ids their inserts returned.
-     *
-     * **Inside a transaction, always**: it is phase 2 and nothing else, which is why it neither opens one
-     * nor mirrors anything. Named rather than inlined so that [bookSeries]'s transaction body reads as
-     * the one thing it is — "write each free occurrence's lesson" — with what a lesson's rows *are*
-     * stated beside it rather than nested two lambdas deep.
-     */
     private suspend fun insertLesson(
         subjectId: Long,
         start: Instant,
@@ -465,34 +335,7 @@ class ClassRepository @Inject constructor(
         }
     }
 
-    /**
-     * Applies one edit to every class of [session], moving the lesson to [newStart].
-     *
-     * Each class goes through [ClassRules.edit] with the lesson's rate, so the move-and-rebill
-     * obligation is honoured per class: shifting a lesson into the future re-plans all of it, and a
-     * completed lesson's recognized income follows the edit for every member at once. The rules run
-     * *here* — a caller has no way to hand over an already-resolved class, and so no way to persist a
-     * charge that no longer matches the price and duration it was billed from.
-     *
-     * **[session] names the lesson; its state is re-read inside the transaction** ([current]). The rules
-     * start every class from the state they are handed, so a snapshot read before the write — a form's,
-     * opened minutes ago — would put a stale status, attendance and charge back over whatever happened
-     * since: a lesson auto-completed (or marked taught by hand) underneath an open form would be
-     * un-completed and un-billed by a save that only meant to change its price. Read inside the write,
-     * nothing can land between the read and the rows it decides. A lesson deleted meanwhile is
-     * [LessonWrite.Gone].
-     *
-     * [roster] additionally says who the lesson is for afterwards: members outside it lose their
-     * class, members in it without one get one ([GroupRules.rosterChange]). Null leaves the roster
-     * exactly as it is, which is all an individual lesson can mean. Changing who was in a lesson and
-     * changing the lesson's own fields is **one transaction**, so a save can neither bill a member on
-     * their way out nor leave a joiner behind at the old time — and a failure partway through leaves
-     * the lesson exactly as it was rather than half-reconciled.
-     *
-     * [now] is the caller's clock, required rather than defaulted: whether a move re-plans the lesson
-     * is decided against it, and a default read here would make the tested path and the shipped path
-     * two different paths.
-     */
+    /** pplies one edit to every class of [session], moving the lesson to [newStart]. */
     suspend fun apply(
         session: ClassSession,
         changes: SessionEdit,
@@ -518,8 +361,7 @@ class ClassRepository @Inject constructor(
      * Reschedules a whole lesson, keeping its members together in one session, unless the hour is
      * another lesson's ([LessonWrite.HourTaken]) — the lesson's own classes never stand in their own
      * way. Moving it to the future re-plans each class (scheduled, charge voided); moving it to the
-     * past keeps each status. [now] is required for the reason [apply] gives, and [session] is re-read
-     * inside the write for the same reason.
+     * past keeps each status.
      */
     suspend fun move(
         session: ClassSession,
@@ -535,20 +377,7 @@ class ClassRepository @Inject constructor(
         }
     }
 
-    /**
-     * Marks what became of a whole lesson: it happened, it was called off, or it is planned again.
-     *
-     * One status, one row — the lesson's. It used to be a status per member, so this had to pick out the
-     * classes the change was legal for and leave the rest ("mark completed" on a group lesson whose
-     * absentee was cancelled), which is how a lesson came to hold several statuses at once. Who was
-     * actually in it is [setAttendance]'s, and completing carries every still-expected member to present
-     * (see [ClassRules.applyStatus]), so the tutor's one tap still bills the room.
-     *
-     * Returning a lesson **to the schedule** re-occupies its hour, so it is checked like a booking: a
-     * cancelled lesson gives its slot back on purpose ([LessonStatus.occupiesTime]), and by the time it is
-     * un-cancelled the hour may be somebody else's. That is the one status change that can be refused —
-     * every other transition keeps or frees the time it already had.
-     */
+    /** arks what became of a whole lesson: it happened, it was called off, or it is planned again. */
     suspend fun setStatus(session: ClassSession, to: LessonStatus): LessonWrite<List<TutoringClass>> {
         if (session.status == to) return LessonWrite.Written(emptyList())
         return write {
@@ -567,11 +396,6 @@ class ClassRepository @Inject constructor(
     /**
      * Records whether one student was in one lesson — the per-member correction, and the only write that
      * touches a single row of a lesson rather than the lesson.
-     *
-     * This is what the absentee of a lesson that went ahead used to need a whole fake session for: their
-     * class was *cancelled*, which zeroed their charge, left the lesson itself with no single status, and
-     * could not express a no-show that is billed anyway ([Attended.ABSENT_BILLED]). Rebilling is
-     * [ClassRules.applyAttendance]'s, so the charge follows the fact.
      */
     suspend fun setAttendance(klass: TutoringClass, attended: Attended): List<TutoringClass> =
         persist(listOf(ClassRules.applyAttendance(klass, attended)))
@@ -587,22 +411,6 @@ class ClassRepository @Inject constructor(
         Committed(Unit, drop = session.classes)
     }
 
-    /**
-     * The one place an existing lesson is written: [LessonEdit.lesson] states the lesson's own row and
-     * every class in [LessonEdit.updated] is rewritten **in place**, so an edit can't double-count
-     * income; then the whole lesson is mirrored and reminders refreshed **once**. One lesson earns one
-     * reminder, so refreshing per class would repeat the same work n times.
-     *
-     * [LessonEdit.joining] are members arriving in the lesson, who have no row to update yet. They are
-     * inserted and billed by [ClassRules.rebill] — the same rule the others' charges come from — so
-     * joining a completed lesson costs what having been in it costs, and no caller can insert an unbilled
-     * class into a lesson that has already earned. [LessonEdit.dropped] are members leaving it, whose
-     * rows go.
-     *
-     * All of it happens in **one** transaction, so the lesson a caller describes is the lesson the
-     * database ends up with. Mirroring follows the commit, per [write]; a joiner is mirrored with the
-     * id its insert returned, so the event id lands back on the right row.
-     */
     private suspend fun persistRows(edit: LessonEdit): Committed<List<TutoringClass>> {
         // Leavers go first, so the updates below have nobody left to re-bill on their way out.
         edit.dropped.forEach { attendance.deleteById(it.id) }
@@ -621,41 +429,12 @@ class ClassRepository @Inject constructor(
         return Committed(touched, mirror = touched, drop = edit.dropped)
     }
 
-    /**
-     * [persist] for a write that keeps the lesson's roster exactly as it is — a move, a status change, one
-     * member's attendance. Every class of it is being rewritten, so any of them states the lesson's row.
-     */
     private suspend fun persist(resolved: List<TutoringClass>): List<TutoringClass> {
         require(resolved.isNotEmpty()) { "A write touches at least one class of the lesson" }
         return write { persistRows(LessonEdit(lesson = resolved.first(), updated = resolved)) }
     }
 
-    /**
-     * Settles [studentId]'s scheduled classes for archiving and returns the changed rows.
-     *
-     * Individual lessons become [LessonStatus.CANCELLED] and give their slots back. Group lessons
-     * keep their status and this student's attendance row, marked [Attended.ABSENT] so it cannot
-     * bill them. Their calendar events are withdrawn and the reminder plan is refreshed once,
-     * after the commit, like every other write in this class.
-     *
-     * **Why settle rather than leave them.** Archiving is how a student leaves without erasing history,
-     * and it removes them from every report (`ReportsViewModel` counts active students only). A
-     * scheduled class left behind does not stop being live: the maintenance pass auto-completes it,
-     * which bills it, and that income then exists in the database while appearing in no total on any
-     * screen. The debt tile the archive dialog warns about would go on growing where nobody could see
-     * it. Their individual reminders and calendar events would also still describe a live booking.
-     *
-     * **Why keep the rows.** A cancelled lesson or an excused group attendance records an arrangement
-     * that was made. Deleting it would erase that history.
-     *
-     * **Why every scheduled class and not only the future ones.** A past class still marked scheduled is
-     * exactly the one the auto-complete pass is about to bill. Archiving says the arrangement is over,
-     * so a lesson nobody ever confirmed is not about to become income; a lesson that *did* happen was
-     * marked completed, and completed classes are left alone here.
-     *
-     * A group lesson keeps this student's attendance row as an unbilled absence, so its history stays
-     * readable and the lesson goes ahead for everyone else.
-     */
+    /** ettles [studentId]'s scheduled classes for archiving and returns the changed rows. */
     suspend fun cancelScheduledFor(studentId: Long): List<TutoringClass> {
         if (dao.scheduledForStudent(studentId).isEmpty()) return emptyList()
         // One transaction for the lot: a half-archived student would have some lessons called off and
@@ -682,12 +461,6 @@ class ClassRepository @Inject constructor(
     /**
      * How many **lessons** are waiting to be auto-completed at [now] — what [autoCompleteDue] would
      * settle if it ran, whether or not the setting that lets it run is on.
-     *
-     * Asked before the sweep happens, because the tutor is put the question first (see
-     * `SettingsViewModel.setAutoCompleteEnabled`). It reads the same query the sweep reads rather than
-     * a count of its own, so the number in the question cannot disagree with what the answer then does.
-     *
-     * Lessons, not classes: a group's finished hour is one lesson to confirm, not one per member.
      */
     suspend fun countDueForCompletion(now: Instant): Int =
         lessons.dueForCompletion(now.toEpochMilliseconds()).size
@@ -695,12 +468,6 @@ class ClassRepository @Inject constructor(
     /**
      * Auto-completes every scheduled class whose end time has passed, billing its booked price.
      * Returns the classes that were completed.
-     *
-     * **The one write that owes no phase 3, and says so at the call to [write].** Nothing to mirror:
-     * completing a class leaves its event alone (`CalendarSyncPolicy`), the lesson being in the past
-     * already. Nothing to re-plan either — the caller is `Maintenance`, which runs this *first* and
-     * then derives the reminder plan from the result, so refreshing here would derive it twice and
-     * throw the first one away.
      */
     suspend fun autoCompleteDue(now: Instant): List<TutoringClass> {
         // Asked of the lessons, then read back as classes: a lesson is what finishes, and its members are
@@ -721,22 +488,11 @@ class ClassRepository @Inject constructor(
         }
     }
 
-    /**
-     * [session] as the database holds it now — for a write to start from inside its transaction, rather
-     * than from whatever its caller read earlier. Null when the lesson has since been deleted.
-     */
     private suspend fun current(session: ClassSession): ClassSession? {
         val members = dao.getSession(session.lessonId).map { it.toDomain() }
         return members.firstOrNull()?.let { ClassSession(it.groupId, members) }
     }
 
-    /**
-     * Rewrites [lesson]'s own row **once** and every one of [classes] in place — the shape every write of
-     * an existing lesson takes, inside the caller's [write]. A null [lesson] leaves the lesson row alone,
-     * for a per-member correction: excusing one student from a group's lesson changes nothing about the
-     * hour, and writing its row from a class read before the transaction could put back an hour another
-     * write has since moved.
-     */
     private suspend fun rewrite(lesson: TutoringClass?, classes: List<TutoringClass>) {
         lesson?.let { lessons.update(it.toLessonEntity()) }
         classes.forEach { attendance.update(it.toAttendanceEntity()) }

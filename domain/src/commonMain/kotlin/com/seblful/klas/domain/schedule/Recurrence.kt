@@ -41,7 +41,8 @@ enum class Repeat(val weeks: Int) {
 
     WEEKLY(1),
 
-    FORTNIGHTLY(2);
+    FORTNIGHTLY(2),
+    ;
 
     /** Whether this writes more than the single lesson the form describes. */
     val repeats: Boolean get() = this != NONE

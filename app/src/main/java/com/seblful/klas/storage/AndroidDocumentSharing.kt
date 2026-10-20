@@ -12,32 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/**
- * [DocumentSharing] over `ACTION_SEND` and a [FileProvider] — the device adapter.
- *
- * ### Why the file goes in the cache
- *
- * A shared file is a **handover, not a copy the tutor keeps**: the receiving app reads it and the tutor
- * never looks for it again. The cache is where Android puts exactly that, and it is the only directory
- * the system will clean up on the app's behalf — which matters here more than usual, because the file is
- * a spreadsheet of a tutor's income. Each share has a unique path, and files older than a week are
- * removed on the next share; a new handover must not replace a file another app is still reading.
- *
- * ### Why a content URI and not a path
- *
- * `file://` URIs have been refused since Android 7 (`FileUriExposedException`). [FileProvider] hands out
- * a `content://` URI scoped to one file, and `FLAG_GRANT_READ_URI_PERMISSION` lends the receiving app
- * read access while the receiving activity stack remains active — so the CSV is readable by that app and
- * by nothing else. The provider is declared `exported="false"` with `grantUriPermissions="true"`, which
- * is what makes the grant the *only* way in.
- *
- * ### Why `NEW_TASK`
- *
- * The chooser is started from the application context, since a port must not hold an `Activity`. That
- * needs `FLAG_ACTIVITY_NEW_TASK`. The visible consequence is that the share sheet is its own task rather
- * than a child of the report screen, which for a fire-and-forget handover is exactly right: dismissing
- * the sheet returns to the report with nothing changed.
- */
+/** DocumentSharing] over `ACTION_SEND` and a [FileProvider] — the device adapter. */
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
 class AndroidDocumentSharing @Inject constructor(

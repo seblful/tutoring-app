@@ -67,31 +67,14 @@ class BackupViewModel @Inject constructor(
      * sentence this screen exists to make, tinted so it is the one thing on it worth acting on today — and
      * an initial `null` said it to every tutor for the frame or two before the row was read, including the
      * ones who exported yesterday. Loading and never-exported are the same value without this, and only
-     * one of them is a warning. See [Loadable].
+     * one of them is a warning.
      */
     val lastExportAt: StateFlow<Loadable<Instant?>> = settings.observe()
         .map { it.lastExportAt }
         .ready()
         .hold(this, Loadable.Loading)
 
-    /**
-     * Writes the snapshot, then **records that it happened** — in that order, and only if it did.
-     *
-     * Two guarded steps rather than one, and the split is the point in both directions. A stamp written
-     * for an export that failed would have the app telling the tutor they have a copy they do not have.
-     * And a stamp that *could not* be written is still not a failed export — the file is on the disk they
-     * chose — so it gets its own guard instead of turning a successful export into a reported error.
-     *
-     * **The two steps run in different scopes, and that is the whole reason the receipt is reliable.**
-     * The export itself stays in `viewModelScope`, as `DiagnosticsViewModel`'s does: what an abandoned one
-     * leaves behind is a short file in a place the tutor picked and can see, not a row missing from the
-     * ledger. The receipt is a **write to the database**, so it goes to the application scope by the rule
-     * every other write in this app follows — and here the rule has teeth. `viewModelScope` dies when this
-     * screen is popped, so a tutor who exports a large snapshot through SAF and backs out could otherwise
-     * be left with the file on disk and «Копий ещё не было» on the screen: the exact wrong answer this
-     * feature exists to prevent, and one no failure test can catch, because a cancellation is not a
-     * failure.
-     */
+    /** rites the snapshot, then **records that it happened** — in that order, and only if it did. */
     fun export(ref: DocumentRef) {
         viewModelScope.launch {
             val written = runCatchingCancellable { documents.write(ref, backup.exportJson()) }
@@ -100,14 +83,6 @@ class BackupViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Stamps the settings row with the moment the copy was made, outliving the screen that asked for it.
-     *
-     * The failure is reported to the crash log rather than to the tutor — a receipt that would not write
-     * is not something they can act on, and telling them the export failed would be false — but it is
-     * reported: a silent `runCatching` here would make a stamp that never lands invisible everywhere.
-     * `appScope` carries a `CoroutineExceptionHandler` into the log, so *not* guarding is what reports it.
-     */
     private fun recordExport() {
         appScope.launch { settings.update { it.copy(lastExportAt = clock.now()) } }
     }
@@ -120,14 +95,7 @@ class BackupViewModel @Inject constructor(
      */
     val importing: StateFlow<Boolean> = _importing.asStateFlow()
 
-    /**
-     * Reads the picked file through [DocumentStore] and hands the rest to [BackupRestore].
-     *
-     * **In the application scope**, as every write is: the rows commit in one transaction, but the
-     * restore goes on past it — the first-run flag, the reminder plan, the calendar re-mirror — and in
-     * `viewModelScope` a back press cancelled that tail, leaving the data replaced and the reminders and
-     * calendar still describing the old one. A second tap while one is running is ignored.
-     */
+    /** eads the picked file through [DocumentStore] and hands the rest to [BackupRestore]. */
     fun import(ref: DocumentRef) {
         if (_importing.value) return
         _importing.value = true

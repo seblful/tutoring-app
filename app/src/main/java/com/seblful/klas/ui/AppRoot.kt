@@ -92,21 +92,6 @@ fun AppRoot(rootViewModel: RootViewModel = metroViewModel()) {
     }
 }
 
-/**
- * The main tabs around the navigation graph ([klasGraph]).
- *
- * **The navigation chrome is a `NavigationSuiteScaffold`, and there is no `Scaffold` here at all.** That
- * is two fixes in one shape. The chrome now follows the window: a bottom bar on a phone, a rail down the
- * side once there is width for one, rather than a phone's bar across the foot of a ten-inch screen.
- *
- * And the double inset is gone. This used to be a `Scaffold` whose content padding already carried the
- * status-bar inset, wrapping a `NavHost` of screens that each compose *their own* `Scaffold` — whose
- * `TopAppBar` applies that same inset again, because a Compose inset is not consumed by a `padding()`
- * call. Every one of the four tab screens therefore sat a status bar too low while every pushed screen
- * sat correctly, which is the kind of difference that reads as "slightly off" without being locatable.
- * `NavigationSuiteScaffold` is built to wrap content that brings its own `Scaffold`, so the nesting that
- * caused it does not exist any more.
- */
 // `currentBackStack` is `@RestrictedApi` — navigation exposes it for its own group, not for apps. It is
 // read here for one reason, spelled out below: which tab is lit is a question only the stack can answer.
 // The alternative in public API is `visibleEntries`, which is the wrong list — a pushed screen that has
@@ -136,11 +121,6 @@ private fun MainApp() {
     /**
      * The latest tray tap that asked a tab for something more than itself — the schedule for a day or a
      * lesson's sheet, the reports for their debts. See [Arrival], and why each tap is its own instance.
-     *
-     * Hoisted here because the navigation it accompanies is hoisted here, and not a route argument
-     * because [Routes.Schedule] is the graph's start destination: giving it a parameter would mean every
-     * arrival, including the launcher's, having to state a day. Plain `remember`, not saveable: an
-     * arrival cannot be restored as the *same* one, and a rebuilt activity has no new tap to hand over.
      */
     var scheduleArrival by remember { mutableStateOf<Arrival<ScheduleTarget>?>(null) }
     var debtsArrival by remember { mutableStateOf<Arrival<Unit>?>(null) }

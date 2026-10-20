@@ -8,24 +8,12 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/**
- * **v7 → v8 on a real database**: a lesson gains its homework, and each student's row a verdict on it.
- *
- * The sibling of [LessonNotesMigrationTest], for the reasons that one gives: `MigrationChainTest` proves on
- * the JVM that the step is there, and whether it *works* needs SQLite — a `DEFAULT ''` that has to match
- * its `defaultValue`, a nullable column that has to have none, and the `classes` view, which projects
- * both and which Room validates but never recreates.
- */
 @RunWith(AndroidJUnit4::class)
 class HomeworkMigrationTest {
 
     @get:Rule
     val helper = migrationTestHelper(TEST_DB)
 
-    /**
-     * A v7 lesson with a note and a student in it, migrated — the note untouched, no homework invented
-     * out of it, no verdict — and still readable **through the view**, which is how every screen reads it.
-     */
     @Test
     fun aLessonKeepsItsNoteAndGainsNoHomework() {
         helper.createDatabase(7).use { db ->
@@ -67,7 +55,6 @@ class HomeworkMigrationTest {
         assertEquals("and the lesson's", "§12, упр. 4–7; устала", viewed["notes"])
     }
 
-    /** A verdict written after the upgrade reads back through the view — the column is really projected. */
     @Test
     fun aVerdictWrittenAfterTheUpgradeReadsBack() {
         helper.createDatabase(7).use { db ->
@@ -96,7 +83,6 @@ class HomeworkMigrationTest {
         )
     }
 
-    /** No lessons at all — where a wrong `DEFAULT` hides, having no row to be visible on. */
     @Test
     fun anEmptyDatabaseStillValidates() {
         helper.createDatabase(7).close()

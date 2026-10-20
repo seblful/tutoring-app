@@ -56,20 +56,6 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.time.Instant
 
-/**
- * What can be done to the lesson that was tapped: change its status, tick off the homework attached to it,
- * edit it, move it, delete it.
- *
- * **Status comes first and is a control, not a list of verbs.** It is the most common reason the sheet
- * is open by a wide margin, and it used to be one or two ordinary rows in the middle of a flat menu,
- * indistinguishable from «Перенести» — so the sheet answered "what can I do" without answering "what
- * is this lesson now".
- *
- * Every action is the **whole lesson's**, a group's included. The sheet deliberately does not list
- * the members as a roster: who a lesson covers is picked while booking it, on the form, and a menu that
- * changes a lesson's status is not where a roster belongs. The one place it names one is the homework, when
- * a member's own is attached to a group's lesson — see [SheetHomework.who].
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ClassActionsSheet(
@@ -140,11 +126,6 @@ internal fun ClassActionsSheet(
     }
 }
 
-/**
- * The homework attached to this lesson (`HomeworkRules.attachedToLesson`), each with a tick — the same
- * «done» the tab's swipe gives, kept on screen once given so a wrong tap is taken back where it was made.
- * Capped at a handful of lines each: the sheet is a set of actions, and the tab has the whole text.
- */
 @Composable
 private fun AttachedHomework(items: List<SheetHomework>, onDone: (Homework, Boolean) -> Unit) {
     // A stored fact changing under the thumb, like the roster's and the settings' ticks — felt the same way.
@@ -188,24 +169,8 @@ private fun AttachedHomework(items: List<SheetHomework>, onDone: (Homework, Bool
     }
 }
 
-/** How much of one piece of homework the actions sheet shows before the tab is the way to read the rest. */
 private const val SheetHomeworkLines = 4
 
-/**
- * The lesson's status as a segmented control.
- *
- * Shows all three, with the lesson's own selected — so the sheet states the fact as well as offering
- * the change. There is always one selected, [ClassSession.status] being one of the three even for a
- * lesson whose members were corrected apart; the segments it *enables* are still the union of what
- * those members can each move to ([SessionRules.sessionTransitions]).
- *
- * **The current status is enabled and does nothing.** [ClassRules.availableTransitions] excludes the
- * status a lesson is already in — quite rightly, it drove a menu of *actions* — so gating `enabled`
- * on it alone greyed out the one segment that is selected, every single time. The control then read
- * as broken rather than as informative. Being tappable-but-inert is how a segmented control's chosen
- * option behaves anyway; what stays disabled is the genuinely unreachable transition, which is real
- * information (a completed lesson can be cancelled but not un-completed).
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StatusSelector(row: ScheduleRow, onStatus: (LessonStatus) -> Unit) {
@@ -228,7 +193,6 @@ private fun StatusSelector(row: ScheduleRow, onStatus: (LessonStatus) -> Unit) {
     }
 }
 
-/** A bottom sheet's own gutter, wider than the screen's: Material insets sheet content further in. */
 internal val SheetGutter = 24.dp
 
 @Composable
@@ -253,14 +217,6 @@ private fun SheetAction(
     }
 }
 
-/**
- * Picks a new date, then a new time, and reports **the two the tutor chose**.
- *
- * It used to combine them here — `date.atTime(time).toInstant(TimeZone.currentSystemDefault())` — which put
- * a wall-clock-to-instant conversion, and a third definition of the app's zone, inside a composable on the
- * path that changes when a lesson happens. `ScheduleViewModel.moveTo` does it now, against the injected
- * clock's zone; see `domain/billing/PaymentDate` for the same argument made about the path that records money.
- */
 @Composable
 internal fun MoveClassFlow(
     start: Instant,

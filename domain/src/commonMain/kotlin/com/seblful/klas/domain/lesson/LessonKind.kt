@@ -24,7 +24,9 @@ enum class LessonKind {
     INDIVIDUAL,
 
     /** One of a group's lessons, billed at the group's rate — see `Group.price`. */
-    GROUP;
+    GROUP,
+
+    ;
 
     companion object {
         fun of(klass: TutoringClass): LessonKind = if (klass.groupId != null) GROUP else INDIVIDUAL
@@ -45,7 +47,8 @@ enum class LessonKind {
 enum class LessonFilter {
     ALL,
     INDIVIDUAL,
-    GROUP;
+    GROUP,
+    ;
 
     fun accepts(kind: LessonKind): Boolean = when (this) {
         ALL -> true

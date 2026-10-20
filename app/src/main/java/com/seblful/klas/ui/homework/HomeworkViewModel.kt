@@ -39,10 +39,6 @@ import kotlin.time.Duration.Companion.days
  * What the «Задания» tab shows: its two lists, what it is narrowed to, and what the add dialog is built
  * from.
  *
- * [assignees] and [classes] are held rather than turned into [AssigneeChoice]s here, because a choice
- * says which lesson homework set **now** would go to — and "now" is when the dialog opens, which can be
- * hours after the last emission. See [HomeworkViewModel.choices].
- *
  * @param lists narrowed to [filter] already, so the screen never filters anything itself.
  * @param filter whom the tab is narrowed to, or null for everybody — see [HomeworkRules.narrowedTo].
  * @param assignees everybody homework can be set for, active students then active groups in name order.
@@ -80,7 +76,6 @@ class HomeworkViewModel @Inject constructor(
         filter.value = who
     }
 
-    /** The people homework is for, and who is in which group — what captions, filters and ranks it. */
     private data class People(val students: List<Student>, val groups: List<Group>, val rosters: Map<Long, List<Long>>)
 
     private val people: Flow<People> =
@@ -89,13 +84,6 @@ class HomeworkViewModel @Inject constructor(
     /**
      * The tab — [Loadable] because «Текущих заданий нет» is an answer, and the frame before the query
      * returns is not one.
-     *
-     * Lessons are read from [PICKER_LOOKBACK] back (or from the oldest current homework, if that is
-     * older), which covers both what the lists attach homework to and what the dialog ranks by.
-     *
-     * "Today" and "overdue" are measured from [days], so the tab — alive behind the bar — calls
-     * yesterday's lesson yesterday's once midnight passes. **A test that collects this must advance time
-     * by a stated amount, never `advanceUntilIdle()`**: see [days].
      */
     val state: StateFlow<Loadable<HomeworkState>> =
         combine(
@@ -155,7 +143,6 @@ class HomeworkViewModel @Inject constructor(
 
     val events = UiEvents<Event>()
 
-    /** In the application scope like every write in the app — see [HomeworkActions]. */
     private val actions = HomeworkActions(homework, appScope, events, Event.ACTION_FAILED)
 
     fun give(assignee: Assignee, text: String) = actions.give(assignee, text)

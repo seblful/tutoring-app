@@ -32,27 +32,12 @@ import com.seblful.klas.ui.students.StudentsViewModel
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
-/** The two ways of looking at the same people: one at a time, or taught together. */
 private enum class PeopleTab(val labelRes: Int) {
     STUDENTS(R.string.students_title),
     GROUPS(R.string.groups_title),
 }
 
-/**
- * «Люди» — students and groups under one tab.
- *
- * They were two, plus a setting to hide one of them, plus a conditional entry in «Ещё» for when it
- * was hidden, plus visibility plumbing through the destination list so the bottom bar would not claim
- * a route it was not showing. All of that existed to answer a question the sections do not actually
- * pose: **a group is students seen as a roster**, so it is a view of this screen rather than a screen
- * of its own. Merging them deletes the setting, the conditional entry point and the plumbing, and
- * takes the bottom bar down to four tabs — where the labels stop needing to shrink to fit.
- *
- * The state that differs per tab (what is being searched for, whether the archive is shown) lives in
- * the two view models, which is what lets switching tabs preserve each side's search rather than
- * clearing both. The bar reaches them through one seam — [PeopleSide], which both implement — so the
- * side on top is picked **once**, instead of once per button in dispatch branches no test can flip.
- */
+/** Люди» — students and groups under one tab. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeopleScreen(
@@ -88,7 +73,7 @@ fun PeopleScreen(
             query = query,
             placeholder = stringResource(
                 if (tab == PeopleTab.STUDENTS) R.string.students_search_hint
-                else R.string.groups_search_hint
+                else R.string.groups_search_hint,
             ),
             onQueryChange = side::setQuery,
             onClose = { studentsViewModel.setQuery(""); groupsViewModel.setQuery("") },
@@ -157,7 +142,6 @@ fun PeopleScreen(
     }
 }
 
-/** Name order or debt order — the two questions the students list is asked. */
 @Composable
 private fun SortMenu(selected: StudentSort, onSelect: (StudentSort) -> Unit) {
     var expanded by remember { mutableStateOf(false) }

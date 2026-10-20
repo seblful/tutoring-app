@@ -21,26 +21,13 @@ import kotlinx.coroutines.flow.map
  * Owns the invariant that **a student's subjects are exactly their priced subjects** — the single
  * source of truth for what can be booked. A subject link and its price are always created and
  * removed together here, so the two can never diverge, and a subject with billed history can't be
- * un-enrolled. Every caller that changes a student's subjects goes through this one seam, instead of
- * pairing a link operation with a price operation by hand (which is how the invariant used to be
- * "enforced" — by caller discipline spread across the student view models).
- *
- * Setting a price is also what **logs** it: every write here goes through [record], so the rate
- * history can't be missed by a caller that changed a price and forgot to say so (see
- * [RateHistoryRepository]).
- *
- * Every mutation below is **one transaction**, because each of them spans three tables —
- * `student_subjects`, `prices` and `price_history` — and the invariant this class exists to hold is
- * precisely that they agree. A failure between the link and the price is not a lost edit but a
- * *broken* one: a subject the student is listed as taking, at no price, which the booking form then
- * offers and which no completed class could ever be billed at. Being single-user does not help here —
- * the writes are sequential either way, and what a transaction rules out is stopping halfway.
+ * un-enrolled.
  */
 @SingleIn(AppScope::class)
 class EnrollmentRepository @Inject constructor(
     private val studentDao: StudentDao,
     private val priceDao: PriceDao,
-    /** Asked whether a subject still has classes — see `ClassRepository`'s referenced-by guards. */
+
     private val classes: ClassRepository,
     private val rateHistory: RateHistoryRepository,
     private val transactor: Transactor,
@@ -70,17 +57,6 @@ class EnrollmentRepository @Inject constructor(
     /**
      * Creates [student] **with** the subjects they are priced for, in one transaction, and returns the
      * new id.
-     *
-     * A student and their enrollments are one act, not two. The add-student form used to write them as
-     * two calls — `students.upsert(...)` then `setEnrollments(...)` — from `viewModelScope`, and then
-     * navigate. Tapping «Сохранить» and going straight back could cancel between them, leaving a
-     * student with no priced subject: no subject can be booked for them. The form was enforcing
-     * that invariant through `StudentFormViewModel.UiState.canSave`, but its own save could then
-     * leave the student unusable.
-     *
-     * It lives here rather than in `StudentRepository` because the invariant at stake is this class's
-     * one: a student's subjects **are** their priced subjects. A caller that has to remember to follow
-     * one write with another is exactly the caller discipline this seam exists to remove.
      */
     suspend fun createStudent(student: Student, pricedSubjects: Map<Long, Money>): Long =
         transactor.transaction {
@@ -126,17 +102,6 @@ class EnrollmentRepository @Inject constructor(
      * Replaces a student's enrollments wholesale with [pricedSubjects] (subjectId → price): links the
      * chosen subjects, sets each price, and drops any subject — link and price together — no longer
      * present, keeping the two in step. Returns the subjects it **refused** to drop.
-     *
-     * The widest write here, and so the one that most needs to be **one** transaction: a save that
-     * added three subjects and stopped after the second would leave the student taking a subject at no
-     * price, and the tutor with no way to tell which of the three it was.
-     *
-     * **A subject with classes is kept, exactly as [unenroll] keeps it**, and named in the return so a
-     * caller can say so. This used to be the one way round that refusal: `unenroll` guards a single
-     * subject and this dropped any number of them without asking, so the same subject was undroppable
-     * one way and droppable the other. Creation is where it is used, and there a student has no classes
-     * yet — which is why the hole was invisible rather than absent, and it is not a reason to leave the
-     * wider write the weaker one. Creating a student now goes through [createStudent] instead.
      */
     suspend fun setEnrollments(studentId: Long, pricedSubjects: Map<Long, Money>): Set<Long> {
         val current = studentDao.getSubjectIds(studentId).toSet()
@@ -154,37 +119,17 @@ class EnrollmentRepository @Inject constructor(
         return undroppable
     }
 
-    /**
-     * Links [subjectId] to [studentId] and prices it — the two halves of enrolling, which are only ever
-     * written together. Inside the caller's transaction, like [record].
-     */
     private suspend fun link(studentId: Long, subjectId: Long, price: Money) {
         studentDao.addSubjectLink(StudentSubjectCrossRef(studentId, subjectId))
         record(studentId, subjectId, price)
     }
 
-    /**
-     * Unlinks [subjectId] from [studentId], deletes its price and forgets that price's history — the three
-     * tables un-enrolling spans, as one step. Only for a subject the caller has checked has no classes, and
-     * inside the caller's transaction, like [record].
-     */
     private suspend fun unlink(studentId: Long, subjectId: Long) {
         studentDao.removeSubjectLink(studentId, subjectId)
         priceDao.delete(studentId, subjectId)
         rateHistory.forget(RateOwner.StudentSubject(studentId, subjectId))
     }
 
-    /**
-     * Writes the price **and** logs it — the one path by which a `prices` row changes, so the history
-     * cannot be skipped. Reads the previous amount first and hands both to
-     * [RateHistoryRepository.record], which drops the write when the rate did not actually move: this
-     * method is called with an unchanged amount on every student-form save, and a log full of
-     * "25 → 25" would bury the changes the tutor came to read.
-     *
-     * **The caller owns the transaction.** Every public mutation above opens one, so this deliberately
-     * does not: opening a second inside them would nest for no gain, and the two writes it makes are
-     * only ever part of a larger edit that has to land whole anyway.
-     */
     private suspend fun record(studentId: Long, subjectId: Long, price: Money) {
         val previous = rateHistory.currentRate(RateOwner.StudentSubject(studentId, subjectId))
         priceDao.upsert(Price(studentId, subjectId, price).toEntity())

@@ -23,31 +23,17 @@ import com.seblful.klas.ui.theme.klasColors
  * `KlasColors` owns the green that means taught. What is here is the mapping onto words.
  */
 
-/**
- * What a money field says when what was typed will not do — the wording for [MoneyField.Error].
- *
- * The classification is `MoneyField`'s and is unit-tested; only the sentence is here. Returns null when
- * there is nothing wrong, which is exactly what an `OutlinedTextField`'s `supportingText` wants: use it
- * with [supportingTextOf] so a field that is merely *required* still has something to say.
- */
+/** hat a money field says when what was typed will not do — the wording for [MoneyField.Error]. */
 @Composable
 fun moneyErrorText(field: MoneyField): String? = field.error?.let { error ->
     stringResource(
         when (error) {
             MoneyField.Error.UNREADABLE -> R.string.money_error_unreadable
             MoneyField.Error.ZERO_PAYMENT -> R.string.money_error_zero_payment
-        }
+        },
     )
 }
-/**
- * A field's supporting line: the reason it is **wrong** if it is, otherwise its ordinary hint.
- *
- * One slot, one line, and **the error wins** — that ordering is the whole point. A field that shows its
- * hint while red is telling the tutor how it works instead of what to fix.
- *
- * Returns null when there is nothing to say, so a field with neither reserves no line — which is why it
- * hands back the whole `supportingText` slot rather than a string.
- */
+/**  field's supporting line: the reason it is **wrong** if it is, otherwise its ordinary hint. */
 fun supportingTextOf(error: String? = null, hint: String? = null): (@Composable () -> Unit)? =
     (error ?: hint)?.let { text -> { Text(text) } }
 @Composable
@@ -56,23 +42,12 @@ fun classStatusLabel(status: LessonStatus): String = stringResource(
         LessonStatus.SCHEDULED -> R.string.class_status_scheduled
         LessonStatus.COMPLETED -> R.string.class_status_completed
         LessonStatus.CANCELLED -> R.string.class_status_cancelled
-    }
+    },
 )
 /**
  * The tint a status is said in: the brand colour for a lesson still to come, **green for one taught**,
  * **the theme's error red for a cancelled one** — the same red a debt is written in ([balanceColor]),
  * red meaning "look here" in both places.
- *
- * Taught was `tertiary`, this palette's teal, which read as a second blue beside the indigo of a lesson
- * still to come — the palette's `md_success` carries the whole argument. Green is what "done" is said in
- * outside the app, and it now says it everywhere inside: this badge and the panel the schedule's swipe
- * reveals are the two tones of the one colour.
- *
- * Cancelled was `onSurfaceVariant` before, which left grey saying two different things: "cancelled" and
- * the «Разные» badge a group lesson got when its members' statuses disagreed. That badge is gone — a
- * lesson now answers with one of these three ([ClassSession.status]) — so grey is nobody's status. The
- * lesson *card* still recedes when it is off — dimmed, its time struck through — so a cancellation stays
- * quiet in a list of lessons while remaining findable in it.
  */
 @Composable
 fun classStatusColor(status: LessonStatus): Color = when (status) {
@@ -81,23 +56,7 @@ fun classStatusColor(status: LessonStatus): Color = when (status) {
     LessonStatus.CANCELLED -> MaterialTheme.colorScheme.error
 }
 
-/**
- * What a lesson's badge **says**: its status, or «Идёт» while the lesson is being taught.
- *
- * [running] is a fact about the clock and is decided elsewhere — [LessonPhase.of], re-derived every minute
- * by `ScheduleViewModel.running` — so what is here is only the wording, which is this file's whole job. It
- * arrives as a boolean rather than as a whole [LessonPhase] because that is genuinely what a badge needs:
- * the other three phases are already said by [status], and a badge handed both would have two sources for
- * one word.
- *
- * [LessonPhase.OVERDUE] therefore reads exactly as [LessonPhase.UPCOMING] does, deliberately: a lesson
- * whose hour has passed and that nobody has marked **is** still scheduled, and saying anything else on the
- * card would be a fourth state the tutor never set. What that lesson is owed is a nudge at the end of the
- * day — the evening digest's job (`Digests.Unfinished`), not this badge's.
- *
- * Two functions rather than one, matching [classStatusLabel] and [classStatusColor] beside them: a badge
- * takes a word and a colour separately.
- */
+/** hat a lesson's badge **says**: its status, or «Идёт» while the lesson is being taught. */
 @Composable
 fun lessonBadgeLabel(status: LessonStatus, running: Boolean): String =
     if (running) stringResource(R.string.class_status_in_progress) else classStatusLabel(status)
@@ -110,14 +69,7 @@ fun lessonBadgeColor(status: LessonStatus, running: Boolean): Color =
 @Composable
 fun classModeLabel(mode: ClassMode): String = stringResource(mode.labelRes())
 
-/**
- * «1 ч», «1,5 ч», «45 мин» — whole and half hours read better than a minute count.
- *
- * Here rather than private to the booking form, which is where it was written: Settings asks the same
- * question about a reminder's lead, and a length that read one way on one screen and another way on the
- * next would be the app disagreeing with itself about what an hour is called. The same argument that
- * moved `ChoiceRow` and `AddRow` into this package.
- */
+/** 1 ч», «1,5 ч», «45 мин» — whole and half hours read better than a minute count. */
 @Composable
 fun durationLabel(minutes: Int): String = when (minutes) {
     60 -> stringResource(R.string.hours_one)

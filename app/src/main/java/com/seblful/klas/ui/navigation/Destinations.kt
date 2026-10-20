@@ -73,11 +73,6 @@ object Routes {
      * id = 0 means "new class". [group] (non-zero) opens the form already booking for that group —
      * an entry point the form still honours, though **no screen passes it today**: booking lives on
      * the schedule, which is the one place that knows what else the hour holds.
-     *
-     * [day] is the day the schedule is on, ISO-8601 (see [classEdit]), and it is only where the date
-     * **picker** opens: the booking form still starts with an empty date on purpose (see
-     * [com.seblful.klas.ui.schedule.booking.ClassForm]). A date argument used to be declared here, passed by
-     * the schedule and read by nobody, so paging to next Thursday and tapping + opened the picker on today.
      */
     @Serializable
     data class ClassEdit(val id: Long, val group: Long = 0, val day: String? = null)
@@ -140,9 +135,6 @@ enum class TopDestination(
 /**
  * The tab that owns whatever is on top of [backStack], or null when none is on it: **the deepest entry
  * that is a tab**. A screen pushed over a tab belongs to the tab it was opened from.
- *
- * One answer for the bar, which marks that tab, and for `navigateToTab`, which has to know whether the tab it
- * is asked for is the one a pushed screen is sitting on.
  */
 fun owningTab(backStack: List<NavBackStackEntry>): TopDestination? =
     backStack.asReversed().firstNotNullOfOrNull { TopDestination.of(it.destination) }

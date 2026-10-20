@@ -21,22 +21,13 @@ import kotlinx.datetime.TimeZone
  * primary calendar (typically their Google account), and Android's own sync adapter pushes them
  * to Google Calendar — so there is no backend, OAuth, or API key to configure here, only the
  * READ_CALENDAR + WRITE_CALENDAR runtime permissions (READ to locate a writable calendar, WRITE
- * to add events). All operations are best-effort and never throw to callers.
+ * to add events).
  */
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
 class DeviceCalendarSync @Inject constructor(
     @param:ApplicationContext private val context: Context,
-    /**
-     * The app's one answer to "may we touch the calendar", rather than a private copy.
-     *
-     * This class used to ask `ContextCompat.checkSelfPermission` itself, in two private methods, while
-     * [CalendarPermission] sat in the same package answering the same question for the settings screen.
-     * Two consequences: the definition could drift, and — because the check and the writing were joined
-     * only inside this untestable class — nothing above could observe that a revoked grant stops the
-     * mirror. `CalendarMirror` takes a [CalendarSync], so with the check hidden in here there was no seam
-     * at which "the tutor revoked the permission while the app was away" could be set up at all.
-     */
+
     private val permission: CalendarPermission,
 ) : CalendarSync {
 
@@ -63,7 +54,6 @@ class DeviceCalendarSync @Inject constructor(
         eventId.toString()
     }
 
-    /** Replaces the event's email reminders with a single one [leadMinutes] before start. */
     private fun upsertEmailReminder(eventId: Long, leadMinutes: Int) {
         runCatching {
             context.contentResolver.delete(
@@ -80,12 +70,6 @@ class DeviceCalendarSync @Inject constructor(
         }
     }
 
-    /**
-     * Brings the event's attendees in line with [guest]. Best-effort.
-     *
-     * What that comes to — add, withdraw, or leave alone — is [guestAction], including the two properties
-     * worth having a test for: only ever this one address, and idempotent in both directions.
-     */
     private fun syncGuest(eventId: Long, guest: Guest) {
         runCatching {
             when (val action = guestAction(attendees(eventId), guest)) {
@@ -96,7 +80,6 @@ class DeviceCalendarSync @Inject constructor(
         }
     }
 
-    /** Every address currently on the event, the tutor's own guests included. */
     private fun attendees(eventId: Long): List<String> =
         context.contentResolver.query(
             CalendarContract.Attendees.CONTENT_URI,
@@ -110,7 +93,6 @@ class DeviceCalendarSync @Inject constructor(
             }
         }.orEmpty()
 
-    /** Adds [email] as an attendee. Whether it was needed is [guestAction]'s answer, not this one's. */
     private fun addGuest(eventId: Long, email: String) {
         val values = ContentValues().apply {
             put(CalendarContract.Attendees.EVENT_ID, eventId)
@@ -131,7 +113,6 @@ class DeviceCalendarSync @Inject constructor(
         context.contentResolver.insert(CalendarContract.Attendees.CONTENT_URI, values)
     }
 
-    /** Drops [email] from the event's attendees, withdrawing the invitation the app sent. */
     private fun removeGuest(eventId: Long, email: String) {
         context.contentResolver.delete(
             CalendarContract.Attendees.CONTENT_URI,
@@ -140,15 +121,7 @@ class DeviceCalendarSync @Inject constructor(
         )
     }
 
-    /**
-     * The event, brought in line with the lesson — or nothing, if there is no event.
-     *
-     * Everything this does *not* do is the point, and the reasons are on [CalendarSync.refresh]: no
-     * insert, no id back, no attendees, no reminders. What is left is one [ContentValues] written over
-     * one row, which is also why it shares [eventValues] with [upsert] — a past lesson and a future one
-     * put the same fields on an event, and two copies of that list would be two events that disagree
-     * about what a lesson looks like.
-     */
+    /** he event, brought in line with the lesson — or nothing, if there is no event. */
     override suspend fun refresh(klass: TutoringClass, title: String) {
         withContext(Dispatchers.IO) {
             if (!hasPermission()) return@withContext
@@ -158,9 +131,6 @@ class DeviceCalendarSync @Inject constructor(
         }
     }
 
-    /** One update over one event row; false when the provider wrote nothing — the usual cause being
-     *  that the tutor deleted the event. What that *means* is the caller's, which is the difference
-     *  between [upsert] (recreate it) and [refresh] (let it be). */
     private fun write(eventId: Long, values: ContentValues): Boolean {
         val uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId)
         return runCatching { context.contentResolver.update(uri, values, null, null) }.getOrDefault(0) > 0
@@ -201,14 +171,6 @@ class DeviceCalendarSync @Inject constructor(
         put(CalendarContract.Events.HAS_ATTENDEE_DATA, 1)
     }
 
-    /**
-     * The id of a calendar we can add events to, or null if none exists.
-     *
-     * The **rule** — which levels may be written to, and primary before visible before more-privileged —
-     * is [CalendarChoice.preferred], where a test can reach it. What is left here is the read: every
-     * calendar the phone has, unfiltered and unordered, since a handful of rows is not worth a `WHERE` at
-     * the cost of putting the decision back in a `ContentResolver` call.
-     */
     private fun writableCalendarId(): Long? = runCatching {
         val projection = arrayOf(
             CalendarContract.Calendars._ID,

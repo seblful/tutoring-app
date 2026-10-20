@@ -15,7 +15,7 @@ import kotlin.time.Instant
  *
  * @param title the group's name for a group's homework, the student's for one student's.
  * @param lessonAt when the lesson it is attached to starts, or null while none is booked — and always
- *   null in the archive, where which lesson it went to is no longer the question.
+ * null in the archive, where which lesson it went to is no longer the question.
  * @param due where a current one stands today, or null for a done one.
  */
 data class HomeworkRow(
@@ -61,7 +61,7 @@ data class HomeworkLists(val current: List<HomeworkRow>, val archive: List<Homew
          * attach or caption it differently.
          *
          * @param today from the view model's `Clock.days()`, never read here: a card left open overnight has
-         *   to see tomorrow's homework become today's.
+         * to see tomorrow's homework become today's.
          */
         fun of(
             homework: List<Homework>,
@@ -78,7 +78,7 @@ data class HomeworkLists(val current: List<HomeworkRow>, val archive: List<Homew
  *
  * @param name the group's name, or the student's.
  * @param nextLessonAt when the lesson homework set for them **now** would be attached to starts, or null
- *   while they have none booked — what the dialog says under the text, so the tutor sees where it goes.
+ * while they have none booked — what the dialog says under the text, so the tutor sees where it goes.
  */
 data class AssigneeChoice(val assignee: Assignee, val name: String, val nextLessonAt: Instant?) {
     val isGroup: Boolean get() = assignee is Assignee.Group

@@ -8,7 +8,8 @@ package com.seblful.klas.domain.model
  */
 enum class ClassMode {
     IN_PERSON,
-    REMOTE;
+    REMOTE,
+    ;
 
     companion object {
         /**

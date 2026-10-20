@@ -32,15 +32,6 @@ class StudentsViewModelTest {
 
     private fun vm() = StudentsViewModel(env.studentRepo, env.classRepo, env.paymentRepo, mainRule.dispatcher)
 
-    /**
-     * The list is [Loadable.Loading] until it has been read, and [Loadable.Ready] once it has — **even
-     * when what it read was nothing.**
-     *
-     * The initial value used to be `emptyList()`, which is the same value an empty database produces, so
-     * the screen could not tell them apart and drew its "add your first student" empty state at every
-     * cold start — to a tutor with forty of them. Both halves are asserted here because only the pair
-     * says anything: Loading alone could be a state nothing ever leaves.
-     */
     @Test
     fun `the list is Loading until read, and Ready even when there is nothing`() = runTest(mainRule.dispatcher) {
         val vm = vm()

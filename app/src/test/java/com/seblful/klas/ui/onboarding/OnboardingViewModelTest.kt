@@ -39,12 +39,6 @@ class OnboardingViewModelTest {
 
     private fun vm() = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope)
 
-    /**
-     * Empty is usually the truth on this screen — onboarding runs on a fresh install — but «Нет предметов»
-     * still has to be said only about a list that was read: the step is reachable again once subjects have
-     * been added, and a tutor who has just typed three of them must not see it over them, with «Далее»
-     * disabled. So the list is [Loadable] like every other list in the app.
-     */
     @Test
     fun `the subject list is Loading until read, and Ready even when a fresh install has none`() =
         runTest(mainRule.dispatcher) {
@@ -58,13 +52,6 @@ class OnboardingViewModelTest {
             assertEquals(Loadable.Ready(emptyList<Subject>()), vm.subjects.value)
         }
 
-    /**
-     * **Both of step 1's answers arrive already right for the phone**, which is what "default as phone" comes
-     * to and the reason the step is a nod rather than a form: `AppLanguage.SYSTEM` is a live rule that follows
-     * the device, and the currency is substituted from it by `SettingsRepository` for a row nobody has written
-     * yet. Nothing here seeds anything — the point of the assertion is that there is no seeding step to
-     * forget.
-     */
     @Test
     fun `the language and currency start where the phone puts them`() = runTest(mainRule.dispatcher) {
         val minsk = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope)
@@ -76,7 +63,6 @@ class OnboardingViewModelTest {
         assertEquals("this fixture's phone is in Belarus", Currency.BYN, chosen.currency)
     }
 
-    /** The one case the guess gets half right, and the reason the step exists at all. */
     @Test
     fun `an English phone in Minsk is offered English and rubles`() = runTest(mainRule.dispatcher) {
         TestEnv(deviceLocales = listOf(java.util.Locale.forLanguageTag("en-BY"))).use { env ->
@@ -90,11 +76,6 @@ class OnboardingViewModelTest {
         }
     }
 
-    /**
-     * Both are stored as they are tapped, and the language one applies to the screen doing the asking —
-     * `AppRoot` provides the composition's locale from this row, which is what lets the tutor *see* whether
-     * the pre-set answer was right instead of having to believe it.
-     */
     @Test
     fun `picking a language or currency stores it at once, with nothing to confirm`() =
         runTest(mainRule.dispatcher) {
@@ -111,11 +92,6 @@ class OnboardingViewModelTest {
             assertEquals("the other answer is untouched", AppLanguage.ENGLISH, env.settingsRepo.get().language)
         }
 
-    /**
-     * **Skipping keeps the phone's currency**, because the row is written whole from what was read: the tutor
-     * who never reaches step 1 still gets their own money labelled, which is the path a per-step seed would
-     * have missed.
-     */
     @Test
     fun `skipping the setup still persists the currency the phone named`() = runTest(mainRule.dispatcher) {
         TestEnv(deviceLocales = listOf(java.util.Locale.forLanguageTag("de-DE"))).use { env ->
@@ -143,11 +119,6 @@ class OnboardingViewModelTest {
         assertEquals(listOf("Математика"), env.stored().subjects.map { it.name })
     }
 
-    /**
-     * Two «Математика» cannot be told apart anywhere a subject is offered, and a double tap on «Добавить»
-     * in step 1 was enough to make them. Refused the way the subjects screen refuses it — whatever the case
-     * and the spaces — and said, so the tap is not simply lost.
-     */
     @Test
     fun `adding a subject that is already there is refused and said`() = runTest(mainRule.dispatcher) {
         val vm = vm()
@@ -163,10 +134,6 @@ class OnboardingViewModelTest {
         assertEquals(listOf(OnboardingViewModel.Event.NAME_TAKEN), events)
     }
 
-    /**
-     * Setup's writes used to be bare `viewModelScope.launch`es, so a failed one was an exception with
-     * nothing to catch it — a crash in the app's first minute. Now it is reported, and nothing is thrown.
-     */
     @Test
     fun `a write that fails is reported rather than thrown`() = runTest(mainRule.dispatcher) {
         val broken = object : SettingsDao by env.settingsDao {
@@ -184,12 +151,6 @@ class OnboardingViewModelTest {
         assertFalse(env.settingsRepo.get().onboardingComplete)
     }
 
-    /**
-     * An import is a **full replace**, so restoring after the tutor has already added something in step 1
-     * would take it away without mentioning it. On a genuinely fresh install there is nothing to replace
-     * and the confirmation would be a question with one answer. The gate was in the file picker's result
-     * callback, where no test could reach it.
-     */
     @Test
     fun `restoring asks first only once there is something a full replace would destroy`() =
         runTest(mainRule.dispatcher) {
@@ -216,7 +177,6 @@ class OnboardingViewModelTest {
         assertTrue(env.settingsRepo.get().onboardingComplete)
     }
 
-    /** Skipping is the same flip: setup is offered, so first run can end with nothing added. */
     @Test
     fun `skipping ends first run with no subject and no student`() = runTest(mainRule.dispatcher) {
         val vm = vm()

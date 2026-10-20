@@ -41,17 +41,7 @@ enum class LeaveIntent {
     ASK_DISCARD,
 }
 
-/**
- * A form whose state can answer both halves of [leaveIntent].
- *
- * An interface rather than two boolean parameters, because two booleans is exactly how the three
- * screens came to disagree. `ClassEditScreen` passed its `canSave` — valid, no time conflict, not every
- * member unticked — while the two form screens passed `isValid`, which is only the first of those. Both
- * were right for their own screen, and nothing said so; the shared rule's own KDoc claimed one meaning
- * ("the same condition that enables its save button") that a reader had to check three call sites to
- * confirm. Naming it here makes each state say which of its properties is the save condition, once, and
- * leaves the call site nothing to get wrong.
- */
+/**  form whose state can answer both halves of [leaveIntent]. */
 interface LeavableForm {
 
     /** Whether the form differs from what it was opened with. */
@@ -75,18 +65,8 @@ fun leaveIntent(form: LeavableForm): LeaveIntent = when {
  * The whole leave flow of a form screen — the system back gesture, the question, and what each
  * answer does — returning the request the toolbar's own back arrow should call.
  *
- * One wiring rather than one per screen, because three copies had drifted on the one line that
- * matters: two of them answered «Сохранить» without putting the dialog away, so a save the view
- * model refused — reported through the screen's snackbar — left the dialog standing on top of the
- * report, offering only the two ways out that discard the work it exists to protect. Here every
- * answer closes the question first; a refused save then leaves an ordinary dirty form behind, and
- * the next back simply asks again.
- *
- * Lower-case although it emits UI, by the convention for composables that return a value; what it
- * emits is a handler and a dialog that is mostly not there.
- *
  * @param onSave what «Сохранить» means for this form — the same request as its save button, so a
- *   save that owes a question of its own (billed drops) asks it from here too.
+ * save that owes a question of its own (billed drops) asks it from here too.
  */
 @Composable
 fun leaveGuard(form: LeavableForm, onLeave: () -> Unit, onSave: () -> Unit): () -> Unit {
@@ -111,11 +91,10 @@ fun leaveGuard(form: LeavableForm, onLeave: () -> Unit, onSave: () -> Unit): () 
 
 /**
  * Asks before unsaved work is lost. Show it for either asking [LeaveIntent]; [LeaveIntent.LEAVE]
- * means there was nothing to ask about and no dialog belongs on screen. Private: the answers'
- * bookkeeping is [leaveGuard]'s, and reaching past it is how the screens once drifted.
+ * means there was nothing to ask about and no dialog belongs on screen.
  *
  * @param onKeepEditing also what a back press or a tap outside does — staying is the safe answer, so
- *   it is the one an accidental dismissal lands on.
+ * it is the one an accidental dismissal lands on.
  */
 @Composable
 private fun UnsavedChangesDialog(
@@ -130,15 +109,15 @@ private fun UnsavedChangesDialog(
         title = {
             Text(
                 stringResource(
-                    if (canSave) R.string.unsaved_save_title else R.string.unsaved_discard_title
-                )
+                    if (canSave) R.string.unsaved_save_title else R.string.unsaved_discard_title,
+                ),
             )
         },
         text = {
             Text(
                 stringResource(
-                    if (canSave) R.string.unsaved_save_text else R.string.unsaved_discard_text
-                )
+                    if (canSave) R.string.unsaved_save_text else R.string.unsaved_discard_text,
+                ),
             )
         },
         confirmButton = {
@@ -158,7 +137,6 @@ private fun UnsavedChangesDialog(
     )
 }
 
-/** «Не сохранять» loses what was typed, so it is said in red — as every confirmation that loses something is. */
 @Composable
 private fun DiscardButton(onDiscard: () -> Unit) {
     TextButton(onClick = onDiscard) {

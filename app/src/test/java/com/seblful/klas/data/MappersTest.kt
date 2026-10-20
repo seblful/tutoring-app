@@ -31,7 +31,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.time.Instant
 
-/** Entity ⇄ domain mapping must be lossless — a wrong field here silently corrupts persisted data. */
 class MappersTest {
 
     @Test
@@ -131,13 +130,8 @@ class MappersTest {
         assertEquals(p, p.toEntity().toDomain())
     }
 
-    /**
-     * A class is stored as two rows and read back as one, so its round trip goes out through both mappers
-     * and comes back through the join — which is what [rejoin] stands in for.
-     */
     private fun TutoringClass.roundTrip(): TutoringClass = rejoin(toLessonEntity(), toAttendanceEntity())
 
-    /** `ClassDao`'s join, in Kotlin: the one every read of a class goes through. */
     private fun rejoin(lesson: LessonEntity, attendance: AttendanceEntity) = ClassRow(
         id = attendance.id,
         lessonId = attendance.lessonId,
@@ -193,7 +187,6 @@ class MappersTest {
         assertEquals(h, h.toEntity().toDomain())
     }
 
-    /** Only a hand-edited database or file can hold one for nobody, and it says so rather than guessing. */
     @Test
     fun `homework for nobody fails the read, naming the row`() {
         val failure = runCatching {
@@ -204,7 +197,6 @@ class MappersTest {
         assertTrue(failure!!.message!!.contains("11"))
     }
 
-    /** Which row each fact is written to — the split itself, asserted rather than assumed. */
     @Test
     fun `the lesson's facts go to the lesson's row and the student's to their own`() {
         val c = TutoringClass(
@@ -233,7 +225,8 @@ class MappersTest {
 
     @Test
     fun `class start instant maps to and from epoch millis`() {
-        val c = TutoringClass(studentId = 1, subjectId = 1, start = Instant.parse("2026-06-20T10:00:00Z"), durationMinutes = 60)
+        val c =
+            TutoringClass(studentId = 1, subjectId = 1, start = Instant.parse("2026-06-20T10:00:00Z"), durationMinutes = 60)
         assertEquals(Instant.parse("2026-06-20T10:00:00Z").toEpochMilliseconds(), c.toLessonEntity().startMillis)
         assertEquals(c.start, c.roundTrip().start)
     }
