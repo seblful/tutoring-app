@@ -335,6 +335,7 @@ internal fun settingsRowColors(enabled: Boolean = true): ListItemColors =
             containerColor = Color.Transparent,
             headlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledAlpha),
             supportingColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
+            leadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
             trailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
         )
     }

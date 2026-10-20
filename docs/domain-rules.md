@@ -52,7 +52,8 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   and works before the next lesson is booked; editing preserves the given time.
 - The tab shows current work in lesson order (overdue first, unbooked last) and done work newest first,
   for active students/groups. Filtering a student includes their groups' work. Swipe moves between
-  current/archive; undo restores the exact done state. Tap edits/deletes; share includes the lesson date.
+  current/archive (current rows right, done rows left); undo restores the exact done state. Tap
+  edits/deletes; share includes the lesson date.
 - `HomeworkDao.edit`/`setDone` use targeted updates so stale dialogs cannot overwrite newer changes.
   Lesson sheets show attached work; reminders show current work.
 - Not supported: photos/files, grades, independent due dates or student-facing accounts.

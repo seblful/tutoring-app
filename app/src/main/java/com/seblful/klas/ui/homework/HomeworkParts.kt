@@ -54,6 +54,7 @@ import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.SwipeReveal
 import com.seblful.klas.ui.common.SwipeToConfirmBox
+import com.seblful.klas.ui.common.SwipeToward
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.insetRowPress
@@ -164,10 +165,14 @@ fun SwipeableHomework(
     owner: Assignee? = null,
 ) {
     val shape = if (nested) RectangleShape else MaterialTheme.shapes.medium
+    // Toward the list it goes to: done is the tab on the right, current the one on the left. So a row
+    // always takes the way its tab cannot turn, and the other way still turns it.
+    val toward = if (row.isCurrent) SwipeToward.End else SwipeToward.Start
     SwipeToConfirmBox(
         onConfirm = onSwipe,
         modifier = modifier,
-        reveal = { armed -> HomeworkReveal(done = row.isCurrent, armed = armed, shape = shape) },
+        toward = toward,
+        reveal = { armed -> HomeworkReveal(done = row.isCurrent, armed = armed, shape = shape, toward = toward) },
     ) {
         // The swipe's twin for a screen reader, on the same node it reads and taps.
         val swipe = Modifier.swipeAction(
@@ -183,7 +188,7 @@ fun SwipeableHomework(
 }
 
 @Composable
-private fun HomeworkReveal(done: Boolean, armed: Boolean, shape: Shape) {
+private fun HomeworkReveal(done: Boolean, armed: Boolean, shape: Shape, toward: SwipeToward) {
     val (fill, ink) = if (done) {
         klasColors.successContainer to klasColors.onSuccessContainer
     } else {
@@ -197,6 +202,7 @@ private fun HomeworkReveal(done: Boolean, armed: Boolean, shape: Shape) {
         armed = armed,
         shape = shape,
         horizontalPadding = Spacing.gutter,
+        toward = toward,
     )
 }
 

@@ -2,9 +2,10 @@ package com.seblful.klas.ui.backup
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
@@ -15,20 +16,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
-import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.KlasScreen
-import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.SkeletonBlock
 import com.seblful.klas.ui.common.Spacing
@@ -37,6 +36,8 @@ import com.seblful.klas.ui.common.rememberCreateDocument
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberOpenDocument
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.settings.SettingsGroup
+import com.seblful.klas.ui.settings.settingsRowColors
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlin.time.Instant
@@ -77,49 +78,13 @@ fun BackupScreen(
         onBack = onBack,
         messages = messages,
     ) { modifier ->
-        Column(modifier) {
-            // An action under way rather than a screen loading, so a bar and not a skeleton: the rows are
-            // already drawn, and what the tutor needs to know is that the tap took and to wait.
-            if (importing) LinearProgressIndicator(Modifier.fillMaxWidth())
-            // **When the last copy was made, first.** This screen was two rows describing what export
-            // and import *are* — and in an app whose whole promise is that the data is on this device
-            // and nowhere else, the date of the last backup is the most valuable fact in the product.
-            // The app knew it and threw it away; now it keeps it (`AppSettings.lastExportAt`) and leads
-            // with it, because it is the only thing here that is about the tutor rather than about the
-            // buttons.
-            // Only this card waits. The two rows under it are things to *do* and they can be done before
-            // the receipt has been read — a screen that withholds «Экспорт» while it works out whether the
-            // tutor has a copy is withholding the way to make one.
-            when (val loaded = lastExportAt) {
-                Loadable.Loading -> SkeletonBlock(
-                    LastExportCardHeight,
-                    Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
-                )
-                is Loadable.Ready -> LastExportCard(loaded.value)
-            }
-            ListItem(
-                leadingContent = { Icon(KlasIcons.Outlined.Upload, null) },
-                headlineContent = { Text(stringResource(R.string.backup_export)) },
-                supportingContent = { Text(stringResource(R.string.backup_export_desc)) },
-                modifier = Modifier.insetRowPress { source ->
-                    Modifier.clickable(source, indication = null, enabled = !importing) {
-                        saveBackup(backupFilename)
-                    }
-                },
-            )
-            ListItem(
-                leadingContent = { Icon(KlasIcons.Outlined.Download, null) },
-                headlineContent = { Text(stringResource(R.string.backup_import)) },
-                supportingContent = {
-                    Text(stringResource(if (importing) R.string.backup_importing else R.string.backup_import_desc))
-                },
-                modifier = Modifier.insetRowPress { source ->
-                    Modifier.clickable(source, indication = null, enabled = !importing) {
-                        openBackup(BACKUP_MIME_TYPES)
-                    }
-                },
-            )
-        }
+        BackupContent(
+            lastExportAt = lastExportAt,
+            importing = importing,
+            onExport = { saveBackup(backupFilename) },
+            onImport = { openBackup(BACKUP_MIME_TYPES) },
+            modifier = modifier,
+        )
     }
 
     confirmImport?.let { document ->
@@ -146,44 +111,95 @@ fun ConfirmRestoreDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     )
 }
 
-private val LastExportCardHeight = 84.dp
+/**
+ * Built from Settings' parts — rows on cards, as on the page it sits beside in «Ещё» — with **when the
+ * last copy was made first**: in an app whose data lives on this phone alone, that is the fact here about
+ * the tutor rather than about the buttons. Only that row waits to load; the actions can be used before it.
+ */
+@Composable
+internal fun BackupContent(
+    lastExportAt: Loadable<Instant?>,
+    importing: Boolean,
+    onExport: () -> Unit,
+    onImport: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter)) {
+        // An action under way rather than a screen loading, so a bar and not a skeleton: the rows are
+        // already drawn, and what the tutor needs to know is that the tap took and to wait.
+        if (importing) LinearProgressIndicator(Modifier.fillMaxWidth())
+        SettingsGroup {
+            when (lastExportAt) {
+                Loadable.Loading -> SkeletonBlock(
+                    LastExportRowHeight,
+                    Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
+                )
+                is Loadable.Ready -> LastExportRow(lastExportAt.value)
+            }
+        }
+        SettingsGroup {
+            BackupActionRow(
+                icon = KlasIcons.Outlined.Upload,
+                title = stringResource(R.string.backup_export),
+                description = stringResource(R.string.backup_export_desc),
+                enabled = !importing,
+                onClick = onExport,
+            )
+            BackupActionRow(
+                icon = KlasIcons.Outlined.Download,
+                title = stringResource(R.string.backup_import),
+                description = stringResource(if (importing) R.string.backup_importing else R.string.backup_import_desc),
+                enabled = !importing,
+                onClick = onImport,
+            )
+        }
+    }
+}
+
+private val LastExportRowHeight = 72.dp
 
 @Composable
-private fun LastExportCard(at: Instant?) {
+private fun LastExportRow(at: Instant?) {
     val never = at == null
-    SectionCard(
-        Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
-    ) {
-        Row(
-            Modifier.fillMaxWidth().padding(Spacing.gutter),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    ListItem(
+        leadingContent = {
             Icon(
                 if (never) KlasIcons.Outlined.Warning else KlasIcons.Outlined.Schedule,
                 contentDescription = null,
-                tint = if (never) {
-                    MaterialTheme.colorScheme.tertiary
+                tint = if (never) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        headlineContent = {
+            Text(
+                if (never) {
+                    stringResource(R.string.backup_never)
                 } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                    stringResource(R.string.backup_last_export, at.toLocalDate().formatDate())
                 },
             )
-            Column(Modifier.padding(start = Spacing.leading)) {
-                Text(
-                    if (never) {
-                        stringResource(R.string.backup_never)
-                    } else {
-                        stringResource(R.string.backup_last_export, at.toLocalDate().formatDate())
-                    },
-                    style = MaterialTheme.typography.titleSmall,
-                )
-                Text(
-                    stringResource(
-                        if (never) R.string.backup_never_detail else R.string.backup_last_export_detail,
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
+        },
+        supportingContent = {
+            Text(stringResource(if (never) R.string.backup_never_detail else R.string.backup_last_export_detail))
+        },
+        colors = settingsRowColors(),
+    )
+}
+
+@Composable
+private fun BackupActionRow(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    ListItem(
+        leadingContent = { Icon(icon, contentDescription = null) },
+        headlineContent = { Text(title) },
+        supportingContent = { Text(description) },
+        colors = settingsRowColors(enabled),
+        modifier = Modifier.insetRowPress { source ->
+            Modifier.clickable(source, indication = null, enabled = enabled, onClick = onClick)
+        },
+    )
 }

@@ -11,6 +11,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.drawToBitmap
 import com.seblful.klas.domain.homework.HomeworkRules
@@ -70,6 +72,31 @@ class NestedHomeworkSwipeTest {
         val right = screen.getPixel((bounds.right - margin).roundToInt(), middle)
         assertEquals("inside the left margin", page.toArgb(), left)
         assertEquals("inside the right margin", page.toArgb(), right)
+    }
+
+    @Test
+    fun `done homework is swiped back toward the current tab, leaving the other way to the page`() {
+        var restored = 0
+        compose.setContent {
+            KlasTheme {
+                SwipeableHomework(
+                    row = row.copy(homework = row.homework.copy(doneAt = Instant.fromEpochMilliseconds(1))),
+                    onSwipe = { restored++ },
+                    onClick = {},
+                    messages = rememberMessages(),
+                    nested = false,
+                    modifier = Modifier.testTag("row").width(360.dp),
+                )
+            }
+        }
+
+        compose.onNodeWithTag("row").performTouchInput { swipeRight() }
+        compose.waitForIdle()
+        assertEquals("left to right turns the page", 0, restored)
+
+        compose.onNodeWithTag("row").performTouchInput { swipeLeft() }
+        compose.waitForIdle()
+        assertEquals(1, restored)
     }
 
     private val row = HomeworkRow(

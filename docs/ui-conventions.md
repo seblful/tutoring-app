@@ -99,6 +99,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   closes its pushed screens; another tab retains its stack (`owningTabRoute`). Tray “Reschedule” pushes
   the lesson form over the current screen. See [tray destinations](calendar-and-reminders.md#lesson-reminders).
 - Lazy items use `animateInPlace`: movement only, no fade overlay. Key items by page when replacing views.
+- A row swipe claims only its own direction (`SwipeToward`); the other way turns a `SegmentedPage`.
+  Homework slides toward the tab it moves to — current right, done left — the way its tab cannot turn.
 - Every swipe has a `swipeAction` on the same semantic node; background actions are not read. Use
   `selected` semantics (`TickedMenuItem`), headings, and `NamedIconButton`/`HoldToName` on bar icons/tabs.
 
@@ -126,5 +128,6 @@ Build screens from shared state and controls. Feature rules belong in the domain
   live on the detail pages. The line re-reads per minute, so its view-model tests advance time by an amount.
 - Settings sections group by subject, not by when a value applies: Lessons (duration, auto-complete)
   and Billing (currency, group rate). Rows are `ListItem`s; a form field never sits in a settings card.
+  Backup is built from the same `SettingsGroup` cards: the last-backup row, then export and import.
 - People lists share `PeopleSearch`: case-insensitive substrings, terms in any order. Reports use charts
   only when shape helps; CSV delimiter follows decimal separator and exports can be saved or shared.
