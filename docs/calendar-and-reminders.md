@@ -10,9 +10,12 @@ The database drives both mirrors; neither writes changes back into Klas.
 - Completed events are refreshed but never created/re-created (`CalendarSyncPolicy.Action.REFRESH`).
 - Event descriptions include current homework attached to that lesson: the student's own assignments
   and homework for that group lesson, oldest first. Other students' individual assignments are excluded.
-  Homework changes refresh existing events; lesson changes also refresh events whose assignments move.
-  Only lessons starting after the homework was given are rewritten, since no earlier one can carry it.
-  Empty descriptions clear homework that was completed, removed or attached to a different lesson.
+  A homework change refreshes the event of the lesson it is attached to (both owners' after a
+  reassignment). A lesson change also refreshes the first unchanged lesson after each affected
+  assignment, the only other event it can move to or from. Empty descriptions clear homework that was
+  completed, removed or attached to a different lesson.
+- Editing a student, subject or group refreshes their events only when something an event shows
+  changed: a name (titles) or a student's email (guest).
 - An absent member of a scheduled lesson has no event, billed or not. Marking them present re-creates
   it; attendance no longer affects this policy once the lesson is completed.
 - Email invitations are a separate, off-by-default setting; disabling it and re-syncing withdraws them.
@@ -21,11 +24,20 @@ The database drives both mirrors; neither writes changes back into Klas.
 - Settings → Calendar & invitations reports revoked access with a direct link to restore it. Reminder
   timing is shared with phone lesson reminders and stays editable while either feature is enabled;
   changing it refreshes existing calendar email reminders. Invitations are handled by the calendar account.
+- Turning sync on backfills every lesson (`CalendarWork.RESYNC`). Changing invitations, reminder timing
+  or language re-mirrors only lessons not yet over (`RESYNC_UPCOMING`); past events keep their guest,
+  reminder and location label.
+- A mirroring pass reads each name once and stores new event ids in batches of 50 per transaction;
+  `DeviceCalendarSync` reads the calendar list at most every 30 s and replaces an email reminder in one
+  `applyBatch`.
 
 ## Lesson reminders
 
 - `AlarmManager` delivers reminders: exact when allowed, otherwise inexact. Changes re-derive the plan
   over a fixed horizon; reboot re-arms it.
+- Upkeep runs after every lesson write, at app start, every 6 hours (`ExistingPeriodicWorkPolicy.UPDATE`,
+  so installs arranged under an older interval move) and, while auto-completion is on, once at the next
+  lesson end (`ReminderScheduler.scheduleNextPass`). The periodic pass only slides the week's window.
 - A passed reminder time with a lesson not yet ended is still **owed** (`Reminders.Plan.due`). Do not
   re-arm or cancel it: Doze may be holding its alarm. Read through `notEndedWithin` so running lessons
   keep their alarms. `Reminders.shouldPost` re-checks state and lead time at delivery.

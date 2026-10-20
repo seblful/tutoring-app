@@ -23,6 +23,7 @@ import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.toDevicePreferences
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.testutil.RussianMinskPhone
@@ -70,7 +71,7 @@ class AutoCompleteTest {
         val settings = SettingsRepository(db.settingsDao(), RussianMinskPhone.toDevicePreferences())
         val mirror = CalendarMirror(
             db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(), noCalendar, settings,
-            db.homeworkDao(),
+            db.homeworkDao(), RoomTransactor(db), WallClock.system(),
         )
         repo = ClassRepository(
             db.classDao(), db.lessonDao(), db.attendanceDao(), mirror, RecordingReminderScheduler(), RoomTransactor(db),

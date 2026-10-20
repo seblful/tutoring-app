@@ -1,8 +1,10 @@
 package com.seblful.klas.calendar
 
+import android.content.ContentProviderOperation
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
+import android.os.SystemClock
 import android.provider.CalendarContract
 import com.seblful.klas.data.settings.SettingsChange
 import com.seblful.klas.di.ApplicationContext
@@ -46,15 +48,13 @@ class DeviceCalendarSync @Inject constructor(
             val calendarId = writableCalendarId() ?: return@withContext null
             val values = eventValues(klass, title, description, calendarId)
 
-            val existingId = klass.calendarEventId?.toLongOrNull()
             // The user may have deleted the event from their calendar — recreate it if so. A lesson still
             // to come is the only kind this happens for; `refresh` is the arm that must not recreate.
-            val eventId = (existingId?.takeIf { write(it, values) } ?: insert(values)?.toLongOrNull())
-                ?: return@withContext null
+            val updated = klass.calendarEventId?.toLongOrNull()?.takeIf { write(it, values) }
+            val eventId = updated ?: insert(values)?.toLongOrNull() ?: return@withContext null
 
-            // Email reminder before the class, sent by the calendar account. Idempotent: drop and
-            // re-add so an updated time/lead doesn't accumulate stale reminders.
-            upsertEmailReminder(eventId, reminderLeadMinutes)
+            // Email reminder before the class, sent by the calendar account.
+            setEmailReminder(eventId, reminderLeadMinutes, replacing = updated != null)
             // Invite the student so the account emails them about the class (and its reminder) — or
             // withdraw that invitation if the tutor has since turned invites off. The guard is a read
             // optimisation and not the rule: `guestAction` answers `None` for a missing address anyway, so
@@ -64,20 +64,24 @@ class DeviceCalendarSync @Inject constructor(
             eventId.toString()
         }
 
-    private fun upsertEmailReminder(eventId: Long, leadMinutes: Int) {
-        runCatching {
-            context.contentResolver.delete(
-                CalendarContract.Reminders.CONTENT_URI,
+    /**
+     * Sets the event's one email reminder. An existing event's is dropped and re-added in one batch, so an
+     * updated time or lead doesn't accumulate stale reminders; a new event has none to drop.
+     */
+    private fun setEmailReminder(eventId: Long, leadMinutes: Int, replacing: Boolean) {
+        val add = ContentProviderOperation.newInsert(CalendarContract.Reminders.CONTENT_URI)
+            .withValue(CalendarContract.Reminders.EVENT_ID, eventId)
+            .withValue(CalendarContract.Reminders.METHOD, CalendarContract.Reminders.METHOD_EMAIL)
+            .withValue(CalendarContract.Reminders.MINUTES, leadMinutes)
+            .build()
+        val drop = ContentProviderOperation.newDelete(CalendarContract.Reminders.CONTENT_URI)
+            .withSelection(
                 "${CalendarContract.Reminders.EVENT_ID} = ? AND ${CalendarContract.Reminders.METHOD} = ?",
                 arrayOf(eventId.toString(), CalendarContract.Reminders.METHOD_EMAIL.toString()),
             )
-            val values = ContentValues().apply {
-                put(CalendarContract.Reminders.EVENT_ID, eventId)
-                put(CalendarContract.Reminders.METHOD, CalendarContract.Reminders.METHOD_EMAIL)
-                put(CalendarContract.Reminders.MINUTES, leadMinutes)
-            }
-            context.contentResolver.insert(CalendarContract.Reminders.CONTENT_URI, values)
-        }
+            .build()
+        val operations = if (replacing) arrayListOf(drop, add) else arrayListOf(add)
+        runCatching { context.contentResolver.applyBatch(CalendarContract.AUTHORITY, operations) }
     }
 
     private fun syncGuest(eventId: Long, guest: Guest) {
@@ -187,7 +191,27 @@ class DeviceCalendarSync @Inject constructor(
         put(CalendarContract.Events.HAS_ATTENDEE_DATA, 1)
     }
 
-    private fun writableCalendarId(): Long? = runCatching {
+    /** When [cachedCalendarId] was read, by [SystemClock.elapsedRealtime]. */
+    @Volatile
+    private var cachedCalendarAt = 0L
+
+    @Volatile
+    private var cachedCalendarId: Long? = null
+
+    /**
+     * The calendar events are written to — read once per mirroring pass rather than once per event, and
+     * re-read once [CALENDAR_TTL_MILLIS] has passed, so a calendar the tutor adds or removes is followed.
+     */
+    private fun writableCalendarId(): Long? {
+        val now = SystemClock.elapsedRealtime()
+        cachedCalendarId?.let { if (now - cachedCalendarAt < CALENDAR_TTL_MILLIS) return it }
+        return queryWritableCalendarId().also {
+            cachedCalendarId = it
+            cachedCalendarAt = now
+        }
+    }
+
+    private fun queryWritableCalendarId(): Long? = runCatching {
         val projection = arrayOf(
             CalendarContract.Calendars._ID,
             CalendarContract.Calendars.IS_PRIMARY,
@@ -218,6 +242,8 @@ class DeviceCalendarSync @Inject constructor(
     private fun hasPermission(): Boolean = permission.isGranted()
 
     private companion object {
+        const val CALENDAR_TTL_MILLIS = 30_000L
+
         /** One attendee of one event, by address — what a withdrawal targets. */
         const val ATTENDEE_SELECTION =
             "${CalendarContract.Attendees.EVENT_ID} = ? AND ${CalendarContract.Attendees.ATTENDEE_EMAIL} = ?"

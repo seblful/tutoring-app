@@ -27,7 +27,7 @@ class PeopleSideTest {
     @Test
     fun `each side holds its own search and archive toggle`() = runTest(mainRule.dispatcher) {
         val students: PeopleSide =
-            StudentsViewModel(env.studentRepo, env.classRepo, env.paymentRepo, mainRule.dispatcher)
+            StudentsViewModel(env.studentRepo, env.balanceRepo, mainRule.dispatcher)
         val groups: PeopleSide =
             GroupsViewModel(env.groupRepo, env.studentRepo, env.subjectRepo, mainRule.dispatcher)
 
@@ -44,7 +44,7 @@ class PeopleSideTest {
     @Test
     fun `closing the search clears only the side it was open on`() = runTest(mainRule.dispatcher) {
         val students: PeopleSide =
-            StudentsViewModel(env.studentRepo, env.classRepo, env.paymentRepo, mainRule.dispatcher)
+            StudentsViewModel(env.studentRepo, env.balanceRepo, mainRule.dispatcher)
         val groups: PeopleSide =
             GroupsViewModel(env.groupRepo, env.studentRepo, env.subjectRepo, mainRule.dispatcher)
         students.setQuery("пет")

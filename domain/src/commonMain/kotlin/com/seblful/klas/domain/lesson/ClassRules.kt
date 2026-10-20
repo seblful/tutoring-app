@@ -71,6 +71,11 @@ object ClassRules {
     fun shouldAutoComplete(c: TutoringClass, now: Instant): Boolean =
         LessonPhase.of(c, now).isUnfinished
 
+    /** When the next of [classes] becomes [LessonPhase.OVERDUE] after [now], or null when none will. */
+    fun nextAutoCompletion(classes: List<TutoringClass>, now: Instant): Instant? = classes
+        .filter { LessonPhase.of(it, now).let { phase -> phase == LessonPhase.UPCOMING || phase.isRunning } }
+        .minOfOrNull { it.end }
+
     /**
      * Applies a lesson's status change to one of its classes, capturing or voiding the charge — **and
      * carrying the attendance the new status implies**.

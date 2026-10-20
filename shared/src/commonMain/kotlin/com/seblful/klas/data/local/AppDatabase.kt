@@ -5,6 +5,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 import androidx.room.TypeConverters
+import com.seblful.klas.data.billing.BalanceDao
 import com.seblful.klas.data.billing.PaymentDao
 import com.seblful.klas.data.billing.PaymentEntity
 import com.seblful.klas.data.billing.PriceDao
@@ -60,6 +61,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun lessonDao(): LessonDao
     abstract fun attendanceDao(): AttendanceDao
     abstract fun paymentDao(): PaymentDao
+    abstract fun balanceDao(): BalanceDao
     abstract fun settingsDao(): SettingsDao
     abstract fun homeworkDao(): HomeworkDao
 

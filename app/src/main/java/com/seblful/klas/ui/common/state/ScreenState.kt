@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 
 private const val SUBSCRIPTION_GRACE_MILLIS = 5_000L
@@ -30,3 +31,10 @@ fun <T> Flow<T>.hold(owner: ViewModel, initial: T): StateFlow<T> = stateIn(
     SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MILLIS),
     initial,
 )
+
+/**
+ * [this] read once for every collector in [owner] — for a table several of its flows combine, which would
+ * otherwise be queried and re-queried on each write once per flow.
+ */
+fun <T> Flow<T>.shared(owner: ViewModel): Flow<T> =
+    shareIn(owner.viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MILLIS), replay = 1)

@@ -4,6 +4,7 @@ import com.seblful.klas.calendar.CalendarMirror
 import com.seblful.klas.calendar.CalendarPermission
 import com.seblful.klas.data.backup.BackupManager
 import com.seblful.klas.data.backup.BackupRestore
+import com.seblful.klas.data.billing.BalanceRepository
 import com.seblful.klas.data.billing.PaymentRepository
 import com.seblful.klas.data.billing.RateHistoryRepository
 import com.seblful.klas.data.homework.HomeworkRepository
@@ -180,10 +181,14 @@ class TestEnv(
 
     val settingsRepo = SettingsRepository(settingsDao, deviceLocales.toDevicePreferences())
     val calendarMirror =
-        CalendarMirror(classDao, attendanceDao, studentDao, subjectDao, groupDao, calendar, settingsRepo, homeworkDao)
+        CalendarMirror(
+            classDao, attendanceDao, studentDao, subjectDao, groupDao, calendar, settingsRepo, homeworkDao, transactor,
+            clock,
+        )
 
     val rateHistoryRepo = RateHistoryRepository(rateHistoryDao, groupDao, priceDao, clock)
     val paymentRepo = PaymentRepository(paymentDao, clock)
+    val balanceRepo = BalanceRepository(db.balanceDao())
 
     val classRepo = ClassRepository(
         dao = classDao,
@@ -247,7 +252,7 @@ class TestEnv(
         students = studentRepo,
         subjects = subjectRepo,
         groups = groupRepo,
-        payments = paymentRepo,
+        balances = balanceRepo,
         settings = settingsRepo,
         notifier = notifier,
         clock = clock,

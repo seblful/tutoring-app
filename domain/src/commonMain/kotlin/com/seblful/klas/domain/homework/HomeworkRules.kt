@@ -137,6 +137,23 @@ object HomeworkRules {
         }
 
     /**
+     * Of [assignees], those [narrowedTo] would show something for — the filter's options — in one pass over
+     * [homework] rather than one per assignee.
+     */
+    fun withHomework(
+        homework: List<Homework>,
+        assignees: List<Assignee>,
+        rosters: Map<Long, List<Long>>,
+    ): List<Assignee> {
+        val owners = homework.mapTo(mutableSetOf()) { it.assignee }
+        val inGroupsWithWork = owners.filterIsInstance<Assignee.Group>()
+            .flatMapTo(mutableSetOf()) { rosters[it.groupId].orEmpty() }
+        return assignees.filter { who ->
+            who in owners || (who is Assignee.Student && who.studentId in inGroupsWithWork)
+        }
+    }
+
+    /**
      * Every piece of homework in [homework] attached to [session] — what its sheet shows, done ones
      * included so a tick stays visible, and what its reminder names, current ones only. Oldest first.
      *

@@ -84,7 +84,9 @@ fun MonthCalendar(
                 week.forEach { date ->
                     DayCell(
                         date = date,
-                        load = loads.map { it[date] },
+                        // Remembered, so a tap re-selecting a day leaves the other cells' load the same
+                        // instance and they skip, instead of all 42 formatting their descriptions again.
+                        load = remember(loads, date) { loads.map { it[date] } },
                         placeholderShown = placeholderShown,
                         inMonth = grid.isInMonth(date),
                         isSelected = date == selected,
@@ -118,7 +120,7 @@ fun WeekStrip(
             days.forEach { date ->
                 DayCell(
                     date = date,
-                    load = loads.map { it[date] },
+                    load = remember(loads, date) { loads.map { it[date] } },
                     placeholderShown = placeholderShown,
                     inMonth = true,
                     isSelected = date == selected,

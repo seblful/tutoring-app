@@ -52,7 +52,7 @@ fun <T> FilterMenuAction(
                 selected = !narrowed,
                 onClick = { onSelect(null); open = false },
             )
-            options.forEach { option ->
+            MenuOptions(options, optionLabel) { option ->
                 TickedMenuItem(
                     text = optionLabel(option),
                     selected = selected == option,

@@ -1,5 +1,6 @@
 package com.seblful.klas.data.local
 
+import com.seblful.klas.data.billing.BalanceDao
 import com.seblful.klas.data.billing.PaymentDao
 import com.seblful.klas.data.billing.PriceDao
 import com.seblful.klas.data.billing.RateHistoryDao
@@ -32,6 +33,7 @@ object PersistenceBindings {
     @Provides fun provideLessonDao(db: AppDatabase): LessonDao = db.lessonDao()
     @Provides fun provideAttendanceDao(db: AppDatabase): AttendanceDao = db.attendanceDao()
     @Provides fun providePaymentDao(db: AppDatabase): PaymentDao = db.paymentDao()
+    @Provides fun provideBalanceDao(db: AppDatabase): BalanceDao = db.balanceDao()
     @Provides fun provideSettingsDao(db: AppDatabase): SettingsDao = db.settingsDao()
     @Provides fun provideHomeworkDao(db: AppDatabase): HomeworkDao = db.homeworkDao()
     @Provides fun provideSnapshotDao(db: AppDatabase): SnapshotDao = db.snapshotDao()

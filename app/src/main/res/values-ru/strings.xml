@@ -88,6 +88,12 @@
     <string name="search_close">Закрыть поиск</string>
     <string name="search_no_results">Ничего не найдено</string>
     <string name="search_no_results_detail">Попробуйте изменить запрос</string>
+    <plurals name="menu_more_matches">
+        <item quantity="one">Ещё %1$d — уточните поиск</item>
+        <item quantity="few">Ещё %1$d — уточните поиск</item>
+        <item quantity="many">Ещё %1$d — уточните поиск</item>
+        <item quantity="other">Ещё %1$d — уточните поиск</item>
+    </plurals>
     <string name="students_search_hint">Имя ученика</string>
     <string name="groups_search_hint">Название группы</string>
     <string name="subjects_search_hint">Название предмета</string>

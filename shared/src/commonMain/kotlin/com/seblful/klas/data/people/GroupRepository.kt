@@ -80,6 +80,7 @@ class GroupRepository @Inject constructor(
         // Both reads sit outside the transaction: neither depends on anything written inside it, and
         // the eligibility read in particular hits another table for a decision, not for a row to write.
         val previousRate = rateHistory.currentRate(RateOwner.GroupRate(group.id))
+        val previousName = dao.getById(group.id)?.name
         val wanted = eligible(group, memberIds)
         val id = transactor.transaction {
             // An edit answers -1 (see [upsertedId]); trusting it blindly once pointed every member
@@ -96,8 +97,8 @@ class GroupRepository @Inject constructor(
         }
         // Phase 3, outside the transaction like every other calendar write: a group's name is what
         // makes n overlapping events read as one lesson, so a rename makes every mirrored event of
-        // its lessons wrong. See [CalendarMirror].
-        calendar.refreshForGroup(id)
+        // its lessons wrong — and is the only part of a save they show. See [CalendarMirror].
+        if (previousName != null && previousName != group.name) calendar.refreshForGroup(id)
         return Saved(id, dropped = memberIds - wanted)
     }
 

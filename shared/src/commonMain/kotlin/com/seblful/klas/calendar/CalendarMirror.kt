@@ -3,6 +3,7 @@ package com.seblful.klas.calendar
 import com.seblful.klas.data.homework.HomeworkDao
 import com.seblful.klas.data.lessons.AttendanceDao
 import com.seblful.klas.data.lessons.ClassDao
+import com.seblful.klas.data.local.Transactor
 import com.seblful.klas.data.people.GroupDao
 import com.seblful.klas.data.people.StudentDao
 import com.seblful.klas.data.people.StudentEntity
@@ -15,10 +16,14 @@ import com.seblful.klas.domain.homework.takes
 import com.seblful.klas.domain.lesson.CalendarSyncPolicy
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.schedule.Scheduling
+import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.runCatchingCancellable
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlin.time.Instant
 
 /** Everything the device calendar shows, and every table that decides it. */
@@ -33,6 +38,8 @@ class CalendarMirror @Inject constructor(
     private val calendarSync: CalendarSync,
     private val settings: SettingsRepository,
     private val homeworkDao: HomeworkDao,
+    private val transactor: Transactor,
+    private val clock: WallClock,
 ) {
 
     /** Reflects [classes] into the calendar under one snapshot of the settings. */
@@ -47,27 +54,44 @@ class CalendarMirror @Inject constructor(
         changed: List<TutoringClass> = emptyList(),
     ) {
         if (!settings.calendarSyncEnabled) return
-        val homework = homeworkDao.getAll().map { it.toDomain() }.filterNot { it.isDone }
-        val allClasses = if (homework.isEmpty()) emptyList() else classDao.getAll().map { it.toDomain() }
-        // Moving, cancelling or deleting a lesson can move homework onto a different existing event —
-        // only one starting after that homework was given, so earlier events are left alone.
-        val affected = homework.groupBy { it.assignee }
-            .filterKeys { who -> changed.any { who.takes(it) } }
-            .mapValues { (_, theirs) -> theirs.minOf { it.givenAt } }
+        // Only the homework of whoever these lessons are for can be described on them or moved by them,
+        // and only those assignees' lessons decide where it is attached.
+        val homework = homeworkDao.getCurrent().map { it.toDomain() }
+            .filter { hw -> (classes + changed).any { hw.assignee.takes(it) } }
+        val lessonsOf = homework.groupBy { it.assignee }
+            .mapValues { (who, theirs) -> classesOf(who, after = theirs.minOf { it.givenAt }) }
+        val attached = homework.groupBy { HomeworkRules.attachedTo(it, lessonsOf.getValue(it.assignee))?.lessonId }
+        // Moving, cancelling or deleting a lesson can move homework between it and the first unchanged lesson
+        // after the homework was given; the changed lessons themselves are mirrored already.
         val mirroredIds = classes.mapTo(mutableSetOf()) { it.id }
-        val related = allClasses.filter { klass ->
-            klass.calendarEventId != null && klass.id !in mirroredIds &&
-                affected.any { (who, since) -> klass.start > since && who.takes(klass) }
-        }
-        val attached = homework.groupBy { HomeworkRules.attachedTo(it, allClasses)?.lessonId }
-        (classes + related).forEach {
-            mirrorOne(it, settings, CalendarEvent.description(it, attached[it.lessonId].orEmpty()))
+        val changedIds = changed.mapTo(mutableSetOf()) { it.id }
+        val related = homework.filter { hw -> changed.any { hw.assignee.takes(it) } }
+            .flatMap { hw ->
+                val theirs = lessonsOf.getValue(hw.assignee)
+                val next = HomeworkRules.nextLesson(hw.assignee, hw.givenAt, theirs.filter { it.id !in changedIds })
+                theirs.filter { next != null && it.lessonId == next.lessonId && hw.assignee.takes(it) }
+            }
+            .filter { it.calendarEventId != null && it.id !in mirroredIds }
+            .distinctBy { it.id }
+        val pass = Pass(settings)
+        try {
+            (classes + related).forEach {
+                pass.mirrorOne(it, CalendarEvent.description(it, attached[it.lessonId].orEmpty()))
+            }
+        } finally {
+            // Events already created keep their ids even when the pass stops early.
+            withContext(NonCancellable) { pass.flush() }
         }
     }
 
+    private suspend fun classesOf(who: Assignee, after: Instant): List<TutoringClass> = when (who) {
+        is Assignee.Student -> classDao.forStudentAfter(who.studentId, after.toEpochMilliseconds())
+        is Assignee.Group -> classDao.forGroupAfter(who.groupId, after.toEpochMilliseconds())
+    }.map { it.toDomain() }
+
     /**
      * Re-mirrors every class. Run after the tutor turns calendar sync on, to backfill events for
-     * lessons booked while it was off.
+     * lessons booked while it was off, and after a restore.
      */
     suspend fun resyncAll() {
         val settings = settings.get()
@@ -75,6 +99,22 @@ class CalendarMirror @Inject constructor(
         // it has nothing to do.
         if (!settings.calendarSyncEnabled) return
         mirror(classDao.getAll().map { it.toDomain() }, settings)
+    }
+
+    /**
+     * Re-mirrors the lessons not yet over — after a change to invitations, the reminder lead or the
+     * language. A past event's guest, email reminder and location label have nothing left to do.
+     */
+    suspend fun resyncUpcoming() {
+        val settings = settings.get()
+        if (!settings.calendarSyncEnabled) return
+        val now = clock.now()
+        val upcoming = classDao.notEndedBefore(
+            fromMillis = (now - Scheduling.LONGEST_LESSON).toEpochMilliseconds(),
+            nowMillis = now.toEpochMilliseconds(),
+            toMillis = Long.MAX_VALUE,
+        )
+        mirror(upcoming.map { it.toDomain() }, settings)
     }
 
     /**
@@ -86,14 +126,18 @@ class CalendarMirror @Inject constructor(
         replace()
         runCatchingCancellable {
             val restored = classDao.getAll().map { it.toDomain() }.associateBy { it.binding() }
-            val kept = mutableSetOf<String>()
-            previous.forEach { old ->
-                val eventId = old.calendarEventId ?: return@forEach
-                val same = restored[old.binding()]
-                if (same != null && same.calendarEventId == null && eventId !in kept) {
-                    attendanceDao.setCalendarEventId(same.id, eventId)
-                    kept += eventId
+            // One transaction, so a restore keeping thousands of events re-runs every open screen once.
+            val kept = transactor.transaction {
+                val kept = mutableSetOf<String>()
+                previous.forEach { old ->
+                    val eventId = old.calendarEventId ?: return@forEach
+                    val same = restored[old.binding()]
+                    if (same != null && same.calendarEventId == null && eventId !in kept) {
+                        attendanceDao.setCalendarEventId(same.id, eventId)
+                        kept += eventId
+                    }
                 }
+                kept
             }
             previous.mapNotNull { it.calendarEventId }.distinct().filterNot { it in kept }
                 .forEach { calendarSync.delete(it) }
@@ -112,25 +156,33 @@ class CalendarMirror @Inject constructor(
     }
 
     /** Refreshes the events naming [studentId] — their name titles them and their email is invited. */
-    suspend fun refreshForStudent(studentId: Long) = refreshWhere { it.studentId == studentId }
+    suspend fun refreshForStudent(studentId: Long) =
+        refresh { classDao.withCalendarEventForStudent(studentId).map { it.toDomain() } }
 
     /** Refreshes the events naming [subjectId], whose name is part of every title. */
-    suspend fun refreshForSubject(subjectId: Long) = refreshWhere { it.subjectId == subjectId }
+    suspend fun refreshForSubject(subjectId: Long) =
+        refresh { classDao.withCalendarEventForSubject(subjectId).map { it.toDomain() } }
 
     /** Refreshes the events naming [groupId], whose name is what makes n overlapping events one lesson. */
-    suspend fun refreshForGroup(groupId: Long) = refreshWhere { it.groupId == groupId }
+    suspend fun refreshForGroup(groupId: Long) =
+        refresh { classDao.withCalendarEventForGroup(groupId).map { it.toDomain() } }
 
     /**
      * Refreshes the events of homework given at [givenAt] — both owners after a reassignment, including
-     * events it has just left. Only lessons starting after [givenAt] can carry it.
+     * the event it has just left. It is on each owner's first lesson after [givenAt], and nowhere else.
      */
-    suspend fun refreshHomework(assignees: Set<Assignee>, givenAt: Instant) =
-        refreshWhere { klass -> klass.start > givenAt && assignees.any { it.takes(klass) } }
+    suspend fun refreshHomework(assignees: Set<Assignee>, givenAt: Instant) = refresh {
+        assignees.flatMap { who ->
+            val theirs = classesOf(who, after = givenAt)
+            val next = HomeworkRules.nextLesson(who, givenAt, theirs) ?: return@flatMap emptyList()
+            theirs.filter { it.lessonId == next.lessonId && it.calendarEventId != null && who.takes(it) }
+        }.distinctBy { it.id }
+    }
 
-    private suspend fun refreshWhere(matches: (TutoringClass) -> Boolean) {
+    private suspend fun refresh(read: suspend () -> List<TutoringClass>) {
         val settings = settings.get()
         if (!settings.calendarSyncEnabled) return
-        mirror(classDao.withCalendarEvent().map { it.toDomain() }.filter(matches), settings)
+        mirror(read(), settings)
     }
 
     /**
@@ -147,43 +199,73 @@ class CalendarMirror @Inject constructor(
         attendanceDao.setCalendarEventId(klass.id, null)
     }
 
-    private suspend fun mirrorOne(klass: TutoringClass, settings: AppSettings, description: String) {
-        when (CalendarSyncPolicy.actionFor(klass.status, klass.attended)) {
-            CalendarSyncPolicy.Action.UPSERT -> {
-                // One read of the student, not two: their name titles the event and their address is
-                // what invites them to it, and the title and the guest each used to fetch the row.
-                val student = studentDao.getById(klass.studentId)
-                val eventId = calendarSync.upsert(
-                    klass = klass,
-                    title = titleFor(klass, student?.name.orEmpty()),
-                    guest = guestFor(student, settings),
-                    reminderLeadMinutes = settings.reminderLeadMinutes,
-                    description = description,
-                )
-                if (eventId != null && eventId != klass.calendarEventId) {
-                    attendanceDao.setCalendarEventId(klass.id, eventId)
+    /**
+     * One mirroring pass: names read once per row rather than per event, and new event ids written in
+     * batches, so a resync of a long history is not one autocommit (and one screen refresh) per event.
+     */
+    private inner class Pass(private val settings: AppSettings) {
+        private val students = mutableMapOf<Long, StudentEntity?>()
+        private val subjects = mutableMapOf<Long, String>()
+        private val groups = mutableMapOf<Long, String?>()
+        private val bindings = mutableListOf<Pair<Long, String>>()
+
+        suspend fun mirrorOne(klass: TutoringClass, description: String) {
+            when (CalendarSyncPolicy.actionFor(klass.status, klass.attended)) {
+                CalendarSyncPolicy.Action.UPSERT -> {
+                    val student = student(klass.studentId)
+                    val eventId = calendarSync.upsert(
+                        klass = klass,
+                        title = titleFor(klass, student?.name.orEmpty()),
+                        guest = guestFor(student),
+                        reminderLeadMinutes = settings.reminderLeadMinutes,
+                        description = description,
+                    )
+                    if (eventId != null && eventId != klass.calendarEventId) {
+                        bindings += klass.id to eventId
+                        if (bindings.size >= BINDINGS_PER_WRITE) flush()
+                    }
                 }
+                // A lesson already taught: its event is kept true, and none is brought into being — so a
+                // class without one has nothing to refresh. See `CalendarSync.refresh`.
+                CalendarSyncPolicy.Action.REFRESH -> if (klass.calendarEventId != null) {
+                    calendarSync.refresh(
+                        klass = klass,
+                        title = titleFor(klass, student(klass.studentId)?.name.orEmpty()),
+                        description = description,
+                    )
+                }
+                CalendarSyncPolicy.Action.DELETE -> detach(klass)
             }
-            // A lesson already taught: its event is kept true, and none is brought into being. No id
-            // can come back, so there is nothing to write to `classes` either — see `CalendarSync.refresh`.
-            CalendarSyncPolicy.Action.REFRESH -> calendarSync.refresh(
-                klass = klass,
-                title = titleFor(klass, studentDao.getById(klass.studentId)?.name.orEmpty()),
-                description = description,
-            )
-            CalendarSyncPolicy.Action.DELETE -> detach(klass)
         }
+
+        suspend fun flush() {
+            if (bindings.isEmpty()) return
+            val batch = bindings.toList()
+            bindings.clear()
+            transactor.transaction {
+                batch.forEach { (id, eventId) -> attendanceDao.setCalendarEventId(id, eventId) }
+            }
+        }
+
+        private suspend fun student(id: Long): StudentEntity? = students.getOrPut(id) { studentDao.getById(id) }
+
+        private suspend fun titleFor(klass: TutoringClass, studentName: String): String =
+            CalendarEvent.title(
+                studentName = studentName,
+                subjectName = subjects.getOrPut(klass.subjectId) {
+                    subjectDao.getById(klass.subjectId)?.name.orEmpty()
+                },
+                groupName = klass.groupId?.let { id -> groups.getOrPut(id) { groupDao.getById(id)?.name } },
+            )
+
+        private fun guestFor(student: StudentEntity?): Guest? =
+            student?.email
+                ?.takeIf { it.isNotBlank() }
+                ?.let { Guest(email = it, invited = settings.emailInvitesEnabled) }
     }
 
-    private suspend fun titleFor(klass: TutoringClass, studentName: String): String =
-        CalendarEvent.title(
-            studentName = studentName,
-            subjectName = subjectDao.getById(klass.subjectId)?.name.orEmpty(),
-            groupName = klass.groupId?.let { groupDao.getById(it)?.name },
-        )
-
-    private fun guestFor(student: StudentEntity?, settings: AppSettings): Guest? =
-        student?.email
-            ?.takeIf { it.isNotBlank() }
-            ?.let { Guest(email = it, invited = settings.emailInvitesEnabled) }
+    private companion object {
+        /** Event ids written per transaction: few enough that a pass cut short loses little. */
+        const val BINDINGS_PER_WRITE = 50
+    }
 }

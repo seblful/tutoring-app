@@ -24,6 +24,8 @@ class ReminderAlarms @Inject constructor(
     fun set(plans: List<Reminders.Plan>) {
         val owed = plans.filter { it.due }.mapTo(mutableSetOf()) { it.classId }
         armed.read().filterNot { it in owed }.forEach { alarms.cancel(it) }
+        // The one decision here, read from the port once per plan rather than answered privately.
+        val exact = exactAlarms.isGranted()
         // The plan carries the firing instant itself — nothing here reads a clock.
         plans.forEach { plan ->
             // Owed entries retain any alarm already set for them. Re-arming one whose instant has
@@ -31,8 +33,7 @@ class ReminderAlarms @Inject constructor(
             // a new alarm.
             if (plan.due) return@forEach
             val at = plan.fireAt.toEpochMilliseconds()
-            // The one decision here, and it is read from the port rather than answered privately.
-            if (exactAlarms.isGranted()) alarms.setExact(plan.classId, at) else alarms.setInexact(plan.classId, at)
+            if (exact) alarms.setExact(plan.classId, at) else alarms.setInexact(plan.classId, at)
         }
         armed.write(plans.mapTo(mutableSetOf()) { it.classId })
     }

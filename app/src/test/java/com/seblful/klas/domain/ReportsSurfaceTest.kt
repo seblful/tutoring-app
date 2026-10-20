@@ -21,7 +21,8 @@ class ReportsSurfaceTest {
             .flatMap { file ->
                 reference.findAll(code(file.readText()))
                     .map { it.groupValues[1] }
-                    .filter { it.first().isLowerCase() && it != "of" }
+                    // `window` says which classes to read for `of`, not what a report contains.
+                    .filter { it.first().isLowerCase() && it !in setOf("of", "window") }
                     .map { "${file.name} → Reports.$it" }
             }
             .distinct()

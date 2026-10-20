@@ -84,8 +84,11 @@ data class AppSettings(
  */
 data class SettingsChange(val before: AppSettings, val after: AppSettings) {
 
-    /** What the calendar mirror is owed. */
-    enum class CalendarWork { NONE, RESYNC, WITHDRAW }
+    /**
+     * What the calendar mirror is owed. [RESYNC] backfills every lesson once sync is turned on;
+     * [RESYNC_UPCOMING] re-earns the events still ahead, the only ones a guest, reminder or label reaches.
+     */
+    enum class CalendarWork { NONE, RESYNC, RESYNC_UPCOMING, WITHDRAW }
 
     /**
      * The calendar work this change owes. The mirror is a best-effort copy of local truth filtered
@@ -96,13 +99,13 @@ data class SettingsChange(val before: AppSettings, val after: AppSettings) {
     val calendarWork: CalendarWork
         get() = when {
             moved { it.calendarSyncEnabled } && !after.calendarSyncEnabled -> CalendarWork.WITHDRAW
+            after.calendarSyncEnabled && moved { it.calendarSyncEnabled } -> CalendarWork.RESYNC
             after.calendarSyncEnabled &&
                 (
-                    moved { it.calendarSyncEnabled } ||
-                        moved { it.emailInvitesEnabled } ||
+                    moved { it.emailInvitesEnabled } ||
                         moved { it.reminderLeadMinutes } ||
                         moved { it.language }
-                    ) -> CalendarWork.RESYNC
+                    ) -> CalendarWork.RESYNC_UPCOMING
             else -> CalendarWork.NONE
         }
 

@@ -5,11 +5,12 @@ import com.seblful.klas.data.local.Transactor
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.intOrNull
 
 /**
@@ -26,8 +27,8 @@ class BackupManager @Inject constructor(
     private val transactor: Transactor,
     private val snapshot: SnapshotDao,
 ) {
+    // Compact, not pretty-printed: indentation roughly doubled a large backup's size and memory.
     private val json = Json {
-        prettyPrint = true
         ignoreUnknownKeys = true
         encodeDefaults = true
     }
@@ -48,11 +49,17 @@ class BackupManager @Inject constructor(
      * left to the decode, which defaults the one and refuses the other.
      */
     fun parse(text: String): BackupData {
-        val tree = json.parseToJsonElement(text)
-        val version = ((tree as? JsonObject)?.get("version") as? JsonPrimitive)?.intOrNull
+        // Decoded straight from the text both times: a whole `JsonElement` tree of a large backup was its
+        // biggest copy in memory. Anything [Header] cannot read is left to the decode to refuse.
+        val version = runCatching { json.decodeFromString<Header>(text).version }.getOrNull()
+            .let { (it as? JsonPrimitive)?.intOrNull }
         if (version != null) requireSupported(version)
-        return json.decodeFromJsonElement(tree)
+        return json.decodeFromString(text)
     }
+
+    /** A backup's version alone; every other key is skipped. */
+    @Serializable
+    private class Header(val version: JsonElement? = null)
 
     private fun requireSupported(version: Int) {
         if (!BackupData.isSupported(version)) {

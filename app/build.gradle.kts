@@ -68,6 +68,11 @@ android {
     buildFeatures {
         compose = true
     }
+    androidResources {
+        // The app speaks only these (AppLanguage resolves every phone to one), so libraries' other locales
+        // are dead weight in resources.arsc.
+        localeFilters += listOf("en", "ru")
+    }
     bundle {
         language {
             // Settings can switch languages independently of the phone locale.
@@ -190,4 +195,9 @@ dependencies {
 // Use the bundled JVM SQLite driver and exclude Android native libraries from unit tests.
 configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configureEach {
     exclude(group = "androidx.sqlite", module = "sqlite-bundled-android")
+}
+
+composeCompiler {
+    // Domain models and kotlinx-datetime values are immutable; see the file.
+    stabilityConfigurationFiles.add(layout.projectDirectory.file("compose-stability.conf"))
 }

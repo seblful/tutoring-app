@@ -17,7 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonFilter
 import com.seblful.klas.domain.model.Balance
@@ -43,6 +43,7 @@ import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.queries.students.ArchiveIntent
+import com.seblful.klas.queries.students.ClassRow
 import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.ConfirmDialog
@@ -97,7 +98,7 @@ fun StudentDetailScreen(
     onLessonClick: (Long) -> Unit,
     viewModel: StudentDetailViewModel = assistedMetroViewModel(),
 ) {
-    when (val screenState = viewModel.state.collectAsState().value) {
+    when (val screenState = viewModel.state.collectAsStateWithLifecycle().value) {
         Loadable.Loading -> LoadingDetailScreen(onBack)
         is Loadable.Ready -> StudentCard(screenState.value, viewModel, onBack, onLessonClick)
     }
@@ -115,6 +116,8 @@ private fun StudentCard(
 
     var tab by rememberSaveable { mutableStateOf(StudentTab.CLASSES) }
     var lessonFilter by rememberSaveable { mutableStateOf(LessonFilter.ALL) }
+    // Filtered here rather than in the list's builder, which runs again on every scroll-driven remeasure.
+    val lessonRows = remember(state, lessonFilter) { state.lessonsShown(lessonFilter) }
     var editing by remember { mutableStateOf(false) }
     var addingSubject by remember { mutableStateOf(false) }
     var pricingSubjectId by remember { mutableStateOf<Long?>(null) }
@@ -277,6 +280,7 @@ private fun StudentCard(
                     )
                     StudentTab.CLASSES -> classesTab(
                         state = state,
+                        rows = lessonRows,
                         filter = lessonFilter,
                         onLessonClick = onLessonClick,
                         onFilter = { lessonFilter = it },
@@ -449,7 +453,7 @@ private fun LazyListScope.subjectsTab(
         return
     }
     item(key = StudentDetailKeys.SUBJECTS_ADD) { AddRow(stringResource(R.string.student_add_subject), onAdd) }
-    items(state.subjects, key = { StudentDetailKeys.subject(it.subject.id) }) { sp ->
+    items(state.subjects, key = { StudentDetailKeys.subject(it.subject.id) }, contentType = { "subject" }) { sp ->
         ListItem(
             headlineContent = { Text(sp.subject.name) },
             supportingContent = {
@@ -475,6 +479,7 @@ private fun LazyListScope.subjectsTab(
 
 private fun LazyListScope.classesTab(
     state: StudentDetails,
+    rows: List<ClassRow>,
     filter: LessonFilter,
     onFilter: (LessonFilter) -> Unit,
     onLessonClick: (Long) -> Unit,
@@ -489,7 +494,6 @@ private fun LazyListScope.classesTab(
             )
         }
     }
-    val rows = state.lessonsShown(filter)
     if (rows.isEmpty()) {
         item(key = StudentDetailKeys.CLASSES_EMPTY) {
             // No action: booking belongs to the schedule, which is the one place that knows what else
@@ -502,7 +506,7 @@ private fun LazyListScope.classesTab(
         }
         return
     }
-    items(rows, key = { StudentDetailKeys.klass(it.klass.id) }) { row ->
+    items(rows, key = { StudentDetailKeys.klass(it.klass.id) }, contentType = { "lesson" }) { row ->
         ListItem(
             leadingContent = { LessonKindIcon(row.kind) },
             headlineContent = {
@@ -563,7 +567,7 @@ private fun LazyListScope.paymentsTab(
         return
     }
     item(key = StudentDetailKeys.PAYMENTS_ADD) { AddRow(stringResource(R.string.add_payment), onAdd) }
-    items(state.payments, key = { StudentDetailKeys.payment(it.id) }) { payment ->
+    items(state.payments, key = { StudentDetailKeys.payment(it.id) }, contentType = { "payment" }) { payment ->
         ListItem(
             headlineContent = { Text(payment.amount.text()) },
             supportingContent = { Text(payment.date.formatDate()) },

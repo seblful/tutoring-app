@@ -22,6 +22,7 @@ class SettingsWorkflow @Inject constructor(
         val change = settings.update(transform)
         when (change.calendarWork) {
             SettingsChange.CalendarWork.RESYNC -> calendar.resyncAll()
+            SettingsChange.CalendarWork.RESYNC_UPCOMING -> calendar.resyncUpcoming()
             SettingsChange.CalendarWork.WITHDRAW -> calendar.clear()
             SettingsChange.CalendarWork.NONE -> Unit
         }

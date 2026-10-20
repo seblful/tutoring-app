@@ -34,6 +34,7 @@ import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.common.state.ready
+import com.seblful.klas.ui.common.state.shared
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.writeAwaited
 import dev.zacsweers.metro.AppScope
@@ -124,15 +125,20 @@ class ClassEditViewModel @AssistedInject constructor(
 
     private val currentForm: ClassForm get() = booking.value.form
 
+    // Each read once for the pickers, the subject list and the roster, which all combine them.
+    private val allStudents = studentsRepo.observeAll().shared(this)
+    private val allGroups = groupsRepo.observeAll().shared(this)
+    private val allSubjects = subjectsRepo.observeAll().shared(this)
+
     private val students: StateFlow<Loadable<List<Student>>> =
-        combine(studentsRepo.observeAll(), form.map { it.studentId }.distinctUntilChanged()) { all, selected ->
+        combine(allStudents, form.map { it.studentId }.distinctUntilChanged()) { all, selected ->
             all.offered(selected, Student::archived, Student::id)
         }
             .ready()
             .derive(this, computation, Loadable.Loading)
 
     private val groups: StateFlow<Loadable<List<Group>>> =
-        combine(groupsRepo.observeAll(), form.map { it.groupId }.distinctUntilChanged()) { all, selected ->
+        combine(allGroups, form.map { it.groupId }.distinctUntilChanged()) { all, selected ->
             all.offered(selected, Group::archived, Group::id)
         }
             .ready()
@@ -170,7 +176,7 @@ class ClassEditViewModel @AssistedInject constructor(
         key.target == ClassTarget.STUDENT && key.studentId != null ->
             combine(
                 enrollment.observePricesFor(key.studentId),
-                subjectsRepo.observeAll(),
+                allSubjects,
             ) { prices, all ->
                 // Nothing about a student fixes the subject; their prices only say which are billable.
                 SubjectChoice(Scheduling.assignableSubjects(all, prices.map { it.subjectId }))
@@ -179,7 +185,7 @@ class ClassEditViewModel @AssistedInject constructor(
         key.target == ClassTarget.GROUP && key.groupId != null ->
             combine(
                 groupsRepo.observeById(key.groupId),
-                subjectsRepo.observeAll(),
+                allSubjects,
             ) { group, all ->
                 val bound = group?.subjectId
                 SubjectChoice(
@@ -209,10 +215,10 @@ class ClassEditViewModel @AssistedInject constructor(
                 } else {
                     combine(
                         classes.observeConflicts(slot, editing),
-                        studentsRepo.observeAll(),
-                        groupsRepo.observeAll(),
-                    ) { clashing, allStudents, allGroups ->
-                        clashing.firstOrNull()?.let { describe(it, allStudents, allGroups) }
+                        allStudents,
+                        allGroups,
+                    ) { clashing, studentList, groupList ->
+                        clashing.firstOrNull()?.let { describe(it, studentList, groupList) }
                     }
                 }
             }
@@ -364,12 +370,12 @@ class ClassEditViewModel @AssistedInject constructor(
         groupId?.let { groupsRepo.getById(it)?.price }
 
     private fun offeredRoster(groupId: Long, alreadyIn: Set<Long>?): Flow<List<Student>> =
-        combine(groupsRepo.observeMemberIds(groupId), studentsRepo.observeAll()) { ids, all ->
+        combine(groupsRepo.observeMemberIds(groupId), allStudents) { ids, all ->
             GroupRules.offeredRoster(all, ids.toSet(), alreadyIn.orEmpty())
         }
 
     private suspend fun offeredRosterNow(groupId: Long, alreadyIn: Set<Long> = emptySet()): Set<Long> =
-        GroupRules.offeredRoster(studentsRepo.observeAll().first(), groupsRepo.getMemberIds(groupId).toSet(), alreadyIn)
+        GroupRules.offeredRoster(allStudents.first(), groupsRepo.getMemberIds(groupId).toSet(), alreadyIn)
             .mapTo(mutableSetOf()) { it.id }
 
     // ---- The one way the form changes ----------------------------------------------------------

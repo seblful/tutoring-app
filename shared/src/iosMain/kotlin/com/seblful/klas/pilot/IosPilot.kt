@@ -31,6 +31,7 @@ import platform.Foundation.NSApplicationSupportDirectory
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSUserDomainMask
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 /** Callback interface for the pilot's SwiftUI host; completions run on the main thread. */
 class IosPilot
@@ -96,6 +97,7 @@ private object PilotHost : HostServices {
     override val reminders = object : ReminderScheduler {
         override fun refreshNow() = Unit
         override fun ensurePeriodicMaintenance() = Unit
+        override suspend fun scheduleNextPass(at: Instant?) = Unit
         override fun schedule(plans: List<Reminders.Plan>) = Unit
     }
     override val digests = object : DigestScheduler {

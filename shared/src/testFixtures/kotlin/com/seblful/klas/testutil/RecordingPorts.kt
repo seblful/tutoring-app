@@ -12,6 +12,7 @@ import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.notifications.Notifier
 import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
 
 class RecordingReminderScheduler : ReminderScheduler {
     var refreshCount = 0
@@ -33,6 +34,14 @@ class RecordingReminderScheduler : ReminderScheduler {
 
     override fun ensurePeriodicMaintenance() {
         periodicCount++
+    }
+
+    /** The extra pass currently arranged, or null when none is. */
+    var nextPass: Instant? = null
+        private set
+
+    override suspend fun scheduleNextPass(at: Instant?) {
+        nextPass = at
     }
 
     override fun schedule(plans: List<Reminders.Plan>) {

@@ -4,6 +4,7 @@ import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import java.text.DecimalFormatSymbols
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * The foreground locale, published by RootViewModel before its settings reach the UI.
@@ -55,9 +56,14 @@ fun Money.amount(): String = amountText(AppLocale.decimalSeparator)
  * `16,037.50 $`. Every display of money goes through this, so an amount cannot render two ways.
  */
 fun Money.money(currency: Currency, locale: Locale = AppLocale.current): String {
-    val symbols = DecimalFormatSymbols.getInstance(locale)
-    return format(currency, symbols.decimalSeparator, symbols.groupingSeparator)
+    val (decimal, grouping) = separators.getOrPut(locale) {
+        DecimalFormatSymbols.getInstance(locale).let { it.decimalSeparator to it.groupingSeparator }
+    }
+    return format(currency, decimal, grouping)
 }
+
+/** Each locale's decimal and grouping separators: every amount on a list asks, and `getInstance` copies. */
+private val separators = ConcurrentHashMap<Locale, Pair<Char, Char>>()
 
 /** System notification fonts cannot render the bundled Belarusian ruble glyph. */
 fun String.forSystemFont(): String = replace(Currency.BYN.symbol, Currency.BYN.name)

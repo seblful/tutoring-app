@@ -261,4 +261,19 @@ class HomeworkRulesTest {
 
         assertEquals(listOf(groups), HomeworkRules.narrowedTo(listOf(homework(anya, mon), groups), eleventh, rosters))
     }
+
+    @Test
+    fun `the filter offers exactly those narrowing to something`() {
+        val rosters = mapOf(10L to listOf(1L, 2L), 11L to listOf(3L))
+        val carol = Assignee.Student(3)
+        val dan = Assignee.Student(4)
+        val work = listOf(homework(eleventh, mon), homework(dan, mon))
+        val everyone = listOf(anya, boris, carol, dan, eleventh, Assignee.Group(11))
+
+        assertEquals(
+            everyone.filter { HomeworkRules.narrowedTo(work, it, rosters).isNotEmpty() },
+            HomeworkRules.withHomework(work, everyone, rosters),
+        )
+        assertEquals(listOf(anya, boris, dan, eleventh), HomeworkRules.withHomework(work, everyone, rosters))
+    }
 }

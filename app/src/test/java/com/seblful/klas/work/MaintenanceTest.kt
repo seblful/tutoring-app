@@ -99,6 +99,30 @@ class MaintenanceTest {
         }
 
     @Test
+    fun `with auto-completion on a pass arranges the next one for the next lesson end`() =
+        runTest(mainRule.dispatcher) {
+            seedClass(now.minus(600.seconds)) // running, ends in 50 minutes
+            seedClass(now.plus((4 * 3600).seconds))
+            env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
+
+            maintenance().run(now)
+
+            assertEquals(now.plus(3000.seconds), env.reminders.nextPass)
+        }
+
+    @Test
+    fun `with auto-completion off a pass arranges no extra one`() = runTest(mainRule.dispatcher) {
+        seedClass(now.plus((4 * 3600).seconds))
+        env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
+        maintenance().run(now)
+        env.settingsRepo.update { it.copy(autoCompleteEnabled = false) }
+
+        maintenance().run(now)
+
+        assertEquals(null, env.reminders.nextPass)
+    }
+
+    @Test
     fun `a lesson exactly on the horizon still earns a reminder`() = runTest(mainRule.dispatcher) {
         val id = seedClass(now.plus(Reminders.planningHorizon(Reminders.DEFAULT_LEAD)))
 

@@ -4,6 +4,7 @@ import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.reminders.Reminders
 import java.util.Locale
+import kotlin.time.Instant
 
 /**
  * The phone the fixtures assume: Russian, in Belarus — the app's original tutor.
@@ -33,6 +34,8 @@ class RecordingReminderScheduler : ReminderScheduler {
     override fun ensurePeriodicMaintenance() {
         periodicCount++
     }
+
+    override suspend fun scheduleNextPass(at: Instant?) = Unit
 
     override fun schedule(plans: List<Reminders.Plan>) {
         schedules += plans

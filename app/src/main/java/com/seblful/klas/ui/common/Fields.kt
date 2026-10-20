@@ -105,7 +105,7 @@ fun DropdownField(
         supportingText = supportingText,
         isError = isError,
     ) { dismiss ->
-        options.forEach { (id, name) ->
+        MenuOptions(options, nameOf = { it.second }) { (id, name) ->
             DropdownMenuItem(
                 text = { Text(name) },
                 onClick = { onSelect(id); dismiss() },
@@ -138,9 +138,11 @@ fun <T> ChoiceField(
         supportingText = supportingText,
         isError = isError,
     ) { dismiss ->
-        options.forEach { option ->
+        // Labelled once the menu is open, so a long list can be searched by what it reads.
+        val labelled = options.map { it to optionLabel(it) }
+        MenuOptions(labelled, nameOf = { it.second }) { (option, text) ->
             DropdownMenuItem(
-                text = { Text(optionLabel(option)) },
+                text = { Text(text) },
                 onClick = { onSelect(option); dismiss() },
             )
         }

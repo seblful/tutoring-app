@@ -21,6 +21,7 @@ import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.toDevicePreferences
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.testutil.RussianMinskPhone
@@ -72,7 +73,7 @@ class BackupRestoreTest {
         settings = SettingsRepository(target.settingsDao(), RussianMinskPhone.toDevicePreferences())
         val mirror = CalendarMirror(
             target.classDao(), target.attendanceDao(), target.studentDao(), target.subjectDao(), target.groupDao(),
-            noCalendar, settings, target.homeworkDao(),
+            noCalendar, settings, target.homeworkDao(), RoomTransactor(target), WallClock.system(),
         )
         restore = BackupRestore(
             backup = managerFor(target),

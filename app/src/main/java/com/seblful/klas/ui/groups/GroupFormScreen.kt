@@ -15,7 +15,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -25,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
@@ -50,7 +50,7 @@ fun GroupFormScreen(
     onBack: () -> Unit,
     viewModel: GroupFormViewModel = assistedMetroViewModel(),
 ) {
-    val screenState by viewModel.state.collectAsState()
+    val screenState by viewModel.state.collectAsStateWithLifecycle()
     val title = stringResource(
         if (viewModel.isNew) R.string.group_add_title else R.string.group_edit_title,
     )

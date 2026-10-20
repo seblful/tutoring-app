@@ -13,7 +13,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.schedule.Recurrence
 import com.seblful.klas.domain.schedule.Repeat
@@ -62,8 +62,8 @@ fun ClassEditScreen(
     onBack: () -> Unit,
     viewModel: ClassEditViewModel = assistedMetroViewModel(),
 ) {
-    val screenState by viewModel.state.collectAsState()
-    val gone by viewModel.gone.collectAsState()
+    val screenState by viewModel.state.collectAsStateWithLifecycle()
+    val gone by viewModel.gone.collectAsStateWithLifecycle()
     val title = stringResource(if (viewModel.isNew) R.string.class_add_title else R.string.class_edit_title)
 
     // Said, with the way back, rather than drawn as an empty form over a lesson that no longer exists.
@@ -99,7 +99,7 @@ private fun ClassEditForm(
 ) {
     val form = state.form
     val members = state.members
-    val durations by viewModel.durationOptions.collectAsState()
+    val durations by viewModel.durationOptions.collectAsStateWithLifecycle()
 
     // A save can still be refused after the button was enabled — say so rather than doing nothing.
     val messages = rememberMessages()
@@ -140,7 +140,7 @@ private fun ClassEditForm(
     // A repeating booking that got some of its dates and not others — see [SeriesOutcome]. State rather
     // than a message, because a successful save navigates away and a snackbar on a screen being popped is
     // shown to nobody; the screen leaves when the dialog is dismissed.
-    val seriesOutcome by viewModel.seriesOutcome.collectAsState()
+    val seriesOutcome by viewModel.seriesOutcome.collectAsStateWithLifecycle()
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showFromPicker by remember { mutableStateOf(false) }
@@ -191,7 +191,7 @@ private fun ClassEditForm(
                 ClassTarget.STUDENT -> DropdownField(
                     label = stringResource(R.string.class_student_label),
                     selectedText = state.studentName,
-                    options = state.students.map { it.id to it.name },
+                    options = remember(state.students) { state.students.map { it.id to it.name } },
                     onSelect = { id -> viewModel.change(BookingIntent.ChooseStudent(id)) },
                 )
 
@@ -202,7 +202,7 @@ private fun ClassEditForm(
                 ClassTarget.GROUP -> DropdownField(
                     label = stringResource(R.string.class_group_label),
                     selectedText = state.groupName,
-                    options = state.groups.map { it.id to it.name },
+                    options = remember(state.groups) { state.groups.map { it.id to it.name } },
                     onSelect = { id -> viewModel.change(BookingIntent.ChooseGroup(id)) },
                     // A booked lesson can't be handed to another group: its members' classes are
                     // billed history, and the other group is a different set of people.
@@ -216,7 +216,7 @@ private fun ClassEditForm(
             DropdownField(
                 label = stringResource(R.string.class_subject_label),
                 selectedText = state.subjectName,
-                options = state.subjects.map { it.id to it.name },
+                options = remember(state.subjects) { state.subjects.map { it.id to it.name } },
                 onSelect = { id -> viewModel.change(BookingIntent.ChooseSubject(id)) },
                 enabled = state.subjectPickerEnabled,
                 supportingText = state.subjectNotice?.let { notice ->

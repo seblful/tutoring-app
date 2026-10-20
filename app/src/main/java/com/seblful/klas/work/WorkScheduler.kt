@@ -21,6 +21,7 @@ import dev.zacsweers.metro.SingleIn
 import dev.zacsweers.metro.binding
 import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
+import kotlin.math.abs
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
@@ -38,12 +39,27 @@ class WorkScheduler @Inject constructor(
 
     /** Enqueues the recurring maintenance job. Idempotent — safe to call on every app start. */
     override fun ensurePeriodicMaintenance() {
-        val request = PeriodicWorkRequestBuilder<MaintenanceWorker>(30, TimeUnit.MINUTES).build()
-        workManager.enqueueUniquePeriodicWork(
-            PERIODIC_MAINTENANCE,
-            ExistingPeriodicWorkPolicy.KEEP,
-            request,
-        )
+        val request = PeriodicWorkRequestBuilder<MaintenanceWorker>(PERIODIC_HOURS, TimeUnit.HOURS).build()
+        // UPDATE, not KEEP: an install arranged under an older interval takes the new one.
+        workManager.enqueueUniquePeriodicWork(PERIODIC_MAINTENANCE, ExistingPeriodicWorkPolicy.UPDATE, request)
+    }
+
+    override suspend fun scheduleNextPass(at: Instant?) {
+        val infos = workManager.getWorkInfosForUniqueWorkFlow(NEXT_PASS).first()
+        // The pass asking may be the arranged one: replacing or cancelling running work would cancel it.
+        val running = infos.any { it.state == WorkInfo.State.RUNNING }
+        if (at == null) {
+            if (!running) workManager.cancelUniqueWork(NEXT_PASS)
+            return
+        }
+        val arranged = infos.firstOrNull { it.state == WorkInfo.State.ENQUEUED }?.nextScheduleTimeMillis
+        if (arranged != null && abs(arranged - at.toEpochMilliseconds()) < NEXT_PASS_SLACK_MILLIS) return
+        val delay = (at - clock.now()).coerceAtLeast(Duration.ZERO)
+        val request = OneTimeWorkRequestBuilder<MaintenanceWorker>()
+            .setInitialDelay(delay.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+            .build()
+        val policy = if (running) ExistingWorkPolicy.APPEND_OR_REPLACE else ExistingWorkPolicy.REPLACE
+        workManager.enqueueUniqueWork(NEXT_PASS, policy, request)
     }
 
     /** Runs maintenance now — after a class changes or when the app opens. */
@@ -52,12 +68,12 @@ class WorkScheduler @Inject constructor(
         workManager.enqueueUniqueWork(MAINTENANCE_NOW, ExistingWorkPolicy.REPLACE, request)
     }
 
-    /** pplies [plans] through [ReminderAlarms], preserving due alarms and rearming future entries. */
+    /** Applies [plans] through [ReminderAlarms], preserving due alarms and rearming future entries. */
     override fun schedule(plans: List<Reminders.Plan>) {
         alarms.set(plans)
     }
 
-    /** rranges the three digests, or cancels one whose instant is null. */
+    /** Arranges the three digests, or cancels one whose instant is null. */
     override suspend fun schedule(plan: Digests.Plan) {
         arrange<AgendaWorker>(AGENDA_DIGEST, plan.agendaAt, 1.days)
         arrange<UnfinishedDigestWorker>(UNFINISHED_DIGEST, plan.unfinishedAt, 1.days)
@@ -114,8 +130,15 @@ class WorkScheduler @Inject constructor(
     companion object {
         const val PERIODIC_MAINTENANCE = "maintenance-periodic"
         const val MAINTENANCE_NOW = "maintenance-now"
+        const val NEXT_PASS = "maintenance-next"
         const val AGENDA_DIGEST = "digest-agenda"
         const val UNFINISHED_DIGEST = "digest-unfinished"
         const val DEBT_DIGEST = "digest-debts"
+
+        /** Reminders are alarms and writes run a pass at once; the tick only slides the week's window. */
+        const val PERIODIC_HOURS = 6L
+
+        /** A re-plan within this of the arranged pass leaves it alone instead of re-enqueueing. */
+        private const val NEXT_PASS_SLACK_MILLIS = 60_000L
     }
 }

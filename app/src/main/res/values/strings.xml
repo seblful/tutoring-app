@@ -59,6 +59,11 @@
     <string name="search_close">Close search</string>
     <string name="search_no_results">Nothing found</string>
     <string name="search_no_results_detail">Try a different search</string>
+    <!-- Closes a long menu (every student, say), which shows only its first matches. -->
+    <plurals name="menu_more_matches">
+        <item quantity="one">%1$d more — refine the search</item>
+        <item quantity="other">%1$d more — refine the search</item>
+    </plurals>
     <string name="students_search_hint">Student name</string>
     <string name="groups_search_hint">Group name</string>
     <string name="subjects_search_hint">Subject name</string>

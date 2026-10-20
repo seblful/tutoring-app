@@ -190,7 +190,7 @@ class SettingsViewModelTest {
             env.fixtures.storedClass(
                 studentId = sid,
                 subjectId = subj,
-                startMillis = 1,
+                startMillis = env.clock.now().toEpochMilliseconds() + 86_400_000,
                 durationMinutes = 60,
                 status = LessonStatus.SCHEDULED,
             )
@@ -213,7 +213,7 @@ class SettingsViewModelTest {
             env.fixtures.storedClass(
                 studentId = sid,
                 subjectId = subj,
-                startMillis = 1,
+                startMillis = env.clock.now().toEpochMilliseconds() + 86_400_000,
                 durationMinutes = 60,
                 status = LessonStatus.SCHEDULED,
             )
@@ -255,7 +255,7 @@ class SettingsViewModelTest {
             val subj = env.fixtures.subject("Математика")
             val sid = env.fixtures.student("Аня", email = "anya@example.com")
             env.fixtures.withCalendarSync()
-            env.fixtures.lesson(subj, listOf(sid), start = Instant.parse("2026-03-02T09:00:00Z"))
+            env.fixtures.lesson(subj, listOf(sid), start = Instant.parse("2026-06-02T09:00:00Z"))
             env.calendar.calls.clear()
             val refreshesBefore = env.reminders.refreshCount
 

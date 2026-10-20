@@ -12,13 +12,13 @@ import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -51,7 +51,7 @@ fun AppRoot(rootViewModel: RootViewModel = metroViewModel()) {
     // Read into a plain local rather than a `by` delegate: a delegated property is a getter call each
     // time it is read, so Kotlin cannot smart-cast it and the branches below had to re-assert with
     // `settings!!` what `settings == null` had just ruled out.
-    val settings = rootViewModel.settings.collectAsState().value
+    val settings = rootViewModel.settings.collectAsStateWithLifecycle().value
 
     // A row that has not loaded follows the system, like a tutor who chose to; only resolving «follow
     // the system» is this composable's, because that answer comes from the platform.
@@ -116,7 +116,7 @@ private fun MainApp() {
     // than remembered, which is what keeps it right through a process death, a deep link and a tray tap
     // — a remembered "last tab seen" would be a guess restored from nothing on any arrival that did not
     // start at a tab.
-    val backStack by navController.currentBackStack.collectAsState()
+    val backStack by navController.currentBackStack.collectAsStateWithLifecycle()
     val selectedTab = owningTab(backStack)
 
     /**

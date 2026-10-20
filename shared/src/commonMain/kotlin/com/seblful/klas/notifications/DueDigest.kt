@@ -1,12 +1,12 @@
 package com.seblful.klas.notifications
 
-import com.seblful.klas.data.billing.PaymentRepository
+import com.seblful.klas.data.billing.BalanceRepository
+import com.seblful.klas.data.billing.balanceOf
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.data.settings.SettingsRepository
-import com.seblful.klas.domain.billing.Billing
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.ClassSession
@@ -45,7 +45,7 @@ class DueDigest @Inject constructor(
     private val students: StudentRepository,
     subjects: SubjectRepository,
     groups: GroupRepository,
-    private val payments: PaymentRepository,
+    private val balances: BalanceRepository,
     private val settings: SettingsRepository,
     private val notifier: Notifier,
     private val clock: WallClock,
@@ -154,11 +154,8 @@ class DueDigest @Inject constructor(
         val current = settings.get()
         if (!current.debtDigestEnabled) return false
 
-        val balances = Billing.balancesFor(
-            students = students.getActive(),
-            classes = classes.getAll(),
-            payments = payments.getAll(),
-        )
+        val sums = balances.get()
+        val balances = students.getActive().map { sums.balanceOf(it.id) }
         // `Reports.Outstanding` rather than the two aggregations behind it: `ReportsSurfaceTest` keeps
         // callers from reaching past `Reports.of` for pieces of a report and reassembling them, and a
         // summary of what is owed is a thing the reports module should name rather than something a

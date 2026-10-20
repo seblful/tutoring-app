@@ -26,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -38,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.storage.DocumentRef
@@ -103,8 +103,8 @@ fun OnboardingScreen(
 ) {
     // Saveable, so turning the phone on step 3 does not throw the tutor back to the welcome screen.
     var step by rememberSaveable { mutableStateOf(Step.WELCOME) }
-    val subjects by viewModel.subjects.collectAsState()
-    val locale by viewModel.locale.collectAsState()
+    val subjects by viewModel.subjects.collectAsStateWithLifecycle()
+    val locale by viewModel.locale.collectAsStateWithLifecycle()
     var addingSubject by rememberSaveable { mutableStateOf(false) }
     var confirmRestore by rememberSaveable { mutableStateOf<String?>(null) }
     val messages = rememberMessages()
@@ -361,7 +361,7 @@ fun OnboardingScreen(
                 }
 
                 Step.STUDENT -> {
-                    val studentState by studentVm.state.collectAsState()
+                    val studentState by studentVm.state.collectAsStateWithLifecycle()
                     StudentFormContent(
                         state = studentState,
                         viewModel = studentVm,

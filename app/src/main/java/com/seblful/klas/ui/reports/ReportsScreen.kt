@@ -20,8 +20,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.DropdownMenu
@@ -29,14 +31,15 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -49,8 +52,10 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.reports.ReportCsv
 import com.seblful.klas.domain.reports.ReportPeriod
@@ -98,19 +103,20 @@ fun ReportsScreen(
     // no list to scroll until the report has arrived, so this waits for one to have been laid out; and the
     // tap is recorded only once the scroll has run, so leaving the tab while the report is still being
     // assembled leaves it owed rather than spent on a scroll that never happened.
-    LaunchedEffect(debtsArrival) {
-        if (!viewModel.owesDebts(debtsArrival)) return@LaunchedEffect
-        val items = snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it > 0 }
-        listState.scrollToItem(items - 1)
-        viewModel.debtsScrolled(debtsArrival)
-    }
-
-    val reportState by viewModel.state.collectAsState()
+    val reportState by viewModel.state.collectAsStateWithLifecycle()
     // The period is its own flow, so the navigator is live while the report behind it is still being
     // assembled — the frame is the thing the tutor steers this screen with, and it needs no data. What is
     // drawn and what may be sent differ for that frame or two: see [ReportView].
-    val period by viewModel.period.collectAsState()
+    val period by viewModel.period.collectAsStateWithLifecycle()
     val (report, exportable) = reportState.viewFor(period)
+    val shown by rememberUpdatedState(report)
+    LaunchedEffect(debtsArrival) {
+        if (!viewModel.owesDebts(debtsArrival)) return@LaunchedEffect
+        val items = snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it > 0 }
+        // The debts card is the list's last items, its heading first among them.
+        listState.scrollToItem((items - (shown?.let(::debtsItemCount) ?: 1)).coerceAtLeast(0))
+        viewModel.debtsScrolled(debtsArrival)
+    }
     val messages = rememberMessages()
     val noPickerMsg = stringResource(R.string.student_contact_failed)
 
@@ -256,16 +262,17 @@ private fun ReportBody(
     val bySubjectTitle = stringResource(R.string.reports_by_subject)
     val byStudentTitle = stringResource(R.string.reports_by_student)
 
+    // No arrangement: a card's rows are list items of their own (see [CardSlice]), so the gap between
+    // cards is each card's own, and its rows sit as close as they did inside one card.
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
         state = listState,
         contentPadding = PaddingValues(Spacing.gutter),
-        verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         item { IncomeCard(state) }
 
         if (state.noIncome) {
-            item {
+            standalone {
                 Text(
                     stringResource(R.string.reports_no_income),
                     style = MaterialTheme.typography.bodyMedium,
@@ -273,26 +280,44 @@ private fun ReportBody(
                 )
             }
         } else {
-            item { StatRow(listOf(lessonsStat(state.taught), hoursStat(state.taught.minutes))) }
+            standalone { StatRow(listOf(lessonsStat(state.taught), hoursStat(state.taught.minutes))) }
             // The one breakdown ordered by time rather than by size, so it is drawn as a timeline.
-            if (!state.trend.isEmpty) item { TrendCard(state.trend) }
+            if (!state.trend.isEmpty) standalone { TrendCard(state.trend) }
             // Where the money came from, by *kind* of teaching — the one split the per-student and
             // per-subject lines below cannot show, since both kinds are mixed inside each of them.
-            if (state.byKind.isNotEmpty()) item { KindSplitCard(state.byKind) }
+            if (state.byKind.isNotEmpty()) standalone { KindSplitCard(state.byKind) }
             rankedSection(byGroupTitle, state.byGroup)
             rankedSection(bySubjectTitle, state.bySubject)
             rankedSection(byStudentTitle, state.byStudent)
         }
 
-        // Last, and it has to stay last: the debt digest's tap scrolls to the final item.
-        item { DebtsCard(state, onStudentClick) }
+        // Last, and it has to stay last: the debt digest's tap scrolls to it — see [debtsItemCount].
+        debtsSection(state, onStudentClick)
     }
 }
 
+/** An item standing on its own, [Spacing.itemGap] below the one before it. */
+private fun LazyListScope.standalone(content: @Composable () -> Unit) {
+    item { Box(Modifier.padding(top = Spacing.itemGap)) { content() } }
+}
+
+/**
+ * A ranked breakdown, one list item per line: a year's per-student section can run to hundreds, and as a
+ * single card it was composed whole in the frame it scrolled into view.
+ */
 private fun LazyListScope.rankedSection(title: String, lines: List<Reports.Line>) {
     if (lines.isEmpty()) return
-    item { RankedCard(title, lines) }
+    item(contentType = CARD_HEADING) { CardSlice(first = true) { CardHeading(title) } }
+    itemsIndexed(lines, contentType = { _, _ -> "ranked" }) { index, line ->
+        CardSlice(last = index == lines.lastIndex, gapAbove = Spacing.itemGap) { RankedLine(line) }
+    }
 }
+
+/** How many items [debtsSection] adds: its heading, then the «нет долгов» line or the total and each debt. */
+private fun debtsItemCount(state: Reports.Report): Int =
+    1 + if (state.debts.isEmpty()) 1 else 1 + state.debts.size
+
+private const val CARD_HEADING = "heading"
 
 @Composable
 private fun PeriodNavigator(
@@ -501,28 +526,24 @@ private fun KindSplitCard(lines: List<Reports.KindLine>) {
 }
 
 @Composable
-private fun RankedCard(title: String, lines: List<Reports.Line>) {
-    ReportCard(title) {
-        lines.forEach { line ->
-            Column(verticalArrangement = Arrangement.spacedBy(BarGap)) {
-                // Ink, like every other amount on the screen that is not a debt. Colour on this screen
-                // means something — the hero's fill, a debt's red — and primary here meant nothing the
-                // primary bar under it was not already saying.
-                AmountRow(line.label, line.amount.text())
-                // The fraction and the single-line rule are the report's own — see [Reports.Line.share].
-                line.share?.let { share ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        RankedBar(share, Modifier.weight(1f))
-                        // A percentage only where the rows genuinely partition the income.
-                        line.percent?.let {
-                            Spacer(Modifier.width(Spacing.inline))
-                            Text(
-                                stringResource(R.string.reports_percent, it),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+private fun RankedLine(line: Reports.Line) {
+    Column(verticalArrangement = Arrangement.spacedBy(BarGap)) {
+        // Ink, like every other amount on the screen that is not a debt. Colour on this screen
+        // means something — the hero's fill, a debt's red — and primary here meant nothing the
+        // primary bar under it was not already saying.
+        AmountRow(line.label, line.amount.text())
+        // The fraction and the single-line rule are the report's own — see [Reports.Line.share].
+        line.share?.let { share ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RankedBar(share, Modifier.weight(1f))
+                // A percentage only where the rows genuinely partition the income.
+                line.percent?.let {
+                    Spacer(Modifier.width(Spacing.inline))
+                    Text(
+                        stringResource(R.string.reports_percent, it),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -547,44 +568,51 @@ private fun RankedBar(fraction: Float, modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-private fun DebtsCard(state: Reports.Report, onStudentClick: (Long) -> Unit) {
+private fun LazyListScope.debtsSection(state: Reports.Report, onStudentClick: (Long) -> Unit) {
     // «Текущий баланс, за всё время» belongs to the title: it says why this card ignores the period. As
     // the card's first row it sat a full item gap below the heading and read as a caption to the total.
-    ReportCard(
-        stringResource(R.string.reports_debts),
-        subtitle = stringResource(R.string.reports_debts_all_time),
-    ) {
-        if (state.debts.isEmpty()) {
-            Text(
-                stringResource(R.string.reports_no_debts),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            return@ReportCard
+    item(contentType = CARD_HEADING) {
+        CardSlice(first = true) {
+            CardHeading(stringResource(R.string.reports_debts), stringResource(R.string.reports_debts_all_time))
         }
-        AmountRow(
-            label = stringResource(R.string.reports_total_outstanding),
-            amount = state.totalOutstanding.text(),
-            bold = true,
-            // In the column the debts below it are in, which their chevron pulls inwards.
-            alignWithLinks = true,
-        )
-        // Every row opens the person who owes. Reading a name here and then going to find them by
-        // hand — through a list that could not be searched or sorted by debt — was the longest
-        // journey in the app, between two screens that are one tap apart.
-        //
-        // One column with no gap of its own: each row is already a full touch target, and the card's item
-        // gap on top of that spaced the debts twice as far apart as any other rows on the screen.
-        Column {
-            state.debts.forEach { debt ->
-                AmountRow(
-                    label = debt.label,
-                    amount = debt.amount.text(),
-                    color = MaterialTheme.colorScheme.error,
-                    onClick = debt.studentId?.let { id -> { onStudentClick(id) } },
+    }
+    if (state.debts.isEmpty()) {
+        item {
+            CardSlice(last = true, gapAbove = Spacing.itemGap) {
+                Text(
+                    stringResource(R.string.reports_no_debts),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+        return
+    }
+    item {
+        CardSlice(gapAbove = Spacing.itemGap) {
+            AmountRow(
+                label = stringResource(R.string.reports_total_outstanding),
+                amount = state.totalOutstanding.text(),
+                bold = true,
+                // In the column the debts below it are in, which their chevron pulls inwards.
+                alignWithLinks = true,
+            )
+        }
+    }
+    // Every row opens the person who owes. Reading a name here and then going to find them by
+    // hand — through a list that could not be searched or sorted by debt — was the longest
+    // journey in the app, between two screens that are one tap apart.
+    //
+    // No gap between the rows: each is already a full touch target, and an item gap on top of that spaced
+    // the debts twice as far apart as any other rows on the screen.
+    itemsIndexed(state.debts, contentType = { _, _ -> "debt" }) { index, debt ->
+        CardSlice(last = index == state.debts.lastIndex, gapAbove = if (index == 0) Spacing.itemGap else 0.dp) {
+            AmountRow(
+                label = debt.label,
+                amount = debt.amount.text(),
+                color = MaterialTheme.colorScheme.error,
+                onClick = debt.studentId?.let { id -> { onStudentClick(id) } },
+            )
         }
     }
 }
@@ -601,18 +629,61 @@ private fun ReportCard(
             Modifier.fillMaxWidth().padding(Spacing.gutter),
             verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
-                SectionTitle(title)
-                subtitle?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            CardHeading(title, subtitle)
             content()
         }
+    }
+}
+
+@Composable
+private fun CardHeading(title: String, subtitle: String? = null) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
+        SectionTitle(title)
+        subtitle?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/**
+ * One list item's share of a card drawn across several: the [first] rounds the card's top and stands
+ * [Spacing.itemGap] below the item before it, the [last] rounds its bottom, and [gapAbove] is the room
+ * the card's own column would have left above this row.
+ */
+@Composable
+private fun CardSlice(
+    first: Boolean = false,
+    last: Boolean = false,
+    gapAbove: Dp = 0.dp,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val card = MaterialTheme.shapes.medium
+    val square = CornerSize(0.dp)
+    val shape = card.copy(
+        topStart = if (first) card.topStart else square,
+        topEnd = if (first) card.topEnd else square,
+        bottomStart = if (last) card.bottomStart else square,
+        bottomEnd = if (last) card.bottomEnd else square,
+    )
+    // The surface [SectionCard] is, so a sliced card reads as the cards beside it.
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(top = if (first) Spacing.itemGap else 0.dp),
+        shape = shape,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        Column(
+            Modifier.padding(
+                start = Spacing.gutter,
+                end = Spacing.gutter,
+                top = if (first) Spacing.gutter else gapAbove,
+                bottom = if (last) Spacing.gutter else 0.dp,
+            ),
+            content = content,
+        )
     }
 }
 

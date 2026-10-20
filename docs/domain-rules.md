@@ -11,7 +11,9 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   uses the phone's region. Decimal separators follow app language, not currency.
 - Each class books an editable hourly rate, initially the student's/group's. Later rate changes leave
   existing classes untouched.
-- Balance = completed-lesson charges − payments; balances/income are derived. Partial payments and
+- Balance = completed-lesson charges − payments; balances/income are derived. Lists, reports and the
+  debt digest read them summed by SQLite (`BalanceDao`, held to `Billing` by `BalanceRepositoryTest`); a
+  report reads only its period and the one before (`Reports.window`). Partial payments and
   overpayments work. `Billing.billedOrNull` distinguishes a taught zero-rate lesson (show zero) from an
   unbilled absence (show no amount).
 - Auto-completion is opt-in: scheduled lessons become completed, and therefore billable, after ending.

@@ -81,3 +81,26 @@ interface PaymentDao {
     @Delete
     suspend fun delete(payment: PaymentEntity)
 }
+
+/**
+ * Every student's balance summed by SQLite, so the people list, reports and debt digest need not load
+ * each class and payment ever recorded on every write. Restates `Billing`'s rule — a completed lesson
+ * bills everyone not marked absent — and `BalanceRepositoryTest` holds the two together. A row per
+ * student with any class or payment, billed or not.
+ */
+@Dao
+interface BalanceDao {
+    @Query(BALANCES)
+    fun observe(): Flow<List<BalanceRow>>
+
+    @Query(BALANCES)
+    suspend fun get(): List<BalanceRow>
+}
+
+private const val BALANCES: String =
+    "SELECT studentId, SUM(charged) AS chargedMinor, SUM(paid) AS paidMinor FROM (" +
+        "SELECT a.studentId AS studentId, " +
+        "CASE WHEN l.status = 'COMPLETED' AND a.state != 'ABSENT' THEN a.chargeMinor ELSE 0 END AS charged, " +
+        "0 AS paid FROM attendance a JOIN lessons l ON l.id = a.lessonId " +
+        "UNION ALL SELECT studentId, 0, amountMinor FROM payments" +
+        ") GROUP BY studentId"

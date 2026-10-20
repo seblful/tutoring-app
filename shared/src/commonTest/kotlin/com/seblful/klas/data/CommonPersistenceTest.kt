@@ -111,6 +111,7 @@ class CommonPersistenceTest {
         private val reminders = object : ReminderScheduler {
             override fun refreshNow() { refreshes++ }
             override fun ensurePeriodicMaintenance() = Unit
+            override suspend fun scheduleNextPass(at: Instant?) = Unit
             override fun schedule(plans: List<Reminders.Plan>) = Unit
         }
         private val calendar = object : CalendarSync {
@@ -127,7 +128,7 @@ class CommonPersistenceTest {
         }
         private val mirror = CalendarMirror(
             db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(),
-            calendar, settings, db.homeworkDao(),
+            calendar, settings, db.homeworkDao(), transactor, WallClock.system(),
         )
         private val classes = ClassRepository(
             db.classDao(), db.lessonDao(), db.attendanceDao(), mirror, reminders, transactor,

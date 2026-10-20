@@ -30,7 +30,8 @@ class SafDocumentStore @Inject constructor(
     override suspend fun write(ref: DocumentRef, text: String) {
         withContext(Dispatchers.IO) {
             context.contentResolver.openOutputStream(ref.value.toUri())
-                ?.use { it.write(text.toByteArray()) }
+                // Encoded as it is written rather than into a second whole copy first.
+                ?.bufferedWriter()?.use { it.write(text) }
                 ?: error("Cannot open output stream")
         }
     }

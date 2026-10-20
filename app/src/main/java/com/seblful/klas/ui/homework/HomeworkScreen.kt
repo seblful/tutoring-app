@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -17,6 +16,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Assignee
@@ -53,7 +53,7 @@ fun HomeworkScreen(
     viewModel: HomeworkViewModel = metroViewModel(),
 ) {
     var side by rememberSaveable { mutableStateOf(HomeworkSide.CURRENT) }
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     // The dialog's choices are taken when it opens — see `HomeworkViewModel.choices`.
     var adding by remember { mutableStateOf<List<AssigneeChoice>?>(null) }
     var opened by remember { mutableStateOf<Opened?>(null) }

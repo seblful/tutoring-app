@@ -166,15 +166,53 @@ object Reports {
         /** Today, by the app's clock — what says whether [period] is still going. See [Report.changeToDate]. */
         today: LocalDate,
     ): Report {
+        val activeIds = students.filterNot { it.archived }.map { it.id }.toSet()
+        return of(
+            period = period,
+            classes = classes,
+            students = students,
+            // A balance spans a student's whole history, so it is built from every class and payment —
+            // clipping the charges to a period while the payments stay whole would invent credit.
+            balances = Billing.balancesFor(students, classes, payments),
+            hasData = classes.any { it.studentId in activeIds } || payments.any { it.studentId in activeIds },
+            subjectNames = subjectNames,
+            groupNames = groupNames,
+            zone = zone,
+            today = today,
+        )
+    }
+
+    /**
+     * The days a report on [period] reads classes from: the period and the one [Report.change] compares
+     * it with. Null for all time, which reads every class.
+     */
+    fun window(period: ReportPeriod): ReportPeriod.Bounds? {
+        val bounds = period.bounds ?: return null
+        val from = period.shifted(-1).bounds?.from ?: bounds.from
+        return ReportPeriod.Bounds(minOf(from, bounds.from), bounds.untilExclusive)
+    }
+
+    /**
+     * [of] from what a database can sum: [classes] need only cover [window], [balances] are each student's
+     * over their whole history, and [hasData] says whether any active student has a class or payment.
+     */
+    fun of(
+        period: ReportPeriod,
+        classes: List<TutoringClass>,
+        students: List<Student>,
+        balances: List<StudentBalance>,
+        hasData: Boolean,
+        subjectNames: Map<SubjectId, String>,
+        groupNames: Map<GroupId, String>,
+        zone: TimeZone,
+        today: LocalDate,
+    ): Report {
         val activeStudents = students.filter { !it.archived }
         val activeIds = activeStudents.map { it.id }.toSet()
         val activeClasses = classes.filter { it.studentId in activeIds }
-        val activePayments = payments.filter { it.studentId in activeIds }
         val studentNames = activeStudents.associate { StudentId(it.id) to it.name }
+        val activeBalances = balances.filter { it.studentId in activeIds }
 
-        // A balance spans a student's whole history, so it is built from every class and payment —
-        // clipping the charges to a period while the payments stay whole would invent credit.
-        val balances = Billing.balancesFor(activeStudents, activeClasses, activePayments)
         val inPeriod = period.filter(activeClasses, zone)
         val total = totalIncome(inPeriod)
 
@@ -188,7 +226,7 @@ object Reports {
 
         return Report(
             period = period,
-            hasData = activeClasses.isNotEmpty() || activePayments.isNotEmpty(),
+            hasData = hasData,
             totalIncome = total,
             taught = Taught.overall(inPeriod),
             trend = trend(activeClasses, period, zone),
@@ -199,14 +237,14 @@ object Reports {
             byGroup = incomeByGroup(inPeriod).ranked(whole = null) { groupNames[it] },
             bySubject = incomeBySubject(inPeriod).ranked(total) { subjectNames[it] },
             byStudent = incomeByStudent(inPeriod).ranked(total) { studentNames[it] },
-            debts = debts(balances).map {
+            debts = debts(activeBalances).map {
                 Line(
                     label = studentNames[it.student].orEmpty(),
                     amount = it.amount,
                     studentId = it.student.value,
                 )
             },
-            totalOutstanding = totalOutstanding(balances),
+            totalOutstanding = totalOutstanding(activeBalances),
             change = change(changeNow, changeBefore),
             changeToDate = elapsed != null && previous != null,
             previousPeriod = previous,

@@ -9,7 +9,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -17,6 +16,7 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.domain.model.AppLanguage
@@ -164,7 +164,7 @@ internal fun SettingsPage(
     viewModel: SettingsViewModel,
     content: @Composable (SettingsState, Modifier, Messages) -> Unit,
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val messages = rememberMessages()
     val resources = LocalResources.current
     val failed = stringResource(R.string.action_failed)

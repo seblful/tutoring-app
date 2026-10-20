@@ -227,4 +227,20 @@ class HomeworkRepositoryTest {
         val loaded = repo.observeWithLessons(since = now).first()
         assertEquals(inMarch, HomeworkRules.lists(loaded.homework, loaded.classes).current.single().lesson?.id)
     }
+
+    @Test
+    fun `an old piece reads only its own assignee's lessons since it was given`() = runTest {
+        val maths = fixtures.subject()
+        val anya = fixtures.pricedStudent("Аня", maths)
+        val boris = fixtures.pricedStudent("Борис", maths)
+        val march = Instant.parse("2026-03-02T12:00:00Z")
+        val anyasInMarch = fixtures.lesson(maths, listOf(anya), march.plus((86_400).seconds)).single()
+        val borisesInApril = fixtures.lesson(maths, listOf(boris), march.plus((30 * 86_400).seconds)).single()
+        fixtures.homework(Assignee.Student(anya), at = march)
+
+        val loaded = repo.observeWithLessons(since = now).first()
+
+        val read = loaded.classes.map { it.id }
+        assertEquals(listOf(anyasInMarch), read.filter { it == anyasInMarch || it == borisesInApril })
+    }
 }

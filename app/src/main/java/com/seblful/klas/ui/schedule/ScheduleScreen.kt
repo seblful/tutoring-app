@@ -20,7 +20,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,6 +31,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.DeleteWarning
 import com.seblful.klas.domain.model.LessonStatus
@@ -85,32 +85,32 @@ fun ScheduleScreen(
 
     // One state for the body: the week holding what is on screen (see [ScheduleViewModel.content]), and
     // the day the day and month views read out of it — which names its own date, see [shownDay].
-    val contentState by viewModel.content.collectAsState()
-    val dayContent by viewModel.shownDay.collectAsState()
-    val date by viewModel.selectedDate.collectAsState()
+    val contentState by viewModel.content.collectAsStateWithLifecycle()
+    val dayContent by viewModel.shownDay.collectAsStateWithLifecycle()
+    val date by viewModel.selectedDate.collectAsStateWithLifecycle()
 
     // Every way in to a booking — the add button, an empty day's — books into the day on screen.
     val addClass = { onAddClass(date) }
-    val canAddClass by viewModel.canAddClass.collectAsState()
+    val canAddClass by viewModel.canAddClass.collectAsStateWithLifecycle()
     // From the view model, so it rolls over at midnight rather than being fixed at composition.
-    val today by viewModel.today.collectAsState()
-    val viewMode by viewModel.viewMode.collectAsState()
-    val month by viewModel.visibleMonth.collectAsState()
-    val grid by viewModel.monthGrid.collectAsState()
-    val week by viewModel.weekDays.collectAsState()
-    val loads by viewModel.dayLoads.collectAsState()
-    val timeConflict by viewModel.timeConflict.collectAsState()
+    val today by viewModel.today.collectAsStateWithLifecycle()
+    val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
+    val month by viewModel.visibleMonth.collectAsStateWithLifecycle()
+    val grid by viewModel.monthGrid.collectAsStateWithLifecycle()
+    val week by viewModel.weekDays.collectAsStateWithLifecycle()
+    val loads by viewModel.dayLoads.collectAsStateWithLifecycle()
+    val timeConflict by viewModel.timeConflict.collectAsStateWithLifecycle()
     // Where "now" falls in the selected day's list, or null when that day is not today — see [NowMarker].
-    val nowMark by viewModel.nowMark.collectAsState()
+    val nowMark by viewModel.nowMark.collectAsStateWithLifecycle()
     // Which lessons are being taught right this minute — see [ScheduleViewModel.running].
-    val running by viewModel.running.collectAsState()
+    val running by viewModel.running.collectAsStateWithLifecycle()
     // Whose lessons are on screen, or null for everyone's. Both the chip and the queries read this one
     // value, so the schedule can never be quietly narrowed with nothing saying so.
-    val studentFilter by viewModel.studentFilter.collectAsState()
-    val filterableStudents by viewModel.filterableStudents.collectAsState()
+    val studentFilter by viewModel.studentFilter.collectAsStateWithLifecycle()
+    val filterableStudents by viewModel.filterableStudents.collectAsStateWithLifecycle()
     // Why an empty schedule is empty — one answer for all three views, so they cannot disagree about
     // whether the tutor is looking at a quiet week or a narrowed one. See [ScheduleEmpty].
-    val emptyReason by viewModel.emptyReason.collectAsState()
+    val emptyReason by viewModel.emptyReason.collectAsStateWithLifecycle()
 
     /** *A change of view is a new page, and a page starts at the top.** */
     val listState = rememberLazyListState()
@@ -132,7 +132,7 @@ fun ScheduleScreen(
     var deletingRow by remember { mutableStateOf<ScheduleRow?>(null) }
 
     // A reminder's tap opens its lesson the way tapping the card does, once the day it is on has loaded.
-    val askedSheet by viewModel.askedSheet.collectAsState()
+    val askedSheet by viewModel.askedSheet.collectAsStateWithLifecycle()
     LaunchedEffect(askedSheet) {
         askedSheet?.let { row ->
             sheetFor = row
@@ -343,7 +343,11 @@ fun ScheduleScreen(
                                         summary = section.summary,
                                     )
                                 }
-                                items(section.rows, key = { lessonKey(ScheduleViewMode.WEEK, it) }) { row ->
+                                items(
+                                    section.rows,
+                                    key = { lessonKey(ScheduleViewMode.WEEK, it) },
+                                    contentType = { "lesson" },
+                                ) { row ->
                                     SwipeToCompleteCard(
                                         row = row,
                                         running = row.session.lessonId in running,
@@ -405,7 +409,7 @@ fun ScheduleScreen(
     sheetFor?.let { row ->
         // Keyed on the lesson, so it is one read per sheet and not one per recomposition of it.
         val homework by remember(row.session.lessonId) { viewModel.homeworkAt(row.session) }
-            .collectAsState(initial = emptyList())
+            .collectAsStateWithLifecycle(initialValue = emptyList())
         val sheetState = rememberModalBottomSheetState()
         val sheetScope = rememberCoroutineScope()
         // An action closes the sheet the way a swipe down does — sliding — and only then does what comes

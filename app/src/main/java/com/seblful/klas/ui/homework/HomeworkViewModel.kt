@@ -103,9 +103,7 @@ class HomeworkViewModel @Inject constructor(
                 lists = HomeworkLists.of(shown, withLessons.classes, captions, today, zone),
                 filter = who,
                 assignees = assignees,
-                filterAssignees = assignees.filter {
-                    HomeworkRules.narrowedTo(taught, it, people.rosters).isNotEmpty()
-                },
+                filterAssignees = HomeworkRules.withHomework(taught, assignees, people.rosters),
                 captions = captions,
                 classes = withLessons.classes,
             )

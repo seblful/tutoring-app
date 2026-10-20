@@ -1,11 +1,10 @@
 package com.seblful.klas.ui.students
 
 import androidx.lifecycle.ViewModel
-import com.seblful.klas.data.billing.PaymentRepository
-import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.billing.BalanceRepository
+import com.seblful.klas.data.billing.balanceOf
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.di.Computation
-import com.seblful.klas.domain.billing.Billing
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
@@ -52,8 +51,7 @@ enum class StudentSort { NAME, DEBT }
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class StudentsViewModel @Inject constructor(
     private val students: StudentRepository,
-    classes: ClassRepository,
-    payments: PaymentRepository,
+    balances: BalanceRepository,
     @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel(), PeopleSide {
 
@@ -78,17 +76,10 @@ class StudentsViewModel @Inject constructor(
     val rows: StateFlow<Loadable<List<StudentRow>>> =
         _showArchived.flatMapLatest { archived ->
             val source = if (archived) students.observeAll() else students.observeActive()
-            combine(
-                source,
-                classes.observeAll(),
-                payments.observeAll(),
-                _query,
-                _sort,
-            ) { studentList, allClasses, allPayments, query, sort ->
-                // Narrowed before the balances, so a search sums the money of the students it shows only.
-                val shown = PeopleSearch.filter(studentList, query) { it.name }
-                val balances = Billing.balancesFor(shown, allClasses, allPayments)
-                shown.zip(balances) { student, balance -> StudentRow(student, balance.balance) }
+            // SQLite sums the balances, so neither a keystroke nor a write re-reads every class ever taught.
+            combine(source, balances.observe(), _query, _sort) { studentList, sums, query, sort ->
+                PeopleSearch.filter(studentList, query) { it.name }
+                    .map { student -> StudentRow(student, sums.balanceOf(student.id).balance) }
                     // The archive after everyone taught now, as the groups list keeps it: sorting by name
                     // alone threaded the retired through the list, and «Показать архив» turned the page
                     // into one where the current students had to be picked out.

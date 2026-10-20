@@ -37,6 +37,29 @@ class ClassRulesTest {
         assertFalse(ClassRules.shouldAutoComplete(cancelled, Instant.parse("2026-06-19T00:00:00Z")))
     }
 
+    @Test
+    fun `the next auto-completion is the earliest end still to come`() {
+        val later = scheduled.copy(id = 2, start = Instant.parse("2026-06-18T12:00:00Z"))
+        val running = Instant.parse("2026-06-18T10:30:00Z")
+
+        assertEquals(
+            Instant.parse("2026-06-18T11:00:00Z"),
+            ClassRules.nextAutoCompletion(listOf(later, scheduled), running),
+        )
+    }
+
+    @Test
+    fun `lessons already overdue or settled do not set the next auto-completion`() {
+        val settled = scheduled.copy(
+            id = 2,
+            start = Instant.parse("2026-06-18T12:00:00Z"),
+            status = LessonStatus.CANCELLED,
+        )
+        val atEnd = Instant.parse("2026-06-18T11:00:00Z")
+
+        assertEquals(null, ClassRules.nextAutoCompletion(listOf(scheduled, settled), atEnd))
+    }
+
     private val priced = scheduled.copy(price = Money.ofMajor(50))
 
     @Test

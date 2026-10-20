@@ -12,7 +12,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - Use `Loadable<T>` (`Loading|Ready`) and skeletons, including forms. `rememberPlaceholderShown` delays
   placeholders 150 ms. `readyOrLoadingAfter` keeps previous content briefly during paging; label it
   with its own key/date, never the newly requested one.
-- End flows with `derive`/`hold`, events with `ShowMessagesFor`/`rememberMessages`. Save through
+- Collect with `collectAsStateWithLifecycle`, so a backgrounded screen stops its flows. End flows with
+  `derive`/`hold`; a table several flows combine is read once through `shared`. Events use
+  `ShowMessagesFor`/`rememberMessages`. Save through
   `appScope.write(events, failure)` or awaited `writeAwaited`; homework shares `HomeworkActions`.
 - Screens open other apps via `rememberExternalApps(messages)`/`ExternalTarget`, files via
   `rememberCreateDocument`/`rememberOpenDocument` returning `DocumentRef`. These report missing handlers
@@ -29,7 +31,11 @@ Build screens from shared state and controls. Feature rules belong in the domain
   no divider. Pass `page` when replacing a non-scrolling body to reset bar tint.
 - Use `SegmentedPage` for fixed views, `PageStepper` for successive pages. Choices use
   `SegmentedChoice`, settings-shaped `ChoiceRow` (segments up to four, then a field), or shortlist chips
-  with an escape hatch. Screen filters share `FilterMenuAction`/`FilterChipRow`.
+  with an escape hatch. Screen filters share `FilterMenuAction`/`FilterChipRow`. Menus draw options
+  through `MenuOptions`: past 12 it adds a search and draws the first 30 matches, since a dropdown
+  composes every item when it opens.
+- A card that can hold hundreds of rows (a report's per-student lines, its debts) is one list item per
+  row, drawn as `CardSlice`s of one surface, not one item composing them all.
 - Follow `Spacing`; page sides use `gutter`. A row gets ripple room from card padding, keeping text
   aligned. Use top-level `ContentCard`, nested `ListItem`; top-level cards lead with a 40 dp `Avatar`
   or `IconAvatar`. Detail cards share `detailCard`: identity → `StatRow` → pinned `StickyViewMenu`.

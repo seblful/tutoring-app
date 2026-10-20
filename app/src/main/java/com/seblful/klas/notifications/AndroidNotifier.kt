@@ -44,58 +44,55 @@ class AndroidNotifier @Inject constructor(
     override fun ensureChannels() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService(NotificationManager::class.java)
+        // One localized context and one binder call for all of them: this runs on every cold start and
+        // before every notification, re-labelling the channels after a language change.
+        val words = words
         // One channel per kind, so each can be tuned or silenced on its own in system settings. The
         // importances are the difference between them stated in the platform's own terms: a reminder
         // interrupts because a lesson is about to start, a digest arrives at an hour the tutor chose, and
         // the upkeep report is news about something already done.
-        manager.createNotificationChannel(
-            channel(
-                CHANNEL_REMINDERS,
-                R.string.reminder_channel_name,
-                R.string.reminder_channel_desc,
-                NotificationManager.IMPORTANCE_HIGH,
-            ),
-        )
-        manager.createNotificationChannel(
-            channel(
-                CHANNEL_AGENDA,
-                R.string.agenda_channel_name,
-                R.string.agenda_channel_desc,
-                NotificationManager.IMPORTANCE_DEFAULT,
-            ),
-        )
-        manager.createNotificationChannel(
-            channel(
-                CHANNEL_UNFINISHED,
-                R.string.unfinished_channel_name,
-                R.string.unfinished_channel_desc,
-                NotificationManager.IMPORTANCE_DEFAULT,
-            ),
-        )
-        manager.createNotificationChannel(
-            channel(
-                CHANNEL_DEBTS,
-                R.string.debts_channel_name,
-                R.string.debts_channel_desc,
-                NotificationManager.IMPORTANCE_DEFAULT,
-            ),
-        )
-        manager.createNotificationChannel(
-            channel(
-                CHANNEL_UPKEEP,
-                R.string.upkeep_channel_name,
-                R.string.upkeep_channel_desc,
-                // LOW: no sound, no peek. The tutor is being told what the app did while they were away,
-                // which is worth being able to read and never worth interrupting anything for.
-                NotificationManager.IMPORTANCE_LOW,
+        manager.createNotificationChannels(
+            listOf(
+                words.channel(
+                    CHANNEL_REMINDERS,
+                    R.string.reminder_channel_name,
+                    R.string.reminder_channel_desc,
+                    NotificationManager.IMPORTANCE_HIGH,
+                ),
+                words.channel(
+                    CHANNEL_AGENDA,
+                    R.string.agenda_channel_name,
+                    R.string.agenda_channel_desc,
+                    NotificationManager.IMPORTANCE_DEFAULT,
+                ),
+                words.channel(
+                    CHANNEL_UNFINISHED,
+                    R.string.unfinished_channel_name,
+                    R.string.unfinished_channel_desc,
+                    NotificationManager.IMPORTANCE_DEFAULT,
+                ),
+                words.channel(
+                    CHANNEL_DEBTS,
+                    R.string.debts_channel_name,
+                    R.string.debts_channel_desc,
+                    NotificationManager.IMPORTANCE_DEFAULT,
+                ),
+                words.channel(
+                    CHANNEL_UPKEEP,
+                    R.string.upkeep_channel_name,
+                    R.string.upkeep_channel_desc,
+                    // LOW: no sound, no peek. The tutor is being told what the app did while they were away,
+                    // which is worth being able to read and never worth interrupting anything for.
+                    NotificationManager.IMPORTANCE_LOW,
+                ),
             ),
         )
     }
 
     @androidx.annotation.RequiresApi(Build.VERSION_CODES.O)
-    private fun channel(id: String, nameRes: Int, descRes: Int, importance: Int): NotificationChannel =
-        NotificationChannel(id, words.getString(nameRes), importance)
-            .apply { description = words.getString(descRes) }
+    private fun Context.channel(id: String, nameRes: Int, descRes: Int, importance: Int): NotificationChannel =
+        NotificationChannel(id, getString(nameRes), importance)
+            .apply { description = getString(descRes) }
 
     /** No-ops silently if notification permission is missing. */
     override fun showClassReminder(

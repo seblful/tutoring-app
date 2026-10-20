@@ -33,10 +33,10 @@ class SettingsChangeTest {
     }
 
     @Test
-    fun `moving the invite switch while synced owes a resync`() {
+    fun `moving the invite switch while synced owes the lessons ahead a resync`() {
         val synced = base.copy(calendarSyncEnabled = true)
         val c = change(before = synced, after = synced.copy(emailInvitesEnabled = true))
-        assertEquals(CalendarWork.RESYNC, c.calendarWork)
+        assertEquals(CalendarWork.RESYNC_UPCOMING, c.calendarWork)
     }
 
     @Test
@@ -49,7 +49,7 @@ class SettingsChangeTest {
     fun `moving the reminder lead owes a resync and a re-plan`() {
         val synced = base.copy(calendarSyncEnabled = true)
         val c = change(before = synced, after = synced.copy(reminderLeadMinutes = 24 * 60))
-        assertEquals(CalendarWork.RESYNC, c.calendarWork, "the lead is baked into every mirrored event")
+        assertEquals(CalendarWork.RESYNC_UPCOMING, c.calendarWork, "the lead is baked into every event ahead")
         assertTrue(c.replansReminders, "and into every armed alarm")
     }
 
@@ -64,7 +64,7 @@ class SettingsChangeTest {
     fun `changing the language while synced owes a resync`() {
         val synced = base.copy(calendarSyncEnabled = true)
         val c = change(before = synced, after = synced.copy(language = AppLanguage.ENGLISH))
-        assertEquals(CalendarWork.RESYNC, c.calendarWork, "a mirrored event's location follows app language")
+        assertEquals(CalendarWork.RESYNC_UPCOMING, c.calendarWork, "an event's location follows app language")
         assertFalse(c.replansReminders, "the alarms carry no words of their own")
     }
 

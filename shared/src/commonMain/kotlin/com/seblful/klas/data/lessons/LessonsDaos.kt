@@ -104,12 +104,22 @@ interface ClassDao {
      * The classes still running at [nowMillis] or starting before [toMillis] — [getBetween] widened back
      * to every lesson that has not yet ended, which is what a reminder plan owes (a lesson in progress
      * still owes the reminder an inexact alarm has not delivered yet).
+     *
+     * [fromMillis] bounds the start from below — no lesson started earlier can still be running — so the
+     * start index is read instead of every past lesson, the end not being indexable.
      */
     @Query(
-        "$CLASS_ROWS WHERE l.startMillis < :toMillis AND l.startMillis + l.durationMinutes * 60000 > :nowMillis " +
-            "ORDER BY l.startMillis",
+        "$CLASS_ROWS WHERE l.startMillis >= :fromMillis AND l.startMillis < :toMillis " +
+            "AND l.startMillis + l.durationMinutes * 60000 > :nowMillis ORDER BY l.startMillis",
     )
-    suspend fun notEndedBefore(nowMillis: Long, toMillis: Long): List<ClassRow>
+    suspend fun notEndedBefore(fromMillis: Long, nowMillis: Long, toMillis: Long): List<ClassRow>
+
+    /** Every class of the lessons [LessonDao.countDueForCompletion] counts — one read, not one per lesson. */
+    @Query(
+        "$CLASS_ROWS WHERE l.status = 'SCHEDULED' AND (l.startMillis + l.durationMinutes * 60000) <= :nowMillis " +
+            "ORDER BY a.id",
+    )
+    suspend fun dueForCompletion(nowMillis: Long): List<ClassRow>
 
     /**
      * The classes that currently mirror a calendar event — the only ones turning sync off has
@@ -117,6 +127,32 @@ interface ClassDao {
      */
     @Query("$CLASS_ROWS WHERE a.calendarEventId IS NOT NULL")
     suspend fun withCalendarEvent(): List<ClassRow>
+
+    /** The classes with an event naming [studentId] in its title or as its guest. */
+    @Query("$CLASS_ROWS WHERE a.calendarEventId IS NOT NULL AND a.studentId = :studentId")
+    suspend fun withCalendarEventForStudent(studentId: Long): List<ClassRow>
+
+    /** The classes with an event naming [subjectId] in its title. */
+    @Query("$CLASS_ROWS WHERE a.calendarEventId IS NOT NULL AND l.subjectId = :subjectId")
+    suspend fun withCalendarEventForSubject(subjectId: Long): List<ClassRow>
+
+    /** The classes with an event naming [groupId] in its title. */
+    @Query("$CLASS_ROWS WHERE a.calendarEventId IS NOT NULL AND l.groupId = :groupId")
+    suspend fun withCalendarEventForGroup(groupId: Long): List<ClassRow>
+
+    /** [studentId]'s classes starting after [afterMillis] — every lesson homework given then can be on. */
+    @Query("$CLASS_ROWS WHERE a.studentId = :studentId AND l.startMillis > :afterMillis ORDER BY l.startMillis")
+    suspend fun forStudentAfter(studentId: Long, afterMillis: Long): List<ClassRow>
+
+    /** [groupId]'s classes starting after [afterMillis], every member's — as [forStudentAfter]. */
+    @Query("$CLASS_ROWS WHERE l.groupId = :groupId AND l.startMillis > :afterMillis ORDER BY l.startMillis")
+    suspend fun forGroupAfter(groupId: Long, afterMillis: Long): List<ClassRow>
+
+    @Query("$CLASS_ROWS WHERE a.studentId = :studentId AND l.startMillis > :afterMillis ORDER BY l.startMillis")
+    fun observeForStudentAfter(studentId: Long, afterMillis: Long): Flow<List<ClassRow>>
+
+    @Query("$CLASS_ROWS WHERE l.groupId = :groupId AND l.startMillis > :afterMillis ORDER BY l.startMillis")
+    fun observeForGroupAfter(groupId: Long, afterMillis: Long): Flow<List<ClassRow>>
 
     /**
      * The classes making up one lesson — its `lessonId`, which is the whole of what makes them one
@@ -155,12 +191,12 @@ interface LessonDao {
     @Query("SELECT * FROM lessons WHERE id = :id")
     suspend fun getById(id: Long): LessonEntity?
 
-    /** Lessons still planned whose end time is at or before [nowMillis] — due for auto-completion. */
+    /** How many lessons still planned end at or before [nowMillis] — due for auto-completion. */
     @Query(
-        "SELECT * FROM lessons WHERE status = 'SCHEDULED' " +
+        "SELECT COUNT(*) FROM lessons WHERE status = 'SCHEDULED' " +
             "AND (startMillis + durationMinutes * 60000) <= :nowMillis",
     )
-    suspend fun dueForCompletion(nowMillis: Long): List<LessonEntity>
+    suspend fun countDueForCompletion(nowMillis: Long): Int
 
     /** How many lessons are taught on [subjectId] — used to block deleting a subject with history. */
     @Query("SELECT COUNT(*) FROM lessons WHERE subjectId = :subjectId")

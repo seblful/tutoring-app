@@ -11,7 +11,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.format.formatDate
@@ -50,8 +50,8 @@ fun BackupScreen(
 ) {
     val messages = rememberMessages()
     var confirmImport by remember { mutableStateOf<DocumentRef?>(null) }
-    val lastExportAt by viewModel.lastExportAt.collectAsState()
-    val importing by viewModel.importing.collectAsState()
+    val lastExportAt by viewModel.lastExportAt.collectAsStateWithLifecycle()
+    val importing by viewModel.importing.collectAsStateWithLifecycle()
 
     val exportSuccess = stringResource(R.string.backup_export_success)
     val importSuccess = stringResource(R.string.backup_import_success)

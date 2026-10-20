@@ -13,7 +13,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.ui.common.ConfirmDialog
@@ -48,8 +48,8 @@ fun SubjectsScreen(
     onBack: () -> Unit,
     viewModel: SubjectsViewModel = metroViewModel(),
 ) {
-    val subjectsState by viewModel.subjects.collectAsState()
-    val query by viewModel.query.collectAsState()
+    val subjectsState by viewModel.subjects.collectAsStateWithLifecycle()
+    val query by viewModel.query.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<Subject?>(null) } // non-null while dialog open
     var adding by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<Subject?>(null) }

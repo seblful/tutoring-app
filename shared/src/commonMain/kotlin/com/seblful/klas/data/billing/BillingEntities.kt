@@ -95,3 +95,6 @@ data class PaymentEntity(
     val dateMillis: Long,
     val amountMinor: Long,
 )
+
+/** One student's summed charges and payments — see [BalanceDao]. */
+data class BalanceRow(val studentId: Long, val chargedMinor: Long, val paidMinor: Long)

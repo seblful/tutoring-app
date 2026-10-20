@@ -15,7 +15,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
@@ -41,7 +41,7 @@ fun DiagnosticsScreen(
     onBack: () -> Unit,
     viewModel: DiagnosticsViewModel = metroViewModel(),
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val messages = rememberMessages()
     val noPickerMsg = stringResource(R.string.student_contact_failed)
     var confirmingClear by remember { mutableStateOf(false) }

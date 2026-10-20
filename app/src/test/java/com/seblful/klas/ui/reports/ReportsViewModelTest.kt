@@ -65,7 +65,7 @@ class ReportsViewModelTest {
 
     private fun vm() =
         ReportsViewModel(
-            ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo, clock),
+            ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.balanceRepo, clock),
             documents, sharing, mainRule.dispatcher, clock,
         )
 
@@ -93,7 +93,7 @@ class ReportsViewModelTest {
         completed(sid, subj, at(2026, 6, 1), 50)
 
         val vm = ReportsViewModel(
-            ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo, lateEvening),
+            ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.balanceRepo, lateEvening),
             documents, sharing, mainRule.dispatcher, lateEvening,
         )
         vm.setKind(ReportPeriod.Kind.MONTH)
@@ -162,7 +162,7 @@ class ReportsViewModelTest {
         completed(sid, subj, at(2027, 1, 3), 40)
 
         val vm = ReportsViewModel(
-            ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo, newYear),
+            ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.balanceRepo, newYear),
             documents, sharing, mainRule.dispatcher, newYear,
         )
         observing(vm.state)
@@ -468,7 +468,7 @@ class ReportsViewModelTest {
             completed(ann, subject, at(thisYear, 5), major = 30)
 
             val vm = ReportsViewModel(
-                ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.paymentRepo, clock),
+                ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.balanceRepo, clock),
                 documents, sharing, counting, clock,
             )
             observing(vm.state)

@@ -22,6 +22,7 @@ import dev.zacsweers.metrox.viewmodel.ManualViewModelAssistedFactory
 import dev.zacsweers.metrox.viewmodel.MetroViewModelFactory
 import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactory
 import dev.zacsweers.metrox.viewmodel.ViewModelGraph
+import kotlinx.coroutines.CoroutineScope
 import kotlin.reflect.KClass
 
 /**
@@ -34,6 +35,10 @@ interface AppGraph : ViewModelGraph {
     val scheduler: ReminderScheduler
     val crashLogger: CrashLogger
     val workerFactory: WorkerFactory
+
+    /** For the application's startup work that need not hold up its first frame. */
+    @ApplicationScope
+    val applicationScope: CoroutineScope
 
     /** Fills a receiver's `@Inject` fields — called first thing in its `onReceive`. */
     fun inject(receiver: ReminderReceiver)

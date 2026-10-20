@@ -3,6 +3,7 @@ package com.seblful.klas.maintenance
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.billing.Billing
+import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.reminders.DigestScheduler
 import com.seblful.klas.domain.reminders.Digests
@@ -53,20 +54,13 @@ class Maintenance @Inject constructor(
         // plan derived over a shorter window than it filters on would quietly drop reminders.
         val lead = s.reminderLeadMinutes.toLong().minutes
         val horizon = Reminders.planningHorizon(lead)
-        scheduler.schedule(
-            Reminders.plan(
-                now = now,
-                // Only the classes the plan could keep, including the reminder's lead time,
-                // not every class ever taught. This runs at
-                // every app start, on every periodic tick and behind every class write, and it used to
-                // read (and map, and parse the status text of) the tutor's whole history each time to
-                // decide about the coming week. `plan` still applies the real filter — the window is
-                // deliberately a superset of it.
-                classes = classes.notEndedWithin(now, horizon),
-                lead = lead,
-                horizon = horizon,
-            ),
-        )
+        // Only the classes the plan could keep, including the reminder's lead time, not every class ever
+        // taught: this runs at every app start, on every periodic tick and behind every class write. `plan`
+        // still applies the real filter — the window is deliberately a superset of it.
+        val upcoming = classes.notEndedWithin(now, horizon)
+        scheduler.schedule(Reminders.plan(now = now, classes = upcoming, lead = lead, horizon = horizon))
+        // A lesson past the horizon ends after the next periodic pass, which re-reads the window.
+        scheduler.scheduleNextPass(if (s.autoCompleteEnabled) ClassRules.nextAutoCompletion(upcoming, now) else null)
         // The three digests are re-planned by the same pass and from the same settings read, for the
         // reason the reminder plan is: this runs at every app start, after a reboot, on every periodic tick and
         // behind every settings change, so there is exactly one place where "what the tutor has asked for"

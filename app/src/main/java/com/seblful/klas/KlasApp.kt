@@ -5,6 +5,7 @@ import androidx.work.Configuration
 import com.seblful.klas.di.AppGraph
 import com.seblful.klas.di.KlasGraph
 import dev.zacsweers.metro.createGraphFactory
+import kotlinx.coroutines.launch
 
 class KlasApp : Application(), Configuration.Provider, AppGraph.Holder {
 
@@ -28,9 +29,11 @@ class KlasApp : Application(), Configuration.Provider, AppGraph.Holder {
         // Record crashes to a local file first, before any startup work can throw. The handler still
         // hands off to the platform default, so Google Play (Android Vitals) keeps reporting them.
         graph.crashLogger.install()
-        graph.notifier.ensureChannels()
-        // The port, not the WorkManager adapter behind it: this was the one place in the app naming a `work/`
-        // class, and it did so only because `ensurePeriodicMaintenance` was missing from the interface.
-        graph.scheduler.ensurePeriodicMaintenance()
+        // Off the main thread: WorkManager initializes on first use, and every cold start runs this —
+        // including one a receiver or worker caused. Posting a notification creates the channels itself.
+        graph.applicationScope.launch {
+            graph.notifier.ensureChannels()
+            graph.scheduler.ensurePeriodicMaintenance()
+        }
     }
 }

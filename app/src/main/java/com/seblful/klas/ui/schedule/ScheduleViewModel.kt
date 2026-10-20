@@ -38,6 +38,7 @@ import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.common.state.map
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.readyOrLoadingAfter
+import com.seblful.klas.ui.common.state.shared
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.write
 import com.seblful.klas.ui.homework.HomeworkActions
@@ -124,9 +125,13 @@ class ScheduleViewModel @Inject constructor(
 
     private val filterStudentId = MutableStateFlow<Long?>(null)
 
+    /** Every student, read once for the filter, the week's captions and the lesson sheet. */
+    private val everyone: Flow<List<Student>> =
+        students.observeAll().shared(this)
+
     /** hose lessons the schedule is showing, or null for everyone's — see [StudentFilter]. */
     val studentFilter: StateFlow<StudentFilter?> =
-        combine(filterStudentId, students.observeAll()) { id, all ->
+        combine(filterStudentId, everyone) { id, all ->
             id?.let { wanted -> all.firstOrNull { it.id == wanted } }
                 ?.let { StudentFilter(it.id, it.name) }
         }
@@ -252,7 +257,7 @@ class ScheduleViewModel @Inject constructor(
                 val bounds = DayBounds.of(week, week.plus(DAYS_IN_WEEK, DateTimeUnit.DAY), zone)
                 combine(
                     classes.observeBetween(bounds.start, bounds.end),
-                    students.observeAll(),
+                    everyone,
                     subjects.observeAll(),
                     groups.observeAll(),
                 ) { readClasses, studentList, subjectList, groupList ->
@@ -457,7 +462,7 @@ class ScheduleViewModel @Inject constructor(
     fun homeworkAt(session: ClassSession): Flow<List<SheetHomework>> =
         combine(
             homework.observeAttachedTo(session),
-            students.observeAll(),
+            everyone,
             groups.observeAll(),
         ) { attached, studentList, groupList ->
             val captions = Captions.of(studentList, emptyList(), groupList)

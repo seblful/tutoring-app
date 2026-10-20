@@ -8,6 +8,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
@@ -33,6 +34,17 @@ class BackupConsistencyTest {
         env.transactor.failAt = env.transactor.count + 1
 
         assertTrue(runCatching { env.backupManager.exportJson() }.isFailure)
+    }
+
+    @Test
+    fun `an export is written compactly and reads back`() = runTest {
+        val subject = env.fixtures.subject()
+        env.fixtures.pricedStudent(subjectId = subject)
+
+        val text = env.backupManager.exportJson()
+
+        assertFalse(text.lines().size > 1, "indentation roughly doubles a large backup")
+        assertEquals(env.backupManager.export(), env.backupManager.parse(text))
     }
 
     @Test

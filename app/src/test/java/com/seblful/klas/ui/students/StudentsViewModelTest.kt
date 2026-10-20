@@ -30,7 +30,7 @@ class StudentsViewModelTest {
     @get:Rule
     val env = TestEnv()
 
-    private fun vm() = StudentsViewModel(env.studentRepo, env.classRepo, env.paymentRepo, mainRule.dispatcher)
+    private fun vm() = StudentsViewModel(env.studentRepo, env.balanceRepo, mainRule.dispatcher)
 
     @Test
     fun `the list is Loading until read, and Ready even when there is nothing`() = runTest(mainRule.dispatcher) {

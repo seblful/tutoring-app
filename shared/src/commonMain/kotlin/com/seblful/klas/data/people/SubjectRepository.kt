@@ -35,8 +35,9 @@ class SubjectRepository @Inject constructor(
 
     /** Saves [subject] and refreshes the event titles carrying its name (see [StudentRepository.upsert]). */
     suspend fun upsert(subject: Subject): Long {
+        val before = dao.getById(subject.id)
         val saved = upsertedId(dao.upsert(subject.toEntity()), subject.id)
-        calendar.refreshForSubject(saved)
+        if (before != null && before.name != subject.toEntity().name) calendar.refreshForSubject(saved)
         return saved
     }
 
@@ -45,12 +46,13 @@ class SubjectRepository @Inject constructor(
      * refused. Two «Математика» cannot be told apart anywhere they are offered.
      */
     suspend fun saveUnlessTaken(subject: Subject): Boolean {
+        val before = dao.getById(subject.id)
         val saved = transactor.transaction {
             val all = dao.getAll().map { it.toDomain() }
             if (SubjectNames.sameAs(subject.name, all, exceptId = subject.id) != null) null
             else upsertedId(dao.upsert(subject.toEntity()), subject.id)
         } ?: return false
-        calendar.refreshForSubject(saved)
+        if (before != null && before.name != subject.toEntity().name) calendar.refreshForSubject(saved)
         return true
     }
 

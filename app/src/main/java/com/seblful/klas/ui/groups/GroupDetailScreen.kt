@@ -17,7 +17,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,6 +28,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Attendance
 import com.seblful.klas.queries.homework.AssigneeChoice
@@ -93,7 +93,7 @@ fun GroupDetailScreen(
 ) {
     // As the student's card: `GroupDetailState()` is an empty group rather than an unread one, so the
     // wait is its own screen instead of a card claiming no members and no lessons. See [Loadable].
-    when (val screenState = viewModel.state.collectAsState().value) {
+    when (val screenState = viewModel.state.collectAsStateWithLifecycle().value) {
         Loadable.Loading -> LoadingDetailScreen(onBack)
         is Loadable.Ready ->
             GroupCard(screenState.value, viewModel, onBack, onEdit, onMemberClick, onLessonClick)

@@ -10,6 +10,7 @@ import com.seblful.klas.domain.lesson.GroupRules
 import com.seblful.klas.domain.lesson.LessonEdit
 import com.seblful.klas.domain.lesson.SessionEdit
 import com.seblful.klas.domain.lesson.SessionRules
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.ClassSession
@@ -99,6 +100,12 @@ class ClassRepository @Inject constructor(
     fun observeForGroup(groupId: Long): Flow<List<TutoringClass>> =
         dao.observeForGroup(groupId).map { list -> list.map { it.toDomain() } }
 
+    /** [who]'s classes starting after [after] — a group's every member's. */
+    fun observeOf(who: Assignee, after: Instant): Flow<List<TutoringClass>> = when (who) {
+        is Assignee.Student -> dao.observeForStudentAfter(who.studentId, after.toEpochMilliseconds())
+        is Assignee.Group -> dao.observeForGroupAfter(who.groupId, after.toEpochMilliseconds())
+    }.map { list -> list.map { it.toDomain() } }
+
     fun observeBetween(from: Instant, to: Instant): Flow<List<TutoringClass>> =
         dao.observeBetween(from.toEpochMilliseconds(), to.toEpochMilliseconds())
             .map { list -> list.map { it.toDomain() } }
@@ -135,8 +142,11 @@ class ClassRepository @Inject constructor(
      * derived from, rather than every class ever taught (see `maintenance/Maintenance`).
      */
     suspend fun notEndedWithin(now: Instant, horizon: Duration): List<TutoringClass> =
-        dao.notEndedBefore(now.toEpochMilliseconds(), (now + horizon + 1.milliseconds).toEpochMilliseconds())
-            .map { it.toDomain() }
+        dao.notEndedBefore(
+            fromMillis = (now - Scheduling.LONGEST_LESSON).toEpochMilliseconds(),
+            nowMillis = now.toEpochMilliseconds(),
+            toMillis = (now + horizon + 1.milliseconds).toEpochMilliseconds(),
+        ).map { it.toDomain() }
 
     /** The classes starting in [[from], [to]) — the upper bound excluded, as [ClassDao.getBetween]'s. */
     suspend fun getBetween(from: Instant, to: Instant): List<TutoringClass> =
@@ -462,7 +472,7 @@ class ClassRepository @Inject constructor(
      * settle if it ran, whether or not the setting that lets it run is on.
      */
     suspend fun countDueForCompletion(now: Instant): Int =
-        lessons.dueForCompletion(now.toEpochMilliseconds()).size
+        lessons.countDueForCompletion(now.toEpochMilliseconds())
 
     /**
      * Auto-completes every scheduled class whose end time has passed, billing its booked price.
@@ -472,14 +482,13 @@ class ClassRepository @Inject constructor(
         // Asked of the lessons, then read back as classes: a lesson is what finishes, and its members are
         // who it bills. `dueForCompletion` used to return a row per member of the same finished hour.
         // The cheap question first, outside a transaction, so a pass with nothing due opens none.
-        if (lessons.dueForCompletion(now.toEpochMilliseconds()).isEmpty()) return emptyList()
+        if (lessons.countDueForCompletion(now.toEpochMilliseconds()) == 0) return emptyList()
         // One pass, one transaction: an upkeep run that recognized half of an evening's income and
         // then failed would leave a group lesson billing some of its members and not the rest. The rows
         // are read inside it, so a lesson cancelled or re-priced since the question was asked is written
         // from what it is now, not from what it was.
         return write(refreshesReminders = false) {
-            val due = lessons.dueForCompletion(now.toEpochMilliseconds()).map { it.id }
-                .flatMap { lessonId -> dao.getSession(lessonId).map { it.toDomain() } }
+            val due = dao.dueForCompletion(now.toEpochMilliseconds()).map { it.toDomain() }
                 .filter { ClassRules.shouldAutoComplete(it, now) }
                 .map { ClassRules.applyStatus(it, LessonStatus.COMPLETED) }
             SessionRules.sessions(due).forEach { rewrite(lesson = it.first, classes = it.classes) }

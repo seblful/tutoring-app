@@ -80,7 +80,7 @@ class SubjectDeletionCascadeTest {
         val mirror = CalendarMirror(
             db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(),
             noCalendar, SettingsRepository(db.settingsDao(), RussianMinskPhone.toDevicePreferences()),
-            db.homeworkDao(),
+            db.homeworkDao(), RoomTransactor(db), WallClock.system(),
         )
         val transactor = RoomTransactor(db)
         val classes = ClassRepository(

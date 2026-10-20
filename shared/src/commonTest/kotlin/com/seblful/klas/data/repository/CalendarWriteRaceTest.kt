@@ -32,7 +32,7 @@ class CalendarWriteRaceTest {
 
     private fun mirror(calendar: CalendarSync) = CalendarMirror(
         env.classDao, env.attendanceDao, env.studentDao, env.subjectDao, env.groupDao,
-        calendar, env.settingsRepo, env.homeworkDao,
+        calendar, env.settingsRepo, env.homeworkDao, env.transactor, env.clock,
     )
 
     @Test

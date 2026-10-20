@@ -36,12 +36,17 @@ class StudentRepository @Inject constructor(
 
     suspend fun getById(id: Long): Student? = dao.getById(id)?.toDomain()
 
-    /** aves [student] and refreshes what their mirrored events say about them. */
+    /** Saves [student] and refreshes what their mirrored events say about them. */
     suspend fun upsert(student: Student): Long {
+        val before = dao.getById(student.id)
+        val row = student.toEntity()
         // An edit answers -1 (see [upsertedId]) — and an edit is exactly the case that needs the
         // refresh at all.
-        val saved = upsertedId(dao.upsert(student.toEntity()), student.id)
-        calendar.refreshForStudent(saved)
+        val saved = upsertedId(dao.upsert(row), student.id)
+        // Their events show only the name (in the title) and the address (as the guest).
+        if (before != null && (before.name != row.name || before.email != row.email)) {
+            calendar.refreshForStudent(saved)
+        }
         return saved
     }
 

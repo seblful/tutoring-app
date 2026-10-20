@@ -17,7 +17,9 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
@@ -46,11 +48,10 @@ class HomeworkRepository @Inject constructor(
         dao.observeForGroup(groupId).map { rows -> rows.map { it.toDomain() } }
 
     /**
-     * Every piece of homework, with the classes from **the earliest current one's giving — or [since], if
-     * that is earlier — onwards, open-ended**: every lesson any of them could be attached to.
+     * Every piece of homework, with **every class from [since] onwards**, open-ended, and for current homework
+     * given before then, its own assignee's classes from its giving: every lesson any of it could be attached to.
      */
-    fun observeWithLessons(since: Instant): Flow<WithLessons> =
-        observeAll().withLessonsFrom { earliestCurrent(it, since) }
+    fun observeWithLessons(since: Instant): Flow<WithLessons> = observeAll().withLessonsFrom(since)
 
     /**
      * A student's homework and their groups' ([observeForStudent]), with the lessons it is attached by —
@@ -59,7 +60,7 @@ class HomeworkRepository @Inject constructor(
      * off their own classes, the card would put it on a different lesson than the tab.
      */
     fun observeForStudentWithLessons(studentId: Long): Flow<WithLessons> =
-        observeForStudent(studentId).withLessonsFrom { earliestCurrent(it, Forever) }
+        observeForStudent(studentId).withLessonsFrom(since = null)
 
     /**
      * The homework attached to [session] ([HomeworkRules.attachedToLesson]) for as long as it is watched —
@@ -76,14 +77,30 @@ class HomeworkRepository @Inject constructor(
      * The **current** homework attached to [session], read once — for its reminder, which asks as it posts.
      */
     suspend fun currentAttachedTo(session: ClassSession): List<Homework> {
-        val current = candidatesFor(session, dao.getAll().map { it.toDomain() }).filterNot { it.isDone }
+        val current = candidatesFor(session, dao.getCurrent().map { it.toDomain() })
         if (current.isEmpty()) return emptyList()
         val lessons = classes.getBetween(earliestGiven(current, session.start), session.start.plus(1.milliseconds))
         return HomeworkRules.attachedToLesson(session, current, lessons)
     }
 
-    private fun Flow<List<Homework>>.withLessonsFrom(start: (List<Homework>) -> Instant): Flow<WithLessons> =
-        flatMapLatest { list -> classes.observeBetween(start(list), Forever).map { WithLessons(list, it) } }
+    /**
+     * The lessons [this] is attached by: everybody's from [since], if any, and each assignee's own from their
+     * oldest current piece given before it — so one piece left from long ago reads that student's lessons since,
+     * not the whole history.
+     */
+    private fun Flow<List<Homework>>.withLessonsFrom(since: Instant?): Flow<WithLessons> = flatMapLatest { list ->
+        val older = list.filter { !it.isDone && (since == null || it.givenAt < since) }
+            .groupBy { it.assignee }
+            .map { (who, theirs) -> classes.observeOf(who, after = theirs.minOf { it.givenAt }) }
+        val reads = listOfNotNull(since?.let { classes.observeBetween(it, Forever) }) + older
+        if (reads.isEmpty()) {
+            flowOf(WithLessons(list, emptyList()))
+        } else {
+            combine(reads) { parts ->
+                WithLessons(list, parts.flatMap { it }.distinctBy { it.id }.sortedBy { it.start })
+            }
+        }
+    }
 
     private fun candidatesFor(session: ClassSession, homework: List<Homework>): List<Homework> =
         homework.filter { hw -> hw.givenAt < session.start && session.classes.any { hw.assignee.takes(it) } }
@@ -142,9 +159,6 @@ class HomeworkRepository @Inject constructor(
     private suspend fun refreshCalendar(assignees: Set<Assignee>, givenAt: Instant) {
         runCatchingCancellable { calendar.refreshHomework(assignees, givenAt) }
     }
-
-    private fun earliestCurrent(homework: List<Homework>, since: Instant): Instant =
-        homework.filterNot { it.isDone }.minOfOrNull { it.givenAt }?.coerceAtMost(since) ?: since
 
     private fun earliestGiven(homework: List<Homework>, fallback: Instant): Instant =
         homework.minOfOrNull { it.givenAt } ?: fallback
