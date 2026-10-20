@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.settings
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -8,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 import com.seblful.klas.data.settings.AppSettings
+import com.seblful.klas.ui.common.Spacing
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
@@ -50,22 +52,29 @@ internal fun NotificationSettingsContent(
     actions: NotificationSettingsActions,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.verticalScroll(rememberScrollState())) {
+    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter)) {
         if (notifications == NotificationDelivery.BLOCKED) {
+            SettingsGroup {
+                SystemSettingsRow(
+                    title = stringResource(R.string.settings_notifications_fix),
+                    description = stringResource(R.string.settings_all_notifications_blocked),
+                    onClick = actions.fixNotifications,
+                )
+            }
+        }
+        SettingsGroup(stringResource(R.string.settings_section_reminders)) {
+            LessonReminderSettings(settings, reminders, actions)
+        }
+        SettingsGroup(stringResource(R.string.settings_section_daily)) { DailySummarySettings(settings, actions) }
+        SettingsGroup(stringResource(R.string.settings_section_weekly)) { WeeklySummarySettings(settings, actions) }
+        // Untitled: a way out to the system's own page, not a section of this one.
+        SettingsGroup {
             SystemSettingsRow(
-                title = stringResource(R.string.settings_notifications_fix),
-                description = stringResource(R.string.settings_all_notifications_blocked),
-                onClick = actions.fixNotifications,
+                title = stringResource(R.string.settings_system_notifications),
+                description = stringResource(R.string.settings_system_notifications_desc),
+                onClick = actions.systemNotifications,
             )
         }
-        LessonReminderSettings(settings, reminders, actions)
-        DailySummarySettings(settings, actions)
-        WeeklySummarySettings(settings, actions)
-        SystemSettingsRow(
-            title = stringResource(R.string.settings_system_notifications),
-            description = stringResource(R.string.settings_system_notifications_desc),
-            onClick = actions.systemNotifications,
-        )
     }
 }
 
@@ -75,7 +84,6 @@ private fun LessonReminderSettings(
     reminders: ReminderDelivery,
     actions: NotificationSettingsActions,
 ) {
-    SectionHeader(stringResource(R.string.settings_section_reminders))
     SwitchRow(
         title = stringResource(R.string.settings_notifications),
         description = when (reminders) {
@@ -107,7 +115,6 @@ private fun LessonReminderSettings(
 
 @Composable
 private fun DailySummarySettings(settings: AppSettings, actions: NotificationSettingsActions) {
-    SectionHeader(stringResource(R.string.settings_section_daily))
     SwitchRow(
         title = stringResource(R.string.settings_agenda),
         description = stringResource(R.string.settings_agenda_desc),
@@ -144,7 +151,6 @@ private fun DailySummarySettings(settings: AppSettings, actions: NotificationSet
 
 @Composable
 private fun WeeklySummarySettings(settings: AppSettings, actions: NotificationSettingsActions) {
-    SectionHeader(stringResource(R.string.settings_section_weekly))
     SwitchRow(
         title = stringResource(R.string.settings_debt_digest),
         description = stringResource(R.string.settings_debt_digest_desc),

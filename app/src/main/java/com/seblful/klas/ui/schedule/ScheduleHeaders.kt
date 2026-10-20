@@ -124,7 +124,7 @@ internal fun PageNavigator(
             ),
         )
         IconButton(onClick = onToday) {
-            Icon(KlasIcons.Filled.Today, stringResource(R.string.schedule_today))
+            Icon(KlasIcons.Outlined.Today, stringResource(R.string.schedule_today))
         }
     }
 }

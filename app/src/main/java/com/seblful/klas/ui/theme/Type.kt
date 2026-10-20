@@ -15,7 +15,12 @@ private val AppFontFamily = FontFamily(
     Font(R.font.golos_text_bold, FontWeight.Bold),
 )
 
-/** The type scale: **every** style stated, none left to the M3 baseline. */
+/**
+ * The type scale: **every** style stated, none left to the M3 baseline.
+ *
+ * Tracking is Golos's, not Roboto's: M3's body and label values (0.25–0.5 sp) open up a face that is
+ * already wide, and set every description and badge visibly loose. Small sizes keep a little more air.
+ */
 val Typography = Typography(
     displayLarge = TextStyle(
         fontFamily = AppFontFamily,
@@ -88,21 +93,21 @@ val Typography = Typography(
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.4.sp,
+        letterSpacing = 0.1.sp,
     ),
     bodyMedium = TextStyle(
         fontFamily = AppFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.2.sp,
+        letterSpacing = 0.1.sp,
     ),
     bodySmall = TextStyle(
         fontFamily = AppFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.3.sp,
+        letterSpacing = 0.15.sp,
     ),
     labelLarge = TextStyle(
         fontFamily = AppFontFamily,
@@ -116,13 +121,13 @@ val Typography = Typography(
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.5.sp,
+        letterSpacing = 0.2.sp,
     ),
     labelSmall = TextStyle(
         fontFamily = AppFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.5.sp,
+        letterSpacing = 0.25.sp,
     ),
 )

@@ -234,8 +234,6 @@
       The empty date and start fields. Short: the start field is the narrow half of a 1.4 : 1 row, about
       98 dp of text on a 360 dp phone, and the label above already says which it is.
     -->
-    <string name="class_pick_date">Выбрать</string>
-    <string name="class_pick_time">Выбрать</string>
     <!-- %1$s: ученик или группа, %2$s: время занятия, которое уже стоит в расписании -->
     <string name="class_time_conflict">Это время занято: %1$s, %2$s</string>
     <!-- Shown when the slot was taken between the form opening and the save. -->
@@ -463,7 +461,6 @@
     <!-- Spoken only. What a row of overlapping monograms is, for a screen reader that would otherwise
          read them as loose letters — and it names every member, not just the four drawn: the «+2» is a
          concession to the width of a list row, and a reader has no width. -->
-    <string name="roster_members">Ученики: %1$s</string>
     <!-- The save kept only the members priced for the group's subject; somebody was left out. -->
     <plurals name="group_members_leaving_confirm">
         <item quantity="one">У %1$d участника нет цены на предмет группы — он выйдет из группы. Сохранить?</item>
@@ -518,7 +515,7 @@
     <string name="settings_notifications_title">Уведомления</string>
     <string name="settings_calendar_title">Календарь и приглашения</string>
     <string name="settings_appearance_title">Язык и оформление</string>
-    <string name="settings_section_defaults">Для новых занятий и групп</string>
+    <string name="settings_section_lessons">Занятия</string>
     <string name="settings_section_billing">Оплата</string>
     <string name="settings_section_daily">Ежедневные сводки</string>
     <string name="settings_section_weekly">Еженедельная сводка</string>
@@ -809,6 +806,13 @@
     -->
     <string name="upkeep_completed_title">Занятия завершены автоматически</string>
 
+    <!-- A students or groups card's lesson line: %1$s a time, or a date -->
+    <string name="people_next_today">Сегодня %1$s</string>
+    <string name="people_next_tomorrow">Завтра %1$s</string>
+    <string name="people_next_weekday">%1$s %2$s</string>
+    <string name="people_last_lesson">Последний раз %1$s</string>
+    <string name="people_no_lessons">Занятий пока нет</string>
+
     <plurals name="students_count">
         <item quantity="one">%1$d ученик</item>
         <item quantity="few">%1$d ученика</item>
@@ -942,11 +946,11 @@
     <!-- %1$s: the side's name, %2$d: how many are on it -->
     <string name="homework_side_count">%1$s · %2$d</string>
     <!-- The line under whose it is. %1$s: when the lesson it is attached to starts. -->
-    <string name="homework_due">К %1$s</string>
+    <string name="homework_due">На %1$s</string>
     <!-- %1$s: the time of today's lesson it is attached to -->
-    <string name="homework_due_today">Сегодня в %1$s</string>
+    <string name="homework_due_today">На сегодня, %1$s</string>
     <!-- %1$s: when the lesson it was attached to started — that lesson is past and it is still not done -->
-    <string name="homework_overdue">Просрочено · к %1$s</string>
+    <string name="homework_overdue">Просрочено · %1$s</string>
     <string name="homework_unbooked">Занятие не назначено</string>
     <!-- In the archive. %1$s: the date it was set -->
     <string name="homework_set_on">Задано %1$s</string>

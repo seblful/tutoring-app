@@ -234,7 +234,7 @@ private fun GroupForm(
                             Text(
                                 stringResource(R.string.group_members_selected, state.selectedMemberIds.size),
                                 style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }

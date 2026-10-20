@@ -6,6 +6,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.data.settings.AppSettings
+import com.seblful.klas.ui.backup.BackupContent
+import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.settings.AppearanceSettingsContent
 import com.seblful.klas.ui.settings.CalendarDelivery
 import com.seblful.klas.ui.settings.CalendarSettingsContent
@@ -16,6 +18,7 @@ import com.seblful.klas.ui.settings.NotificationSettingsContent
 import com.seblful.klas.ui.settings.ReminderDelivery
 import com.seblful.klas.ui.settings.SettingsIndex
 import com.seblful.klas.ui.settings.SettingsNavigation
+import kotlin.time.Instant
 
 @KlasPreview
 @Preview(name = "English", group = "component", showBackground = true, widthDp = 360, locale = "en")
@@ -62,4 +65,23 @@ private fun CalendarSettingsPreview() = PreviewSurface {
 @Composable
 private fun AppearanceSettingsPreview() = PreviewSurface {
     AppearanceSettingsContent(AppSettings(), onUpdate = {}, showDynamicColor = true, Modifier.height(640.dp))
+}
+
+@KlasPreview
+@Preview(name = "English", group = "component", showBackground = true, widthDp = 360, locale = "en")
+@Composable
+private fun BackupPreview() = PreviewSurface {
+    BackupContent(
+        lastExportAt = Loadable.Ready(Instant.parse("2026-05-20T10:00:00Z")),
+        importing = false,
+        onExport = {},
+        onImport = {},
+        modifier = Modifier.height(640.dp),
+    )
+}
+
+@KlasPreview
+@Composable
+private fun BackupNeverPreview() = PreviewSurface {
+    BackupContent(Loadable.Ready(null), importing = true, onExport = {}, onImport = {}, Modifier.height(640.dp))
 }

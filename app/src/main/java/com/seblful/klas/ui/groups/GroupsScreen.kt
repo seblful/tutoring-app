@@ -1,27 +1,16 @@
 package com.seblful.klas.ui.groups
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
+import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.ui.common.ArchivedBadge
-import com.seblful.klas.ui.common.AvatarStack
-import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabListPadding
 import com.seblful.klas.ui.common.IconAvatar
@@ -30,7 +19,8 @@ import com.seblful.klas.ui.common.NoSearchResults
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.state.Loadable
-import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.people.PeopleCard
+import com.seblful.klas.ui.people.lessonLineText
 import com.seblful.klas.ui.theme.KlasIcons
 
 /**
@@ -76,78 +66,31 @@ fun GroupsList(
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         items(rows, key = { it.group.id }) { row ->
-            ContentCard(
-                onClick = { onGroupClick(row.group.id) },
-                modifier = animateInPlace(),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconAvatar(KlasIcons.Outlined.Groups)
-                    Spacer(Modifier.width(Spacing.leading))
-                    Column(Modifier.weight(1f)) {
-                        Text(row.group.name, style = MaterialTheme.typography.titleMedium)
-                        // What the group is taught, when it says. A group from before the subject
-                        // existed shows nothing here rather than a placeholder — it genuinely has no
-                        // answer, and inventing one would be a lie.
-                        row.subjectName?.let { subject ->
-                            // The students list's second line is `bodyMedium`, so this is too: two
-                            // sides of one tab, one row anatomy.
-                            Text(
-                                subject,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        // Faces, not a comma-separated sentence. The roster used to be printed in
-                        // full, so a group of eight became a paragraph inside a list row and the list
-                        // stopped being scannable at exactly the point there were enough groups to
-                        // need scanning. Monograms answer "which group is this" on one line whatever
-                        // the size, and the overflow count carries the rest.
-                        Spacer(Modifier.height(Spacing.tight))
-                        if (row.memberNames.isEmpty()) {
-                            Text(
-                                stringResource(R.string.group_no_members),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        } else {
-                            AvatarStack(names = row.memberNames, ids = row.memberIds)
-                        }
-                    }
-                    // **The rate moved out to the trailing edge**, and with it the row's fourth line.
-                    // A group was four stacked lines against the students list's two — twice the height
-                    // for the same nesting level, in a list the two sides of one tab swap between, so
-                    // switching to «Группы» read as a change of density rather than of subject. Money
-                    // also belongs at the trailing edge on the app's own evidence: it is where a
-                    // student's balance and a settings amount already sit.
-                    Spacer(Modifier.width(Spacing.inline))
-                    // Capped, because a `Row` measures an unweighted child at its intrinsic width
-                    // *before* the weighted name column gets what is left: «1 000 000,00 BYN/час» at a
-                    // large font scale would take the name's room, which is the failure the student
-                    // form's fixed-width price box was just fixed for. Ellipsised rather than clipped —
-                    // a cut-off amount should read as cut off.
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        modifier = Modifier.widthIn(max = TrailingRateWidth),
-                    ) {
-                        Text(
-                            stringResource(R.string.price_per_hour, row.group.price.text()),
-                            // As the group's own card says its rate.
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        // The badge the students list uses, for the same state — it was an italic grey
-                        // word on both.
-                        if (row.group.archived) {
-                            Spacer(Modifier.height(Spacing.tight))
-                            ArchivedBadge()
-                        }
-                    }
-                }
-            }
+            GroupCard(row, onClick = { onGroupClick(row.group.id) }, modifier = animateInPlace())
         }
     }
 }
 
-private val TrailingRateWidth = 132.dp
+/** One group on the list: what it is taught, how many are in it, and when it next meets. */
+@Composable
+internal fun GroupCard(row: GroupRow, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    PeopleCard(
+        title = row.group.name,
+        // The rate is the group page's: it is not what a group is picked by. A row of monograms was here too —
+        // «Д М П Т» names nobody, so it said only how many, which the count says shorter.
+        supporting = bulletJoin(
+            lessonLineText(row.lessons),
+            row.subjectName.orEmpty(),
+            if (row.memberNames.isEmpty()) {
+                stringResource(R.string.group_no_members)
+            } else {
+                pluralStringResource(R.plurals.students_count, row.memberNames.size, row.memberNames.size)
+            },
+        ),
+        onClick = onClick,
+        leading = { IconAvatar(KlasIcons.Outlined.Groups) },
+        modifier = modifier,
+    ) {
+        if (row.group.archived) ArchivedBadge()
+    }
+}

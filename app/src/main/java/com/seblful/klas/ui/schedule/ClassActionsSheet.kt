@@ -88,21 +88,19 @@ internal fun ClassActionsSheet(
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = SheetGutter)) {
             SheetHandle(Modifier.align(Alignment.CenterHorizontally))
-            // Header: which lesson these actions apply to.
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = SheetGutter, vertical = Spacing.tight),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                LessonKindIcon(LessonKind.of(klass), Modifier.padding(end = Spacing.inline))
-                Column(Modifier.weight(1f)) {
+            // Header: which lesson these actions apply to — laid out as the card that was tapped is, the
+            // icon beside the name and the status line under both, not the icon centred on the two lines.
+            Column(Modifier.fillMaxWidth().padding(horizontal = SheetGutter, vertical = Spacing.tight)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LessonKindIcon(LessonKind.of(klass), Modifier.padding(end = Spacing.inline))
                     Text(
                         bulletJoin(klass.start.timeText(), row.title),
                         style = MaterialTheme.typography.titleMedium,
                     )
-                    // The lesson card's own second line — status first — so the sheet opens on the
-                    // row that was tapped, in the same order, rather than a rearrangement of it.
-                    StatusLine(row, running, maxLines = Int.MAX_VALUE)
                 }
+                // The lesson card's own second line — status first — so the sheet opens on the
+                // row that was tapped, in the same order, rather than a rearrangement of it.
+                StatusLine(row, running, maxLines = Int.MAX_VALUE)
             }
 
             // The lesson's state, as a state: every status it can be in, with the current one shown
@@ -112,7 +110,7 @@ internal fun ClassActionsSheet(
             if (row.session.status == LessonStatus.COMPLETED) {
                 SheetAction(
                     stringResource(R.string.class_correct_planned),
-                    KlasIcons.Filled.EditCalendar,
+                    KlasIcons.Filled.Undo,
                     onCorrectCompletion,
                 )
             }
@@ -124,11 +122,11 @@ internal fun ClassActionsSheet(
             if (homework.isNotEmpty()) AttachedHomework(homework, onHomeworkDone)
 
             HorizontalDivider(Modifier.padding(vertical = Spacing.inline))
-            SheetAction(stringResource(R.string.homework_add), KlasIcons.Filled.Assignment, onSetHomework)
+            SheetAction(stringResource(R.string.homework_add), KlasIcons.Outlined.Assignment, onSetHomework)
             SheetAction(stringResource(R.string.add_payment), KlasIcons.Outlined.Payments, onRecordPayment)
             SheetAction(
                 stringResource(if (row.isGroup) R.string.class_open_group else R.string.class_open_student),
-                if (row.isGroup) KlasIcons.Filled.Group else KlasIcons.Filled.Person,
+                if (row.isGroup) KlasIcons.Outlined.Group else KlasIcons.Outlined.Person,
                 onOpenProfile,
             )
 
@@ -137,17 +135,17 @@ internal fun ClassActionsSheet(
             // Editing details (student/subject/price) is allowed in any status; saving a completed
             // class re-bills it so its recognized income tracks the edit (see ClassRules.rebill).
             // A group lesson edits as a whole — every member's class moves and re-bills together.
-            SheetAction(stringResource(R.string.action_edit), KlasIcons.Filled.Edit, onClick = onEdit)
+            SheetAction(stringResource(R.string.action_edit), KlasIcons.Outlined.Edit, onClick = onEdit)
             // Move (reschedule) is offered for any status: moving a lesson to the future re-plans it,
             // moving it to the past just corrects its recorded time. A group lesson moves as one.
-            SheetAction(stringResource(R.string.class_move), KlasIcons.Filled.EditCalendar, onClick = onMove)
+            SheetAction(stringResource(R.string.class_move), KlasIcons.Outlined.EditCalendar, onClick = onMove)
             // Delete is offered for any status. Deleting a completed class removes its recognized
             // income (the confirm dialog warns about this); the repository deletes the calendar
             // event and refreshes reminders regardless of status.
             HorizontalDivider(Modifier.padding(vertical = Spacing.inline))
             SheetAction(
                 stringResource(R.string.action_delete),
-                KlasIcons.Filled.Delete,
+                KlasIcons.Outlined.Delete,
                 onClick = onDelete,
                 destructive = true,
             )

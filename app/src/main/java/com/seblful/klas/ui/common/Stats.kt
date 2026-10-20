@@ -44,20 +44,21 @@ data class Stat(
  */
 @Composable
 fun StatRow(stats: List<Stat>, modifier: Modifier = Modifier) {
-    // A section, not an item: `surfaceContainer`, one rung above the cards in the list beneath it.
+    // A section, not an item: one rung above the cards in the list beneath it.
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.sectionSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
             Modifier.fillMaxWidth().padding(vertical = Spacing.itemGap),
-            verticalAlignment = Alignment.CenterVertically,
+            // Top, so every value sits on one line even when only one tile has a hint under it.
+            verticalAlignment = Alignment.Top,
         ) {
             stats.forEachIndexed { index, stat ->
                 if (index > 0) {
                     VerticalDivider(
-                        Modifier.height(36.dp),
+                        Modifier.height(36.dp).align(Alignment.CenterVertically),
                         color = MaterialTheme.colorScheme.outlineVariant,
                     )
                 }
@@ -101,7 +102,7 @@ private fun StatTile(stat: Stat, modifier: Modifier = Modifier) {
             Text(
                 text = it,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 textAlign = TextAlign.Center,
                 overflow = TextOverflow.Ellipsis,

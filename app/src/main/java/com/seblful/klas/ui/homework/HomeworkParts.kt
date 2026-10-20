@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.homework
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -52,6 +54,7 @@ import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.SwipeReveal
 import com.seblful.klas.ui.common.SwipeToConfirmBox
+import com.seblful.klas.ui.common.SwipeToward
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.insetRowPress
@@ -66,8 +69,12 @@ import com.seblful.klas.ui.theme.klasColors
  * A card's homework, inside the card's own list — a student's or a group's: an add row, the current ones
  * (swiped done, as in the tab), then the done ones under their own heading (swiped back). Tapping one
  * corrects or deletes it. Nested, so rows rather than cards — see [SwipeableHomework].
+ *
+ * @param owner whose card this is. A row names who its homework is for only when that is someone else —
+ * a group's homework on a member's card — not on every row of the group's own card.
  */
 fun LazyListScope.homeworkItems(
+    owner: Assignee?,
     lists: HomeworkLists,
     messages: Messages,
     onAdd: () -> Unit,
@@ -94,6 +101,7 @@ fun LazyListScope.homeworkItems(
             onClick = { onOpen(row) },
             messages = messages,
             nested = true,
+            owner = owner,
             modifier = animateInPlace(),
         )
     }
@@ -117,6 +125,7 @@ fun LazyListScope.homeworkItems(
             onClick = { onOpen(row) },
             messages = messages,
             nested = true,
+            owner = owner,
             modifier = animateInPlace(),
         )
     }
@@ -143,6 +152,7 @@ object HomeworkItemKeys {
  *
  * @param nested whether it stands in a list inside a card (a student's), where a row is a `ListItem` and
  * names who it is for only when that is a group; at the top level (the tab) it is a card of its own.
+ * @param owner the card a nested row stands in; its own homework goes unnamed — see [homeworkItems].
  */
 @Composable
 fun SwipeableHomework(
@@ -152,25 +162,34 @@ fun SwipeableHomework(
     messages: Messages,
     nested: Boolean,
     modifier: Modifier = Modifier,
+    owner: Assignee? = null,
 ) {
     val shape = if (nested) RectangleShape else MaterialTheme.shapes.medium
+    // Toward the list it goes to: done is the tab on the right, current the one on the left. So a row
+    // always takes the way its tab cannot turn, and the other way still turns it.
+    val toward = if (row.isCurrent) SwipeToward.End else SwipeToward.Start
     SwipeToConfirmBox(
         onConfirm = onSwipe,
         modifier = modifier,
-        reveal = { armed -> HomeworkReveal(done = row.isCurrent, armed = armed, shape = shape) },
+        toward = toward,
+        reveal = { armed -> HomeworkReveal(done = row.isCurrent, armed = armed, shape = shape, toward = toward) },
     ) {
         // The swipe's twin for a screen reader, on the same node it reads and taps.
         val swipe = Modifier.swipeAction(
             stringResource(if (row.isCurrent) R.string.homework_done else R.string.homework_restore),
             onSwipe,
         )
-        if (nested) HomeworkListItem(row, messages, onClick, onSwipe, swipe)
-        else HomeworkCard(row, messages, onClick, onSwipe, swipe)
+        val named = row.isGroup && row.homework.assignee != owner
+        if (nested) {
+            HomeworkListItem(row, named, messages, onClick, onSwipe, swipe)
+        } else {
+            HomeworkCard(row, messages, onClick, onSwipe, swipe)
+        }
     }
 }
 
 @Composable
-private fun HomeworkReveal(done: Boolean, armed: Boolean, shape: Shape) {
+private fun HomeworkReveal(done: Boolean, armed: Boolean, shape: Shape, toward: SwipeToward) {
     val (fill, ink) = if (done) {
         klasColors.successContainer to klasColors.onSuccessContainer
     } else {
@@ -184,6 +203,7 @@ private fun HomeworkReveal(done: Boolean, armed: Boolean, shape: Shape) {
         armed = armed,
         shape = shape,
         horizontalPadding = Spacing.gutter,
+        toward = toward,
     )
 }
 
@@ -198,11 +218,8 @@ private fun HomeworkCard(
     ContentCard(onClick = onClick, modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                // **The kind glyph is part of the name, not a column of its own**, as on the schedule's
-                // card: there it prefixes the name and every line below starts on the card's text edge.
-                // Here it used to be a leading column, so the due line was set in under the name while the
-                // homework text below ran out to the card edge — two left edges on one card, and a
-                // different anatomy from the lesson card the same homework is attached to.
+                // **The kind glyph prefixes the name**, as on the schedule's card, and the lines below start
+                // on the glyph's edge, as they do there.
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     LessonKindIcon(
                         if (row.isGroup) LessonKind.GROUP else LessonKind.INDIVIDUAL,
@@ -217,7 +234,7 @@ private fun HomeworkCard(
                 }
                 DueLine(row)
             }
-            if (row.isCurrent) SendHomeworkButton(row, messages)
+            HomeworkActions(row, messages, onDone)
         }
         // A few lines, not the whole of a pasted exercise list: the card is also what is swiped, and a card
         // several screens tall is a poor target. The dialog holds the full text.
@@ -228,15 +245,13 @@ private fun HomeworkCard(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = Spacing.inline),
         )
-        TextButton(onClick = onDone) {
-            Text(stringResource(if (row.isCurrent) R.string.homework_done else R.string.homework_restore))
-        }
     }
 }
 
 @Composable
 private fun HomeworkListItem(
     row: HomeworkRow,
+    named: Boolean,
     messages: Messages,
     onClick: () -> Unit,
     onDone: () -> Unit,
@@ -245,18 +260,13 @@ private fun HomeworkListItem(
     ListItem(
         leadingContent = { LessonKindIcon(if (row.isGroup) LessonKind.GROUP else LessonKind.INDIVIDUAL) },
         headlineContent = { Text(row.text, maxLines = HomeworkPreviewLines, overflow = TextOverflow.Ellipsis) },
-        supportingContent = {
-            Column {
-                DueLine(row, prefix = row.title.takeIf { row.isGroup })
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = onDone) {
-                        Text(stringResource(if (row.isCurrent) R.string.homework_done else R.string.homework_restore))
-                    }
-                    if (row.isCurrent) SendHomeworkButton(row, messages)
-                }
-            }
-        },
+        supportingContent = { DueLine(row, prefix = row.title.takeIf { named }) },
+        trailingContent = { HomeworkActions(row, messages, onDone) },
         modifier = Modifier
+            // Edge to edge, under the inset press shape: the swipe's panel lies behind this row, and the
+            // list item's own fill, clipped to that shape, stops 8 dp short of each side — the first pixels
+            // of a drag showed the panel down both edges.
+            .background(ListItemDefaults.containerColor)
             .insetRowPress { Modifier.clickable(it, indication = null, onClick = onClick) }
             .then(modifier),
     )
@@ -458,6 +468,23 @@ private fun attachedText(choice: AssigneeChoice): String =
 private const val HomeworkDialogLines = 3
 
 /**
+ * A row's buttons: Send while it is current, then Done or Restore — the swipe, for whoever does not know to
+ * swipe. Icons, not words, so a list of homework is not a column of buttons.
+ */
+@Composable
+private fun HomeworkActions(row: HomeworkRow, messages: Messages, onDone: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (row.isCurrent) SendHomeworkButton(row, messages)
+        NamedIconButton(
+            if (row.isCurrent) KlasIcons.Outlined.CheckCircle else KlasIcons.Filled.Undo,
+            stringResource(if (row.isCurrent) R.string.homework_done else R.string.homework_restore),
+            onClick = onDone,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
  * «Отправить»: the homework, worded for the student, into the phone's share sheet — a messenger, in
  * practice, which is where a tutor sends it.
  */
@@ -468,10 +495,11 @@ fun SendHomeworkButton(row: HomeworkRow, messages: Messages) {
     val chooserTitle = stringResource(R.string.homework_send)
     val failed = stringResource(R.string.student_contact_failed)
     NamedIconButton(
-        KlasIcons.Filled.Share,
+        KlasIcons.Outlined.Share,
         chooserTitle,
         onClick = { externalApps.open(ExternalTarget.ShareText(text, chooserTitle), failed) },
-        tint = MaterialTheme.colorScheme.primary,
+        // Quiet: one on every current card, and a column of accent-coloured buttons outshouts the homework.
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 

@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -82,6 +83,7 @@ import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberCreateDocument
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.sectionSurface
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.navigation.Arrival
@@ -170,7 +172,7 @@ fun ReportsScreen(
                 // Kept on screen while a new period assembles, so they don't blink with every arrow tap;
                 // a tap inside that frame or two sends nothing rather than the previous period's file.
                 NamedIconButton(
-                    KlasIcons.Filled.Share,
+                    KlasIcons.Outlined.Share,
                     stringResource(R.string.reports_share),
                     onClick = {
                         if (exportable != null) {
@@ -335,7 +337,11 @@ private fun PeriodNavigator(
         enabled = period.isNavigable,
     ) {
         Box {
-            TextButton(onClick = { expanded = true }) {
+            // Ink like the schedule's page title: the same control in both places, the arrow saying it opens.
+            TextButton(
+                onClick = { expanded = true },
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+            ) {
                 Text(
                     periodTitle(period),
                     style = MaterialTheme.typography.titleMedium,
@@ -678,7 +684,7 @@ private fun CardSlice(
     Surface(
         modifier = Modifier.fillMaxWidth().padding(top = if (first) Spacing.itemGap else 0.dp),
         shape = shape,
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = MaterialTheme.colorScheme.sectionSurface,
     ) {
         Column(
             Modifier.padding(

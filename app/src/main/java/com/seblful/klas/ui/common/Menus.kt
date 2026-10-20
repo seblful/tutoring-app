@@ -68,7 +68,7 @@ fun OverflowMenu(items: @Composable ColumnScope.(close: () -> Unit) -> Unit) {
 fun ArchiveMenuItem(archived: Boolean, onClick: () -> Unit) {
     DropdownMenuItem(
         text = { Text(stringResource(if (archived) R.string.action_unarchive else R.string.action_archive)) },
-        leadingIcon = { Icon(KlasIcons.Filled.Inventory2, contentDescription = null) },
+        leadingIcon = { Icon(KlasIcons.Outlined.Inventory2, contentDescription = null) },
         onClick = onClick,
     )
 }

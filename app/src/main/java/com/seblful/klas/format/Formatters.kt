@@ -28,7 +28,7 @@ private class Formats(val locale: Locale) {
     private val shortMonthOfDay = monthNames(symbols.shortMonths)
 
     val dayMonth: DateTimeFormatter = build { appendPattern("d ").appendText(ChronoField.MONTH_OF_YEAR, monthOfDay) }
-    private val dayShortMonth: DateTimeFormatter =
+    val dayShortMonth: DateTimeFormatter =
         build { appendPattern("d ").appendText(ChronoField.MONTH_OF_YEAR, shortMonthOfDay) }
 
     val date: DateTimeFormatter = build { append(dayShortMonth).appendPattern(" yyyy") }
@@ -101,6 +101,10 @@ fun Instant.formatDateTime(hour12: Boolean): String =
 // "%02d:%02d" for lesson times, a second spelling of the 24-hour face.
 fun LocalDate.formatDate(): String = toJavaLocalDate().format(formats.date)
 fun LocalDate.formatDay(): String = toJavaLocalDate().format(formats.day).capitalizedForDisplay()
+
+/** "12 Sep", or "12 Sep 2025" when it falls outside [thisYear] — a date a list reads in passing. */
+fun LocalDate.formatNearDate(thisYear: Int): String =
+    toJavaLocalDate().format(if (year == thisYear) formats.dayShortMonth else formats.date)
 fun LocalTime.formatTime(hour12: Boolean): String =
     toJavaLocalTime().format(if (hour12) formats.time12 else formats.time)
 
@@ -161,6 +165,9 @@ fun formatMonth(month: YearMonth): String =
 
 /** Short weekday name for a calendar header, e.g. "пн" / "Mon". */
 fun DayOfWeek.shortName(): String = toJavaDayOfWeek().getDisplayName(TextStyle.SHORT_STANDALONE, formats.locale)
+
+/** [shortName] starting a phrase: «Чт 16:00», not «чт 16:00». */
+fun DayOfWeek.shortDisplayName(): String = shortName().capitalizedForDisplay()
 
 /**
  * Formats a week as an inclusive range, dropping whatever the two ends share so the label stays

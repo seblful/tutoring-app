@@ -20,6 +20,8 @@ import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.format.bulletJoin
+import com.seblful.klas.ui.common.BadgeLine
+import com.seblful.klas.ui.common.ColumnTime
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.Spacing
@@ -90,11 +92,13 @@ private fun ScheduleCard(
     val cancelled = row.recedes
     ContentCard(onClick = onClick, modifier = modifier, dimmed = cancelled) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
+            // Ink, not the accent: the time is read, not tapped. A fixed-width column, so every card's
+            // name starts on the same edge whatever the hour.
+            ColumnTime(
                 row.klass.start.timeText(),
                 style = MaterialTheme.typography.titleMedium,
                 color = if (cancelled) MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.primary,
+                else MaterialTheme.colorScheme.onSurface,
                 // Struck through, so the hour reads as one that was given back.
                 textDecoration = if (cancelled) TextDecoration.LineThrough else null,
             )
@@ -119,6 +123,8 @@ private fun ScheduleCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                // Under the icon, not hung under the name: the status pill starts the card's second line on
+                // the same edge as its first.
                 StatusLine(row, running)
                 if (row.isGroup) {
                     Text(
@@ -138,12 +144,7 @@ private fun ScheduleCard(
 
 @Composable
 internal fun StatusLine(row: ScheduleRow, running: Boolean, maxLines: Int = 1) {
-    Row(
-        Modifier.padding(top = Spacing.tight),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        SessionStatusBadge(row, running)
-        Spacer(Modifier.width(Spacing.inline))
+    BadgeLine(badge = { SessionStatusBadge(row, running) }, Modifier.padding(top = Spacing.tight)) {
         Text(
             bulletJoin(row.subjectName, classModeLabel(row.klass.mode)),
             style = MaterialTheme.typography.bodyMedium,

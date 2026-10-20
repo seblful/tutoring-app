@@ -342,7 +342,7 @@ fun OnboardingScreen(
                                     trailingContent = {
                                         IconButton(onClick = { removeSubject(subject) }) {
                                             Icon(
-                                                KlasIcons.Filled.Delete,
+                                                KlasIcons.Outlined.Delete,
                                                 stringResource(R.string.action_delete),
                                             )
                                         }

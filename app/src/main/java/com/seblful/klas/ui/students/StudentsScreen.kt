@@ -1,23 +1,21 @@
 package com.seblful.klas.ui.students
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
+import com.seblful.klas.domain.model.Balance
+import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.ui.common.ArchivedBadge
 import com.seblful.klas.ui.common.Avatar
-import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabListPadding
 import com.seblful.klas.ui.common.ListSkeleton
@@ -25,6 +23,8 @@ import com.seblful.klas.ui.common.NoSearchResults
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.people.PeopleCard
+import com.seblful.klas.ui.people.lessonLineText
 import com.seblful.klas.ui.theme.KlasIcons
 
 /**
@@ -72,32 +72,36 @@ fun StudentsList(
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         items(rows, key = { it.student.id }) { row ->
-            ContentCard(
-                onClick = { onStudentClick(row.student.id) },
-                // Archiving somebody, or re-sorting by debt, moves rows. Without this they teleport,
-                // which reads as a glitch rather than as a change.
-                modifier = animateInPlace(),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Avatar(row.student.name, row.student.id)
-                    Spacer(Modifier.width(Spacing.leading))
-                    Column(Modifier.weight(1f)) {
-                        Text(row.student.name, style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            text = balanceDescription(row.state),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = balanceColor(row.state),
-                        )
-                    }
-                    // A badge, like every other state the app shows. This was an italic grey word — the one
-                    // place a state was said in a *font style* rather than in the pill the lesson statuses
-                    // use, so «в архиве» read as an aside about the row rather than as a fact about the
-                    // student, and the emphasis carried nothing to a screen reader.
-                    if (row.student.archived) {
-                        Spacer(Modifier.width(Spacing.inline))
-                        ArchivedBadge()
-                    }
-                }
+            // Archiving somebody, or re-sorting by debt, moves rows. Without this they teleport, which reads as a
+            // glitch rather than as a change.
+            StudentCard(row, onClick = { onStudentClick(row.student.id) }, modifier = animateInPlace())
+        }
+    }
+}
+
+/** One student on the list: what they take and when they are next taught, with any balance at the name's end. */
+@Composable
+internal fun StudentCard(row: StudentRow, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    PeopleCard(
+        title = row.student.name,
+        supporting = bulletJoin(lessonLineText(row.lessons), row.subjects.joinToString(", ")),
+        onClick = onClick,
+        leading = { Avatar(row.student.name, row.student.id) },
+        modifier = modifier,
+    ) {
+        // Only a balance that is something — a debt or a credit. «Нет задолженности» on most rows was the same
+        // news repeated, and it drowned out the rows that differ.
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
+            if (row.student.archived) ArchivedBadge(Modifier.alignByBaseline())
+            if (row.state != Balance.Settled) {
+                Text(
+                    text = balanceDescription(row.state),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = balanceColor(row.state),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.alignByBaseline(),
+                )
             }
         }
     }

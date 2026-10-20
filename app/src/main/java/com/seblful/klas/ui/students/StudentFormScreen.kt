@@ -6,9 +6,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
@@ -171,10 +171,11 @@ private fun SubjectPrices(
                         },
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // A picture of the state, in the touch target's width: `onCheckedChange = null` drops the
-                    // checkbox's own 48 dp, which left the row 24 dp tall to tap and the price field
-                    // indented past a tick that was not there.
-                    Box(Modifier.size(MinTouchTarget), contentAlignment = Alignment.Center) {
+                    // A picture of the state, a thumb tall: `onCheckedChange = null` drops the checkbox's own
+                    // 48 dp, which left the row 24 dp tall to tap. Only as wide as the tick, though — the
+                    // whole row is the target, and centred in 48 dp the tick stood 12 dp in from the edge
+                    // every field above it starts on.
+                    Box(Modifier.heightIn(min = MinTouchTarget), contentAlignment = Alignment.Center) {
                         Checkbox(checked = selected, onCheckedChange = null)
                     }
                     Text(subject.name, Modifier.padding(start = Spacing.inline))
@@ -198,6 +199,7 @@ private fun SubjectPrices(
     }
 }
 
-private val PriceFieldIndent = MinTouchTarget + Spacing.inline
+/** Material's checkbox — a 20 dp box in 2 dp of padding — and the gap after it: where the subject's name starts. */
+private val PriceFieldIndent = 24.dp + Spacing.inline
 
 private val SubjectRowHeight = MinTouchTarget

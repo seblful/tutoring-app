@@ -1,7 +1,9 @@
 package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,7 +23,7 @@ import com.seblful.klas.ui.theme.klasColors
  * shape the lesson statuses use, and emphasis carries nothing to a screen reader.
  */
 
-/**  small tonal pill — e.g. a class status. The tint is derived from [color]. */
+/** A small tonal pill — e.g. a class status. The tint is derived from [color]. */
 @Composable
 fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
     Box(
@@ -42,7 +44,7 @@ fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
     }
 }
 
-/** в архиве» — a retired student, a retired group, or a member who has left. */
+/** «в архиве» — a retired student, a retired group, or a member who has left. */
 @Composable
 fun ArchivedBadge(modifier: Modifier = Modifier) {
     StatusBadge(
@@ -50,4 +52,27 @@ fun ArchivedBadge(modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier,
     )
+}
+
+/**
+ * A pill and the words beside it, set as **one line of text**: both on a shared baseline, so the line has
+ * one. Centred on each other they sat on two, and `ListItem` reads a supporting slot whose first and last
+ * baselines differ as a second line — it laid two-line rows out as three-line ones, 88 dp tall with their
+ * icon pinned to the top.
+ *
+ * @param badgeFirst the pill before the words (a lesson's status) or after them (a member's «в архиве»).
+ */
+@Composable
+fun BadgeLine(
+    badge: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    badgeFirst: Boolean = true,
+    text: @Composable () -> Unit,
+) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
+        if (badgeFirst) Box(Modifier.alignByBaseline()) { badge() }
+        // Shrinks before the pill does: the words are the half that can be cut.
+        Box(Modifier.alignByBaseline().weight(1f, fill = false)) { text() }
+        if (!badgeFirst) Box(Modifier.alignByBaseline()) { badge() }
+    }
 }

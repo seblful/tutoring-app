@@ -30,13 +30,11 @@ import com.seblful.klas.domain.people.AvatarPalette
 import com.seblful.klas.ui.theme.klasColors
 
 /*
- * Monograms: one student's, and a whole roster's.
+ * Monograms: one student's.
  *
  * The colour keys off the student's **id** rather than their name (`domain/people/AvatarPalette`), so a rename does
  * not move it. A monogram is a *picture* and says nothing to a screen reader — every caller puts the full
- * name in the same row, so [Avatar] clears its own semantics, and [AvatarStack] replaces its children with
- * one description naming every member, including the ones behind «+N»: the truncation is what a row's width
- * can afford, and a reader has no width.
+ * name in the same row, so [Avatar] clears its own semantics.
  */
 
 /**
@@ -57,8 +55,7 @@ fun Avatar(name: String, studentId: Long, modifier: Modifier = Modifier, size: D
     ) {
         Text(
             text = name.trim().firstOrNull()?.uppercase() ?: "?",
-            // Scaled with the circle, so a monogram in an [AvatarStack] is not a full-size letter
-            // cropped by a smaller ring.
+            // Scaled with the circle, so a small monogram is not a full-size letter cropped by a smaller ring.
             style = if (size >= 40.dp) {
                 MaterialTheme.typography.titleMedium
             } else {
@@ -115,68 +112,3 @@ private val AvatarHues = listOf(
     Color(0xFF8D6E63), // brown
     Color(0xFF78909C), // blue grey
 )
-/**
- * A row of overlapping monograms — how a roster is shown where the *names* are not the point.
- *
- * @param names the members, in the order they should appear — **all** of them, however many are drawn.
- * @param ids their student ids — [Avatar] colours by id, so a member keeps their colour everywhere.
- * @param max how many faces to draw before collapsing the remainder into «+N».
- */
-@Composable
-fun AvatarStack(
-    names: List<String>,
-    ids: List<Long>,
-    modifier: Modifier = Modifier,
-    max: Int = 4,
-    size: Dp = 28.dp,
-) {
-    val shown = names.take(max)
-    val overflow = names.size - shown.size
-    val roster = stringResource(R.string.roster_members, names.joinToString(", "))
-    Row(
-        // Cleared and replaced rather than added to: the monograms and the «+2» are the parts, and a
-        // reader that got both the description and the parts would hear the group twice over.
-        modifier.clearAndSetSemantics { contentDescription = roster },
-        // Negative spacing is the overlap: each face tucks under the one before it.
-        horizontalArrangement = Arrangement.spacedBy((-size / 3)),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        shown.forEachIndexed { index, name ->
-            Box(
-                Modifier
-                    .size(size)
-                    .clip(CircleShape)
-                    // A ring in the page's colour is what keeps overlapping faces separable.
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(AvatarRing),
-            ) {
-                Avatar(name, ids.getOrElse(index) { index.toLong() }, size = size - 2.dp)
-            }
-        }
-        if (overflow > 0) {
-            Box(
-                Modifier
-                    .size(size)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(AvatarRing),
-            ) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.secondaryContainer),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        "+$overflow",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                }
-            }
-        }
-    }
-}
-
-private val AvatarRing = 1.dp

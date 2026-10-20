@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedback
@@ -50,6 +51,8 @@ class SwipeToConfirmBoxTest {
                         onConfirm = { confirmed++ },
                         reveal = { armed ->
                             armedNow = armed
+                            // The panel leaves once the row is home, and takes its check with it: gone is not held.
+                            DisposableEffect(Unit) { onDispose { armedNow = false } }
                             Text("Проведено")
                         },
                         modifier = Modifier.testTag(ROW).fillMaxWidth().height(72.dp),

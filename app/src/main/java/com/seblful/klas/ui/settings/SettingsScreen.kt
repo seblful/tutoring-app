@@ -67,49 +67,62 @@ internal fun SettingsIndex(
     navigation: SettingsNavigation,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.verticalScroll(rememberScrollState()).padding(vertical = Spacing.inline)) {
-        SettingsCategoryRow(
-            KlasIcons.Outlined.Language,
-            stringResource(R.string.settings_appearance_title),
-            stringResource(
-                R.string.settings_pair_summary,
-                if (settings.language == AppLanguage.SYSTEM) {
-                    stringResource(R.string.settings_system_language)
-                } else {
-                    languageLabel(settings.language)
-                },
-                stringResource(R.string.settings_theme_summary, themeLabel(settings.themeMode)),
-            ),
-            navigation.appearance,
-        )
-        SettingsCategoryRow(
-            KlasIcons.Outlined.Notifications,
-            stringResource(R.string.settings_notifications_title),
-            notificationSummary(settings, notifications, reminders),
-            navigation.notifications,
-        )
-        SettingsCategoryRow(
-            KlasIcons.Outlined.Payments,
-            stringResource(R.string.settings_lessons_title),
-            stringResource(
-                R.string.settings_pair_summary, durationLabel(settings.defaultLessonMinutes), settings.currency.name,
-            ),
-            navigation.lessons,
-        )
-        SettingsCategoryRow(
-            KlasIcons.Outlined.CalendarMonth,
-            stringResource(R.string.settings_calendar_title),
-            calendarSummary(settings, calendar),
-            navigation.calendar,
-        )
-        SettingsCategoryRow(
-            KlasIcons.Outlined.Info,
-            stringResource(R.string.diagnostics_title),
-            stringResource(R.string.settings_diagnostics_summary),
-            navigation.diagnostics,
-            Modifier.padding(top = Spacing.sectionGap),
-        )
+    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter)) {
+        SettingsGroup { SettingsCategories(settings, notifications, reminders, calendar, navigation) }
+        // Its own card: secondary to the four above, and the break between them now says so.
+        SettingsGroup {
+            SettingsCategoryRow(
+                KlasIcons.Outlined.Info,
+                stringResource(R.string.diagnostics_title),
+                stringResource(R.string.settings_diagnostics_summary),
+                navigation.diagnostics,
+            )
+        }
     }
+}
+
+@Composable
+private fun SettingsCategories(
+    settings: AppSettings,
+    notifications: NotificationDelivery,
+    reminders: ReminderDelivery,
+    calendar: CalendarDelivery,
+    navigation: SettingsNavigation,
+) {
+    SettingsCategoryRow(
+        KlasIcons.Outlined.Language,
+        stringResource(R.string.settings_appearance_title),
+        stringResource(
+            R.string.settings_pair_summary,
+            if (settings.language == AppLanguage.SYSTEM) {
+                stringResource(R.string.settings_system_language)
+            } else {
+                languageLabel(settings.language)
+            },
+            stringResource(R.string.settings_theme_summary, themeLabel(settings.themeMode)),
+        ),
+        navigation.appearance,
+    )
+    SettingsCategoryRow(
+        KlasIcons.Outlined.Notifications,
+        stringResource(R.string.settings_notifications_title),
+        notificationSummary(settings, notifications, reminders),
+        navigation.notifications,
+    )
+    SettingsCategoryRow(
+        KlasIcons.Outlined.Payments,
+        stringResource(R.string.settings_lessons_title),
+        stringResource(
+            R.string.settings_pair_summary, durationLabel(settings.defaultLessonMinutes), settings.currency.name,
+        ),
+        navigation.lessons,
+    )
+    SettingsCategoryRow(
+        KlasIcons.Outlined.CalendarMonth,
+        stringResource(R.string.settings_calendar_title),
+        calendarSummary(settings, calendar),
+        navigation.calendar,
+    )
 }
 
 @Composable
@@ -118,14 +131,14 @@ private fun SettingsCategoryRow(
     title: String,
     summary: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     ListItem(
         leadingContent = { IconAvatar(icon) },
         headlineContent = { Text(title, fontWeight = FontWeight.Medium) },
         supportingContent = { Text(summary, color = MaterialTheme.colorScheme.onSurfaceVariant) },
         trailingContent = { OpensScreenMark() },
-        modifier = modifier.insetRowPress { Modifier.clickable(it, indication = null, onClick = onClick) },
+        colors = settingsRowColors(),
+        modifier = Modifier.insetRowPress { Modifier.clickable(it, indication = null, onClick = onClick) },
     )
 }
 

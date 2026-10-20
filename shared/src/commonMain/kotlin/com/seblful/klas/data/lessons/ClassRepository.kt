@@ -106,6 +106,21 @@ class ClassRepository @Inject constructor(
         is Assignee.Group -> dao.observeForGroupAfter(who.groupId, after.toEpochMilliseconds())
     }.map { list -> list.map { it.toDomain() } }
 
+    /** Each student's nearest lessons at [now], keyed by student; one with no lessons has no entry. */
+    fun observeStudentSpans(now: Instant): Flow<Map<Long, NearestLessons>> =
+        lessons.observeStudentSpans(now.toEpochMilliseconds()).map { it.toNearest() }
+
+    /** Each group's nearest lessons at [now], keyed by group; one with no lessons has no entry. */
+    fun observeGroupSpans(now: Instant): Flow<Map<Long, NearestLessons>> =
+        lessons.observeGroupSpans(now.toEpochMilliseconds()).map { it.toNearest() }
+
+    private fun List<LessonSpan>.toNearest(): Map<Long, NearestLessons> = associate { span ->
+        span.ownerId to NearestLessons(
+            next = span.nextMillis?.let(Instant::fromEpochMilliseconds),
+            last = span.lastMillis?.let(Instant::fromEpochMilliseconds),
+        )
+    }
+
     fun observeBetween(from: Instant, to: Instant): Flow<List<TutoringClass>> =
         dao.observeBetween(from.toEpochMilliseconds(), to.toEpochMilliseconds())
             .map { list -> list.map { it.toDomain() } }

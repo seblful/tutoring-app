@@ -134,7 +134,7 @@ fun SubjectsScreen(
                                         // the card's tap, so the pencil is gone.
                                         IconButton(onClick = { deleting = subject }) {
                                             Icon(
-                                                KlasIcons.Filled.Delete,
+                                                KlasIcons.Outlined.Delete,
                                                 // Named, so a screen reader says which one it deletes.
                                                 stringResource(R.string.subject_delete_named, subject.name),
                                                 // A row's own controls are a rung quieter than its name,

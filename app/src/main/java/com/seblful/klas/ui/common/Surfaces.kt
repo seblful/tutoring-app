@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,8 +33,17 @@ import com.seblful.klas.ui.theme.KlasIcons
  */
 
 /**
- * A tappable surface for one **item** in a content list (a lesson, a student, a group). Gives the
- * main lists a modern, card-based look; settings-style lists keep plain rows on purpose.
+ * The tone an **item** card is drawn in — [ContentCard]. Two rungs above `surfaceContainer`, which is what
+ * the bar tints to on scroll: a card sliding under it must not melt into it. M3's own filled card sits
+ * one rung higher still.
+ */
+val ColorScheme.itemSurface: Color get() = surfaceContainerHigh
+
+/** One rung above [itemSurface]: a **section** holding rows — [SectionCard], the stat strip, a report. */
+val ColorScheme.sectionSurface: Color get() = surfaceContainerHighest
+
+/**
+ * A tappable surface for one **item** in a content list (a lesson, a student, a group).
  *
  * @param dimmed for an item whose content no longer counts — a cancelled lesson. It stays fully
  * legible (it is still a record of something) but stops competing with the lessons that are on.
@@ -49,7 +59,7 @@ fun ContentCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = MaterialTheme.colorScheme.itemSurface
                 .copy(alpha = if (dimmed) DimmedAlpha else 1f),
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -72,7 +82,7 @@ fun SectionCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.sectionSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         content = content,
     )
@@ -85,9 +95,8 @@ private val CardInsetY = 12.dp
 /**
  * The title over one section of a form, a card or a sheet: `titleSmall`, onSurface, said as a heading.
  *
- * @param color for a title that also *marks* something: the settings categories are tinted as the
- * platform's preference categories are, the schedule's day heading as the day selected above it. The
- * size, weight and heading role stay the same — only what the colour says differs.
+ * @param color for a title that also *marks* something — the schedule's day heading, tinted as the day
+ * selected above it. The size, weight and heading role stay the same — only what the colour says differs.
  */
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier, color: Color = Color.Unspecified) {

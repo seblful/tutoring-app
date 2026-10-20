@@ -2,12 +2,16 @@ package com.seblful.klas.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -21,6 +25,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -35,6 +40,7 @@ import com.seblful.klas.ui.common.DialogRadioRow
 import com.seblful.klas.ui.common.DisabledAlpha
 import com.seblful.klas.ui.common.KeepTypedInput
 import com.seblful.klas.ui.common.MoneyTextField
+import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TimePickerModal
@@ -105,14 +111,7 @@ internal fun SwitchRow(
                 onCheckedChange(on)
             }
         },
-        colors = if (enabled) {
-            ListItemDefaults.colors()
-        } else {
-            ListItemDefaults.colors(
-                headlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledAlpha),
-                supportingColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
-            )
-        },
+        colors = settingsRowColors(enabled),
     )
 }
 
@@ -185,7 +184,7 @@ internal fun WeekdayRow(
 }
 
 @Composable
-private fun ValueRow(
+internal fun ValueRow(
     title: String,
     value: String,
     enabled: Boolean,
@@ -200,16 +199,18 @@ private fun ValueRow(
                 value,
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (enabled) {
-                    MaterialTheme.colorScheme.primary
+                    MaterialTheme.colorScheme.onSurfaceVariant
                 } else {
-                    MaterialTheme.colorScheme.primary.copy(alpha = DisabledAlpha)
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha)
                 },
             )
         },
+        // The description stays legible while disabled: it is what says how to enable the row.
         colors = if (enabled) {
-            ListItemDefaults.colors()
+            settingsRowColors()
         } else {
             ListItemDefaults.colors(
+                containerColor = Color.Transparent,
                 headlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledAlpha),
             )
         },
@@ -226,6 +227,7 @@ internal fun SystemSettingsRow(title: String, description: String, onClick: () -
         headlineContent = { Text(title) },
         supportingContent = { Text(description) },
         trailingContent = { Icon(KlasIcons.Filled.OpenInNew, contentDescription = null) },
+        colors = settingsRowColors(),
         modifier = Modifier.insetRowPress {
             Modifier.clickable(it, indication = null, onClickLabel = openLabel, onClick = onClick)
         },
@@ -257,9 +259,10 @@ internal fun MoneyRow(
             Text(
                 amount?.text() ?: stringResource(R.string.settings_not_set),
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
+        colors = settingsRowColors(),
         modifier = Modifier.insetRowPress { Modifier.clickable(it, indication = null) { editing = true } },
     )
     if (editing) {
@@ -306,16 +309,46 @@ internal fun MoneyRow(
     }
 }
 
+/**
+ * One section of a settings page: its title, then its rows **on one card** — the surface every other
+ * screen groups things on, so Settings reads as the same app.
+ *
+ * @param title null for a page's untitled lead section, or the index's categories.
+ */
 @Composable
-internal fun SectionHeader(title: String) {
-    // The app's section title, tinted as a preference category is — said as a heading, so the long list
-    // can be walked by section.
+internal fun SettingsGroup(title: String? = null, content: @Composable ColumnScope.() -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter)) {
+        if (title != null) SectionHeader(title) else Spacer(Modifier.height(Spacing.itemGap))
+        SectionCard {
+            Column(Modifier.padding(vertical = Spacing.inline), content = content)
+        }
+    }
+}
+
+/** A row on a [SettingsGroup]'s card: no surface of its own, dimmed as a whole while it cannot be used. */
+@Composable
+internal fun settingsRowColors(enabled: Boolean = true): ListItemColors =
+    if (enabled) {
+        ListItemDefaults.colors(containerColor = Color.Transparent)
+    } else {
+        ListItemDefaults.colors(
+            containerColor = Color.Transparent,
+            headlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledAlpha),
+            supportingColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
+            leadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
+            trailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
+        )
+    }
+
+@Composable
+private fun SectionHeader(title: String) {
+    // The app's section title, in ink like every other — said as a heading, so the long list can be walked
+    // by section. Set in to the rows' text, not the card's edge.
     SectionTitle(
         title,
-        color = MaterialTheme.colorScheme.primary,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.gutter)
-            .padding(top = Spacing.sectionGap, bottom = Spacing.tight),
+            .padding(top = Spacing.sectionGap, bottom = Spacing.inline),
     )
 }
