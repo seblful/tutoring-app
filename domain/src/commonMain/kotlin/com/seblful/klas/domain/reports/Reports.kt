@@ -17,8 +17,8 @@ import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 
 /**
- * Builds income reports from completed lessons and payments. [of] applies the active-student and period
- * rules and assembles the breakdowns; [trend] also supplies empty time buckets for the chart.
+ * Builds reports from completed lessons and payments, including archived students. [of] applies the
+ * period and assembles breakdowns; [trend] also supplies empty time buckets for the chart.
  */
 object Reports {
 
@@ -152,8 +152,8 @@ object Reports {
     }
 
     /**
-     * Builds [period]'s report. [classes], [students], and [payments] must be unfiltered; this function
-     * includes active students only and applies the period to their income. Names are supplied by the caller.
+     * Builds [period]'s report, retaining archived students' financial history. Source lists must be
+     * unfiltered; only income is clipped to the period, while debt spans all history.
      */
     fun of(
         period: ReportPeriod,
@@ -166,7 +166,7 @@ object Reports {
         /** Today, by the app's clock — what says whether [period] is still going. See [Report.changeToDate]. */
         today: LocalDate,
     ): Report {
-        val activeIds = students.filterNot { it.archived }.map { it.id }.toSet()
+        val studentIds = students.map { it.id }.toSet()
         return of(
             period = period,
             classes = classes,
@@ -174,7 +174,7 @@ object Reports {
             // A balance spans a student's whole history, so it is built from every class and payment —
             // clipping the charges to a period while the payments stay whole would invent credit.
             balances = Billing.balancesFor(students, classes, payments),
-            hasData = classes.any { it.studentId in activeIds } || payments.any { it.studentId in activeIds },
+            hasData = classes.any { it.studentId in studentIds } || payments.any { it.studentId in studentIds },
             subjectNames = subjectNames,
             groupNames = groupNames,
             zone = zone,
@@ -194,7 +194,7 @@ object Reports {
 
     /**
      * [of] from what a database can sum: [classes] need only cover [window], [balances] are each student's
-     * over their whole history, and [hasData] says whether any active student has a class or payment.
+     * over their whole history, and [hasData] says whether any student has a class or payment.
      */
     fun of(
         period: ReportPeriod,
@@ -207,13 +207,12 @@ object Reports {
         zone: TimeZone,
         today: LocalDate,
     ): Report {
-        val activeStudents = students.filter { !it.archived }
-        val activeIds = activeStudents.map { it.id }.toSet()
-        val activeClasses = classes.filter { it.studentId in activeIds }
-        val studentNames = activeStudents.associate { StudentId(it.id) to it.name }
-        val activeBalances = balances.filter { it.studentId in activeIds }
+        val studentIds = students.map { it.id }.toSet()
+        val knownClasses = classes.filter { it.studentId in studentIds }
+        val studentNames = students.associate { StudentId(it.id) to it.name }
+        val knownBalances = balances.filter { it.studentId in studentIds }
 
-        val inPeriod = period.filter(activeClasses, zone)
+        val inPeriod = period.filter(knownClasses, zone)
         val total = totalIncome(inPeriod)
 
         val previous = period.shifted(-1).takeIf { period.isNavigable }
@@ -221,7 +220,7 @@ object Reports {
         val changeNow = elapsed?.let { period.firstDays(it) }?.let { totalIncome(it.filter(inPeriod, zone)) } ?: total
         val changeBefore = previous?.let { p ->
             val days = elapsed?.let { p.firstDays(it) } ?: p.bounds
-            totalIncome(days?.filter(activeClasses, zone) ?: p.filter(activeClasses, zone))
+            totalIncome(days?.filter(knownClasses, zone) ?: p.filter(knownClasses, zone))
         }
 
         return Report(
@@ -229,7 +228,7 @@ object Reports {
             hasData = hasData,
             totalIncome = total,
             taught = Taught.overall(inPeriod),
-            trend = trend(activeClasses, period, zone),
+            trend = trend(knownClasses, period, zone),
             byKind = incomeByKind(inPeriod)
                 .takeIf { it.size > 1 }
                 .orEmpty()
@@ -237,14 +236,14 @@ object Reports {
             byGroup = incomeByGroup(inPeriod).ranked(whole = null) { groupNames[it] },
             bySubject = incomeBySubject(inPeriod).ranked(total) { subjectNames[it] },
             byStudent = incomeByStudent(inPeriod).ranked(total) { studentNames[it] },
-            debts = debts(activeBalances).map {
+            debts = debts(knownBalances).map {
                 Line(
                     label = studentNames[it.student].orEmpty(),
                     amount = it.amount,
                     studentId = it.student.value,
                 )
             },
-            totalOutstanding = totalOutstanding(activeBalances),
+            totalOutstanding = totalOutstanding(knownBalances),
             change = change(changeNow, changeBefore),
             changeToDate = elapsed != null && previous != null,
             previousPeriod = previous,

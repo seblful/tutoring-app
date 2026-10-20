@@ -260,7 +260,7 @@
     <string name="class_group_no_active_members">В группе нет активных участников — все они в архиве</string>
     <string name="class_group_no_members_left">Выберите хотя бы одного участника</string>
     <!-- Hint under the member ticks of a lesson that is already booked, where they change history. -->
-    <string name="class_group_members_editable">Отметьте, кто был на занятии</string>
+    <string name="class_group_members_editable">Выберите записанных на занятие. Отсутствие отмечается в карточке занятия.</string>
     <!-- %1$d: how many unticked members had already been billed for this lesson -->
     <plurals name="class_member_drop_billed_confirm">
         <item quantity="one">%1$d ученик будет убран из проведённого занятия — его занятие и начисленный доход будут удалены. Сохранить?</item>
@@ -275,6 +275,13 @@
 
     <!-- Class status -->
     <string name="class_status_label">Статус</string>
+    <string name="class_series_availability">Свободных дат: %1$d. Занятые даты будут пропущены.</string>
+    <string name="class_attendance_label">Посещаемость</string>
+    <string name="class_attendance_hint">Посещаемость влияет на оплату после отметки «Проведено».</string>
+    <string name="class_attendance_expected">Ожидается</string>
+    <string name="class_attendance_present">Присутствовал</string>
+    <string name="class_attendance_absent">Отсутствовал, без оплаты</string>
+    <string name="class_attendance_absent_billed">Отсутствовал, с оплатой</string>
     <!--
       «В плане», not «Запланировано». Thirteen characters is too many for every place this word has to
       fit: as a badge it took a third of a lesson card and squeezed the lesson's own name into two
@@ -331,7 +338,7 @@
       things at once: a balance leaving the reports, and planned lessons being called off. A counted
       noun goes through <plurals> — see RussianLocale for why «%d занятия» is not an option.
     -->
-    <string name="student_archive_balance_part">У ученика есть незакрытый баланс (%1$s) — в архиве он не попадёт в отчёты.</string>
+    <string name="student_archive_balance_part">У ученика есть незакрытый баланс (%1$s). История останется в отчётах, но ученик не попадёт в еженедельные напоминания о долгах.</string>
     <string name="student_archive_question">Всё равно отправить в архив?</string>
     <!-- %1$d: how many of the student's lessons are still merely planned, and so will be cancelled -->
     <plurals name="student_archive_lessons_part">

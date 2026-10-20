@@ -18,23 +18,29 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   unbilled absence (show no amount).
 - Auto-completion is opt-in: scheduled lessons become completed, and therefore billable, after ending.
   Upkeep and app start catch up; enabling it asks before settling the backlog and reports the result.
-- `Reports.of` covers active students. Debts use all history; income uses `ReportPeriod`. An unfinished
-  period compares with the same elapsed days of the preceding period.
+- Reports retain archived students' earnings and outstanding debts. Debts use all history; income means
+  earned lesson charges within `ReportPeriod`, not cash received. An unfinished period compares with
+  the same elapsed days of the preceding period. Weekly debt reminders cover active students only.
 
 ## Lessons
 
 - `lessons` holds time, subject, mode and status; `attendance` holds each student's attendance, rate
   and charge. `ABSENT_BILLED` charges an absence; only an explicit absence can stop a completed charge.
-- Status is `scheduled → completed | cancelled`; cancellation voids the charge. Moving a lesson edits
-  its time, never its status. `LessonPhase` (`UPCOMING|IN_PROGRESS|OVERDUE|SETTLED`) derives from status
-  and the injected clock; it is not persisted. There is no `missed` or `moved` status.
+- Status is `scheduled → completed | cancelled`; cancellation voids the charge. Moving into the future
+  re-plans a lesson; corrections in the past retain its status. `LessonPhase`
+  (`UPCOMING|IN_PROGRESS|OVERDUE|SETTLED`) derives from status and the injected clock; it is not persisted.
+  There is no `missed` or `moved` status.
 - A lesson carries no tutor notes. Homework is attached by rule, below.
 - Writes take a whole `ClassSession`, except per-person `setAttendance`. Editing/deleting works in any
   status and recalculates charges; deleting a completed lesson removes income and requires a UI warning.
+- The lesson sheet records each student's attendance, including billed absences, without removing their
+  history. The booking form's member ticks change who is booked; removing a member deletes their row.
 - **One tutor, one lesson at a time:** `Scheduling.conflicts` refuses overlap through
-  `LessonWrite.HourTaken`. Back-to-back and past bookings work; cancellation frees the slot.
+  `LessonWrite.HourTaken`. Back-to-back and past bookings work; cancellation frees the slot. A correction
+  that leaves a lesson cancelled reserves no time, even if another lesson has reused its slot.
 - Repeating bookings write ordinary lessons in one transaction (`Recurrence`, `bookSeries`). Taken
-  slots are reported as `SeriesWrite`; there is no series entity or bulk “cancel the rest”. See
+  slots are skipped, including the first date; Save requires at least one free occurrence. Results are
+  reported as `SeriesWrite`; there is no series entity or bulk “cancel the rest”. See
   `Recurrence`'s KDoc for why.
 
 ## Homework

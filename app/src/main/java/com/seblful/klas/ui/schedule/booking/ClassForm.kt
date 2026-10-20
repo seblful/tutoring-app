@@ -46,9 +46,8 @@ data class ClassForm(
     val price: MoneyField = MoneyField(kind = MoneyField.Kind.RATE),
     val mode: ClassMode = ClassMode.IN_PERSON,
     /**
-     * Members left out of **this one** group lesson. Someone away this week is not off the roster, so
-     * the exclusion lives on the form and not on the group: it decides which classes the lesson has
-     * and is forgotten afterwards.
+     * Members not booked into this lesson. This changes its roster; attendance corrections preserve
+     * booked members and are made in the lesson sheet.
      */
     val excludedMemberIds: Set<Long> = emptySet(),
     /** hether this booking writes the one lesson or a run of them — see [Repeat]. */

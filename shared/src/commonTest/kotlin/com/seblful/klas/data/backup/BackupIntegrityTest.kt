@@ -156,7 +156,8 @@ class BackupIntegrityTest {
     @Test
     fun `a supported file with readable names parses`() {
         val parsed = env.backupManager.parse(
-            """{"version": 5, "classes": [{$legacyClassJson, "status": "COMPLETED", "mode": "REMOTE"}]}""",
+            """{"version": 5, "subjects": [], "students": [],
+               "classes": [{$legacyClassJson, "status": "COMPLETED", "mode": "REMOTE"}]}""",
         )
 
         assertEquals(listOf(validClass.copy(priceMinor = 0, chargeMinor = 0)), parsed.classes)

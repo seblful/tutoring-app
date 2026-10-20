@@ -12,9 +12,7 @@ object GroupRules {
     /**
      * How [session]'s roster has to change for the lesson to cover exactly [wanted].
      *
-     * Who was in a lesson is a fact the tutor may correct afterwards — somebody turned out not to
-     * have come, somebody came who was never ticked — so this is expressible for a lesson in any
-     * status, past or future. What it must not do is invent history: a joiner joins **the lesson**, so
+     * Corrects who was booked, independently of attendance, in any status. A joiner joins **the lesson**, so
      * they get its id and its status, and their attendance follows from it — somebody added to a lesson
      * that was taught was in it, and owes exactly what being in it owed, while somebody added to one
      * still to come is merely expected.

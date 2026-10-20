@@ -141,10 +141,10 @@ class DueDigest @Inject constructor(
     /**
      * Posts the weekly summary of who owes money, and reports whether it did.
      *
-     * **Active students only**, by the same rule reports follow: archiving a student is how a tutor says
+     * **Active students only**: archiving a student is how a tutor says
      * they have stopped teaching them, and a weekly reminder about a retired student's balance would make
      * that a decision with a cost. It is also why the app warns before archiving somebody in debt — the
-     * debt does not vanish, it simply stops being chased here.
+     * debt remains in reports, but stops being chased here.
      *
      * A balance spans a student's **whole history** and is deliberately not clipped to a period, which is
      * the one exception `Reports` documents: charges from this year against payments from every year would

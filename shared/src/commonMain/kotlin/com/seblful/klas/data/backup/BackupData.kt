@@ -17,6 +17,7 @@ import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.Required
 import kotlinx.serialization.Serializable
 
 /**
@@ -134,9 +135,11 @@ fun AttendanceEntity.toBackup() = BackupAttendance(
  */
 @Serializable
 data class BackupData(
-    val version: Int = CURRENT_VERSION,
-    val subjects: List<SubjectEntity> = emptyList(),
-    val students: List<StudentEntity> = emptyList(),
+    // Every supported export has this envelope, even when empty. Defaults remain useful to callers,
+    // but JSON must name these fields so an unrelated object cannot become an empty replacement.
+    @Required val version: Int = CURRENT_VERSION,
+    @Required val subjects: List<SubjectEntity> = emptyList(),
+    @Required val students: List<StudentEntity> = emptyList(),
     val studentSubjects: List<StudentSubjectCrossRef> = emptyList(),
     val groups: List<GroupEntity> = emptyList(),
     val groupMembers: List<GroupMemberCrossRef> = emptyList(),

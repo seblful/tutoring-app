@@ -116,9 +116,8 @@ sealed interface ArchiveIntent {
     /**
      * Ask first, and say what it costs.
      *
-     * @param openBalance the balance that would leave the reports, or null when it is [Balance.Settled].
-     * Either case counts: an over-payment is credit the tutor owes back, and it disappears from the
-     * reports just as a debt does — which is why this is "not settled" rather than "owes".
+     * @param openBalance an unsettled balance to mention before stopping weekly debt reminders;
+     * null when [Balance.Settled]. Credit is also unsettled money the tutor still owes back.
      * @param upcomingLessons how many planned lessons would be called off; 0 when none would.
      */
     data class Confirm(val openBalance: Balance?, val upcomingLessons: Int) : ArchiveIntent

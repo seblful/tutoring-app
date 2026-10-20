@@ -14,6 +14,7 @@ import com.seblful.klas.di.FirstDayOfWeek
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.LessonStatus
@@ -419,6 +420,12 @@ class ScheduleViewModel @Inject constructor(
                 // Written, or deleted underneath the sheet: either way the schedule already shows it.
                 is LessonWrite.Written, LessonWrite.Gone -> Unit
             }
+        }
+    }
+
+    fun setAttendance(klass: TutoringClass, attended: Attended) {
+        write {
+            if (classes.setAttendance(klass, attended).isEmpty()) events.send(Event.LESSON_GONE)
         }
     }
 

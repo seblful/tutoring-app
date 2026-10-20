@@ -257,7 +257,6 @@ private fun GroupForm(
     }
 }
 
-// The member picker's row is `MemberPickRow` in ui/common/Fields.kt now — the booking form picks
-// who was at a lesson with the same control, which is the same act and used to look nothing like it.
+// The group and booking forms share MemberPickRow for roster membership.
 
 private val TitleKeyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
