@@ -129,6 +129,18 @@
         <item quantity="other">%1$d lessons</item>
     </plurals>
     <string name="class_add_title">New lesson</string>
+    <!-- The schedule's quick-book sheet: a short booking, filled in from the chosen person's last lesson. -->
+    <string name="class_quick_everyone">All…</string>
+    <string name="class_quick_not_set">Not set</string>
+    <!-- %1$s: the date of the lesson the booking was filled in from. -->
+    <string name="class_quick_filled_from">Filled in from the lesson on %1$s</string>
+    <string name="class_quick_all_fields">All fields</string>
+    <string name="class_quick_book">Book</string>
+    <string name="class_quick_change">Change</string>
+    <plurals name="class_quick_lessons">
+        <item quantity="one">%1$d lesson</item>
+        <item quantity="other">%1$d lessons</item>
+    </plurals>
     <string name="class_edit_title">Edit lesson</string>
     <string name="class_student_label">Student</string>
     <string name="class_subject_label">Subject</string>

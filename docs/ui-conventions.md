@@ -123,6 +123,12 @@ Build screens from shared state and controls. Feature rules belong in the domain
   inside the week. Summaries are count·hours·money (`DaySummary`); show “now” only today. Completion is
   an undoable green swipe; cancelled lessons recede with a red badge. Book by duration, starting on the
   selected schedule day.
+- Schedule books through `QuickBookSheet`: recently taught people as chips (`QuickTargets`, «All…» for
+  the rest), then one value row per fact, filled from their last lesson and changed through a menu or
+  picker. It is its own `ClassEditViewModel` (`BookingArgs`), so rules, conflicts and save match the full
+  form; «All fields» hands the booking over as `ClassEdit.draft`, still unsaved. Its rate and place stay
+  readable on their rows (the full form never folds them); a refused save is said on the sheet, where a
+  snackbar would be hidden; dismissing discards without asking. Profiles still open the full form.
 - Lesson context opens homework, payment entry and profiles for the named student/group. Group payments
   first ask who paid; completing a lesson never creates a payment. Profiles book through the same form.
 - Setup detours push over the unfinished booking/group form and return created IDs through its navigation

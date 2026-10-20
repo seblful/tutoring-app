@@ -5,6 +5,7 @@ import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.format.MoneyField
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertEquals
@@ -139,8 +140,11 @@ class BookingFormTest {
 
         assertEquals(eleventhA.id, applied.form.form.groupId)
         assertEquals(
-            "and it goes to read that group's rate",
-            listOf(Lookup.GroupOf(eleventhA.id)),
+            "and it goes to read that group's rate, and its last lesson",
+            listOf(
+                Lookup.GroupOf(eleventhA.id),
+                Lookup.PreviousOf(SubjectKey(ClassTarget.GROUP, studentId = null, groupId = eleventhA.id)),
+            ),
             applied.lookups,
         )
     }
@@ -334,5 +338,106 @@ class BookingFormTest {
         )
 
         assertTrue(edited.touched)
+    }
+
+    // ---- The lesson before ---------------------------------------------------------------------
+
+    private val lastThursday = PreviousLesson(
+        date = LocalDate(2026, 10, 15),
+        start = LocalTime(16, 30),
+        minutes = 90,
+        subjectId = 3,
+        mode = ClassMode.IN_PERSON,
+    )
+
+    private fun BookingForm.withPrevious(previous: PreviousLesson = lastThursday): BookingForm =
+        after(BookingIntent.PreviousLoaded(SubjectKey.of(form), previous))
+
+    @Test
+    fun `choosing somebody goes to look up their last lesson`() {
+        assertEquals(
+            listOf(
+                Lookup.OnlySubjectFor(SubjectKey(ClassTarget.STUDENT, anya.id, null)),
+                Lookup.PreviousOf(SubjectKey(ClassTarget.STUDENT, anya.id, null)),
+            ),
+            lookupsFor(BookingIntent.ChooseStudent(anya.id)),
+        )
+    }
+
+    @Test
+    fun `a student's last lesson fills the hour, length, place and subject, and asks for today's rate`() {
+        val chosen = BookingForm().after(BookingIntent.DefaultLength(60), BookingIntent.ChooseStudent(anya.id))
+
+        val applied = chosen.change(BookingIntent.PreviousLoaded(SubjectKey.of(chosen.form), lastThursday), context)
+
+        val form = applied.form.form
+        assertEquals(LocalTime(16, 30), form.timeFrom)
+        assertEquals(90, form.durationMinutes)
+        assertEquals("the lesson's place, over the student's usual one", ClassMode.IN_PERSON, form.mode)
+        assertEquals(3L, form.subjectId)
+        assertEquals(LocalDate(2026, 10, 15), applied.form.filledFrom)
+        assertEquals(
+            "the price is the current rate, not the old lesson's",
+            listOf(Lookup.PriceOf(anya.id, 3)),
+            applied.lookups,
+        )
+    }
+
+    @Test
+    fun `a start already picked keeps its length when the last lesson arrives`() {
+        val filled = BookingForm()
+            .after(
+                BookingIntent.ChooseStudent(anya.id),
+                BookingIntent.StartAt(LocalTime(10, 0)),
+                BookingIntent.LastsFor(45),
+            )
+            .withPrevious()
+
+        assertEquals(LocalTime(10, 0), filled.form.timeFrom)
+        assertEquals(45, filled.form.durationMinutes)
+        assertEquals("the rest still comes from it", 3L, filled.form.subjectId)
+    }
+
+    @Test
+    fun `a group's last lesson gives only its hour - the group decides the rest`() {
+        val filled = BookingForm()
+            .after(
+                BookingIntent.ChooseTarget(ClassTarget.GROUP),
+                BookingIntent.ChooseGroup(evening.id),
+            )
+            .withPrevious(lastThursday.copy(mode = ClassMode.REMOTE))
+            .after(BookingIntent.GroupLoaded(evening))
+
+        assertEquals(LocalTime(16, 30), filled.form.timeFrom)
+        assertEquals(90, filled.form.durationMinutes)
+        assertEquals(evening.defaultMode, filled.form.mode)
+        assertNull("the group has no subject, and the last lesson's is not taken", filled.form.subjectId)
+    }
+
+    @Test
+    fun `the last lesson is ignored once somebody else is chosen`() {
+        val first = BookingForm().after(BookingIntent.ChooseStudent(anya.id))
+        val stale = BookingIntent.PreviousLoaded(SubjectKey.of(first.form), lastThursday)
+
+        val moved = first.after(BookingIntent.ChooseStudent(boris.id), stale)
+
+        assertNull(moved.form.timeFrom)
+        assertNull(moved.filledFrom)
+    }
+
+    @Test
+    fun `choosing again forgets what the form was filled from`() {
+        val filled = BookingForm().after(BookingIntent.ChooseStudent(anya.id)).withPrevious()
+
+        assertNull(filled.after(BookingIntent.ChooseStudent(boris.id)).filledFrom)
+    }
+
+    @Test
+    fun `filling from the last lesson leaves a preselected form clean`() {
+        val opened = BookingForm()
+            .after(BookingIntent.ChooseStudent(anya.id, known = anya).asSetup())
+            .withPrevious()
+
+        assertFalse(opened.touched)
     }
 }

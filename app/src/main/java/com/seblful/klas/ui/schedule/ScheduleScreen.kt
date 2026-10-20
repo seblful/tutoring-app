@@ -58,6 +58,7 @@ import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.navigation.Arrival
+import com.seblful.klas.ui.schedule.booking.QuickBookSheet
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.launch
@@ -66,8 +67,11 @@ import kotlinx.datetime.LocalDate
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleScreen(
-    /** Books a lesson, opening its date picker on the day given — the one the schedule is on. */
-    onAddClass: (LocalDate) -> Unit,
+    /**
+     * The full booking form, carrying what the quick-book sheet had filled in (its «All fields») as the
+     * route's `draft` — see [QuickBookSheet].
+     */
+    onOpenBookingForm: (draft: String) -> Unit,
     onEditClass: (Long) -> Unit,
     onAddStudent: () -> Unit,
     onOpenStudent: (Long) -> Unit = {},
@@ -95,8 +99,10 @@ fun ScheduleScreen(
     val dayContent by viewModel.shownDay.collectAsStateWithLifecycle()
     val date by viewModel.selectedDate.collectAsStateWithLifecycle()
 
-    // Every way in to a booking — the add button, an empty day's — books into the day on screen.
-    val addClass = { onAddClass(date) }
+    // Every way in to a booking — the add button, an empty day's — opens the quick-book sheet on the day
+    // on screen. Held as the day it was opened for, so paging the schedule behind it moves nothing.
+    var bookingOn by remember { mutableStateOf<LocalDate?>(null) }
+    val addClass = { bookingOn = date }
     val canAddClass by viewModel.canAddClass.collectAsStateWithLifecycle()
     // From the view model, so it rolls over at midnight rather than being fixed at composition.
     val today by viewModel.today.collectAsStateWithLifecycle()
@@ -474,6 +480,14 @@ fun ScheduleScreen(
             onOpenProfile = {
                 closeSheet { row.session.groupId?.let(onOpenGroup) ?: onOpenStudent(row.klass.studentId) }
             },
+        )
+    }
+
+    bookingOn?.let { day ->
+        QuickBookSheet(
+            day = day,
+            onDismiss = { bookingOn = null },
+            onAllFields = onOpenBookingForm,
         )
     }
 

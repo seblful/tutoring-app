@@ -17,6 +17,7 @@ import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.lesson.GroupRules
 import com.seblful.klas.domain.lesson.SessionEdit
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
@@ -62,6 +63,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -84,7 +86,8 @@ class ClassEditViewModel @AssistedInject constructor(
     @ViewModelAssistedFactoryKey(ClassEditViewModel::class)
     @ContributesIntoMap(AppScope::class)
     fun interface Factory : ViewModelAssistedFactory {
-        override fun create(extras: CreationExtras): ClassEditViewModel = create(extras.createSavedStateHandle())
+        override fun create(extras: CreationExtras): ClassEditViewModel =
+            create(extras[BookingArgs]?.let(::SavedStateHandle) ?: extras.createSavedStateHandle())
 
         fun create(@Assisted savedStateHandle: SavedStateHandle): ClassEditViewModel
     }
@@ -96,6 +99,9 @@ class ClassEditViewModel @AssistedInject constructor(
     private val preselectedStudentId: Long = savedStateHandle["student"] ?: 0L
 
     private val openedOnDay: LocalDate? = savedStateHandle.get<String>("day")?.let(LocalDate::parse)
+
+    /** What the quick-book sheet had filled in when «All fields» brought it here — see [BookingDraft]. */
+    private val draft: BookingForm? = savedStateHandle.get<String>("draft")?.let(BookingDraft::decode)
 
     val isNew: Boolean = classId == 0L
 
@@ -121,7 +127,9 @@ class ClassEditViewModel @AssistedInject constructor(
      */
     val gone: StateFlow<Boolean> = _gone.asStateFlow()
 
-    private val booking = MutableStateFlow(BookingForm(form = ClassForm(date = openedOnDay.takeIf { isNew })))
+    private val booking = MutableStateFlow(
+        draft?.takeIf { isNew } ?: BookingForm(form = ClassForm(date = openedOnDay.takeIf { isNew })),
+    )
 
     private val form: Flow<ClassForm> = booking.map { it.form }
 
@@ -286,11 +294,41 @@ class ClassEditViewModel @AssistedInject constructor(
                     booked = booked?.classes.orEmpty(),
                     conflict = clash.first,
                     availableOccurrences = clash.available,
+                    filledFrom = held.filledFrom,
                     isDirty = isTouched,
                 ),
             )
         }
             .derive(this, computation, Loadable.Loading)
+
+    /** The quick-book sheet's chips — see [QuickTargets.pick]. Empty for a form, which never reads it. */
+    val quickTargets: StateFlow<List<QuickTarget>> =
+        combine(
+            classes.observeRecentlyTaught(clock.now(), QuickTargets.SHOWN),
+            allStudents,
+            allGroups,
+            form.map { it.assignee }.distinctUntilChanged(),
+        ) { recent, studentList, groupList, chosen ->
+            QuickTargets.pick(recent, studentList, groupList, chosen)
+        }
+            .derive(this, computation, emptyList())
+
+    /** Picks [who] from the sheet's chips or its «All…» — the target and the one in it, as one choice. */
+    fun choose(who: Assignee) {
+        when (who) {
+            is Assignee.Student -> {
+                change(BookingIntent.ChooseTarget(ClassTarget.STUDENT))
+                change(BookingIntent.ChooseStudent(who.studentId))
+            }
+            is Assignee.Group -> {
+                change(BookingIntent.ChooseTarget(ClassTarget.GROUP))
+                change(BookingIntent.ChooseGroup(who.groupId))
+            }
+        }
+    }
+
+    /** This booking as the full form's `draft` argument — «All fields». */
+    fun draft(): String = BookingDraft.encode(booking.value)
 
     private fun describe(clash: ClassSession, students: List<Student>, groups: List<Group>): TimeConflict =
         TimeConflict.of(
@@ -307,6 +345,8 @@ class ClassEditViewModel @AssistedInject constructor(
                 loadExisting()
                 filled.value = true
             }
+        } else if (draft != null) {
+            // The sheet already made every choice the branches below would make on its behalf.
         } else if (preselectedGroupId != 0L) {
             // Not the tutor's work, so neither marks the form unsaved — see [BookingIntent.isEdit].
             change(BookingIntent.ChooseTarget(ClassTarget.GROUP).asSetup())
@@ -328,7 +368,7 @@ class ClassEditViewModel @AssistedInject constructor(
         }
         // Auto-select the only student there is (a new class, before any choice). With several
         // students, the user picks — we don't guess.
-        if (isNew && preselectedStudentId == 0L) {
+        if (isNew && preselectedStudentId == 0L && draft == null) {
             viewModelScope.launch {
                 // Initial convenience only. Setup detours return the created student's ID explicitly.
                 val only = studentsRepo.observeActive().first().singleOrNull() ?: return@launch
@@ -435,7 +475,29 @@ class ClassEditViewModel @AssistedInject constructor(
                 // Setup returns re-check a missing subject through refreshChoices.
                 is Lookup.OnlySubjectFor -> subjectsFor(lookup.askedFor).first().subjects.singleOrNull()
                     ?.let { change(BookingIntent.OnlySubject(lookup.askedFor, it.id)) }
+
+                is Lookup.PreviousOf -> previousOf(lookup.askedFor)
+                    ?.let { change(BookingIntent.PreviousLoaded(lookup.askedFor, it)) }
             }
+        }
+    }
+
+    /**
+     * [key]'s last lesson before the day being booked (before now, while there is no day yet), as the
+     * new booking's starting point. An edit has its own lesson, so only a new booking looks.
+     */
+    private suspend fun previousOf(key: SubjectKey): PreviousLesson? {
+        val who = key.assignee?.takeIf { isNew } ?: return null
+        val before = currentForm.date?.atStartOfDayIn(zone) ?: clock.now()
+        return classes.lastLessonOf(who, before)?.let { last ->
+            val at = last.start.toLocalDateTime(zone)
+            PreviousLesson(
+                date = at.date,
+                start = at.time,
+                minutes = last.durationMinutes,
+                subjectId = last.subjectId,
+                mode = last.mode,
+            )
         }
     }
 
@@ -693,3 +755,9 @@ class ClassEditViewModel @AssistedInject constructor(
             filter { !archived(it) || id(it) == selected }
     }
 }
+
+/**
+ * Arguments for a booking form that is not a navigation destination — the schedule's quick-book sheet —
+ * handed to [ClassEditViewModel.Factory] in its `CreationExtras`, under the names a route gives them.
+ */
+val BookingArgs: CreationExtras.Key<Map<String, Any?>> = object : CreationExtras.Key<Map<String, Any?>> {}
