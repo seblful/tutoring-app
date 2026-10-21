@@ -33,10 +33,3 @@ object TargetChoices {
         return if (selected in picked) picked else listOf(selected) + picked.dropLast(1)
     }
 }
-
-/** Who [ClassForm] is booking for, or null while it has nobody. */
-internal val ClassForm.assignee: Assignee?
-    get() = when (target) {
-        ClassTarget.STUDENT -> studentId?.let(Assignee::Student)
-        ClassTarget.GROUP -> groupId?.let(Assignee::Group)
-    }

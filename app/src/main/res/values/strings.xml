@@ -156,8 +156,6 @@
     <string name="class_student_label">Student</string>
     <string name="class_subject_label">Subject</string>
     <string name="class_no_subjects_for_student">This student has no priced subjects. Set a price on their card.</string>
-    <string name="class_date_label">Date</string>
-    <string name="class_time_from_label">Starts</string>
     <!--
       Length, chosen as a duration rather than as an end time: a tutor arranges "an hour and a half",
       not "ends at 15:30". The chips carry the common answers; "Other" asks for the rest.
@@ -219,10 +217,8 @@
     <string name="class_gone_detail">It was deleted after this was opened. Go back to the schedule to find the lesson you need.</string>
     <string name="class_delete_confirm">Delete this lesson?</string>
     <string name="class_delete_completed_confirm">This lesson was taught. Deleting it will remove its charge from the student\'s balance. Delete?</string>
-    <string name="class_target_student">Student</string>
     <string name="class_target_group">Group</string>
     <string name="class_group_label">Group</string>
-    <string name="class_no_groups">No groups yet. Create one first.</string>
     <string name="class_no_subjects_for_group">Add subjects first</string>
     <string name="class_group_members_title">Members</string>
     <string name="class_group_no_active_members">Nobody in this group can be booked: its members are archived</string>

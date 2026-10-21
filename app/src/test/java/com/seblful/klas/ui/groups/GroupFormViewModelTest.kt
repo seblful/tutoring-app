@@ -84,7 +84,7 @@ class GroupFormViewModelTest {
         val id = env.groupRepo.save(
             Group(name = "11 «А»", price = Money.ofMajor(20)),
             memberIds = setOf(ann),
-        ).id
+        )
 
         val vm = vm(id)
         assertEquals(Loadable.Loading, vm.state.value)
@@ -182,7 +182,7 @@ class GroupFormViewModelTest {
     fun `editing loads the group's rate and roster, and re-saving replaces them`() =
         runTest(mainRule.dispatcher) {
             val (ann, bob) = seedStudents()
-            val id = env.groupRepo.save(Group(name = "Группа", price = Money.ofMajor(20)), setOf(ann)).id
+            val id = env.groupRepo.save(Group(name = "Группа", price = Money.ofMajor(20)), setOf(ann))
 
             val vm = vm(id)
             observing(vm.state)
@@ -257,7 +257,7 @@ class GroupFormViewModelTest {
     @Test
     fun `an edited group is clean until changed, and clean again once saved`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
-        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann)).id
+        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann))
 
         val vm = vm(id)
         observing(vm.state)
@@ -286,7 +286,7 @@ class GroupFormViewModelTest {
     fun `the default never overwrites the rate of a group being edited`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
         env.settingsRepo.update { it.copy(defaultGroupPrice = Money.ofMajor(15)) }
-        val id = env.groupRepo.save(Group(name = "Группа", price = Money.ofMajor(40)), setOf(ann)).id
+        val id = env.groupRepo.save(Group(name = "Группа", price = Money.ofMajor(40)), setOf(ann))
 
         val vm = vm(id)
         observing(vm.state)
@@ -329,7 +329,7 @@ class GroupFormViewModelTest {
         val id = env.groupRepo.save(
             Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)),
             setOf(ann, bob),
-        ).id
+        )
         env.enrollmentRepo.unenroll(ann, chem)
 
         val vm = vm(id)
@@ -353,7 +353,7 @@ class GroupFormViewModelTest {
         val id = env.groupRepo.save(
             Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)),
             setOf(ann),
-        ).id
+        )
         env.enrollmentRepo.unenroll(ann, chem)
 
         val vm = vm(id)
@@ -373,7 +373,7 @@ class GroupFormViewModelTest {
         val id = env.groupRepo.save(
             Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)),
             setOf(ann),
-        ).id
+        )
 
         val vm = vm(id)
         observing(vm.state)
@@ -473,7 +473,7 @@ class GroupFormViewModelTest {
     @Test
     fun `the form carries the group's rate history, newest first`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
-        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann)).id
+        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann))
         env.groupRepo.save(env.groupRepo.getById(id)!!.copy(price = Money.ofMajor(25)), setOf(ann))
 
         val vm = vm(id)
@@ -501,13 +501,12 @@ class GroupFormViewModelTest {
     @Test
     fun `saving the form keeps the group retired`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
-        val id = env.groupRepo.save(Group(name = "Выпускники", price = Money.ofMajor(20)), setOf(ann)).id
+        val id = env.groupRepo.save(Group(name = "Выпускники", price = Money.ofMajor(20)), setOf(ann))
         env.groupRepo.setArchived(env.groupRepo.getById(id)!!, true)
 
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()
-        assertTrue("the form loaded the flag", vm.state.current.archived)
 
         vm.update { it.copy(name = "Выпускники 2024") }
         vm.save { }

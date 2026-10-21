@@ -269,7 +269,7 @@ class ScheduleContentTest : ScheduleTestFixture() {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
+        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
         val wednesday = LocalDate(2026, 7, 15)
         val at = startMillisOn(wednesday, LocalTime(12, 0))
         env.fixtures.storedClass(
@@ -308,7 +308,7 @@ class ScheduleContentTest : ScheduleTestFixture() {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
+        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
         val today = Clock.System.todayIn(zone)
         val at = startMillisOn(today, LocalTime(12, 0))
         env.fixtures.storedClass(

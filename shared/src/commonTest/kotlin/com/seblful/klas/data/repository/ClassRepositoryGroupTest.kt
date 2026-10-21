@@ -44,7 +44,7 @@ class ClassRepositoryGroupTest {
         ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        groupId = env.groupRepo.save(Group(name = "11 «А»", price = groupRate), setOf(ann, bob)).id
+        groupId = env.groupRepo.save(Group(name = "11 «А»", price = groupRate), setOf(ann, bob))
     }
 
     private val groupRate = Money.ofMajor(20)

@@ -68,9 +68,6 @@ const val CLASS_ROWS: String =
 @Dao
 interface ClassDao {
     @Query("$CLASS_ROWS WHERE a.id = :id")
-    fun observeById(id: Long): Flow<ClassRow?>
-
-    @Query("$CLASS_ROWS WHERE a.id = :id")
     suspend fun getById(id: Long): ClassRow?
 
     @Query("$CLASS_ROWS ORDER BY l.startMillis")
@@ -203,9 +200,6 @@ interface ClassDao {
  */
 @Dao
 interface LessonDao {
-    @Query("SELECT * FROM lessons WHERE id = :id")
-    suspend fun getById(id: Long): LessonEntity?
-
     /** How many lessons still planned end at or before [nowMillis] — due for auto-completion. */
     @Query(
         "SELECT COUNT(*) FROM lessons WHERE status = 'SCHEDULED' " +

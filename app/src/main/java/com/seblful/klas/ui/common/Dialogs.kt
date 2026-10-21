@@ -24,7 +24,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.window.DialogProperties
 import com.seblful.klas.R
 
@@ -54,21 +53,16 @@ fun ConfirmDialog(
 
 internal val KeepTypedInput = DialogProperties(dismissOnClickOutside = false)
 /**
- * A dialog with a single text field. Used for naming subjects, entering amounts, etc.
+ * A dialog for naming a subject. Confirmation requires a non-blank name.
  *
- * @param keyboardType numeric for amounts, text otherwise.
  * @param capitalization how the keyboard starts a word — a subject's name is written as one.
- * @param validate gates the confirm button (in addition to non-blank). For amounts this prevents
- * silently dismissing on an unparseable value — the action stays disabled until the input is valid.
  */
 @Composable
 fun TextFieldDialog(
     title: String,
     label: String,
     initial: String,
-    keyboardType: KeyboardType = KeyboardType.Text,
     capitalization: KeyboardCapitalization = KeyboardCapitalization.None,
-    validate: (String) -> Boolean = { true },
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -89,14 +83,14 @@ fun TextFieldDialog(
                 onValueChange = { value = it },
                 label = { Text(label) },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = keyboardType, capitalization = capitalization),
+                keyboardOptions = KeyboardOptions(capitalization = capitalization),
                 modifier = Modifier.fillMaxWidth().focusRequester(focus),
             )
         },
         confirmButton = {
             TextButton(
                 onClick = { onConfirm(value); onDismiss() },
-                enabled = value.isNotBlank() && validate(value),
+                enabled = value.isNotBlank(),
             ) { Text(stringResource(R.string.action_save)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },

@@ -56,17 +56,10 @@ enum class LessonFilter {
         GROUP -> kind == LessonKind.GROUP
     }
 
-    fun apply(classes: List<TutoringClass>): List<TutoringClass> = accepted(classes) { LessonKind.of(it) }
-
     /**
      * [items] this filter accepts, for anything that can say its own [kind].
      *
-     * The `List<TutoringClass>` form above could not be used by the one screen that filters by kind: a
-     * student's lesson list is rows that have already resolved their kind, not raw classes. So the
-     * screen spelled `filter { accepts(it.kind) }` itself and the tested domain function sat unused
-     * beside it — one rule, two implementations, and only the untested one shipping.
-     *
-     * Named `accepted` rather than overloading `apply`, which every type already has from the standard
+     * Named `accepted` rather than `apply`, which every type already has from the standard
      * library: with a trailing lambda the compiler picks `T.apply` and the call stops meaning this.
      */
     fun <T> accepted(items: List<T>, kind: (T) -> LessonKind): List<T> = items.filter { accepts(kind(it)) }

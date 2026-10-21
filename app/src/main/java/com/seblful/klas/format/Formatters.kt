@@ -85,7 +85,6 @@ fun Instant.toLocalTime(): LocalTime = toLocalDateTime(zone).time
 private fun Instant.javaZoned(): ZonedDateTime = toJavaInstant().atZone(zone.toJavaZoneId())
 
 fun Instant.formatDate(): String = javaZoned().format(formats.date)
-fun Instant.formatDay(): String = javaZoned().format(formats.day).capitalizedForDisplay()
 
 /**
  * A clock is the one format the *phone* has an opinion about, so these take it as an argument — and

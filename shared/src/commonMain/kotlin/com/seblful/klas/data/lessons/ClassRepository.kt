@@ -86,8 +86,6 @@ class ClassRepository @Inject constructor(
     private val reminderScheduler: ReminderScheduler,
     private val transactor: Transactor,
 ) {
-    fun observeById(id: Long): Flow<TutoringClass?> = dao.observeById(id).map { it?.toDomain() }
-
     fun observeAll(): Flow<List<TutoringClass>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
 
     fun observeForStudent(studentId: Long): Flow<List<TutoringClass>> =
@@ -137,19 +135,7 @@ class ClassRepository @Inject constructor(
             .map { list -> list.map { it.toDomain() } }
 
     /**
-     * The lessons already occupying [slot] — [Scheduling.conflicts] over the classes around it — so a
-     * booking form can show the clash as the tutor picks a time. [editing] is the lesson **being
-     * edited**, which must not be found colliding with itself; null while booking something new.
-     */
-    fun observeConflicts(slot: Scheduling.Slot, editing: ClassSession? = null): Flow<List<ClassSession>> {
-        val window = Scheduling.windowFor(slot)
-        val ignoring = editing?.ids.orEmpty()
-        return observeBetween(window.from, window.toExclusive).map { Scheduling.conflicts(slot, it, ignoring) }
-    }
-
-    /**
-     * [observeConflicts] as a one-shot read — the check every (re)occupying write below makes
-     * against the database it is about to write.
+     * The lessons occupying [slot], read once against the database each write is about to change.
      */
     suspend fun conflictsWith(slot: Scheduling.Slot, ignoring: Set<Long> = emptySet()): List<ClassSession> {
         val window = Scheduling.windowFor(slot)
@@ -305,7 +291,6 @@ class ClassRepository @Inject constructor(
         studentIds: Collection<Long>,
         price: Money,
         groupId: Long? = null,
-        notes: String = "",
     ): SeriesWrite {
         require(studentIds.isNotEmpty()) { "A lesson needs at least one student" }
         require(durationMinutes > 0) { "A lesson lasts a positive number of minutes, not $durationMinutes" }
@@ -509,9 +494,6 @@ class ClassRepository @Inject constructor(
             Committed(cancelled + excused, mirror = cancelled + excused)
         }
     }
-
-    suspend fun nextScheduledAfter(now: Instant): TutoringClass? =
-        dao.nextScheduledAfter(now.toEpochMilliseconds())?.toDomain()
 
     /**
      * How many **lessons** are waiting to be auto-completed at [now] — what [autoCompleteDue] would

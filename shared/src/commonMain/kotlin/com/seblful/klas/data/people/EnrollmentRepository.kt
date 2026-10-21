@@ -104,27 +104,6 @@ class EnrollmentRepository @Inject constructor(
         transactor.transaction { record(studentId, subjectId, price) }
     }
 
-    /**
-     * Replaces a student's enrollments wholesale with [pricedSubjects] (subjectId → price): links the
-     * chosen subjects, sets each price, and drops any subject — link and price together — no longer
-     * present, keeping the two in step. Returns the subjects it **refused** to drop.
-     */
-    suspend fun setEnrollments(studentId: Long, pricedSubjects: Map<Long, Money>): Set<Long> {
-        val current = studentDao.getSubjectIds(studentId).toSet()
-        val target = pricedSubjects.keys
-        // Read outside the transaction: these decide *whether* to drop, and a refusal writes nothing.
-        val undroppable = (current - target)
-            .filter { classes.anyForStudentSubject(studentId, it) }
-            .toSet()
-        transactor.transaction {
-            (current - target - undroppable).forEach { unlink(studentId, it) }
-            pricedSubjects.forEach { (subjectId, price) ->
-                if (subjectId in current) record(studentId, subjectId, price) else link(studentId, subjectId, price)
-            }
-        }
-        return undroppable
-    }
-
     private suspend fun link(studentId: Long, subjectId: Long, price: Money) {
         studentDao.addSubjectLink(StudentSubjectCrossRef(studentId, subjectId))
         record(studentId, subjectId, price)

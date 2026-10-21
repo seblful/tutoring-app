@@ -69,5 +69,5 @@
     return { at, crossing };
   }
 
-  root.filmParts = { exposures, counting, swipe, SHUTTER };
+  root.filmParts = { exposures, counting, swipe };
 })(globalThis);

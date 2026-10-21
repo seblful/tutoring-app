@@ -45,8 +45,6 @@ class GroupRepository @Inject constructor(
 
     suspend fun getById(id: Long): Group? = dao.getById(id)?.toDomain()
 
-    suspend fun getAll(): List<Group> = dao.getAll().map { it.toDomain() }
-
     fun observeMemberIds(groupId: Long): Flow<List<Long>> = dao.observeMemberIds(groupId)
 
     suspend fun getMemberIds(groupId: Long): List<Long> = dao.getMemberIds(groupId)
@@ -66,17 +64,10 @@ class GroupRepository @Inject constructor(
         }
 
     /**
-     * What [save] did: the group's [id] (assigned on insert), and the members it **left out** —
-     * asked for, but not priced for the group's subject.
-     */
-    data class Saved(val id: Long, val dropped: Set<Long>)
-
-    /**
      * Creates or updates [group] and makes its roster exactly the eligible part of [memberIds] —
-     * links the new members and drops the ones no longer listed. Returns [Saved]: the group's id,
-     * and who was left out.
+     * links the new members and drops the ones no longer listed. Returns the group's id.
      */
-    suspend fun save(group: Group, memberIds: Set<Long>): Saved {
+    suspend fun save(group: Group, memberIds: Set<Long>): Long {
         // Both reads sit outside the transaction: neither depends on anything written inside it, and
         // the eligibility read in particular hits another table for a decision, not for a row to write.
         val previousRate = rateHistory.currentRate(RateOwner.GroupRate(group.id))
@@ -99,7 +90,7 @@ class GroupRepository @Inject constructor(
         // makes n overlapping events read as one lesson, so a rename makes every mirrored event of
         // its lessons wrong — and is the only part of a save they show. See [CalendarMirror].
         if (previousName != null && previousName != group.name) calendar.refreshForGroup(id)
-        return Saved(id, dropped = memberIds - wanted)
+        return id
     }
 
     private suspend fun eligible(group: Group, memberIds: Set<Long>): Set<Long> {

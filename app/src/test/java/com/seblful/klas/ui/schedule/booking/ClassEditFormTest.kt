@@ -243,7 +243,7 @@ class ClassEditFormTest : ClassEditTestFixture() {
         val groupId = env.groupRepo.save(
             Group(name = "11 «А»", price = Money.ofMajor(20), subjectId = subjectId),
             setOf(studentId),
-        ).id
+        )
 
         val vm = vm(groupId = groupId)
         observing(vm.state)

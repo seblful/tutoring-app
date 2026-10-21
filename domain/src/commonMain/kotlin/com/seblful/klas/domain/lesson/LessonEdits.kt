@@ -43,9 +43,6 @@ data class RosterChange(
     val dropped: List<TutoringClass> = emptyList(),
     val joining: List<TutoringClass> = emptyList(),
 ) {
-    /** The lesson keeps exactly the members it had. */
-    val isEmpty: Boolean get() = dropped.isEmpty() && joining.isEmpty()
-
     /**
      * The leavers whose class had already billed. Removing those takes income the student was
      * charged with them, so it is worth asking about first — the same warning deleting a completed

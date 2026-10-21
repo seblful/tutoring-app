@@ -16,9 +16,6 @@ export const LOGO = join(RES, "drawable-nodpi", "ic_logo.png");
  */
 export const ICON_MARK = (1 - 2 * 0.2037) * (108 / 72);
 
-/** The app's screen as captured: 412 × 915 dp. */
-export const SCREEN = { width: 412, height: 915 };
-
 /** The app's own font, Golos Text, in the four weights it ships. */
 export function fontFaces() {
   const font = (file, weight) =>
