@@ -38,7 +38,7 @@ class BookingTimelineTest {
 
     private fun at(hour: Int, minute: Int = 0) = day.atTime(hour, minute).toInstant(TimeZone.UTC)
 
-    // 9:00–21:00 with Мария 15:00–18:00: the bar's middle quarter.
+    // 9:00–23:00 with Мария 15:00–18:00: the bar from three to five fourteenths.
     private val maria =
         DayTimeline.Lesson(Scheduling.Slot(at(15), 180), "Мария", Assignee.Student(1), ClassMode.REMOTE)
     private val timeline = DayTimeline.of(day, TimeZone.UTC, listOf(maria))
@@ -70,8 +70,8 @@ class BookingTimelineTest {
     fun `a tap on free time is read as the time under it`() {
         show()
 
-        // 12:00 is a quarter of the way along 9:00–21:00.
-        compose.onNodeWithTag(TIMELINE_TAG).performTouchInput { click(Offset(width * 0.25f, centerY)) }
+        // 12:00 is three fourteenths of the way along 9:00–23:00.
+        compose.onNodeWithTag(TIMELINE_TAG).performTouchInput { click(Offset(width * 3f / 14, centerY)) }
         compose.waitForIdle()
 
         val tapped = placed!!
@@ -105,8 +105,8 @@ class BookingTimelineTest {
     fun `a slide moves the lesson half as far as the finger, in five-minute steps`() {
         show(chosen = Scheduling.Slot(at(12), 60))
 
-        // A tenth of the bar — 72 minutes of it — past the touch slop, from wherever the finger lands: the
-        // lesson goes 36 minutes later than 12:00, whose nearest five-minute step is 12:35.
+        // A tenth of the bar — 84 minutes of it — past the touch slop, from wherever the finger lands: the
+        // lesson goes 42 minutes later than 12:00, whose nearest five-minute step is 12:40.
         compose.onNodeWithTag(TIMELINE_TAG).performTouchInput {
             val from = width * 0.05f
             down(Offset(from, centerY))
@@ -120,7 +120,7 @@ class BookingTimelineTest {
         compose.onNodeWithTag(TIMELINE_TAG).performTouchInput { up() }
         compose.waitForIdle()
 
-        assertEquals(at(12, 35), placed)
+        assertEquals(at(12, 40), placed)
     }
 
     @Test
@@ -132,7 +132,7 @@ class BookingTimelineTest {
         compose.onNodeWithTag(TIMELINE_TAG).performTouchInput {
             val from = width * 0.05f
             down(Offset(from, centerY))
-            listOf(0.2f, 0.4f, 440f / 720).forEach { travel ->
+            listOf(0.2f, 0.4f, 440f / 840).forEach { travel ->
                 moveTo(Offset(from + viewConfiguration.touchSlop + width * travel, centerY))
             }
             up()
@@ -172,7 +172,7 @@ class BookingTimelineTest {
 
     @Test
     fun `a tap on the chosen lesson leaves it where it is`() {
-        // 11:00–14:00 under the finger at 12:30 — the bar's eighth of the way in from 11:00.
+        // 11:00–14:00, and the finger three tenths along 9:00–23:00, at 13:12.
         show(chosen = Scheduling.Slot(at(11), 180))
 
         compose.onNodeWithTag(TIMELINE_TAG).performTouchInput { click(Offset(width * 0.3f, centerY)) }

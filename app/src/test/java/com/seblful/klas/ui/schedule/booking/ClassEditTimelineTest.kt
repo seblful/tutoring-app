@@ -59,7 +59,7 @@ class ClassEditTimelineTest : ClassEditTestFixture() {
         assertEquals(listOf("Мария"), timeline.booked.map { it.who })
         assertEquals(ClassMode.IN_PERSON, timeline.booked.single().mode)
         assertEquals(at(9), timeline.start)
-        assertEquals(at(21), timeline.end)
+        assertEquals(at(23), timeline.end)
     }
 
     @Test

@@ -114,6 +114,13 @@ object KlasIcons {
             )
         }
 
+        val ExpandMore: ImageVector by lazy {
+            symbol(
+                "Filled.ExpandMore",
+                "M480-345 240-585l56-56 184 184 184-184 56 56-240 240Z",
+            )
+        }
+
         val FilterList: ImageVector by lazy {
             symbol(
                 "Filled.FilterList",

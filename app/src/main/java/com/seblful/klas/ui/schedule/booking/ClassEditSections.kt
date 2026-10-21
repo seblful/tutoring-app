@@ -1,11 +1,8 @@
 package com.seblful.klas.ui.schedule.booking
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -14,15 +11,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
@@ -222,49 +213,6 @@ private fun SubjectField(state: ClassFormState, viewModel: ClassEditViewModel, s
 }
 
 /**
- * A card of the form folded to its title and what it is set to — [summary], red when [wanting] — and opened
- * by a tap on that line to change it. Folded until the tutor opens it: what it holds is usually already right.
- */
-@Composable
-internal fun FoldedSection(
-    title: String,
-    summary: String,
-    wanting: Boolean = false,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    var opened by rememberSaveable { mutableStateOf(false) }
-    SectionCard {
-        Column(
-            Modifier.padding(Spacing.gutter),
-            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
-        ) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clickable(role = Role.Button) { opened = !opened },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.inline),
-            ) {
-                SectionTitle(title, Modifier.weight(1f))
-                if (!opened) {
-                    Text(
-                        summary,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.let { if (wanting) it.error else it.onSurfaceVariant },
-                    )
-                }
-                Icon(
-                    KlasIcons.Filled.ArrowDropDown,
-                    contentDescription = null,
-                    modifier = Modifier.rotate(if (opened) HALF_TURN else 0f),
-                )
-            }
-            if (opened) content()
-        }
-    }
-}
-
-/**
  * Terms: the rate and the place, folded to one line that still says both — whether the pre-filled rate is
  * the one meant stays readable without a tap — or, in red, that the rate is all the booking still lacks.
  */
@@ -307,5 +255,3 @@ private fun TermsFields(state: ClassFormState, viewModel: ClassEditViewModel) {
         onSelect = { selected -> viewModel.change(BookingIntent.Edit { it.copy(mode = selected) }) },
     )
 }
-
-private const val HALF_TURN = 180f

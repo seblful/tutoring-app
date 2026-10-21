@@ -1,25 +1,13 @@
 package com.seblful.klas.ui.schedule.booking
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.schedule.DayTimeline
@@ -27,12 +15,10 @@ import com.seblful.klas.domain.schedule.TimeConflict
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.ui.common.DurationPickerModal
 import com.seblful.klas.ui.common.PresetChips
-import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.durationLabel
 import com.seblful.klas.ui.schedule.WeekNavigator
 import com.seblful.klas.ui.schedule.WeekStrip
 import com.seblful.klas.ui.schedule.timeConflictText
-import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.LocalDate
 
 /*
@@ -57,7 +43,10 @@ internal fun WhenSection(state: ClassFormState, viewModel: ClassEditViewModel) {
     state.conflict?.let { conflict -> ConflictLine(conflict, state) }
 
     // How long, not when it ends — a length is what the lesson is stored as. The end is its consequence.
-    Folded(stringResource(R.string.class_duration_label), lengthSummary(form.durationMinutes, state.ending)) {
+    Fold(
+        label = { Text(stringResource(R.string.class_duration_label), style = MaterialTheme.typography.labelLarge) },
+        summary = lengthSummary(form.durationMinutes, state.ending),
+    ) {
         PresetChips(
             presets = durations,
             selected = form.durationMinutes,
@@ -128,34 +117,7 @@ private fun DayOnTimeline(day: DayTimeline, state: ClassFormState, viewModel: Cl
     )
 }
 
-/** A When row folded to its label and what it is set to, opened by a tap to change it. */
-@Composable
-private fun Folded(label: String, value: String, content: @Composable () -> Unit) {
-    var open by rememberSaveable { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clickable(role = Role.Button) { open = !open }
-                .padding(vertical = Spacing.tight),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.inline),
-        ) {
-            Text(label, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
-            Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Icon(
-                KlasIcons.Filled.ArrowDropDown,
-                contentDescription = null,
-                modifier = Modifier.rotate(if (open) HALF_TURN else 0f),
-            )
-        }
-        if (open) content()
-    }
-}
-
 /** «1 h · until 15:30». */
 @Composable
 private fun lengthSummary(minutes: Int?, ends: ClassForm.Ending?): String =
     bulletJoin(minutes?.let { durationLabel(it) }.orEmpty(), ends?.let { endsAtText(it) }.orEmpty())
-
-private const val HALF_TURN = 180f

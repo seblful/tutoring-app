@@ -145,7 +145,7 @@ data class DayTimeline(
         const val FIRST_HOUR = 9
 
         /** The hour every day's timeline ends at, before its lessons widen it. */
-        const val END_HOUR = 21
+        const val END_HOUR = 23
 
         /**
          * [date] from [FIRST_HOUR] to [END_HOUR], widened to show every lesson [booked] on it. [booked] are

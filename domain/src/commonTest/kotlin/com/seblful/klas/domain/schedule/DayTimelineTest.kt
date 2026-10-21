@@ -26,22 +26,22 @@ class DayTimelineTest {
     private fun booked(hour: Int, minute: Int, minutes: Int, who: String = "Мария") =
         DayTimeline.Lesson(Scheduling.Slot(at(hour, minute), minutes), who, Assignee.Student(1), ClassMode.IN_PERSON)
 
-    // 9:00–21:00 with Мария 15:30–16:30 and the group 18:00–19:30.
+    // 9:00–23:00 with Мария 15:30–16:30 and the group 18:00–19:30.
     private val thursday = DayTimeline.of(day, utc, listOf(booked(15, 30, 60), booked(18, 0, 90, who = "11 «А»")))
 
     @Test
-    fun `every day is drawn from nine to nine`() {
+    fun `every day is drawn from nine to eleven`() {
         assertEquals(at(9), thursday.start)
-        assertEquals(at(21), thursday.end)
-        assertEquals(720, thursday.minutes)
+        assertEquals(at(23), thursday.end)
+        assertEquals(840, thursday.minutes)
     }
 
     @Test
-    fun `a lesson outside nine to nine widens the timeline to whole hours around it`() {
-        val timeline = DayTimeline.of(day, utc, listOf(booked(7, 30, 45), booked(21, 15, 60)))
+    fun `a lesson outside those hours widens the timeline to whole hours around it`() {
+        val timeline = DayTimeline.of(day, utc, listOf(booked(7, 30, 45), booked(22, 30, 60)))
 
         assertEquals(at(7), timeline.start)
-        assertEquals(at(23), timeline.end)
+        assertEquals(timeline.day.end, timeline.end)
     }
 
     @Test
@@ -98,14 +98,15 @@ class DayTimelineTest {
 
     @Test
     fun `a tap outside the timeline places nothing`() {
-        assertNull(thursday.place(at(21, 30), minutes = 60))
+        assertNull(thursday.place(at(23, 30), minutes = 60))
     }
 
     @Test
     fun `the first free time skips the day's lessons`() {
-        // From 13:00 there are 2.5 hours before Мария, and nowhere after her has three.
+        // From 13:00 there are 2.5 hours before Мария, three only after the group, and four nowhere.
         assertEquals(at(13), thursday.firstFree(minutes = 60, notBefore = at(13)))
-        assertNull(thursday.firstFree(minutes = 180, notBefore = at(13)))
+        assertEquals(at(19, 30), thursday.firstFree(minutes = 180, notBefore = at(13)))
+        assertNull(thursday.firstFree(minutes = 240, notBefore = at(13)))
         assertEquals(at(19, 30), thursday.firstFree(minutes = 90, notBefore = at(17, 10)))
     }
 
@@ -129,8 +130,8 @@ class DayTimelineTest {
 
     @Test
     fun `a slide passes over a gap too short for the lesson`() {
-        // 16:30–18:00 and 19:30–21:00 are 90 minutes each: two hours go back before Мария.
-        assertEquals(at(13, 30), thursday.nearestFree(at(16, 40), minutes = 120))
+        // 16:30–18:00 holds 90 minutes: two hours go on to 19:30, nearer than 13:30 before Мария.
+        assertEquals(at(19, 30), thursday.nearestFree(at(16, 40), minutes = 120))
         assertNull(thursday.nearestFree(at(12), minutes = 13 * 60))
     }
 
@@ -156,8 +157,8 @@ class DayTimelineTest {
 
     @Test
     fun `a step passes over a gap too short for the lesson`() {
-        // Two hours fit nowhere after Мария, and from 9:00 there is nowhere earlier.
-        assertNull(thursday.shifted(at(13, 30), 5.minutes, minutes = 120))
+        // Two hours fit after Мария only past the group, and from 9:00 there is nowhere earlier.
+        assertEquals(at(19, 30), thursday.shifted(at(13, 30), 5.minutes, minutes = 120))
         assertNull(thursday.shifted(at(9), (-5).minutes, minutes = 60))
     }
 
@@ -205,8 +206,8 @@ class DayTimelineTest {
         val early = DayTimeline.Lesson(Scheduling.Slot(oneAm, 60), "Мария", Assignee.Student(1), ClassMode.IN_PERSON)
         val timeline = DayTimeline.of(fallBack, berlin, listOf(early))
 
-        // 1:00 to 21:00 by the clock, and the hour 2:00–3:00 happens twice.
+        // 1:00 to 23:00 by the clock, and the hour 2:00–3:00 happens twice.
         assertEquals(oneAm, timeline.start)
-        assertEquals(21 * 60, timeline.minutes)
+        assertEquals(23 * 60, timeline.minutes)
     }
 }

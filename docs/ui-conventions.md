@@ -127,7 +127,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   Terms. A new booking picks who from one dropdown like the subject's (`TargetChoices`: recently taught
   first, students and groups together, then adding a student or a group), so there is no Student/Group
   switch; an edit keeps its kind. Repeat and Terms are `FoldedSection`s, folded until tapped to one line
-  saying what they are set to — Terms still state the rate and place, or in red that the rate is all
+  saying what they are set to, pressed with a rounded `outsetRowPress` tint and opened by growing
+  downwards (`Fold`) — Terms still state the rate and place, or in red that the rate is all
   that is missing (`rateNeeded`). It alone saves from a bottom `BookingSaveBar`, not the bar's
   `SaveAction`: the bar shows the booking it will make, or names what is missing or in the way
   (`ClassFormState.saveBar`, `Ready` exactly when `canSave`). When picks the day from the schedule's
@@ -142,7 +143,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
   are written over its edges, and it is booked when the finger lifts. Before a start is chosen it offers
   the first free time as a dashed frame with a plus (`DayTimeline.firstFree`, never booked by itself).
   Under a chosen lesson, «5 minutes earlier/later» buttons move it exactly — past a lesson in the way
-  rather than back onto itself (`DayTimeline.shifted`) — and are what screen readers use. Length folds to one line that opens its chips.
+  rather than back onto itself (`DayTimeline.shifted`) — and are what screen readers use. Length is the same `Fold` inside When, opening to its chips.
 - Lesson context opens homework, payment entry and profiles for the named student/group. Group payments
   first ask who paid; completing a lesson never creates a payment. Profiles book through the same form.
 - Setup detours push over the unfinished booking/group form and return created IDs through its navigation
