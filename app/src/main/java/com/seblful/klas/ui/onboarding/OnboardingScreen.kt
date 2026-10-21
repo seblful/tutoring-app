@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.onboarding
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -38,6 +37,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.storage.DocumentRef
@@ -165,7 +167,11 @@ fun OnboardingScreen(
     }
     // The system back, too: the screen sits outside the `NavDisplay`, so without this the gesture on step 2
     // left the app mid-setup while the arrow above went back a step.
-    BackHandler(enabled = previousStep != null) { previousStep?.let { step = it } }
+    NavigationBackHandler(
+        state = rememberNavigationEventState(NavigationEventInfo.None),
+        isBackEnabled = previousStep != null,
+        onBackCompleted = { previousStep?.let { step = it } },
+    )
 
     KlasScreen(
         // The welcome screen names the app in its own body, under the mark — repeating it in the bar

@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.common
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -11,6 +10,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import com.seblful.klas.R
 
 /**
@@ -77,7 +79,11 @@ fun leaveGuard(form: LeavableForm, onLeave: () -> Unit, onSave: () -> Unit): () 
             else -> leaving = intent
         }
     }
-    BackHandler(enabled = form.isDirty) { requestLeave() }
+    NavigationBackHandler(
+        state = rememberNavigationEventState(NavigationEventInfo.None),
+        isBackEnabled = form.isDirty,
+        onBackCompleted = requestLeave,
+    )
     leaving?.let { intent ->
         UnsavedChangesDialog(
             intent = intent,

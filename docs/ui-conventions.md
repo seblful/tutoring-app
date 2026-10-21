@@ -106,6 +106,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - Navigation 3 shows one flat back stack of `Screen`s (`KlasNavigator`): a route plus an id, so the same
   card opened twice is two entries. Per-tab stacks were rejected: a tray tap may put a tab over a form from
   another tab. `KlasGraph` is one exhaustive `when` over the sealed `Route`.
+- `NavDisplay` owns system back for the stack. Back that stays inside a screen (a dirty form's
+  `leaveGuard`, an onboarding step) uses `NavigationBackHandler`, never the legacy `BackHandler`.
 - `navigateToTab` ignores reselection to avoid a re-targeted fade. Navigating to the owning tab closes its
   pushed screens; another tab's screens are set aside and keep their view models and saved state
   (`KlasNavigator.live`). All tray actions preserve a pushed screen beneath their destination; Back returns
