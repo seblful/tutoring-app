@@ -163,14 +163,14 @@ class DayTimelineTest {
     }
 
     @Test
-    fun `a tap on a lesson finds it, a tap beside it does not`() {
+    fun `a tap on a lesson finds it a tap beside it does not`() {
         assertEquals("Мария", thursday.lessonAt(at(15, 45))?.who)
         assertEquals("11 «А»", thursday.lessonAt(at(18, 0))?.who)
         assertNull(thursday.lessonAt(at(16, 30)))
     }
 
     @Test
-    fun `a group lesson is the group's, an individual one the student's`() {
+    fun `a group lesson is the group's an individual one the student's`() {
         val session = { groupId: Long? ->
             ClassSession(
                 groupId = groupId,

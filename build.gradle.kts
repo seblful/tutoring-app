@@ -61,10 +61,23 @@ tasks.register("verify") {
     group = "verification"
     description = "Run JVM tests, screenshots, Android lint, formatting, static analysis and debug builds."
     dependsOn(
+        "testStore",
         ":domain:jvmTest", ":shared:jvmTest", ":app:verifyRoborazziDebug", ":app:lintDebug",
         ":app:assembleDebug", ":app:assembleDebugAndroidTest",
     )
     listOf(":app", ":domain", ":shared").forEach { module ->
         dependsOn("$module:ktlintCheck", "$module:detekt")
     }
+}
+
+tasks.register<Exec>("testStore") {
+    group = "verification"
+    description = "Run the store image and video tooling tests."
+    commandLine("node", "--test", "store/")
+}
+
+tasks.register("testQuick") {
+    group = "verification"
+    description = "Run domain, shared, Android behavior and store tooling tests without screenshots."
+    dependsOn(":domain:jvmTest", ":shared:jvmTest", ":app:testDebugBehavior", "testStore")
 }

@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.schedule.booking
 
 import com.seblful.klas.domain.model.ClassMode
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -11,21 +12,19 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.atTime
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.time.Clock
 
 /** The When section's day timeline: what it draws, and starting a lesson from a tap on it. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class ClassEditTimelineTest : ClassEditTestFixture() {
 
-    private val day = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY)
+    private val day = env.clock.today().plus(3, DateTimeUnit.DAY)
 
     private fun at(hour: Int, minute: Int = 0) = day.atTime(hour, minute).toInstant(zone)
 

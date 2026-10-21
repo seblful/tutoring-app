@@ -28,7 +28,7 @@ private class FakeCrashLogStore : CrashLogStore {
 @OptIn(ExperimentalCoroutinesApi::class)
 class DiagnosticsViewModelTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
     private val store = FakeCrashLogStore()
@@ -41,7 +41,7 @@ class DiagnosticsViewModelTest {
     private val target = DocumentRef("content://downloads/crash.txt")
 
     private fun vm(isDebugBuild: Boolean = false) =
-        DiagnosticsViewModel(crashLogger, documents, isDebugBuild)
+        mainRule.own(DiagnosticsViewModel(crashLogger, documents, isDebugBuild))
 
     @Test
     fun `state reports an empty log on a clean install`() {

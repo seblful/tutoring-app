@@ -1,8 +1,6 @@
 package com.seblful.klas.data.repository
 
 import com.seblful.klas.data.people.EnrollmentRepository
-import com.seblful.klas.data.people.StudentEntity
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.TestEnv
@@ -29,8 +27,8 @@ class EnrollmentAtomicityTest {
         var algebra = 0L
 
         suspend fun seed() {
-            ivan = env.studentDao.upsert(StudentEntity(name = "Иван"))
-            algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+            ivan = env.fixtures.student(name = "Иван")
+            algebra = env.fixtures.subject(name = "Алгебра")
         }
     }
 
@@ -113,8 +111,8 @@ class EnrollmentAtomicityTest {
     fun `saving a group writes it with its roster in one transaction`() = runTest {
         val f = Fixture()
         f.seed()
-        val ann = f.env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val bob = f.env.studentDao.upsert(StudentEntity(name = "Борис"))
+        val ann = f.env.fixtures.student(name = "Аня")
+        val bob = f.env.fixtures.student(name = "Борис")
         val before = f.env.transactor.count
 
         val id = f.env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann, bob))
@@ -128,9 +126,9 @@ class EnrollmentAtomicityTest {
     fun `re-staffing a group adds and removes members in the same transaction`() = runTest {
         val f = Fixture()
         f.seed()
-        val ann = f.env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val bob = f.env.studentDao.upsert(StudentEntity(name = "Борис"))
-        val cleo = f.env.studentDao.upsert(StudentEntity(name = "Вера"))
+        val ann = f.env.fixtures.student(name = "Аня")
+        val bob = f.env.fixtures.student(name = "Борис")
+        val cleo = f.env.fixtures.student(name = "Вера")
         val id = f.env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann, bob))
         val before = f.env.transactor.count
 
@@ -160,7 +158,7 @@ class EnrollmentAtomicityTest {
     fun `a group save that fails to commit is reported as a failure`() = runTest {
         val f = Fixture()
         f.seed()
-        val ann = f.env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val ann = f.env.fixtures.student(name = "Аня")
         f.env.transactor.failAt = f.env.transactor.count + 1
 
         val failure = runCatching {

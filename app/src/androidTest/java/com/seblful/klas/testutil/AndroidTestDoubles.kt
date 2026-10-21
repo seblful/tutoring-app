@@ -1,10 +1,7 @@
 package com.seblful.klas.testutil
 
 import com.seblful.klas.data.settings.SettingsRepository
-import com.seblful.klas.domain.reminders.ReminderScheduler
-import com.seblful.klas.domain.reminders.Reminders
 import java.util.Locale
-import kotlin.time.Instant
 
 /**
  * The phone the fixtures assume: Russian, in Belarus — the app's original tutor.
@@ -17,27 +14,3 @@ import kotlin.time.Instant
  * two source sets share no fixtures module.
  */
 val RussianMinskPhone: List<Locale> = listOf(Locale.forLanguageTag("ru-BY"))
-
-class RecordingReminderScheduler : ReminderScheduler {
-    var refreshCount = 0
-        private set
-
-    val schedules = mutableListOf<List<Reminders.Plan>>()
-
-    var periodicCount = 0
-        private set
-
-    override fun refreshNow() {
-        refreshCount++
-    }
-
-    override fun ensurePeriodicMaintenance() {
-        periodicCount++
-    }
-
-    override suspend fun scheduleNextPass(at: Instant?) = Unit
-
-    override fun schedule(plans: List<Reminders.Plan>) {
-        schedules += plans
-    }
-}

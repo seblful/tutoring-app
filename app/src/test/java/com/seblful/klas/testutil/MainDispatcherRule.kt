@@ -1,8 +1,11 @@
 package com.seblful.klas.testutil
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -14,6 +17,13 @@ import org.junit.runner.Description
 class MainDispatcherRule(
     val dispatcher: TestDispatcher = UnconfinedTestDispatcher(),
 ) : TestWatcher() {
+
+    private val viewModels = ViewModelStore()
+    private var nextOwner = 0
+
+    fun <T : ViewModel> own(viewModel: T): T = viewModel.also {
+        viewModels.put("test-${nextOwner++}", it)
+    }
 
     /**
      * Stands in for the injected `@ApplicationScope` — the scope a view model hands its **writes**
@@ -32,6 +42,11 @@ class MainDispatcherRule(
     }
 
     override fun finished(description: Description) {
-        Dispatchers.resetMain()
+        try {
+            viewModels.clear()
+        } finally {
+            appScope.cancel()
+            Dispatchers.resetMain()
+        }
     }
 }

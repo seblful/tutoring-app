@@ -1,14 +1,19 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.data.people.StudentEntity
-import com.seblful.klas.data.people.SubjectEntity
+import com.seblful.klas.data.billing.PriceEntity
+import com.seblful.klas.data.billing.RateChangeEntity
+import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.data.people.SubjectRepository
+import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.store
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -27,7 +32,7 @@ class SubjectRepositoryTest {
 
     @Test
     fun `an unreferenced subject is deleted`() = runTest {
-        val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
+        val id = env.fixtures.subject(name = "Химия")
 
         assertEquals(SubjectRepository.Delete.Ok, env.subjectRepo.delete(Subject(id = id, name = "Химия")))
         assertTrue(env.stored().subjects.isEmpty())
@@ -35,23 +40,29 @@ class SubjectRepositoryTest {
 
     @Test
     fun `a subject with classes is refused`() = runTest {
-        val student = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
+        val student = env.fixtures.student(name = "Аня")
+        val id = env.fixtures.subject(name = "Химия")
         env.fixtures.storedClass(
             studentId = student,
             subjectId = id,
             startMillis = 0,
             durationMinutes = 60,
             status = LessonStatus.COMPLETED,
+            chargeMinor = 5000,
         )
+
+        env.paymentRepo.restore(Payment(studentId = student, date = env.clock.now(), amount = Money(2000)))
 
         assertEquals(SubjectRepository.Delete.HasClasses, env.subjectRepo.delete(Subject(id = id, name = "Химия")))
         assertEquals(1, env.stored().subjects.size, "the subject is still there")
+        assertEquals(1, env.stored().lessons.size)
+        assertEquals(1, env.stored().attendance.size)
+        assertEquals(Balance.Owed(Money(3000)), env.store().studentDetails.observe(student).first().balance)
     }
 
     @Test
     fun `a subject a group is taught is refused`() = runTest {
-        val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
+        val id = env.fixtures.subject(name = "Химия")
         env.groupRepo.save(Group(name = "Химия, 11 класс", subjectId = id, price = Money.ofMajor(20)), emptySet())
 
         assertEquals(
@@ -77,8 +88,8 @@ class SubjectRepositoryTest {
 
     @Test
     fun `classes are named ahead of a group when both block`() = runTest {
-        val student = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
+        val student = env.fixtures.student(name = "Аня")
+        val id = env.fixtures.subject(name = "Химия")
         env.fixtures.storedClass(
             studentId = student,
             subjectId = id,
@@ -96,7 +107,7 @@ class SubjectRepositoryTest {
 
     @Test
     fun `a subject no group is bound to is deleted even while groups exist`() = runTest {
-        val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
+        val id = env.fixtures.subject(name = "Химия")
         env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), emptySet())
 
         assertEquals(SubjectRepository.Delete.Ok, env.subjectRepo.delete(Subject(id = id, name = "Химия")))
@@ -119,5 +130,28 @@ class SubjectRepositoryTest {
 
         assertTrue(env.subjectRepo.saveUnlessTaken(Subject(id = id, name = "химия")))
         assertEquals("химия", env.stored().subjects.single().name)
+    }
+
+    @Test
+    fun `deleting a legacy subject removes its unlinked price and rate history`() = runTest {
+        val subject = env.fixtures.subject()
+        val student = env.fixtures.student()
+        // Old imports can contain a price and its log without a student-subject enrollment.
+        env.snapshotDao.insert(
+            DatabaseSnapshot(
+                prices = listOf(PriceEntity(student, subject, 4000)),
+                rateHistory = listOf(
+                    RateChangeEntity(
+                        studentId = student, subjectId = subject, fromMinor = 3000, toMinor = 4000,
+                        atMillis = env.clock.now().toEpochMilliseconds(),
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals(SubjectRepository.Delete.Ok, env.subjectRepo.delete(Subject(subject, "Subject")))
+        assertTrue(env.stored().subjects.isEmpty())
+        assertTrue(env.stored().prices.isEmpty())
+        assertTrue(env.stored().rateHistory.isEmpty())
     }
 }

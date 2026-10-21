@@ -18,20 +18,24 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class PeopleSideTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
 
     @Test
     fun `each side holds its own search and archive toggle`() = runTest(mainRule.dispatcher) {
-        val students: PeopleSide = StudentsViewModel(
-            env.studentRepo, env.balanceRepo, env.classRepo, env.enrollmentRepo, env.subjectRepo, env.clock,
-            mainRule.dispatcher,
+        val students: PeopleSide = mainRule.own(
+            StudentsViewModel(
+                env.studentRepo, env.balanceRepo, env.classRepo, env.enrollmentRepo, env.subjectRepo, env.clock,
+                mainRule.dispatcher,
+            ),
         )
-        val groups: PeopleSide = GroupsViewModel(
-            env.groupRepo, env.studentRepo, env.subjectRepo, env.classRepo, env.clock, mainRule.dispatcher,
+        val groups: PeopleSide = mainRule.own(
+            GroupsViewModel(
+                env.groupRepo, env.studentRepo, env.subjectRepo, env.classRepo, env.clock, mainRule.dispatcher,
+            ),
         )
 
         students.setQuery("пет")
@@ -46,12 +50,16 @@ class PeopleSideTest {
 
     @Test
     fun `closing the search clears only the side it was open on`() = runTest(mainRule.dispatcher) {
-        val students: PeopleSide = StudentsViewModel(
-            env.studentRepo, env.balanceRepo, env.classRepo, env.enrollmentRepo, env.subjectRepo, env.clock,
-            mainRule.dispatcher,
+        val students: PeopleSide = mainRule.own(
+            StudentsViewModel(
+                env.studentRepo, env.balanceRepo, env.classRepo, env.enrollmentRepo, env.subjectRepo, env.clock,
+                mainRule.dispatcher,
+            ),
         )
-        val groups: PeopleSide = GroupsViewModel(
-            env.groupRepo, env.studentRepo, env.subjectRepo, env.classRepo, env.clock, mainRule.dispatcher,
+        val groups: PeopleSide = mainRule.own(
+            GroupsViewModel(
+                env.groupRepo, env.studentRepo, env.subjectRepo, env.classRepo, env.clock, mainRule.dispatcher,
+            ),
         )
         students.setQuery("пет")
         groups.setQuery("11")

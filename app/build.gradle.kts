@@ -87,6 +87,7 @@ android {
     // Robolectric gets merged resources. Device migration tests need Room’s exported schemas.
     sourceSets {
         getByName("androidTest").assets.directories.add("${project(":shared").projectDir}/schemas")
+        getByName("androidTest").kotlin.srcDir(rootProject.file("shared/src/testFixtures/kotlin"))
         getByName("test").kotlin.srcDir(rootProject.file("shared/src/testFixtures/kotlin"))
     }
     testOptions {
@@ -202,4 +203,22 @@ configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configu
 composeCompiler {
     // Domain models and kotlinx-datetime values are immutable; see the file.
     stabilityConfigurationFiles.add(layout.projectDirectory.file("compose-stability.conf"))
+}
+
+// Share AGP's compiled tests and runtime, while leaving preview rendering to Roborazzi.
+tasks.register<Test>("testDebugBehavior") {
+    group = "verification"
+    description = "Run Android JVM behavior tests without previews or screenshot capture."
+    val fullSuite = tasks.named<Test>("testDebugUnitTest").get()
+    dependsOn(fullSuite.taskDependencies)
+    testClassesDirs = fullSuite.testClassesDirs
+    classpath = fullSuite.classpath
+    systemProperties(fullSuite.systemProperties)
+    jvmArgs(fullSuite.jvmArgs.orEmpty())
+    maxHeapSize = fullSuite.maxHeapSize
+    filter {
+        excludeTestsMatching("com.github.takahirom.roborazzi.*")
+        excludeTestsMatching("com.seblful.klas.screenshot.*")
+        excludeTestsMatching("com.seblful.klas.store.StoreScreenshots")
+    }
 }

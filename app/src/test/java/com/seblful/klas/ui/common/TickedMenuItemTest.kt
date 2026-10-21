@@ -8,7 +8,10 @@ import androidx.compose.ui.test.onNodeWithText
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class TickedMenuItemTest {
 
     @get:Rule

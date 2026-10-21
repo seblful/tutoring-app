@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.groups
 
-import com.seblful.klas.data.people.StudentEntity
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
@@ -23,20 +22,22 @@ import kotlin.time.Instant
 @RunWith(RobolectricTestRunner::class)
 class GroupsViewModelTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
 
-    private fun vm() = GroupsViewModel(
-        env.groupRepo, env.studentRepo, env.subjectRepo, env.classRepo, env.clock, mainRule.dispatcher,
+    private fun vm() = mainRule.own(
+        GroupsViewModel(
+            env.groupRepo, env.studentRepo, env.subjectRepo, env.classRepo, env.clock, mainRule.dispatcher,
+        ),
     )
 
     @Test
     fun `rows list each group with its members' names`() = runTest(mainRule.dispatcher) {
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
+        val ann = env.fixtures.student(name = "Аня")
+        val bob = env.fixtures.student(name = "Борис")
         env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
         env.groupRepo.save(Group(name = "Выпускники"), setOf(bob))
 
@@ -73,7 +74,7 @@ class GroupsViewModelTest {
 
     @Test
     fun `archived groups appear only when the archive is shown`() = runTest(mainRule.dispatcher) {
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
+        val ann = env.fixtures.student(name = "Аня")
         val active = env.groupRepo.save(Group(name = "Активная"), setOf(ann))
         val retired = env.groupRepo.save(Group(name = "Прошлый год"), setOf(ann))
         env.groupRepo.setArchived(env.groupRepo.getById(retired)!!, true)
@@ -97,8 +98,8 @@ class GroupsViewModelTest {
      */
     @Test
     fun `a roster is case-folded, so a lower-case name does not sort last`() = runTest(mainRule.dispatcher) {
-        val yaroslav = env.studentDao.upsert(StudentEntity(name = "Ярослав"))
-        val anna = env.studentDao.upsert(StudentEntity(name = "анна"))
+        val yaroslav = env.fixtures.student(name = "Ярослав")
+        val anna = env.fixtures.student(name = "анна")
         env.groupRepo.save(Group(name = "11 «А»"), setOf(yaroslav, anna))
 
         val vm = vm()

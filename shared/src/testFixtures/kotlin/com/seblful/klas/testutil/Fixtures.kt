@@ -4,8 +4,6 @@ import com.seblful.klas.data.lessons.AttendanceEntity
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.lessons.LessonEntity
 import com.seblful.klas.data.local.upsertedId
-import com.seblful.klas.data.people.StudentEntity
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
@@ -13,14 +11,23 @@ import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.Student
+import com.seblful.klas.domain.model.Subject
 import kotlin.time.Instant
 
-/** Compiled by both suites against their platform-specific TestEnv. */
-class Fixtures(private val env: TestEnv) {
+/** Valid application states go through repositories; storedClass describes raw persisted state. */
+class Fixtures(private val env: RepositoryTestEnv) {
 
     /** A student, with an optional email so the calendar's guest handling can be driven. */
-    suspend fun student(name: String = "Аня", email: String = ""): Long =
-        env.studentDao.upsert(StudentEntity(name = name, email = email))
+    suspend fun student(
+        name: String = "Аня",
+        email: String = "",
+        id: Long = 0,
+        phone: String = "",
+        note: String = "",
+        defaultMode: ClassMode = ClassMode.IN_PERSON,
+        archived: Boolean = false,
+    ): Long = env.studentRepo.upsert(Student(id, name, phone, email, note, defaultMode, archived))
 
     /**
      * A student who has left — archived rather than deleted, which is how somebody stops appearing in
@@ -32,8 +39,8 @@ class Fixtures(private val env: TestEnv) {
             env.studentRepo.setArchived(env.studentRepo.getById(id)!!, archived = true)
         }
 
-    suspend fun subject(name: String = "Алгебра"): Long =
-        env.subjectDao.upsert(SubjectEntity(name = name))
+    suspend fun subject(name: String = "Алгебра", id: Long = 0): Long =
+        env.subjectRepo.upsert(Subject(id, name))
 
     /**
      * A student priced for a subject — which is the only kind that can be booked for it, since a
@@ -52,7 +59,15 @@ class Fixtures(private val env: TestEnv) {
         subjectId: Long? = null,
         members: Set<Long> = emptySet(),
         rate: Money = Money.ofMajor(20),
-    ): Long = env.groupRepo.save(Group(name = name, subjectId = subjectId, price = rate), members)
+        id: Long = 0,
+        defaultMode: ClassMode = ClassMode.IN_PERSON,
+        archived: Boolean = false,
+    ): Long = env.groupRepo.save(
+        Group(
+            id = id, name = name, subjectId = subjectId, price = rate, defaultMode = defaultMode, archived = archived,
+        ),
+        members,
+    )
 
     /**
      * One booked lesson — a class per member, all at [rate], as `ClassRepository.book` writes it.

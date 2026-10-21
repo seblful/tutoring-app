@@ -45,6 +45,7 @@ and pure rules in `:domain`.
 ## Build & Test
 
 ```bash
+./gradlew testQuick                    # fast behavior tests and store tooling; requires Node 22+
 ./gradlew verify                       # the same JVM/Android checks as CI; no device required
 ./gradlew :app:assembleDebug            # debug APK
 ./gradlew :domain:jvmTest               # domain unit tests (billing, scheduling, reminders, reports)

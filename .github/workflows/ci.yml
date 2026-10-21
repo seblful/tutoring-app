@@ -37,6 +37,11 @@ jobs:
           # really about the pull-request runs, which read it and must not each save a copy.
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
+      - name: Set up Node for store tooling tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       # No local.properties here (it is gitignored, holding a machine-specific SDK path); the runner
       # exports ANDROID_HOME, which Gradle falls back to.
       # Keep local and CI JVM/Android checks identical through the root verify task.

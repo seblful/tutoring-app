@@ -27,7 +27,7 @@ import kotlin.time.Instant
 @RunWith(RobolectricTestRunner::class)
 class DeviceCalendarSyncTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
 
     private lateinit var provider: FakeCalendarProvider

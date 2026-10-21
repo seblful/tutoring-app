@@ -1,12 +1,7 @@
 package com.seblful.klas.ui.reports
 
-import com.seblful.klas.data.billing.PaymentEntity
-import com.seblful.klas.data.people.GroupEntity
-import com.seblful.klas.data.people.StudentEntity
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
-import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.reports.ReportCsv
 import com.seblful.klas.domain.reports.ReportPeriod
 import com.seblful.klas.domain.reports.Reports
@@ -41,17 +36,16 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class ReportsViewModelTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
     private val zone: TimeZone = TimeZone.of("Europe/Minsk")
 
@@ -64,9 +58,14 @@ class ReportsViewModelTest {
     private val sharing = RecordingDocumentSharing()
 
     private fun vm() =
-        ReportsViewModel(
-            ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.balanceRepo, clock),
-            documents, sharing, mainRule.dispatcher, clock,
+        mainRule.own(
+            ReportsViewModel(
+                ReportsQuery(
+                    env.classRepo, env.studentRepo, env.subjectRepo,
+                    env.groupRepo, env.balanceRepo, clock,
+                ),
+                documents, sharing, mainRule.dispatcher, clock,
+            ),
         )
 
     private fun at(year: Int, month: Int, day: Int = 10): Long =
@@ -92,9 +91,14 @@ class ReportsViewModelTest {
         completed(sid, subj, at(2026, 5, 16), 50)
         completed(sid, subj, at(2026, 6, 1), 50)
 
-        val vm = ReportsViewModel(
-            ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.balanceRepo, lateEvening),
-            documents, sharing, mainRule.dispatcher, lateEvening,
+        val vm = mainRule.own(
+            ReportsViewModel(
+                ReportsQuery(
+                    env.classRepo, env.studentRepo, env.subjectRepo,
+                    env.groupRepo, env.balanceRepo, lateEvening,
+                ),
+                documents, sharing, mainRule.dispatcher, lateEvening,
+            ),
         )
         vm.setKind(ReportPeriod.Kind.MONTH)
         observing(vm.state)
@@ -122,8 +126,8 @@ class ReportsViewModelTest {
 
     @Test
     fun `only the chosen period's lessons are counted`() = runTest(mainRule.dispatcher) {
-        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val sid = env.fixtures.student(name = "Аня")
+        val subj = env.fixtures.subject(name = "Математика")
         completed(sid, subj, at(thisYear, 3), 30)
         completed(sid, subj, at(thisYear - 1, 3), 100)
 
@@ -144,15 +148,6 @@ class ReportsViewModelTest {
         assertEquals(Money.ofMajor(100), vm.state.current.totalIncome)
     }
 
-    /**
-     * **A report across the turn of the year** — the case that could not be written at all while this view
-     * model read the wall clock itself, because every fixture had to be relative to whenever the suite
-     * happened to run.
-     *
-     * December and January are adjacent months and different *years*, and the screen opens on a year. So
-     * the last lesson of December and the first of January must not be counted together by the period the
-     * screen opens on, and stepping one month back from January has to cross into the previous year.
-     */
     @Test
     fun `a report opening in January does not count last December`() = runTest(mainRule.dispatcher) {
         val newYear = WallClock.fixed(Instant.parse("2027-01-05T09:00:00Z"), zone)
@@ -161,9 +156,11 @@ class ReportsViewModelTest {
         completed(sid, subj, at(2026, 12, 28), 90)
         completed(sid, subj, at(2027, 1, 3), 40)
 
-        val vm = ReportsViewModel(
-            ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.balanceRepo, newYear),
-            documents, sharing, mainRule.dispatcher, newYear,
+        val vm = mainRule.own(
+            ReportsViewModel(
+                ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.balanceRepo, newYear),
+                documents, sharing, mainRule.dispatcher, newYear,
+            ),
         )
         observing(vm.state)
         runCurrent()
@@ -183,8 +180,8 @@ class ReportsViewModelTest {
 
     @Test
     fun `narrowing to a month keeps the month the tutor stepped to`() = runTest(mainRule.dispatcher) {
-        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val sid = env.fixtures.student(name = "Аня")
+        val subj = env.fixtures.subject(name = "Математика")
         completed(sid, subj, at(thisYear, 5), 40)
         completed(sid, subj, at(thisYear, 6), 70)
 
@@ -202,287 +199,26 @@ class ReportsViewModelTest {
         assertEquals(Money.ofMajor(40), vm.state.current.totalIncome)
     }
 
-    /** A balance is charges minus payments over a whole history — clipping it to a year invents one. */
-    @Test
-    fun `debts ignore the period`() = runTest(mainRule.dispatcher) {
-        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        completed(sid, subj, at(thisYear - 2, 4), 200) // billed long ago, never paid
-        completed(sid, subj, at(thisYear, 4), 50)
-        env.paymentRepo.restore(
-            Payment(studentId = sid, date = Instant.fromEpochMilliseconds(at(thisYear, 4)), amount = Money.ofMajor(50)),
-        )
-
-        val vm = vm()
-        observing(vm.state)
-        runCurrent()
-
-        val state = vm.state.current
-        assertEquals("this year's income only", Money.ofMajor(50), state.totalIncome)
-        assertEquals("but the whole debt", Money.ofMajor(200), state.totalOutstanding)
-        assertEquals(listOf("Аня"), state.debts.map { it.label })
-    }
-
-    @Test
-    fun `income by group names each group and leaves individual lessons out`() = runTest(mainRule.dispatcher) {
-        val a = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val b = env.studentDao.upsert(StudentEntity(name = "Борис"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val evening = env.groupDao.upsert(GroupEntity(name = "Вечерняя"))
-        val morning = env.groupDao.upsert(GroupEntity(name = "Утренняя"))
-        completed(a, subj, at(thisYear, 2), 25, groupId = evening)
-        completed(b, subj, at(thisYear, 2), 25, groupId = evening)
-        completed(a, subj, at(thisYear, 3), 30, groupId = morning)
-        completed(a, subj, at(thisYear, 4), 90) // individual: not a group's income
-
-        val vm = vm()
-        observing(vm.state)
-        runCurrent()
-
-        val byGroup = vm.state.current.byGroup
-        assertEquals(listOf("Вечерняя", "Утренняя"), byGroup.map { it.label })
-        assertEquals(listOf(Money.ofMajor(50), Money.ofMajor(30)), byGroup.map { it.amount })
-        // No share: the groups do not add up to the income, so a percentage of it is not theirs to
-        // claim — the kind split is what says how much of everything came from groups.
-        assertEquals(listOf(null, null), byGroup.map { it.percent })
-    }
-
-    @Test
-    fun `an archived group keeps its name on the income it earned`() = runTest(mainRule.dispatcher) {
-        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val old = env.groupDao.upsert(GroupEntity(name = "Выпускники", archived = true))
-        completed(sid, subj, at(thisYear, 2), 40, groupId = old)
-
-        val vm = vm()
-        observing(vm.state)
-        runCurrent()
-
-        assertEquals(listOf("Выпускники"), vm.state.current.byGroup.map { it.label })
-    }
-
-    /** Students and subjects genuinely partition the income, so their lines carry a share of it. */
-    @Test
-    fun `lines that partition the income carry their share of it, debts do not`() = runTest(mainRule.dispatcher) {
-        val a = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val b = env.studentDao.upsert(StudentEntity(name = "Борис"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        completed(a, subj, at(thisYear, 2), 75)
-        completed(b, subj, at(thisYear, 3), 25)
-
-        val vm = vm()
-        observing(vm.state)
-        runCurrent()
-
-        assertEquals(listOf(75, 25), vm.state.current.byStudent.map { it.percent })
-        assertEquals(listOf(100), vm.state.current.bySubject.map { it.percent })
-        // A debt is money to collect, not a proportion: nothing to print a percentage of.
-        assertEquals(listOf(null, null), vm.state.current.debts.map { it.percent })
-    }
-
-    @Test
-    fun `archived students retain their income breakdowns and debts`() = runTest(mainRule.dispatcher) {
-        val active = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val archived = env.studentDao.upsert(StudentEntity(name = "Старый", archived = true))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        // Archiving ends teaching, not the financial history of work already done.
-        completed(active, subj, at(thisYear, 3), 30)
-        completed(archived, subj, at(thisYear, 3), 100)
-
-        val vm = vm()
-        observing(vm.state)
-        runCurrent()
-
-        val state = vm.state.current
-        assertEquals(Money.ofMajor(130), state.totalIncome)
-        assertEquals(listOf("Старый", "Аня"), state.byStudent.map { it.label })
-        assertEquals(Money.ofMajor(130), state.totalOutstanding)
-        assertEquals(listOf("Старый", "Аня"), state.debts.map { it.label })
-    }
-
-    @Test
-    fun `reports remain available when the only student with history is archived`() = runTest(mainRule.dispatcher) {
-        val subject = env.fixtures.subject()
-        val student = env.fixtures.pricedStudent(subjectId = subject)
-        completed(student, subject, at(thisYear, 3), 30)
-        env.studentRepo.setArchived(env.studentRepo.getById(student)!!, archived = true)
-        val vm = vm()
-        observing(vm.state)
-        runCurrent()
-
-        assertTrue(vm.state.current.hasData)
-        assertEquals(Money.ofMajor(30), vm.state.current.totalIncome)
-        assertEquals(Money.ofMajor(30), vm.state.current.totalOutstanding)
-    }
-
-    @Test
-    fun `breakdowns drop zero entries and order by amount, largest first`() = runTest(mainRule.dispatcher) {
-        val a = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val b = env.studentDao.upsert(StudentEntity(name = "Борис"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        completed(a, subj, at(thisYear, 1), 20)
-        completed(b, subj, at(thisYear, 2), 50)
-
-        val vm = vm()
-        observing(vm.state)
-        runCurrent()
-
-        assertEquals(listOf("Борис", "Аня"), vm.state.current.byStudent.map { it.label })
-    }
-
-    @Test
-    fun `a fully paid student adds no debt`() = runTest(mainRule.dispatcher) {
-        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        completed(sid, subj, at(thisYear, 3), 30)
-        env.paymentRepo.restore(
-            Payment(studentId = sid, date = Instant.fromEpochMilliseconds(at(thisYear, 3)), amount = Money.ofMajor(30)),
-        )
-
-        val vm = vm()
-        observing(vm.state)
-        runCurrent()
-
-        assertTrue(vm.state.current.debts.isEmpty())
-        assertEquals(Money.ZERO, vm.state.current.totalOutstanding)
-        assertEquals(Money.ofMajor(30), vm.state.current.totalIncome)
-    }
-
-    @Test
-    fun `a year is charted as its twelve months, newest amounts read from the bars`() = runTest(mainRule.dispatcher) {
-        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        completed(sid, subj, at(thisYear, 1), 10)
-        completed(sid, subj, at(thisYear, 3), 20)
-
-        val vm = vm()
-        observing(vm.state)
-        runCurrent()
-
-        val trend = vm.state.current.trend
-        assertEquals(Reports.Trend.Bucket.MONTHS, trend.bucket)
-        assertEquals(12, trend.bars.size)
-        assertEquals(Money.ofMajor(20), trend.peak?.total)
-        assertFalse(trend.isEmpty)
-    }
-
-    @Test
-    fun `the tutor's own lesson count treats a group evening as one lesson`() = runTest(mainRule.dispatcher) {
-        val a = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val b = env.studentDao.upsert(StudentEntity(name = "Борис"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val group = env.groupDao.upsert(GroupEntity(name = "Вечерняя"))
-        val evening = at(thisYear, 2)
-        completed(a, subj, evening, 25, groupId = group)
-        completed(b, subj, evening, 25, groupId = group)
-        completed(a, subj, at(thisYear, 2, day = 11), 90)
-
-        val vm = vm()
-        observing(vm.state)
-        runCurrent()
-
-        val taught = vm.state.current.taught
-        assertEquals("one group lesson plus one individual", 2, taught.lessons)
-        assertEquals(120, taught.minutes)
-        assertEquals(Money.ofMajor(140), taught.earned)
-    }
-
-    @Test
-    fun `a period with no income still knows the database is not empty`() = runTest(mainRule.dispatcher) {
-        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        completed(sid, subj, at(thisYear - 3, 5), 60)
-
-        val vm = vm()
-        observing(vm.state)
-        runCurrent()
-
-        val state = vm.state.current
-        assertTrue("this year earned nothing", state.noIncome)
-        // ...but the screen must still draw the picker that gets the tutor out of the empty year.
-        assertTrue(state.hasData)
-        assertTrue(state.byStudent.isEmpty())
-    }
-
-    @Test
-    fun `an empty database reports as empty`() = runTest(mainRule.dispatcher) {
-        val vm = vm()
-        observing(vm.state)
-        runCurrent()
-
-        assertFalse(vm.state.current.hasData)
-        assertTrue(vm.state.current.noIncome)
-    }
-
-    /**
-     * Every line on the report is labelled — which is the symptom the typed breakdown keys exist to
-     * make impossible.
-     *
-     * The three breakdowns are the same shape, and each is paired by hand with one of three equally
-     * shaped tables of names. Pairing two of them wrongly was not a type error, and it did not fail
-     * either: the lookup simply missed, `orEmpty()` turned the miss into `""`, and the report drew a
-     * real amount against a blank row. Typed ids (`model/Ids.kt`) stop it compiling; this asserts the
-     * result the tutor would have seen, so the guarantee is checked from the outside as well.
-     */
-    @Test
-    fun `every breakdown line carries a name, in all four sections at once`() = runTest(mainRule.dispatcher) {
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
-        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val group = env.groupDao.upsert(GroupEntity(name = "11 «А»"))
-        // An individual lesson, a group lesson for two, and a debt — so all four sections have rows.
-        completed(ann, algebra, at(thisYear, 5), 60)
-        completed(ann, algebra, at(thisYear, 6), 20, groupId = group)
-        completed(bob, algebra, at(thisYear, 6), 20, groupId = group)
-        env.paymentDao.insert(
-            PaymentEntity(
-                studentId = ann, dateMillis = at(thisYear, 7), amountMinor = 1000,
-            ),
-        )
-
-        val vm = vm()
-        observing(vm.state)
-        runCurrent()
-        val state = vm.state.current
-
-        assertTrue("the fixture fills every section", state.byStudent.isNotEmpty())
-        assertTrue(state.bySubject.isNotEmpty())
-        assertTrue(state.byGroup.isNotEmpty())
-        assertTrue(state.debts.isNotEmpty())
-        val unlabelled = (state.byStudent + state.bySubject + state.byGroup + state.debts)
-            .filter { it.label.isBlank() }
-        assertEquals("a blank label means a breakdown met the wrong names", emptyList<Any>(), unlabelled)
-        // And the names really are the right ones, not merely non-blank.
-        assertEquals(listOf("Алгебра"), state.bySubject.map { it.label })
-        assertEquals(listOf("11 «А»"), state.byGroup.map { it.label })
-        assertEquals(setOf("Аня", "Борис"), state.byStudent.map { it.label }.toSet())
-    }
-
     // --- Where the report is computed -------------------------------------------------------------
 
-    /**
-     * A tripwire, not a behaviour test: the report comes out the same whichever thread built it, so
-     * nothing else here would notice the `flowOn` being deleted.
-     *
-     * It is worth guarding because this is the heaviest derivation in the app — every class against
-     * every payment and every student, re-run on each lesson or payment written anywhere — and it used
-     * to run on `Dispatchers.Main.immediate`, since `stateIn(viewModelScope)` collects there and Room's
-     * own `flowOn` governs only what is upstream of *it*. Working at the scale a tutor starts with and
-     * failing at the scale they arrive at is the worst way for it to be wrong.
-     */
     @Test
     fun `the report is derived on the computation dispatcher, not the main one`() =
         runTest(mainRule.dispatcher) {
             // Standard rather than the rule's unconfined dispatcher: this one has to actually
             // *dispatch* for the count to mean anything, and it shares the test's scheduler either way.
             val counting = CountingDispatcher(StandardTestDispatcher(testScheduler))
-            val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-            val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+            val ann = env.fixtures.student(name = "Аня")
+            val subject = env.fixtures.subject(name = "Алгебра")
             completed(ann, subject, at(thisYear, 5), major = 30)
 
-            val vm = ReportsViewModel(
-                ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.balanceRepo, clock),
-                documents, sharing, counting, clock,
+            val vm = mainRule.own(
+                ReportsViewModel(
+                    ReportsQuery(
+                        env.classRepo, env.studentRepo, env.subjectRepo,
+                        env.groupRepo, env.balanceRepo, clock,
+                    ),
+                    documents, sharing, counting, clock,
+                ),
             )
             observing(vm.state)
             runCurrent()
@@ -535,7 +271,6 @@ class ReportsViewModelTest {
         )
     }
 
-    /** A share that could not be handed anywhere is reported, like an export that could not be written. */
     @Test
     fun `a share nothing can receive is reported`() = runTest(mainRule.dispatcher) {
         val vm = vm()
@@ -550,14 +285,6 @@ class ReportsViewModelTest {
         assertEquals(ReportsViewModel.ExportEvent.ERROR, received)
     }
 
-    /**
-     * The debt digest's tap scrolls to the debts once. The screen hands it over every time the tab comes
-     * back, and scrolling each time would take the tutor away from wherever they had read to.
-     *
-     * Owed until the scroll has run, not merely offered: the arrival lands while the report is still
-     * being assembled, so the scroll cannot happen yet. Recording it there would spend the tap on
-     * nothing if the tutor left the tab before the report arrived.
-     */
     @Test
     fun `the debt digest's tap is owed until it is honoured, and a new tap again`() {
         val vm = vm()

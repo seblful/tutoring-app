@@ -244,7 +244,7 @@ class BackupIntegrityTest {
 
     @Test
     fun `importing a file with an unreadable row changes nothing`() = runTest {
-        env.subjectDao.upsert(SubjectEntity(7, "Физика"))
+        env.fixtures.subject(id = 7, name = "Физика")
         val bad = BackupData(
             subjects = listOf(SubjectEntity(1, "Алгебра")),
             students = listOf(StudentEntity(1, "Иван")),

@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.schedule
 
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.navigation.Arrival
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -13,13 +14,11 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.time.Clock
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -33,7 +32,7 @@ class ScheduleArrivalTest : ScheduleTestFixture() {
     @Test
     fun `an arrival is honoured once, and a new one again`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        val today = Clock.System.todayIn(zone)
+        val today = env.clock.today()
         val tapped = Arrival<ScheduleTarget>(ScheduleTarget.Today)
 
         vm.selectDate(today.plus(3, DateTimeUnit.DAY))
@@ -59,7 +58,7 @@ class ScheduleArrivalTest : ScheduleTestFixture() {
     @Test
     fun `a day's arrival opens that day`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        val yesterday = Clock.System.todayIn(zone).minus(1, DateTimeUnit.DAY)
+        val yesterday = env.clock.today().minus(1, DateTimeUnit.DAY)
 
         vm.arrive(Arrival(ScheduleTarget.Day(yesterday)))
 
@@ -74,7 +73,7 @@ class ScheduleArrivalTest : ScheduleTestFixture() {
     fun `a reminder's arrival opens its lesson's sheet on the day it is on`() = runTest(mainRule.dispatcher) {
         val subj = env.fixtures.subject("Математика")
         val ann = env.fixtures.pricedStudent("Аня", subj)
-        val day = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+        val day = env.clock.today().plus(2, DateTimeUnit.DAY)
         val id = env.fixtures.lesson(
             subjectId = subj, students = listOf(ann), start = day.atTime(10, 0).toInstant(zone),
         ).single()
@@ -95,7 +94,7 @@ class ScheduleArrivalTest : ScheduleTestFixture() {
 
     @Test
     fun `a reminder for somebody the schedule is not showing lifts the filter`() = runTest(mainRule.dispatcher) {
-        val today = Clock.System.todayIn(zone)
+        val today = env.clock.today()
         val (ann, bob) = seedTwoStudentsOn(today)
         val bobs = env.classRepo.observeBetween(
             today.atStartOfDayIn(zone),

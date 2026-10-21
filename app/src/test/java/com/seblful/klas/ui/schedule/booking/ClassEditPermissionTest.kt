@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.schedule.booking
 
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -10,13 +11,11 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.plus
-import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.time.Clock
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -37,7 +36,7 @@ class ClassEditPermissionTest : ClassEditTestFixture() {
         advanceUntilIdle()
 
         val asked = asksOf(vm)
-        vm.fillFor(ann, subject, Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY), LocalTime(10, 0), 60)
+        vm.fillFor(ann, subject, env.clock.today().plus(3, DateTimeUnit.DAY), LocalTime(10, 0), 60)
         vm.save {}
         advanceUntilIdle()
 
@@ -48,7 +47,7 @@ class ClassEditPermissionTest : ClassEditTestFixture() {
     fun `a later booking does not ask again`() = runTest(mainRule.dispatcher) {
         env.notificationPermission.granted = false
         val (ann, subject) = seedStudentWithPricedSubject()
-        val date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY)
+        val date = env.clock.today().plus(3, DateTimeUnit.DAY)
         seedLesson(date, LocalTime(8, 0))
 
         val vm = vm()
@@ -73,7 +72,7 @@ class ClassEditPermissionTest : ClassEditTestFixture() {
         advanceUntilIdle()
 
         val asked = asksOf(vm)
-        vm.fillFor(ann, subject, Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY), LocalTime(10, 0), 60)
+        vm.fillFor(ann, subject, env.clock.today().plus(3, DateTimeUnit.DAY), LocalTime(10, 0), 60)
         vm.save {}
         advanceUntilIdle()
 
@@ -90,7 +89,7 @@ class ClassEditPermissionTest : ClassEditTestFixture() {
         advanceUntilIdle()
 
         val asked = asksOf(vm)
-        vm.fillFor(ann, subject, Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY), LocalTime(10, 0), 60)
+        vm.fillFor(ann, subject, env.clock.today().plus(3, DateTimeUnit.DAY), LocalTime(10, 0), 60)
         vm.save {}
         advanceUntilIdle()
 
@@ -108,7 +107,7 @@ class ClassEditPermissionTest : ClassEditTestFixture() {
             advanceUntilIdle()
 
             val asked = asksOf(vm)
-            vm.fillFor(ann, subject, Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY), LocalTime(10, 0), 60)
+            vm.fillFor(ann, subject, env.clock.today().plus(3, DateTimeUnit.DAY), LocalTime(10, 0), 60)
             vm.save {}
             advanceUntilIdle()
 

@@ -7,7 +7,7 @@ import kotlin.time.Instant
 
 class MutableClock(
     private var instant: Instant,
-    override val zone: TimeZone = TimeZone.currentSystemDefault(),
+    override val zone: TimeZone = TimeZone.of("Europe/Minsk"),
 ) : WallClock {
 
     override fun now(): Instant = instant
@@ -16,3 +16,5 @@ class MutableClock(
         instant = instant.plus(millis.milliseconds)
     }
 }
+
+fun testClock(): MutableClock = MutableClock(Instant.parse("2026-06-01T12:00:00Z"))

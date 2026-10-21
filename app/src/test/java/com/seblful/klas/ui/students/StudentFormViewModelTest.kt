@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.students
 
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
@@ -24,13 +23,15 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class StudentFormViewModelTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
 
-    private fun vm() = StudentFormViewModel(env.subjectRepo, env.enrollmentRepo, mainRule.appScope, mainRule.dispatcher)
+    private fun vm() = mainRule.own(
+        StudentFormViewModel(env.subjectRepo, env.enrollmentRepo, mainRule.appScope, mainRule.dispatcher),
+    )
 
     @Test
     fun `a setup detour carries its subject and returns the created student`() = runTest(mainRule.dispatcher) {
@@ -70,7 +71,7 @@ class StudentFormViewModelTest {
 
     @Test
     fun `form starts invalid and becomes valid with a name and a priced subject`() = runTest(mainRule.dispatcher) {
-        val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val mathId = env.fixtures.subject(name = "Математика")
         val vm = vm()
         observing(vm.state)
 
@@ -88,7 +89,7 @@ class StudentFormViewModelTest {
 
     @Test
     fun `a blank or unparseable price keeps the form invalid`() = runTest(mainRule.dispatcher) {
-        val id = env.subjectDao.upsert(SubjectEntity(name = "Физика"))
+        val id = env.fixtures.subject(name = "Физика")
         val vm = vm()
         observing(vm.state)
 
@@ -103,7 +104,7 @@ class StudentFormViewModelTest {
 
     @Test
     fun `setPriceText is ignored for a subject that isn't selected`() = runTest(mainRule.dispatcher) {
-        val id = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
+        val id = env.fixtures.subject(name = "Химия")
         val vm = vm()
         observing(vm.state)
 
@@ -113,7 +114,7 @@ class StudentFormViewModelTest {
 
     @Test
     fun `toggling a subject off drops its price text`() = runTest(mainRule.dispatcher) {
-        val id = env.subjectDao.upsert(SubjectEntity(name = "История"))
+        val id = env.fixtures.subject(name = "История")
         val vm = vm()
         observing(vm.state)
 
@@ -126,7 +127,7 @@ class StudentFormViewModelTest {
     @Test
     fun `save persists a trimmed student with linked, priced subjects and signals done`() =
         runTest(mainRule.dispatcher) {
-            val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+            val mathId = env.fixtures.subject(name = "Математика")
             val vm = vm()
             observing(vm.state)
 
@@ -227,7 +228,7 @@ class StudentFormViewModelTest {
 
     @Test
     fun `an untouched form is clean, and clearing an edit makes it clean again`() = runTest(mainRule.dispatcher) {
-        val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val mathId = env.fixtures.subject(name = "Математика")
         val vm = vm()
         observing(vm.state)
 
@@ -245,7 +246,7 @@ class StudentFormViewModelTest {
 
     @Test
     fun `a student and their priced subjects are written in one transaction`() = runTest(mainRule.dispatcher) {
-        val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val mathId = env.fixtures.subject(name = "Математика")
         val vm = vm()
         observing(vm.state)
         vm.update { it.copy(name = "Аня") }
@@ -272,7 +273,7 @@ class StudentFormViewModelTest {
 
     @Test
     fun `a creation that fails to commit writes no half-student and is reported`() = runTest(mainRule.dispatcher) {
-        val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val mathId = env.fixtures.subject(name = "Математика")
         val vm = vm()
         observing(vm.state)
         vm.update { it.copy(name = "Аня") }
@@ -290,7 +291,7 @@ class StudentFormViewModelTest {
 
     @Test
     fun `the write survives the screen going away`() = runTest(mainRule.dispatcher) {
-        val mathId = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val mathId = env.fixtures.subject(name = "Математика")
         val vm = vm()
         observing(vm.state)
         vm.update { it.copy(name = "Аня") }
@@ -306,7 +307,7 @@ class StudentFormViewModelTest {
 
     @Test
     fun `save does nothing when the form is invalid`() = runTest(mainRule.dispatcher) {
-        env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        env.fixtures.subject(name = "Математика")
         val vm = vm()
         observing(vm.state)
 

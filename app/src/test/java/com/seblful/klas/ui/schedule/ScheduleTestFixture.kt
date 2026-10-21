@@ -20,20 +20,22 @@ import kotlin.time.Instant
 @OptIn(ExperimentalCoroutinesApi::class)
 abstract class ScheduleTestFixture {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
-    protected val zone: TimeZone = TimeZone.currentSystemDefault()
+    protected val zone: TimeZone = env.clock.zone
 
     protected fun vm(
-        clock: WallClock = WallClock.system(),
+        clock: WallClock = env.clock,
         weekStart: DayOfWeek = DayOfWeek.MONDAY,
     ) =
-        ScheduleViewModel(
-            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, mainRule.appScope,
-            mainRule.dispatcher, clock, weekStart,
+        mainRule.own(
+            ScheduleViewModel(
+                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, mainRule.appScope,
+                mainRule.dispatcher, clock, weekStart,
+            ),
         )
 
     protected fun startMillisOn(date: LocalDate, time: LocalTime): Long =

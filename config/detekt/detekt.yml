@@ -7,6 +7,14 @@
 # Formatting belongs to ktlint (see .editorconfig). These would report the same line twice, under two
 # rule names and possibly two different limits.
 style:
+  ForbiddenImport:
+    active: true
+    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/testFixtures/**']
+    forbiddenImports:
+      - 'android.os.Vibrator'
+      - 'android.os.VibrationEffect'
+      - 'android.view.HapticFeedbackConstants'
+      - 'androidx.compose.runtime.collectAsState'
   MaxLineLength:
     active: false
   NewLineAtEndOfFile:

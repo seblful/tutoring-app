@@ -3,7 +3,6 @@ package com.seblful.klas.ui.backup
 import com.seblful.klas.data.backup.BackupData
 import com.seblful.klas.data.backup.BackupFailure
 import com.seblful.klas.data.local.DatabaseSnapshot
-import com.seblful.klas.data.people.StudentEntity
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.testutil.FakeDocumentStore
@@ -30,23 +29,25 @@ import kotlin.time.Instant
 @RunWith(RobolectricTestRunner::class)
 class BackupViewModelTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
     private val documents = FakeDocumentStore()
     private val ref = DocumentRef("content://backup.json")
 
     private val exportedAt: Instant = Instant.parse("2026-06-20T18:30:00Z")
 
-    private fun vm() = BackupViewModel(
-        backup = env.backupManager,
-        restore = env.backupRestore,
-        documents = documents,
-        settings = env.settingsRepo,
-        appScope = mainRule.appScope,
-        clock = WallClock.fixed(exportedAt, TimeZone.of("Europe/Minsk")),
+    private fun vm() = mainRule.own(
+        BackupViewModel(
+            backup = env.backupManager,
+            restore = env.backupRestore,
+            documents = documents,
+            settings = env.settingsRepo,
+            appScope = mainRule.appScope,
+            clock = WallClock.fixed(exportedAt, TimeZone.of("Europe/Minsk")),
+        ),
     )
 
     @Test
@@ -68,7 +69,7 @@ class BackupViewModelTest {
     fun `a successful export reports success and leaves the document behind`() =
         runTest(mainRule.dispatcher) {
             val vm = vm()
-            env.studentDao.upsert(StudentEntity(name = "Аня"))
+            env.fixtures.student(name = "Аня")
             var received: BackupResult? = null
             val job = backgroundScope.launch { vm.events.stream.collect { received = it } }
 
@@ -187,7 +188,7 @@ class BackupViewModelTest {
     fun `a valid backup imports, and ends first run as part of what a restore is`() =
         runTest(mainRule.dispatcher) {
             val vm = vm()
-            env.studentDao.upsert(StudentEntity(name = "Аня"))
+            env.fixtures.student(name = "Аня")
             documents.docs[ref.value] = env.backupManager.exportJson()
             env.snapshotDao.replace(DatabaseSnapshot())
             var received: BackupResult? = null

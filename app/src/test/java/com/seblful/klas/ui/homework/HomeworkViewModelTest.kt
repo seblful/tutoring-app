@@ -28,10 +28,10 @@ import kotlin.time.Instant
 @RunWith(RobolectricTestRunner::class)
 class HomeworkViewModelTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
     private val fixtures = env.fixtures
 
@@ -39,9 +39,11 @@ class HomeworkViewModelTest {
     private val todayAt17: Instant = Instant.parse("2026-06-01T14:00:00Z")
     private val tomorrow: Instant = Instant.parse("2026-06-02T12:00:00Z")
 
-    private fun vm() = HomeworkViewModel(
-        env.homeworkRepo, env.studentRepo, env.groupRepo, mainRule.appScope, mainRule.dispatcher, env.clock,
-        env.classRepo,
+    private fun vm() = mainRule.own(
+        HomeworkViewModel(
+            env.homeworkRepo, env.studentRepo, env.groupRepo, mainRule.appScope, mainRule.dispatcher, env.clock,
+            env.classRepo,
+        ),
     )
 
     @Test

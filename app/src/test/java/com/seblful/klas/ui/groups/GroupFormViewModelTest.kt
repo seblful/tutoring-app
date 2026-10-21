@@ -1,9 +1,7 @@
 package com.seblful.klas.ui.groups
 
 import androidx.lifecycle.SavedStateHandle
-import com.seblful.klas.data.people.StudentEntity
 import com.seblful.klas.data.people.StudentSubjectCrossRef
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
@@ -28,27 +26,29 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class GroupFormViewModelTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
 
-    private fun vm(groupId: Long = 0L) = GroupFormViewModel(
-        savedStateHandle = SavedStateHandle(if (groupId == 0L) emptyMap() else mapOf("id" to groupId)),
-        groups = env.groupRepo,
-        settings = env.settingsRepo,
-        students = env.studentRepo,
-        subjects = env.subjectRepo,
-        rateHistory = env.rateHistoryRepo,
-        enrollment = env.enrollmentRepo,
-        appScope = mainRule.appScope,
-        computation = mainRule.dispatcher,
+    private fun vm(groupId: Long = 0L) = mainRule.own(
+        GroupFormViewModel(
+            savedStateHandle = SavedStateHandle(if (groupId == 0L) emptyMap() else mapOf("id" to groupId)),
+            groups = env.groupRepo,
+            settings = env.settingsRepo,
+            students = env.studentRepo,
+            subjects = env.subjectRepo,
+            rateHistory = env.rateHistoryRepo,
+            enrollment = env.enrollmentRepo,
+            appScope = mainRule.appScope,
+            computation = mainRule.dispatcher,
+        ),
     )
 
     private suspend fun seedStudents(): Pair<Long, Long> {
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
+        val ann = env.fixtures.student(name = "Аня")
+        val bob = env.fixtures.student(name = "Борис")
         return ann to bob
     }
 
@@ -311,7 +311,7 @@ class GroupFormViewModelTest {
     @Test
     fun `archived students are not offered as members`() = runTest(mainRule.dispatcher) {
         val (ann, bob) = seedStudents()
-        env.studentDao.upsert(env.studentDao.getById(bob)!!.copy(archived = true))
+        env.studentRepo.setArchived(env.studentRepo.getById(bob)!!, archived = true)
 
         val vm = vm()
         observing(vm.state)
@@ -323,7 +323,7 @@ class GroupFormViewModelTest {
     @Test
     fun `a save that leaves out an unpriced member says so first`() = runTest(mainRule.dispatcher) {
         val (ann, bob) = seedStudents()
-        val chem = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
+        val chem = env.fixtures.subject(name = "Химия")
         env.enrollmentRepo.enroll(ann, chem, Money.ofMajor(25))
         env.enrollmentRepo.enroll(bob, chem, Money.ofMajor(25))
         val id = env.groupRepo.save(
@@ -348,7 +348,7 @@ class GroupFormViewModelTest {
     @Test
     fun `a group whose every member lost the price cannot be saved at all`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
-        val chem = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
+        val chem = env.fixtures.subject(name = "Химия")
         env.enrollmentRepo.enroll(ann, chem, Money.ofMajor(25))
         val id = env.groupRepo.save(
             Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)),
@@ -368,7 +368,7 @@ class GroupFormViewModelTest {
     @Test
     fun `a save where everybody is priced says nothing`() = runTest(mainRule.dispatcher) {
         val (ann, _) = seedStudents()
-        val chem = env.subjectDao.upsert(SubjectEntity(name = "Химия"))
+        val chem = env.fixtures.subject(name = "Химия")
         env.enrollmentRepo.enroll(ann, chem, Money.ofMajor(25))
         val id = env.groupRepo.save(
             Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)),
@@ -409,7 +409,7 @@ class GroupFormViewModelTest {
     fun `picking a subject narrows the candidates to the students priced for it`() =
         runTest(mainRule.dispatcher) {
             val (ann, bob) = seedStudents()
-            val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+            val algebra = env.fixtures.subject(name = "Алгебра")
             env.studentDao.addSubjectLink(StudentSubjectCrossRef(ann, algebra))
             val vm = vm()
             observing(vm.state)
@@ -427,7 +427,7 @@ class GroupFormViewModelTest {
     fun `a tick on someone the new subject excludes is neither counted nor saved`() =
         runTest(mainRule.dispatcher) {
             val (ann, bob) = seedStudents()
-            val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+            val algebra = env.fixtures.subject(name = "Алгебра")
             env.studentDao.addSubjectLink(StudentSubjectCrossRef(ann, algebra))
             val vm = vm()
             observing(vm.state)
@@ -456,7 +456,7 @@ class GroupFormViewModelTest {
     fun `a subject with nobody priced for it leaves the group unsaveable`() =
         runTest(mainRule.dispatcher) {
             val (ann, _) = seedStudents()
-            val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+            val algebra = env.fixtures.subject(name = "Алгебра")
             val vm = vm()
             observing(vm.state)
             advanceUntilIdle()

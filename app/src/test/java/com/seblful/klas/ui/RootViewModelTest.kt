@@ -28,16 +28,18 @@ import kotlin.time.Duration.Companion.seconds
 @RunWith(RobolectricTestRunner::class)
 class RootViewModelTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
 
     @get:Rule
     val locale = AppLocaleRule.russian()
 
-    private fun vm() = RootViewModel(env.settingsRepo, env.deviceLocales, env.maintenance, mainRule.appScope)
+    private fun vm() = mainRule.own(
+        RootViewModel(env.settingsRepo, env.deviceLocales, env.maintenance, mainRule.appScope),
+    )
 
     @Test
     fun `foreground locale follows settings before the UI reads them`() = runTest(mainRule.dispatcher) {

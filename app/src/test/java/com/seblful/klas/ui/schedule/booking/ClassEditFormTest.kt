@@ -1,13 +1,11 @@
 package com.seblful.klas.ui.schedule.booking
 
-import com.seblful.klas.data.billing.PriceEntity
-import com.seblful.klas.data.people.StudentEntity
 import com.seblful.klas.data.people.StudentSubjectCrossRef
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
@@ -25,7 +23,6 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.atTime
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -34,7 +31,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.time.Clock
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -74,7 +70,7 @@ class ClassEditFormTest : ClassEditTestFixture() {
 
     @Test
     fun `an existing lesson's form is Loading until the lesson has been read`() = runTest(mainRule.dispatcher) {
-        val date = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+        val date = env.clock.today().plus(2, DateTimeUnit.DAY)
         val (_, id) = seedLesson(date, LocalTime(14, 0))
 
         val vm = vm(id)
@@ -99,7 +95,7 @@ class ClassEditFormTest : ClassEditTestFixture() {
      */
     @Test
     fun `the form's first Ready state already names the lesson's student`() = runTest(mainRule.dispatcher) {
-        val date = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+        val date = env.clock.today().plus(2, DateTimeUnit.DAY)
         val (studentId, id) = seedLesson(date, LocalTime(14, 0), studentName = "Борис")
 
         val vm = vm(id)
@@ -123,7 +119,7 @@ class ClassEditFormTest : ClassEditTestFixture() {
      */
     @Test
     fun `an archived student's lesson still names them`() = runTest(mainRule.dispatcher) {
-        val date = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+        val date = env.clock.today().plus(2, DateTimeUnit.DAY)
         val (studentId, id) = seedLesson(date, LocalTime(14, 0), studentName = "Аня")
         env.studentRepo.setArchived(env.studentRepo.getById(studentId)!!, archived = true)
 
@@ -149,7 +145,7 @@ class ClassEditFormTest : ClassEditTestFixture() {
      */
     @Test
     fun `another archived student is still left out of the picker`() = runTest(mainRule.dispatcher) {
-        val date = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+        val date = env.clock.today().plus(2, DateTimeUnit.DAY)
         val (studentId, id) = seedLesson(date, LocalTime(14, 0), studentName = "Аня")
         val other = env.fixtures.student("Глеб")
         env.studentRepo.setArchived(env.studentRepo.getById(studentId)!!, archived = true)
@@ -284,8 +280,8 @@ class ClassEditFormTest : ClassEditTestFixture() {
 
     @Test
     fun `with several students none is auto-selected`() = runTest(mainRule.dispatcher) {
-        env.studentDao.upsert(StudentEntity(name = "Аня"))
-        env.studentDao.upsert(StudentEntity(name = "Борис"))
+        env.fixtures.student(name = "Аня")
+        env.fixtures.student(name = "Борис")
         val vm = vm()
         observing(vm.state)
         advanceUntilIdle()
@@ -297,8 +293,8 @@ class ClassEditFormTest : ClassEditTestFixture() {
     fun `selecting a different student clears the subject and price and adopts the student's mode`() =
         runTest(mainRule.dispatcher) {
             // Two students, so nothing is auto-selected and selectStudent runs its clearing logic.
-            env.studentDao.upsert(StudentEntity(name = "Аня", defaultMode = ClassMode.IN_PERSON))
-            val remoteId = env.studentDao.upsert(StudentEntity(name = "Борис", defaultMode = ClassMode.REMOTE))
+            env.fixtures.student(name = "Аня", defaultMode = ClassMode.IN_PERSON)
+            val remoteId = env.fixtures.student(name = "Борис", defaultMode = ClassMode.REMOTE)
             val vm = vm()
             observing(vm.state)
             advanceUntilIdle()
@@ -315,11 +311,11 @@ class ClassEditFormTest : ClassEditTestFixture() {
 
     @Test
     fun `subject changes refresh automatic rates and preserve typed overrides`() = runTest(mainRule.dispatcher) {
-        val studentId = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val math = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val physics = env.subjectDao.upsert(SubjectEntity(name = "Физика"))
-        env.priceDao.upsert(PriceEntity(studentId, math, Money.ofMajor(30).minor))
-        env.priceDao.upsert(PriceEntity(studentId, physics, Money.ofMajor(40).minor))
+        val studentId = env.fixtures.student(name = "Аня")
+        val math = env.fixtures.subject(name = "Математика")
+        val physics = env.fixtures.subject(name = "Физика")
+        env.enrollmentRepo.enroll(studentId, math, Money.ofMajor(30))
+        env.enrollmentRepo.enroll(studentId, physics, Money.ofMajor(40))
         val vm = vm()
         observing(vm.state)
         advanceUntilIdle()

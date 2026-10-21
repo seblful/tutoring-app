@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.schedule.booking
 
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -12,21 +13,19 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.time.Clock
 
 /** The «Who» section of a new booking: its chips, and choosing a student or a group in one tap. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class ClassEditWhoTest : ClassEditTestFixture() {
 
-    private val lastWeek = Clock.System.todayIn(zone).minus(7, DateTimeUnit.DAY)
+    private val lastWeek = env.clock.today().minus(7, DateTimeUnit.DAY)
 
     @Test
     fun `the chips put whoever was taught last first`() = runTest(mainRule.dispatcher) {
