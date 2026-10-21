@@ -81,7 +81,7 @@ class BackupViewModel @Inject constructor(
      */
     val importing: StateFlow<Boolean> = _importing.asStateFlow()
 
-    /** eads the picked file through [DocumentStore] and hands the rest to [BackupRestore]. */
+    /** Reads the picked file through [DocumentStore] and hands the rest to [BackupRestore]. */
     fun import(ref: DocumentRef) {
         if (_importing.value) return
         _importing.value = true

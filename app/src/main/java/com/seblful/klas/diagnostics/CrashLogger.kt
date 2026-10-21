@@ -6,7 +6,7 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlin.time.Instant
 
-/** n-device crash diagnostics — offline, no backend, in keeping with the app's local-only stance. */
+/** On-device crash diagnostics — offline, no backend, in keeping with the app's local-only stance. */
 @SingleIn(AppScope::class)
 class CrashLogger @Inject constructor(
     private val store: CrashLogStore,

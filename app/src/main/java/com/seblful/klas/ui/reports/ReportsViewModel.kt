@@ -86,7 +86,7 @@ class ReportsViewModel @Inject constructor(
 
     val events = UiEvents<ExportEvent>()
 
-    /** rites the report to the document the tutor picked. */
+    /** Writes the report to the document the tutor picked. */
     fun export(ref: DocumentRef, header: List<String>, lines: List<ReportCsv.Line>) {
         viewModelScope.launch {
             val ok = runCatchingCancellable {
@@ -99,7 +99,7 @@ class ReportsViewModel @Inject constructor(
     private fun csv(header: List<String>, lines: List<ReportCsv.Line>): String =
         ReportCsv.build(header, lines, ReportCsv.Dialect.forDecimal(AppLocale.decimalSeparator))
 
-    /** ands the same report to another app, through the system share sheet. */
+    /** Hands the same report to another app, through the system share sheet. */
     fun share(filename: String, subject: String, header: List<String>, lines: List<ReportCsv.Line>) {
         viewModelScope.launch {
             val ok = runCatchingCancellable {

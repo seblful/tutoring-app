@@ -10,7 +10,7 @@ import com.seblful.klas.maintenance.Maintenance
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.CoroutineScope
 
-/** e-plans after the device's timezone or wall clock is changed — travel, or a manual correction. */
+/** Re-plans after the device's timezone or wall clock is changed — travel, or a manual correction. */
 class ClockChangeReceiver : BroadcastReceiver() {
 
     @Inject lateinit var maintenance: Maintenance

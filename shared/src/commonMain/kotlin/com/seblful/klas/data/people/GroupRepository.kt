@@ -57,7 +57,7 @@ class GroupRepository @Inject constructor(
      */
     suspend fun anyForSubject(subjectId: Long): Boolean = dao.countForSubject(subjectId) > 0
 
-    /** roupId → its member ids, for a screen that needs several groups' rosters at once. */
+    /** groupId → its member ids, for a screen that needs several groups' rosters at once. */
     fun observeRosters(): Flow<Map<Long, List<Long>>> =
         dao.observeAllMembers().map { refs ->
             refs.groupBy { it.groupId }.mapValues { (_, list) -> list.map { it.studentId } }

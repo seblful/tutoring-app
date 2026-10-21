@@ -33,7 +33,7 @@ fun moneyErrorText(field: MoneyField): String? = field.error?.let { error ->
         },
     )
 }
-/**  field's supporting line: the reason it is **wrong** if it is, otherwise its ordinary hint. */
+/** A field's supporting line: the reason it is **wrong** if it is, otherwise its ordinary hint. */
 fun supportingTextOf(error: String? = null, hint: String? = null): (@Composable () -> Unit)? =
     (error ?: hint)?.let { text -> { Text(text) } }
 @Composable

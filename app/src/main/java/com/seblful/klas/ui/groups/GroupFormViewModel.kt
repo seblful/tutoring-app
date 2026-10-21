@@ -47,7 +47,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-/** reating or editing a group: its **subject**, name, note, hourly rate, default lesson mode and roster. */
+/** Creating or editing a group: its **subject**, name, note, hourly rate, default lesson mode and roster. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class GroupFormViewModel @AssistedInject constructor(
     @Assisted savedStateHandle: SavedStateHandle,

@@ -8,7 +8,7 @@ import com.seblful.klas.R
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.ui.common.text
 
-/** uman-readable balance line: debt, credit, or settled. */
+/** Human-readable balance line: debt, credit, or settled. */
 @Composable
 fun balanceDescription(balance: Balance): String = when (balance) {
     Balance.Settled -> stringResource(R.string.balance_settled)

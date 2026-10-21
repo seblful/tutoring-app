@@ -18,7 +18,7 @@ class Messages(
     val hostState: SnackbarHostState,
     private val scope: CoroutineScope,
 ) {
-    /** hows [text]. */
+    /** Shows [text]. */
     fun show(text: String) {
         scope.launch {
             hostState.currentSnackbarData?.dismiss()
@@ -26,7 +26,7 @@ class Messages(
         }
     }
 
-    /** hows [text] with something to do about it — «Показать», «Отменить». */
+    /** Shows [text] with something to do about it — «Показать», «Отменить». */
     fun show(text: String, actionLabel: String, onAction: () -> Unit) {
         scope.launch {
             hostState.currentSnackbarData?.dismiss()

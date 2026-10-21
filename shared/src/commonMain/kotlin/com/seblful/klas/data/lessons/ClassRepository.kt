@@ -282,7 +282,7 @@ class ClassRepository @Inject constructor(
             ?: LessonWrite.Written(written.bookedIds)
     }
 
-    /** ooks the same lesson at each of [starts] — the whole of what «Повторять» writes. */
+    /** Books the same lesson at each of [starts] — the whole of what «Повторять» writes. */
     suspend fun bookSeries(
         subjectId: Long,
         starts: List<Instant>,
@@ -355,7 +355,7 @@ class ClassRepository @Inject constructor(
         }
     }
 
-    /** pplies one edit to every class of [session], moving the lesson to [newStart]. */
+    /** Applies one edit to every class of [session], moving the lesson to [newStart]. */
     suspend fun apply(
         session: ClassSession,
         changes: SessionEdit,
@@ -402,7 +402,7 @@ class ClassRepository @Inject constructor(
         }
     }
 
-    /** arks what became of a whole lesson: it happened, it was called off, or it is planned again. */
+    /** Marks what became of a whole lesson: it happened, it was called off, or it is planned again. */
     suspend fun setStatus(session: ClassSession, to: LessonStatus): LessonWrite<List<TutoringClass>> {
         if (session.status == to) return LessonWrite.Written(emptyList())
         return write {
@@ -474,7 +474,7 @@ class ClassRepository @Inject constructor(
         return Committed(touched, mirror = touched, drop = edit.dropped)
     }
 
-    /** ettles [studentId]'s scheduled classes for archiving and returns the changed rows. */
+    /** Settles [studentId]'s scheduled classes for archiving and returns the changed rows. */
     suspend fun cancelScheduledFor(studentId: Long): List<TutoringClass> {
         if (dao.scheduledForStudent(studentId).isEmpty()) return emptyList()
         // One transaction for the lot: a half-archived student would have some lessons called off and

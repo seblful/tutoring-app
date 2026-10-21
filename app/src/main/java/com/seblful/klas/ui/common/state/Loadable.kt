@@ -8,7 +8,7 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-/** hether a screen's state has arrived yet — the distinction every list screen was missing. */
+/** Whether a screen's state has arrived yet — the distinction every list screen was missing. */
 sealed interface Loadable<out T> {
 
     /** No emission yet. Screens draw a skeleton shaped like the content — see `Skeleton.kt`. */

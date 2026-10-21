@@ -19,7 +19,7 @@ sealed interface ExternalTarget {
     /** A new mail to [address]. */
     data class Email(val address: String) : ExternalTarget
 
-    /** elegram by phone number, through the public `t.me` deep link. */
+    /** Telegram by phone number, through the public `t.me` deep link. */
     data class Telegram(val phone: String) : ExternalTarget
 
     /** [text] into the phone's share sheet, titled [chooserTitle]. */

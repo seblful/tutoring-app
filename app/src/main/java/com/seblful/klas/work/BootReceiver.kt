@@ -10,7 +10,7 @@ import com.seblful.klas.maintenance.Maintenance
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.CoroutineScope
 
-/** e-derives the reminder plan after a reboot. */
+/** Re-derives the reminder plan after a reboot. */
 class BootReceiver : BroadcastReceiver() {
 
     @Inject lateinit var maintenance: Maintenance

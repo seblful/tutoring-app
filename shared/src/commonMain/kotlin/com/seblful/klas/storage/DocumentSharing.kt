@@ -1,6 +1,6 @@
 package com.seblful.klas.storage
 
-/** ands a file the app has just produced to **another app** — the system share sheet. */
+/** Hands a file the app has just produced to **another app** — the system share sheet. */
 interface DocumentSharing {
 
     /**

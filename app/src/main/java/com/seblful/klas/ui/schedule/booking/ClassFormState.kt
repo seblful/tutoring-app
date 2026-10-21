@@ -68,7 +68,7 @@ data class ClassFormState(
     val conflict: TimeConflict? = null,
     /** Free dates in the whole proposed run; a repeating booking skips the occupied ones. */
     val availableOccurrences: Int = 1,
-    /** hether the tutor has changed anything — what leaving without saving would throw away. */
+    /** Whether the tutor has changed anything — what leaving without saving would throw away. */
     override val isDirty: Boolean = false,
 ) : LeavableForm {
     /** Whether the lesson yet has somebody to be for. Until then most of the form means nothing. */

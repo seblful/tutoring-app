@@ -54,7 +54,7 @@ import com.seblful.klas.ui.common.supportingTextOf
 import com.seblful.klas.ui.students.AddSubjectPriceDialog
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
-/** reate or edit one group: **subject**, name, note, hourly rate, default mode and roster. */
+/** Create or edit one group: **subject**, name, note, hourly rate, default mode and roster. */
 @Composable
 fun GroupFormScreen(
     onBack: () -> Unit,

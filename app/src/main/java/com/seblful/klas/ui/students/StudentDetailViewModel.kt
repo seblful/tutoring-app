@@ -137,7 +137,7 @@ class StudentDetailViewModel @AssistedInject constructor(
         write { enrollment.reprice(studentId, subjectId, amount) }
     }
 
-    /** ecords a payment, on the day it was actually made. */
+    /** Records a payment, on the day it was actually made. */
     fun addPayment(amount: Money, day: LocalDate) {
         if (amount.isZero) return
         write { payments.record(studentId, amount, day) }
@@ -146,7 +146,7 @@ class StudentDetailViewModel @AssistedInject constructor(
     /** The day the payment dialog opens on — off the same clock that will stamp the save. */
     fun paymentDay(): LocalDate = payments.today()
 
-    /** orrects a payment already recorded, keeping its id. */
+    /** Corrects a payment already recorded, keeping its id. */
     fun editPayment(payment: Payment, amount: Money, day: LocalDate) {
         if (amount.isZero) return
         write { payments.correct(payment, amount, day) }
@@ -156,7 +156,7 @@ class StudentDetailViewModel @AssistedInject constructor(
         write { payments.delete(payment) }
     }
 
-    /** e-inserts a just-deleted payment (preserving its id, date and amount) for the undo action. */
+    /** Re-inserts a just-deleted payment (preserving its id, date and amount) for the undo action. */
     fun restorePayment(payment: Payment) {
         write { payments.restore(payment) }
     }

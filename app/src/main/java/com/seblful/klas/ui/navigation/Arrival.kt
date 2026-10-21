@@ -18,7 +18,7 @@ class ArrivalGate {
         return arrival.target
     }
 
-    /** hether [arrival] is one this gate still owes — **offering it does not spend it**. */
+    /** Whether [arrival] is one this gate still owes — **offering it does not spend it**. */
     fun <T> owes(arrival: Arrival<T>?): Boolean = arrival != null && arrival !== last
 
     /** Records [arrival] as honoured, so [owes] answers false for it from here on. No arrival, nothing. */

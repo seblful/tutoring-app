@@ -109,7 +109,7 @@ class ScheduleViewModel @Inject constructor(
 
     private val askedLessonId = MutableStateFlow<Long?>(null)
 
-    /** oday — **re-emitted when the date changes**, not read once ([days]). */
+    /** Today — **re-emitted when the date changes**, not read once ([days]). */
     val today: StateFlow<LocalDate> = clock.days()
         .onEach { followToday(it) }
         .hold(this, clock.today())
@@ -129,7 +129,7 @@ class ScheduleViewModel @Inject constructor(
     private val everyone: Flow<List<Student>> =
         students.observeAll().shared(this)
 
-    /** hose lessons the schedule is showing, or null for everyone's — see [StudentFilter]. */
+    /** Whose lessons the schedule is showing, or null for everyone's — see [StudentFilter]. */
     val studentFilter: StateFlow<StudentFilter?> =
         combine(filterStudentId, everyone) { id, all ->
             id?.let { wanted -> all.firstOrNull { it.id == wanted } }
@@ -386,7 +386,7 @@ class ScheduleViewModel @Inject constructor(
         askedLessonId.value = null
     }
 
-    /** icks the day the day list shows and the FAB books into; the calendar pages follow it. */
+    /** Picks the day the day list shows and the FAB books into; the calendar pages follow it. */
     fun selectDate(date: LocalDate) {
         askedLessonId.value = null
         page { it.select(date) }
@@ -413,7 +413,7 @@ class ScheduleViewModel @Inject constructor(
     // closes as the action is tapped, and marking a lesson completed or deleting one must not be cut
     // in half because the screen went away a moment later — see [ApplicationScope].
 
-    /** hanges a whole lesson's status. */
+    /** Changes a whole lesson's status. */
     fun setStatus(session: ClassSession, status: LessonStatus) {
         write {
             when (val changed = classes.setStatus(session, status)) {

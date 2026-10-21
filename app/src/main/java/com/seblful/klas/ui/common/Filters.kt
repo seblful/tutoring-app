@@ -64,7 +64,7 @@ fun <T> FilterMenuAction(
     }
 }
 
-/** ho a list is currently narrowed to, and the one tap that stops. */
+/** Who a list is currently narrowed to, and the one tap that stops. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterChipRow(name: String, onClear: () -> Unit) {

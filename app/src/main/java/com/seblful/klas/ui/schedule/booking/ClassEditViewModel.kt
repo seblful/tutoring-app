@@ -504,7 +504,7 @@ class ClassEditViewModel @AssistedInject constructor(
 
     // ---- The one way the form changes ----------------------------------------------------------
 
-    /** pplies one change to the form, and goes to look up whatever the change asks for. */
+    /** Applies one change to the form, and goes to look up whatever the change asks for. */
     fun change(intent: BookingIntent) {
         val applied = booking.value.change(intent, bookingContext())
         booking.value = applied.form

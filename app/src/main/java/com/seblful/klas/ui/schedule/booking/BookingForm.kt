@@ -105,7 +105,7 @@ sealed interface BookingIntent {
     data class OnlySubject(val askedFor: SubjectKey, val subjectId: Long) : Answer
 }
 
-/** omething the form needs from the database because of a change just made to it. */
+/** Something the form needs from the database because of a change just made to it. */
 sealed interface Lookup {
 
     /** Read [groupId]'s rate, mode and subject — answered with [BookingIntent.GroupLoaded]. */

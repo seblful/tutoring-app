@@ -58,7 +58,7 @@ data class ScheduleRow(
     val recedes: Boolean get() = session.status == LessonStatus.CANCELLED
 
     companion object {
-        /** session] captioned by [captions] — the whole of turning a stored lesson into a drawable row. */
+        /** [session] captioned by [captions] — the whole of turning a stored lesson into a drawable row. */
         fun of(session: ClassSession, captions: Captions): ScheduleRow = ScheduleRow(
             session = session,
             title = captions.titleOf(session),

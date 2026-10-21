@@ -17,7 +17,7 @@ import kotlin.time.Duration.Companion.nanoseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/** oday by this clock — **re-emitted at every local midnight**, not read once. */
+/** Today by this clock — **re-emitted at every local midnight**, not read once. */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 fun WallClock.days(): Flow<LocalDate> = zones().flatMapLatest { zone ->
     flow {

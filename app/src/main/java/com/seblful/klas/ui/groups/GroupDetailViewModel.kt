@@ -92,7 +92,7 @@ data class GroupDetailState(
     val canDelete: Boolean get() = lessons.isEmpty()
 }
 
-/**  group's card: who is in it, what it has been taught, and **the whole of its lifecycle**. */
+/** A group's card: who is in it, what it has been taught, and **the whole of its lifecycle**. */
 class GroupDetailViewModel @AssistedInject constructor(
     @Assisted savedStateHandle: SavedStateHandle,
     private val groups: GroupRepository,

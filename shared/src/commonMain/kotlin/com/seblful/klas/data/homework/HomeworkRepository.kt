@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.map
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
-/** omework and the lessons it is attached to — the only writer of the `homework` table. */
+/** Homework and the lessons it is attached to — the only writer of the `homework` table. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @SingleIn(AppScope::class)
 class HomeworkRepository @Inject constructor(

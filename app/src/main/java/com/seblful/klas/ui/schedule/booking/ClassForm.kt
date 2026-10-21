@@ -23,7 +23,7 @@ import kotlin.time.Instant
 /** Who a lesson is booked for: one student, or a whole group. */
 enum class ClassTarget { STUDENT, GROUP }
 
-/** hich subjects the form may offer: whose they are. */
+/** Which subjects the form may offer: whose they are. */
 data class SubjectKey(val target: ClassTarget, val studentId: Long?, val groupId: Long?) {
     companion object {
         fun of(form: ClassForm): SubjectKey = SubjectKey(form.target, form.studentId, form.groupId)

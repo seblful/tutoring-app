@@ -57,7 +57,7 @@ class RootViewModel @Inject constructor(
     @param:ApplicationScope private val appScope: CoroutineScope,
 ) : ViewModel() {
 
-    /** atch up **in process**, not by enqueueing a worker — called once by `AppRoot` as the UI comes up. */
+    /** Catch up **in process**, not by enqueueing a worker — called once by `AppRoot` as the UI comes up. */
     fun catchUp() {
         appScope.launch { runCatchingCancellable { maintenance.run() } }
     }

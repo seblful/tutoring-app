@@ -67,7 +67,7 @@ class SettingsViewModel @Inject constructor(
      */
     val pendingSweep: StateFlow<Int?> = _pendingSweep.asStateFlow()
 
-    /** urns reminders [on] — **storing the setting and saying what that owes the platform, in one call.** */
+    /** Turns reminders [on] — **storing the setting and saying what that owes the platform, in one call.** */
     fun setNotificationsEnabled(on: Boolean): NotificationsIntent {
         update { it.copy(notificationsEnabled = on) }
         // Turning it off asks nothing; turning it on owes exactly what the blocked row owes, so the two

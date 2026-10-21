@@ -73,7 +73,7 @@ class StudentFormViewModel @Inject constructor(
                 form.subjectPrices.isNotEmpty() &&
                 form.subjectPrices.values.all { it.isValid }
 
-        /** hether anything has been entered — what leaving without saving would cost. */
+        /** Whether anything has been entered — what leaving without saving would cost. */
         override val isDirty: Boolean get() = form != baseline
     }
 
@@ -153,7 +153,7 @@ class StudentFormViewModel @Inject constructor(
 
     val events = UiEvents<Event>()
 
-    /** reates the student and their priced subjects. */
+    /** Creates the student and their priced subjects. */
     fun save(onSaved: () -> Unit) = create { onSaved() }
 
     fun create(onCreated: (Long) -> Unit) {

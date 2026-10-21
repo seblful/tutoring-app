@@ -14,7 +14,7 @@ data class CalendarRow(
     val accessLevel: Int,
 )
 
-/** hich calendar a mirrored lesson is written to — the rule, with no `ContentResolver` in sight. */
+/** Which calendar a mirrored lesson is written to — the rule, with no `ContentResolver` in sight. */
 object CalendarChoice {
 
     /**

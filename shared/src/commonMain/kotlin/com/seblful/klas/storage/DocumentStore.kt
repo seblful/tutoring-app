@@ -14,7 +14,7 @@ import kotlin.jvm.JvmInline
 @JvmInline
 value class DocumentRef(val value: String)
 
-/** eads and writes the whole text of a user-picked document. */
+/** Reads and writes the whole text of a user-picked document. */
 interface DocumentStore {
 
     /** The document's entire contents as text. Throws if it cannot be opened or read. */

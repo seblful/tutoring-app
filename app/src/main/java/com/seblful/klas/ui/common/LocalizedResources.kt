@@ -9,7 +9,7 @@ import androidx.compose.ui.platform.LocalResources
 import com.seblful.klas.format.inLanguage
 import java.util.Locale
 
-/** raws [content] in [locale] — **the app's language, provided to a whole composition.** */
+/** Draws [content] in [locale] — **the app's language, provided to a whole composition.** */
 @Composable
 fun ProvideLocalizedResources(locale: Locale, content: @Composable () -> Unit) {
     val base = LocalContext.current
