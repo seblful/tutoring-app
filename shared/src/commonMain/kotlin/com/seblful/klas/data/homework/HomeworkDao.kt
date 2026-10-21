@@ -25,9 +25,6 @@ interface HomeworkDao {
     @Query("SELECT * FROM homework")
     fun observeAll(): Flow<List<HomeworkEntity>>
 
-    @Query("SELECT * FROM homework")
-    suspend fun getAll(): List<HomeworkEntity>
-
     /** The homework not yet marked done — the only kind a calendar event describes. */
     @Query("SELECT * FROM homework WHERE doneAtMillis IS NULL")
     suspend fun getCurrent(): List<HomeworkEntity>

@@ -280,7 +280,7 @@ class ScheduleWriteTest : ScheduleTestFixture() {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
+        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
         val day = LocalDate(2026, 7, 15)
         val at = startMillisOn(day, LocalTime(12, 0))
         val first = env.fixtures.storedClass(
@@ -318,7 +318,7 @@ class ScheduleWriteTest : ScheduleTestFixture() {
         val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
         val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
         val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob)).id
+        val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
         val at = startMillisOn(Clock.System.todayIn(zone), LocalTime(12, 0))
         env.fixtures.storedClass(
             studentId = ann,

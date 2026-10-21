@@ -110,7 +110,7 @@ abstract class ClassEditTestFixture {
         val groupId = env.groupRepo.save(
             Group(name = "11 «А»", price = price, defaultMode = ClassMode.REMOTE),
             setOf(ann, bob),
-        ).id
+        )
         return Triple(groupId, ann, bob)
     }
 }

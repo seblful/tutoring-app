@@ -49,7 +49,7 @@ class ClassRepositoryAtomicityTest {
             bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
             cleo = env.studentDao.upsert(StudentEntity(name = "Вера"))
             algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-            groupId = env.groupRepo.save(Group(name = "11 «А»", price = rate), setOf(ann, bob, cleo)).id
+            groupId = env.groupRepo.save(Group(name = "11 «А»", price = rate), setOf(ann, bob, cleo))
         }
     }
 

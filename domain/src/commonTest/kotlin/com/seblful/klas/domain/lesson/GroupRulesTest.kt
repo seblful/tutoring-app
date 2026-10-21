@@ -329,7 +329,6 @@ class GroupRulesTest {
 
         assertEquals(listOf(2L), change.dropped.map { it.id })
         assertTrue(change.joining.isEmpty(), "nobody joined")
-        assertFalse(change.isEmpty)
     }
 
     @Test
@@ -381,7 +380,8 @@ class GroupRulesTest {
 
         val change = GroupRules.rosterChange(session, wanted = setOf(1, 2), lessonEdit, t0)
 
-        assertTrue(change.isEmpty)
+        assertTrue(change.dropped.isEmpty(), "nobody left")
+        assertTrue(change.joining.isEmpty(), "nobody joined")
     }
 
     /** Dropping a billed class takes income with it, so it is named separately for the warning. */

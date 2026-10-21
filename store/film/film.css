@@ -125,7 +125,6 @@ body { font-family: Golos, sans-serif; -webkit-font-smoothing: antialiased; colo
 #calendar .event { border-radius: 14px; padding: 9px 18px; background: #dfe0ff; color: #000f5c; font-size: 21px;
   line-height: 1.25; border-left: 8px solid #4c5bc4; }
 #calendar .event b { display: block; font-weight: 600; font-size: 23px; }
-#calendar .event.taught { background: #e9e7ef; color: #46464f; border-left-color: #777680; }
 
 /* The fade to black at the end: a layer over the stage, not the stage's own opacity, which the GPU's
    html-in-canvas ignores on the element it draws. */

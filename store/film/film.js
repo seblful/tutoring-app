@@ -134,7 +134,6 @@
   const SWING_TO_L = { ry: 26, s: -0.07, y: 20 };
   const SWING_TO_R = { ry: -26, s: -0.07, y: 20 };
   const Q_R = [1350, 560];
-  const Q_L = [570, 560];
   const OFF_IN = TALL ? { x: 900, y: 2550, s: 0.9, rx: 18, ry: -40, rz: 14 } : { x: 1720, y: 1650, s: 0.9, rx: 18, ry: -40, rz: 14 };
   const OFF_OUT = TALL ? { x: 540, y: 2800, s: 0.85, rx: 30, ry: -20, rz: -6 } : { x: 1390, y: 1720, s: 0.85, rx: 30, ry: -20, rz: -6 };
 
@@ -199,7 +198,6 @@
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-  const stage = $("#stage");
   const fade = $("#fade");
   const phone = $("#phone");
   phone.style.setProperty("--phone", `${WL}px`);
@@ -402,10 +400,10 @@
    * which keeps one corner radius, does not record.
    */
   const TAPS = [
-    { id: "open", at: 8.1, shot: "film-swiped", mark: "cancel", lift: true },
-    { id: "cancelled", at: 9.2, shot: "film-sheet", mark: "cancelled", end: true },
-    { id: "add", at: 25.9, shot: "film-homework-done", mark: "add", lift: true },
-    { id: "themeDark", at: 34.95, shot: "film-theme", mark: "dark", end: true },
+    { at: 8.1, shot: "film-swiped", mark: "cancel", lift: true },
+    { at: 9.2, shot: "film-sheet", mark: "cancelled", end: true },
+    { at: 25.9, shot: "film-homework-done", mark: "add", lift: true },
+    { at: 34.95, shot: "film-theme", mark: "dark", end: true },
   ];
   /** How far a pressed card or button sinks. */
   const PRESSED = 0.965;

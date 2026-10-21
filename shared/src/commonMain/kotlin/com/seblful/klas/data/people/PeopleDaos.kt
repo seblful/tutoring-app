@@ -80,9 +80,6 @@ interface GroupDao {
     @Query("SELECT * FROM student_groups")
     fun observeAll(): Flow<List<GroupEntity>>
 
-    @Query("SELECT * FROM student_groups")
-    suspend fun getAll(): List<GroupEntity>
-
     @Query("SELECT * FROM student_groups WHERE id = :id")
     fun observeById(id: Long): Flow<GroupEntity?>
 

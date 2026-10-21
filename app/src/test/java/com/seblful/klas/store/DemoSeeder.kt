@@ -98,7 +98,7 @@ internal class DemoSeeder @Inject constructor(
         val groupId = groups.save(
             Group(name = tutor.group.name, subjectId = subject, price = Money.ofMajor(tutor.group.rate)),
             memberIds.values.toSet(),
-        ).id
+        )
         return Roster(subjectIds, studentIds, memberIds, groupId)
     }
 

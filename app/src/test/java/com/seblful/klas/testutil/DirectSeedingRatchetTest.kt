@@ -5,7 +5,7 @@ import org.junit.Test
 
 class DirectSeedingRatchetTest {
 
-    private val cap = 251
+    private val cap = 250
 
     private val seedCall = Regex("""[A-Za-z]*[Dd]ao\.(?:insertAll|upsert|insert)\(""")
 

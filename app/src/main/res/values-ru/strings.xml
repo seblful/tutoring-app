@@ -203,8 +203,6 @@
     <string name="class_student_label">Ученик</string>
     <string name="class_subject_label">Предмет</string>
     <string name="class_no_subjects_for_student">У ученика нет предметов с ценой. Укажите цену в карточке ученика.</string>
-    <string name="class_date_label">Дата</string>
-    <string name="class_time_from_label">Начало</string>
     <!--
       Length, chosen as a duration rather than as an end time. A tutor arranges "an hour and a half",
       not "ends at 15:30" — the end time is arithmetic they were being asked to do in their head, and
@@ -274,12 +272,8 @@
     <string name="class_gone_detail">Его удалили после того, как оно было открыто. Вернитесь к расписанию, чтобы найти нужное занятие.</string>
     <string name="class_delete_confirm">Удалить это занятие?</string>
     <string name="class_delete_completed_confirm">Занятие проведено. Удаление уберёт начисленный доход из баланса ученика. Удалить?</string>
-    <string name="class_target_student">Ученик</string>
     <string name="class_target_group">Группа</string>
     <string name="class_group_label">Группа</string>
-    <!-- Says no more than "make one first": «Группы» is its own section now, and can also be moved
-         into «Ещё», so naming a place to go would be wrong half the time. -->
-    <string name="class_no_groups">Групп пока нет. Сначала создайте группу.</string>
     <string name="class_no_subjects_for_group">Сначала добавьте предметы</string>
     <string name="class_group_members_title">Участники</string>
     <string name="class_group_no_active_members">В группе нет активных участников — все они в архиве</string>

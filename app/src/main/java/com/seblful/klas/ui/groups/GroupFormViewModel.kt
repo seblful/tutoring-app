@@ -101,13 +101,6 @@ class GroupFormViewModel @AssistedInject constructor(
         /** Every recorded change to this group's hourly rate, newest first. */
         val rateHistory: List<RateChange> = emptyList(),
         /**
-         * Whether the group is retired. Read-only now: archiving and deleting a group moved to its
-         * **card**, where a student's already were (see [GroupDetailViewModel]). It is still held here
-         * because a save writes the whole `Group` row, and a form that dropped the flag would silently
-         * un-retire a group on rename.
-         */
-        val archived: Boolean = false,
-        /**
          * Everybody priced for [Form.subjectId], archived students included — the set `GroupRepository.save`
          * keeps a roster to — or null while no subject is chosen, when it keeps everyone.
          */
@@ -186,20 +179,17 @@ class GroupFormViewModel @AssistedInject constructor(
         students.observeActive(),
         subjects.observeAll(),
         pricedForSubject,
-        archived,
-    ) { (f, dirty), activeStudents, allSubjects, priced, isArchived ->
+    ) { (f, dirty), activeStudents, allSubjects, priced ->
         UiState(
             form = f,
             candidates = if (priced == null) activeStudents else activeStudents.filter { it.id in priced },
             unpriced = if (priced == null) emptyList() else activeStudents.filterNot { it.id in priced },
             subjects = allSubjects,
-            archived = isArchived,
             pricedIds = priced,
             isDirty = dirty,
         )
     }
-        // A sixth source, appended rather than folded in: `combine` takes five, and a new group has no
-        // history to observe at all.
+        // A new group has no history to observe.
         .combine(if (isNew) flowOf(emptyList()) else rateHistory.observeFor(RateOwner.GroupRate(groupId))) {
                 state,
                 changes,
@@ -312,7 +302,7 @@ class GroupFormViewModel @AssistedInject constructor(
                     // Saved is the new baseline, so a save that leaves the screen open (or a slow
                     // navigation) cannot be followed by "you have unsaved changes".
                     pristine.value = f
-                    onSaved(it.id)
+                    onSaved(it)
                 }
                 .onFailure {
                     saving = false

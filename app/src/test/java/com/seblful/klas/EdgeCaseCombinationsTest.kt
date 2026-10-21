@@ -152,7 +152,7 @@ class EdgeCaseCombinationsTest {
             val groupId = env.groupRepo.save(
                 Group(name = "Химия, 11 класс", subjectId = chem, price = Money.ofMajor(20)),
                 setOf(max),
-            ).id
+            )
             env.enrollmentRepo.unenroll(max, chem)
 
             val group = env.groupRepo.getById(groupId)!!
@@ -216,7 +216,7 @@ class EdgeCaseCombinationsTest {
         runTest(mainRule.dispatcher) {
             val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
             val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-            val groupId = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann)).id
+            val groupId = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann))
             val at = Instant.parse("2026-03-02T09:00:00Z")
             val ids = env.classRepo.book(
                 subjectId = subj, start = at, durationMinutes = 60, mode = ClassMode.IN_PERSON,

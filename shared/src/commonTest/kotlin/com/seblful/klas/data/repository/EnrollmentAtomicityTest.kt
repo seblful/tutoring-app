@@ -27,12 +27,10 @@ class EnrollmentAtomicityTest {
 
         var ivan = 0L
         var algebra = 0L
-        var physics = 0L
 
         suspend fun seed() {
             ivan = env.studentDao.upsert(StudentEntity(name = "Иван"))
             algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-            physics = env.subjectDao.upsert(SubjectEntity(name = "Физика"))
         }
     }
 
@@ -47,22 +45,6 @@ class EnrollmentAtomicityTest {
         assertEquals(1, f.env.transactor.count - before, "the link and the price are one write")
         assertEquals(1, f.env.transactor.maxDepth, "no nesting")
         assertEquals(0, f.env.transactor.depth, "nothing left open")
-    }
-
-    @Test
-    fun `replacing a student's enrollments wholesale is a single transaction`() = runTest {
-        val f = Fixture()
-        f.seed()
-        f.env.enrollmentRepo.setEnrollments(f.ivan, mapOf(f.algebra to Money.ofMajor(30)))
-        val before = f.env.transactor.count
-
-        f.env.enrollmentRepo.setEnrollments(f.ivan, mapOf(f.physics to Money.ofMajor(25)))
-
-        assertEquals(1, f.env.transactor.count - before, "one subject dropped, one added, one write")
-        assertEquals(1, f.env.transactor.maxDepth, "no nesting")
-        // And it really did both halves, so the transaction isn't wrapping a no-op.
-        assertEquals(listOf(f.physics), f.env.studentDao.getSubjectIds(f.ivan))
-        assertEquals(listOf(f.physics), f.env.stored().prices.map { it.subjectId })
     }
 
     @Test
@@ -135,7 +117,7 @@ class EnrollmentAtomicityTest {
         val bob = f.env.studentDao.upsert(StudentEntity(name = "Борис"))
         val before = f.env.transactor.count
 
-        val id = f.env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann, bob)).id
+        val id = f.env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann, bob))
 
         assertEquals(1, f.env.transactor.count - before, "the group, its rate log and both links")
         assertEquals(1, f.env.transactor.maxDepth, "no nesting")
@@ -149,7 +131,7 @@ class EnrollmentAtomicityTest {
         val ann = f.env.studentDao.upsert(StudentEntity(name = "Аня"))
         val bob = f.env.studentDao.upsert(StudentEntity(name = "Борис"))
         val cleo = f.env.studentDao.upsert(StudentEntity(name = "Вера"))
-        val id = f.env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann, bob)).id
+        val id = f.env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), setOf(ann, bob))
         val before = f.env.transactor.count
 
         f.env.groupRepo.save(
@@ -165,7 +147,7 @@ class EnrollmentAtomicityTest {
     fun `a group's rate and its log entry are one write`() = runTest {
         val f = Fixture()
         f.seed()
-        val id = f.env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), emptySet()).id
+        val id = f.env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(20)), emptySet())
         val before = f.env.transactor.count
 
         f.env.groupRepo.save(Group(id = id, name = "11 «А»", price = Money.ofMajor(25)), emptySet())

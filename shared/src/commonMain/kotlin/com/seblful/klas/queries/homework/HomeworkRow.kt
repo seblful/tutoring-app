@@ -81,8 +81,6 @@ data class HomeworkLists(val current: List<HomeworkRow>, val archive: List<Homew
  * while they have none booked — what the dialog says under the text, so the tutor sees where it goes.
  */
 data class AssigneeChoice(val assignee: Assignee, val name: String, val nextLessonAt: Instant?) {
-    val isGroup: Boolean get() = assignee is Assignee.Group
-
     companion object {
         /**
          * [assignee] as the dialog offers them at [now]: named [name], with the lesson of [classes] that

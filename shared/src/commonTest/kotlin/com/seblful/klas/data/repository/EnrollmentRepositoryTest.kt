@@ -91,54 +91,6 @@ class EnrollmentRepositoryTest {
         assertEquals(Money.ofMajor(45), env.priceDao.get(1, 2)?.amountMinor?.let { Money(it) })
     }
 
-    @Test
-    fun `setEnrollments links and prices every chosen subject`() = runTest {
-        repo.setEnrollments(studentId = 1, pricedSubjects = mapOf(2L to Money.ofMajor(30), 3L to Money.ofMajor(40)))
-
-        assertEquals(setOf(2L, 3L), env.studentDao.getSubjectIds(1).toSet())
-        assertEquals(Money.ofMajor(30), env.priceDao.get(1, 2)?.amountMinor?.let { Money(it) })
-        assertEquals(Money.ofMajor(40), env.priceDao.get(1, 3)?.amountMinor?.let { Money(it) })
-    }
-
-    @Test
-    fun `setEnrollments drops a subject's link and price together when it is no longer present`() = runTest {
-        repo.setEnrollments(studentId = 1, pricedSubjects = mapOf(2L to Money.ofMajor(30), 3L to Money.ofMajor(40)))
-
-        repo.setEnrollments(studentId = 1, pricedSubjects = mapOf(2L to Money.ofMajor(30)))
-
-        assertEquals(listOf(2L), env.studentDao.getSubjectIds(1))
-        assertNull(env.priceDao.get(1, 3), "the dropped subject's price must go with its link")
-    }
-
-    // --- The refusal the wide write used to lack ---------------------------------------------------
-
-    /**
-     * `unenroll` refuses to drop a subject the student has classes for; `setEnrollments` used to drop
-     * any number of them without asking. The same subject was therefore undroppable one way and
-     * droppable the other, and the wide write was the weaker one.
-     */
-    @Test
-    fun `setEnrollments keeps a subject the student has classes for - and says which`() = runTest {
-        repo.setEnrollments(studentId = 1, pricedSubjects = mapOf(2L to Money.ofMajor(30), 3L to Money.ofMajor(40)))
-        seedClass(studentId = 1, subjectId = 3)
-
-        val kept = repo.setEnrollments(studentId = 1, pricedSubjects = mapOf(2L to Money.ofMajor(30)))
-
-        assertEquals(setOf(3L), kept, "the subject with billed history is named")
-        assertEquals(listOf(2L, 3L), env.studentDao.getSubjectIds(1).sorted(), "and kept, link and price both")
-        assertEquals(Money.ofMajor(40), env.priceDao.get(1, 3)?.amountMinor?.let { Money(it) })
-    }
-
-    @Test
-    fun `setEnrollments still drops a subject with no classes - and names nothing`() = runTest {
-        repo.setEnrollments(studentId = 1, pricedSubjects = mapOf(2L to Money.ofMajor(30), 3L to Money.ofMajor(40)))
-
-        val kept = repo.setEnrollments(studentId = 1, pricedSubjects = mapOf(2L to Money.ofMajor(30)))
-
-        assertEquals(emptySet<Long>(), kept)
-        assertEquals(listOf(2L), env.studentDao.getSubjectIds(1))
-    }
-
     // --- A student and their prices are one act ---------------------------------------------------
 
     @Test

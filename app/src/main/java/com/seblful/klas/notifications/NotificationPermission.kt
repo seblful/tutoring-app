@@ -17,7 +17,7 @@ package com.seblful.klas.notifications
  */
 interface NotificationPermission {
 
-    /** True when a posted notification would actually be shown. Always true below Android 13. */
+    /** True when notifications are enabled for the app and any required runtime permission is granted. */
     fun isGranted(): Boolean
 
     /**

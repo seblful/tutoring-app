@@ -40,19 +40,6 @@ import java.util.Locale
 fun Context.inLanguage(locale: Locale): Context = LocalizedContext(this, locale)
 
 /**
- * This context's resources in the language the app is **currently displaying in** ([AppLocale.current]).
- *
- * For the two places that build text from the *application* context and so have no composition to read a
- * localized one from: the notification tray and the calendar mirror's event locations. Every screen gets its
- * own through `AppRoot`, which provides one to the whole composition.
- *
- * Built per call rather than cached, and deliberately: a cached `Resources` would go stale on any
- * configuration change (a density or font-scale change, not only a locale one), and the cost is one
- * `createConfigurationContext` against posting a notification or writing a calendar event.
- */
-fun Context.inAppLanguage(): Context = inLanguage(AppLocale.current)
-
-/**
  * The locale [AppLanguage.tagFor] resolves to against the phone's [preferred] locales — what a
  * `Configuration` and a `DateTimeFormatter` both take. The domain speaks BCP 47 tags; this is where a tag
  * becomes the platform's locale.

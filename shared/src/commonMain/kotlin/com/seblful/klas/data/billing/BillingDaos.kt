@@ -64,9 +64,6 @@ interface RateHistoryDao {
 @Dao
 interface PaymentDao {
     @Query("SELECT * FROM payments ORDER BY dateMillis DESC")
-    fun observeAll(): Flow<List<PaymentEntity>>
-
-    @Query("SELECT * FROM payments ORDER BY dateMillis DESC")
     suspend fun getAll(): List<PaymentEntity>
 
     @Query("SELECT * FROM payments WHERE studentId = :studentId ORDER BY dateMillis DESC")

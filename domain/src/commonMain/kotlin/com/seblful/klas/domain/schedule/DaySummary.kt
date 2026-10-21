@@ -33,7 +33,7 @@ data class DaySummary(
 
     /**
      * Displayable parts in order. Empty days return no parts; days containing only cancelled lessons
-     * return only the cancellation count. Future scheduled lessons omit money until billed.
+     * return only the cancellation count. Money includes expected charges for scheduled lessons.
      */
     val parts: List<Part>
         get() = when {

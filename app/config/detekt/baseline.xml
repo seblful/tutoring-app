@@ -40,7 +40,6 @@
     <ID>ReturnCount:ClassEditViewModel.kt:ClassEditViewModel$private suspend fun write: SaveOutcome</ID>
     <ID>ReturnCount:ClassForm.kt:ClassForm$fun slot: Scheduling.Slot?</ID>
     <ID>ReturnCount:ClassForm.kt:ClassForm$fun starts: List&lt;Instant&gt;</ID>
-    <ID>ReturnCount:Formatters.kt:fun parseMoneyOrNull: Money?</ID>
     <ID>ReturnCount:GroupDetailViewModel.kt:GroupDetailViewModel$fun homeworkChoice: AssigneeChoice?</ID>
     <ID>ReturnCount:GroupFormViewModel.kt:GroupFormViewModel$fun save</ID>
     <ID>ReturnCount:ScheduleModels.kt:fun Loadable&lt;ScheduleContent.Week&gt;.day: Loadable&lt;ScheduleContent.Day&gt;</ID>
