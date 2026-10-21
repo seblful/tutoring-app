@@ -50,3 +50,10 @@ fun rememberSegmentTickFeedback(): () -> Unit {
     val haptics = LocalHapticFeedback.current
     return remember(haptics) { { haptics.performHapticFeedback(HapticFeedbackType.SegmentTick) } }
 }
+
+/** The fine tick of a slide passing each step of a scale — the booking timeline's five minutes. */
+@Composable
+fun rememberStepTickFeedback(): () -> Unit {
+    val haptics = LocalHapticFeedback.current
+    return remember(haptics) { { haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick) } }
+}

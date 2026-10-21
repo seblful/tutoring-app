@@ -14,6 +14,7 @@ import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
+import com.seblful.klas.di.FirstDayOfWeek
 import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.lesson.GroupRules
 import com.seblful.klas.domain.lesson.SessionEdit
@@ -23,10 +24,12 @@ import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
+import com.seblful.klas.domain.schedule.CalendarLayout
+import com.seblful.klas.domain.schedule.DayBounds
+import com.seblful.klas.domain.schedule.DayTimeline
 import com.seblful.klas.domain.schedule.Scheduling
 import com.seblful.klas.domain.schedule.TimeConflict
 import com.seblful.klas.domain.time.WallClock
-import com.seblful.klas.domain.time.timeOfDay
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.zones
@@ -36,6 +39,7 @@ import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.common.state.ready
+import com.seblful.klas.ui.common.state.readyOrLoadingAfter
 import com.seblful.klas.ui.common.state.shared
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.writeAwaited
@@ -60,10 +64,14 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ClassEditViewModel @AssistedInject constructor(
@@ -78,6 +86,7 @@ class ClassEditViewModel @AssistedInject constructor(
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: WallClock,
+    @param:FirstDayOfWeek private val weekStart: DayOfWeek = DayOfWeek.MONDAY,
 ) : ViewModel() {
 
     /** Hands over the screen's navigation arguments as the [SavedStateHandle]; the rest is injected. */
@@ -234,6 +243,68 @@ class ClassEditViewModel @AssistedInject constructor(
             }
         }
 
+    /** A week paged to in the When section's strip; null while it follows the form's date. */
+    private val pagedWeek = MutableStateFlow<LocalDate?>(null)
+
+    /** The week the strip shows and how many lessons each of its days has. */
+    val week: StateFlow<BookingWeek> =
+        combine(pagedWeek, form.map { it.date }.distinctUntilChanged()) { paged, _ ->
+            paged ?: CalendarLayout.startOfWeek(datePickerDefault(), weekStart)
+        }.distinctUntilChanged()
+            .flatMapLatest { first -> weekFrom(first) }
+            .derive(this, computation, BookingWeek(CalendarLayout.week(datePickerDefault(), weekStart), clock.today()))
+
+    private fun weekFrom(first: LocalDate): Flow<BookingWeek> {
+        val days = CalendarLayout.week(first, weekStart)
+        val bounds = DayBounds.of(days.first(), days.last().plus(1, DateTimeUnit.DAY), zone)
+        return classes.observeBetween(bounds.start, bounds.end)
+            .map { CalendarLayout.dayLoads(it, zone) }
+            // The days and their counts arrive together, so a page turn never draws last week's numbers
+            // under this week's dates.
+            .readyOrLoadingAfter()
+            .map { loads -> BookingWeek(days, clock.today(), loads) }
+    }
+
+    /** Pages the strip [weeks] forward, or back when negative. */
+    fun showWeek(weeks: Int) {
+        pagedWeek.value = week.value.days.first().plus(weeks * CalendarLayout.DAYS_IN_WEEK, DateTimeUnit.DAY)
+    }
+
+    /** Pages the strip back to this week. */
+    fun showThisWeek() {
+        pagedWeek.value = CalendarLayout.startOfWeek(clock.today(), weekStart)
+    }
+
+    /** The chosen date as the timeline draws it, without this lesson in it; null until there is a date. */
+    private val timeline: StateFlow<DayTimeline?> =
+        combine(form.map { it.date }.distinctUntilChanged(), session, clock.zones()) { date, editing, zone ->
+            date?.let { DayKey(it, editing?.ids.orEmpty(), zone) }
+        }.distinctUntilChanged()
+            .flatMapLatest { key -> if (key == null) flowOf(null) else dayTimeline(key) }
+            .derive(this, computation, null)
+
+    private data class DayKey(val date: LocalDate, val ignoring: Set<Long>, val zone: TimeZone)
+
+    private fun dayTimeline(key: DayKey): Flow<DayTimeline> {
+        val bounds = DayBounds.of(key.date, key.zone)
+        val wholeDay = Scheduling.Slot(bounds.start, (bounds.end - bounds.start).inWholeMinutes.toInt())
+        val window = Scheduling.windowFor(wholeDay)
+        return combine(
+            classes.observeBetween(window.from, window.toExclusive),
+            allStudents,
+            allGroups,
+        ) { existing, studentList, groupList ->
+            val booked = Scheduling.conflicts(wholeDay, existing, key.ignoring).map { session ->
+                DayTimeline.Lesson.of(
+                    session,
+                    groupName = session.groupId?.let { id -> groupList.firstOrNull { it.id == id }?.name },
+                    studentName = studentList.firstOrNull { it.id == session.first.studentId }?.name,
+                )
+            }
+            DayTimeline.of(key.date, key.zone, booked)
+        }
+    }
+
     private data class Pickers(
         val students: List<Student>,
         val groups: List<Group>,
@@ -256,20 +327,29 @@ class ClassEditViewModel @AssistedInject constructor(
     val state: StateFlow<Loadable<ClassFormState>> =
         combine(
             pickers,
-            booking.combine(clock.zones()) { held, _ -> held },
+            combine(booking, clock.zones(), timeline) { held, _, day -> held to day },
             conflict,
             session,
             filled,
-        ) { readPickers, held, clash, booked, isFilled ->
+        ) { readPickers, (held, day), clash, booked, isFilled ->
             // Both halves: the lesson has been put in the form, and the lists the form names it out of
             // have been read. Either one alone still draws a lesson that is not this lesson.
             val pickers = readPickers.valueOrNull()?.takeIf { isFilled } ?: return@combine Loadable.Loading
             val f = held.form
+            // Only once it is the form's day: a date just changed draws no timeline rather than the last one.
+            val timeline = day?.takeIf { f.date?.let { date -> DayBounds.of(date, zone) } == it.day }
+                ?.including(f.slot(zone))
+            val length = f.durationMinutes ?: defaultMinutes.value
             val isTouched = held.touched
             Loadable.Ready(
                 ClassFormState(
                     form = f,
                     ending = f.ends(zone),
+                    slot = f.slot(zone),
+                    timeline = timeline,
+                    suggestion = timeline?.takeIf { f.timeFrom == null }
+                        ?.firstFree(length, clock.now())
+                        ?.let { Scheduling.Slot(it, length) },
                     // The names the pickers show, resolved here rather than in the composable. Blank where
                     // nothing is chosen, which is what an unfilled picker says. Spelled three times
                     // rather than through one helper because `Student`, `Group` and `Subject` share `id`
@@ -293,7 +373,7 @@ class ClassEditViewModel @AssistedInject constructor(
         }
             .derive(this, computation, Loadable.Loading)
 
-    /** A new booking's «Who» chips — see [TargetChoices.pick]. An edit never reads it, so never queries. */
+    /** A new booking's «Who» list — see [TargetChoices.pick]. An edit never reads it, so never queries. */
     val targetChoices: StateFlow<List<TargetChoice>> =
         combine(
             classes.observeRecentlyTaught(clock.now(), TargetChoices.SHOWN),
@@ -301,7 +381,7 @@ class ClassEditViewModel @AssistedInject constructor(
             allGroups,
             form.map { it.assignee }.distinctUntilChanged(),
         ) { recent, studentList, groupList, chosen ->
-            TargetChoices.pick(recent, studentList, groupList, chosen)
+            TargetChoices.pick(recent, studentList, groupList, chosen, shown = Int.MAX_VALUE)
         }
             .derive(this, computation, emptyList())
 
@@ -431,6 +511,9 @@ class ClassEditViewModel @AssistedInject constructor(
         applied.lookups.forEach { run(it) }
     }
 
+    /** Starts the lesson at [start] exactly — one the timeline has already found free, as a slide's end. */
+    fun startAt(start: Instant) = change(BookingIntent.StartAt(start.toLocalDateTime(zone).time))
+
     fun selectCreatedStudent(studentId: Long) {
         viewModelScope.launch {
             studentsRepo.getById(studentId)?.let { choose(Assignee.Student(it.id), known = it) }
@@ -477,12 +560,6 @@ class ClassEditViewModel @AssistedInject constructor(
      */
     fun datePickerDefault(today: LocalDate = clock.today()): LocalDate =
         currentForm.date ?: openedOnDay ?: today
-
-    /**
-     * What the start-time picker opens on — [BookingForm.startPickerDefault], at the injected clock's
-     * [now]. A parameter so a test can pick the time without depending on the wall clock.
-     */
-    fun startPickerDefault(now: LocalTime = clock.timeOfDay()): LocalTime = booking.value.startPickerDefault(now)
 
     /**
      * What «Другая» opens on: the length already chosen, otherwise the tutor's default lesson — the same

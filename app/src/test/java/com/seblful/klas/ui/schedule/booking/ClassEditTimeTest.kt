@@ -83,51 +83,24 @@ class ClassEditTimeTest : ClassEditTestFixture() {
     }
 
     @Test
-    fun `the pickers open on the next whole hour and the default length while nothing is chosen`() =
+    fun `the length picker opens on the default length while nothing is chosen`() =
         runTest(mainRule.dispatcher) {
             env.settingsRepo.update { it.copy(defaultLessonMinutes = 90) }
             val vm = vm()
             advanceUntilIdle()
 
-            // A lesson arranged at 14:37 is held at 15:00 — tutoring runs on the hour, so an empty form
-            // rounds up rather than offering minutes the tutor would only spin away. The length is the
-            // tutor's own.
-            assertEquals(LocalTime(15, 0), vm.startPickerDefault(LocalTime(14, 37, 42)))
+            // The length is the tutor's own.
             assertEquals(90, vm.durationPickerDefault())
         }
 
     @Test
-    fun `a time already on the hour is the hour it opens on`() = runTest(mainRule.dispatcher) {
-        val vm = vm()
-        advanceUntilIdle()
-
-        // Nothing to round: 15:00 is neither in the past nor short of the hour, so it must not be
-        // pushed to 16:00.
-        assertEquals(LocalTime(15, 0), vm.startPickerDefault(LocalTime(15, 0)))
-        // Seconds are not minutes, and are below what the picker can even show — 15:00:20 is still
-        // the 15:00 hour, not a reason to offer 16:00.
-        assertEquals(LocalTime(15, 0), vm.startPickerDefault(LocalTime(15, 0, 20)))
-    }
-
-    @Test
-    fun `the last hour of the day rounds up to midnight rather than overflowing`() =
-        runTest(mainRule.dispatcher) {
-            val vm = vm()
-            advanceUntilIdle()
-
-            // The date is a separate field, so this is "the next hour", not a claim about which day.
-            assertEquals(LocalTime(0, 0), vm.startPickerDefault(LocalTime(23, 40)))
-        }
-
-    @Test
-    fun `the pickers reopen on what was already chosen`() = runTest(mainRule.dispatcher) {
+    fun `the length picker reopens on what was already chosen`() = runTest(mainRule.dispatcher) {
         val vm = vm()
         advanceUntilIdle()
 
         vm.change(BookingIntent.StartAt(LocalTime(10, 0)))
         vm.change(BookingIntent.LastsFor(50))
 
-        assertEquals(LocalTime(10, 0), vm.startPickerDefault(LocalTime(14, 37)))
         assertEquals(50, vm.durationPickerDefault())
     }
 
@@ -178,7 +151,7 @@ class ClassEditTimeTest : ClassEditTestFixture() {
     }
 
     @Test
-    fun `editing opens the pickers on the lesson's own time, not the current one`() = runTest(mainRule.dispatcher) {
+    fun `editing opens on the lesson's own time and length`() = runTest(mainRule.dispatcher) {
         val (studentId, subjectId) = seedStudentWithPricedSubject()
         val start = Instant.parse("2026-06-15T07:00:00Z")
         val id = env.fixtures.storedClass(
@@ -186,10 +159,11 @@ class ClassEditTimeTest : ClassEditTestFixture() {
             durationMinutes = 60, priceMinor = Money.ofMajor(30).minor, status = LessonStatus.SCHEDULED,
         )
         val vm = vm(id)
+        observing(vm.state)
         advanceUntilIdle()
 
         val from = start.toLocalDateTime(zone).time
-        assertEquals(from, vm.startPickerDefault(LocalTime(14, 37)))
+        assertEquals(from, vm.state.current.form.timeFrom)
         assertEquals(60, vm.durationPickerDefault())
     }
 

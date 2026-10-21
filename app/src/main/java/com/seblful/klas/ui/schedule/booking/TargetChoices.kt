@@ -4,18 +4,18 @@ import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Student
 
-/** Somebody the booking form offers as a chip: a student or a group, and the name it shows. */
+/** Somebody the booking form offers to book for: a student or a group, and the name it shows. */
 data class TargetChoice(val who: Assignee, val name: String)
 
-/** Who a new booking offers first, as chips before «All…». */
+/** Who a new booking offers, in its «Who» list. */
 object TargetChoices {
-    /** Chips before «All…» — enough for a tutor's regulars, few enough to stay one or two rows. */
+    /** How many of the most recently taught lead the list — enough for a tutor's regulars. */
     const val SHOWN = 4
 
     /**
      * The people most recently taught, then — so a tutor with little history still gets chips — the rest
      * of the students and groups in list order; archived ones never. Whoever the form has [chosen] is
-     * always among them, first if it had to be added, so the selected chip is never hidden in «All…».
+     * always among them, first if it had to be added.
      */
     fun pick(
         recent: List<Assignee>,

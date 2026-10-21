@@ -123,12 +123,23 @@ Build screens from shared state and controls. Feature rules belong in the domain
   inside the week. Summaries are count·hours·money (`DaySummary`); show “now” only today. Completion is
   an undoable green swipe; cancelled lessons recede with a red badge. Book by duration, starting on the
   selected schedule day.
-- The booking form is three `FormSection` cards — Who, When, Terms — in the order the tutor answers.
-  A new booking picks who from chips (`TargetChoices`: recently taught first, students and groups
-  together, «All…» for the rest and for adding someone), so there is no Student/Group switch; an edit
-  keeps its kind. Rate and place stay written out. It alone saves from a bottom `BookingSaveBar`, not
-  the bar's `SaveAction`: the bar shows the booking it will make, or names what is missing or in the
-  way (`ClassFormState.saveBar`, `Ready` exactly when `canSave`).
+- The booking form is cards in the order the tutor answers — Who, When, Repeat (new bookings only),
+  Terms. A new booking picks who from one dropdown like the subject's (`TargetChoices`: recently taught
+  first, students and groups together, then adding a student or a group), so there is no Student/Group
+  switch; an edit keeps its kind. Repeat and Terms are `FoldedSection`s, folded until tapped to one line
+  saying what they are set to — Terms still state the rate and place, or in red that the rate is all
+  that is missing (`rateNeeded`). It alone saves from a bottom `BookingSaveBar`, not the bar's
+  `SaveAction`: the bar shows the booking it will make, or names what is missing or in the way
+  (`ClassFormState.saveBar`, `Ready` exactly when `canSave`). When picks the day from the schedule's
+  `WeekNavigator`/`WeekStrip` and draws it as one `BookingTimeline` bar with a line on every hour:
+  lessons as blocks in their student's avatar colour with their initial (groups in the group avatar's);
+  a tap on one names who, when and where in a bubble above, a second tap hides it. A tap on free time
+  starts the lesson there (`DayTimeline.place`). A slide anywhere on the bar moves the lesson from where
+  it is at half the finger's speed — about 2 dp per five minutes at full speed was too fine to land —
+  with a haptic tick per step, hopping over other lessons (`DayTimeline.nearestFree`); its start and end
+  are written over its edges, and it is booked when the finger lifts. Before a start is chosen it offers
+  the first free time as a dashed frame (`DayTimeline.firstFree`, never booked by itself). Screen readers
+  move it by the bar's 5-minutes earlier/later actions. Length folds to one line that opens its chips.
 - Lesson context opens homework, payment entry and profiles for the named student/group. Group payments
   first ask who paid; completing a lesson never creates a payment. Profiles book through the same form.
 - Setup detours push over the unfinished booking/group form and return created IDs through its navigation

@@ -105,6 +105,7 @@ class HapticFeedbackTest {
             "a refusal" to "rememberRejectFeedback",
             "a stored fact toggling" to "rememberToggleFeedback",
             "moving between segments" to "rememberSegmentTickFeedback",
+            "a slide passing a step" to "rememberStepTickFeedback",
         )
     }
 }

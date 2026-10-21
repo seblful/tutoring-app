@@ -90,8 +90,9 @@ fun IconAvatar(icon: ImageVector, modifier: Modifier = Modifier, size: Dp = 40.d
 
 private val AvatarGlyph = 22.dp
 
+/** A student's avatar colours, disc then letter — also what their lessons are drawn in on a timeline. */
 @Composable
-private fun avatarColors(studentId: Long): Pair<Color, Color> {
+internal fun avatarColors(studentId: Long): Pair<Color, Color> {
     val base = AvatarHues[AvatarPalette.indexFor(studentId, AvatarHues.size)]
     return if (klasColors.isDark) {
         base.copy(alpha = 0.35f) to lerp(base, Color.White, 0.55f)

@@ -138,10 +138,10 @@ class TutorWorkflowTest {
             waitForText("Workflow student")
             compose.onNodeWithContentDescription(text(R.string.schedule_add_class)).performClick()
             waitFor(R.string.class_add_title)
-            // The title is drawn while the form still loads; «All…» comes with the loaded form, and adding a
-            // group is in it.
-            waitFor(R.string.class_everyone)
-            click(R.string.class_everyone)
+            // The title is drawn while the form still loads; the «Who» list comes with the loaded form, and
+            // adding a group is in it.
+            waitFor(R.string.class_who_label)
+            click(R.string.class_who_label)
             waitFor(R.string.group_add_title)
             click(R.string.group_add_title)
             waitFor(R.string.group_name_label)
@@ -173,6 +173,8 @@ class TutorWorkflowTest {
             waitForText("Workflow student")
             compose.onNodeWithContentDescription(text(R.string.schedule_add_class)).performClick()
             waitFor(R.string.class_add_title)
+            // Terms are folded to a line; the rate is typed once they are opened.
+            compose.onNodeWithText(text(R.string.class_section_terms)).performScrollTo().performClick()
             compose.onNodeWithText(text(R.string.price_label)).performScrollTo().performTextReplacement("35")
             for (action in listOf(TrayNavigation.ACTION_OPEN_TODAY, TrayNavigation.ACTION_OPEN_DEBTS)) {
                 scenario.onActivity { activity ->

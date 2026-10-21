@@ -1,18 +1,13 @@
 package com.seblful.klas.ui.schedule.booking
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -21,17 +16,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.Role
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.ui.common.AddRow
-import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.MemberPickRow
+import com.seblful.klas.ui.common.MenuField
 import com.seblful.klas.ui.common.MenuOptions
 import com.seblful.klas.ui.common.ModeField
 import com.seblful.klas.ui.common.MoneyTextField
@@ -39,6 +38,8 @@ import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TickedMenuItem
+import com.seblful.klas.ui.common.classModeLabel
+import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.theme.KlasIcons
 
 /*
@@ -61,9 +62,8 @@ internal fun FormSection(title: String, content: @Composable ColumnScope.() -> U
 }
 
 /**
- * Who: the person or group, the group's roster, and the subject. A new booking picks from chips — the
- * people taught most recently, students and groups together — so there is no «Student or group?» to
- * answer first. An existing lesson keeps its kind: turning a student's class into a group lesson (or back)
+ * Who: the person or group, the group's roster, and the subject. A new booking picks from one list of
+ * students and groups together, so there is no «Student or group?» to answer first. An existing lesson keeps its kind: turning a student's class into a group lesson (or back)
  * would silently create or destroy other students' billed classes.
  */
 @Composable
@@ -76,7 +76,7 @@ internal fun WhoSection(
     val form = state.form
     if (isNew) {
         val choices by viewModel.targetChoices.collectAsStateWithLifecycle()
-        TargetChips(choices, chosen = form.assignee, state = state, onChoose = { viewModel.choose(it) }, setup)
+        WhoField(choices, chosen = form.assignee, state = state, onChoose = { viewModel.choose(it) }, setup)
     } else {
         when (form.target) {
             ClassTarget.STUDENT -> DropdownField(
@@ -101,89 +101,46 @@ internal fun WhoSection(
     SubjectField(state, viewModel, setup)
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * Who, picked from a list like the subject: everyone who can be booked — the most recently taught first,
+ * students and groups together — then the way to add somebody who is not there yet.
+ */
 @Composable
-private fun TargetChips(
+private fun WhoField(
     choices: List<TargetChoice>,
     chosen: Assignee?,
     state: ClassFormState,
     onChoose: (Assignee) -> Unit,
     setup: BookingSetupNavigation,
 ) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-        choices.forEach { choice ->
-            FilterChip(
+    MenuField(
+        label = stringResource(R.string.class_who_label),
+        selectedText = if (state.form.target == ClassTarget.GROUP) state.groupName else state.studentName,
+        enabled = true,
+    ) { dismiss ->
+        MenuOptions(choices, nameOf = { it.name }) { choice ->
+            TickedMenuItem(
+                text = choice.name,
                 selected = choice.who == chosen,
-                onClick = { onChoose(choice.who) },
-                label = { Text(choice.name) },
-                leadingIcon = { TargetMark(choice) },
+                onClick = { onChoose(choice.who); dismiss() },
+                leadingIcon = {
+                    Icon(
+                        if (choice.who is Assignee.Group) KlasIcons.Outlined.Group else KlasIcons.Outlined.Person,
+                        contentDescription = null,
+                    )
+                },
             )
         }
-        Everyone(chosen, state, onChoose, setup)
-    }
-}
-
-/** «All…»: everybody, searchable past a dozen, and the way to add somebody who is not there yet. */
-@Composable
-private fun Everyone(
-    chosen: Assignee?,
-    state: ClassFormState,
-    onChoose: (Assignee) -> Unit,
-    setup: BookingSetupNavigation,
-) {
-    var open by remember { mutableStateOf(false) }
-    Box {
-        AssistChip(
-            onClick = { open = true },
-            label = { Text(stringResource(R.string.class_everyone)) },
-            leadingIcon = {
-                Icon(
-                    KlasIcons.Filled.Search,
-                    contentDescription = null,
-                    modifier = Modifier.size(FilterChipDefaults.IconSize),
-                )
-            },
+        if (choices.isNotEmpty()) HorizontalDivider()
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.schedule_add_student)) },
+            onClick = { dismiss(); setup.addStudent() },
+            leadingIcon = { Icon(KlasIcons.Outlined.PersonAdd, contentDescription = null) },
         )
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            val everyone = remember(state.students, state.groups) {
-                TargetChoices.pick(emptyList(), state.students, state.groups, shown = Int.MAX_VALUE)
-            }
-            MenuOptions(everyone, nameOf = { it.name }) { choice ->
-                TickedMenuItem(
-                    text = choice.name,
-                    selected = choice.who == chosen,
-                    onClick = { onChoose(choice.who); open = false },
-                    leadingIcon = {
-                        Icon(
-                            if (choice.who is Assignee.Group) KlasIcons.Outlined.Group else KlasIcons.Outlined.Person,
-                            contentDescription = null,
-                        )
-                    },
-                )
-            }
-            if (everyone.isNotEmpty()) HorizontalDivider()
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.schedule_add_student)) },
-                onClick = { open = false; setup.addStudent() },
-                leadingIcon = { Icon(KlasIcons.Outlined.PersonAdd, contentDescription = null) },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.group_add_title)) },
-                onClick = { open = false; setup.addGroup() },
-                leadingIcon = { Icon(KlasIcons.Outlined.Groups, contentDescription = null) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun TargetMark(choice: TargetChoice) {
-    when (val who = choice.who) {
-        is Assignee.Student -> Avatar(choice.name, who.studentId, size = ChipAvatarSize)
-        is Assignee.Group -> Icon(
-            KlasIcons.Outlined.Group,
-            contentDescription = null,
-            modifier = Modifier.size(FilterChipDefaults.IconSize),
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.group_add_title)) },
+            onClick = { dismiss(); setup.addGroup() },
+            leadingIcon = { Icon(KlasIcons.Outlined.Groups, contentDescription = null) },
         )
     }
 }
@@ -264,14 +221,78 @@ private fun SubjectField(state: ClassFormState, viewModel: ClassEditViewModel, s
     }
 }
 
-/** Terms: the rate and the place — both written out, never behind a tap. */
+/**
+ * A card of the form folded to its title and what it is set to — [summary], red when [wanting] — and opened
+ * by a tap on that line to change it. Folded until the tutor opens it: what it holds is usually already right.
+ */
+@Composable
+internal fun FoldedSection(
+    title: String,
+    summary: String,
+    wanting: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    var opened by rememberSaveable { mutableStateOf(false) }
+    SectionCard {
+        Column(
+            Modifier.padding(Spacing.gutter),
+            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
+        ) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(role = Role.Button) { opened = !opened },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.inline),
+            ) {
+                SectionTitle(title, Modifier.weight(1f))
+                if (!opened) {
+                    Text(
+                        summary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.let { if (wanting) it.error else it.onSurfaceVariant },
+                    )
+                }
+                Icon(
+                    KlasIcons.Filled.ArrowDropDown,
+                    contentDescription = null,
+                    modifier = Modifier.rotate(if (opened) HALF_TURN else 0f),
+                )
+            }
+            if (opened) content()
+        }
+    }
+}
+
+/**
+ * Terms: the rate and the place, folded to one line that still says both — whether the pre-filled rate is
+ * the one meant stays readable without a tap — or, in red, that the rate is all the booking still lacks.
+ */
 @Composable
 internal fun TermsSection(state: ClassFormState, viewModel: ClassEditViewModel) {
     val form = state.form
-    // **The rate, never folded.** For a group it is *n* students' money; for one student it is the number
-    // that will be billed. A fold saved one line and cost the one fact on the form that is about money:
-    // whether the pre-filled rate is the one meant was readable only after a tap. The label differs
-    // because the question does: a group's rate is the group's, a student's is theirs for this subject.
+    val rate = form.price.amount?.takeIf { form.price.isValid }
+    FoldedSection(
+        title = stringResource(R.string.class_section_terms),
+        summary = if (state.rateNeeded) {
+            stringResource(R.string.class_terms_price_needed)
+        } else {
+            bulletJoin(
+                rate?.let { stringResource(R.string.price_per_hour, it.text()) }.orEmpty(),
+                classModeLabel(form.mode),
+            )
+        },
+        wanting = state.rateNeeded,
+    ) {
+        TermsFields(state, viewModel)
+    }
+}
+
+@Composable
+private fun TermsFields(state: ClassFormState, viewModel: ClassEditViewModel) {
+    val form = state.form
+    // The label differs because the question does: a group's rate is the group's, a student's is theirs
+    // for this subject.
     MoneyTextField(
         field = form.price,
         onValueChange = { text -> viewModel.change(BookingIntent.Edit { it.copy(price = it.price.typed(text)) }) },
@@ -280,8 +301,6 @@ internal fun TermsSection(state: ClassFormState, viewModel: ClassEditViewModel) 
         ),
         modifier = Modifier.padding(top = Spacing.tight),
     )
-    // Never folded either: a mode is a guess from the student's usual place that this lesson may contradict,
-    // so it has to be readable, and changeable, without a tap to reveal it first.
     ModeField(
         label = stringResource(R.string.class_location_label),
         selected = form.mode,
@@ -289,4 +308,4 @@ internal fun TermsSection(state: ClassFormState, viewModel: ClassEditViewModel) 
     )
 }
 
-private val ChipAvatarSize = 24.dp
+private const val HALF_TURN = 180f

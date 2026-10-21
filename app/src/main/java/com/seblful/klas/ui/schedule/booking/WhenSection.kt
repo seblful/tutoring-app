@@ -1,228 +1,157 @@
 package com.seblful.klas.ui.schedule.booking
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
-import com.seblful.klas.domain.schedule.Recurrence
-import com.seblful.klas.domain.schedule.Repeat
-import com.seblful.klas.format.formatDate
-import com.seblful.klas.ui.common.CountPickerModal
-import com.seblful.klas.ui.common.DatePickerModal
+import com.seblful.klas.domain.schedule.DayTimeline
+import com.seblful.klas.domain.schedule.TimeConflict
+import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.ui.common.DurationPickerModal
-import com.seblful.klas.ui.common.PickerField
 import com.seblful.klas.ui.common.PresetChips
-import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.durationLabel
-import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.schedule.WeekNavigator
+import com.seblful.klas.ui.schedule.WeekStrip
 import com.seblful.klas.ui.schedule.timeConflictText
+import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.LocalDate
 
 /*
- * The booking form's «When» section — see [WhenSection] — and the pickers it opens.
+ * The booking form's «When» section — see [WhenSection].
  */
 
-private enum class WhenPicker { DATE, START, LENGTH, COUNT }
-
-/** When: the day and the start, how long, and — only while booking — how many times. */
+/**
+ * When: the day from a week strip, the start from that day's timeline, and how long — folded to a line.
+ * Whether it repeats is a section of its own, [RepeatSection].
+ */
 @Composable
 internal fun WhenSection(state: ClassFormState, viewModel: ClassEditViewModel) {
     val form = state.form
     val durations by viewModel.durationOptions.collectAsStateWithLifecycle()
-    var picker by remember { mutableStateOf<WhenPicker?>(null) }
-    // Padded down so the outlined fields' floating labels clear the section title.
-    Row(Modifier.padding(top = Spacing.tight), horizontalArrangement = Arrangement.spacedBy(Spacing.gutter)) {
-        PickerField(
-            value = form.date?.formatDate().orEmpty(),
-            label = stringResource(R.string.class_date_label),
-            onClick = { picker = WhenPicker.DATE },
-            modifier = Modifier.weight(1.4f),
-        )
-        // Marked as the field that is wrong — a start and a length cannot be impossible, so a taken hour is
-        // the only thing that can be. The sentence goes full-width under the row: in this narrow field it
-        // wrapped to five lines.
-        PickerField(
-            value = form.timeFrom?.timeText().orEmpty(),
-            label = stringResource(R.string.class_time_from_label),
-            onClick = { picker = WhenPicker.START },
-            modifier = Modifier.weight(1f),
-            isError = state.conflictBlocksSave,
-        )
-    }
-    state.conflict?.let { conflict ->
-        Text(
-            if (form.repeat.repeats) {
-                stringResource(R.string.class_series_availability, state.availableOccurrences)
-            } else {
-                timeConflictText(conflict)
-            },
-            style = MaterialTheme.typography.bodySmall,
-            color = if (state.conflictBlocksSave) {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-        )
-    }
+    var customLength by remember { mutableStateOf(false) }
+    WeekChoice(viewModel, selected = form.date)
+    state.timeline?.let { day -> DayOnTimeline(day, state, viewModel) }
+    state.conflict?.let { conflict -> ConflictLine(conflict, state) }
 
     // How long, not when it ends — a length is what the lesson is stored as. The end is its consequence.
-    DurationPicker(
-        options = durations,
-        selected = form.durationMinutes,
-        ends = state.ending,
-        onSelect = { minutes -> viewModel.change(BookingIntent.LastsFor(minutes)) },
-        onCustom = { picker = WhenPicker.LENGTH },
-    )
-
-    // **Only while booking**: repeating is a property of the act, not of a lesson already in the database,
-    // and offering it there would read as an invitation to turn one lesson into twelve by editing it.
-    if (viewModel.isNew) {
-        RepeatPicker(
-            repeat = form.repeat,
-            count = form.repeatCount,
-            until = form.repeatsUntil,
-            onRepeat = { repeat -> viewModel.change(BookingIntent.Edit { it.copy(repeat = repeat) }) },
-            onCount = { count -> viewModel.change(BookingIntent.Edit { it.copy(repeatCount = count) }) },
-            onCustomCount = { picker = WhenPicker.COUNT },
-        )
-        if (form.repeat.repeats) {
-            Text(
-                stringResource(R.string.class_repeat_independent_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-    WhenPickerDialog(picker, viewModel, onDone = { picker = null })
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun DurationPicker(
-    options: List<Int>,
-    selected: Int?,
-    ends: ClassForm.Ending?,
-    onSelect: (Int) -> Unit,
-    onCustom: () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-        // A flow, so the consequence moves to a line of its own whole rather than being squeezed into a
-        // column beside the label — «Длительность · до 00:00 (следующего дня)» at a large font scale.
-        FlowRow(itemVerticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.class_duration_label), style = MaterialTheme.typography.labelLarge)
-            if (ends != null) {
-                Text(
-                    " · " + endsAtText(ends),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+    Folded(stringResource(R.string.class_duration_label), lengthSummary(form.durationMinutes, state.ending)) {
         PresetChips(
-            presets = options,
-            selected = selected,
+            presets = durations,
+            selected = form.durationMinutes,
             label = { minutes -> durationLabel(minutes) },
             customLabel = stringResource(R.string.class_duration_custom),
-            onSelect = onSelect,
-            onCustom = onCustom,
+            onSelect = { minutes -> viewModel.change(BookingIntent.LastsFor(minutes)) },
+            onCustom = { customLength = true },
+        )
+    }
+    if (customLength) {
+        DurationPickerModal(
+            initialMinutes = viewModel.durationPickerDefault(),
+            onConfirm = { minutes -> viewModel.change(BookingIntent.LastsFor(minutes)); customLength = false },
+            onDismiss = { customLength = false },
         )
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+/** What stands in the chosen time's way — red only while it stops the save. */
 @Composable
-private fun RepeatPicker(
-    repeat: Repeat,
-    count: Int,
-    until: LocalDate?,
-    onRepeat: (Repeat) -> Unit,
-    onCount: (Int) -> Unit,
-    onCustomCount: () -> Unit,
-) {
+private fun ConflictLine(conflict: TimeConflict, state: ClassFormState) {
+    Text(
+        if (state.form.repeat.repeats) {
+            stringResource(R.string.class_series_availability, state.availableOccurrences)
+        } else {
+            timeConflictText(conflict)
+        },
+        style = MaterialTheme.typography.bodySmall,
+        color = if (state.conflictBlocksSave) {
+            MaterialTheme.colorScheme.error
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+    )
+}
+
+/** The strip of days the lesson can be on, a week at a time — the schedule's own strip and navigator. */
+@Composable
+private fun WeekChoice(viewModel: ClassEditViewModel, selected: LocalDate?) {
+    val week by viewModel.week.collectAsStateWithLifecycle()
+    WeekNavigator(
+        days = week.days,
+        onPrevious = { viewModel.showWeek(-1) },
+        onNext = { viewModel.showWeek(1) },
+        onToday = viewModel::showThisWeek,
+    )
+    WeekStrip(
+        days = week.days,
+        loads = week.loads,
+        selected = selected,
+        today = week.today,
+        onSelect = { date -> viewModel.change(BookingIntent.Edit { it.copy(date = date) }) },
+    )
+}
+
+/** The chosen day as one bar — see [BookingTimeline]. */
+@Composable
+private fun DayOnTimeline(day: DayTimeline, state: ClassFormState, viewModel: ClassEditViewModel) {
+    BookingTimeline(
+        timeline = day,
+        chosen = state.slot,
+        length = state.form.durationMinutes ?: DEFAULT_LESSON_MINUTES,
+        // The day drawn, not the run: a repeating booking's later clash is said in the text below.
+        clashes = state.slot?.let(day::clashesWith) == true,
+        onStart = viewModel::startAt,
+        suggestion = state.suggestion,
+        mine = state.form.assignee,
+    )
+}
+
+/** A When row folded to its label and what it is set to, opened by a tap to change it. */
+@Composable
+private fun Folded(label: String, value: String, content: @Composable () -> Unit) {
+    var open by rememberSaveable { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-        FlowRow(itemVerticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.class_repeat_label), style = MaterialTheme.typography.labelLarge)
-            // «по 24 сентября» — the last day the run reaches, shown once there is a date to count from.
-            if (until != null) {
-                Text(
-                    " · " + stringResource(R.string.class_repeat_until, until.formatDate()),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        SegmentedChoice(
-            options = Repeat.entries,
-            selected = repeat,
-            onSelect = onRepeat,
-            label = { option -> repeatLabel(option) },
-        )
-        if (repeat.repeats) {
-            Text(stringResource(R.string.class_repeat_count_label), style = MaterialTheme.typography.labelLarge)
-            PresetChips(
-                presets = Recurrence.COMMON_COUNTS,
-                selected = count,
-                label = { option -> option.toString() },
-                customLabel = stringResource(R.string.class_repeat_count_custom),
-                onSelect = onCount,
-                onCustom = onCustomCount,
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button) { open = !open }
+                .padding(vertical = Spacing.tight),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.inline),
+        ) {
+            Text(label, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+            Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(
+                KlasIcons.Filled.ArrowDropDown,
+                contentDescription = null,
+                modifier = Modifier.rotate(if (open) HALF_TURN else 0f),
             )
         }
+        if (open) content()
     }
 }
 
+/** «1 h · until 15:30». */
 @Composable
-internal fun repeatLabel(repeat: Repeat): String = stringResource(
-    when (repeat) {
-        Repeat.NONE -> R.string.class_repeat_none
-        Repeat.WEEKLY -> R.string.class_repeat_weekly
-        Repeat.FORTNIGHTLY -> R.string.class_repeat_fortnightly
-    },
-)
+private fun lengthSummary(minutes: Int?, ends: ClassForm.Ending?): String =
+    bulletJoin(minutes?.let { durationLabel(it) }.orEmpty(), ends?.let { endsAtText(it) }.orEmpty())
 
-/** The picker the section has open, if any — each a dialog over the form. */
-@Composable
-private fun WhenPickerDialog(picker: WhenPicker?, viewModel: ClassEditViewModel, onDone: () -> Unit) {
-    when (picker) {
-        WhenPicker.DATE -> DatePickerModal(
-            initial = viewModel.datePickerDefault(),
-            onConfirm = { date -> viewModel.change(BookingIntent.Edit { it.copy(date = date) }); onDone() },
-            onDismiss = onDone,
-        )
-        WhenPicker.START -> TimePickerModal(
-            initial = viewModel.startPickerDefault(),
-            onConfirm = { time -> viewModel.change(BookingIntent.StartAt(time)); onDone() },
-            onDismiss = onDone,
-        )
-        WhenPicker.LENGTH -> DurationPickerModal(
-            initialMinutes = viewModel.durationPickerDefault(),
-            onConfirm = { minutes -> viewModel.change(BookingIntent.LastsFor(minutes)); onDone() },
-            onDismiss = onDone,
-        )
-        WhenPicker.COUNT -> CountPickerModal(
-            title = stringResource(R.string.class_repeat_count_title),
-            label = stringResource(R.string.class_repeat_count_field, Recurrence.MAX_COUNT),
-            initial = viewModel.repeatCountPickerDefault(),
-            max = Recurrence.MAX_COUNT,
-            onConfirm = { count -> viewModel.change(BookingIntent.Edit { it.copy(repeatCount = count) }); onDone() },
-            onDismiss = onDone,
-        )
-        null -> Unit
-    }
-}
+private const val HALF_TURN = 180f

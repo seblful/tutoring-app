@@ -170,7 +170,7 @@ fun <T> ChoiceField(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MenuField(
+internal fun MenuField(
     label: String,
     selectedText: String,
     enabled: Boolean,

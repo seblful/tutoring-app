@@ -2,6 +2,7 @@ package com.seblful.klas.ui.schedule.booking
 
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.domain.lesson.GroupRules
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
@@ -31,8 +32,7 @@ data class SubjectKey(val target: ClassTarget, val studentId: Long?, val groupId
 
 /**
  * The class-booking form. A new booking uses the schedule's selected day when opened from there;
- * otherwise the date starts empty. The start time is chosen by the user (the picker opens on the
- * next whole hour, see [BookingForm.startPickerDefault]).
+ * otherwise the date starts empty. The start is chosen on the day's timeline.
  */
 data class ClassForm(
     val target: ClassTarget = ClassTarget.STUDENT,
@@ -50,7 +50,7 @@ data class ClassForm(
      * booked members and are made in the lesson sheet.
      */
     val excludedMemberIds: Set<Long> = emptySet(),
-    /** hether this booking writes the one lesson or a run of them — see [Repeat]. */
+    /** Whether this booking writes the one lesson or a run of them — see [Repeat]. */
     val repeat: Repeat = Repeat.NONE,
     /** How many lessons a repeating booking writes, this one included. Meaningless while [repeat] is NONE. */
     val repeatCount: Int = Recurrence.DEFAULT_COUNT,
@@ -106,9 +106,13 @@ data class ClassForm(
 
     /** Whether the lesson yet has somebody to be for — a student chosen, or a group. */
     val hasTarget: Boolean
+        get() = assignee != null
+
+    /** Who the lesson is for, once chosen — whose other lessons the day's timeline picks out. */
+    val assignee: Assignee?
         get() = when (target) {
-            ClassTarget.STUDENT -> studentId != null
-            ClassTarget.GROUP -> groupId != null
+            ClassTarget.STUDENT -> studentId?.let(Assignee::Student)
+            ClassTarget.GROUP -> groupId?.let(Assignee::Group)
         }
 
     /**

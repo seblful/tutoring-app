@@ -108,7 +108,7 @@ fun MonthCalendar(
 fun WeekStrip(
     days: List<LocalDate>,
     loads: Loadable<Map<LocalDate, CalendarLayout.DayLoad>>,
-    selected: LocalDate,
+    selected: LocalDate?,
     today: LocalDate,
     onSelect: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,

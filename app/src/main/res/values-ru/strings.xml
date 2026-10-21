@@ -178,9 +178,14 @@
     <string name="class_section_who">Кто</string>
     <string name="class_section_when">Когда</string>
     <string name="class_section_terms">Условия</string>
-    <string name="class_everyone">Все…</string>
+    <string name="class_terms_price_needed">Укажите цену</string>
+    <string name="class_who_label">Ученик или группа</string>
     <string name="class_book_action">Записать</string>
     <string name="class_still_needed">Осталось указать</string>
+    <string name="class_timeline_hint">Коснитесь свободного места, ведите — сдвинуть</string>
+    <string name="class_timeline_earlier">На 5 минут раньше</string>
+    <string name="class_timeline_later">На 5 минут позже</string>
+    <string name="class_timeline_suggestion">Нажмите, чтобы поставить сюда · %1$s</string>
     <string name="class_gap_who">ученика или группу</string>
     <string name="class_gap_subject">предмет</string>
     <string name="class_gap_date">дату</string>

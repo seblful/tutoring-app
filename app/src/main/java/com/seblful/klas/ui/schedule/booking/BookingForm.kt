@@ -283,15 +283,6 @@ data class BookingForm(
         return settled(form.copy(excludedMemberIds = excluded))
     }
 
-    /**
-     * What the start-time picker opens on: the start already chosen, or — for a lesson whose time is
-     * still empty — **the next whole hour** after [now].
-     */
-    fun startPickerDefault(now: LocalTime): LocalTime {
-        form.timeFrom?.let { return it }
-        return if (now.minute == 0) LocalTime(now.hour, 0) else LocalTime((now.hour + 1) % HOURS_IN_DAY, 0)
-    }
-
     private fun startAt(time: LocalTime, context: BookingContext): Applied = settled(
         form.copy(
             timeFrom = time,
@@ -302,5 +293,3 @@ data class BookingForm(
 
 /** [this], applied as setup rather than as the tutor's edit — see [BookingIntent.AsSetup]. */
 fun BookingIntent.asSetup(): BookingIntent = BookingIntent.AsSetup(this)
-
-private const val HOURS_IN_DAY = 24

@@ -5,8 +5,12 @@ import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.schedule.CalendarLayout
+import com.seblful.klas.domain.schedule.DayTimeline
+import com.seblful.klas.domain.schedule.Scheduling
 import com.seblful.klas.domain.schedule.TimeConflict
 import com.seblful.klas.ui.common.LeavableForm
+import com.seblful.klas.ui.common.state.Loadable
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 
@@ -34,6 +38,15 @@ enum class SubjectNotice {
 data class ClassFormState(
     val form: ClassForm = ClassForm(),
     val ending: ClassForm.Ending? = null,
+    /** The time the lesson takes, once it has a date, a start and a length. */
+    val slot: Scheduling.Slot? = null,
+    /** The chosen date's other lessons and this one, as the When section draws them; null without a date. */
+    val timeline: DayTimeline? = null,
+    /**
+     * Where the timeline offers to put the lesson while it has no start: the first free time from now —
+     * drawn as a frame to tap, never booked by itself.
+     */
+    val suggestion: Scheduling.Slot? = null,
     /** What the three pickers **say** — the chosen row's name, resolved, or blank where nothing is chosen. */
     val studentName: String = "",
     val groupName: String = "",
@@ -130,6 +143,13 @@ data class ClassFormState(
             else -> SaveBar.Ready
         }
 
+    /**
+     * Whether the folded Terms card says in red that the rate is wanted: it is the one thing the booking
+     * still lacks. Not while anything else is missing too — a rate is filled in from whoever is chosen, so
+     * an empty one before that is not the tutor's to type yet.
+     */
+    val rateNeeded: Boolean get() = gaps == listOf(BookingGap.PRICE)
+
     /** What tapping save should do: save, or ask about the income it would destroy first. */
     val saveIntent: SaveIntent
         get() = billedDrops.let { if (it > 0) SaveIntent.ConfirmBilledDrops(it) else SaveIntent.Save }
@@ -178,3 +198,10 @@ sealed interface SaveIntent {
 
 /** What a repeating booking came to, when it could not book all of it. */
 data class SeriesOutcome(val booked: Int, val skipped: List<LocalDate>)
+
+/** The week the When section's strip shows, and each day's lessons — see [ClassEditViewModel.week]. */
+data class BookingWeek(
+    val days: List<LocalDate>,
+    val today: LocalDate,
+    val loads: Loadable<Map<LocalDate, CalendarLayout.DayLoad>> = Loadable.Loading,
+)

@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.schedule.booking
 
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
@@ -268,5 +269,19 @@ class ClassFormTest {
             assertEquals(bar, state.saveBar)
             assertEquals(bar == SaveBar.Ready, state.canSave)
         }
+    }
+
+    @Test
+    fun `the terms ask for the rate only when it is all that is missing`() {
+        assertTrue(stateWith(form = validForm.copy(price = MoneyField(""))).rateNeeded)
+        assertFalse(stateWith(form = validForm).rateNeeded)
+        assertFalse(stateWith(form = ClassForm(price = MoneyField(""))).rateNeeded)
+    }
+
+    @Test
+    fun `the lesson is for the student or the group its kind names`() {
+        assertNull(ClassForm().assignee)
+        assertEquals(Assignee.Student(7), ClassForm(studentId = 7, groupId = 3).assignee)
+        assertEquals(Assignee.Group(3), ClassForm(target = ClassTarget.GROUP, studentId = 7, groupId = 3).assignee)
     }
 }

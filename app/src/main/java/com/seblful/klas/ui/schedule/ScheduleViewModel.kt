@@ -77,7 +77,6 @@ import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.days
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
@@ -235,7 +234,7 @@ class ScheduleViewModel @Inject constructor(
                         // Paging is a new question too: the tallies are keyed by date, so last month's
                         // map has no entry for any day of this one and those cells read as free — for
                         // the frames the new month takes to count, and no longer than the grace.
-                        .readyOrLoadingAfter(PAGE_TURN_GRACE)
+                        .readyOrLoadingAfter()
                 }
             }
             .derive(this, computation, Loadable.Loading)
@@ -288,7 +287,7 @@ class ScheduleViewModel @Inject constructor(
                     // takes longer than the grace. Within it the previous week stays up, which is what
                     // keeps paging from blinking the list to a skeleton; [day] will not read a day out of
                     // a week that does not hold it, and a day's heading names the day its content carries.
-                    .readyOrLoadingAfter(PAGE_TURN_GRACE)
+                    .readyOrLoadingAfter()
             }
             // `ScheduleContent.Day(emptyList())` used to be the initial value, which is a *day with
             // no lessons* — so a cold open drew «Нет занятий» over the tutor's actual morning, with
@@ -515,11 +514,5 @@ class ScheduleViewModel @Inject constructor(
     private companion object {
         /** A week's span as a day count, for the bounds of the week being read. */
         const val DAYS_IN_WEEK = CalendarLayout.DAYS_IN_WEEK.toLong()
-
-        /**
-         * How long the previous page's answer may stand while the next is read. Long enough to cover a
-         * re-query on a slow phone, short enough that a stuck one is never mistaken for an answer.
-         */
-        val PAGE_TURN_GRACE = 250.milliseconds
     }
 }
